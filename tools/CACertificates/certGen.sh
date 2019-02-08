@@ -304,7 +304,7 @@ function initial_cert_generation()
 ###############################################################################
 # Installs a root CA and private key for all certificate generation
 ###############################################################################
-function install_root_ca()
+function install_root_ca_via_file_paths()
 {
     local src_root_ca_path="${1}"
     local src_root_ca_key_path="${2}"
@@ -318,6 +318,24 @@ function install_root_ca()
     cp ${src_root_ca_path} ${dest_cert_file}
     cp ${src_root_ca_key_path} ${dest_key_file}
     generate_intermediate_ca ${root_ca_password}
+}
+
+###############################################################################
+# Installs a root CA and private key for all certificate generation
+###############################################################################
+function install_root_ca_via_cli_params()
+{
+    local ca_cert="${1}"
+    local ca_pk="${2}"
+    local root_ca_password="${3}"
+    local ip_cert_file="/tmp/ca_cert.pem"
+    local ip_key_file="/tmp/ca_pk.pem"
+
+    echo $ca_cert > $ip_cert_file
+    echo $ca_pk > $ip_key_file
+    install_root_ca_via_file_paths $ip_cert_file $ip_key_file $root_ca_password
+    rm -f $ip_cert_file
+    rm -f $ip_key_file
 }
 
 ###############################################################################
@@ -406,8 +424,10 @@ function generate_edge_device_certificate()
 
 if [ "${1}" == "create_root_and_intermediate" ]; then
     initial_cert_generation
-elif [ "${1}" == "install_root_ca" ]; then
-    install_root_ca "${2}" "${3}" "${4}"
+elif [ "${1}" == "install_root_ca_via_file_paths" ]; then
+    install_root_ca_via_file_paths "${2}" "${3}" "${4}"
+elif [ "${1}" == "install_root_ca_via_cli_params" ]; then
+    install_root_ca_via_cli_params "${2}" "${3}" "${4}"
 elif [ "${1}" == "create_verification_certificate" ]; then
     generate_verification_certificate "${2}"
 elif [ "${1}" == "create_device_certificate" ]; then
@@ -418,7 +438,8 @@ elif [ "${1}" == "create_edge_server_certificate" ]; then
     generate_edge_server_certificate "${2}"
 else
     echo "Usage: create_root_and_intermediate                   # Creates a new root and intermediate certificates"
-    echo "       install_root_ca <path to certificate> <path to private key> <private key password>  # Sets up a CA file and creates an intermediate signing certificate. Both key and certificate are expected to be in PEM format"
+    echo "       install_root_ca_via_file_paths <path to certificate> <path to private key> <private key password>  # Sets up a CA file and creates an intermediate signing certificate. Both key and certificate are expected to be in PEM format"
+    echo "       install_root_ca_via_cli_params <certificate payload> <private key payload> <private key password>  # Sets up a CA file and creates an intermediate signing certificate. Both key and certificate are expected to be in PEM format"
     echo "       create_verification_certificate <subjectName>  # Creates a verification certificate, signed with <subjectName>"
     echo "       create_device_certificate <subjectName>        # Creates a device certificate, signed with <subjectName>"
     echo "       create_edge_device_certificate <subjectName>   # Creates an edge device certificate, signed with <subjectName>"
