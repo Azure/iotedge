@@ -458,6 +458,8 @@ function Uninstall-SecurityDaemon {
 
     Write-Host 'Uninstalling...'
 
+    $ContainerOs = Get-ContainerOs
+
     $restartNeeded = $false
     Uninstall-Services -RestartNeeded ([ref] $restartNeeded) -LegacyInstaller $legacyInstaller
     $success = Remove-SecurityDaemonResources -LegacyInstaller $legacyInstaller
@@ -754,8 +756,29 @@ function Test-AgentRegistryArgs {
     return $valid
 }
 
+function Get-ContainerOs {
+    $yamlPath = (Join-Path -Path $EdgeDataDirectory -ChildPath "config.yaml")
+    if (-not (Test-Path $yamlPath)) {
+        Write-Host "Windows"
+        return "Windows"
+    }
+    $configurationYaml = Get-Content $yamlPath -Raw
+    if (-not ($configurationYaml -match "moby_runtime:\s*uri:\s*'([^']+)'")) {
+        Write-Host "Windows"
+        return "Windows"
+    }
+
+    if ($Matches[1] -eq $MobyLinuxNamedPipeUrl) {
+        Write-Host "Linux"
+        return "Linux"
+    }
+
+    Write-Host "Windows"
+    return "Windows"
+}
+
 function Get-ExternalDockerServerOs {
-    $dockerExe = Get-DockerExePath
+    $dockerExe = Get-DockerCommandPrefix
     if ((Invoke-Native "$dockerExe version --format ""{{.Server.Os}}""" -Passthru) -match '\s*windows\s*$') {
         return 'Windows'
     }
@@ -947,7 +970,7 @@ function Remove-SecurityDaemonResources([bool] $LegacyInstaller) {
             Write-Verbose "$cmdErr"
         }
     }
-    
+
     if ($LegacyInstaller) {
         # Check whether we need to clean up after an errant installation into the OS partition on IoT Core
         if ($env:ProgramData -ne 'C:\ProgramData') {
@@ -984,15 +1007,15 @@ function Remove-SecurityDaemonResources([bool] $LegacyInstaller) {
         Write-Host "Not deleting Moby data root directory since -DeleteMobyDataRoot was not specified."
     }
 
-    foreach ($install in $existingMobyInstallations) {
+    foreach ($install in $existingMobyInstallations | ?{ Test-Path $_ }) {
         try {
-            Write-Host "Deleting install directory '$install'..."
+            Write-Host "Deleting directory '$install'..."
             Delete-Directory $install
-            Write-Verbose "Deleted install directory '$install'"
+            Write-Verbose "Deleted directory '$install'"
         }
         catch {
             Write-Verbose $_
-            Write-HostRed ("Could not delete install directory '$install'. Please reboot " +
+            Write-HostRed ("Could not delete directory '$install'. Please reboot " +
                 'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
             $success = $false
         }
@@ -1351,7 +1374,7 @@ function Set-MobyEngineParameters {
             'moby_runtime:',
             "  uri: '$mobyUrl'",
             "  network: '$mobyNetwork'")
-        $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")) | Set-Content $yamlPath -Force
+        $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
         Write-HostGreen "Configured device with Moby Engine URL '$mobyUrl' and network '$mobyNetwork'."
         return $configurationYaml
     })
@@ -1366,6 +1389,7 @@ function Get-AgentRegistry {
 }
 
 function Stop-EdgeContainer([string] $Name = $null) {
+    $dockerExe = Get-DockerCommandPrefix
     $allContainersString = Invoke-Native "$dockerExe ps --all --format ""{{.ID}}""" -Passthru
     [string[]] $allContainers = $allContainersString -split {$_ -eq "`r" -or $_ -eq "`n"} | where {$_.Length -gt 0}
 
@@ -1401,13 +1425,7 @@ function Stop-EdgeContainer([string] $Name = $null) {
 }
 
 function Remove-IotEdgeContainers {
-    $dockerExe = Get-DockerExePath
-
     if (-not (Test-IsDockerRunning 6> $null)) {
-        return
-    }
-
-    if (-not (Get-Command "docker.exe" -ErrorAction SilentlyContinue)) {
         return
     }
 
@@ -1417,6 +1435,7 @@ function Remove-IotEdgeContainers {
 
     if ($DeleteMobyDataRoot) {
         try {
+            $dockerExe = Get-DockerCommandPrefix
             Invoke-Native "$dockerExe container prune -f"
             Invoke-Native "$dockerExe image prune -f -a"
             Invoke-Native "$dockerExe system prune -f -a"
@@ -1427,7 +1446,7 @@ function Remove-IotEdgeContainers {
     }
 }
 
-function Get-DockerExePath {
+function Get-DockerCommandPrefix {
     switch ($ContainerOs) {
         'Linux' {
             return '"docker"'
