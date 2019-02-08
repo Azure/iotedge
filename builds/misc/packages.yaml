@@ -241,6 +241,16 @@ jobs:
           Contents: |
             *.cab
           TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: 'ESRP CodeSigning'
+        inputs:
+          ConnectedServiceName: 'Azure IoT Edge Code Sign'
+          FolderPath: '$(build.artifactstagingdirectory)'
+          Pattern: '*.cab'
+          CertificateId: 9997
+          OpusName: 'Azure IoT Edge'
+          OpusInfo: 'https://azure.microsoft.com/en-us/services/iot-edge/'
+          SessionTimeout: 20
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifact: iotedged-windows'
         inputs:
