@@ -36,6 +36,9 @@ jobs:
         name: build
         displayName: Build (release)
 
+      - script: scripts/linux/buildDiagnostics.sh
+        displayName: Build iotedge-diagnostics
+
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
         inputs:
