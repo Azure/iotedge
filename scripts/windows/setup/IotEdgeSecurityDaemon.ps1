@@ -179,14 +179,14 @@ function Install-SecurityDaemon {
     else {
         if (Test-EdgeAlreadyInstalled) {
             Write-HostRed
-            Write-HostRed ('IoT Edge is already installed. To reinstall, run `Uninstall-SecurityDaemon` first. ' +
+            Write-HostRed ('IoT Edge is already installed. To update, run `Update-SecurityDaemon`. ' +
                 'Alternatively, if you want to finalize the installation on IoTCore, run `Install-SecurityDaemon -Finalize`.')
             return
         }
 
         if (Test-MobyAlreadyInstalled) {
             Write-HostRed
-            Write-HostRed 'IoT Edge Moby Engine is already installed. To reinstall, run `Uninstall-SecurityDaemon` first.'
+            Write-HostRed 'IoT Edge Moby Engine is already installed. To update, run `Update-SecurityDaemon`.'
             return
         }
     }
@@ -326,47 +326,87 @@ function Update-SecurityDaemon {
         [Switch] $RestartIfNeeded
     )
 
-    $ErrorActionPreference = 'Stop'
-    Set-StrictMode -Version 5
+    Install-Packages `
+        -ContainerOs $ContainerOs `
+        -Proxy $Proxy `
+        -OfflineInstallationPath $OfflineInstallationPath `
+        -InvokeWebRequestParameters $InvokeWebRequestParameters `
+        -SkipMobyCli:$SkipMobyCli `
+        -RestartIfNeeded:$RestartIfNeeded `
+        -Update
+}
 
-    if ($InvokeWebRequestParameters -eq $null) {
-        $InvokeWebRequestParameters = @{}
-    }
+<#
+.SYNOPSIS
 
-    if ($Proxy -ne $null) {
-        $InvokeWebRequestParameters['-Proxy'] = $Proxy
-    }
+Deploys the IoT Edge Security Daemon and its dependencies.
 
-    if ((Test-MobyNeedsToBeMoved) -or 
-        (((Test-MobyAlreadyInstalled) -or (Test-EdgeAlreadyInstalled)) -and (Test-LegacyInstaller))) {
-        Write-HostRed
-        Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run `Uninstall-SecurityDaemon -DeleteMobyDataRoot` first.'
-        return
-    }
 
-    if (-not (Setup-Environment $ContainerOs)) {
-        return
-    }
+.INPUTS
 
-    $restartNeeded = $false
-    # Download
-    Get-SecurityDaemon -RestartNeeded ([ref] $restartNeeded)
-    if (-not $restartNeeded) {
-        try {
-            Start-Service $EdgeServiceName
-        }
-        catch {
-            throw "Failed to start Security Daemon, make sure to initialize config file by running Install-SecurityDaemon -Finalize."
-        }
-        
-    }
+None
 
-    Write-LogInformation
 
-    if ($restartNeeded) {
-        Write-HostRed "Reboot required."
-        Restart-Computer -Confirm:(-not $RestartIfNeeded)
-    }
+.OUTPUTS
+
+None
+
+
+.EXAMPLE
+
+PS> Deploy-SecurityDaemon
+
+
+.EXAMPLE
+
+PS> Deploy-SecurityDaemon -OfflineInstallationPath c:\data
+
+
+.EXAMPLE
+
+PS> Deploy-SecurityDaemon -SkipMobyCli
+#>
+function Deploy-SecurityDaemon {
+    [CmdletBinding()]
+    param (
+        # The base OS of all the containers that will be run on this device via the security daemon.
+        #
+        # If set to Linux, a separate installation of Docker for Windows is expected.
+        #
+        # If set to Windows, the Moby Engine will be installed automatically. This will not affect any existing installation of Docker for Windows.
+        [ContainerOs] $ContainerOs = 'Windows',
+
+        # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
+        [Uri] $Proxy,
+
+        # If set to a directory path, the installer prefers to use IoTEdge CAB, Moby Engine CAB, Moby CLI CAB and VC Runtime MSI files from inside this directory
+        # over downloading them from the internet. Thus placing all four files in this directory can be used to have a completely offline install,
+        # or a specific subset can be placed to override the online versions of those specific components.
+        [String] $OfflineInstallationPath,
+
+        # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
+        #
+        # If -Proxy is also specified, it overrides the `-Proxy` key set in this hashtable, if any.
+        #
+        # Example:
+        #
+        #     Install-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
+        [HashTable] $InvokeWebRequestParameters,
+
+        # Don't install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes effect for -ContainerOs 'Windows'.
+        [Switch] $SkipMobyCli,
+
+        # Restart if needed without prompting.
+        [Switch] $RestartIfNeeded
+    )
+
+    Install-Packages `
+        -ContainerOs $ContainerOs `
+        -Proxy $Proxy `
+        -OfflineInstallationPath $OfflineInstallationPath `
+        -InvokeWebRequestParameters $InvokeWebRequestParameters `
+        -SkipMobyCli:$SkipMobyCli `
+        -RestartIfNeeded:$RestartIfNeeded
 }
 
 <#
@@ -464,11 +504,97 @@ function Uninstall-SecurityDaemon {
     }
 }
 
-function Get-SecurityDaemonLog([DateTime] $StartTime = [datetime]::Now.AddMinutes(-5)) {
+function Get-SecurityDaemonLog {
+    [CmdletBinding()]
+    param (
+        # What time to start the log from.
+        [DateTime] $StartTime = [datetime]::Now.AddMinutes(-5)
+    ) 
+
     Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName='iotedged';LogName='application';StartTime=$StartTime} |
         Select TimeCreated, Message |
         Sort-Object @{Expression='TimeCreated';Descending=$false} |
         Format-Table -AutoSize -Wrap
+}
+
+function Install-Packages(
+        [ContainerOs] $ContainerOs,
+        [Uri] $Proxy,
+        [String] $OfflineInstallationPath,
+        [HashTable] $InvokeWebRequestParameters,
+        [Switch] $SkipMobyCli,
+        [Switch] $RestartIfNeeded,
+        [Switch] $Update
+    )
+{
+    $ErrorActionPreference = 'Stop'
+    Set-StrictMode -Version 5
+
+    if ($InvokeWebRequestParameters -eq $null) {
+        $InvokeWebRequestParameters = @{}
+    }
+
+    if ($Proxy -ne $null) {
+        $InvokeWebRequestParameters['-Proxy'] = $Proxy
+    }
+
+    if ($Update) {
+        if (-not (Test-EdgeAlreadyInstalled)) {
+            Write-HostRed
+            Write-HostRed 'IoT Edge is not yet installed. To install, run `Deploy-SecurityDaemon` first.'
+            return
+        }
+
+        if (-not (Test-MobyAlreadyInstalled)) {
+            Write-HostRed
+            Write-HostRed 'IoT Edge Moby Engine is not yet installed. To install, run `Deploy-SecurityDaemon` first.'
+            return
+        }
+
+        if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
+            Write-HostRed
+            Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run `Uninstall-SecurityDaemon -DeleteMobyDataRoot` first.'
+            return
+        }
+    }
+    else {
+        if (Test-EdgeAlreadyInstalled) {
+            Write-HostRed
+            Write-HostRed ('IoT Edge is already installed. To update, run `Update-SecurityDaemon`. ' +
+                'Alternatively, if you want to finalize the installation on IoTCore, run `Install-SecurityDaemon -Finalize`.')
+            return
+        }
+
+        if (Test-MobyAlreadyInstalled) {
+            Write-HostRed
+            Write-HostRed 'IoT Edge Moby Engine is already installed. To update, run `Update-SecurityDaemon`.'
+            return
+        }
+    }
+
+    if (-not (Setup-Environment $ContainerOs)) {
+        return
+    }
+
+    $restartNeeded = $false
+    # Download
+    Get-SecurityDaemon -RestartNeeded ([ref] $restartNeeded) -Update $Update
+    if (-not $restartNeeded) {
+        try {
+            Start-Service $EdgeServiceName
+        }
+        catch {
+            throw "Failed to start Security Daemon, make sure to initialize config file by running Install-SecurityDaemon -Finalize."
+        }
+        
+    }
+
+    Write-LogInformation
+
+    if ($restartNeeded) {
+        Write-HostRed "Reboot required."
+        Restart-Computer -Confirm:(-not $RestartIfNeeded)
+    }
 }
 
 function Setup-Environment([string] $ContainerOs) {
@@ -710,7 +836,16 @@ function Get-Package([string] $Name) {
     }
 }
 
-function Get-SecurityDaemon([ref] $RestartNeeded) {
+function Try-StopService([string] $Name) {
+    if (Get-Service $Name -ErrorAction SilentlyContinue) {
+        Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $Name
+        if ($?) {
+            Start-Sleep -Seconds 7
+        }
+    }
+}
+
+function Get-SecurityDaemon([ref] $RestartNeeded, [bool] $Update) {
     try {
         # If we create these archives ourselves, then delete them when we're done
         $deleteMobyEngineArchive = $false
@@ -727,6 +862,7 @@ function Get-SecurityDaemon([ref] $RestartNeeded) {
             -DownloadFilename 'microsoft-azure-iotedge-moby-engine.cab' `
             -LocalCacheGlob 'microsoft-azure-iotedge-moby-engine.cab' `
             -Delete ([ref] $deleteMobyEngineArchive)
+        Try-StopService $EdgeServiceName
         Install-Package -Path $mobyEngineArchivePath -RestartNeeded $RestartNeeded
 
         if (-not ($SkipMobyCli)) {
@@ -745,8 +881,11 @@ function Get-SecurityDaemon([ref] $RestartNeeded) {
             -DownloadFilename 'microsoft-azure-iotedge.cab' `
             -LocalCacheGlob 'microsoft-azure-iotedge.cab' `
             -Delete ([ref] $deleteEdgeArchive)
+        Try-StopService $MobyServiceName
         Install-Package -Path $edgeArchivePath -RestartNeeded $RestartNeeded
-        Stop-Service $EdgeServiceName -ErrorAction SilentlyContinue
+        if (-not $Update) {
+            Stop-Service $EdgeServiceName -ErrorAction SilentlyContinue
+        }
 
         foreach ($name in 'mgmt', 'workload') {
             # We can't bind socket files directly in Windows, so create a folder
@@ -1467,8 +1606,7 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
     return $result
 }
 
-New-Alias -Name Deploy-SecurityDaemon -Value Update-SecurityDaemon -Force
 Export-ModuleMember `
-    -Function Install-SecurityDaemon, Uninstall-SecurityDaemon, Get-SecurityDaemonLog, Update-SecurityDaemon `
+    -Function Install-SecurityDaemon, Uninstall-SecurityDaemon, Get-SecurityDaemonLog, Update-SecurityDaemon, Deploy-SecurityDaemon `
     -Alias Deploy-SecurityDaemon
 }
