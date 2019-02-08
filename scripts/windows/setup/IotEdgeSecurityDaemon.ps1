@@ -19,8 +19,6 @@ Set-Variable SupportedBuildsForWindowsContainers -Value @($Windows1809)
 Set-Variable DockerServiceName -Value 'com.docker.service' -Option Constant
 
 Set-Variable EdgePackage -Value "microsoft-azure-iotedge" -Option Constant
-Set-Variable MobyPackage -Value "microsoft-azure-iotedge-moby-engine" -Option Constant
-Set-Variable MobyCliPackage -Value "microsoft-azure-iotedge-moby-cli" -Option Constant
 
 Set-Variable EdgeInstallDirectory -Value "$env:ProgramFiles\iotedge" -Option Constant
 Set-Variable EdgeDataDirectory -Value "$env:ProgramData\iotedge" -Option Constant
@@ -141,9 +139,6 @@ function Install-SecurityDaemon {
         #
         #     Install-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
         [HashTable] $InvokeWebRequestParameters,
-
-        # Don't install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes effect for -ContainerOs 'Windows'.
-        [Switch] $SkipMobyCli,
 
         # Restart if needed without prompting.
         [Switch] $RestartIfNeeded,
@@ -286,11 +281,6 @@ PS> Update-SecurityDaemon
 .EXAMPLE
 
 PS> Update-SecurityDaemon -OfflineInstallationPath c:\data
-
-
-.EXAMPLE
-
-PS> Update-SecurityDaemon -SkipMobyCli
 #>
 function Update-SecurityDaemon {
     [CmdletBinding()]
@@ -319,9 +309,6 @@ function Update-SecurityDaemon {
         #     Install-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
         [HashTable] $InvokeWebRequestParameters,
 
-        # Don't install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes effect for -ContainerOs 'Windows'.
-        [Switch] $SkipMobyCli,
-
         # Restart if needed without prompting.
         [Switch] $RestartIfNeeded
     )
@@ -331,7 +318,6 @@ function Update-SecurityDaemon {
         -Proxy $Proxy `
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
-        -SkipMobyCli:$SkipMobyCli `
         -RestartIfNeeded:$RestartIfNeeded `
         -Update
 }
@@ -360,11 +346,6 @@ PS> Deploy-SecurityDaemon
 .EXAMPLE
 
 PS> Deploy-SecurityDaemon -OfflineInstallationPath c:\data
-
-
-.EXAMPLE
-
-PS> Deploy-SecurityDaemon -SkipMobyCli
 #>
 function Deploy-SecurityDaemon {
     [CmdletBinding()]
@@ -393,9 +374,6 @@ function Deploy-SecurityDaemon {
         #     Install-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
         [HashTable] $InvokeWebRequestParameters,
 
-        # Don't install the Moby CLI (docker.exe) to $MobyInstallDirectory. Only takes effect for -ContainerOs 'Windows'.
-        [Switch] $SkipMobyCli,
-
         # Restart if needed without prompting.
         [Switch] $RestartIfNeeded
     )
@@ -405,7 +383,6 @@ function Deploy-SecurityDaemon {
         -Proxy $Proxy `
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
-        -SkipMobyCli:$SkipMobyCli `
         -RestartIfNeeded:$RestartIfNeeded
 }
 
@@ -481,8 +458,6 @@ function Uninstall-SecurityDaemon {
 
     Write-Host 'Uninstalling...'
 
-    $ContainerOs = Get-ContainerOs
-
     $restartNeeded = $false
     Uninstall-Services -RestartNeeded ([ref] $restartNeeded) -LegacyInstaller $legacyInstaller
     $success = Remove-SecurityDaemonResources -LegacyInstaller $legacyInstaller
@@ -522,7 +497,6 @@ function Install-Packages(
         [Uri] $Proxy,
         [String] $OfflineInstallationPath,
         [HashTable] $InvokeWebRequestParameters,
-        [Switch] $SkipMobyCli,
         [Switch] $RestartIfNeeded,
         [Switch] $Update
     )
@@ -780,15 +754,6 @@ function Test-AgentRegistryArgs {
     return $valid
 }
 
-function Get-ContainerOs {
-    if ((Test-Path $MobyInstallDirectory) -or (Test-Path $MobyDataRootDirectory)) {
-        return 'Windows'
-    }
-    else {
-        return 'Linux'
-    }
-}
-
 function Get-ExternalDockerServerOs {
     $dockerExe = Get-DockerExePath
     if ((Invoke-Native "$dockerExe version --format ""{{.Server.Os}}""" -Passthru) -match '\s*windows\s*$') {
@@ -848,71 +813,43 @@ function Try-StopService([string] $Name) {
 function Get-SecurityDaemon([ref] $RestartNeeded, [bool] $Update) {
     try {
         # If we create these archives ourselves, then delete them when we're done
-        $deleteMobyEngineArchive = $false
-        $deleteMobyCliArchive = $false
         $deleteEdgeArchive = $false
 
         if (Test-IotCore) {
             Invoke-Native "ApplyUpdate -clear"
         }
 
-        $mobyEngineArchivePath = Download-File `
-            -Description 'Moby Engine' `
-            -Url 'https://aka.ms/iotedge-moby-engine-win-amd64-latest-cab' `
-            -DownloadFilename 'microsoft-azure-iotedge-moby-engine.cab' `
-            -LocalCacheGlob 'microsoft-azure-iotedge-moby-engine.cab' `
-            -Delete ([ref] $deleteMobyEngineArchive)
-        Try-StopService $EdgeServiceName
-        Install-Package -Path $mobyEngineArchivePath -RestartNeeded $RestartNeeded
-
-        if (-not ($SkipMobyCli)) {
-            $mobyCliArchivePath = Download-File `
-                -Description 'Moby CLI' `
-                -Url 'https://aka.ms/iotedge-moby-cli-win-amd64-latest-cab' `
-                -DownloadFilename 'microsoft-azure-iotedge-moby-cli.cab' `
-                -LocalCacheGlob 'microsoft-azure-iotedge-moby-cli.cab' `
-                -Delete ([ref] $deleteMobyCliArchive)
-            Install-Package -Path $mobyCliArchivePath -RestartNeeded $RestartNeeded
-        }
-
         $edgeArchivePath = Download-File `
-            -Description 'IoT Edge Security Daemon' `
+            -Description 'IoT Edge' `
             -Url 'https://aka.ms/iotedged-windows-latest-cab' `
             -DownloadFilename 'microsoft-azure-iotedge.cab' `
             -LocalCacheGlob 'microsoft-azure-iotedge.cab' `
             -Delete ([ref] $deleteEdgeArchive)
         Try-StopService $MobyServiceName
+        Try-StopService $EdgeServiceName
         Install-Package -Path $edgeArchivePath -RestartNeeded $RestartNeeded
         if (-not $Update) {
             Stop-Service $EdgeServiceName -ErrorAction SilentlyContinue
-        }
 
-        foreach ($name in 'mgmt', 'workload') {
-            # We can't bind socket files directly in Windows, so create a folder
-            # and bind to that. The folder needs to give Modify rights to a
-            # well-known group that will exist in any container so that
-            # non-privileged modules can access it.
-            $path = "$EdgeDataDirectory\$name"
-            New-Item $Path -ItemType Directory -Force | Out-Null
-            $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-11' # NT AUTHORITY\Authenticated Users
-            $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
-                $sid, 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
-            $acl = Get-Acl -Path $path
-            $acl.AddAccessRule($rule)
-            Set-Acl -Path $path -AclObject $acl
+            foreach ($name in 'mgmt', 'workload') {
+                # We can't bind socket files directly in Windows, so create a folder
+                # and bind to that. The folder needs to give Modify rights to a
+                # well-known group that will exist in any container so that
+                # non-privileged modules can access it.
+                $path = "$EdgeDataDirectory\$name"
+                New-Item $Path -ItemType Directory -Force | Out-Null
+                $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-11' # NT AUTHORITY\Authenticated Users
+                $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
+                    $sid, 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
+                $acl = Get-Acl -Path $path
+                $acl.AddAccessRule($rule)
+                Set-Acl -Path $path -AclObject $acl
+            }
         }
     }
     finally {
         if ($deleteEdgeArchive) {
             Remove-Item $edgeArchivePath -Recurse -Force -ErrorAction SilentlyContinue
-        }
-
-        if ($deleteMobyEngineArchive) {
-            Remove-Item $mobyEngineArchivePath -Recurse -Force -ErrorAction SilentlyContinue
-        }
-
-        if ($deleteMobyCliArchive) {
-            Remove-Item $mobyCliArchivePath -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
 
@@ -1202,15 +1139,6 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         else {
             Write-Verbose "$cmdErr"
         }
-
-        if ($LegacyInstaller) {
-            if (Invoke-Native "sc.exe delete ""$EdgeServiceName""" -ErrorAction SilentlyContinue) {
-                Write-Verbose 'Removed IoT Edge service subkey from the registry'
-            }
-        }
-        else {
-            Uninstall-Package -Name $EdgePackage -RestartNeeded $RestartNeeded
-        }
     }
 
     Remove-IotEdgeContainers
@@ -1224,16 +1152,22 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         else {
             Write-Verbose "$cmdErr"
         }
+    }
 
-        if ($LegacyInstaller) {
+    if ($LegacyInstaller) {
+        if (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) {
+            if (Invoke-Native "sc.exe delete ""$EdgeServiceName""" -ErrorAction SilentlyContinue) {
+                Write-Verbose 'Removed IoT Edge service subkey from the registry'
+            }
+        }
+        if (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) {
             if (Invoke-Native "sc.exe delete ""$MobyServiceName""" -ErrorAction SilentlyContinue) {
                 Write-Verbose 'Removed IoT Edge Moby Engine service subkey from the registry'
             }
         }
-        else {
-            Uninstall-Package -Name $MobyPackage -RestartNeeded $RestartNeeded
-            Uninstall-Package -Name $MobyCliPackage -RestartNeeded $RestartNeeded
-        }
+    }
+    else {
+        Uninstall-Package -Name $EdgePackage -RestartNeeded $RestartNeeded
     }
 }
 

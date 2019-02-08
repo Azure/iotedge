@@ -1,9 +1,13 @@
 $docker_cli_uri = "https://github.com/Azure/azure-iotedge/releases/download/1.0.5/moby-cli_3.0.2.zip"
-$docker_cli_version = "3.0.2.0"
 $docker_engine_uri = "https://conteng.blob.core.windows.net/mby/moby-engine_3.0.3.zip"
-$docker_engine_version = "3.0.3.0"
 
 cmd /c installoemcerts.cmd
+
+Invoke-WebRequest $docker_cli_uri -out "moby-cli.zip"
+Expand-Archive -Path "moby-cli.zip" -DestinationPath "moby-cli"
+
+Invoke-WebRequest $docker_engine_uri -out "moby-engine.zip"
+Expand-Archive -Path "moby-engine.zip" -DestinationPath "moby-engine"
 
 Function New-Package([string] $Name, [string] $Version)
 {
@@ -36,19 +40,3 @@ else {
 
 Write-Host "IoTEdge using version '$version'"
 New-Package -Name "iotedge" -Version $version
-
-#
-# Moby CLI
-#
-
-Invoke-WebRequest $docker_cli_uri -out "moby-cli.zip"
-Expand-Archive -Path "moby-cli.zip" -DestinationPath "moby-cli"
-New-Package -Name "iotedge-moby-cli" -Version $docker_cli_version
-
-#
-# Moby Engine
-#
-
-Invoke-WebRequest $docker_engine_uri -out "moby-engine.zip"
-Expand-Archive -Path "moby-engine.zip" -DestinationPath "moby-engine"
-New-Package -Name "iotedge-moby-engine" -Version $docker_engine_version
