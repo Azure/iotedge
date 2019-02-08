@@ -18,7 +18,8 @@ sha2 = "0.7.0"
 tokio = "0.1.8"
 tokio-signal = "0.2"
 url = "1.7"
-
+url_serde = "0.2"
+native-tls = "0.2"
 hsm = { path = "../hsm-rs"}
 dps = { path = "../dps" }
 docker = { path = "../docker-rs" }

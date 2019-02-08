@@ -11,8 +11,11 @@ use tokio_uds_windows::UnixListener;
 
 use crate::util::{IncomingSocketAddr, StreamSelector};
 
+use tokio_tls::TlsAcceptor;
+
 pub enum Incoming {
     Tcp(TcpListener),
+    Tls(TcpListener, TlsAcceptor),
     Unix(UnixListener),
 }
 
@@ -32,6 +35,20 @@ impl Stream for Incoming {
                 };
                 accept.map(|(stream, addr)| {
                     Some((StreamSelector::Tcp(stream), IncomingSocketAddr::Tcp(addr)))
+                })
+            }
+            Incoming::Tls(ref mut listener, ref mut acceptor) => {
+                let accept = match listener.poll_accept() {
+                    Ok(accept) => accept,
+                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                        return Ok(::futures::Async::NotReady);
+                    }
+                    Err(e) => return Err(e),
+                };
+
+                accept.map(|(stream, addr)| {
+                    let accepted_stream = acceptor.accept(stream);
+                    Some((StreamSelector::TlsConnecting(accepted_stream), IncomingSocketAddr::Tcp(addr)))
                 })
             }
             Incoming::Unix(ref mut listener) => {

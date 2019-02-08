@@ -30,6 +30,7 @@ use tokio_uds::UnixListener;
 use url::Url;
 
 use edgelet_core::{UrlExt, UNIX_SCHEME};
+use native_tls::{Identity, TlsAcceptor};
 use edgelet_utils::log_failure;
 
 pub mod authorization;
@@ -51,6 +52,7 @@ use self::pid::PidService;
 use self::util::incoming::Incoming;
 
 const HTTP_SCHEME: &str = "http";
+const HTTPS_SCHEME: &str = "https";
 #[cfg(windows)]
 const PIPE_SCHEME: &str = "npipe";
 const TCP_SCHEME: &str = "tcp";
@@ -162,6 +164,9 @@ pub trait HyperExt {
     fn bind_url<S>(&self, url: Url, new_service: S) -> Result<Server<S>, Error>
     where
         S: NewService<ReqBody = Body>;
+    fn bind_tls_url<S>(&self, url: Url, cert: Identity, new_service: S) -> Result<Server<S>, Error>
+    where
+        S: NewService<ReqBody = Body>;
 }
 
 impl HyperExt for Http {
@@ -246,4 +251,42 @@ impl HyperExt for Http {
             incoming,
         })
     }
+
+    fn bind_tls_url<S>(&self, url: Url, cert: Identity, new_service: S) -> Result<Server<S>, Error>
+    where
+        S: NewService<ReqBody = Body>,
+    {
+        let incoming = match url.scheme() {
+            HTTPS_SCHEME => {
+                let addr = url
+                    .to_socket_addrs()
+                    .context(ErrorKind::InvalidUrl(url.to_string()))?
+                    .next()
+                    .ok_or_else(|| {
+                        ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::NoAddress,
+                        )
+                    })?;
+
+                let tls_acceptor = TlsAcceptor::builder(cert).build().unwrap();
+                let tls_acceptor = tokio_tls::TlsAcceptor::from(tls_acceptor);
+
+                let listener = TcpListener::bind(&addr)
+                    .with_context(|_| ErrorKind::BindListener(BindListenerType::Address(addr)))?;
+                Incoming::Tls(listener, tls_acceptor)
+            }
+            _ => Err(Error::from(ErrorKind::InvalidUrlWithReason(
+                url.to_string(),
+                InvalidUrlReason::InvalidScheme,
+            )))?,
+        };
+
+        Ok(Server {
+            protocol: self.clone(),
+            new_service,
+            incoming,
+        })
+    }
+
 }

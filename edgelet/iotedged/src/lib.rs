@@ -66,6 +66,7 @@ use provisioning::provisioning::{
     BackupProvisioning, DpsProvisioning, DpsSymmetricKeyProvisioning, ManualProvisioning,
     Provision, ProvisioningResult,
 };
+use native_tls::Identity;
 
 use crate::workload::WorkloadData;
 
@@ -881,6 +882,13 @@ where
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
 
+
+    // TODO : Wrap this for TLS only? or detect if HTTP was asked for?
+    // TODO TODO TODO
+    let s = String::from("hello");
+    let der = s.into_bytes();
+    let cert = Identity::from_pkcs12(&der, "kevindaw").unwrap();
+
     ManagementService::new(mgmt, id_man)
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
@@ -889,7 +897,8 @@ where
             let service = LoggingService::new(label, service);
             info!("Listening on {} with 1 thread for management API.", url);
             let run = Http::new()
-                .bind_url(url.clone(), service)
+                // .bind_url(url.clone(), service)
+                .bind_tls_url(url.clone(), cert, service)
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,
