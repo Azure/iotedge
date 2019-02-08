@@ -10,7 +10,7 @@ param (
     [ValidateNotNullOrEmpty()]
     [ValidateScript( {Test-Path $_ -PathType Container})]
     [String] $BuildRepositoryLocalPath = $Env:BUILD_REPOSITORY_LOCALPATH,
-    
+
     [ValidateNotNullOrEmpty()]
     [String] $BuildBinariesDirectory = $Env:BUILD_BINARIESDIRECTORY,
 
@@ -22,7 +22,7 @@ param (
 
     [ValidateNotNull()]
     [String] $BuildSourceVersion = $Env:BUILD_SOURCEVERSION,
-    
+
     [Switch] $UpdateVersion
 )
 
@@ -42,7 +42,7 @@ if (-not $AgentWorkFolder) {
 if (-not $BuildRepositoryLocalPath) {
     $BuildRepositoryLocalPath = DefaultBuildRepositoryLocalPath
 }
- 
+
 if (-not $BuildBinariesDirectory) {
     $BuildBinariesDirectory = DefaultBuildBinariesDirectory $BuildRepositoryLocalPath
 }
@@ -77,6 +77,8 @@ $PUB_E2E_TEMPLATES_DIR = Join-Path $PUBLISH_FOLDER "e2e_deployment_files"
 $SRC_E2E_TEST_FILES_DIR = Join-Path $BuildRepositoryLocalPath "e2e_test_files"
 $PUB_E2E_TEST_FILES_DIR = Join-Path $PUBLISH_FOLDER "e2e_test_files"
 $TEST_SCRIPTS_DIR = Join-Path $RELEASE_TESTS_FOLDER "scripts"
+$SRC_CERT_TOOLS_DIR = Join-Path $BuildRepositoryLocalPath "tools/CACertificates"
+$PUB_CERT_TOOLS_DIR = Join-Path $PUBLISH_FOLDER "CACertificates"
 
 if (-not (Test-Path $DOTNET_PATH -PathType Leaf)) {
     throw "$DOTNET_PATH not found"
@@ -162,7 +164,7 @@ foreach ($appProjectFileName in $appProjectList) {
     if ($LASTEXITCODE -ne 0) {
         throw "Failed app publishing $appProjectFilePath."
     }
-    
+
     # Copy rocksdb ARM32 version to native/arm folder; this rocksdb.dll statically linked with snappy dll.
     if ($appProjectFileName -eq "Microsoft.Azure.Devices.Edge.Agent.Service.csproj" -or $appProjectFileName -eq "Microsoft.Azure.Devices.Edge.Hub.Service.csproj")
     {
@@ -204,16 +206,19 @@ foreach ($libProjectFileName in $libProjectList) {
  #>
 
 Write-Host "Copying $SRC_SCRIPTS_DIR to $PUB_SCRIPTS_DIR"
-Copy-Item $SRC_SCRIPTS_DIR $PUB_SCRIPTS_DIR -Recurse -Force 
+Copy-Item $SRC_SCRIPTS_DIR $PUB_SCRIPTS_DIR -Recurse -Force
 
 Write-Host "Copying $SRC_BIN_DIR to $PUB_BIN_DIR"
-Copy-Item $SRC_BIN_DIR $PUB_BIN_DIR -Recurse -Force 
+Copy-Item $SRC_BIN_DIR $PUB_BIN_DIR -Recurse -Force
 
 Write-Host "Copying $SRC_E2E_TEMPLATES_DIR"
 Copy-Item $SRC_E2E_TEMPLATES_DIR $PUB_E2E_TEMPLATES_DIR -Recurse -Force
 
 Write-Host "Copying $SRC_E2E_TEST_FILES_DIR"
 Copy-Item $SRC_E2E_TEST_FILES_DIR $PUB_E2E_TEST_FILES_DIR -Recurse -Force
+
+Write-Host "Copying $SRC_CERT_TOOLS_DIR to $PUB_CERT_TOOLS_DIR"
+Copy-Item $SRC_CERT_TOOLS_DIR $PUB_CERT_TOOLS_DIR -Recurse -Force
 
 <#
  # Publish IoTEdgeQuickstart

@@ -855,6 +855,7 @@ dependencies = [
  "clap 2.31.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "config 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "docker 0.1.0",
+ "dps 0.1.0",
  "edgelet-core 0.1.0",
  "edgelet-docker 0.1.0",
  "edgelet-hsm 0.1.0",

@@ -21,7 +21,7 @@ mod imp {
     use super::ShutdownSignal;
 
     pub(super) fn shutdown() -> ShutdownSignal {
-        let signals = [SIGINT, SIGTERM].into_iter().map(|&sig| {
+        let signals = [SIGINT, SIGTERM].iter().map(|&sig| {
             Signal::new(sig)
                 .flatten_stream()
                 .into_future()
