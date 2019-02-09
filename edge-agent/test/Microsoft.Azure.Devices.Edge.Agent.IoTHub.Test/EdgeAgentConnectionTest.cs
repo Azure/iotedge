@@ -1254,7 +1254,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 moduleClient.Verify(m => m.GetTwinAsync(), Times.Exactly(3));
             }
         }
-       
+
         [Theory]
         [Unit]
         [InlineData("1.0", null)]
