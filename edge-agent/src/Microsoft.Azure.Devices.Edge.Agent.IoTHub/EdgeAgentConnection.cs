@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.reportedProperties = Option.None<TwinCollection>();
             this.deviceClient = Option.None<IModuleClient>();
             this.retryStrategy = Preconditions.CheckNotNull(retryStrategy, nameof(retryStrategy));
-            this.refreshTwinTask = new PeriodicTask(this.RefreshTwinAsync, refreshConfigFrequency, refreshConfigFrequency, Events.Log, "refresh twin config");
+            this.refreshTwinTask = new PeriodicTask(this.ForceRefreshTwin, refreshConfigFrequency, refreshConfigFrequency, Events.Log, "refresh twin config");
             this.initTask = this.CreateAndInitDeviceClient(Preconditions.CheckNotNull(moduleClientProvider, nameof(moduleClientProvider)));
 
             Events.TwinRefreshInit(refreshConfigFrequency);
@@ -164,6 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
+        // This method updates local state and should be called only after acquiring twinLock
         async Task RefreshTwinAsync()
         {
             try
@@ -189,6 +190,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(this.desiredProperties?.Version ?? 0, ex));
                 Events.TwinRefreshError(ex);
+            }
+        }
+
+        async Task ForceRefreshTwin()
+        {
+            using (await this.twinLock.LockAsync())
+            {
+                await this.RefreshTwinAsync();
             }
         }
 
