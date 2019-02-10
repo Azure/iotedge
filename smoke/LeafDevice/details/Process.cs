@@ -14,7 +14,7 @@ namespace LeafDeviceTest
         {
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
             {
-                return await RunAsync(name, args, cts.Token).ConfigureAwait(false);
+                return await RunAsync(name, args, cts.Token);
             }
         }
 
@@ -26,7 +26,7 @@ namespace LeafDeviceTest
                 Arguments = args
             };
 
-            using (ProcessResults result = await ProcessEx.RunAsync(info, token).ConfigureAwait(false))
+            using (ProcessResults result = await ProcessEx.RunAsync(info, token))
             {
                 if (result.ExitCode != 0)
                 {
