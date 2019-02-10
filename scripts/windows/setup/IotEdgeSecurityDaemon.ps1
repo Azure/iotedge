@@ -214,6 +214,12 @@ function Install-SecurityDaemon {
     if (-not $Finalize) {
         # Download
         Get-SecurityDaemon -RestartNeeded ([ref] $restartNeeded)
+
+        if ($restartNeeded) {
+            Write-HostRed "Reboot required. If this is the first time installation, run Install-SecurityDaemon -Finalize after the reboot completes."
+            Restart-Computer -Confirm:(-not $RestartIfNeeded)
+            return
+        }        
     }
 
     Get-VcRuntime
