@@ -148,8 +148,9 @@ namespace LeafDeviceTest
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
 
-            var edgeScope = Option.None<string>();
-            this.edgeDeviceId.ForEach(async (id) => edgeScope = await GetScopeIfExitsAsync(rm, id));
+            Option<string> edgeScope = await this.edgeDeviceId.Map(async (id) => {
+                return await GetScopeIfExitsAsync(rm, id);
+            }).GetOrElse(() => Task.FromResult<Option<string>>(Option.None<string>()));
 
             Device device = await rm.GetDeviceAsync(this.deviceId);
             if (device != null)
