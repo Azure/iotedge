@@ -49,6 +49,7 @@ namespace LeafDeviceTest
             string trustedCACertificateFileName,
             string edgeHostName,
             string edgeDeviceId,
+            string protocol,
             bool useWebSockets,
             Option<DeviceCertificate> clientCertificatePaths,
             Option<IList<string>> thumbprintCertificatePaths)
@@ -72,13 +73,27 @@ namespace LeafDeviceTest
             {
                 this.serviceClientTransportType = ServiceClientTransportType.Amqp_WebSocket_Only;
                 this.eventHubClientTransportType = EventHubClientTransportType.AmqpWebSockets;
-                this.deviceTransportSettings = new ITransportSettings[] { new MqttTransportSettings(DeviceClientTransportType.Mqtt_WebSocket_Only) };
+                if (protocol.Equals("MQTT", StringComparison.OrdinalIgnoreCase))
+                {
+                    this.deviceTransportSettings = new ITransportSettings[] { new MqttTransportSettings(DeviceClientTransportType.Mqtt_WebSocket_Only) };
+                }
+                else
+                {
+                    this.deviceTransportSettings = new ITransportSettings[] { new AmqpTransportSettings(DeviceClientTransportType.Amqp_WebSocket_Only) };
+                }
             }
             else
             {
                 this.serviceClientTransportType = ServiceClientTransportType.Amqp;
                 this.eventHubClientTransportType = EventHubClientTransportType.Amqp;
-                this.deviceTransportSettings = new ITransportSettings[] { new MqttTransportSettings(DeviceClientTransportType.Mqtt_Tcp_Only) };
+                if (protocol.Equals("MQTT", StringComparison.OrdinalIgnoreCase))
+                {
+                    this.deviceTransportSettings = new ITransportSettings[] { new MqttTransportSettings(DeviceClientTransportType.Mqtt_Tcp_Only) };
+                }
+                else
+                {
+                    this.deviceTransportSettings = new ITransportSettings[] { new AmqpTransportSettings(DeviceClientTransportType.Amqp_Tcp_Only) };
+                }
             }
 
             Console.WriteLine(

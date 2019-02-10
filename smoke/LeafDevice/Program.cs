@@ -53,6 +53,9 @@ Defaults:
         [Option("-ed-id|--edge-device-id", Description = "Device Id of the Edge device that acts as a gateway to the leaf device. If not provided, the leaf device will not be in the Edge device's scope")]
         public string EdgeGatewayDeviceId { get; } = string.Empty;
 
+        [Option("-proto|--protocol", Description = "Protocol the leaf device will use to communicate with the Edge device. Choices are MQTT and AMQP. If protocol is unspecified, default is MQTT.")]
+        public string protocol { get; } = "MQTT";
+
         [Option("--use-web-sockets", CommandOptionType.NoValue, Description = "Use websockets for IoT Hub connections.")]
         public bool UseWebSockets { get; } = false;
 
@@ -95,6 +98,7 @@ Defaults:
                     this.TrustedCACertificateFileName,
                     this.EdgeHostName,
                     this.EdgeGatewayDeviceId,
+                    this.protocol,
                     this.UseWebSockets);
 
                 if (!string.IsNullOrWhiteSpace(this.X509PrimaryCertPath) &&

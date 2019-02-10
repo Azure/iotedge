@@ -15,6 +15,7 @@ namespace LeafDeviceTest
             string trustedCACertificateFileName,
             string edgeHostName,
             string edgeDeviceId,
+            string protocol,
             bool useWebSockets,
             Option<DeviceCertificate> deviceCertificate,
             Option<IList<string>> thumbprintCertificates)
@@ -25,6 +26,7 @@ namespace LeafDeviceTest
                 trustedCACertificateFileName,
                 edgeHostName,
                 edgeDeviceId,
+                protocol,
                 useWebSockets,
                 deviceCertificate,
                 thumbprintCertificates)
@@ -63,6 +65,7 @@ namespace LeafDeviceTest
             readonly string trustedCACertificateFileName;
             readonly string edgeHostName;
             readonly string edgeDeviceId;
+            readonly string protocol;
             readonly bool useWebSockets;
             bool usePrimaryThumbprintClientCert;
             Option<string> x509CACertPath;
@@ -76,6 +79,7 @@ namespace LeafDeviceTest
                 string trustedCACertificateFileName,
                 string edgeHostName,
                 string edgeDeviceId,
+                string protocol,
                 bool useWebSockets)
             {
                 this.iothubConnectionString = Preconditions.CheckNotNull(iothubConnectionString);
@@ -84,6 +88,7 @@ namespace LeafDeviceTest
                 this.trustedCACertificateFileName = Preconditions.CheckNotNull(trustedCACertificateFileName);
                 this.edgeHostName = Preconditions.CheckNotNull(edgeHostName);
                 this.edgeDeviceId = Preconditions.CheckNotNull(edgeDeviceId);
+                this.protocol = Preconditions.CheckNotNull(protocol);
                 this.useWebSockets = useWebSockets;
                 this.usePrimaryThumbprintClientCert = false;
             }
@@ -142,6 +147,7 @@ namespace LeafDeviceTest
                     this.trustedCACertificateFileName,
                     this.edgeHostName,
                     this.edgeDeviceId,
+                    this.protocol,
                     this.useWebSockets,
                     deviceCert,
                     this.thumbprintCerts);
