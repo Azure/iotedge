@@ -1,5 +1,7 @@
 # Copyright (c) Microsoft. All rights reserved.
 
+$env:PATH += ";$(Resolve-Path '~/.cargo/bin')"
+
 function Test-RustUp
 {
     (get-command -Name rustup.exe -ErrorAction SilentlyContinue) -ne $null
