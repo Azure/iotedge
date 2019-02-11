@@ -196,8 +196,7 @@ where
                 .map(|(secret_name, pull_secret)| {
                     let client_copy = self.client.clone();
                     let namespace_copy = self.namespace().to_owned();
-                    let fut = self
-                        .client
+                    self.client
                         .lock()
                         .expect("Unexpected lock error")
                         .borrow_mut()
@@ -237,10 +236,10 @@ where
 
                                 Either::B(f)
                             }
-                        });
-                    Either::A(fut)
+                        })
                 })
-                .unwrap_or_else(|err| Either::B(future::err(err)));
+                .into_future()
+                .flatten();
 
             Box::new(fut)
         } else {
@@ -297,8 +296,7 @@ where
             .map(|(name, new_deployment)| {
                 let client_copy = self.client.clone();
                 let namespace_copy = self.namespace().to_owned();
-                let fut = self
-                    .client
+                self.client
                     .lock()
                     .expect("Unexpected lock error")
                     .borrow_mut()
@@ -344,10 +342,10 @@ where
                                 .map(|_| ());
                             Either::B(fut)
                         }
-                    });
-                Either::A(fut)
+                    })
             })
-            .unwrap_or_else(|err| Either::B(future::err(err)));
+            .into_future()
+            .flatten();
         Box::new(f)
     }
 

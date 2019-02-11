@@ -17,6 +17,7 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json;
 use std::collections::BTreeMap;
 
+// Use username and server from Docker AuthConfig to construct an image pull secret name.
 fn auth_to_pull_secret_name(auth: &AuthConfig) -> Option<String> {
     match (auth.username(), auth.serveraddress()) {
         (Some(user), Some(server)) => {
@@ -26,6 +27,7 @@ fn auth_to_pull_secret_name(auth: &AuthConfig) -> Option<String> {
     }
 }
 
+// AuthEntry models the JSON string needed for entryies in the image pull secrets.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct AuthEntry {
     pub username: String,
@@ -43,11 +45,21 @@ impl AuthEntry {
     }
 }
 
+// Auth represents the JSON string needed for image pull secrets.
+// JSON struct is
+// { "auths":
+//   {"<registry>" :
+//      { "username":"<user>",
+//        "password":"<password>",
+//        "email":"<email>" (not needed)
+//        "auth":"<base64 of '<user>:<password>'>"
+//       }
+//   }
+// }
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Auth {
     pub auths: BTreeMap<String, AuthEntry>,
 }
-
 impl Auth {
     pub fn new(auths: BTreeMap<String, AuthEntry>) -> Auth {
         Auth { auths }
@@ -58,6 +70,7 @@ impl Auth {
     }
 }
 
+/// Convert Docker `AuthConfig` to a K8s image pull secret.
 pub fn auth_to_image_pull_secret(
     namespace: &str,
     auth: &AuthConfig,
@@ -68,23 +81,15 @@ pub fn auth_to_image_pull_secret(
         .ok_or_else(|| ErrorKind::AuthServerAddress)?;
     let user = auth.username().ok_or_else(|| ErrorKind::AuthUser)?;
     let password = auth.password().ok_or_else(|| ErrorKind::AuthPassword)?;
-    // JSON struct is
-    // { "auths":
-    //   {"<registry>" :
-    //      { "username":"<user>",
-    //        "password":"<password>",
-    //        "email":"<email>" (not needed)
-    //        "auth":"<base64 of '<user>:<password>'>"
-    //       }
-    //   }
-    // }
-    let mut auths = BTreeMap::<String, AuthEntry>::new();
+    let mut auths = BTreeMap::new();
     auths.insert(
         registry.to_string(),
         AuthEntry::new(user.to_string(), password.to_string()),
     );
+    // construct a JSON string from "auths" structure
     let auth_string = Auth::new(auths).secret_data()?;
-    let mut secret_data = BTreeMap::<String, ByteString>::new();
+    // create a pull secret from auths string.
+    let mut secret_data = BTreeMap::new();
     secret_data.insert(PULL_SECRET_DATA_NAME.to_string(), auth_string);
     Ok((
         secret_name.clone(),
@@ -101,6 +106,7 @@ pub fn auth_to_image_pull_secret(
     ))
 }
 
+/// Convert Docker `ModuleSpec` to K8s `PodSpec`
 fn spec_to_podspec<R: KubeRuntimeData>(
     runtime: &R,
     spec: &ModuleSpec<DockerConfig>,
@@ -108,24 +114,23 @@ fn spec_to_podspec<R: KubeRuntimeData>(
     module_image: String,
 ) -> Result<api_core::PodSpec> {
     // privileged container
-    let security = if let Some(privileged) = spec
+    let security = spec
         .config()
         .create_options()
         .host_config()
         .and_then(|hc| hc.privileged())
-    {
-        if *privileged {
-            let context = api_core::SecurityContext {
-                privileged: Some(*privileged),
-                ..api_core::SecurityContext::default()
-            };
-            Some(context)
-        } else {
-            None
-        }
-    } else {
-        None
-    };
+        .and_then(|privileged| {
+            if *privileged {
+                let context = api_core::SecurityContext {
+                    privileged: Some(*privileged),
+                    ..api_core::SecurityContext::default()
+                };
+                Some(context)
+            } else {
+                None
+            }
+        });
+
     // Environment Variables - use env from ModuleSpec
     let mut env_vars: Vec<api_core::EnvVar> = spec
         .env()
@@ -140,7 +145,7 @@ fn spec_to_podspec<R: KubeRuntimeData>(
     if runtime.use_pvc() && EDGE_EDGE_AGENT_NAME == module_label_value {
         let env_var = api_core::EnvVar {
             name: USE_PERSISTANT_VOLUME_CLAIMS.to_string(),
-            value: Some("TRUE".to_string()),
+            value: Some("True".to_string()),
             ..api_core::EnvVar::default()
         };
         env_vars.push(env_var);
@@ -152,6 +157,7 @@ fn spec_to_podspec<R: KubeRuntimeData>(
         name: Some(runtime.proxy_config_map_name().to_string()),
         ..api_core::ConfigMapVolumeSource::default()
     };
+    // Volume entry for proxy's config map.
     let proxy_config_volume = api_core::Volume {
         name: PROXY_CONFIG_VOLUME_NAME.to_string(),
         config_map: Some(proxy_config_volume_source),
@@ -159,6 +165,7 @@ fn spec_to_podspec<R: KubeRuntimeData>(
     };
     let mut volumes = vec![proxy_config_volume];
 
+    // Where to mount proxy config map.
     let proxy_volume_mount = api_core::VolumeMount {
         mount_path: runtime.proxy_config_path().to_string(),
         name: PROXY_CONFIG_VOLUME_NAME.to_string(),
@@ -175,10 +182,14 @@ fn spec_to_podspec<R: KubeRuntimeData>(
         .as_ref()
         .and_then(|hc| hc.binds())
     {
+        // Binds in Docker options are "source:target:options"
+        // We will convert these to a Host Path Volume Source.
         for bind in binds.iter() {
             let bind_elements = bind.split(':').collect::<Vec<&str>>();
             let element_count = bind_elements.len();
             if element_count >= 2 {
+                // If we have a valid bind mount, create a Volume with the
+                // bind source as a host path.
                 let bind_name = sanitize_dns_value(bind_elements[0])?;
                 let host_path_volume_source = api_core::HostPathVolumeSource {
                     path: bind_elements[0].to_string(),
@@ -189,7 +200,8 @@ fn spec_to_podspec<R: KubeRuntimeData>(
                     host_path: Some(host_path_volume_source),
                     ..api_core::Volume::default()
                 };
-
+                // Then mount the source volume into the container at target.
+                // Use bind options, if any.
                 let bind_mount = api_core::VolumeMount {
                     mount_path: bind_elements[1].to_string(),
                     name: bind_name,
@@ -211,9 +223,11 @@ fn spec_to_podspec<R: KubeRuntimeData>(
         .as_ref()
         .and_then(|hc| hc.mounts())
     {
+        // mounts are a structure, with type, source, target, readonly
         for mount in mounts.iter() {
             match mount._type() {
                 Some("bind") => {
+                    // Treat bind options as above: Host Path Volume Source.
                     if let (Some(source), Some(target)) = (mount.source(), mount.target()) {
                         let bind_name = sanitize_dns_value(source)?;
 
@@ -241,6 +255,11 @@ fn spec_to_podspec<R: KubeRuntimeData>(
                     }
                 }
                 Some("volume") => {
+                    // Treat volume mounts one of two ways:
+                    // 1. if use_pvc is set, we assume the user has created a
+                    // Persistent Volume and Claim named "source" for us to use.
+                    // 2. is use_pvc is not set, we create a simple EmptyDir
+                    // volume for this pod to use.  This volume is not persistent.
                     if let (Some(source), Some(target)) = (mount.source(), mount.target()) {
                         let volume_name = sanitize_dns_value(source)?;
 
@@ -313,11 +332,12 @@ fn spec_to_podspec<R: KubeRuntimeData>(
     })
 }
 
+/// Convert Docker Module Spec into a K8S Deployment.
 pub fn spec_to_deployment<R: KubeRuntimeData>(
     runtime: &R,
     spec: &ModuleSpec<DockerConfig>,
 ) -> Result<(String, apps::Deployment)> {
-    //labels
+    // Set some values...
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value = sanitize_dns_value(runtime.device_id())?;
     let hubname_label = sanitize_dns_value(runtime.iot_hub_hostname())?;
@@ -327,21 +347,22 @@ pub fn spec_to_deployment<R: KubeRuntimeData>(
     );
     let module_image = spec.config().image().to_string();
 
-    let mut labels = BTreeMap::<String, String>::new();
-    labels.insert(EDGE_MODULE_LABEL.to_string(), module_label_value.clone());
-    labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
-    labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
-    let deployment_labels = labels.clone();
-    let selector_labels = labels.clone();
+    // Populate some labels:
+    let mut pod_labels = BTreeMap::new();
+    pod_labels.insert(EDGE_MODULE_LABEL.to_string(), module_label_value.clone());
+    pod_labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
+    pod_labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
+    let deployment_labels = pod_labels.clone();
+    let selector_labels = pod_labels.clone();
 
     if let Some(spec_labels) = spec.config().create_options().labels() {
         for (label, value) in spec_labels.iter() {
-            labels.insert(label.clone(), value.clone());
+            pod_labels.insert(label.clone(), value.clone());
         }
     }
 
     // annotations
-    let mut annotations = BTreeMap::<String, String>::new();
+    let mut annotations = BTreeMap::new();
     annotations.insert(EDGE_ORIGINAL_MODULEID.to_string(), spec.name().to_string());
 
     // Assemble everything
@@ -360,7 +381,7 @@ pub fn spec_to_deployment<R: KubeRuntimeData>(
             },
             template: api_core::PodTemplateSpec {
                 metadata: Some(api_meta::ObjectMeta {
-                    labels: Some(labels),
+                    labels: Some(pod_labels),
                     annotations: Some(annotations),
                     ..api_meta::ObjectMeta::default()
                 }),
@@ -625,7 +646,7 @@ mod tests {
 
     #[test]
     fn auth_to_image_pull_secret_success() {
-        let mut auths = BTreeMap::<String, AuthEntry>::new();
+        let mut auths = BTreeMap::new();
         auths.insert(
             "REGISTRY".to_string(),
             AuthEntry::new("USER".to_string(), "a password".to_string()),
