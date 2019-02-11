@@ -6,7 +6,7 @@ namespace LeafDeviceTest
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class LeafDevice : Details
+    internal class LeafDevice : Details
     {
         LeafDevice(
             string iothubConnectionString,
