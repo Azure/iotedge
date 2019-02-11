@@ -25,6 +25,13 @@ namespace LeafDeviceTest
     using Message = Microsoft.Azure.Devices.Client.Message;
     using ServiceClientTransportType = Microsoft.Azure.Devices.TransportType;
 
+   public enum DeviceProtocol {
+        Amqp,
+        AmqpWS,
+        Mqtt,
+        MqttWs
+    }
+
     public class Details
     {
         readonly string iothubConnectionString;
@@ -49,8 +56,7 @@ namespace LeafDeviceTest
             string trustedCACertificateFileName,
             string edgeHostName,
             string edgeDeviceId,
-            string protocol,
-            bool useWebSockets,
+            DeviceProtocol protocol,
             Option<DeviceCertificate> clientCertificatePaths,
             Option<IList<string>> thumbprintCertificatePaths)
         {
@@ -69,11 +75,11 @@ namespace LeafDeviceTest
                 this.clientCertificateChain,
                 this.thumbprints) = ObtainAuthDetails(clientCertificatePaths, thumbprintCertificatePaths);
 
-            if (useWebSockets)
+            if (protocol == DeviceProtocol.AmqpWS || protocol == DeviceProtocol.MqttWs)
             {
                 this.serviceClientTransportType = ServiceClientTransportType.Amqp_WebSocket_Only;
                 this.eventHubClientTransportType = EventHubClientTransportType.AmqpWebSockets;
-                if (protocol.Equals("MQTT", StringComparison.OrdinalIgnoreCase))
+                if (protocol == DeviceProtocol.MqttWs)
                 {
                     this.deviceTransportSettings = new ITransportSettings[] { new MqttTransportSettings(DeviceClientTransportType.Mqtt_WebSocket_Only) };
                 }
@@ -86,7 +92,7 @@ namespace LeafDeviceTest
             {
                 this.serviceClientTransportType = ServiceClientTransportType.Amqp;
                 this.eventHubClientTransportType = EventHubClientTransportType.Amqp;
-                if (protocol.Equals("MQTT", StringComparison.OrdinalIgnoreCase))
+                if (protocol == DeviceProtocol.Mqtt)
                 {
                     this.deviceTransportSettings = new ITransportSettings[] { new MqttTransportSettings(DeviceClientTransportType.Mqtt_Tcp_Only) };
                 }
@@ -163,9 +169,9 @@ namespace LeafDeviceTest
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
 
-            Option<string> edgeScope = await this.edgeDeviceId.Map(async (id) => {
-                return await GetScopeIfExitsAsync(rm, id);
-            }).GetOrElse(() => Task.FromResult<Option<string>>(Option.None<string>()));
+            Option<string> edgeScope = await this.edgeDeviceId
+                .Map(id => GetScopeIfExitsAsync(rm, id))
+                .GetOrElse(() => Task.FromResult<Option<string>>(Option.None<string>()));
 
             Device device = await rm.GetDeviceAsync(this.deviceId);
             if (device != null)

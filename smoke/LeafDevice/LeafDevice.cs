@@ -6,7 +6,7 @@ namespace LeafDeviceTest
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class LeafDevice : Details
+    internal class LeafDevice : Details
     {
         LeafDevice(
             string iothubConnectionString,
@@ -15,8 +15,7 @@ namespace LeafDeviceTest
             string trustedCACertificateFileName,
             string edgeHostName,
             string edgeDeviceId,
-            string protocol,
-            bool useWebSockets,
+            DeviceProtocol protocol,
             Option<DeviceCertificate> deviceCertificate,
             Option<IList<string>> thumbprintCertificates)
             : base(
@@ -27,7 +26,6 @@ namespace LeafDeviceTest
                 edgeHostName,
                 edgeDeviceId,
                 protocol,
-                useWebSockets,
                 deviceCertificate,
                 thumbprintCertificates)
         {
@@ -65,8 +63,7 @@ namespace LeafDeviceTest
             readonly string trustedCACertificateFileName;
             readonly string edgeHostName;
             readonly string edgeDeviceId;
-            readonly string protocol;
-            readonly bool useWebSockets;
+            readonly DeviceProtocol protocol;
             bool usePrimaryThumbprintClientCert;
             Option<string> x509CACertPath;
             Option<string> x509CAKeyPath;
@@ -79,8 +76,7 @@ namespace LeafDeviceTest
                 string trustedCACertificateFileName,
                 string edgeHostName,
                 string edgeDeviceId,
-                string protocol,
-                bool useWebSockets)
+                DeviceProtocol protocol)
             {
                 this.iothubConnectionString = Preconditions.CheckNotNull(iothubConnectionString);
                 this.eventhubCompatibleEndpointWithEntityPath = Preconditions.CheckNotNull(eventhubCompatibleEndpointWithEntityPath);
@@ -88,8 +84,7 @@ namespace LeafDeviceTest
                 this.trustedCACertificateFileName = Preconditions.CheckNotNull(trustedCACertificateFileName);
                 this.edgeHostName = Preconditions.CheckNotNull(edgeHostName);
                 this.edgeDeviceId = Preconditions.CheckNotNull(edgeDeviceId);
-                this.protocol = Preconditions.CheckNotNull(protocol);
-                this.useWebSockets = useWebSockets;
+                this.protocol = protocol;
                 this.usePrimaryThumbprintClientCert = false;
             }
 
@@ -148,7 +143,6 @@ namespace LeafDeviceTest
                     this.edgeHostName,
                     this.edgeDeviceId,
                     this.protocol,
-                    this.useWebSockets,
                     deviceCert,
                     this.thumbprintCerts);
             }

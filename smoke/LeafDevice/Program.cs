@@ -50,14 +50,14 @@ Defaults:
         [Option("-ed|--edge-hostname", Description = "Hostname of the Edge device that acts as a gateway to the leaf device")]
         public string EdgeHostName { get; } = string.Empty;
 
-        [Option("-ed-id|--edge-device-id", Description = "Device Id of the Edge device that acts as a gateway to the leaf device. If not provided, the leaf device will not be in the Edge device's scope")]
+        [Option("-ed-id|--edge-device-id", Description = @"Device Id of the Edge device that acts as a gateway to the leaf device.
+                                                         If not provided, the leaf device will not be in the Edge device's scope")]
         public string EdgeGatewayDeviceId { get; } = string.Empty;
 
-        [Option("-proto|--protocol", Description = "Protocol the leaf device will use to communicate with the Edge device. Choices are MQTT and AMQP. If protocol is unspecified, default is MQTT.")]
-        public string protocol { get; } = "MQTT";
-
-        [Option("--use-web-sockets", CommandOptionType.NoValue, Description = "Use websockets for IoT Hub connections.")]
-        public bool UseWebSockets { get; } = false;
+        [Option("-proto|--protocol", Description = @"Protocol the leaf device will use to communicate with the Edge device.
+                                                    Choices are Mqtt, MqttWs, Amqp, AmqpWs.
+                                                    If protocol is unspecified, default is Mqtt.")]
+        public DeviceProtocol protocol { get; } = DeviceProtocol.Mqtt;
 
         [Option("-cac|--x509-ca-cert-path", Description = "Path to a X.509 leaf certificate file in PEM format to be used for X.509 CA authentication.")]
         public string X509CACertPath { get; } = string.Empty;
@@ -98,8 +98,7 @@ Defaults:
                     this.TrustedCACertificateFileName,
                     this.EdgeHostName,
                     this.EdgeGatewayDeviceId,
-                    this.protocol,
-                    this.UseWebSockets);
+                    this.protocol);
 
                 if (!string.IsNullOrWhiteSpace(this.X509PrimaryCertPath) &&
                     !string.IsNullOrWhiteSpace(this.X509PrimaryKeyPath) &&
