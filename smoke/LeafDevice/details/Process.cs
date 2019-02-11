@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace LeafDevice.Details
+namespace LeafDeviceTest
 {
     using System;
     using System.ComponentModel;
@@ -8,7 +8,7 @@ namespace LeafDevice.Details
     using System.Threading.Tasks;
     using RunProcessAsTask;
 
-    public class Process
+    public static class Process
     {
         public static async Task<string[]> RunAsync(string name, string args, int timeoutSeconds = 15)
         {

@@ -32,5 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         Task AddSubscription(string id, DeviceSubscription deviceSubscription);
 
         Task RemoveSubscription(string id, DeviceSubscription deviceSubscription);
+
+        Task ProcessSubscriptions(string id, IEnumerable<(DeviceSubscription, bool)> subscriptions);
     }
 }
