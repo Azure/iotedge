@@ -46,7 +46,7 @@ namespace MessagesAnalyzer
                         {
                             if (long.TryParse(sequence.ToString(), out long sequenceNumber))
                             {
-                                DateTime enqueuedtime = GetEnqueuedTime(eventData);
+                                DateTime enqueuedtime = GetEnqueuedTime(devId.ToString(), modId.ToString(), eventData);
                                 MessagesCache.Instance.AddMessage(modId.ToString(), batchId.ToString(), new MessageDetails(sequenceNumber, enqueuedtime));
                             }
                             else
@@ -65,7 +65,7 @@ namespace MessagesAnalyzer
             return Task.CompletedTask;
         }
 
-        static DateTime GetEnqueuedTime(EventData eventData)
+        static DateTime GetEnqueuedTime(string deviceId, string moduleId, EventData eventData)
         {
             DateTime enqueuedtime = DateTime.MinValue.ToUniversalTime();
 
@@ -75,6 +75,14 @@ namespace MessagesAnalyzer
                 {
                     enqueuedtime = DateTime.SpecifyKind(enqueuedtime, DateTimeKind.Utc);
                 }
+                else
+                {
+                    Log.LogError($"Message for module [{moduleId}] and device [{deviceId}] enqueued time [{enqueued}] cannot be parsed.");
+                }
+            }
+            else
+            {
+                Log.LogError($"Message for module [{moduleId}] and device [{deviceId}] doesn't contain {EnqueuedTimePropertyName} proerty.");
             }
 
             return enqueuedtime;
