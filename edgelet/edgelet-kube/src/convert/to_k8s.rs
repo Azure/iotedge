@@ -144,7 +144,7 @@ fn spec_to_podspec<R: KubeRuntimeData>(
     // Pass along "USE_PERSISTENT_VOLUMES" to EdgeAgent
     if runtime.use_pvc() && EDGE_EDGE_AGENT_NAME == module_label_value {
         let env_var = api_core::EnvVar {
-            name: USE_PERSISTANT_VOLUME_CLAIMS.to_string(),
+            name: USE_PERSISTENT_VOLUME_CLAIMS.to_string(),
             value: Some("True".to_string()),
             ..api_core::EnvVar::default()
         };
