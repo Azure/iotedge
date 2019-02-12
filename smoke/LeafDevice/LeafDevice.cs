@@ -15,7 +15,7 @@ namespace LeafDeviceTest
             string trustedCACertificateFileName,
             string edgeHostName,
             string edgeDeviceId,
-            bool useWebSockets,
+            DeviceProtocol protocol,
             Option<DeviceCertificate> deviceCertificate,
             Option<IList<string>> thumbprintCertificates)
             : base(
@@ -25,7 +25,7 @@ namespace LeafDeviceTest
                 trustedCACertificateFileName,
                 edgeHostName,
                 edgeDeviceId,
-                useWebSockets,
+                protocol,
                 deviceCertificate,
                 thumbprintCertificates)
         {
@@ -63,7 +63,7 @@ namespace LeafDeviceTest
             readonly string trustedCACertificateFileName;
             readonly string edgeHostName;
             readonly string edgeDeviceId;
-            readonly bool useWebSockets;
+            readonly DeviceProtocol protocol;
             bool usePrimaryThumbprintClientCert;
             Option<string> x509CACertPath;
             Option<string> x509CAKeyPath;
@@ -76,7 +76,7 @@ namespace LeafDeviceTest
                 string trustedCACertificateFileName,
                 string edgeHostName,
                 string edgeDeviceId,
-                bool useWebSockets)
+                DeviceProtocol protocol)
             {
                 this.iothubConnectionString = Preconditions.CheckNotNull(iothubConnectionString);
                 this.eventhubCompatibleEndpointWithEntityPath = Preconditions.CheckNotNull(eventhubCompatibleEndpointWithEntityPath);
@@ -84,7 +84,7 @@ namespace LeafDeviceTest
                 this.trustedCACertificateFileName = Preconditions.CheckNotNull(trustedCACertificateFileName);
                 this.edgeHostName = Preconditions.CheckNotNull(edgeHostName);
                 this.edgeDeviceId = Preconditions.CheckNotNull(edgeDeviceId);
-                this.useWebSockets = useWebSockets;
+                this.protocol = protocol;
                 this.usePrimaryThumbprintClientCert = false;
             }
 
@@ -142,7 +142,7 @@ namespace LeafDeviceTest
                     this.trustedCACertificateFileName,
                     this.edgeHostName,
                     this.edgeDeviceId,
-                    this.useWebSockets,
+                    this.protocol,
                     deviceCert,
                     this.thumbprintCerts);
             }
