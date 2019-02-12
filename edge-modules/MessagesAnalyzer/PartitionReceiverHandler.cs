@@ -82,7 +82,7 @@ namespace MessagesAnalyzer
             }
             else
             {
-                Log.LogError($"Message for module [{moduleId}] and device [{deviceId}] doesn't contain {EnqueuedTimePropertyName} proerty.");
+                Log.LogError($"Message for module [{moduleId}] and device [{deviceId}] doesn't contain {EnqueuedTimePropertyName} property.");
             }
 
             return enqueuedtime;
