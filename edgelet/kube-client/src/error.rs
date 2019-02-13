@@ -58,6 +58,9 @@ pub enum ErrorKind {
     Request,
     #[fail(display = "HTTP response error")]
     Response,
+    #[cfg(test)]
+    #[fail(display = "HTTP test error")]
+    HttpTest,
 }
 
 impl Fail for Error {
@@ -199,7 +202,14 @@ impl From<RequestError> for Error {
 impl From<ResponseError> for Error {
     fn from(error: ResponseError) -> Self {
         Error {
-            inner: error.context(ErrorKind::Request),
+            inner: error.context(ErrorKind::Response),
         }
+    }
+}
+
+#[cfg(test)]
+impl From<&str> for Error {
+    fn from(_error: &str) -> Self {
+        Error::new(Context::new(ErrorKind::HttpTest))
     }
 }
