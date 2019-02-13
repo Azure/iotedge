@@ -12,6 +12,7 @@ extern crate clap;
 extern crate failure;
 #[macro_use]
 extern crate futures;
+#[cfg(unix)]
 extern crate libc;
 extern crate regex;
 #[macro_use]

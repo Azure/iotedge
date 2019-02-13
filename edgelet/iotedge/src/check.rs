@@ -9,9 +9,12 @@ use std::net::TcpStream;
 use std::path::PathBuf;
 use std::process::Command;
 
-use failure::{self, Context, Fail, ResultExt};
+#[cfg(unix)]
+use failure::Fail;
+use failure::{self, Context, ResultExt};
 use futures::future::FutureResult;
 use futures::IntoFuture;
+#[cfg(unix)]
 use libc;
 use regex::Regex;
 use serde_json;
@@ -314,6 +317,7 @@ fn settings_hostname(check: &mut Check) -> Result<Option<String>, failure::Error
         }
 
         #[cfg(windows)]
+        #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
         {
             // libstd only calls WSAStartup when something under std::net gets used, like creating a TcpStream.
             // Since we haven't done anything like that up to this point, it ends up not being called.
@@ -324,19 +328,20 @@ fn settings_hostname(check: &mut Check) -> Result<Option<String>, failure::Error
             let mut wsa_data: winapi::um::winsock2::WSADATA = std::mem::zeroed();
             match winapi::um::winsock2::WSAStartup(0x202, &mut wsa_data) {
                 0 => (),
-                result => return Err(format!("WSAStartup failed with {}", result).into()),
+                result => {
+                    return Err(Context::new(format!("WSAStartup failed with {}", result)).into());
+                }
             }
 
-            match winapi::um::winsock2::gethostname(result.as_mut_ptr() as _, result.len() as _) {
-                0 => (),
-                _ => {
-                    // Can't use std::io::Error::last_os_error() because that calls GetLastError, not WSAGetLastError
-                    let winsock_err = winapi::um::winsock2::WSAGetLastError();
+            if winapi::um::winsock2::gethostname(result.as_mut_ptr() as _, result.len() as _) != 0 {
+                // Can't use std::io::Error::last_os_error() because that calls GetLastError, not WSAGetLastError
+                let winsock_err = winapi::um::winsock2::WSAGetLastError();
 
-                    return Err(
-                        format!("gethostname failed with last error {}", winsock_err).into(),
-                    );
-                }
+                return Err(Context::new(format!(
+                    "gethostname failed with last error {}",
+                    winsock_err
+                ))
+                .into());
             }
         }
 
