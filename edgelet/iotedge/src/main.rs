@@ -74,6 +74,12 @@ fn run() -> Result<(), Error> {
                         .value_name("FILE")
                         .help("Sets daemon configuration file")
                         .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("steps")
+                        .help("Run specific steps instead of all steps. One or more of `config`, `deps`, `conn`")
+                        .multiple(true)
+                        .takes_value(true),
                 ),
         )
         .subcommand(SubCommand::with_name("list").about("List modules"))
@@ -145,6 +151,8 @@ fn run() -> Result<(), Error> {
                         })
                         .to_os_string()
                         .into(),
+                    args.values_of("steps")
+                        .map(|values| values.map(ToOwned::to_owned).collect()),
                     expected_iotedged_version,
                     expected_edge_agent_version,
                     expected_edge_hub_version,

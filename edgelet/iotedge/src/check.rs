@@ -2,6 +2,7 @@
 
 use std;
 use std::borrow::Cow;
+use std::collections::HashSet;
 use std::ffi::{CStr, OsStr, OsString};
 use std::fs::File;
 use std::net::TcpStream;
@@ -24,10 +25,12 @@ use error::{Error, ErrorKind};
 
 pub struct Check {
     config_file: PathBuf,
+    steps_override: Option<Vec<String>>,
     expected_iotedged_version: String,
     expected_edge_agent_version: String,
     expected_edge_hub_version: String,
 
+    // These optional fields are populated by the pre-checks
     settings: Option<Settings<DockerConfig>>,
     docker_host_arg: Option<String>,
     iothub_hostname: Option<String>,
@@ -36,12 +39,14 @@ pub struct Check {
 impl Check {
     pub fn new(
         config_file: PathBuf,
+        steps_override: Option<Vec<String>>,
         expected_iotedged_version: String,
         expected_edge_agent_version: String,
         expected_edge_hub_version: String,
     ) -> Self {
         Check {
             config_file,
+            steps_override,
             expected_iotedged_version,
             expected_edge_agent_version,
             expected_edge_hub_version,
@@ -53,6 +58,9 @@ impl Check {
     }
 
     fn execute_inner(&mut self) -> Result<(), Error> {
+        const PRE_CHECK_SECTION_NAME: &str = "pre-check";
+
+        // DEVNOTE: Keep the names of top-level steps in sync with help-text of the "check" subcommand in main.rs (except for "pre-check")
         const CHECKS: &[(
             &str,
             &[(
@@ -61,27 +69,40 @@ impl Check {
             )],
         )] = &[
             (
-                "config",
+                PRE_CHECK_SECTION_NAME,
                 &[
                     ("config.yaml is well-formed", parse_settings),
-                    ("config.yaml has correct hostname", settings_hostname),
                     (
                         "config.yaml has well-formed connection string",
                         settings_connection_string,
                     ),
                     (
+                        "container runtime is installed and functional",
+                        container_runtime,
+                    ),
+                ],
+            ),
+            (
+                "config",
+                &[
+                    ("config.yaml has correct hostname", settings_hostname),
+                    (
                         "config.yaml has well-formed moby runtime URI",
                         settings_moby_runtime_uri,
+                    ),
+                    (
+                        "config.yaml has correct URIs for daemon mgmt endpoint",
+                        daemon_mgmt_endpoint_uri,
+                    ),
+                    (
+                        "container runtime network allows name resolution",
+                        container_runtime_network,
                     ),
                 ],
             ),
             (
                 "deps",
                 &[
-                    (
-                        "container runtime is installed and functional",
-                        container_runtime,
-                    ),
                     ("latest security daemon", iotedged_version),
                     ("latest edge agent container image", |check| {
                         edge_container_version(
@@ -101,19 +122,6 @@ impl Check {
                 ],
             ),
             (
-                "config-2",
-                &[
-                    (
-                        "config.yaml has correct URIs for daemon mgmt endpoint",
-                        daemon_mgmt_endpoint_uri,
-                    ),
-                    (
-                        "container runtime network allows name resolution",
-                        container_runtime_network,
-                    ),
-                ],
-            ),
-            (
                 "conn",
                 &[
                     ("can connect to IoT Hub AMQP port", |check| {
@@ -129,10 +137,25 @@ impl Check {
             ),
         ];
 
+        let mut steps_override: HashSet<Cow<'static, str>> =
+            if let Some(steps_override) = self.steps_override.take() {
+                steps_override.into_iter().map(Into::into).collect()
+            } else {
+                CHECKS
+                    .iter()
+                    .map(|&(section_name, _)| section_name.into())
+                    .collect()
+            };
+        steps_override.insert(PRE_CHECK_SECTION_NAME.into());
+
         let mut have_warnings = false;
         let mut have_errors = false;
 
         for (section_name, section_checks) in CHECKS {
+            if !steps_override.contains(*section_name) {
+                continue;
+            }
+
             println!("{}", section_name);
             println!("{}", "-".repeat(section_name.len()));
 
@@ -212,6 +235,63 @@ fn parse_settings(check: &mut Check) -> Result<Option<String>, failure::Error> {
     Ok(None)
 }
 
+fn settings_connection_string(check: &mut Check) -> Result<Option<String>, failure::Error> {
+    let settings = if let Some(settings) = &check.settings {
+        settings
+    } else {
+        return Ok(Some("skipping because of previous failures".to_string()));
+    };
+
+    if let Provisioning::Manual(manual) = settings.provisioning() {
+        let (_, _, hub) = manual.parse_device_connection_string()?;
+        check.iothub_hostname = Some(hub.to_string());
+    }
+
+    Ok(None)
+}
+
+fn container_runtime(check: &mut Check) -> Result<Option<String>, failure::Error> {
+    let settings = if let Some(settings) = &check.settings {
+        settings
+    } else {
+        return Ok(Some("skipping because of previous failures".to_string()));
+    };
+
+    let uri = settings.moby_runtime().uri();
+
+    let docker_host_arg = match uri.scheme() {
+        "unix" => uri.to_string(),
+
+        "npipe" => {
+            let mut uri = uri.to_string();
+            uri.replace_range(0.."npipe://".len(), "npipe:////");
+            uri
+        }
+
+        scheme => {
+            return Err(Context::new(format!(
+                "unrecognized URI scheme for moby_runtime.uri: {}",
+                scheme
+            ))
+            .into());
+        }
+    };
+
+    let output = docker(&docker_host_arg, &["version"])?;
+    if !output.status.success() {
+        return Err(Context::new(format!(
+            "docker returned {}, stderr = {}",
+            output.status,
+            String::from_utf8_lossy(&*output.stderr)
+        ))
+        .into());
+    }
+
+    check.docker_host_arg = Some(docker_host_arg);
+
+    Ok(None)
+}
+
 fn settings_hostname(check: &mut Check) -> Result<Option<String>, failure::Error> {
     let settings = if let Some(settings) = &check.settings {
         settings
@@ -283,21 +363,6 @@ fn settings_hostname(check: &mut Check) -> Result<Option<String>, failure::Error
     Ok(None)
 }
 
-fn settings_connection_string(check: &mut Check) -> Result<Option<String>, failure::Error> {
-    let settings = if let Some(settings) = &check.settings {
-        settings
-    } else {
-        return Ok(Some("skipping because of previous failures".to_string()));
-    };
-
-    if let Provisioning::Manual(manual) = settings.provisioning() {
-        let (_, _, hub) = manual.parse_device_connection_string()?;
-        check.iothub_hostname = Some(hub.to_string());
-    }
-
-    Ok(None)
-}
-
 fn settings_moby_runtime_uri(check: &mut Check) -> Result<Option<String>, failure::Error> {
     if !cfg!(windows) {
         return Ok(None);
@@ -321,34 +386,66 @@ fn settings_moby_runtime_uri(check: &mut Check) -> Result<Option<String>, failur
     Ok(None)
 }
 
-fn container_runtime(check: &mut Check) -> Result<Option<String>, failure::Error> {
+fn daemon_mgmt_endpoint_uri(check: &mut Check) -> Result<Option<String>, failure::Error> {
     let settings = if let Some(settings) = &check.settings {
         settings
     } else {
         return Ok(Some("skipping because of previous failures".to_string()));
     };
 
-    let uri = settings.moby_runtime().uri();
-
-    let docker_host_arg = match uri.scheme() {
-        "unix" => uri.to_string(),
-
-        "npipe" => {
-            let mut uri = uri.to_string();
-            uri.replace_range(0.."npipe://".len(), "npipe:////");
-            uri
-        }
-
-        scheme => {
-            return Err(Context::new(format!(
-                "unrecognized URI scheme for moby_runtime.uri: {}",
-                scheme
-            ))
-            .into());
-        }
+    let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
+        docker_host_arg
+    } else {
+        return Ok(Some("skipping because of previous failures".to_string()));
     };
 
-    let output = docker(&docker_host_arg, &["version"])?;
+    let connect_management_uri = settings.connect().management_uri();
+    let listen_management_uri = settings.listen().management_uri();
+
+    let mut args: Vec<Cow<'_, OsStr>> = vec![
+        Cow::Borrowed(OsStr::new("run")),
+        Cow::Borrowed(OsStr::new("--rm")),
+    ];
+
+    for (name, value) in settings.agent().env() {
+        args.push(Cow::Borrowed(OsStr::new("-e")));
+        args.push(Cow::Owned(format!("{}={}", name, value).into()));
+    }
+
+    match (connect_management_uri.scheme(), listen_management_uri.scheme()) {
+        ("http", "http") => (),
+
+        ("unix", "unix") => {
+            args.push(Cow::Borrowed(OsStr::new("-v")));
+
+            let container_path = connect_management_uri.to_uds_file_path().context("could not parse connect.management_uri as file path")?;
+            let container_path = container_path.to_str().ok_or_else(|| Context::new("connect.management_uri is a unix socket, but the file path is not valid utf-8"))?;
+
+            let host_path = listen_management_uri.to_uds_file_path().context("could not parse listen.management_uri as file path")?;
+            let host_path = host_path.to_str().ok_or_else(|| Context::new("listen.management_uri is a unix socket, but the file path is not valid utf-8"))?;
+
+            args.push(Cow::Owned(format!("{}:{}", host_path, container_path).into()));
+        },
+
+        (scheme1, scheme2) if scheme1 != scheme2 => return Err(Context::new(
+            format!("config.yaml has different schemes for connect.management_uri ({:?}) and listen.management_uri ({:?})", scheme1, scheme2))
+            .into()),
+
+        (scheme, _) => return Err(Context::new(format!("unrecognized scheme {} for connect.management_uri", scheme)).into()),
+    }
+
+    args.extend(vec![
+        Cow::Owned(OsString::from(format!(
+            "azureiotedge-diagnostics:{}",
+            edgelet_core::version()
+        ))),
+        Cow::Borrowed(OsStr::new("/iotedge-diagnostics")),
+        Cow::Borrowed(OsStr::new("edge-agent")),
+        Cow::Borrowed(OsStr::new("--management-uri")),
+        Cow::Owned(OsString::from(connect_management_uri.to_string())),
+    ]);
+
+    let output = docker(docker_host_arg, args)?;
     if !output.status.success() {
         return Err(Context::new(format!(
             "docker returned {}, stderr = {}",
@@ -358,7 +455,79 @@ fn container_runtime(check: &mut Check) -> Result<Option<String>, failure::Error
         .into());
     }
 
-    check.docker_host_arg = Some(docker_host_arg);
+    Ok(None)
+}
+
+fn container_runtime_network(check: &mut Check) -> Result<Option<String>, failure::Error> {
+    let settings = if let Some(settings) = &check.settings {
+        settings
+    } else {
+        return Ok(Some("skipping because of previous failures".to_string()));
+    };
+
+    let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
+        docker_host_arg
+    } else {
+        return Ok(Some("skipping because of previous failures".to_string()));
+    };
+
+    let network_name = settings.moby_runtime().network();
+
+    let mut module1_process = Command::new("docker");
+    module1_process.arg("-H");
+    module1_process.arg(docker_host_arg);
+
+    module1_process.args(vec![
+        "run",
+        "--rm",
+        "--network",
+        network_name,
+        "--name",
+        "diagnostics-1",
+    ]);
+    module1_process.arg(format!(
+        "azureiotedge-diagnostics:{}",
+        edgelet_core::version()
+    ));
+    module1_process.args(vec![
+        "/iotedge-diagnostics",
+        "idle-module",
+        "--duration",
+        "10",
+    ]);
+
+    // Let it run in the background
+    module1_process
+        .spawn()
+        .with_context(|_| format!("could not run {:?}", module1_process))?;
+
+    let module2_output = docker(
+        docker_host_arg,
+        vec![
+            Cow::Borrowed(OsStr::new("run")),
+            Cow::Borrowed(OsStr::new("--rm")),
+            Cow::Borrowed(OsStr::new("--network")),
+            Cow::Borrowed(OsStr::new(network_name)),
+            Cow::Borrowed(OsStr::new("--name")),
+            Cow::Borrowed(OsStr::new("diagnostics-2")),
+            Cow::Owned(OsString::from(format!(
+                "azureiotedge-diagnostics:{}",
+                edgelet_core::version()
+            ))),
+            Cow::Borrowed(OsStr::new("/iotedge-diagnostics")),
+            Cow::Borrowed(OsStr::new("resolve-module")),
+            Cow::Borrowed(OsStr::new("--hostname")),
+            Cow::Borrowed(OsStr::new("diagnostics-1")),
+        ],
+    )?;
+    if !module2_output.status.success() {
+        return Err(Context::new(format!(
+            "docker returned {}, stderr = {}",
+            module2_output.status,
+            String::from_utf8_lossy(&*module2_output.stderr)
+        ))
+        .into());
+    }
 
     Ok(None)
 }
@@ -508,152 +677,6 @@ fn container_local_time(check: &mut Check) -> Result<Option<String>, failure::Er
         return Err(Context::new(format!(
             "detected large difference between host local time {:?} and container local time {:?}",
             expected_duration, actual_duration,
-        ))
-        .into());
-    }
-
-    Ok(None)
-}
-
-fn daemon_mgmt_endpoint_uri(check: &mut Check) -> Result<Option<String>, failure::Error> {
-    let settings = if let Some(settings) = &check.settings {
-        settings
-    } else {
-        return Ok(Some("skipping because of previous failures".to_string()));
-    };
-
-    let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
-        docker_host_arg
-    } else {
-        return Ok(Some("skipping because of previous failures".to_string()));
-    };
-
-    let connect_management_uri = settings.connect().management_uri();
-    let listen_management_uri = settings.listen().management_uri();
-
-    let mut args: Vec<Cow<'_, OsStr>> = vec![
-        Cow::Borrowed(OsStr::new("run")),
-        Cow::Borrowed(OsStr::new("--rm")),
-    ];
-
-    for (name, value) in settings.agent().env() {
-        args.push(Cow::Borrowed(OsStr::new("-e")));
-        args.push(Cow::Owned(format!("{}={}", name, value).into()));
-    }
-
-    match (connect_management_uri.scheme(), listen_management_uri.scheme()) {
-        ("http", "http") => (),
-
-        ("unix", "unix") => {
-            args.push(Cow::Borrowed(OsStr::new("-v")));
-
-            let container_path = connect_management_uri.to_uds_file_path().context("could not parse connect.management_uri as file path")?;
-            let container_path = container_path.to_str().ok_or_else(|| Context::new("connect.management_uri is a unix socket, but the file path is not valid utf-8"))?;
-
-            let host_path = listen_management_uri.to_uds_file_path().context("could not parse listen.management_uri as file path")?;
-            let host_path = host_path.to_str().ok_or_else(|| Context::new("listen.management_uri is a unix socket, but the file path is not valid utf-8"))?;
-
-            args.push(Cow::Owned(format!("{}:{}", host_path, container_path).into()));
-        },
-
-        (scheme1, scheme2) if scheme1 != scheme2 => return Err(Context::new(
-            format!("config.yaml has different schemes for connect.management_uri ({:?}) and listen.management_uri ({:?})", scheme1, scheme2))
-            .into()),
-
-        (scheme, _) => return Err(Context::new(format!("unrecognized scheme {} for connect.management_uri", scheme)).into()),
-    }
-
-    args.extend(vec![
-        Cow::Owned(OsString::from(format!(
-            "azureiotedge-diagnostics:{}",
-            edgelet_core::version()
-        ))),
-        Cow::Borrowed(OsStr::new("/iotedge-diagnostics")),
-        Cow::Borrowed(OsStr::new("edge-agent")),
-        Cow::Borrowed(OsStr::new("--management-uri")),
-        Cow::Owned(OsString::from(connect_management_uri.to_string())),
-    ]);
-
-    let output = docker(docker_host_arg, args)?;
-    if !output.status.success() {
-        return Err(Context::new(format!(
-            "docker returned {}, stderr = {}",
-            output.status,
-            String::from_utf8_lossy(&*output.stderr)
-        ))
-        .into());
-    }
-
-    Ok(None)
-}
-
-fn container_runtime_network(check: &mut Check) -> Result<Option<String>, failure::Error> {
-    let settings = if let Some(settings) = &check.settings {
-        settings
-    } else {
-        return Ok(Some("skipping because of previous failures".to_string()));
-    };
-
-    let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
-        docker_host_arg
-    } else {
-        return Ok(Some("skipping because of previous failures".to_string()));
-    };
-
-    let network_name = settings.moby_runtime().network();
-
-    let mut module1_process = Command::new("docker");
-    module1_process.arg("-H");
-    module1_process.arg(docker_host_arg);
-
-    module1_process.args(vec![
-        "run",
-        "--rm",
-        "--network",
-        network_name,
-        "--name",
-        "diagnostics-1",
-    ]);
-    module1_process.arg(format!(
-        "azureiotedge-diagnostics:{}",
-        edgelet_core::version()
-    ));
-    module1_process.args(vec![
-        "/iotedge-diagnostics",
-        "idle-module",
-        "--duration",
-        "10",
-    ]);
-
-    // Let it run in the background
-    module1_process
-        .spawn()
-        .with_context(|_| format!("could not run {:?}", module1_process))?;
-
-    let module2_output = docker(
-        docker_host_arg,
-        vec![
-            Cow::Borrowed(OsStr::new("run")),
-            Cow::Borrowed(OsStr::new("--rm")),
-            Cow::Borrowed(OsStr::new("--network")),
-            Cow::Borrowed(OsStr::new(network_name)),
-            Cow::Borrowed(OsStr::new("--name")),
-            Cow::Borrowed(OsStr::new("diagnostics-2")),
-            Cow::Owned(OsString::from(format!(
-                "azureiotedge-diagnostics:{}",
-                edgelet_core::version()
-            ))),
-            Cow::Borrowed(OsStr::new("/iotedge-diagnostics")),
-            Cow::Borrowed(OsStr::new("resolve-module")),
-            Cow::Borrowed(OsStr::new("--hostname")),
-            Cow::Borrowed(OsStr::new("diagnostics-1")),
-        ],
-    )?;
-    if !module2_output.status.success() {
-        return Err(Context::new(format!(
-            "docker returned {}, stderr = {}",
-            module2_output.status,
-            String::from_utf8_lossy(&*module2_output.stderr)
         ))
         .into());
     }
