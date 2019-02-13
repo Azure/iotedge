@@ -17,22 +17,20 @@ namespace LoadGen
         {
             List<Buffer> buffers = this.buffers.GetOrAdd(
                 size,
-                (bufSize) =>
+                bufferSize =>
                 {
                     var list = new List<Buffer>
                     {
-                        new Buffer(bufSize)
+                        new Buffer(bufferSize)
                     };
 
-                    Log.Information($"Allocated new list & buffer [{list[0].Id}] of size {size}");
+                    Log.Information($"Allocated new list & buffer [{list[0].Id}] of size {bufferSize}");
                     return list;
                 });
 
             lock (buffers)
             {
-                Buffer buffer = buffers
-                    .Where(buf => buf.InUse.Get() == false)
-                    .FirstOrDefault();
+                Buffer buffer = buffers.FirstOrDefault(buf => buf.InUse.Get() == false);
 
                 if (buffer == null)
                 {
