@@ -454,33 +454,37 @@ mod tests {
 
         let deployment: apps::Deployment = serde_json::from_str(DEPLOYMENT_JSON).unwrap();
         let fut = client.create_deployment(NAMESPACE, &deployment);
-        let _ = Runtime::new().unwrap().block_on(fut).map_err(|e| {
-            assert!(e.to_string().contains("HTTP response error"));
-        })
-        .map(|r| {
-            panic!("expected an error result {:?}", r);
-        });
+        let _ = Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .map_err(|e| {
+                assert!(e.to_string().contains("HTTP response error"));
+            })
+            .map(|r| {
+                panic!("expected an error result {:?}", r);
+            });
     }
 
     #[test]
     fn create_deployment_service_error() {
         const NAMESPACE: &str = "custom-namespace";
-        let service1 = service_fn(
-            move |_req: Request<Body>| -> Result<Response<Body>, _> {
-                Err("Serious error here")
-            },
-        );
+        let service1 = service_fn(move |_req: Request<Body>| -> Result<Response<Body>, _> {
+            Err("Serious error here")
+        });
 
         let mut client = make_test_client(service1);
 
         let deployment: apps::Deployment = serde_json::from_str(DEPLOYMENT_JSON).unwrap();
         let fut = client.create_deployment(NAMESPACE, &deployment);
-        let _ = Runtime::new().unwrap().block_on(fut).map_err(|e| {
-            assert!(e.to_string().contains("HTTP test error"));
-        })
-        .map(|r| {
-            panic!("expected an error result {:?}", r);
-        });
+        let _ = Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .map_err(|e| {
+                assert!(e.to_string().contains("HTTP test error"));
+            })
+            .map(|r| {
+                panic!("expected an error result {:?}", r);
+            });
     }
 
     #[test]
@@ -498,33 +502,37 @@ mod tests {
         let mut client = make_test_client(service1);
 
         let fut = client.delete_deployment(NAMESPACE, NAME, None);
-        let _ = Runtime::new().unwrap().block_on(fut).map_err(|e| {
-            assert!(e.to_string().contains("HTTP response error"));
-        })
-        .map(|r| {
-            panic!("expected an error result {:?}", r);
-        });
+        let _ = Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .map_err(|e| {
+                assert!(e.to_string().contains("HTTP response error"));
+            })
+            .map(|r| {
+                panic!("expected an error result {:?}", r);
+            });
     }
 
     #[test]
     fn delete_deployment_service_error() {
         const NAMESPACE: &str = "custom-namespace";
         const NAME: &str = "deployment2";
-        let service1 = service_fn(
-            move |_req: Request<Body>| -> Result<Response<Body>, _> {
-                Err("A Very serious error")
-            },
-        );
+        let service1 = service_fn(move |_req: Request<Body>| -> Result<Response<Body>, _> {
+            Err("A Very serious error")
+        });
 
         let mut client = make_test_client(service1);
 
         let fut = client.delete_deployment(NAMESPACE, NAME, None);
-        let _ = Runtime::new().unwrap().block_on(fut).map_err(|e| {
-            assert!(e.to_string().contains("HTTP test error"));
-        })
-        .map(|r| {
-            panic!("expected an error result {:?}", r);
-        });
+        let _ = Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .map_err(|e| {
+                assert!(e.to_string().contains("HTTP test error"));
+            })
+            .map(|r| {
+                panic!("expected an error result {:?}", r);
+            });
     }
 
     #[test]
@@ -542,12 +550,15 @@ mod tests {
         let mut client = make_test_client(service);
 
         let fut = client.list_pods(NAMESPACE, Some(LABEL_SELECTOR));
-        let _ = Runtime::new().unwrap().block_on(fut).map_err(|e| {
-            assert!(e.to_string().contains("HTTP response error"));
-        })
-        .map(|r| {
-            panic!("expected an error result {:?}", r);
-        });
+        let _ = Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .map_err(|e| {
+                assert!(e.to_string().contains("HTTP response error"));
+            })
+            .map(|r| {
+                panic!("expected an error result {:?}", r);
+            });
     }
 
     #[test]
@@ -555,7 +566,7 @@ mod tests {
         const NAMESPACE: &str = "custom-namespace";
         const LABEL_SELECTOR: &str = "x=y";
         let service = service_fn(
-            |_req: Request<Body>| -> std::result::Result<Response<Body>,_>{
+            |_req: Request<Body>| -> std::result::Result<Response<Body>, _> {
                 Err("Some terrible error")
             },
         );
@@ -563,12 +574,15 @@ mod tests {
         let mut client = make_test_client(service);
 
         let fut = client.list_pods(NAMESPACE, Some(LABEL_SELECTOR));
-        let _ = Runtime::new().unwrap().block_on(fut).map_err(|e| {
-            assert!(e.to_string().contains("HTTP test error"));
-        })
-        .map(|r| {
-            panic!("expected an error result {:?}", r);
-        });
+        let _ = Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .map_err(|e| {
+                assert!(e.to_string().contains("HTTP test error"));
+            })
+            .map(|r| {
+                panic!("expected an error result {:?}", r);
+            });
     }
 
     fn make_test_client<S: Service>(service: S) -> Client<TestTokenSource, S> {
