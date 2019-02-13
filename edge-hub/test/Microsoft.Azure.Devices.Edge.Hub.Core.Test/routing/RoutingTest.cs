@@ -440,7 +440,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(1, TimeSpan.FromMilliseconds(10)), messageStore);
             Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), iotHubName, routerConfig, endpointExecutorFactory);
             ITwinManager twinManager = new TwinManager(connectionManager, new TwinCollectionMessageConverter(), new TwinMessageConverter(), Option.None<IEntityStore<string, TwinInfo>>());
-            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager, twinManager, edgeDeviceId, Mock.Of<IInvokeMethodHandler>(), Mock.Of<IDeviceConnectivityManager>());
+            var invokeMethodHandler = Mock.Of<IInvokeMethodHandler>();
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
+            var subscriptionProcessor = new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager);
+            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager, twinManager, edgeDeviceId, invokeMethodHandler, subscriptionProcessor);
             return (edgeHub, connectionManager);
         }
 
