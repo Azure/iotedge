@@ -43,9 +43,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.NotNull(response);
             Assert.Equal(response.CorrelationId, request.CorrelationId);
-            Assert.Equal(response.HttpStatusCode, HttpStatusCode.OK);
+            Assert.Equal(HttpStatusCode.OK, response.HttpStatusCode);
             Assert.Null(response.Data);
-            Assert.Equal(response.Status, 200);
+            Assert.Equal((int)HttpStatusCode.OK, response.Status);
             Assert.False(response.Exception.HasValue);
         }
 
@@ -77,9 +77,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.NotNull(response);
             Assert.Null(response.CorrelationId);
-            Assert.Equal(response.HttpStatusCode, HttpStatusCode.GatewayTimeout);
+            Assert.Equal(HttpStatusCode.GatewayTimeout, response.HttpStatusCode);
             Assert.Null(response.Data);
-            Assert.Equal(response.Status, 0);
+            Assert.Equal(0, response.Status);
             Assert.IsType<EdgeHubTimeoutException>(response.Exception.OrDefault());
         }
 
@@ -121,9 +121,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.NotNull(response);
             Assert.Equal(response.CorrelationId, request.CorrelationId);
-            Assert.Equal(response.HttpStatusCode, HttpStatusCode.OK);
+            Assert.Equal(HttpStatusCode.OK, response.HttpStatusCode);
             Assert.Null(response.Data);
-            Assert.Equal(response.Status, 200);
+            Assert.Equal((int)HttpStatusCode.OK, response.Status);
             Assert.False(response.Exception.HasValue);
         }
 
@@ -165,9 +165,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.NotNull(response);
             Assert.Equal(response.CorrelationId, request.CorrelationId);
-            Assert.Equal(response.HttpStatusCode, HttpStatusCode.OK);
+            Assert.Equal(HttpStatusCode.OK, response.HttpStatusCode);
             Assert.Null(response.Data);
-            Assert.Equal(response.Status, 200);
+            Assert.Equal((int)HttpStatusCode.OK, response.Status);
             Assert.False(response.Exception.HasValue);
         }
     }

@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     {
         [Theory]
         [MemberData(nameof(GetCreateTestParameters1))]
-        public void CreateTest(string iothubHostName, string id, IIdentity expectedIdentity)
+        public void CreateIdentityProviderTest(string iothubHostName, string id, IIdentity expectedIdentity)
         {
             // Arrange
             var identityProvider = new IdentityProvider(iothubHostName);
@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         [Theory]
         [MemberData(nameof(GetCreateTestParameters2))]
-        public void CreateTest(string iothubHostName, string deviceId, string moduleId, IIdentity expectedIdentity)
+        public void CreateIdentityProviderTest2(string iothubHostName, string deviceId, string moduleId, IIdentity expectedIdentity)
         {
             // Arrange
             var identityProvider = new IdentityProvider(iothubHostName);
@@ -39,13 +39,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(expectedIdentity.GetType(), identity.GetType());
         }
 
-        static IEnumerable<object[]> GetCreateTestParameters1()
+        public static IEnumerable<object[]> GetCreateTestParameters1()
         {
             yield return new object[] { "foo.azure-device.net", "d1", new DeviceIdentity("foo.azure-device.net", "d1") };
             yield return new object[] { "foo.azure-device.net", "d1/m1", new ModuleIdentity("foo.azure-device.net", "d1", "m1") };
         }
 
-        static IEnumerable<object[]> GetCreateTestParameters2()
+        public static IEnumerable<object[]> GetCreateTestParameters2()
         {
             yield return new object[] { "foo.azure-device.net", "d1", string.Empty, new DeviceIdentity("foo.azure-device.net", "d1") };
             yield return new object[] { "foo.azure-device.net", "d1", "m1", new ModuleIdentity("foo.azure-device.net", "d1", "m1") };

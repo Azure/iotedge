@@ -14,6 +14,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     [Unit]
     public class DeviceScopeApiClientTest
     {
+        public static IEnumerable<object[]> GetErrorDetectionData()
+        {
+            yield return new object[] { new ArgumentException(), false };
+            yield return new object[] { new InvalidOperationException(), false };
+            yield return new object[] { new ArgumentNullException(), false };
+
+            yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.BadRequest, "bar"), false };
+            yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.Unauthorized, "bar"), false };
+
+            yield return new object[] { new SocketException(), true };
+            yield return new object[] { new HttpRequestException(), true };
+            yield return new object[] { new Exception(), true };
+
+            yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.InternalServerError, "bar"), true };
+            yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.ServiceUnavailable, "bar"), true };
+            yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.NotImplemented, "bar"), true };
+        }
+
         [Fact]
         public void GetServiceUriTest()
         {
@@ -111,24 +129,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             // Assert
             Assert.Equal(isTransientResponse, isTransient);
-        }
-
-        static IEnumerable<object[]> GetErrorDetectionData()
-        {
-            yield return new object[] { new ArgumentException(), false };
-            yield return new object[] { new InvalidOperationException(), false };
-            yield return new object[] { new ArgumentNullException(), false };
-
-            yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.BadRequest, "bar"), false };
-            yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.Unauthorized, "bar"), false };
-
-            yield return new object[] { new SocketException(), true };
-            yield return new object[] { new HttpRequestException(), true };
-            yield return new object[] { new Exception(), true };
-
-            yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.InternalServerError, "bar"), true };
-            yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.ServiceUnavailable, "bar"), true };
-            yield return new object[] { new DeviceScopeApiException("foo", HttpStatusCode.NotImplemented, "bar"), true };
         }
     }
 }

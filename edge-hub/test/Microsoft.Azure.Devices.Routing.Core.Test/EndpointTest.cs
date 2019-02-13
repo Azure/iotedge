@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Assert.Equal(Endpoint1, Endpoint3);
             Assert.NotEqual(Endpoint1, Endpoint2);
             Assert.NotEqual(Endpoint2, Endpoint3);
-            Assert.NotEqual(Endpoint2, null);
+            Assert.NotNull(Endpoint2);
 
             Assert.False(Endpoint1.Equals(null));
             Assert.False(Endpoint1.Equals((object)null));
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Unit]
         public void TestConstructor()
         {
-            Assert.Throws(typeof(ArgumentNullException), () => new TestEndpoint(null));
+            Assert.Throws<ArgumentNullException>(() => new TestEndpoint(null));
         }
     }
 }

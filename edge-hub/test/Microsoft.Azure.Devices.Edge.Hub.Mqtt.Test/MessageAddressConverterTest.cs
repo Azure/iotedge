@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         public void TestMessageAddressConverterWithEmptyConversionConfig()
         {
             var emptyConversionConfig = new MessageAddressConversionConfiguration();
-            Assert.Throws(typeof(ArgumentException), () => new MessageAddressConverter(emptyConversionConfig));
+            Assert.Throws<ArgumentException>(() => new MessageAddressConverter(emptyConversionConfig));
         }
 
         [Fact]
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.True(result);
             Assert.NotNull(address);
             Assert.NotEmpty(address);
-            Assert.Equal<string>("a/123/c", address);
+            Assert.Equal("a/123/c", address);
             message.VerifyAll();
         }
 
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.True(result);
             Assert.NotNull(address);
             Assert.NotEmpty(address);
-            Assert.Equal<string>("d/123/f", address);
+            Assert.Equal("d/123/f", address);
             message.VerifyAll();
         }
 
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.True(result);
             Assert.NotNull(address);
             Assert.NotEmpty(address);
-            Assert.Equal<string>("a/123/c/456/e/789/", address);
+            Assert.Equal("a/123/c/456/e/789/", address);
             message.VerifyAll();
         }
 
@@ -245,7 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.True(result);
             Assert.NotNull(address);
             Assert.NotEmpty(address);
-            Assert.Equal<string>("a/123/c/Prop1=Val1&Prop2=Val2&%24.cdid=Device1&%24.cmid=Module1", address);
+            Assert.Equal("a/123/c/Prop1=Val1&Prop2=Val2&%24.cdid=Device1&%24.cmid=Module1", address);
             message.VerifyAll();
         }
 
@@ -284,7 +284,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.True(result);
             Assert.NotNull(address);
             Assert.NotEmpty(address);
-            Assert.Equal<string>("d/123/f/Prop1=Val1&Prop2=Val2&%24.cdid=Device1", address);
+            Assert.Equal("d/123/f/Prop1=Val1&Prop2=Val2&%24.cdid=Device1", address);
             message.VerifyAll();
         }
 
@@ -325,7 +325,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.True(result);
             Assert.NotNull(address);
             Assert.NotEmpty(address);
-            Assert.Equal<string>("a/123/c/456/e/789/Prop1=Val1&Prop2=Val2&%24.cdid=Device1&%24.cmid=Module1", address);
+            Assert.Equal("a/123/c/456/e/789/Prop1=Val1&Prop2=Val2&%24.cdid=Device1&%24.cmid=Module1", address);
             message.VerifyAll();
         }
 
@@ -345,9 +345,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.True(status);
             string value;
             Assert.True(message.Properties.TryGetValue("b", out value));
-            Assert.Equal<string>("bee", value);
+            Assert.Equal("bee", value);
             Assert.True(message.Properties.TryGetValue("d", out value));
-            Assert.Equal<string>("dee", value);
+            Assert.Equal("dee", value);
         }
 
         [Fact]
@@ -366,9 +366,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.True(status);
             string value;
             Assert.True(message.Properties.TryGetValue("b", out value));
-            Assert.Equal<string>("bee", value);
+            Assert.Equal("bee", value);
             Assert.True(message.Properties.TryGetValue("d", out value));
-            Assert.Equal<string>("dee", value);
+            Assert.Equal("dee", value);
             Assert.Equal(2, message.Properties.Count);
         }
 
@@ -421,8 +421,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             bool status = converter.TryParseProtocolMessagePropsFromAddress(message);
             Assert.True(status);
             Assert.Equal(5, message.Properties.Count);
-            Assert.Equal<string>("bee", message.Properties["b"]);
-            Assert.Equal<string>("cee", message.Properties["c"]);
+            Assert.Equal("bee", message.Properties["b"]);
+            Assert.Equal("cee", message.Properties["c"]);
             Assert.Equal("v1", message.Properties["p1"]);
             Assert.Equal("v2", message.Properties["p2"]);
             Assert.Equal("mv1", message.Properties["$.mid"]);
@@ -443,8 +443,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             bool status = converter.TryParseProtocolMessagePropsFromAddress(message);
             Assert.True(status);
             Assert.Equal(5, message.Properties.Count);
-            Assert.Equal<string>("bee", message.Properties["b"]);
-            Assert.Equal<string>("cee", message.Properties["c"]);
+            Assert.Equal("bee", message.Properties["b"]);
+            Assert.Equal("cee", message.Properties["c"]);
             Assert.Equal("v1", message.Properties["p1"]);
             Assert.Equal("v2", message.Properties["p2"]);
             Assert.Equal("mv1", message.Properties["$.mid"]);

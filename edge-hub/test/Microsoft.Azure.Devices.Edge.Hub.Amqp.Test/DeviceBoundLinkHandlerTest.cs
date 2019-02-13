@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             await Task.Delay(TimeSpan.FromSeconds(5));
 
             // Assert
-            Assert.Equal(feedbackStatus, FeedbackStatus.Complete);
+            Assert.Equal(FeedbackStatus.Complete, feedbackStatus);
         }
     }
 }

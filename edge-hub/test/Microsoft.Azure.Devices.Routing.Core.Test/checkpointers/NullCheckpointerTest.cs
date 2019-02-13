@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
         [Theory]
         [Unit]
         [MemberData(nameof(TestAdmitDataSource.TestData), MemberType = typeof(TestAdmitDataSource))]
-        public void TestAdmit(IMessage message, long offset, bool expected)
+        public void TestAdmit(IMessage message, bool expected)
         {
             using (var checkpointer = new NullCheckpointer())
             {

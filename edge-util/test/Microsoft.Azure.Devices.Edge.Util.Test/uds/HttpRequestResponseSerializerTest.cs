@@ -200,8 +200,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
             HttpResponseMessage response = await new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken);
 
             Assert.Equal(response.Version, Version.Parse("1.1"));
-            Assert.Equal(response.StatusCode, HttpStatusCode.OK);
-            Assert.Equal(response.ReasonPhrase, "OK");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("OK", response.ReasonPhrase);
         }
 
         [Fact]
@@ -248,10 +248,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
             HttpResponseMessage response = await new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken);
 
             Assert.Equal(response.Version, Version.Parse("1.1"));
-            Assert.Equal(response.StatusCode, HttpStatusCode.OK);
-            Assert.Equal(response.ReasonPhrase, "OK");
-            Assert.Equal(response.Content.Headers.ContentLength, 4);
-            Assert.Equal(await response.Content.ReadAsStringAsync(), "Test");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("OK", response.ReasonPhrase);
+            Assert.Equal(4, response.Content.Headers.ContentLength);
+            Assert.Equal("Test", await response.Content.ReadAsStringAsync());
         }
 
         [Fact]
@@ -265,10 +265,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
             HttpResponseMessage response = await new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken);
 
             Assert.Equal(response.Version, Version.Parse("1.1"));
-            Assert.Equal(response.StatusCode, HttpStatusCode.OK);
-            Assert.Equal(response.ReasonPhrase, "OK");
-            Assert.Equal(response.Content.Headers.ContentLength, 4);
-            Assert.Equal(await response.Content.ReadAsStringAsync(), "Test");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("OK", response.ReasonPhrase);
+            Assert.Equal(4, response.Content.Headers.ContentLength);
+            Assert.Equal("Test", await response.Content.ReadAsStringAsync());
         }
 
         static void AssertNormalizedValues(string expected, string actual)

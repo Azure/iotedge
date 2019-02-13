@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             var message = new MqttFeedbackMessage(Message1, FeedbackStatus.Complete);
 
-            Assert.Equal(message.FeedbackStatus, FeedbackStatus.Complete);
+            Assert.Equal(FeedbackStatus.Complete, message.FeedbackStatus);
             Assert.Equal(message.Body, Message1.Body);
             Assert.Equal(message.Properties, Message1.Properties);
             Assert.Equal(message.SystemProperties, Message1.SystemProperties);

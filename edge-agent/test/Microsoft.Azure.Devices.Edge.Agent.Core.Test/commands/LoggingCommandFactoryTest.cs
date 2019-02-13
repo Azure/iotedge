@@ -111,7 +111,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
         [MemberData(nameof(CreateTestData))]
         public async Task ExecuteFailureTests(
             CommandMethodExpr commandMethodBeingTested,
-            Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr)
         {
             var token = new CancellationToken();
@@ -171,7 +170,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
         [MemberData(nameof(CreateTestData))]
         public async Task UndoFailureTests(
             CommandMethodExpr commandMethodBeingTested,
-            Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr)
         {
             var token = new CancellationToken();
@@ -196,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             logMock.Verify(l => l.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
         }
 
-        static IEnumerable<object[]> CreateTestData()
+        public static IEnumerable<object[]> CreateTestData()
         {
             var moduleIdentity = new Mock<IModuleIdentity>();
             var testModule = new ModuleWithIdentity(TestModule, moduleIdentity.Object);

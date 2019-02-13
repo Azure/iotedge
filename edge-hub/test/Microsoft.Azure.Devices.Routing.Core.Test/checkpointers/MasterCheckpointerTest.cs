@@ -127,8 +127,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
             var store = new NullCheckpointStore(14);
             MasterCheckpointer master = await MasterCheckpointer.CreateAsync("checkpointer", store);
 
-            Assert.Equal(false, master.Admit(MessageWithOffset(10)));
-            Assert.Equal(true, master.Admit(MessageWithOffset(15)));
+            Assert.False(master.Admit(MessageWithOffset(10)));
+            Assert.True(master.Admit(MessageWithOffset(15)));
         }
 
         [Fact]

@@ -42,14 +42,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             // Assert
             Assert.NotNull(receivedMessage);
             Assert.Equal(receivedMessage.Body, bytes);
-            Assert.Equal(receivedMessage.SystemProperties.Count, 4);
-            Assert.Equal(receivedMessage.Properties.Count, 2);
+            Assert.Equal(4, receivedMessage.SystemProperties.Count);
+            Assert.Equal(2, receivedMessage.Properties.Count);
             Assert.Equal(receivedMessage.SystemProperties[SystemProperties.MessageId], messageId);
             Assert.Equal(receivedMessage.SystemProperties[SystemProperties.MsgCorrelationId], correlationId);
-            Assert.Equal(receivedMessage.SystemProperties[SystemProperties.ContentType], "application/json");
-            Assert.Equal(receivedMessage.SystemProperties[SystemProperties.ContentEncoding], "UTF-8");
-            Assert.Equal(receivedMessage.Properties["Prop1"], "Value1");
-            Assert.Equal(receivedMessage.Properties["Prop2"], "Value2");
+            Assert.Equal("application/json", receivedMessage.SystemProperties[SystemProperties.ContentType]);
+            Assert.Equal("UTF-8", receivedMessage.SystemProperties[SystemProperties.ContentEncoding]);
+            Assert.Equal("Value1", receivedMessage.Properties["Prop1"]);
+            Assert.Equal("Value2", receivedMessage.Properties["Prop2"]);
         }
 
         [Fact]
@@ -78,12 +78,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             // Assert
             Assert.NotNull(receivedMessage);
             Assert.Equal(receivedMessage.Body, bytes);
-            Assert.Equal(receivedMessage.SystemProperties.Count, 4);
-            Assert.Equal(receivedMessage.Properties.Count, 0);
+            Assert.Equal(4, receivedMessage.SystemProperties.Count);
+            Assert.Equal(0, receivedMessage.Properties.Count);
             Assert.Equal(receivedMessage.SystemProperties[SystemProperties.MessageId], messageId);
             Assert.Equal(receivedMessage.SystemProperties[SystemProperties.MsgCorrelationId], correlationId);
-            Assert.Equal(receivedMessage.SystemProperties[SystemProperties.ContentType], "application/json");
-            Assert.Equal(receivedMessage.SystemProperties[SystemProperties.ContentEncoding], "UTF-8");
+            Assert.Equal("application/json", receivedMessage.SystemProperties[SystemProperties.ContentType]);
+            Assert.Equal("UTF-8", receivedMessage.SystemProperties[SystemProperties.ContentEncoding]);
         }
 
         [Fact]
@@ -140,8 +140,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             // Assert
             Assert.NotNull(receivedMessage);
             Assert.Equal(receivedMessage.Body, bytes);
-            Assert.Equal(receivedMessage.SystemProperties.Count, 15);
-            Assert.Equal(receivedMessage.Properties.Count, 2);
+            Assert.Equal(15, receivedMessage.SystemProperties.Count);
+            Assert.Equal(2, receivedMessage.Properties.Count);
 
             Assert.Equal(receivedMessage.SystemProperties[SystemProperties.MessageId], messageId);
             Assert.Equal(receivedMessage.SystemProperties[SystemProperties.MsgCorrelationId], correlationId);
@@ -159,8 +159,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             Assert.Equal(receivedMessage.SystemProperties[SystemProperties.Operation], operation);
             Assert.Equal(receivedMessage.SystemProperties[SystemProperties.OutputName], outputName);
 
-            Assert.Equal(receivedMessage.Properties["Prop1"], "Value1");
-            Assert.Equal(receivedMessage.Properties["Prop2"], "Value2");
+            Assert.Equal("Value1", receivedMessage.Properties["Prop1"]);
+            Assert.Equal("Value2", receivedMessage.Properties["Prop2"]);
         }
 
         [Fact]

@@ -76,8 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             await Task.Delay(TimeSpan.FromSeconds(5));
 
             // Assert
-            Assert.Equal(feedbackStatus, FeedbackStatus.Complete);
-            Assert.Equal(null, amqpLinkSettings.SndSettleMode);
+            Assert.Equal(FeedbackStatus.Complete, feedbackStatus);
+            Assert.Null(amqpLinkSettings.SndSettleMode);
             Assert.Equal((byte)ReceiverSettleMode.First, amqpLinkSettings.RcvSettleMode);
         }
 
@@ -132,8 +132,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             await Task.Delay(TimeSpan.FromSeconds(5));
 
             // Assert
-            Assert.Equal(feedbackStatus, FeedbackStatus.Complete);
-            Assert.Equal(null, amqpLinkSettings.SndSettleMode);
+            Assert.Equal(FeedbackStatus.Complete, feedbackStatus);
+            Assert.Null(amqpLinkSettings.SndSettleMode);
             Assert.Equal((byte)ReceiverSettleMode.Second, amqpLinkSettings.RcvSettleMode);
         }
 

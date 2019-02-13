@@ -50,8 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.NotNull(aggregateException);
             Assert.NotNull(aggregateException.InnerExceptions);
             Assert.Equal(2, aggregateException.InnerExceptions.Count);
-            Assert.True(aggregateException.InnerExceptions.Contains(exception1));
-            Assert.True(aggregateException.InnerExceptions.Contains(exception2));
+            Assert.Contains(exception1, aggregateException.InnerExceptions);
+            Assert.Contains(exception2, aggregateException.InnerExceptions);
         }
 
         [Fact]
@@ -145,9 +145,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.NotNull(aggregateException);
             Assert.NotNull(aggregateException.InnerExceptions);
             Assert.Equal(3, aggregateException.InnerExceptions.Count);
-            Assert.True(aggregateException.InnerExceptions.Contains(exception1));
-            Assert.True(aggregateException.InnerExceptions.Contains(exception2));
-            Assert.True(aggregateException.InnerExceptions.Contains(exception3));
+            Assert.Contains(exception1, aggregateException.InnerExceptions);
+            Assert.Contains(exception2, aggregateException.InnerExceptions);
+            Assert.Contains(exception3, aggregateException.InnerExceptions);
         }
 
         class SecondaryException : Exception

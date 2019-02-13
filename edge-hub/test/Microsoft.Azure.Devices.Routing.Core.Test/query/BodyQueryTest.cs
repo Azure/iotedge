@@ -289,7 +289,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
 
                 Bool result = rule(Message1);
 
-                Assert.NotNull(result);
                 Assert.Equal(result, Bool.True);
             }
             catch (Exception ex)

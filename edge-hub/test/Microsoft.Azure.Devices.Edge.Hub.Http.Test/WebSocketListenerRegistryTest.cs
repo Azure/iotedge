@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var listener = registry.GetListener(httpContext.WebSockets.WebSocketRequestedProtocols);
 
             Assert.True(listener.HasValue);
-            listener.ForEach(l => Assert.Equal(l.SubProtocol, "xyz"));
+            listener.ForEach(l => Assert.Equal("xyz", l.SubProtocol));
             // Mock.Get(xyzListener).Verify(wsl => wsl.ProcessWebSocketRequestAsync(It.IsAny<WebSocket>(), It.IsAny<string>(), It.IsAny<EndPoint>(), It.IsAny<EndPoint>(), It.IsAny<string>()));
         }
 

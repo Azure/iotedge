@@ -83,11 +83,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             string value = await entityStore.PutOrUpdate("key1", "putValue", v => "updateValue");
             Assert.Equal("putValue", value);
             Option<string> getPutValue = await entityStore.Get("key1");
-            Assert.Equal(getPutValue.OrDefault(), "putValue");
+            Assert.Equal("putValue", getPutValue.OrDefault());
             value = await entityStore.PutOrUpdate("key1", "putValue", v => "updateValue");
             Assert.Equal("updateValue", value);
             Option<string> getValue = await entityStore.Get("key1");
-            Assert.Equal(getValue.OrDefault(), "updateValue");
+            Assert.Equal("updateValue", getValue.OrDefault());
         }
 
         [Fact]
@@ -98,11 +98,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             string value = await entityStore.FindOrPut("key1", "putValue");
             Assert.Equal("putValue", value);
             Option<string> getPutValue = await entityStore.Get("key1");
-            Assert.Equal(getPutValue.OrDefault(), "putValue");
+            Assert.Equal("putValue", getPutValue.OrDefault());
             value = await entityStore.FindOrPut("key1", "putValue2");
             Assert.Equal("putValue", value);
             Option<string> getFindValue = await entityStore.Get("key1");
-            Assert.Equal(getFindValue.OrDefault(), "putValue");
+            Assert.Equal("putValue", getFindValue.OrDefault());
         }
 
         [Fact]

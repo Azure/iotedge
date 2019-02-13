@@ -14,9 +14,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
         [Unit]
         public void TestCheckNotNull()
         {
-            Assert.Throws(typeof(ArgumentNullException), () => Preconditions.CheckNotNull<string>(null, "param"));
-            Assert.Throws(typeof(ArgumentNullException), () => Preconditions.CheckNotNull<string>(null, "param", "message"));
-            Assert.Throws(typeof(ArgumentNullException), () => Preconditions.CheckNotNull<string>(null));
+            Assert.Throws<ArgumentNullException>(() => Preconditions.CheckNotNull<string>(null, "param"));
+            Assert.Throws<ArgumentNullException>(() => Preconditions.CheckNotNull<string>(null, "param", "message"));
+            Assert.Throws<ArgumentNullException>(() => Preconditions.CheckNotNull<string>(null));
 
             string message = Preconditions.CheckNotNull("my message");
             Assert.Equal("my message", message);
@@ -32,8 +32,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
         [Unit]
         public void TestCheckArgument()
         {
-            Assert.Throws(typeof(ArgumentException), () => Preconditions.CheckArgument(false));
-            Assert.Throws(typeof(ArgumentException), () => Preconditions.CheckArgument(false, "message"));
+            Assert.Throws<ArgumentException>(() => Preconditions.CheckArgument(false));
+            Assert.Throws<ArgumentException>(() => Preconditions.CheckArgument(false, "message"));
             Preconditions.CheckArgument(true);
         }
 

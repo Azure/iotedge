@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Unit]
         public void TestConstructor()
         {
-            Assert.Throws(typeof(ArgumentNullException), () => new Message(TelemetryMessageSource.Instance, new byte[0], null));
+            Assert.Throws<ArgumentNullException>(() => new Message(TelemetryMessageSource.Instance, new byte[0], null));
         }
 
         [Fact]

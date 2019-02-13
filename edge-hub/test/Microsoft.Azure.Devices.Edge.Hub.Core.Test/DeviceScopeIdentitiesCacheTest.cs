@@ -113,8 +113,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si3().Equals(receivedServiceIdentity3.OrDefault()));
             Assert.True(si4().Equals(receivedServiceIdentity4.OrDefault()));
 
-            Assert.Equal(0, updatedIdentities.Count);
-            Assert.Equal(0, removedIdentities.Count);
+            Assert.Empty(updatedIdentities);
+            Assert.Empty(removedIdentities);
 
             // Wait for another refresh cycle to complete
             await Task.Delay(TimeSpan.FromSeconds(8));
@@ -130,9 +130,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si3().Equals(receivedServiceIdentity3.OrDefault()));
             Assert.False(receivedServiceIdentity4.HasValue);
 
-            Assert.Equal(0, updatedIdentities.Count);
-            Assert.Equal(1, removedIdentities.Count);
-            Assert.True(removedIdentities.Contains("d2/m4"));
+            Assert.Empty(updatedIdentities);
+            Assert.Single(removedIdentities);
+            Assert.Contains("d2/m4", removedIdentities);
         }
 
         [Fact]
@@ -230,8 +230,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si3().Equals(receivedServiceIdentity3.OrDefault()));
             Assert.True(si4().Equals(receivedServiceIdentity4.OrDefault()));
 
-            Assert.Equal(0, updatedIdentities.Count);
-            Assert.Equal(0, removedIdentities.Count);
+            Assert.Empty(updatedIdentities);
+            Assert.Empty(removedIdentities);
 
             // Act - Signal refresh cache multiple times. It should get picked up twice.
             deviceScopeIdentitiesCache.InitiateCacheRefresh();
@@ -252,10 +252,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(receivedServiceIdentity3.HasValue);
             Assert.False(receivedServiceIdentity4.HasValue);
 
-            Assert.Equal(0, updatedIdentities.Count);
+            Assert.Empty(updatedIdentities);
             Assert.Equal(2, removedIdentities.Count);
-            Assert.True(removedIdentities.Contains("d2/m4"));
-            Assert.True(removedIdentities.Contains("d3"));
+            Assert.Contains("d2/m4", removedIdentities);
+            Assert.Contains("d3", removedIdentities);
 
             // Wait for another refresh cycle to complete, this time because timeout
             await Task.Delay(TimeSpan.FromSeconds(8));
@@ -270,10 +270,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(receivedServiceIdentity1.HasValue);
             Assert.False(receivedServiceIdentity2.HasValue);
 
-            Assert.Equal(0, updatedIdentities.Count);
+            Assert.Empty(updatedIdentities);
             Assert.Equal(4, removedIdentities.Count);
-            Assert.True(removedIdentities.Contains("d2/m1"));
-            Assert.True(removedIdentities.Contains("d1"));
+            Assert.Contains("d2/m1", removedIdentities);
+            Assert.Contains("d1", removedIdentities);
         }
 
         [Fact]
@@ -333,9 +333,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.True(si1_updated.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.False(receivedServiceIdentity2.HasValue);
-            Assert.Equal(1, removedIdentities.Count);
+            Assert.Single(removedIdentities);
             Assert.Equal("d2", removedIdentities[0]);
-            Assert.Equal(1, updatedIdentities.Count);
+            Assert.Single(updatedIdentities);
             Assert.Equal("d1", updatedIdentities[0].Id);
         }
 
@@ -400,9 +400,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si1_updated.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.False(receivedServiceIdentity2.HasValue);
             Assert.False(receivedServiceIdentity3.HasValue);
-            Assert.Equal(1, removedIdentities.Count);
+            Assert.Single(removedIdentities);
             Assert.Equal("d2", removedIdentities[0]);
-            Assert.Equal(1, updatedIdentities.Count);
+            Assert.Single(updatedIdentities);
             Assert.Equal("d1", updatedIdentities[0].Id);
         }
 
@@ -463,9 +463,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.True(si1_updated.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.False(receivedServiceIdentity2.HasValue);
-            Assert.Equal(1, removedIdentities.Count);
+            Assert.Single(removedIdentities);
             Assert.Equal("d2/m2", removedIdentities[0]);
-            Assert.Equal(1, updatedIdentities.Count);
+            Assert.Single(updatedIdentities);
             Assert.Equal("d1/m1", updatedIdentities[0].Id);
         }
 
@@ -530,8 +530,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si1_initial.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.True(si2.Equals(receivedServiceIdentity2.OrDefault()));
             Assert.True(si3.Equals(receivedServiceIdentity3.OrDefault()));
-            Assert.Equal(0, removedIdentities.Count);
-            Assert.Equal(0, updatedIdentities.Count);
+            Assert.Empty(removedIdentities);
+            Assert.Empty(updatedIdentities);
         }
 
         [Fact]
@@ -595,8 +595,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si1_initial.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.True(si2.Equals(receivedServiceIdentity2.OrDefault()));
             Assert.True(si3.Equals(receivedServiceIdentity3.OrDefault()));
-            Assert.Equal(0, removedIdentities.Count);
-            Assert.Equal(0, updatedIdentities.Count);
+            Assert.Empty(removedIdentities);
+            Assert.Empty(updatedIdentities);
         }
 
         [Fact]

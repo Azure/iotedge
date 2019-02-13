@@ -76,8 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             // Assert
             Assert.True(t1.HasValue);
-            Assert.Equal(t1.OrDefault().Properties.Desired.ToJson(), "{\"dp1\":\"d1\"}");
-            Assert.Equal(t1.OrDefault().Properties.Reported.ToJson(), "{\"rp1\":\"r1\"}");
+            Assert.Equal("{\"dp1\":\"d1\"}", t1.OrDefault().Properties.Desired.ToJson());
+            Assert.Equal("{\"rp1\":\"r1\"}", t1.OrDefault().Properties.Reported.ToJson());
 
             // Act
             Option<Twin> t2 = await twinStore.Get("d2");
@@ -96,8 +96,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             // Assert
             Assert.True(t4.HasValue);
-            Assert.Equal(t4.OrDefault().Properties.Desired.ToJson(), "{\"dp4\":\"d4\"}");
-            Assert.Equal(t4.OrDefault().Properties.Reported.ToJson(), "{\"rp4\":\"r4\"}");
+            Assert.Equal("{\"dp4\":\"d4\"}", t4.OrDefault().Properties.Desired.ToJson());
+            Assert.Equal("{\"rp4\":\"r4\"}", t4.OrDefault().Properties.Reported.ToJson());
         }
 
         [Fact]
@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             Option<Twin> twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"v1\",\"p2\":\"v2\"}");
+            Assert.Equal("{\"p1\":\"v1\",\"p2\":\"v2\"}", twin.OrDefault().Properties.Reported.ToJson());
 
             // Act
             await twinStore.UpdateReportedProperties(id, rpatch1);
@@ -153,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"v2\",\"p3\":\"v3\"}");
+            Assert.Equal("{\"p1\":\"vp1\",\"p2\":\"v2\",\"p3\":\"v3\"}", twin.OrDefault().Properties.Reported.ToJson());
 
             // Act
             await twinStore.UpdateReportedProperties(id, rpatch2);
@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"v2\",\"p3\":{\"p31\":\"v31\"}}");
+            Assert.Equal("{\"p1\":\"vp1\",\"p2\":\"v2\",\"p3\":{\"p31\":\"v31\"}}", twin.OrDefault().Properties.Reported.ToJson());
 
             // Act
             await twinStore.UpdateReportedProperties(id, rpatch3);
@@ -169,7 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"vp2\",\"p3\":{\"p31\":\"v32\"}}");
+            Assert.Equal("{\"p1\":\"vp1\",\"p2\":\"vp2\",\"p3\":{\"p31\":\"v32\"}}", twin.OrDefault().Properties.Reported.ToJson());
         }
 
         [Fact]
@@ -239,7 +239,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             Option<Twin> twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p1\":\"v1\",\"p2\":\"v2\",\"$version\":0}");
+            Assert.Equal("{\"p1\":\"v1\",\"p2\":\"v2\",\"$version\":0}", twin.OrDefault().Properties.Desired.ToJson());
 
             // Act
             await twinStore.UpdateDesiredProperties(id, dpatch1);
@@ -247,7 +247,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"v2\",\"$version\":1,\"p3\":\"v3\"}");
+            Assert.Equal("{\"p1\":\"vp1\",\"p2\":\"v2\",\"$version\":1,\"p3\":\"v3\"}", twin.OrDefault().Properties.Desired.ToJson());
 
             // Act
             await twinStore.UpdateDesiredProperties(id, dpatch2);
@@ -255,7 +255,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"v2\",\"$version\":2,\"p3\":{\"p31\":\"v31\"}}");
+            Assert.Equal("{\"p1\":\"vp1\",\"p2\":\"v2\",\"$version\":2,\"p3\":{\"p31\":\"v31\"}}", twin.OrDefault().Properties.Desired.ToJson());
 
             // Act
             await twinStore.UpdateDesiredProperties(id, dpatch3);
@@ -263,7 +263,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"vp2\",\"$version\":3,\"p3\":{\"p31\":\"v32\"}}");
+            Assert.Equal("{\"p1\":\"vp1\",\"p2\":\"vp2\",\"$version\":3,\"p3\":{\"p31\":\"v32\"}}", twin.OrDefault().Properties.Desired.ToJson());
 
             // Act
             await twinStore.UpdateDesiredProperties(id, dpatch4);
@@ -271,7 +271,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"vp2\",\"$version\":3,\"p3\":{\"p31\":\"v32\"}}");
+            Assert.Equal("{\"p1\":\"vp1\",\"p2\":\"vp2\",\"$version\":3,\"p3\":{\"p31\":\"v32\"}}", twin.OrDefault().Properties.Desired.ToJson());
         }
 
         [Fact]
@@ -399,8 +399,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             Option<Twin> twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p1\":\"v1\",\"p2\":\"v2\",\"$version\":0}");
-            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"v1\",\"p2\":\"v2\",\"$version\":0}");
+            Assert.Equal("{\"p1\":\"v1\",\"p2\":\"v2\",\"$version\":0}", twin.OrDefault().Properties.Desired.ToJson());
+            Assert.Equal("{\"p1\":\"v1\",\"p2\":\"v2\",\"$version\":0}", twin.OrDefault().Properties.Reported.ToJson());
 
             // Act
             await twinStore.Update(id, twin1);
@@ -408,8 +408,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p1\":\"vp1\",\"p3\":\"v3\",\"$version\":1}");
-            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"vp1\",\"p3\":\"v3\",\"$version\":1}");
+            Assert.Equal("{\"p1\":\"vp1\",\"p3\":\"v3\",\"$version\":1}", twin.OrDefault().Properties.Desired.ToJson());
+            Assert.Equal("{\"p1\":\"vp1\",\"p3\":\"v3\",\"$version\":1}", twin.OrDefault().Properties.Reported.ToJson());
 
             // Act
             await twinStore.Update(id, twin2);
@@ -417,8 +417,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p2\":\"vp2\",\"p3\":\"v3\",\"$version\":2}");
-            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"vp3\",\"$version\":2}");
+            Assert.Equal("{\"p2\":\"vp2\",\"p3\":\"v3\",\"$version\":2}", twin.OrDefault().Properties.Desired.ToJson());
+            Assert.Equal("{\"p1\":\"vp1\",\"p2\":\"vp3\",\"$version\":2}", twin.OrDefault().Properties.Reported.ToJson());
 
             // Act
             await twinStore.Update(id, twin3);
@@ -426,8 +426,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p2\":\"vp2\",\"p3\":\"v3\",\"$version\":2}");
-            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"vp3\",\"$version\":2}");
+            Assert.Equal("{\"p2\":\"vp2\",\"p3\":\"v3\",\"$version\":2}", twin.OrDefault().Properties.Desired.ToJson());
+            Assert.Equal("{\"p1\":\"vp1\",\"p2\":\"vp3\",\"$version\":2}", twin.OrDefault().Properties.Reported.ToJson());
 
             // Act
             await twinStore.Update(id, twin4);
@@ -435,8 +435,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p2\":\"vp2\",\"p3\":\"v3\",\"$version\":2}");
-            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"vp3\",\"$version\":2}");
+            Assert.Equal("{\"p2\":\"vp2\",\"p3\":\"v3\",\"$version\":2}", twin.OrDefault().Properties.Desired.ToJson());
+            Assert.Equal("{\"p1\":\"vp1\",\"p2\":\"vp3\",\"$version\":2}", twin.OrDefault().Properties.Reported.ToJson());
 
             // Act
             await twinStore.Update(id, twin5);
@@ -444,8 +444,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal(twin.OrDefault().Properties.Desired.ToJson(), "{\"p2\":\"vp2\",\"p3\":\"v3\",\"$version\":2}");
-            Assert.Equal(twin.OrDefault().Properties.Reported.ToJson(), "{\"p1\":\"vp1\",\"p2\":\"vp3\",\"$version\":2}");
+            Assert.Equal("{\"p2\":\"vp2\",\"p3\":\"v3\",\"$version\":2}", twin.OrDefault().Properties.Desired.ToJson());
+            Assert.Equal("{\"p1\":\"vp1\",\"p2\":\"vp3\",\"$version\":2}", twin.OrDefault().Properties.Reported.ToJson());
         }
 
         static IEntityStore<string, TwinStoreEntity> GetTwinEntityStore()

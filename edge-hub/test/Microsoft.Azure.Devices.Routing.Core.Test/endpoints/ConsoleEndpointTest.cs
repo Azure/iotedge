@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         [Unit]
         public void TestConstructor()
         {
-            Assert.Throws(typeof(ArgumentNullException), () => new ConsoleEndpoint(null));
+            Assert.Throws<ArgumentNullException>(() => new ConsoleEndpoint(null));
         }
 
         [Fact]

@@ -35,7 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
-            Assert.NotNull(result);
             Assert.True(result.success);
             Assert.Equal(string.Empty, result.message);
         }
@@ -57,7 +56,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
-            Assert.NotNull(result);
             Assert.False(result.success);
             Assert.Equal("Authorization header missing", result.message);
         }
@@ -80,7 +78,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
-            Assert.NotNull(result);
             Assert.False(result.success);
             Assert.Equal("Invalid authorization header count", result.message);
         }
@@ -103,7 +100,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
-            Assert.NotNull(result);
             Assert.False(result.success);
             Assert.Equal("Invalid Authorization header. Only SharedAccessSignature is supported.", result.message);
         }
@@ -127,7 +123,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
-            Assert.NotNull(result);
             Assert.False(result.success);
             Assert.Equal("Cannot parse SharedAccessSignature because of the following error - The specified SAS token is expired", result.message);
         }
@@ -150,7 +145,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
-            Assert.NotNull(result);
             Assert.False(result.success);
             Assert.Equal("Request header does not contain ModuleId", result.message);
         }
@@ -173,7 +167,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
-            Assert.NotNull(result);
             Assert.True(result.success);
             Assert.Equal(string.Empty, result.message);
         }
@@ -197,7 +190,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
-            Assert.NotNull(result);
             Assert.False(result.success);
             Assert.Equal("Unable to authenticate device with Id device_2/module_1", result.message);
         }
@@ -243,7 +235,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, edgeDeviceId);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
-            Assert.NotNull(result);
             Assert.False(result.success);
             Assert.Equal($"Module {moduleId} on device {deviceId} cannot invoke methods. Only modules on IoT Edge device {edgeDeviceId} can invoke methods.", result.message);
         }
@@ -266,7 +257,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
-            Assert.NotNull(result);
             Assert.True(result.success);
             Assert.Equal(string.Empty, result.message);
         }
@@ -290,7 +280,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
-            Assert.NotNull(result);
             Assert.True(result.success);
             Assert.Equal(string.Empty, result.message);
         }
@@ -313,7 +302,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
-            Assert.NotNull(result);
             Assert.True(result.success);
             Assert.Equal(string.Empty, result.message);
         }
@@ -336,7 +324,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
-            Assert.NotNull(result);
             Assert.False(result.success);
             Assert.Equal("Unable to authenticate device with Id device_2/module_1", result.message);
         }
@@ -361,7 +348,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, edgeDeviceId);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
-            Assert.NotNull(result);
             Assert.False(result.success);
             Assert.Equal($"Module {moduleId} on device {deviceId} cannot invoke methods. Only modules on IoT Edge device {edgeDeviceId} can invoke methods.", result.message);
         }
@@ -383,7 +369,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
-            Assert.NotNull(result);
             Assert.False(result.success);
             Assert.Equal("Request header does not contain ModuleId", result.message);
         }

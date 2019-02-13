@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
     public class ReportedPropertiesValidatorTest
     {
-        static IEnumerable<object[]> GetTwinCollections()
+        public static IEnumerable<object[]> GetTwinCollections()
         {
             string longString = new string('*', 5000);
 

@@ -33,9 +33,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         [Unit]
         public void TestConstructor()
         {
-            Assert.Throws(typeof(ArgumentNullException), () => new AsyncEndpointExecutor(null, null, null, null));
-            Assert.Throws(typeof(ArgumentNullException), () => new AsyncEndpointExecutor(null, new NullCheckpointer(), null, null));
-            Assert.Throws(typeof(ArgumentNullException), () => new AsyncEndpointExecutor(new TestEndpoint("id"), null, null, null));
+            Assert.Throws<ArgumentNullException>(() => new AsyncEndpointExecutor(null, null, null, null));
+            Assert.Throws<ArgumentNullException>(() => new AsyncEndpointExecutor(null, new NullCheckpointer(), null, null));
+            Assert.Throws<ArgumentNullException>(() => new AsyncEndpointExecutor(new TestEndpoint("id"), null, null, null));
         }
 
         [Fact]

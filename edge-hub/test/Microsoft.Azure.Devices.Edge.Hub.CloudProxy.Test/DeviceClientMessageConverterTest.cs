@@ -101,10 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Theory]
         [Unit]
         [MemberData(nameof(GetValidMessagesData))]
-        public void TestValidCasesToMessage(
-            byte[] messageBytes,
-            IDictionary<string, string> properties,
-            IDictionary<string, string> systemProperties)
+        public void TestValidCasesToMessage(byte[] messageBytes)
         {
             IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
             var inputMessage = new Message(messageBytes);

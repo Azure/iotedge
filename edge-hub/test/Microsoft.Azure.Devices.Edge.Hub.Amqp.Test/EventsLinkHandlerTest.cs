@@ -104,11 +104,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
                         IList<IMessage> receivedMessagesList = receivedMessages.ToList();
                         Assert.Equal(1, receivedMessagesList.Count);
-                        Assert.Equal(receivedMessagesList[0].Properties["Prop1"], "Value1");
-                        Assert.Equal(receivedMessagesList[0].Properties["Prop2"], "Value2");
-                        Assert.Equal(receivedMessagesList[0].SystemProperties[SystemProperties.ContentEncoding], "utf-8");
-                        Assert.Equal(receivedMessagesList[0].SystemProperties[SystemProperties.ContentType], "application/json");
-                        Assert.Equal(receivedMessagesList[0].SystemProperties[SystemProperties.ConnectionDeviceId], "d1");
+                        Assert.Equal("Value1", receivedMessagesList[0].Properties["Prop1"]);
+                        Assert.Equal("Value2", receivedMessagesList[0].Properties["Prop2"]);
+                        Assert.Equal("utf-8", receivedMessagesList[0].SystemProperties[SystemProperties.ContentEncoding]);
+                        Assert.Equal("application/json", receivedMessagesList[0].SystemProperties[SystemProperties.ContentType]);
+                        Assert.Equal("d1", receivedMessagesList[0].SystemProperties[SystemProperties.ConnectionDeviceId]);
                         Assert.Equal(receivedMessagesList[0].Body, new byte[] { 1, 2, 3, 4 });
                         return true;
                     },

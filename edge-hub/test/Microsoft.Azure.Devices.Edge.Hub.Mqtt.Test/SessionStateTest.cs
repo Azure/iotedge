@@ -29,11 +29,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IReadOnlyList<ISubscription> subs = sessionState.Subscriptions;
 
             Assert.NotNull(registrations);
-            Assert.Equal(registrations.Count, 1);
+            Assert.Equal(1, registrations.Count);
             Assert.True(registrations.ContainsKey(MethodPostTopicPrefix));
             Assert.True(registrations[MethodPostTopicPrefix]);
             Assert.NotNull(subs);
-            Assert.Equal(subs.Count, 1);
+            Assert.Equal(1, subs.Count);
             Assert.Equal(subs[0].TopicFilter, MethodPostTopicPrefix);
         }
 
@@ -51,11 +51,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IReadOnlyList<ISubscription> subs = sessionState.Subscriptions;
 
             Assert.NotNull(registrations);
-            Assert.Equal(registrations.Count, 1);
+            Assert.Equal(1, registrations.Count);
             Assert.True(registrations.ContainsKey(MethodPostTopicPrefix));
             Assert.False(registrations[MethodPostTopicPrefix]);
             Assert.NotNull(subs);
-            Assert.Equal(subs.Count, 0);
+            Assert.Equal(0, subs.Count);
         }
 
         [Fact]
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IReadOnlyDictionary<string, bool> registrations = sessionState.SubscriptionRegistrations;
 
             Assert.NotNull(registrations);
-            Assert.Equal(registrations.Count, 0);
+            Assert.Equal(0, registrations.Count);
         }
 
         [Fact]

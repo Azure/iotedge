@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             // Assert
             Assert.NotNull(modules);
-            Assert.Equal(1, modules.Length);
+            Assert.Single(modules);
             Assert.Equal("m1", modules[0].Id);
         }
 

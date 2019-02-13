@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.ThrowsAny<ArgumentException>(() => new EdgeHubConfig(schemaVersion, routes, configuration));
         }
 
-        static IEnumerable<object[]> GetConstructorInvalidParameters()
+        public static IEnumerable<object[]> GetConstructorInvalidParameters()
         {
             yield return new object[] { null, new List<(string Name, string Value, Route route)>(), new StoreAndForwardConfiguration(1000) };
             yield return new object[] { "1.0", null, new StoreAndForwardConfiguration(1000) };

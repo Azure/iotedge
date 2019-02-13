@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.False(iterator.HasNext);
 
             serviceIdentities = await iterator.GetNext();
-            Assert.Equal(0, serviceIdentities.Count());
+            Assert.Empty(serviceIdentities);
         }
 
         [Fact]

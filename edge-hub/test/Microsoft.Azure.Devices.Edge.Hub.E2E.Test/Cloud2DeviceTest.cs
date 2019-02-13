@@ -221,7 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 string messageData = Encoding.ASCII.GetString(receivedMessage.GetBytes());
                 Assert.Equal(messageData, payload);
-                Assert.Equal(receivedMessage.Properties.Count, 1);
+                Assert.Equal(1, receivedMessage.Properties.Count);
                 KeyValuePair<string, string> prop = receivedMessage.Properties.Single();
                 Assert.Equal(prop.Key, MessagePropertyName);
                 Assert.Equal(prop.Value, p1Value);

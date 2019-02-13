@@ -221,7 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             Assert.True(amqpConnection.WasClosed);
         }
 
-        static IEnumerable<object[]> GetThrowingListeners() => new[]
+        public static IEnumerable<object[]> GetThrowingListeners() => new[]
         {
             // Causes OpenAsync to throw
             new[] { new ThrowingTransportListener("AMQP", new ApplicationException("No donuts for you"), null) },

@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             foreach (string part in parts)
             {
                 string[] kvp = part.Split("=");
-                Assert.True(keys.Contains(kvp[0]));
+                Assert.Contains(kvp[0], keys);
                 Assert.NotNull(kvp[1]);
             }
         }
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             foreach (string part in parts)
             {
                 string[] kvp = part.Split("=");
-                Assert.True(keys.Contains(kvp[0]));
+                Assert.Contains(kvp[0], keys);
                 Assert.NotNull(kvp[1]);
             }
         }
