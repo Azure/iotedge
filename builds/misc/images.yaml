@@ -127,13 +127,6 @@ jobs:
     variables:
       NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-win-x64.zip
     steps:
-      - powershell: |
-          $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
-          $version = "$base_version$(Build.BuildNumber)"
-          Write-Host ("##vso[task.setvariable variable=VERSION;]$version")
-          Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
-        displayName: Set Version
-
       - powershell: scripts/windows/setup/Install-Prerequisites.ps1 -DotnetSdkUrl $(NetCorePackageUri) -Dotnet -Nuget
         name: install
         displayName: Install
@@ -141,15 +134,12 @@ jobs:
       - script: echo $(registry.password)|docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin
         displayName: Docker Login
 
-      - powershell: edgelet/build/windows/install.ps1
-        displayName: Install Rust
-
-      - powershell: edgelet/build/windows/build-diagnostics.ps1
-        displayName: Build iotedge-diagnostics
-
       - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"Release" -PublishTests:$False -UpdateVersion
         name: build
         displayName: Build
+
+      - powershell: edgelet/build/windows/build-diagnostics.ps1
+        displayName: Build iotedge-diagnostics
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'

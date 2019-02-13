@@ -4,7 +4,7 @@
  # Builds and publishes to target/publish/ the iotedge-diagnostics binary and its associated dockerfile
  #>
 
-Import-Module (Join-Path $PSScriptRoot '..' '..' '..' 'scripts' 'windows' 'Defaults.psm1') -Force
+$ErrorActionPreference = 'Continue'
 
 . (Join-Path $PSScriptRoot 'util.ps1')
 
@@ -15,6 +15,7 @@ $ManifestPath = Get-Manifest
 
 $versionInfoFilePath = Join-Path $env:BUILD_REPOSITORY_LOCALPATH 'versionInfo.json'
 $env:VERSION = Get-Content $versionInfoFilePath | ConvertFrom-JSON | % version
+$env:NO_VALGRIND = 'true'
 
 Write-Host "$cargo build -p iotedge-diagnostics --release --manifest-path $ManifestPath"
 Invoke-Expression "$cargo build -p iotedge-diagnostics --release --manifest-path $ManifestPath"
@@ -22,15 +23,16 @@ if ($LastExitCode) {
     Throw "cargo build failed with exit code $LastExitCode"
 }
 
-$buildBinariesDirectory = DefaultBuildBinariesDirectory $env:BUILD_REPOSITORY_LOCALPATH
-$publishFolder = Join-Path $buildBinariesDirectory 'publish'
+$ErrorActionPreference = 'Stop'
 
-New-Item -Type Directory (Join-Path $publishFolder 'azureiotedge-diagnostics')
+$publishFolder = [IO.Path]::Combine($env:BUILD_BINARIESDIRECTORY, 'publish', 'azureiotedge-diagnostics')
+
+New-Item -Type Directory $publishFolder
 
 Copy-Item -Recurse `
-    (Join-Path $env:BUILD_REPOSITORY_LOCALPATH 'edgelet' 'iotedge-diagnostics' 'docker') `
-    (Join-Path $publishFolder 'azureiotedge-diagnostics' 'docker')
+    ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'iotedge-diagnostics', 'docker')) `
+    ([IO.Path]::Combine($publishFolder, 'docker'))
 
 Copy-Item `
-    (Join-Path $env:BUILD_REPOSITORY_LOCALPATH 'edgelet' 'target' 'release' 'iotedge-diagnostics.exe') `
-    (Join-Path $publishFolder 'azureiotedge-diagnostics' 'docker' 'windows' 'amd64')
+    ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', 'release', 'iotedge-diagnostics.exe')) `
+    ([IO.Path]::Combine($publishFolder, 'docker', 'windows', 'amd64'))
