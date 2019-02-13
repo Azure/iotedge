@@ -247,7 +247,7 @@ jobs:
           ConnectedServiceName: 'Azure IoT Edge Code Sign'
           FolderPath: '$(build.artifactstagingdirectory)'
           Pattern: '*.cab'
-          CertificateId: 302
+          CertificateId: 2
           OpusName: 'Azure IoT Edge'
           OpusInfo: 'https://azure.microsoft.com/en-us/services/iot-edge/'
           SessionTimeout: 20
