@@ -5,14 +5,14 @@ namespace MessagesAnalyzer
 
     class MessageDetails
     {
-        public MessageDetails(long seqNumber, DateTime enquedDateTime)
+        public MessageDetails(long seqNumber, DateTime enqueuedDateTime)
         {
             this.SequenceNumber = seqNumber;
-            this.EnquedDateTime = enquedDateTime;
+            this.EnqueuedDateTime = enqueuedDateTime;
         }
 
         public long SequenceNumber { get; }
 
-        public DateTime EnquedDateTime { get; }
+        public DateTime EnqueuedDateTime { get; }
     }
 }
