@@ -1,5 +1,6 @@
 # Copyright (c) Microsoft. All rights reserved.
 
+New-Item -Type Directory -Force '~/.cargo/bin'
 $env:PATH += ";$(Resolve-Path '~/.cargo/bin')"
 
 function Test-RustUp
