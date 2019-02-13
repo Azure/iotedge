@@ -21,7 +21,7 @@ use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, NetworkConfig};
 use edgelet_core::{
     LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
+    ModuleTop, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
 };
 use edgelet_http::{UrlConnector, UrlExt};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -207,6 +207,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type StopFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type TopFuture = Box<Future<Item = ModuleTop, Error = Self::Error> + Send>;
 
     fn init(&self) -> Self::InitFuture {
         info!("Initializing module runtime...");
@@ -602,6 +603,29 @@ impl ModuleRuntime for DockerModuleRuntime {
             });
             future::join_all(n).map(|_| ())
         }))
+    }
+
+    fn top(&self, id: &str) -> Self::TopFuture {
+        let id = id.to_string();
+        Box::new(
+            self.client
+                .container_api()
+                .container_top(&id, "")
+                .then(|result| match result {
+                    Ok(resp) => {
+                        println!("Response: {:#?}", resp);
+                        let top = ModuleTop::new(id.clone(), Vec::new());
+                        Ok(top)
+                    }
+                    Err(err) => {
+                        let err = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id)),
+                        );
+                        Err(err)
+                    }
+                }),
+        )
     }
 }
 

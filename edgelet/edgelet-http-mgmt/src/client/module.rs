@@ -162,6 +162,7 @@ impl ModuleRuntime for ModuleClient {
     type StopFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type TopFuture = Box<Future<Item = ModuleTop, Error = Self::Error> + Send>;
 
     fn system_info(&self) -> Self::SystemInfoFuture {
         unimplemented!()
@@ -329,6 +330,10 @@ impl ModuleRuntime for ModuleClient {
                 .map(move |c| <Self as ModuleRuntime>::remove(&self_for_remove, c.name()));
             future::join_all(n).map(|_| ())
         }))
+    }
+
+    fn top(&self, _id: &str) -> Self::TopFuture {
+        unimplemented!()
     }
 }
 

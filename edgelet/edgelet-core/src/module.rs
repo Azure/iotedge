@@ -348,6 +348,30 @@ impl SystemInfo {
     }
 }
 
+pub struct ModuleTop {
+    /// Name of the module. Example: tempSensor
+    name: String,
+    /// A vector of process IDs (PIDs) representing a snapshot of all processes running inside the module.
+    process_ids: Vec<Pid>
+}
+
+impl ModuleTop {
+    pub fn new(name: String, process_ids: Vec<Pid>) -> Self {
+        ModuleTop {
+            name,
+            process_ids
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn process_ids(&self) -> &Vec<Pid> {
+        &self.process_ids
+    }
+}
+
 pub trait ModuleRuntime {
     type Error: Fail;
 
@@ -371,6 +395,7 @@ pub trait ModuleRuntime {
     type StopFuture: Future<Item = (), Error = Self::Error> + Send;
     type SystemInfoFuture: Future<Item = SystemInfo, Error = Self::Error> + Send;
     type RemoveAllFuture: Future<Item = (), Error = Self::Error> + Send;
+    type TopFuture: Future<Item = ModuleTop, Error = Self::Error> + Send;
 
     fn init(&self) -> Self::InitFuture;
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
@@ -384,6 +409,7 @@ pub trait ModuleRuntime {
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture;
     fn registry(&self) -> &Self::ModuleRegistry;
     fn remove_all(&self) -> Self::RemoveAllFuture;
+    fn top(&self, id: &str) -> Self::TopFuture;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -434,6 +460,7 @@ pub enum RuntimeOperation {
     StartModule(String),
     StopModule(String),
     SystemInfo,
+    TopModule(String),
 }
 
 impl fmt::Display for RuntimeOperation {
@@ -450,6 +477,7 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::StartModule(name) => write!(f, "Could not start module {}", name),
             RuntimeOperation::StopModule(name) => write!(f, "Could not stop module {}", name),
             RuntimeOperation::SystemInfo => write!(f, "Could not query system info"),
+            RuntimeOperation::TopModule(name) => write!(f, "Could not top module {}", name),
         }
     }
 }

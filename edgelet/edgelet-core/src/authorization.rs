@@ -2,10 +2,10 @@
 
 use failure::Fail;
 use futures::future::Either;
-use futures::{future, Future, Stream};
+use futures::{future, Future};
 
 use error::{Error, ErrorKind};
-use module::{Module, ModuleRuntime};
+use module::ModuleRuntime;
 use pid::Pid;
 
 pub enum Policy {
@@ -56,20 +56,13 @@ where
             || Either::A(future::ok(false)),
             |name| Either::B(
                 self.runtime
-                    .list_with_details()
+                    .top(&name)
                     .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
-                    .filter_map(move |(m, rs)| if m.name() == name { Some(rs) } else { None })
-                    .into_future()
-                    .then(move |result| match result {
-                        Ok((Some(rs), _)) => {
-                            let authorized = rs.pid() == pid;
-                            if !authorized {
-                                info!("Request not authorized - expected caller pid: {}, actual caller pid: {}", rs.pid(), pid);
-                            }
-                            Ok(authorized)
-                        },
-                        Ok((None, _)) => Ok(false),
-                        Err((err, _)) => Err(err),
+                    .and_then(move |result| if result.process_ids().contains(&pid) {
+                        Ok(true)
+                    } else {
+                        info!("Request not authorized - caller pid {} not found in module {}", pid, name);
+                        Ok(false)
                     })),
         )
     }
