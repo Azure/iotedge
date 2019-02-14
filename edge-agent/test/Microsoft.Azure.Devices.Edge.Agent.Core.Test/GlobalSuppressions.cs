@@ -6,4 +6,4 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage(
     "Usage",
     "xUnit1026:Theory methods should use all of their parameters",
-    Justification = "This data method is reused, therefore some columns are not used in every test.")]
+    Justification = "Some data methods are reused, therefore some columns are not used in every test.")]
