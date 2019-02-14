@@ -37,14 +37,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
         static readonly Lazy<IMessageConverter<IProtocolGatewayMessage>> ProtocolGatewayMessageConverter = new Lazy<IMessageConverter<IProtocolGatewayMessage>>(MakeProtocolGatewayMessageConverter, true);
 
-        public static IEnumerable<object[]> GenerateInvalidMessageIdData()
+        public static IEnumerable<object[]> GenerateInvalidMessageIdData() => new[]
         {
-            yield return new object[]
-            {
-                new object[] { null },
-                new object[] { "r" }
-            };
-        }
+            new object[] { null },
+            new object[] { "r" }
+        };
 
         [Fact]
         public void ConstructorRequiresADeviceListener()
