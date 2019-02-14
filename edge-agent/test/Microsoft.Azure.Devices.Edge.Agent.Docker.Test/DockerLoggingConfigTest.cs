@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Unit]
         public void TestConstruction()
         {
-            Assert.Throws<ArgumentNullException>(() => new DockerLoggingConfig(null, ImmutableDictionary<string, string>.Empty));
+            Assert.Throws<ArgumentException>(() => new DockerLoggingConfig(null, ImmutableDictionary<string, string>.Empty));
             Assert.Throws<ArgumentNullException>(() => new DockerLoggingConfig("not null", null));
             Assert.Throws<ArgumentException>(() => new DockerLoggingConfig(" "));
         }
