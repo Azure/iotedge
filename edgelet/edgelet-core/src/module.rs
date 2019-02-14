@@ -348,6 +348,7 @@ impl SystemInfo {
     }
 }
 
+#[derive(Debug)]
 pub struct ModuleTop {
     /// Name of the module. Example: tempSensor
     name: String,

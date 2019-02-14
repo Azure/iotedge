@@ -85,10 +85,10 @@ mod tests {
     use failure::Context;
     use futures::future::FutureResult;
     use futures::stream::Empty;
-    use futures::{future, stream};
+    use futures::{future, stream, Stream};
     use module::{
         LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec,
-        SystemInfo as CoreSystemInfo,
+        ModuleTop, SystemInfo as CoreSystemInfo,
     };
 
     #[test]
@@ -361,6 +361,7 @@ mod tests {
         type StopFuture = FutureResult<(), Self::Error>;
         type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
         type RemoveAllFuture = FutureResult<(), Self::Error>;
+        type TopFuture = FutureResult<ModuleTop, Self::Error>;
 
         fn init(&self) -> Self::InitFuture {
             notimpl_error!()
@@ -418,6 +419,10 @@ mod tests {
         }
 
         fn remove_all(&self) -> Self::RemoveAllFuture {
+            notimpl_error!()
+        }
+
+        fn top(&self, _id: &str) -> Self::TopFuture {
             notimpl_error!()
         }
     }

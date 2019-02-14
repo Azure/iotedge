@@ -89,7 +89,8 @@ mod tests {
     use hyper::{Body, Request, Response, StatusCode};
 
     use edgelet_core::{
-        LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec, SystemInfo,
+        LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec, ModuleTop,
+        SystemInfo,
     };
 
     use super::*;
@@ -298,6 +299,7 @@ mod tests {
         type StopFuture = FutureResult<(), Self::Error>;
         type SystemInfoFuture = FutureResult<SystemInfo, Self::Error>;
         type RemoveAllFuture = FutureResult<(), Self::Error>;
+        type TopFuture = FutureResult<ModuleTop, Self::Error>;
 
         fn init(&self) -> Self::InitFuture {
             notimpl_error!()
@@ -349,6 +351,10 @@ mod tests {
         }
 
         fn remove_all(&self) -> Self::RemoveAllFuture {
+            notimpl_error!()
+        }
+
+        fn top(&self, _id: &str) -> Self::TopFuture {
             notimpl_error!()
         }
     }
