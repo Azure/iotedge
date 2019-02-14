@@ -18,7 +18,7 @@ use client::DockerClient;
 use config::DockerConfig;
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
-use docker::models::{ContainerCreateBody, NetworkConfig};
+use docker::models::{ContainerCreateBody, InlineResponse2001, NetworkConfig};
 use edgelet_core::{
     LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
     ModuleTop, pid::Pid, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
@@ -606,6 +606,26 @@ impl ModuleRuntime for DockerModuleRuntime {
     }
 
     fn top(&self, id: &str) -> Self::TopFuture {
+        fn parse_response<'de, D>(resp: &InlineResponse2001) -> std::result::Result<Vec<Pid>, D::Error> where D: serde::Deserializer<'de> {
+            let titles = resp.titles()
+                .ok_or_else(|| serde::de::Error::missing_field("Titles"))?;
+            let pid_index = titles.iter()
+                .position(|ref s| s.as_str() == "PID")
+                .ok_or_else(|| serde::de::Error::invalid_value(serde::de::Unexpected::Seq, &"array including the column title 'PID'"))?;
+            let processes = resp.processes()
+                .ok_or_else(|| serde::de::Error::missing_field("Processes"))?;
+            let pids: std::result::Result<_, _> = processes.iter()
+                .map(|ref p| {
+                    let val = p.get(pid_index)
+                        .ok_or_else(|| serde::de::Error::invalid_length(p.len(), &&*format!("at least {} columns", pid_index + 1)))?;
+                    let pid = val.parse::<i32>()
+                        .map_err(|_| serde::de::Error::invalid_value(serde::de::Unexpected::Str(val), &"a process ID number"))?;
+                    Ok(Pid::Value(pid))
+                })
+                .collect();
+            Ok(pids?)
+        }
+
         let id = id.to_string();
         Box::new(
             self.client
@@ -613,13 +633,10 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .container_top(&id, "")
                 .then(|result| match result {
                     Ok(resp) => {
-                        let pid_index = resp.titles().unwrap().iter().position(|ref s| s.as_str() == "PID").unwrap();
-                        let pids = resp.processes().unwrap().iter()
-                            .map(|ref p| Pid::Value(p.get(pid_index).unwrap().parse::<i32>().unwrap()))
-                            .collect();
-                        let top = ModuleTop::new(id.clone(), pids);
-                        Ok(top)
-                    }
+                        let p = parse_response::<&mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>>(&resp)
+                            .with_context(|_| ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.clone())))?;
+                        Ok(ModuleTop::new(id, p))
+                    },
                     Err(err) => {
                         let err = Error::from_docker_error(
                             err,
@@ -1195,6 +1212,7 @@ mod tests {
         type StopFuture = FutureResult<(), Self::Error>;
         type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
         type RemoveAllFuture = FutureResult<(), Self::Error>;
+        type TopFuture = FutureResult<ModuleTop, Self::Error>;
 
         fn init(&self) -> Self::InitFuture {
             unimplemented!()
@@ -1241,6 +1259,10 @@ mod tests {
         }
 
         fn remove_all(&self) -> Self::RemoveAllFuture {
+            unimplemented!()
+        }
+
+        fn top(&self, _id: &str) -> Self::TopFuture {
             unimplemented!()
         }
     }
