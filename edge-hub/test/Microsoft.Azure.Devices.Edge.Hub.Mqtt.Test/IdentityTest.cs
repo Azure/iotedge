@@ -249,6 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             string clientId,
             string iotHubHostName,
             string token,
+            bool success,
             Type expectedCredentialsType,
             Type expectedIdentityType,
             AuthenticationType expected)

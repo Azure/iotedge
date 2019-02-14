@@ -58,7 +58,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
         [Theory]
         [Unit]
         [MemberData(nameof(CreateTestData))]
-        public void TestShow(List<ICommand> commandList)
+        public void TestShow(
+            Option<TestPlanRecorder> recorder,
+            List<TestRecordType> moduleExecutionList,
+            List<ICommand> commandList)
         {
             ICommand g = new ParallelGroupCommand(commandList.ToArray());
 

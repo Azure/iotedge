@@ -111,6 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
         [MemberData(nameof(CreateTestData))]
         public async Task ExecuteFailureTests(
             CommandMethodExpr commandMethodBeingTested,
+            Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr)
         {
             var token = new CancellationToken();
@@ -170,10 +171,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
         [MemberData(nameof(CreateTestData))]
         public async Task UndoFailureTests(
             CommandMethodExpr commandMethodBeingTested,
+            Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr)
         {
             var token = new CancellationToken();
-
             var logFactoryMock = new Mock<ILoggerFactory>();
             var logMock = new Mock<ILogger<LoggingCommandFactory>>();
             var factoryMock = new Mock<ICommandFactory>();
