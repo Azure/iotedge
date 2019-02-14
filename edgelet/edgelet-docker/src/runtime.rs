@@ -21,7 +21,7 @@ use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, NetworkConfig};
 use edgelet_core::{
     LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    ModuleTop, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
+    ModuleTop, pid::Pid, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
 };
 use edgelet_http::{UrlConnector, UrlExt};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -613,8 +613,11 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .container_top(&id, "")
                 .then(|result| match result {
                     Ok(resp) => {
-                        println!("Response: {:#?}", resp);
-                        let top = ModuleTop::new(id.clone(), Vec::new());
+                        let pid_index = resp.titles().unwrap().iter().position(|ref s| s.as_str() == "PID").unwrap();
+                        let pids = resp.processes().unwrap().iter()
+                            .map(|ref p| Pid::Value(p.get(pid_index).unwrap().parse::<i32>().unwrap()))
+                            .collect();
+                        let top = ModuleTop::new(id.clone(), pids);
                         Ok(top)
                     }
                     Err(err) => {
