@@ -76,6 +76,14 @@ fn run() -> Result<(), Error> {
                         .takes_value(true),
                 )
                 .arg(
+                    Arg::with_name("ntp-server")
+                        .long("ntp-server")
+                        .value_name("NTP_SERVER")
+                        .help("Sets the NTP server to use when checking host local time.")
+                        .takes_value(true)
+                        .default_value("pool.ntp.org:123"),
+                )
+                .arg(
                     Arg::with_name("steps")
                         .help("Run specific steps instead of all steps. One or more of `config`, `deps`, `conn`")
                         .multiple(true)
@@ -151,6 +159,9 @@ fn run() -> Result<(), Error> {
                         })
                         .to_os_string()
                         .into(),
+                    args.value_of("ntp-server")
+                        .expect("arg has a default value")
+                        .to_string(),
                     args.values_of("steps")
                         .map(|values| values.map(ToOwned::to_owned).collect()),
                     expected_iotedged_version,

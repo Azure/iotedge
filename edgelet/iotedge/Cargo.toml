@@ -27,6 +27,7 @@ edgelet-docker = { path = "../edgelet-docker" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 management = { path = "../management" }
+mini-sntp = { path = "../mini-sntp" }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

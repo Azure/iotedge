@@ -23,6 +23,7 @@ members = [
     "iotedge-diagnostics",
     "iothubservice",
     "management",
+    "mini-sntp",
     "provisioning",
     "systemd",
     "tokio-named-pipe",

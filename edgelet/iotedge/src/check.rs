@@ -29,6 +29,7 @@ use error::{Error, ErrorKind};
 pub struct Check {
     config_file: PathBuf,
     steps_override: Option<Vec<String>>,
+    ntp_server: String,
     expected_iotedged_version: String,
     expected_edge_agent_version: String,
     expected_edge_hub_version: String,
@@ -42,6 +43,7 @@ pub struct Check {
 impl Check {
     pub fn new(
         config_file: PathBuf,
+        ntp_server: String,
         steps_override: Option<Vec<String>>,
         expected_iotedged_version: String,
         expected_edge_agent_version: String,
@@ -49,6 +51,7 @@ impl Check {
     ) -> Self {
         Check {
             config_file,
+            ntp_server,
             steps_override,
             expected_iotedged_version,
             expected_edge_agent_version,
@@ -121,6 +124,7 @@ impl Check {
                             check.docker_host_arg.as_ref().map(AsRef::as_ref),
                         )
                     }),
+                    ("host time is close to real time", host_local_time),
                     ("container time is close to host time", container_local_time),
                 ],
             ),
@@ -627,6 +631,22 @@ fn edge_container_version(
         return Err(Context::new(format!(
             "expected {} to have version {} but it has version {}",
             container_name, expected_version, version_info.version
+        ))
+        .into());
+    }
+
+    Ok(None)
+}
+
+fn host_local_time(check: &mut Check) -> Result<Option<String>, failure::Error> {
+    let mini_sntp::SntpTimeQueryResult {
+        local_clock_offset, ..
+    } = mini_sntp::query(&check.ntp_server)?;
+
+    if local_clock_offset.num_seconds() >= 10 {
+        return Err(Context::new(format!(
+            "detected large difference between host local time and real time: {}",
+            local_clock_offset
         ))
         .into());
     }
