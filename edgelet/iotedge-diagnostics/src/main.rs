@@ -121,8 +121,6 @@ fn main() {
                 });
 
             runtime.block_on(f).unwrap();
-
-            println!("OK");
         }
 
         ("local-time", _) => {
@@ -140,8 +138,6 @@ fn main() {
             let duration: u64 = duration.parse().expect("could not parse duration");
 
             std::thread::sleep(std::time::Duration::from_secs(duration));
-
-            println!("OK");
         }
 
         ("resolve-module", Some(matches)) => {
@@ -151,8 +147,6 @@ fn main() {
                 .unwrap_or_else(|err| panic!("could not resolve {}: {}", hostname, err))
                 .next()
                 .unwrap_or_else(|| panic!("could not resolve {}: no addresses found", hostname));
-
-            println!("OK");
         }
 
         (subcommand, _) => panic!("unexpected subcommand {}", subcommand),
