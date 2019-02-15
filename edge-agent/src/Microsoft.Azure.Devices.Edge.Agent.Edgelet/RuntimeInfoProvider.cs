@@ -2,9 +2,11 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 {
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class RuntimeInfoProvider<T> : IRuntimeInfoProvider
     {
@@ -20,6 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             IEnumerable<ModuleRuntimeInfo> modulesRuntimeInfo = await this.moduleManager.GetModules<T>(token);
             return modulesRuntimeInfo;
         }
+
+        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, CancellationToken cancellationToken) =>
+            this.moduleManager.GetModuleLogs(module, follow, tail);
 
         public Task<SystemInfo> GetSystemInfo() => this.moduleManager.GetSystemInfoAsync();
     }
