@@ -130,6 +130,8 @@ fn parse_server_response(
     let destination_timestamp = destination_timestamp - chrono::Duration::seconds(30); // simulate unsynced local clock
 
     let packet = Packet::parse(buf, sntp_epoch);
+    #[cfg(test)]
+    let packet = dbg!(packet);
 
     match packet.leap_indicator {
         0..=2 => (),
