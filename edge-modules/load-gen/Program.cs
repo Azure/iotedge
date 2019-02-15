@@ -41,31 +41,31 @@ namespace LoadGen
                     timers.Add(
                         Settings.Current.MessageFrequency,
                         Settings.Current.JitterFactor,
-                        () => GenerateMessageAsync(moduleClient, batchId));
+                        () => GenerateMessageAsync(moduleClient, batchId).ConfigureAwait(false));
 
                     // setup the twin update timer
                     timers.Add(
                         Settings.Current.TwinUpdateFrequency,
                         Settings.Current.JitterFactor,
-                        () => GenerateTwinUpdateAsync(moduleClient, batchId));
+                        () => GenerateTwinUpdateAsync(moduleClient, batchId).ConfigureAwait(false));
 
                     timers.Start();
                     (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-                    Log.Information("Load gen running.");
+                    Logger.LogInformation("Load gen running.");
 
-                    await cts.Token.WhenCanceled();
-                    Log.Information("Stopping timers.");
+                    await cts.Token.WhenCanceled().ConfigureAwait(false);
+                    Logger.LogInformation("Stopping timers.");
                     timers.Stop();
-                    Log.Information("Closing connection to Edge Hub.");
-                    await moduleClient.CloseAsync();
+                    Logger.LogInformation("Closing connection to Edge Hub.");
+                    await moduleClient.CloseAsync().ConfigureAwait(false);
                     completed.Set();
                     handler.ForEach(h => GC.KeepAlive(h));
-                    Log.Information("Load Gen complete. Exiting.");
+                    Logger.LogInformation("Load Gen complete. Exiting.");
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"Error occurred during load gen.\r\n{ex}");
+                Logger.LogError($"Error occurred during load gen.\r\n{ex}");
             }
         }
 
@@ -94,7 +94,7 @@ namespace LoadGen
             }
             catch (Exception e)
             {
-                Log.Error($"[GenerateMessageAsync] Sequence number {sequenceNumber}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
+                Logger.LogError($"[GenerateMessageAsync] Sequence number {sequenceNumber}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
             }
         }
 
@@ -110,7 +110,7 @@ namespace LoadGen
             }
             catch (Exception e)
             {
-                Log.Error($"[GenerateTwinUpdateAsync] Sequence number {sequenceNumber}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
+                Logger.LogError($"[GenerateTwinUpdateAsync] Sequence number {sequenceNumber}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
             }
         }
     }

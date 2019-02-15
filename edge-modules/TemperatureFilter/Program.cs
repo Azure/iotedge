@@ -61,11 +61,11 @@ namespace TemperatureFilter
             await moduleClient.OpenAsync();
             Logger.LogInformation("TemperatureFilter - Opened module client connection");
 
-            ModuleConfig moduleConfig = await GetConfigurationAsync(moduleClient);
+            ModuleConfig moduleConfig = await GetConfigurationAsync(moduleClient).ConfigureAwait(false);
             Logger.LogInformation($"Using TemperatureThreshold value of {moduleConfig.TemperatureThreshold}");
 
             var userContext = Tuple.Create(moduleClient, moduleConfig);
-            await moduleClient.SetInputMessageHandlerAsync("input1", PrintAndFilterMessages, userContext);
+            await moduleClient.SetInputMessageHandlerAsync("input1", PrintAndFilterMessages, userContext).ConfigureAwait(false);
 
             // Wait until the app unloads or is cancelled
             var cts = new CancellationTokenSource();
@@ -114,7 +114,7 @@ namespace TemperatureFilter
                     }
 
                     filteredMessage.Properties.Add("MessageType", "Alert");
-                    await moduleClient.SendEventAsync("alertOutput", filteredMessage);
+                    await moduleClient.SendEventAsync("alertOutput", filteredMessage).ConfigureAwait(false);
                 }
             }
             catch (Exception e)
@@ -131,7 +131,7 @@ namespace TemperatureFilter
         static async Task<ModuleConfig> GetConfigurationAsync(ModuleClient moduleClient)
         {
             // First try to get the config from the Module twin
-            Twin twin = await moduleClient.GetTwinAsync();
+            Twin twin = await moduleClient.GetTwinAsync().ConfigureAwait(false);
             if (twin.Properties.Desired.Contains(TemperatureThresholdKey))
             {
                 int tempThreshold = (int)twin.Properties.Desired[TemperatureThresholdKey];

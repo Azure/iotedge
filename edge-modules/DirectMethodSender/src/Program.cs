@@ -44,7 +44,7 @@ namespace DirectMethodSender
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
 
             await CallDirectMethod(moduleClient, dmDelay, targetDeviceId, targetModuleId, cts).ConfigureAwait(false);
-            await moduleClient.CloseAsync();
+            await moduleClient.CloseAsync().ConfigureAwait(false);
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
             return 0;
@@ -65,11 +65,11 @@ namespace DirectMethodSender
 
                 try
                 {
-                    MethodResponse response = await moduleClient.InvokeMethodAsync(deviceId, moduleId, request);
+                    MethodResponse response = await moduleClient.InvokeMethodAsync(deviceId, moduleId, request).ConfigureAwait(false);
 
                     if (response.Status == (int)HttpStatusCode.OK)
                     {
-                        await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method Call succeeded.")));
+                        await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method Call succeeded."))).ConfigureAwait(false);
                     }
                 }
                 catch (Exception e)

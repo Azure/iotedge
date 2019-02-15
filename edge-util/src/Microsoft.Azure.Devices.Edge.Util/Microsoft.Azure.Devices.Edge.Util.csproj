@@ -24,6 +24,7 @@
     <PackageReference Include="App.Metrics" Version="3.0.0-alpha-0780" />
     <PackageReference Include="App.Metrics.Reporting.InfluxDB" Version="3.0.0-alpha-0067" />
     <PackageReference Include="App.Metrics.Reporting.TextFile" Version="3.0.0-alpha-0081" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.19.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="2.1.1" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.2" />
@@ -35,12 +36,6 @@
 
   <ItemGroup>
     <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="Microsoft.Azure.Devices.Client">
-      <HintPath>..\..\..\..\..\Users\phlin\.nuget\packages\microsoft.azure.devices.client\1.19.0\lib\netstandard2.0\Microsoft.Azure.Devices.Client.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>

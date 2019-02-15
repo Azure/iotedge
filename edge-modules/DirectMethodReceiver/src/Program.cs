@@ -36,7 +36,7 @@ namespace DirectMethodReceiver
                 ModuleUtil.DefaultTransientRetryStrategy).ConfigureAwait(false);
 
             await moduleClient.OpenAsync().ConfigureAwait(false);
-            await moduleClient.SetMethodHandlerAsync("HelloWorldMethod", HelloWorldMethod, null).ConfigureAwait(false);
+            await moduleClient.SetMethodHandlerAsync("HelloWorldMethodAsync", HelloWorldMethodAsync, null).ConfigureAwait(false);
 
             // Wait until the app unloads or is cancelled
             var cts = new CancellationTokenSource();
@@ -46,7 +46,7 @@ namespace DirectMethodReceiver
             return 0;
         }
 
-        static Task<MethodResponse> HelloWorldMethod(MethodRequest methodRequest, object userContext)
+        static Task<MethodResponse> HelloWorldMethodAsync(MethodRequest methodRequest, object userContext)
         {
             Logger.LogInformation("Received direct method call.");
             return Task.FromResult(new MethodResponse((int)HttpStatusCode.OK));

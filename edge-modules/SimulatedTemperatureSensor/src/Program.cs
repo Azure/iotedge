@@ -60,7 +60,7 @@ namespace SimulatedTemperatureSensor
             };
 
             Logger.LogInformation(
-                $"Initializing simulated temperature sensor to send {(SendUnlimitedMessge(messageCount) ? "unlimited" : messageCount.ToString())} "
+                $"Initializing simulated temperature sensor to send {(SendUnlimitedMessages(messageCount) ? "unlimited" : messageCount.ToString())} "
                 + $"messages, at an interval of {messageDelay.TotalSeconds} seconds.\n"
                 + $"To change this, set the environment variable {MessageCountConfigKey} to the number of messages that should be sent (set it to -1 to send unlimited messages).");
 
@@ -72,7 +72,7 @@ namespace SimulatedTemperatureSensor
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                 ModuleUtil.DefaultTransientRetryStrategy).ConfigureAwait(false);
             await moduleClient.OpenAsync().ConfigureAwait(false);
-            await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null);
+            await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null).ConfigureAwait(false);
 
             Twin currentTwinProperties = await moduleClient.GetTwinAsync();
             if (currentTwinProperties.Properties.Desired.Contains(SendIntervalConfigKey))
@@ -90,8 +90,8 @@ namespace SimulatedTemperatureSensor
             }
 
             ModuleClient userContext = moduleClient;
-            await moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdated, userContext);
-            await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext);
+            await moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdated, userContext).ConfigureAwait(false);
+            await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext).ConfigureAwait(false);
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
@@ -102,7 +102,7 @@ namespace SimulatedTemperatureSensor
             return 0;
         }
 
-        static bool SendUnlimitedMessge(int maximumNumberOfMessages) => maximumNumberOfMessages < 0;
+        static bool SendUnlimitedMessages(int maximumNumberOfMessages) => maximumNumberOfMessages < 0;
 
         // Control Message expected to be:
         // {
@@ -174,7 +174,7 @@ namespace SimulatedTemperatureSensor
             double currentTemp = sim.MachineTempMin;
             double normal = (sim.MachinePressureMax - sim.MachinePressureMin) / (sim.MachineTempMax - sim.MachineTempMin);
 
-            while (!cts.Token.IsCancellationRequested && (SendUnlimitedMessge(messageCount) || messageCount >= count))
+            while (!cts.Token.IsCancellationRequested && (SendUnlimitedMessages(messageCount) || messageCount >= count))
             {
                 if (Reset)
                 {
@@ -214,7 +214,7 @@ namespace SimulatedTemperatureSensor
                     eventMessage.Properties.Add("batchId", BatchId.ToString());
                     Logger.LogInformation($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
 
-                    await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
+                    await moduleClient.SendEventAsync("temperatureOutput", eventMessage).ConfigureAwait(false);
                     count++;
                 }
 
@@ -248,7 +248,7 @@ namespace SimulatedTemperatureSensor
 
             var moduleClient = (ModuleClient)userContext;
             var patch = new TwinCollection($"{{ \"SendData\":{sendData.ToString().ToLower()}, \"SendInterval\": {messageDelay.TotalSeconds}}}");
-            await moduleClient.UpdateReportedPropertiesAsync(patch); // Just report back last desired property.
+            await moduleClient.UpdateReportedPropertiesAsync(patch).ConfigureAwait(false); // Just report back last desired property.
         }
 
         class ControlCommand
