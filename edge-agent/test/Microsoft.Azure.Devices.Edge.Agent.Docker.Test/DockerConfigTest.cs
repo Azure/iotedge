@@ -32,6 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerConfig Config13 = new DockerConfig("image1:42", "{}");
         static readonly DockerConfig Config14 = new DockerConfig("image1:42", "null");
         static readonly DockerConfig Config15 = new DockerConfig("image1:42", "  ");
+        static readonly DockerConfig ConfigUnknown = new DockerConfig("unknown");
+        static readonly DockerConfig ConfigUnknownExpected = new DockerConfig("unknown:latest");
 
         static readonly string Extended9 = @"
         {
@@ -99,6 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(Config1, Config13);
             Assert.Equal(Config1, Config14);
             Assert.Equal(Config1, Config15);
+            Assert.Equal(ConfigUnknown, ConfigUnknownExpected);
         }
 
         [Fact]
