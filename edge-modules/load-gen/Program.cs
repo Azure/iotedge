@@ -7,9 +7,9 @@ namespace LoadGen
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.module;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using ModuleLib;
     using Newtonsoft.Json;
     using Serilog;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -30,7 +30,7 @@ namespace LoadGen
                     Settings.Current.TransportType,
                     Logger,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                    ModuleUtil.DefaultTransientRetryStrategy).ConfigureAwait(false);
+                    ModuleUtil.DefaultTransientRetryStrategy);
 
                 using (var timers = new Timers())
                 {
@@ -41,23 +41,23 @@ namespace LoadGen
                     timers.Add(
                         Settings.Current.MessageFrequency,
                         Settings.Current.JitterFactor,
-                        () => GenerateMessageAsync(moduleClient, batchId).ConfigureAwait(false));
+                        () => GenerateMessageAsync(moduleClient, batchId));
 
                     // setup the twin update timer
                     timers.Add(
                         Settings.Current.TwinUpdateFrequency,
                         Settings.Current.JitterFactor,
-                        () => GenerateTwinUpdateAsync(moduleClient, batchId).ConfigureAwait(false));
+                        () => GenerateTwinUpdateAsync(moduleClient, batchId));
 
                     timers.Start();
                     (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
                     Logger.LogInformation("Load gen running.");
 
-                    await cts.Token.WhenCanceled().ConfigureAwait(false);
+                    await cts.Token.WhenCanceled();
                     Logger.LogInformation("Stopping timers.");
                     timers.Stop();
                     Logger.LogInformation("Closing connection to Edge Hub.");
-                    await moduleClient.CloseAsync().ConfigureAwait(false);
+                    await moduleClient.CloseAsync();
                     completed.Set();
                     handler.ForEach(h => GC.KeepAlive(h));
                     Logger.LogInformation("Load Gen complete. Exiting.");
@@ -89,7 +89,7 @@ namespace LoadGen
                     message.Properties.Add("sequenceNumber", sequenceNumber.ToString());
                     message.Properties.Add("batchId", batchId.ToString());
 
-                    await client.SendEventAsync(Settings.Current.OutputName, message).ConfigureAwait(false);
+                    await client.SendEventAsync(Settings.Current.OutputName, message);
                 }
             }
             catch (Exception e)
@@ -106,7 +106,7 @@ namespace LoadGen
 
             try
             {
-                await client.UpdateReportedPropertiesAsync(twin).ConfigureAwait(false);
+                await client.UpdateReportedPropertiesAsync(twin);
             }
             catch (Exception e)
             {

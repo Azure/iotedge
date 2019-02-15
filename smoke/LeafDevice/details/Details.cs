@@ -25,7 +25,8 @@ namespace LeafDeviceTest
     using Message = Microsoft.Azure.Devices.Client.Message;
     using ServiceClientTransportType = Microsoft.Azure.Devices.TransportType;
 
-   public enum DeviceProtocol {
+    public enum DeviceProtocol
+    {
         Amqp,
         AmqpWS,
         Mqtt,

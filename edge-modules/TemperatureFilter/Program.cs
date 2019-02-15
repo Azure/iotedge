@@ -3,22 +3,17 @@ namespace TemperatureFilter
 {
     using System;
     using System.Collections.Generic;
-    using System.Globalization;
     using System.IO;
     using System.Runtime.Loader;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.module;
-    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using ModuleLib;
     using Newtonsoft.Json;
-    using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
 
     class Program
     {
@@ -56,16 +51,16 @@ namespace TemperatureFilter
                 transportType,
                 Logger,
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                ModuleUtil.DefaultTransientRetryStrategy).ConfigureAwait(false);
+                ModuleUtil.DefaultTransientRetryStrategy);
 
             await moduleClient.OpenAsync();
             Logger.LogInformation("TemperatureFilter - Opened module client connection");
 
-            ModuleConfig moduleConfig = await GetConfigurationAsync(moduleClient).ConfigureAwait(false);
+            ModuleConfig moduleConfig = await GetConfigurationAsync(moduleClient);
             Logger.LogInformation($"Using TemperatureThreshold value of {moduleConfig.TemperatureThreshold}");
 
             var userContext = Tuple.Create(moduleClient, moduleConfig);
-            await moduleClient.SetInputMessageHandlerAsync("input1", PrintAndFilterMessages, userContext).ConfigureAwait(false);
+            await moduleClient.SetInputMessageHandlerAsync("input1", PrintAndFilterMessages, userContext);
 
             // Wait until the app unloads or is cancelled
             var cts = new CancellationTokenSource();
@@ -74,7 +69,7 @@ namespace TemperatureFilter
             await WhenCancelled(cts.Token);
             return 0;
         }
-        
+
         /// <summary>
         /// This method is called whenever the Filter module is sent a message from the EdgeHub.
         /// It filters the messages based on the temperature value in the body of the messages,
@@ -114,7 +109,7 @@ namespace TemperatureFilter
                     }
 
                     filteredMessage.Properties.Add("MessageType", "Alert");
-                    await moduleClient.SendEventAsync("alertOutput", filteredMessage).ConfigureAwait(false);
+                    await moduleClient.SendEventAsync("alertOutput", filteredMessage);
                 }
             }
             catch (Exception e)
@@ -131,7 +126,7 @@ namespace TemperatureFilter
         static async Task<ModuleConfig> GetConfigurationAsync(ModuleClient moduleClient)
         {
             // First try to get the config from the Module twin
-            Twin twin = await moduleClient.GetTwinAsync().ConfigureAwait(false);
+            Twin twin = await moduleClient.GetTwinAsync();
             if (twin.Properties.Desired.Contains(TemperatureThresholdKey))
             {
                 int tempThreshold = (int)twin.Properties.Desired[TemperatureThresholdKey];

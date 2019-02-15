@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Util.module
+namespace ModuleLib
 {
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
     using Serilog;
@@ -34,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.module
             var retryPolicy = new RetryPolicy(transientErrorDetectionStrategy, retryStrategy);
             retryPolicy.Retrying += (_, args) => { logger.LogError($"Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}"); };
 
-            ModuleClient client = await retryPolicy.ExecuteAsync(() => InitializeModuleClient(transportType, logger)).ConfigureAwait(false);
+            ModuleClient client = await retryPolicy.ExecuteAsync(() => InitializeModuleClientAsync(transportType, logger));
             return client;
         }
 
@@ -51,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.module
             return new LoggerFactory().AddSerilog().CreateLogger(categoryName);
         }
 
-        static async Task<ModuleClient> InitializeModuleClient(TransportType transportType, ILogger logger)
+        static async Task<ModuleClient> InitializeModuleClientAsync(TransportType transportType, ILogger logger)
         {
             ITransportSettings[] GetTransportSettings()
             {
@@ -71,8 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.module
 
             ITransportSettings[] settings = GetTransportSettings();
             logger.LogInformation($"Trying to initialize module client using transport type [{transportType}].");
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);
-            await moduleClient.OpenAsync().ConfigureAwait(false);
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
+            await moduleClient.OpenAsync();
 
             logger.LogInformation($"Successfully initialized module client of transport type [{transportType}].");
             return moduleClient;

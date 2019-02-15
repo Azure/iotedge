@@ -8,9 +8,9 @@ namespace DirectMethodReceiver
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.Util.module;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using ModuleLib;
 
     class Program
     {
@@ -33,10 +33,10 @@ namespace DirectMethodReceiver
                 transportType,
                 Logger,
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                ModuleUtil.DefaultTransientRetryStrategy).ConfigureAwait(false);
+                ModuleUtil.DefaultTransientRetryStrategy);
 
-            await moduleClient.OpenAsync().ConfigureAwait(false);
-            await moduleClient.SetMethodHandlerAsync("HelloWorldMethodAsync", HelloWorldMethodAsync, null).ConfigureAwait(false);
+            await moduleClient.OpenAsync();
+            await moduleClient.SetMethodHandlerAsync("HelloWorldMethodAsync", HelloWorldMethodAsync, null);
 
             // Wait until the app unloads or is cancelled
             var cts = new CancellationTokenSource();

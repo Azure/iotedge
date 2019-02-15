@@ -10,10 +10,10 @@ namespace SimulatedTemperatureSensor
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Microsoft.Azure.Devices.Edge.Util.module;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using ModuleLib;
     using Newtonsoft.Json;
 
     class Program
@@ -70,9 +70,9 @@ namespace SimulatedTemperatureSensor
                 transportType,
                 Logger,
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                ModuleUtil.DefaultTransientRetryStrategy).ConfigureAwait(false);
-            await moduleClient.OpenAsync().ConfigureAwait(false);
-            await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null).ConfigureAwait(false);
+                ModuleUtil.DefaultTransientRetryStrategy);
+            await moduleClient.OpenAsync();
+            await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null);
 
             Twin currentTwinProperties = await moduleClient.GetTwinAsync();
             if (currentTwinProperties.Properties.Desired.Contains(SendIntervalConfigKey))
@@ -90,8 +90,8 @@ namespace SimulatedTemperatureSensor
             }
 
             ModuleClient userContext = moduleClient;
-            await moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdated, userContext).ConfigureAwait(false);
-            await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext).ConfigureAwait(false);
+            await moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdated, userContext);
+            await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext);
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
@@ -214,7 +214,7 @@ namespace SimulatedTemperatureSensor
                     eventMessage.Properties.Add("batchId", BatchId.ToString());
                     Logger.LogInformation($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
 
-                    await moduleClient.SendEventAsync("temperatureOutput", eventMessage).ConfigureAwait(false);
+                    await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
                     count++;
                 }
 
@@ -248,7 +248,7 @@ namespace SimulatedTemperatureSensor
 
             var moduleClient = (ModuleClient)userContext;
             var patch = new TwinCollection($"{{ \"SendData\":{sendData.ToString().ToLower()}, \"SendInterval\": {messageDelay.TotalSeconds}}}");
-            await moduleClient.UpdateReportedPropertiesAsync(patch).ConfigureAwait(false); // Just report back last desired property.
+            await moduleClient.UpdateReportedPropertiesAsync(patch); // Just report back last desired property.
         }
 
         class ControlCommand

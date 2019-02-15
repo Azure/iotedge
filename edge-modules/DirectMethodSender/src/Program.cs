@@ -9,9 +9,9 @@ namespace DirectMethodSender
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.module;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using ModuleLib;
 
     class Program
     {
@@ -39,12 +39,12 @@ namespace DirectMethodSender
                 transportType,
                 Logger,
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                ModuleUtil.DefaultTransientRetryStrategy).ConfigureAwait(false);
+                ModuleUtil.DefaultTransientRetryStrategy);
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
 
-            await CallDirectMethod(moduleClient, dmDelay, targetDeviceId, targetModuleId, cts).ConfigureAwait(false);
-            await moduleClient.CloseAsync().ConfigureAwait(false);
+            await CallDirectMethod(moduleClient, dmDelay, targetDeviceId, targetModuleId, cts);
+            await moduleClient.CloseAsync();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
             return 0;
@@ -65,11 +65,11 @@ namespace DirectMethodSender
 
                 try
                 {
-                    MethodResponse response = await moduleClient.InvokeMethodAsync(deviceId, moduleId, request).ConfigureAwait(false);
+                    MethodResponse response = await moduleClient.InvokeMethodAsync(deviceId, moduleId, request);
 
                     if (response.Status == (int)HttpStatusCode.OK)
                     {
-                        await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method Call succeeded."))).ConfigureAwait(false);
+                        await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method Call succeeded.")));
                     }
                 }
                 catch (Exception e)
@@ -77,7 +77,7 @@ namespace DirectMethodSender
                     Logger.LogError($"Exception caught: {e}");
                 }
 
-                await Task.Delay(delay, cts.Token).ConfigureAwait(false);
+                await Task.Delay(delay, cts.Token);
             }
         }
     }
