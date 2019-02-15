@@ -1121,6 +1121,30 @@ mod tests {
     }
 
     #[test]
+    fn get_fails_for_white_space_id() {
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
+        let name = "    ";
+
+        let task = ModuleRuntime::get(&mri, name).then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(s)) if s == name => {
+                    Ok::<_, Error>(())
+                }
+                kind => panic!(
+                    "Expected `RuntimeOperation(GetModule)` error but got {:?}.",
+                    kind
+                ),
+            },
+        });
+
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
     fn list_with_details_filters_out_deleted_containers() {
         let runtime = TestModuleList {
             modules: vec![
