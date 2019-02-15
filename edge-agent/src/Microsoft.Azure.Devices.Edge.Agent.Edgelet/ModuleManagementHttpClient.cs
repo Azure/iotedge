@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             Preconditions.CheckNonWhiteSpace(serverSupportedApiVersion, nameof(serverSupportedApiVersion));
             Preconditions.CheckNonWhiteSpace(clientSupportedApiVersion, nameof(clientSupportedApiVersion));
-            this.inner = this.GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion);
+            this.inner = GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion);
         }
 
         public Task<Identity> CreateIdentityAsync(string name, string managedBy) => this.inner.CreateIdentityAsync(name, managedBy);
@@ -54,9 +54,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail) => this.inner.GetModuleLogs(name, follow, tail);
 
-        internal ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
+        internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
-            ApiVersion supportedVersion = this.GetSupportedVersion(serverSupportedApiVersion, clientSupportedApiVersion);
+            ApiVersion supportedVersion = GetSupportedVersion(serverSupportedApiVersion, clientSupportedApiVersion);
             if (supportedVersion == ApiVersion.Version20180628)
             {
                 return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);
         }
 
-        ApiVersion GetSupportedVersion(string serverSupportedApiVersion, string clientSupportedApiVersion)
+        static ApiVersion GetSupportedVersion(string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
             var serverVersion = ApiVersion.ParseVersion(serverSupportedApiVersion);
             var clientVersion = ApiVersion.ParseVersion(clientSupportedApiVersion);
