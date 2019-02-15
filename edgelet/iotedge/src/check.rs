@@ -678,7 +678,7 @@ fn container_local_time(check: &mut Check) -> Result<Option<String>, failure::Er
 
     let diff = std::cmp::max(actual_duration, expected_duration)
         - std::cmp::min(actual_duration, expected_duration);
-    if diff.as_secs() >= 60 {
+    if diff.as_secs() >= 10 {
         return Err(Context::new(format!(
             "detected large difference between host local time {:?} and container local time {:?}",
             expected_duration, actual_duration,
