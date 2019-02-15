@@ -1547,11 +1547,18 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
     else {
         Write-Host "Downloading $Description..."
 
-        Invoke-WebRequest `
-            -Uri $Url `
-            -OutFile "$env:TEMP\$DownloadFileName" `
-            -UseBasicParsing `
-            @InvokeWebRequestParameters
+        $OldProgressPreference = $ProgressPreference
+        $ProgressPreference = "SilentlyContinue"
+        try {
+            Invoke-WebRequest `
+                -Uri $Url `
+                -OutFile "$env:TEMP\$DownloadFileName" `
+                -UseBasicParsing `
+                @InvokeWebRequestParameters
+        }
+        finally {
+            $ProgressPreference = $OldProgressPreference
+        }
 
         $Delete.Value = $true
         $result = "$env:TEMP\$DownloadFileName"
