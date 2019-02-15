@@ -35,44 +35,30 @@ namespace LoadGen
         static async Task Main()
         {
             ILogger logger = InitLogger().CreateLogger("loadgen");
-            Log.Information($"Starting load run with the following settings:\r\n{Settings.Current.ToString()}");
+            Log.Information($"Starting load gen with the following settings:\r\n{Settings.Current}");
 
             try
             {
-                var retryPolicy = new RetryPolicy(TimeoutErrorDetectionStrategy, TransientRetryStrategy);
-                retryPolicy.Retrying += (_, args) =>
-                {
-                    Log.Error($"Creating ModuleClient failed with exception {args.LastException}");
-                    if (args.CurrentRetryCount < RetryCount)
-                    {
-                        Log.Information("Retrying...");
-                    }
-                };
-                ModuleClient client = await retryPolicy.ExecuteAsync(() => InitModuleClient(Settings.Current.TransportType));
+                var client = await GetModuleClientWithRetryAsync();
 
                 using (var timers = new Timers())
                 {
-                    var random = new Random();
                     Guid batchId = Guid.NewGuid();
-                    var bufferPool = new BufferPool();
 
                     // setup the message timer
                     timers.Add(
                         Settings.Current.MessageFrequency,
                         Settings.Current.JitterFactor,
-                        () => GenMessage(client, random, batchId, bufferPool));
+                        () => GenerateMessageAsync(client, batchId));
 
                     // setup the twin update timer
                     timers.Add(
                         Settings.Current.TwinUpdateFrequency,
                         Settings.Current.JitterFactor,
-                        () => GenTwinUpdate(client, batchId));
+                        () => GenerateTwinUpdateAsync(client, batchId));
+
                     timers.Start();
-
-                    (CancellationTokenSource cts,
-                        ManualResetEventSlim completed,
-                        Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), logger);
-
+                    (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), logger);
                     Log.Information("Load gen running.");
 
                     await cts.Token.WhenCanceled();
@@ -82,61 +68,12 @@ namespace LoadGen
                     await client.CloseAsync();
                     completed.Set();
                     handler.ForEach(h => GC.KeepAlive(h));
-
-                    Log.Information("Load run complete. Exiting.");
+                    Log.Information("Load gen complete. Exiting.");
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"Error occurred during load run. \r\n{ex.ToString()}");
-            }
-        }
-
-        static async void GenMessage(
-            ModuleClient client,
-            Random random,
-            Guid batchId,
-            BufferPool bufferPool)
-        {
-            using (Buffer data = bufferPool.AllocBuffer(Settings.Current.MessageSizeInBytes))
-            {
-                // generate some bytes
-                random.NextBytes(data.Data);
-
-                // build message
-                var messageBody = new
-                {
-                    data = data.Data,
-                };
-
-                long sequenceNumber = -1;
-                try
-                {
-                    var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                    sequenceNumber = Interlocked.Increment(ref messageIdCounter);
-                    message.Properties.Add("sequenceNumber", sequenceNumber.ToString());
-                    message.Properties.Add("batchId", batchId.ToString());
-                    await client.SendEventAsync(Settings.Current.OutputName, message).ConfigureAwait(false);
-                }
-                catch (Exception e)
-                {
-                    Log.Error($"Sequence number {sequenceNumber}, BatchId: {batchId.ToString()} {e}");
-                }
-            }
-        }
-
-        static async void GenTwinUpdate(ModuleClient client, Guid batchId)
-        {
-            var twin = new TwinCollection();
-            long sequenceNumber = messageIdCounter;
-            twin["messagesSent"] = sequenceNumber;
-            try
-            {
-                await client.UpdateReportedPropertiesAsync(twin).ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                Log.Error($"Sequence number {sequenceNumber}, BatchId: {batchId.ToString()} {e}");
+                Log.Error($"Error occurred during load gen.\r\n{ex}");
             }
         }
 
@@ -148,6 +85,68 @@ namespace LoadGen
                 .CreateLogger();
 
             return new LoggerFactory().AddSerilog();
+        }
+
+        static async Task GenerateMessageAsync(ModuleClient client, Guid batchId)
+        {
+            var random = new Random();
+            var bufferPool = new BufferPool();
+            long sequenceNumber = -1;
+
+            try
+            {
+                using (Buffer data = bufferPool.AllocBuffer(Settings.Current.MessageSizeInBytes))
+                {
+                    // generate some bytes
+                    random.NextBytes(data.Data);
+
+                    // build message
+                    var messageBody = new
+                    {
+                        data = data.Data,
+                    };
+
+                    var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
+                    sequenceNumber = Interlocked.Increment(ref messageIdCounter);
+                    message.Properties.Add("sequenceNumber", sequenceNumber.ToString());
+                    message.Properties.Add("batchId", batchId.ToString());
+                    await client.SendEventAsync(Settings.Current.OutputName, message).ConfigureAwait(false);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error($"[GenerateMessageAsync] Sequence number {sequenceNumber}, BatchId: {batchId.ToString()}; {e}");
+            }
+        }
+
+        static async Task GenerateTwinUpdateAsync(ModuleClient client, Guid batchId)
+        {
+            var twin = new TwinCollection();
+            long sequenceNumber = messageIdCounter;
+            twin["messagesSent"] = sequenceNumber;
+            try
+            {
+                await client.UpdateReportedPropertiesAsync(twin).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                Log.Error($"[GenerateTwinUpdateAsync] Sequence number {sequenceNumber}, BatchId: {batchId.ToString()} {e}");
+            }
+        }
+
+        static async Task<ModuleClient> GetModuleClientWithRetryAsync()
+        {
+            var retryPolicy = new RetryPolicy(TimeoutErrorDetectionStrategy, TransientRetryStrategy);
+            retryPolicy.Retrying += (_, args) =>
+            {
+                Log.Error($"Creating ModuleClient failed with exception {args.LastException}");
+                if (args.CurrentRetryCount < RetryCount)
+                {
+                    Log.Information("Retrying...");
+                }
+            };
+            ModuleClient client = await retryPolicy.ExecuteAsync(() => InitModuleClient(Settings.Current.TransportType));
+            return client;
         }
 
         static async Task<ModuleClient> InitModuleClient(TransportType transportType)
