@@ -3,6 +3,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
+    using System.IO;
+    using System.Net.Http;
+    using System.Net.Http.Headers;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -14,6 +18,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
     abstract class ModuleManagementHttpClientVersioned
     {
+        const string LogsUrlTemplate = "{0}/modules/{1}/logs?api-version={2}&follow={3}";
+        const string LogsUrlTemplateWithTail = "{0}/modules/{1}/logs?api-version={2}&follow={3}&tail={4}";
+
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
 
@@ -57,6 +64,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
         public abstract Task UpdateAndStartModuleAsync(ModuleSpec moduleSpec);
 
         public abstract Task PrepareUpdateAsync(ModuleSpec moduleSpec);
+
+        public virtual async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+            {
+                string baseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri);
+                string logsUrl = tail.Map(t => string.Format(CultureInfo.InvariantCulture, LogsUrlTemplateWithTail, baseUrl, module, this.Version.Name, follow.ToString().ToLowerInvariant(), t))
+                    .GetOrElse(() => string.Format(CultureInfo.InvariantCulture, LogsUrlTemplate, baseUrl, module, this.Version.Name, follow.ToString().ToLowerInvariant()));
+                var logsUri = new Uri(logsUrl);
+                var httpRequest = new HttpRequestMessage(HttpMethod.Get, logsUri);
+                httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                Stream stream = await this.Execute(
+                    async () =>
+                    {
+                        HttpResponseMessage httpResponseMessage = await httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+                        return await httpResponseMessage.Content.ReadAsStreamAsync();
+                    },
+                    $"Get logs for {module}");
+                return stream;
+            }
+        }
 
         protected abstract void HandleException(Exception ex, string operation);
 

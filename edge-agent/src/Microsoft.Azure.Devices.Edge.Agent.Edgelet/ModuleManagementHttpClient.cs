@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -50,6 +51,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         public Task<IEnumerable<ModuleRuntimeInfo>> GetModules<T>(CancellationToken token) => this.inner.GetModules<T>(token);
 
         public Task PrepareUpdateAsync(ModuleSpec moduleSpec) => this.inner.PrepareUpdateAsync(moduleSpec);
+
+        public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail) => this.inner.GetModuleLogs(name, follow, tail);
 
         internal ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
