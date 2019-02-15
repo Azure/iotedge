@@ -499,7 +499,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         {
             // Pull current configuration from annotations.
             Dictionary<string, string> currentV1ServicesFromAnnotations = this.GetCurrentServiceConfig(currentServices);
-            Dictionary<string, string> currentDeploymentsFromAnnotations = this.GetCurrentDeploymentConfig(currentDeployments);
+            // strip out edgeAgent so edgeAgent doesn't update itself.
+            // TODO: remove this filter.
+            var agentDeploymentName = this.DeploymentName(CoreConstants.EdgeAgentModuleName);
+            Dictionary<string, string> currentDeploymentsFromAnnotations = this.GetCurrentDeploymentConfig(currentDeployments)
+                .Where(pair => pair.Key != agentDeploymentName)
+                .ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value);
 
             var desiredServices = new List<V1Service>();
             var desiredDeployments = new List<V1Deployment>();
@@ -507,6 +514,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 if (string.Equals(module.Module.Type, "docker"))
                 {
+                    // Do not try to update edgeAgent -
+                    // this is a stopgap measure so that current deployments don't accidentally overwrite the custom edgeAgent needed for k8s
+                    // TODO: remove this check.
+                    if (module.ModuleIdentity.ModuleId == CoreConstants.EdgeAgentModuleIdentityName)
+                    {
+                        continue;
+                    }
+
                     // Default labels
                     var labels = new Dictionary<string, string>
                     {
