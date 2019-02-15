@@ -196,6 +196,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type Logs = Logs;
 
     type CreateFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type GetFuture = Box<Future<Item = Self::Module, Error = Self::Error> + Send>;
     type InitFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
     type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
     type ListWithDetailsStream =
@@ -320,6 +321,16 @@ impl ModuleRuntime for DockerModuleRuntime {
             });
 
         Box::new(result)
+    }
+
+    fn get(&self, id: &str) -> Self::GetFuture {
+        debug!("Getting module {}...", id);
+
+        let id = id.to_string();
+
+        Box::new(future::err(Error::from(
+            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
+        )))
     }
 
     fn start(&self, id: &str) -> Self::StartFuture {
@@ -1086,6 +1097,30 @@ mod tests {
     }
 
     #[test]
+    fn get_fails_for_empty_id() {
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
+        let name = "";
+
+        let task = ModuleRuntime::get(&mri, name).then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(s)) if s == name => {
+                    Ok::<_, Error>(())
+                }
+                kind => panic!(
+                    "Expected `RuntimeOperation(GetModule)` error but got {:?}.",
+                    kind
+                ),
+            },
+        });
+
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
     fn list_with_details_filters_out_deleted_containers() {
         let runtime = TestModuleList {
             modules: vec![
@@ -1201,6 +1236,7 @@ mod tests {
         type Logs = Empty<Self::Chunk, Self::Error>;
 
         type CreateFuture = FutureResult<(), Self::Error>;
+        type GetFuture = FutureResult<Self::Module, Self::Error>;
         type InitFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
         type ListWithDetailsStream =
@@ -1219,6 +1255,10 @@ mod tests {
         }
 
         fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
+            unimplemented!()
+        }
+
+        fn get(&self, _id: &str) -> Self::GetFuture {
             unimplemented!()
         }
 

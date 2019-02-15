@@ -383,6 +383,7 @@ pub trait ModuleRuntime {
     type Logs: Stream<Item = Self::Chunk, Error = Self::Error> + Send;
 
     type CreateFuture: Future<Item = (), Error = Self::Error> + Send;
+    type GetFuture: Future<Item = Self::Module, Error = Self::Error> + Send;
     type InitFuture: Future<Item = (), Error = Self::Error> + Send;
     type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error> + Send;
     type ListWithDetailsStream: Stream<
@@ -400,6 +401,7 @@ pub trait ModuleRuntime {
 
     fn init(&self) -> Self::InitFuture;
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
+    fn get(&self, id: &str) -> Self::GetFuture;
     fn start(&self, id: &str) -> Self::StartFuture;
     fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Self::StopFuture;
     fn restart(&self, id: &str) -> Self::RestartFuture;
@@ -453,6 +455,7 @@ impl fmt::Display for RegistryOperation {
 #[derive(Clone, Debug)]
 pub enum RuntimeOperation {
     CreateModule(String),
+    GetModule(String),
     GetModuleLogs(String),
     Init,
     ListModules,
@@ -468,6 +471,7 @@ impl fmt::Display for RuntimeOperation {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             RuntimeOperation::CreateModule(name) => write!(f, "Could not create module {}", name),
+            RuntimeOperation::GetModule(name) => write!(f, "Could not get module {}", name),
             RuntimeOperation::GetModuleLogs(name) => {
                 write!(f, "Could not get logs for module {}", name)
             }

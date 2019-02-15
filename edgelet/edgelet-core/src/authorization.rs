@@ -350,6 +350,7 @@ mod tests {
         type Logs = Empty<Self::Chunk, Self::Error>;
 
         type CreateFuture = FutureResult<(), Self::Error>;
+        type GetFuture = FutureResult<Self::Module, Self::Error>;
         type InitFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
         type ListWithDetailsStream =
@@ -368,6 +369,10 @@ mod tests {
         }
 
         fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
+            notimpl_error!()
+        }
+
+        fn get(&self, _id: &str) -> Self::GetFuture {
             notimpl_error!()
         }
 
