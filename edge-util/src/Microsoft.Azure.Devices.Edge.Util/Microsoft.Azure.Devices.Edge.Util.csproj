@@ -36,6 +36,12 @@
   <ItemGroup>
     <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.Azure.Devices.Client">
+      <HintPath>..\..\..\..\..\Users\phlin\.nuget\packages\microsoft.azure.devices.client\1.19.0\lib\netstandard2.0\Microsoft.Azure.Devices.Client.dll</HintPath>
+    </Reference>
+  </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>  
