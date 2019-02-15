@@ -45,6 +45,7 @@ namespace DirectMethodSender
 
             await CallDirectMethod(moduleClient, dmDelay, targetDeviceId, targetModuleId, cts);
             await moduleClient.CloseAsync();
+
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
             return 0;

@@ -74,7 +74,9 @@ namespace SimulatedTemperatureSensor
             await moduleClient.OpenAsync();
             await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null);
 
-            Twin currentTwinProperties = await moduleClient.GetTwinAsync();
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
+
+            Twin currentTwinProperties = await moduleClient.GetTwinAsync(cts.Token);
             if (currentTwinProperties.Properties.Desired.Contains(SendIntervalConfigKey))
             {
                 messageDelay = TimeSpan.FromSeconds((int)currentTwinProperties.Properties.Desired[SendIntervalConfigKey]);
@@ -92,11 +94,9 @@ namespace SimulatedTemperatureSensor
             ModuleClient userContext = moduleClient;
             await moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdated, userContext);
             await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext);
-
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
-                = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
             await SendEvents(moduleClient, messageCount, simulatorParameters, cts);
             await cts.Token.WhenCanceled();
+
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
             return 0;

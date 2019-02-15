@@ -58,6 +58,7 @@ namespace LoadGen
                     timers.Stop();
                     Logger.LogInformation("Closing connection to Edge Hub.");
                     await moduleClient.CloseAsync();
+
                     completed.Set();
                     handler.ForEach(h => GC.KeepAlive(h));
                     Logger.LogInformation("Load Gen complete. Exiting.");

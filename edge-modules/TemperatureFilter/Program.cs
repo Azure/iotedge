@@ -9,6 +9,7 @@ namespace TemperatureFilter
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
@@ -53,8 +54,7 @@ namespace TemperatureFilter
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                 ModuleUtil.DefaultTransientRetryStrategy);
 
-            await moduleClient.OpenAsync();
-            Logger.LogInformation("TemperatureFilter - Opened module client connection");
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
 
             ModuleConfig moduleConfig = await GetConfigurationAsync(moduleClient);
             Logger.LogInformation($"Using TemperatureThreshold value of {moduleConfig.TemperatureThreshold}");
@@ -62,11 +62,8 @@ namespace TemperatureFilter
             var userContext = Tuple.Create(moduleClient, moduleConfig);
             await moduleClient.SetInputMessageHandlerAsync("input1", PrintAndFilterMessages, userContext);
 
-            // Wait until the app unloads or is cancelled
-            var cts = new CancellationTokenSource();
-            AssemblyLoadContext.Default.Unloading += (ctx) => cts.Cancel();
-            Console.CancelKeyPress += (sender, cpe) => cts.Cancel();
-            await WhenCancelled(cts.Token);
+            completed.Set();
+            handler.ForEach(h => GC.KeepAlive(h));
             return 0;
         }
 

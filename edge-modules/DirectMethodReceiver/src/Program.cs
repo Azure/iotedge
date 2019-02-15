@@ -8,6 +8,7 @@ namespace DirectMethodReceiver
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using ModuleLib;
@@ -35,14 +36,13 @@ namespace DirectMethodReceiver
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                 ModuleUtil.DefaultTransientRetryStrategy);
 
-            await moduleClient.OpenAsync();
-            await moduleClient.SetMethodHandlerAsync("HelloWorldMethodAsync", HelloWorldMethodAsync, null);
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
 
-            // Wait until the app unloads or is cancelled
-            var cts = new CancellationTokenSource();
-            AssemblyLoadContext.Default.Unloading += (ctx) => cts.Cancel();
-            Console.CancelKeyPress += (sender, cpe) => cts.Cancel();
-            await WhenCancelled(cts.Token);
+            await moduleClient.OpenAsync();
+            await moduleClient.SetMethodHandlerAsync("HelloWorldMethodAsync", HelloWorldMethodAsync, null, cts.Token);
+
+            completed.Set();
+            handler.ForEach(h => GC.KeepAlive(h));
             return 0;
         }
 
