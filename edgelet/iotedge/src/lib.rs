@@ -37,7 +37,7 @@ mod unknown;
 mod version;
 
 pub use check::Check;
-pub use error::{Error, ErrorKind};
+pub use error::{Error, ErrorKind, FetchLatestVersionsReason};
 pub use list::List;
 pub use logs::Logs;
 pub use restart::Restart;
@@ -48,4 +48,15 @@ pub trait Command {
     type Future: Future<Item = ()> + Send;
 
     fn execute(&mut self) -> Self::Future;
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LatestVersions {
+    pub iotedged: String,
+
+    #[serde(rename = "azureiotedge-agent")]
+    pub edge_agent: String,
+
+    #[serde(rename = "azureiotedge-hub")]
+    pub edge_hub: String,
 }

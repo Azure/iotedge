@@ -30,9 +30,7 @@ pub struct Check {
     config_file: PathBuf,
     steps_override: Option<Vec<String>>,
     ntp_server: String,
-    expected_iotedged_version: String,
-    expected_edge_agent_version: String,
-    expected_edge_hub_version: String,
+    latest_versions: super::LatestVersions,
 
     // These optional fields are populated by the pre-checks
     settings: Option<Settings<DockerConfig>>,
@@ -45,17 +43,13 @@ impl Check {
         config_file: PathBuf,
         ntp_server: String,
         steps_override: Option<Vec<String>>,
-        expected_iotedged_version: String,
-        expected_edge_agent_version: String,
-        expected_edge_hub_version: String,
+        latest_versions: super::LatestVersions,
     ) -> Self {
         Check {
             config_file,
             ntp_server,
             steps_override,
-            expected_iotedged_version,
-            expected_edge_agent_version,
-            expected_edge_hub_version,
+            latest_versions,
 
             settings: None,
             docker_host_arg: None,
@@ -113,14 +107,14 @@ impl Check {
                     ("latest edge agent container image", |check| {
                         edge_container_version(
                             "edgeAgent",
-                            &check.expected_edge_agent_version,
+                            &check.latest_versions.edge_agent,
                             check.docker_host_arg.as_ref().map(AsRef::as_ref),
                         )
                     }),
                     ("latest edge hub container image", |check| {
                         edge_container_version(
                             "edgeHub",
-                            &check.expected_edge_hub_version,
+                            &check.latest_versions.edge_hub,
                             check.docker_host_arg.as_ref().map(AsRef::as_ref),
                         )
                     }),
@@ -572,10 +566,10 @@ fn iotedged_version(check: &mut Check) -> Result<Option<String>, failure::Error>
         .expect("unreachable: regex defines one capturing group")
         .as_str();
 
-    if version != check.expected_iotedged_version {
+    if version != check.latest_versions.iotedged {
         return Err(Context::new(format!(
             "expected iotedged to have version {} but it has version {}",
-            check.expected_iotedged_version, version
+            check.latest_versions.iotedged, version
         ))
         .into());
     }
