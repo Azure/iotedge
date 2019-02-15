@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             Option<ContainerInspectResponse> edgeAgentReponse = await this.GetEdgeAgentContainerAsync();
             edgeAgentReponse.ForEach(e => containerInspectResponses.Add(e));
 
-            List<ModuleRuntimeInfo> modules = containerInspectResponses.Select(c => InspectResponseToModule(c)).ToList();
+            List<ModuleRuntimeInfo> modules = containerInspectResponses.Select(InspectResponseToModule).ToList();
             return modules;
         }
 
