@@ -1399,7 +1399,7 @@ function Stop-EdgeContainer([string] $Name = $null) {
         $inspectString = Invoke-Native "$dockerExe inspect ""$containerId""" -Passthru
         $inspectResult = ($inspectString | ConvertFrom-Json)[0]
 
-        if (($Name -ne $null) -and ($inspectResult.Name -ne $Name)) {
+        if ($Name -and ($inspectResult.Name -ne $Name)) {
             continue
         }
 
