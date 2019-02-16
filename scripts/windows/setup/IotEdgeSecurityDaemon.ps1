@@ -47,7 +47,7 @@ enum ContainerOs {
 <#
 .SYNOPSIS
 
-Installs the IoT Edge Security Daemon and its dependencies.
+Initializes the IoT Edge Security Daemon and its dependencies.
 
 
 .INPUTS
@@ -62,19 +62,19 @@ None
 
 .EXAMPLE
 
-PS> Install-SecurityDaemon -Manual -DeviceConnectionString $deviceConnectionString -ContainerOs Windows
+PS> Initialize-SecurityDaemon -Manual -DeviceConnectionString $deviceConnectionString -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Install-SecurityDaemon -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
+PS> Initialize-SecurityDaemon -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Install-SecurityDaemon -ExistingConfig -ContainerOs Windows
+PS> Initialize-SecurityDaemon -ExistingConfig -ContainerOs Windows
 #>
-function Install-SecurityDaemon {
+function Initialize-SecurityDaemon {
     [CmdletBinding(DefaultParameterSetName = 'Manual')]
     param (
         # Specified the daemon will be configured manually, using a device connection string.
@@ -108,14 +108,6 @@ function Install-SecurityDaemon {
         # If set to Windows, the Moby Engine will be installed automatically. This will not affect any existing installation of Docker for Windows.
         [ContainerOs] $ContainerOs = 'Windows',
 
-        # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
-        [Uri] $Proxy,
-
-        # If set to a directory path, the installer prefers to use IoTEdge CAB, Moby Engine CAB, Moby CLI CAB and VC Runtime MSI files from inside this directory
-        # over downloading them from the internet. Thus placing all four files in this directory can be used to have a completely offline install,
-        # or a specific subset can be placed to override the online versions of those specific components.
-        [String] $OfflineInstallationPath,
-
         # IoT Edge Agent image to pull for the initial configuration.
         [Parameter(ParameterSetName = 'Manual')]
         [Parameter(ParameterSetName = 'DPS')]
@@ -129,61 +121,22 @@ function Install-SecurityDaemon {
         # Password used to access the container registry and pull the IoT Edge Agent image.
         [Parameter(ParameterSetName = 'Manual')]
         [Parameter(ParameterSetName = 'DPS')]
-        [SecureString] $Password,
-
-        # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
-        #
-        # If -Proxy is also specified, it overrides the `-Proxy` key set in this hashtable, if any.
-        #
-        # Example:
-        #
-        #     Install-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
-        [HashTable] $InvokeWebRequestParameters,
-
-        # Restart if needed without prompting.
-        [Switch] $RestartIfNeeded,
-
-        # Finalize installation, IoTCore only.
-        [Switch] $Finalize
+        [SecureString] $Password
     )
 
     $ErrorActionPreference = 'Stop'
     Set-StrictMode -Version 5
 
-    if ($InvokeWebRequestParameters -eq $null) {
-        $InvokeWebRequestParameters = @{}
+    if (-not (Test-EdgeAlreadyInstalled)) {
+        Write-HostRed
+        Write-HostRed 'IoT Edge is not yet installed. To install, run "Deploy-SecurityDaemon" first.'
+        return
     }
 
-    if ($Proxy -ne $null) {
-        $InvokeWebRequestParameters['-Proxy'] = $Proxy
-    }
-
-    if ($Finalize) {
-        if (-not (Test-EdgeAlreadyInstalled)) {
-            Write-HostRed
-            Write-HostRed 'IoT Edge is not yet installed. To install, run `Deploy-SecurityDaemon` first.'
-            return
-        }
-
-        if (-not (Test-MobyAlreadyInstalled)) {
-            Write-HostRed
-            Write-HostRed 'IoT Edge Moby Engine is not yet installed. To install, run `Deploy-SecurityDaemon` first.'
-            return
-        }
-    }
-    else {
-        if (Test-EdgeAlreadyInstalled) {
-            Write-HostRed
-            Write-HostRed ('IoT Edge is already installed. To update, run `Update-SecurityDaemon`. ' +
-                'Alternatively, if you want to finalize the installation on IoTCore, run `Install-SecurityDaemon -Finalize`.')
-            return
-        }
-
-        if (Test-MobyAlreadyInstalled) {
-            Write-HostRed
-            Write-HostRed 'IoT Edge Moby Engine is already installed. To update, run `Update-SecurityDaemon`.'
-            return
-        }
+    if (-not (Test-MobyAlreadyInstalled)) {
+        Write-HostRed
+        Write-HostRed 'IoT Edge Moby Engine is not yet installed. To install, run "Deploy-SecurityDaemon" first.'
+        return
     }
 
     if (-not (Test-AgentRegistryArgs)) {
@@ -205,24 +158,10 @@ function Install-SecurityDaemon {
         Write-HostRed
         Write-HostRed "$configPath already exists."
         Write-HostRed (
-            'Delete it using `Uninstall-SecurityDaemon -Force -DeleteConfig` and then re-run `Install-SecurityDaemon`, ' +
-            'or run `Install-SecurityDaemon -ExistingConfig` to use the existing config.yaml')
+            'Delete it using "Uninstall-SecurityDaemon -Force -DeleteConfig" and then ' + 
+            're-run "Deploy-SecurityDaemon" and "Initialize-SecurityDaemon"')
         return
     }
-
-    $restartNeeded = $false
-    if (-not $Finalize) {
-        # Download
-        Get-SecurityDaemon -RestartNeeded ([ref] $restartNeeded)
-
-        if ($restartNeeded) {
-            Write-HostRed "Reboot required. If this is the first time installation, run Install-SecurityDaemon -Finalize after the reboot completes."
-            Restart-Computer -Confirm:(-not $RestartIfNeeded)
-            return
-        }        
-    }
-
-    Get-VcRuntime
 
     # config.yaml
     if ($ExistingConfig) {
@@ -232,7 +171,7 @@ function Install-SecurityDaemon {
         Write-Host 'Generating config.yaml...'
 
         if (-not (Test-Path $EdgeDataDirectory)) {
-            mkdir $EdgeDataDirectory
+            New-Item -Path $EdgeDataDirectory -ItemType "Directory"
         }
         Copy-Item -Path (Join-Path -Path $EdgeInstallDirectory -ChildPath "config.yaml") -Destination $configPath
 
@@ -248,19 +187,14 @@ function Install-SecurityDaemon {
         Set-MobyEngineParameters
     }
 
-    # Register services
+    # Start services
     Set-SystemPath
-    Start-IoTEdgeService -RestartNeeded $restartNeeded
+    Start-IoTEdgeService
     if ($ContainerOs -eq 'Linux') {
         Add-FirewallExceptions
     }
 
     Write-LogInformation
-
-    if ($restartNeeded) {
-        Write-HostRed "Reboot required."
-        Restart-Computer -Confirm:(-not $RestartIfNeeded)
-    }
 }
 
 <#
@@ -308,11 +242,11 @@ function Update-SecurityDaemon {
 
         # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
         #
-        # If -Proxy is also specified, it overrides the `-Proxy` key set in this hashtable, if any.
+        # If -Proxy is also specified, it overrides the "-Proxy" key set in this hashtable, if any.
         #
         # Example:
         #
-        #     Install-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
+        #     Update-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
         [HashTable] $InvokeWebRequestParameters,
 
         # Restart if needed without prompting.
@@ -373,11 +307,11 @@ function Deploy-SecurityDaemon {
 
         # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
         #
-        # If -Proxy is also specified, it overrides the `-Proxy` key set in this hashtable, if any.
+        # If -Proxy is also specified, it overrides the "-Proxy" key set in this hashtable, if any.
         #
         # Example:
         #
-        #     Install-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
+        #     Update-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
         [HashTable] $InvokeWebRequestParameters,
 
         # Restart if needed without prompting.
@@ -400,9 +334,9 @@ Uninstalls the IoT Edge Security Daemon and its dependencies.
 
 .DESCRIPTION
 
-By default this commandlet does not delete the config.yaml and the Moby Engine data root (for -ContainerOs 'Windows' installs),
-so that you can update the daemon using `Install-SecurityDaemon -ExistingConfig`. To delete these as well, specify the
--DeleteConfig and -DeleteMobyDataRoot flags.
+By default this cmdlet does not delete the config.yaml and the Moby Engine data root (for -ContainerOs 'Windows' installs),
+so that you can re-install the daemon using "Deploy-SecurityDaemon" and "Initialize-SecurityDaemon -ExistingConfig". 
+To delete these as well, specify the -DeleteConfig and -DeleteMobyDataRoot flags.
 
 
 .INPUTS
@@ -458,7 +392,7 @@ function Uninstall-SecurityDaemon {
 
     if (-not $Force -and -not ((Test-EdgeAlreadyInstalled) -or (Test-MobyAlreadyInstalled))) {
         Write-HostRed
-        Write-HostRed 'IoT Edge is not installed. Use `-Force` to uninstall anyway.'
+        Write-HostRed 'IoT Edge is not installed. Use "-Force" to uninstall anyway.'
         return
     }
 
@@ -492,7 +426,7 @@ function Get-SecurityDaemonLog {
     param (
         # What time to start the log from.
         [DateTime] $StartTime = [datetime]::Now.AddMinutes(-5)
-    ) 
+    )
 
     Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName='iotedged';LogName='application';StartTime=$StartTime} |
         Select TimeCreated, Message |
@@ -523,33 +457,33 @@ function Install-Packages(
     if ($Update) {
         if (-not (Test-EdgeAlreadyInstalled)) {
             Write-HostRed
-            Write-HostRed 'IoT Edge is not yet installed. To install, run `Deploy-SecurityDaemon` first.'
+            Write-HostRed 'IoT Edge is not yet installed. To install, run "Deploy-SecurityDaemon" first.'
             return
         }
 
         if (-not (Test-MobyAlreadyInstalled)) {
             Write-HostRed
-            Write-HostRed 'IoT Edge Moby Engine is not yet installed. To install, run `Deploy-SecurityDaemon` first.'
+            Write-HostRed 'IoT Edge Moby Engine is not yet installed. To install, run "Deploy-SecurityDaemon" first.'
             return
         }
 
         if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
             Write-HostRed
-            Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run `Uninstall-SecurityDaemon -DeleteMobyDataRoot` first.'
+            Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run "Uninstall-SecurityDaemon -DeleteMobyDataRoot" first.'
             return
         }
     }
     else {
         if (Test-EdgeAlreadyInstalled) {
             Write-HostRed
-            Write-HostRed ('IoT Edge is already installed. To update, run `Update-SecurityDaemon`. ' +
-                'Alternatively, if you want to finalize the installation on IoTCore, run `Install-SecurityDaemon -Finalize`.')
+            Write-HostRed ('IoT Edge is already installed. To update, run "Update-SecurityDaemon". ' +
+                'Alternatively, if you want to finalize the installation on IoTCore, run "Initialize-SecurityDaemon".')
             return
         }
 
         if (Test-MobyAlreadyInstalled) {
             Write-HostRed
-            Write-HostRed 'IoT Edge Moby Engine is already installed. To update, run `Update-SecurityDaemon`.'
+            Write-HostRed 'IoT Edge Moby Engine is already installed. To update, run "Update-SecurityDaemon".'
             return
         }
     }
@@ -559,19 +493,37 @@ function Install-Packages(
     }
 
     $restartNeeded = $false
+
+    if (-not $Update) {
+        if (-not (Test-IotCore)) {
+            $result = Get-WindowsOptionalFeature -Online -FeatureName "Containers"
+            if ($result -and ($result.State -ne "Enabled")) {
+                $result = Enable-WindowsOptionalFeature -FeatureName "Containers" -Online -NoRestart
+                if ($result.RestartNeeded) {
+                    $restartNeeded = $true
+                }
+            }
+        }
+        Get-VcRuntime
+    }
+
     # Download
     Get-SecurityDaemon -RestartNeeded ([ref] $restartNeeded) -Update $Update
-    if (-not $restartNeeded) {
+    if ((-not $restartNeeded) -and $Update) {
         try {
             Start-Service $EdgeServiceName
         }
         catch {
-            throw "Failed to start Security Daemon, make sure to initialize config file by running Install-SecurityDaemon -Finalize."
+            throw 'Failed to start Security Daemon, make sure to initialize config file by running "Initialize-SecurityDaemon".'
         }
-        
     }
 
-    Write-LogInformation
+    if ($Update) {
+        Write-LogInformation
+    } 
+    else {
+        Write-Host 'To complete the installation, run "Initialize-SecurityDaemon".'
+    }
 
     if ($restartNeeded) {
         Write-HostRed "Reboot required."
@@ -623,13 +575,13 @@ function Setup-Environment([string] $ContainerOs) {
     }
 
     if (-not (Test-IotCore)) {
-        # `Invoke-WebRequest` may not use TLS 1.2 by default, depending on the specific release of Windows 10.
+        # "Invoke-WebRequest" may not use TLS 1.2 by default, depending on the specific release of Windows 10.
         # This will be a problem if the release is downloaded from github.com since it only provides TLS 1.2.
-        # So enable TLS 1.2 in `[System.Net.ServicePointManager]::SecurityProtocol`, which enables it (in the current PS session)
-        # for `Invoke-WebRequest` and everything else that uses `System.Net.HttpWebRequest`
+        # So enable TLS 1.2 in "[System.Net.ServicePointManager]::SecurityProtocol", which enables it (in the current PS session)
+        # for "Invoke-WebRequest" and everything else that uses "System.Net.HttpWebRequest"
         #
-        # This is not needed on IoT Core since its `Invoke-WebRequest` supports TLS 1.2 by default. It *can't* be done
-        # for IoT Core anyway because the `System.Net.ServicePointManager` type doesn't exist in its version of dotnet.
+        # This is not needed on IoT Core since its "Invoke-WebRequest" supports TLS 1.2 by default. It *can't* be done
+        # for IoT Core anyway because the "System.Net.ServicePointManager" type doesn't exist in its version of dotnet.
         [System.Net.ServicePointManager]::SecurityProtocol =
             [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
     }
@@ -640,9 +592,9 @@ function Setup-Environment([string] $ContainerOs) {
 function Write-LogInformation {
     Write-HostGreen
     Write-HostGreen 'This device is now provisioned with the IoT Edge runtime.'
-    Write-HostGreen 'Check the status of the IoT Edge service with `Get-Service iotedge`'
-    Write-HostGreen 'List running modules with `iotedge list`'
-    Write-HostGreen 'Display logs from the last five minutes in chronological order with `Get-SecurityDaemonLog`'
+    Write-HostGreen 'Check the status of the IoT Edge service with "Get-Service iotedge"'
+    Write-HostGreen 'List running modules with "iotedge list"'
+    Write-HostGreen 'Display logs from the last five minutes in chronological order with "Get-SecurityDaemonLog"'
 }
 
 function Test-IsDockerRunning {
@@ -713,13 +665,13 @@ function Get-WindowsBuild {
 }
 
 function Test-EdgeAlreadyInstalled {
-    return (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) -or 
+    return (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) -or
         (Test-Path -Path "$EdgeInstallDirectory\iotedged.exe") -or
         (Test-path -Path "$LegacyEdgeInstallDirectory\iotedged.exe")
 }
 
 function Test-MobyAlreadyInstalled {
-    return (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) -or 
+    return (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) -or
         (Test-Path -Path $MobyInstallDirectory)
 }
 
@@ -740,7 +692,7 @@ function Test-LegacyInstaller {
     }
 
     $newPackage = Get-Package $EdgePackage
-    return -not ([bool]$newPackage)
+    return -not ([bool] $newPackage)
 }
 
 function Test-AgentRegistryArgs {
@@ -805,9 +757,9 @@ function Uninstall-Package([string] $Name, [ref] $RestartNeeded) {
     if (Test-IotCore) {
         return
     }
-    Get-WindowsPackage -Online | 
-        Where-Object { $_.PackageName -like "$Name~*"} | 
-        Remove-WindowsPackage -Online -NoRestart | 
+    Get-WindowsPackage -Online |
+        Where-Object { $_.PackageName -like "$Name~*"} |
+        Remove-WindowsPackage -Online -NoRestart |
         ForEach-Object {
             if ($_.RestartNeeded) {
                 $RestartNeeded.Value = $true
@@ -821,7 +773,7 @@ function Get-Package([string] $Name) {
             Where-Object { $_ -like "*INFO: $Name,*"}
     }
     else {
-        return Get-WindowsPackage -Online | 
+        return Get-WindowsPackage -Online |
             Where-Object { $_.PackageName -like "$Name~*"}
     }
 }
@@ -879,8 +831,8 @@ function Get-SecurityDaemon([ref] $RestartNeeded, [bool] $Update) {
     }
 
     if (Test-IotCore) {
-        Write-Host ("Committing changes, this will cause a reboot on success. " + 
-            "If this is the first time installation, run Install-SecurityDaemon -Finalize after the reboot completes.")
+        Write-Host ("Committing changes, this will cause a reboot on success. " +
+            'If this is the first time installation, run "Initialize-SecurityDaemon" after the reboot completes.')
         $output = Invoke-Native "ApplyUpdate -commit" -DoNotThrow -Passthru
         # On success, this should reboot, we currently cannot block that
         if ($LASTEXITCODE -ne 0) {
@@ -911,7 +863,7 @@ Function Remove-SecurityDaemonDirectory([string] $Path)
     elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
         Write-Verbose "$cmdErr"
         Write-HostRed ("Could not delete directory '$Path'. Please reboot " +
-            'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
+            'your device and run "Uninstall-SecurityDaemon" again with "-Force".')
         $success = $false
     }
     else {
@@ -924,7 +876,7 @@ function Delete-Directory([string] $Path) {
         return
     }
 
-    # Removing `$MobyDataRootDirectory` is tricky. Windows base images contain files owned by TrustedInstaller, etc
+    # Removing "$MobyDataRootDirectory" is tricky. Windows base images contain files owned by TrustedInstaller, etc
     # Deleting them is a three-step process:
     #
     # 1. Take ownership of all files
@@ -933,8 +885,8 @@ function Delete-Directory([string] $Path) {
     # 2. Reset their ACLs so that they inherit from their container
     Invoke-Native "icacls ""$Path"" /reset /t /l /q /c"
 
-    # 3. Use cmd's `rd` rather than `Remove-Item` since the latter gets tripped up by reparse points, etc.
-    #    Prepend the path with `\\?\` since the layer directories have long names, so the paths usually exceed 260 characters,
+    # 3. Use cmd's "rd" rather than "Remove-Item" since the latter gets tripped up by reparse points, etc.
+    #    Prepend the path with "\\?\" since the layer directories have long names, so the paths usually exceed 260 characters,
     #    and IoT Core's filesystem doesn't seem to automatically use (or even have) short names
     Invoke-Native "rd /s /q ""\\?\$Path"""
 }
@@ -966,7 +918,7 @@ function Remove-SecurityDaemonResources([bool] $LegacyInstaller) {
             Write-Warning "Could not delete '$LegacyEdgeEventLogInstallDirectory'."
             Write-Warning "If you are reinstalling or updating IoT Edge, then this is safe to ignore."
             Write-Warning ('Otherwise, please close Event Viewer, or any PowerShell windows where you ran Get-WinEvent, ' +
-                'then run `Uninstall-SecurityDaemon` again with `-Force`.')
+                'then run "Uninstall-SecurityDaemon" again with "-Force".')
         }
         else {
             Write-Verbose "$cmdErr"
@@ -977,8 +929,8 @@ function Remove-SecurityDaemonResources([bool] $LegacyInstaller) {
         # Check whether we need to clean up after an errant installation into the OS partition on IoT Core
         if ($env:ProgramData -ne 'C:\ProgramData') {
             Write-Verbose "Multiple ProgramData directories found"
-            $existingMobyDataRoots = $LegacyMobyDataRootDirectory, $LegacyMobyStaticDataRootDirectory 
-            $existingMobyInstallations = $LegacyMobyInstallDirectory, $LegacyMobyStaticInstallDirectory 
+            $existingMobyDataRoots = $LegacyMobyDataRootDirectory, $LegacyMobyStaticDataRootDirectory
+            $existingMobyInstallations = $LegacyMobyInstallDirectory, $LegacyMobyStaticInstallDirectory
         }
         else {
             $existingMobyDataRoots = $LegacyMobyDataRootDirectory
@@ -1000,7 +952,7 @@ function Remove-SecurityDaemonResources([bool] $LegacyInstaller) {
             catch {
                 Write-Verbose "$_"
                 Write-HostRed ("Could not delete Moby data root directory '$root'. Please reboot " +
-                    'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
+                    'your device and run "Uninstall-SecurityDaemon" again with "-Force".')
                 $success = $false
             }
         }
@@ -1018,7 +970,7 @@ function Remove-SecurityDaemonResources([bool] $LegacyInstaller) {
         catch {
             Write-Verbose $_
             Write-HostRed ("Could not delete directory '$install'. Please reboot " +
-                'your device and run `Uninstall-SecurityDaemon` again with `-Force`.')
+                'your device and run "Uninstall-SecurityDaemon" again with "-Force".')
             $success = $false
         }
     }
@@ -1027,14 +979,14 @@ function Remove-SecurityDaemonResources([bool] $LegacyInstaller) {
 }
 
 function Get-MachineEnvironmentVariable([string] $Name) {
-    # Equivalent to `[System.Environment]::GetEnvironmentVariable($Name, [System.EnvironmentVariableTarget]::Machine)`
+    # Equivalent to "[System.Environment]::GetEnvironmentVariable($Name, [System.EnvironmentVariableTarget]::Machine)"
     # but IoT Core doesn't have this overload
 
     return (Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment').$Name
 }
 
 function Set-MachineEnvironmentVariable([string] $Name, [string] $Value) {
-    # Equivalent to `[System.Environment]::SetEnvironmentVariable($Name, $Value, [System.EnvironmentVariableTarget]::Machine)`
+    # Equivalent to "[System.Environment]::SetEnvironmentVariable($Name, $Value, [System.EnvironmentVariableTarget]::Machine)"
     # but IoT Core doesn't have this overload
 
     Set-ItemProperty `
@@ -1044,7 +996,7 @@ function Set-MachineEnvironmentVariable([string] $Name, [string] $Value) {
 }
 
 function Remove-MachineEnvironmentVariable([string] $Name) {
-    # Equivalent to `[System.Environment]::SetEnvironmentVariable($Name, $null, [System.EnvironmentVariableTarget]::Machine)`
+    # Equivalent to "[System.Environment]::SetEnvironmentVariable($Name, $null, [System.EnvironmentVariableTarget]::Machine)"
     # but IoT Core doesn't have this overload
 
     Remove-ItemProperty `
@@ -1060,7 +1012,7 @@ function Get-SystemPath {
 function Set-SystemPath {
     $systemPath = Get-SystemPath
 
-    $needsModification = ($systemPath -notcontains $EdgeInstallDirectory) -or 
+    $needsModification = ($systemPath -notcontains $EdgeInstallDirectory) -or
         (($ContainerOs -eq 'Windows') -and ($systemPath -notcontains $MobyInstallDirectory))
     if (-not $needsModification) {
         Write-HostGreen 'System PATH does not require an update.'
@@ -1084,18 +1036,18 @@ function Set-SystemPath {
 function Reset-SystemPath {
     $systemPath = Get-SystemPath
 
-    $needsModification = 
-        ($systemPath -contains $EdgeInstallDirectory) -or 
+    $needsModification =
+        ($systemPath -contains $EdgeInstallDirectory) -or
         ($systemPath -contains $MobyInstallDirectory) -or
         ($systemPath -contains $LegacyMobyStaticInstallDirectory) -or
-        ($systemPath -contains $LegacyEdgeInstallDirectory) -or 
+        ($systemPath -contains $LegacyEdgeInstallDirectory) -or
         ($systemPath -contains $LegacyMobyInstallDirectory)
     if (-not $needsModification) {
         return
     }
 
-    $systemPath = $systemPath | Where-Object { 
-        return ($_ -ne $EdgeInstallDirectory) -and 
+    $systemPath = $systemPath | Where-Object {
+        return ($_ -ne $EdgeInstallDirectory) -and
             ($_ -ne $MobyInstallDirectory) -and
             ($_ -ne $LegacyMobyStaticInstallDirectory) -and
             ($_ -ne $LegacyEdgeInstallDirectory) -and
@@ -1145,7 +1097,7 @@ function Get-VcRuntime {
     }
 }
 
-function Start-IoTEdgeService([bool] $RestartNeeded) {
+function Start-IoTEdgeService([bool] $RestartNeeded = $false) {
     if (-not $RestartNeeded) {
         Start-Service $EdgeServiceName
     }
@@ -1224,7 +1176,7 @@ function Update-ConfigYaml([ScriptBlock] $UpdateFunc)
 function Set-ProvisioningMode {
     Update-ConfigYaml({
         param($configurationYaml)
-    
+
         if ($Manual -or $DeviceConnectionString) {
             $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
             $replacementContent = @(
@@ -1287,7 +1239,7 @@ function Set-AgentImage {
 function Set-Hostname {
     Update-ConfigYaml({
         param($configurationYaml)
-    
+
         $hostname = [System.Net.Dns]::GetHostName()
         $selectionRegex = 'hostname:\s*".*"'
         $replacementContent = "hostname: '$hostname'"
@@ -1352,7 +1304,7 @@ function Set-CorrectProgramData {
 function Set-MobyEngineParameters {
     Update-ConfigYaml({
         param($configurationYaml)
-    
+
         $selectionRegex = 'moby_runtime:\s*uri:\s*".*"\s*#?\s*network:\s*".*"'
         $mobyUrl = switch ($ContainerOs) {
             'Linux' {
@@ -1390,7 +1342,7 @@ function Get-AgentRegistry {
     return 'index.docker.io'
 }
 
-function Stop-EdgeContainer([string] $Name = $null) {
+function Stop-EdgeContainer([string] $Name = "") {
     $dockerExe = Get-DockerCommandPrefix
     $allContainersString = Invoke-Native "$dockerExe ps --all --format ""{{.ID}}""" -Passthru
     [string[]] $allContainers = $allContainersString -split {$_ -eq "`r" -or $_ -eq "`n"} | where {$_.Length -gt 0}
@@ -1403,7 +1355,7 @@ function Stop-EdgeContainer([string] $Name = $null) {
             continue
         }
 
-        $label = $inspectResult.Config.Labels | Get-Member -MemberType NoteProperty -Name 'net.azure-devices.edge.owner' | %{ $inspectResult.Config.Labels | Select-Object -ExpandProperty $_.Name } 
+        $label = $inspectResult.Config.Labels | Get-Member -MemberType NoteProperty -Name 'net.azure-devices.edge.owner' | %{ $inspectResult.Config.Labels | Select-Object -ExpandProperty $_.Name }
 
         if (($label -eq 'Microsoft.Azure.Devices.Edge.Agent') -or
             $DeleteMobyDataRoot) {
@@ -1411,10 +1363,10 @@ function Stop-EdgeContainer([string] $Name = $null) {
                 Invoke-Native "$dockerExe rm --force ""$containerId""" -Backoff
                 Write-Verbose "Stopped and deleted container $($inspectResult.Name)"
 
-                # `.Config.Image` contains the user-provided name, but this can be a tag like `foo:latest`
+                # ".Config.Image" contains the user-provided name, but this can be a tag like "foo:latest"
                 # that doesn't necessarily point to the image that has that tag right now.
                 #
-                # So delete the image using its unique identifier, as given by `.Image`, like `sha256:1234abcd...`
+                # So delete the image using its unique identifier, as given by ".Image", like "sha256:1234abcd..."
                 Invoke-Native "$dockerExe image rm --force ""$($inspectResult.Image)""" -Backoff
                 Write-Verbose "Deleted image of container $($inspectResult.Name) ($($inspectResult.Config.Image))"
             }
@@ -1520,7 +1472,7 @@ function Remove-BuiltinWritePermissions([string] $Path) {
 
     Write-Verbose  "Remove BUILTIN\Users permission to $Path"
     Invoke-Native "icacls ""$Path"" /inheritance:d"
-    
+
     $acl = Get-Acl -Path $Path
     $write = [System.Security.AccessControl.FileSystemRights]::Write
     foreach ($access in $acl.Access) {
@@ -1534,7 +1486,7 @@ function Remove-BuiltinWritePermissions([string] $Path) {
                 $sid, 'Write', $access.InheritanceFlags, $access.PropagationFlags, 'Allow')
             $acl.RemoveAccessRule($rule) | Out-Null
         }
-    } 
+    }
     Set-Acl -Path $Path -AclObject $acl
 }
 
@@ -1549,10 +1501,11 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
 
         $OldProgressPreference = $ProgressPreference
         $ProgressPreference = "SilentlyContinue"
+        $outFile = (Join-Path -Path $env:TEMP -ChildPath $DownloadFileName)
         try {
             Invoke-WebRequest `
                 -Uri $Url `
-                -OutFile "$env:TEMP\$DownloadFileName" `
+                -OutFile $outFile `
                 -UseBasicParsing `
                 @InvokeWebRequestParameters
         }
@@ -1561,7 +1514,7 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
         }
 
         $Delete.Value = $true
-        $result = "$env:TEMP\$DownloadFileName"
+        $result = $outFile
     }
 
     Write-HostGreen "Using $Description from $result"
@@ -1569,6 +1522,6 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
 }
 
 Export-ModuleMember `
-    -Function Install-SecurityDaemon, Uninstall-SecurityDaemon, Get-SecurityDaemonLog, Update-SecurityDaemon, Deploy-SecurityDaemon `
+    -Function Deploy-SecurityDaemon, Initialize-SecurityDaemon, Get-SecurityDaemonLog, Update-SecurityDaemon, Uninstall-SecurityDaemon `
     -Alias Deploy-SecurityDaemon
 }
