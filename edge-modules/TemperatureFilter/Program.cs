@@ -62,6 +62,7 @@ namespace TemperatureFilter
             var userContext = Tuple.Create(moduleClient, moduleConfig);
             await moduleClient.SetInputMessageHandlerAsync("input1", PrintAndFilterMessages, userContext);
 
+            await cts.Token.WhenCanceled();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
             return 0;

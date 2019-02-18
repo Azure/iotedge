@@ -40,6 +40,7 @@ namespace DirectMethodReceiver
 
             await moduleClient.OpenAsync();
             await moduleClient.SetMethodHandlerAsync("HelloWorldMethodAsync", HelloWorldMethodAsync, null, cts.Token);
+            await cts.Token.WhenCanceled();
 
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
