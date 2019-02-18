@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     public class ModuleManagementHttpClientTest : IClassFixture<EdgeletFixture>
     {
         readonly Uri serverUrl;
-        EdgeletFixture edgeletFixture;
+        readonly EdgeletFixture edgeletFixture;
 
         public ModuleManagementHttpClientTest(EdgeletFixture edgeletFixture)
         {
@@ -31,32 +31,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             string serverApiVersion = "2018-06-28";
             string clientApiVersion = "2018-06-28";
-            var client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            var versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            var versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
 
             serverApiVersion = "2018-06-28";
             clientApiVersion = "2019-01-30";
-            client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-01-30";
             clientApiVersion = "2018-06-28";
-            client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-01-30";
             clientApiVersion = "2019-01-30";
-            client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-02-30";
             clientApiVersion = "2019-01-30";
-            client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-01-30";
