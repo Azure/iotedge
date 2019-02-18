@@ -11,7 +11,6 @@ namespace LoadGen
     using Microsoft.Extensions.Logging;
     using ModuleLib;
     using Newtonsoft.Json;
-    using Serilog;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
 
     class Program
