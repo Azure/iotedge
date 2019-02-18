@@ -99,6 +99,7 @@ namespace SimulatedTemperatureSensor
 
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
+            Logger.LogInformation("SimulatedTemperatureSensor Main() finished.");
             return 0;
         }
 

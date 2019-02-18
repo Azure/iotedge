@@ -44,6 +44,7 @@ namespace DirectMethodReceiver
 
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
+            Logger.LogInformation("DirectMethodReceiver Main() finished.");
             return 0;
         }
 
@@ -51,16 +52,6 @@ namespace DirectMethodReceiver
         {
             Logger.LogInformation("Received direct method call.");
             return Task.FromResult(new MethodResponse((int)HttpStatusCode.OK));
-        }
-
-        /// <summary>
-        /// Handles cleanup operations when app is cancelled or unloads
-        /// </summary>
-        static Task WhenCancelled(CancellationToken cancellationToken)
-        {
-            var tcs = new TaskCompletionSource<bool>();
-            cancellationToken.Register(s => ((TaskCompletionSource<bool>)s).SetResult(true), tcs);
-            return tcs.Task;
         }
     }
 }

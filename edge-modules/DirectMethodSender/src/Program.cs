@@ -48,6 +48,7 @@ namespace DirectMethodSender
 
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
+            Logger.LogInformation("DirectMethodSender Main() finished.");
             return 0;
         }
 

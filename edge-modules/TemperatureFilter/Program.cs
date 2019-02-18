@@ -65,6 +65,7 @@ namespace TemperatureFilter
             await cts.Token.WhenCanceled();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
+            Logger.LogInformation("TemperatureFilter Main() finished.");
             return 0;
         }
 
