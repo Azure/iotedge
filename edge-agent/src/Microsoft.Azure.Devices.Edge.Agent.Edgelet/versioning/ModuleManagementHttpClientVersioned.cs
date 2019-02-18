@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         public abstract Task PrepareUpdateAsync(ModuleSpec moduleSpec);
 
-        public virtual async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail)
+        public virtual async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, CancellationToken cancellationToken)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 Stream stream = await this.Execute(
                     async () =>
                     {
-                        HttpResponseMessage httpResponseMessage = await httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+                        HttpResponseMessage httpResponseMessage = await httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                         return await httpResponseMessage.Content.ReadAsStreamAsync();
                     },
                     $"Get logs for {module}");

@@ -17,14 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             this.moduleManager = moduleManager;
         }
 
-        public async Task<IEnumerable<ModuleRuntimeInfo>> GetModules(CancellationToken token)
-        {
-            IEnumerable<ModuleRuntimeInfo> modulesRuntimeInfo = await this.moduleManager.GetModules<T>(token);
-            return modulesRuntimeInfo;
-        }
+        public Task<IEnumerable<ModuleRuntimeInfo>> GetModules(CancellationToken token) =>
+            this.moduleManager.GetModules<T>(token);
 
         public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, CancellationToken cancellationToken) =>
-            this.moduleManager.GetModuleLogs(module, follow, tail);
+            this.moduleManager.GetModuleLogs(module, follow, tail, cancellationToken);
 
         public Task<SystemInfo> GetSystemInfo() => this.moduleManager.GetSystemInfoAsync();
     }
