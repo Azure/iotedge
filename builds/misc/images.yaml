@@ -73,7 +73,7 @@ jobs:
       # Functions Sample
       - template: templates/image-linux.yaml
         parameters:
-          name: FunctionsSample
+          name: Functions Sample
           imageName: azureiotedge-functions-filter
           project: EdgeHubTriggerCSharp
 
@@ -162,7 +162,7 @@ jobs:
       # Functions Sample
       - template: templates/image-windows.yaml
         parameters:
-          name: FunctionsSample
+          name: Functions Sample
           imageName: azureiotedge-functions-filter
           project: EdgeHubTriggerCSharp
           arm32v7: 'false'
