@@ -1267,6 +1267,54 @@ mod tests {
         );
     }
 
+    #[test]
+    fn top_fails_for_empty_id() {
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
+        let name = "";
+
+        let task = ModuleRuntime::top(&mri, name).then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(s)) if s == name => {
+                    Ok::<_, Error>(())
+                }
+                kind => panic!(
+                    "Expected `RuntimeOperation(TopModule)` error but got {:?}.",
+                    kind
+                ),
+            },
+        });
+
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn top_fails_for_white_space_id() {
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
+        let name = "    ";
+
+        let task = ModuleRuntime::top(&mri, name).then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(s)) if s == name => {
+                    Ok::<_, Error>(())
+                }
+                kind => panic!(
+                    "Expected `RuntimeOperation(TopModule)` error but got {:?}.",
+                    kind
+                ),
+            },
+        });
+
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
     struct TestConfig;
 
     #[derive(Clone, Copy, Debug, PartialEq)]
