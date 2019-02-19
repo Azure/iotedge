@@ -154,18 +154,18 @@ Function InitializeWorkingFolder
 
 Function PrepareTestFromArtifacts
 {
-    PrintHighlightedMessage "Copy files to $TestWorkingFolder"
-    Copy-Item $IoTEdgeQuickstartArtifactFolder -Destination $QuickstartWorkingFolder -Recurse -Force
+    PrintHighlightedMessage "Copy artifact files to $TestWorkingFolder"
 
+    # IoT Edgelet
     If (Test-Path $PackagesArtifactFolder -PathType Container)
     {
-        Write-Host "Copy packages artifact from $PackagesArtifactFolder"
+        Write-Host "Copy packages artifact from $PackagesArtifactFolder to $PackagesWorkingFolder"
         Copy-Item $PackagesArtifactFolder -Destination $PackagesWorkingFolder -Recurse -Force
         Copy-Item $InstallationScriptPath -Destination $PackagesWorkingFolder -Force
     }
     ElseIf (Test-Path $IoTEdgedArtifactFolder -PathType Container)
     {
-        Write-Host "Copy IoTEdged artifact from $IoTEdgedArtifactFolder"
+        Write-Host "Copy packages artifact from $IoTEdgedArtifactFolder to $PackagesWorkingFolder"
         Copy-Item $IoTEdgedArtifactFolder -Destination $IoTEdgedWorkingFolder -Recurse -Force
         Copy-Item $InstallationScriptPath -Destination $IoTEdgedWorkingFolder -Force
     }
@@ -174,11 +174,18 @@ Function PrepareTestFromArtifacts
         Throw "Package and iotedged artifact folder doesn't exist"
     }
 
+    # IoT Edge Quickstart
+    Write-Host "Copy IoT Edge Quickstart from $IoTEdgeQuickstartArtifactFolder to $QuickstartWorkingFolder"
+    Copy-Item $IoTEdgeQuickstartArtifactFolder -Destination $QuickstartWorkingFolder -Recurse -Force
+
+    # Leaf device
     If (($TestName -eq "QuickstartCerts") -Or ($TestName -eq "TransparentGateway"))
     {
+        Write-Host "Copy Leaf device from $LeafDeviceArtifactFolder to $LeafDeviceWorkingFolder"
         Copy-Item $LeafDeviceArtifactFolder -Destination $LeafDeviceWorkingFolder -Recurse -Force
     }
 
+    # Deployment file
     If (($TestName -eq "DirectMethodAmqp") -Or
         ($TestName -eq "DirectMethodMqtt") -Or
         ($TestName -eq "TempFilter") -Or
@@ -218,12 +225,12 @@ Function PrepareTestFromArtifacts
         }
 
         $ImageArchitectureLabel = $(GetImageArchitectureLabel)
-        (Get-Content $DeploymentWorkingFilePath).replace('<Architecture>',$ImageArchitectureLabel) | Set-Content $DeploymentWorkingFilePath
-        (Get-Content $DeploymentWorkingFilePath).replace('<OptimizeForPerformance>','true') | Set-Content $DeploymentWorkingFilePath
-        (Get-Content $DeploymentWorkingFilePath).replace('<Build.BuildNumber>',$ReleaseArtifactImageBuildNumber) | Set-Content $DeploymentWorkingFilePath
-        (Get-Content $DeploymentWorkingFilePath).replace('<CR.Username>',$ContainerRegistryUsername) | Set-Content $DeploymentWorkingFilePath
-        (Get-Content $DeploymentWorkingFilePath).replace('<CR.Password>',$ContainerRegistryPassword) | Set-Content $DeploymentWorkingFilePath
-        (Get-Content $DeploymentWorkingFilePath).replace('-linux-','-windows-') | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('<Architecture>', $ImageArchitectureLabel) | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('<OptimizeForPerformance>', 'true') | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('<Build.BuildNumber>', $ReleaseArtifactImageBuildNumber) | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('<CR.Username>', $ContainerRegistryUsername) | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('<CR.Password>', $ContainerRegistryPassword) | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('-linux-', '-windows-') | Set-Content $DeploymentWorkingFilePath
     }
 }
 
@@ -357,7 +364,7 @@ Function RunDirectMethodAmqpTest
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
-            -r `"edgebuilds.azurecr.io`" ``
+            -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
@@ -383,7 +390,7 @@ Function RunDirectMethodMqttTest
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
-            -r `"edgebuilds.azurecr.io`" ``
+            -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
@@ -410,7 +417,7 @@ Function RunQuickstartCertsTest
         -c `"$IoTHubConnectionString`" ``
         -e `"doesNotNeed`" ``
         -n `"$env:computername`" ``
-        -r `"edgebuilds.azurecr.io`" ``
+        -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
         -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
@@ -448,7 +455,7 @@ Function RunTempFilterTest
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
-            -r `"edgebuilds.azurecr.io`" ``
+            -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilter`" ``
             -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
@@ -480,7 +487,7 @@ Function RunTempFilterFunctionsTest
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
-            -r `"edgebuilds.azurecr.io`" ``
+            -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilterFunctions`" ``
             -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
@@ -506,7 +513,7 @@ Function RunTempSensorTest
         -d `"$deviceId`" ``
         -c `"$IoTHubConnectionString`" ``
         -e `"$EventHubConnectionString`" ``
-        -r `"edgebuilds.azurecr.io`" ``
+        -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
         -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
@@ -533,7 +540,7 @@ Function RunTransparentGatewayTest
         -c `"$IoTHubConnectionString`" ``
         -e `"doesNotNeed`" ``
         -n `"$env:computername`" ``
-        -r `"edgebuilds.azurecr.io`" ``
+        -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
         -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
@@ -647,6 +654,7 @@ Function PrintHighlightedMessage
 }
 
 $Architecture = GetArchitecture
+$ContainerRegistry = "edgebuilds.azurecr.io"
 $E2ETestFolder = (Resolve-Path $E2ETestFolder).Path
 $InstallationScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\setup\IotEdgeSecurityDaemon.ps1"
 $ModuleToModuleDeploymentFilename = "module_to_module_deployment.template.json"
