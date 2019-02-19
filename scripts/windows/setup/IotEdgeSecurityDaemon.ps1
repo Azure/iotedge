@@ -664,6 +664,8 @@ function Setup-Environment([string] $ContainerOs) {
                 $false
             }
             else {
+                Write-HostRed ('Linux containers on Windows can be used for development and testing, ' +
+                    'but not supported in production IoT Edge deployments. See aka.ms/iotedge-platsup for more details.')
                 $true
             }
         }
@@ -1641,12 +1643,18 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
     return $result
 }
 
+New-Alias -Name Install-SecurityDaemon -Value Install-IoTEdge -Force
+New-Alias -Name Uninstall-SecurityDaemon -Value Uninstall-IoTEdge -Force
+
 Export-ModuleMember `
     -Function `
-        Deploy-SecurityDaemon, 
-        Initialize-SecurityDaemon, 
-        Get-SecurityDaemonLog, 
-        Update-SecurityDaemon, 
-        Install-SecurityDaemon, 
+        Deploy-IoTEdge, 
+        Initialize-IoTEdge, 
+        Get-IoTEdgeLog, 
+        Update-IoTEdge, 
+        Install-IoTEdge, 
+        Uninstall-IoTEdge `
+    -Alias `
+        Install-SecurityDaemon,
         Uninstall-SecurityDaemon
 }
