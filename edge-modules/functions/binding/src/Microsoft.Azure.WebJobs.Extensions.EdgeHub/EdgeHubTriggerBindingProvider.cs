@@ -33,7 +33,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
                 return null;
             }
 
-            await this.TrySetEventDefaultHandlerAsync().ConfigureAwait(false);
+            await this.TrySetEventDefaultHandlerAsync();
 
             var messageProcessor = new EdgeHubMessageProcessor();
             var triggerBinding = new EdgeHubTriggerBinding(context.Parameter, messageProcessor);
@@ -64,8 +64,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
                 return;
             }
 
-            this.moduleClient = await ModuleClientCache.Instance.GetOrCreateAsync().ConfigureAwait(false);
-            await this.moduleClient.SetMessageHandlerAsync(this.FunctionsMessageHandler, null).ConfigureAwait(false);
+            this.moduleClient = await ModuleClientCache.Instance.GetOrCreateAsync();
+            await this.moduleClient.SetMessageHandlerAsync(this.FunctionsMessageHandler, null);
         }
 
         async Task<MessageResponse> FunctionsMessageHandler(Message message, object userContext)
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
             {
                 foreach (EdgeHubMessageProcessor edgeHubTriggerBinding in functionReceivers)
                 {
-                    await edgeHubTriggerBinding.TriggerMessage(Utils.GetMessageCopy(payload, message), userContext).ConfigureAwait(false);
+                    await edgeHubTriggerBinding.TriggerMessage(Utils.GetMessageCopy(payload, message), userContext);
                 }
             }
 
