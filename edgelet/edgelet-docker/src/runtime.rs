@@ -325,16 +325,6 @@ impl ModuleRuntime for DockerModuleRuntime {
     }
 
     fn get(&self, id: &str) -> Self::GetFuture {
-        debug!("Getting module {}...", id);
-
-        let id = id.to_string();
-
-        if let Err(err) = ensure_not_empty_with_context(&id, || {
-            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
-        }) {
-            return Box::new(future::err(Error::from(err)));
-        }
-
         fn parse_response<'de, D>(resp: &InlineResponse200) -> std::result::Result<String, D::Error>
         where
             D: serde::Deserializer<'de>,
@@ -344,6 +334,16 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .map(ToOwned::to_owned)
                 .ok_or_else(|| serde::de::Error::missing_field("Name"))?;
             Ok(name)
+        }
+
+        debug!("Getting module {}...", id);
+
+        let id = id.to_string();
+
+        if let Err(err) = ensure_not_empty_with_context(&id, || {
+            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
+        }) {
+            return Box::new(future::err(Error::from(err)));
         }
 
         let client_copy = self.client.clone();

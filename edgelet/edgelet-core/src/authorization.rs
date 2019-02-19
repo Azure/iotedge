@@ -245,7 +245,7 @@ mod tests {
             .unwrap();
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Default)]
     struct TestError {
         not_found: bool,
     }
@@ -273,9 +273,10 @@ mod tests {
 
     impl<'a> From<&'a TestError> for ModuleRuntimeErrorReason {
         fn from(err: &'a TestError) -> Self {
-            match err.not_found {
-                true => ModuleRuntimeErrorReason::NotFound,
-                false => ModuleRuntimeErrorReason::Other,
+            if err.not_found {
+                ModuleRuntimeErrorReason::NotFound
+            } else {
+                ModuleRuntimeErrorReason::Other
             }
         }
     }
@@ -405,7 +406,7 @@ mod tests {
                 .modules
                 .iter()
                 .find(|&m| m.name == id)
-                .ok_or(TestError::new_not_found());
+                .ok_or_else(TestError::new_not_found);
             match self.behavior {
                 TestModuleListBehavior::Default => module
                     .map(|m| {
@@ -467,7 +468,7 @@ mod tests {
                 .modules
                 .iter()
                 .find(|&m| m.name == id)
-                .ok_or(TestError::new_not_found());
+                .ok_or_else(TestError::new_not_found);
             match self.behavior {
                 TestModuleListBehavior::Default => module
                     .map(|m| ModuleTop::new(m.name.clone(), vec![Pid::Value(m.pid)]))
