@@ -81,7 +81,6 @@ fn tcp_get() {
 }
 
 #[test]
-#[cfg_attr(windows, ignore)] // TODO: remove when windows build servers are upgraded to RS5
 fn uds_get() {
     let dir = TempDir::new("uds").unwrap();
     let file_path = dir.path().join("sock");
@@ -212,7 +211,6 @@ fn tcp_post() {
 }
 
 #[test]
-#[cfg_attr(windows, ignore)] // TODO: remove when windows build servers are upgraded to RS5
 fn uds_post() {
     let dir = TempDir::new("uds").unwrap();
     let file_path = dir.path().join("sock");
