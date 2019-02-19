@@ -27,9 +27,9 @@ namespace LoadGen
             {
                 ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
-                    Logger,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                    ModuleUtil.DefaultTransientRetryStrategy);
+                    ModuleUtil.DefaultTransientRetryStrategy,
+                    Logger);
 
                 using (var timers = new Timers())
                 {

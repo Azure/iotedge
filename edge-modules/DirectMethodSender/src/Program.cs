@@ -37,9 +37,9 @@ namespace DirectMethodSender
 
             ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                 transportType,
-                Logger,
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                ModuleUtil.DefaultTransientRetryStrategy);
+                ModuleUtil.DefaultTransientRetryStrategy,
+                Logger);
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
 

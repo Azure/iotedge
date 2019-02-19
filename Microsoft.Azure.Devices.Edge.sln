@@ -167,7 +167,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodSender", "edge-
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodReceiver", "edge-modules\DirectMethodReceiver\DirectMethodReceiver.csproj", "{013D53C7-3AB5-41A4-9A8D-0F2C47238773}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModuleLib", "edge-modules\ModuleLib\ModuleLib.csproj", "{A58633ED-5302-41DF-A0F6-FDC48E5C6B04}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.ModuleUtil", "edge-modules\ModuleLib\Microsoft.Azure.Devices.Edge.ModuleUtil.csproj", "{A58633ED-5302-41DF-A0F6-FDC48E5C6B04}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

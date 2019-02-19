@@ -17,6 +17,8 @@
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\stylecop.ruleset</CodeAnalysisRuleSet>
+    <RootNamespace>Microsoft.Azure.Devices.Edge.ModuleUtil</RootNamespace>
+    <AssemblyName>Microsoft.Azure.Devices.Edge.ModuleUtil</AssemblyName>
   </PropertyGroup>  
   <Import Project="..\..\stylecop.props" />
 </Project>

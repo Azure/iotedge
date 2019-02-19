@@ -28,12 +28,15 @@ namespace ModuleLib
 
         public static async Task<ModuleClient> CreateModuleClientAsync(
             TransportType transportType,
-            ILogger logger,
             ITransientErrorDetectionStrategy transientErrorDetectionStrategy = null,
-            RetryStrategy retryStrategy = null)
+            RetryStrategy retryStrategy = null,
+            ILogger logger = null)
         {
             var retryPolicy = new RetryPolicy(transientErrorDetectionStrategy, retryStrategy);
-            retryPolicy.Retrying += (_, args) => { logger.LogError($"Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}"); };
+            retryPolicy.Retrying += (_, args) =>
+            {
+                WriteLog(logger, LogLevel.Error, $"Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}");
+            };
 
             ModuleClient client = await retryPolicy.ExecuteAsync(() => InitializeModuleClientAsync(transportType, logger));
             return client;
@@ -71,12 +74,24 @@ namespace ModuleLib
             }
 
             ITransportSettings[] settings = GetTransportSettings();
-            logger.LogInformation($"Trying to initialize module client using transport type [{transportType}].");
+            WriteLog(logger, LogLevel.Information, $"Trying to initialize module client using transport type [{transportType}].");
             ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
             await moduleClient.OpenAsync();
 
-            logger.LogInformation($"Successfully initialized module client of transport type [{transportType}].");
+            WriteLog(logger, LogLevel.Information, $"Successfully initialized module client of transport type [{transportType}].");
             return moduleClient;
+        }
+
+        static void WriteLog(ILogger logger, LogLevel logLevel, string message)
+        {
+            if (logger == null)
+            {
+                Console.WriteLine($"{logLevel}: {message}");
+            }
+            else
+            {
+                logger.Log(logLevel, message);
+            }
         }
     }
 }

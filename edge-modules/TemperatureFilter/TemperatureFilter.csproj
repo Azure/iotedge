@@ -35,7 +35,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
-    <ProjectReference Include="..\ModuleLib\ModuleLib.csproj" />
+    <ProjectReference Include="..\ModuleLib\Microsoft.Azure.Devices.Edge.ModuleUtil.csproj" />
   </ItemGroup>
 
   <ItemGroup>

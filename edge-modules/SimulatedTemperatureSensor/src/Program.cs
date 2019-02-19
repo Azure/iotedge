@@ -23,7 +23,6 @@ namespace SimulatedTemperatureSensor
         const string SendIntervalConfigKey = "SendInterval";
 
         static readonly Guid BatchId = Guid.NewGuid();
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("SimulatedTemperatureSensor");
         static readonly AtomicBoolean Reset = new AtomicBoolean(false);
         static readonly Random Rnd = new Random();
         static TimeSpan messageDelay;
@@ -39,7 +38,7 @@ namespace SimulatedTemperatureSensor
 
         static async Task<int> MainAsync()
         {
-            Logger.LogInformation("SimulatedTemperatureSensor Main() started.");
+            Console.WriteLine("SimulatedTemperatureSensor Main() started.");
 
             IConfiguration configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
@@ -59,7 +58,7 @@ namespace SimulatedTemperatureSensor
                 HumidityPercent = configuration.GetValue("ambientHumidity", 25)
             };
 
-            Logger.LogInformation(
+            Console.WriteLine(
                 $"Initializing simulated temperature sensor to send {(SendUnlimitedMessages(messageCount) ? "unlimited" : messageCount.ToString())} "
                 + $"messages, at an interval of {messageDelay.TotalSeconds} seconds.\n"
                 + $"To change this, set the environment variable {MessageCountConfigKey} to the number of messages that should be sent (set it to -1 to send unlimited messages).");
@@ -68,7 +67,6 @@ namespace SimulatedTemperatureSensor
 
             ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                 transportType,
-                Logger,
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                 ModuleUtil.DefaultTransientRetryStrategy);
             await moduleClient.OpenAsync();
@@ -87,7 +85,7 @@ namespace SimulatedTemperatureSensor
                 sendData = (bool)currentTwinProperties.Properties.Desired[SendDataConfigKey];
                 if (!sendData)
                 {
-                    Logger.LogInformation("Sending data disabled. Change twin configuration to start sending again.");
+                    Console.WriteLine("Sending data disabled. Change twin configuration to start sending again.");
                 }
             }
 
@@ -99,7 +97,7 @@ namespace SimulatedTemperatureSensor
 
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
-            Logger.LogInformation("SimulatedTemperatureSensor Main() finished.");
+            Console.WriteLine("SimulatedTemperatureSensor Main() finished.");
             return 0;
         }
 
@@ -114,7 +112,7 @@ namespace SimulatedTemperatureSensor
             byte[] messageBytes = message.GetBytes();
             string messageString = Encoding.UTF8.GetString(messageBytes);
 
-            Logger.LogInformation($"Received message Body: [{messageString}]");
+            Console.WriteLine($"Received message Body: [{messageString}]");
 
             try
             {
@@ -124,7 +122,7 @@ namespace SimulatedTemperatureSensor
                 {
                     if (messageBody.Command == ControlCommandEnum.Reset)
                     {
-                        Logger.LogInformation("Resetting temperature sensor..");
+                        Console.WriteLine("Resetting temperature sensor..");
                         Reset.Set(true);
                     }
                 }
@@ -135,13 +133,13 @@ namespace SimulatedTemperatureSensor
 
                 if (messageBody.Command == ControlCommandEnum.Reset)
                 {
-                    Logger.LogInformation("Resetting temperature sensor..");
+                    Console.WriteLine("Resetting temperature sensor..");
                     Reset.Set(true);
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Failed to deserialize control command with exception: [{ex}]");
+                Console.WriteLine($"Error: Failed to deserialize control command with exception: [{ex}]");
             }
 
             return Task.FromResult(MessageResponse.Completed);
@@ -149,7 +147,7 @@ namespace SimulatedTemperatureSensor
 
         static Task<MethodResponse> ResetMethod(MethodRequest methodRequest, object userContext)
         {
-            Logger.LogInformation("Received direct method call to reset temperature sensor...");
+            Console.WriteLine("Received direct method call to reset temperature sensor...");
             Reset.Set(true);
             var response = new MethodResponse((int)HttpStatusCode.OK);
             return Task.FromResult(response);
@@ -213,7 +211,7 @@ namespace SimulatedTemperatureSensor
                     var eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
                     eventMessage.Properties.Add("sequenceNumber", count.ToString());
                     eventMessage.Properties.Add("batchId", BatchId.ToString());
-                    Logger.LogInformation($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
+                    Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
 
                     await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
                     count++;
@@ -224,7 +222,7 @@ namespace SimulatedTemperatureSensor
 
             if (messageCount < count)
             {
-                Logger.LogInformation($"Done sending {messageCount} messages");
+                Console.WriteLine($"Done sending {messageCount} messages");
             }
         }
 
@@ -241,7 +239,7 @@ namespace SimulatedTemperatureSensor
                 bool desiredSendDataValue = (bool)desiredPropertiesPatch[SendDataConfigKey];
                 if (desiredSendDataValue != sendData && !desiredSendDataValue)
                 {
-                    Logger.LogInformation("Sending data disabled. Change twin configuration to start sending again.");
+                    Console.WriteLine("Sending data disabled. Change twin configuration to start sending again.");
                 }
 
                 sendData = desiredSendDataValue;
