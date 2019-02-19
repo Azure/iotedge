@@ -4,7 +4,6 @@ namespace DirectMethodReceiver
     using System;
     using System.IO;
     using System.Net;
-    using System.Runtime.Loader;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
