@@ -1,4 +1,4 @@
-New-Module -Name IotEdgeSecurityDaemon -ScriptBlock {
+New-Module -Name IoTEdge -ScriptBlock {
 
 [Console]::OutputEncoding = New-Object -typename System.Text.ASCIIEncoding
 
@@ -62,19 +62,19 @@ None
 
 .EXAMPLE
 
-PS> Initialize-SecurityDaemon -Manual -DeviceConnectionString $deviceConnectionString -ContainerOs Windows
+PS> Initialize-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Initialize-SecurityDaemon -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
+PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Initialize-SecurityDaemon -ExistingConfig -ContainerOs Windows
+PS> Initialize-IoTEdge -ExistingConfig -ContainerOs Windows
 #>
-function Initialize-SecurityDaemon {
+function Initialize-IoTEdge {
     [CmdletBinding(DefaultParameterSetName = 'Manual')]
     param (
         # Specified the daemon will be configured manually, using a device connection string.
@@ -129,13 +129,13 @@ function Initialize-SecurityDaemon {
 
     if (-not (Test-EdgeAlreadyInstalled)) {
         Write-HostRed
-        Write-HostRed 'IoT Edge is not yet installed. To install, run "Deploy-SecurityDaemon" first.'
+        Write-HostRed 'IoT Edge is not yet installed. To install, run "Deploy-IoTEdge" first.'
         return
     }
 
     if (-not (Test-MobyAlreadyInstalled)) {
         Write-HostRed
-        Write-HostRed 'IoT Edge Moby Engine is not yet installed. To install, run "Deploy-SecurityDaemon" first.'
+        Write-HostRed 'IoT Edge Moby Engine is not yet installed. To install, run "Deploy-IoTEdge" first.'
         return
     }
 
@@ -158,8 +158,8 @@ function Initialize-SecurityDaemon {
         Write-HostRed
         Write-HostRed "$configPath already exists."
         Write-HostRed (
-            'Delete it using "Uninstall-SecurityDaemon -Force -DeleteConfig" and then ' +
-            're-run "Deploy-SecurityDaemon" and "Initialize-SecurityDaemon"')
+            'Delete it using "Uninstall-IoTEdge -Force -DeleteConfig" and then ' +
+            're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
         return
     }
 
@@ -215,14 +215,14 @@ None
 
 .EXAMPLE
 
-PS> Update-SecurityDaemon
+PS> Update-IoTEdge
 
 
 .EXAMPLE
 
-PS> Update-SecurityDaemon -OfflineInstallationPath c:\data
+PS> Update-IoTEdge -OfflineInstallationPath c:\data
 #>
-function Update-SecurityDaemon {
+function Update-IoTEdge {
     [CmdletBinding()]
     param (
         # The base OS of all the containers that will be run on this device via the security daemon.
@@ -246,7 +246,7 @@ function Update-SecurityDaemon {
         #
         # Example:
         #
-        #     Update-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
+        #     Update-IoTEdge -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
         [HashTable] $InvokeWebRequestParameters,
 
         # Restart if needed without prompting.
@@ -280,14 +280,14 @@ None
 
 .EXAMPLE
 
-PS> Deploy-SecurityDaemon
+PS> Deploy-IoTEdge
 
 
 .EXAMPLE
 
-PS> Deploy-SecurityDaemon -OfflineInstallationPath c:\data
+PS> Deploy-IoTEdge -OfflineInstallationPath c:\data
 #>
-function Deploy-SecurityDaemon {
+function Deploy-IoTEdge {
     [CmdletBinding()]
     param (
         # The base OS of all the containers that will be run on this device via the security daemon.
@@ -311,7 +311,7 @@ function Deploy-SecurityDaemon {
         #
         # Example:
         #
-        #     Update-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
+        #     Update-IoTEdge -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
         [HashTable] $InvokeWebRequestParameters,
 
         # Restart if needed without prompting.
@@ -329,7 +329,7 @@ function Deploy-SecurityDaemon {
 <#
 .SYNOPSIS
 
-Installs the IoT Edge Security Daemon and its dependencies. Wrapper for Deploy-SecurityDaemon and Initialize-SecurityDaemon.
+Installs the IoT Edge Security Daemon and its dependencies. Wrapper for Deploy-IoTEdge and Initialize-IoTEdge.
 
 
 .INPUTS
@@ -344,19 +344,19 @@ None
 
 .EXAMPLE
 
-PS> Install-SecurityDaemon -Manual -DeviceConnectionString $deviceConnectionString -ContainerOs Windows
+PS> Install-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Install-SecurityDaemon -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
+PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Install-SecurityDaemon -ExistingConfig -ContainerOs Windows
+PS> Install-IoTEdge -ExistingConfig -ContainerOs Windows
 #>
-function Install-SecurityDaemon {
+function Install-IoTEdge {
     [CmdletBinding(DefaultParameterSetName = 'Manual')]
     param (
         # Specified the daemon will be configured manually, using a device connection string.
@@ -419,31 +419,35 @@ function Install-SecurityDaemon {
         #
         # Example:
         #
-        #     Update-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
+        #     Update-IoTEdge -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
         [HashTable] $InvokeWebRequestParameters,
 
         # Restart if needed without prompting.
         [Switch] $RestartIfNeeded
     )
 
-    Deploy-SecurityDaemon `
+    Deploy-IoTEdge `
         -ContainerOs $ContainerOs `
         -Proxy $Proxy `
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded
 
-    Initialize-SecurityDaemon `
-        -Manual:$Manual `
-        -Dps:$Dps `
-        -ExistingConfig:$ExistingConfig `
-        -DeviceConnectionString $DeviceConnectionString `
-        -ScopeId $ScopeId `
-        -RegistrationId $RegistrationId `
-        -ContainerOs $ContainerOs `
-        -AgentImage $AgentImage `
-        -Username $Username `
-        -Password $Password
+    $Params = @{
+        '-ContainerOs' = $ContainerOs
+    }
+
+    if ($Manual) { $Params["-Manual"] = $true }
+    if ($Dps) { $Params["-Dps"] = $true }
+    if ($ExistingConfig) { $Params["-ExistingConfig"] = $true }
+    if ($DeviceConnectionString) { $Params["-DeviceConnectionString"] = $DeviceConnectionString }
+    if ($ScopeId) { $Params["-ScopeId"] = $ScopeId }
+    if ($RegistrationId) { $Params["-RegistrationId"] = $RegistrationId }
+    if ($AgentImage) { $Params["-AgentImage"] = $AgentImage }
+    if ($Username) { $Params["-Username"] = $Username }
+    if ($Password) { $Params["-Password"] = $Password }
+
+    Initialize-IoTEdge @Params
 }
 
 <#
@@ -455,7 +459,7 @@ Uninstalls the IoT Edge Security Daemon and its dependencies.
 .DESCRIPTION
 
 By default this cmdlet does not delete the config.yaml and the Moby Engine data root (for -ContainerOs 'Windows' installs),
-so that you can re-install the daemon using "Deploy-SecurityDaemon" and "Initialize-SecurityDaemon -ExistingConfig".
+so that you can re-install the daemon using "Deploy-IoTEdge" and "Initialize-IoTEdge -ExistingConfig".
 To delete these as well, specify the -DeleteConfig and -DeleteMobyDataRoot flags.
 
 
@@ -471,19 +475,19 @@ None
 
 .EXAMPLE
 
-PS> Uninstall-SecurityDaemon
+PS> Uninstall-IoTEdge
 
 
 .EXAMPLE
 
-PS> Uninstall-SecurityDaemon -DeleteConfig -DeleteMobyDataRoot
+PS> Uninstall-IoTEdge -DeleteConfig -DeleteMobyDataRoot
 
 
 .EXAMPLE
 
-PS> Uninstall-SecurityDaemon -Force
+PS> Uninstall-IoTEdge -Force
 #>
-function Uninstall-SecurityDaemon {
+function Uninstall-IoTEdge {
     [CmdletBinding()]
     param (
         # If set, the config.yaml will also be deleted.
@@ -505,8 +509,8 @@ function Uninstall-SecurityDaemon {
     $legacyInstaller = Test-LegacyInstaller
 
     if ((Test-IoTCore) -and (-not $legacyInstaller)) {
-        Write-HostRed ('Uninstall-SecurityDaemon is only supported on IoTCore to uninstall legacy installation. ' +
-            'For new installations, please use "Update-SecurityDaemon" directly to update.')
+        Write-HostRed ('Uninstall-IoTEdge is only supported on IoTCore to uninstall legacy installation. ' +
+            'For new installations, please use "Update-IoTEdge" directly to update.')
         return
     }
 
@@ -522,7 +526,7 @@ function Uninstall-SecurityDaemon {
 
     $restartNeeded = $false
     Uninstall-Services -RestartNeeded ([ref] $restartNeeded) -LegacyInstaller $legacyInstaller
-    $success = Remove-SecurityDaemonResources -LegacyInstaller $legacyInstaller
+    $success = Remove-IoTEdgeResources -LegacyInstaller $legacyInstaller
     Reset-SystemPath
 
     Remove-MachineEnvironmentVariable 'IOTEDGE_HOST'
@@ -536,12 +540,12 @@ function Uninstall-SecurityDaemon {
 
     if ($restartNeeded) {
         Write-HostRed 'Reboot required.'
-        Write-Host 'You might need to rerun "Uninstall-SecurityDaemon" after the reboot to finish the cleanup.'
+        Write-Host 'You might need to rerun "Uninstall-IoTEdge" after the reboot to finish the cleanup.'
         Restart-Computer -Confirm:(-not $RestartIfNeeded)
     }
 }
 
-function Get-SecurityDaemonLog {
+function Get-IoTEdgeLog {
     [CmdletBinding()]
     param (
         # What time to start the log from.
@@ -577,33 +581,33 @@ function Install-Packages(
     if ($Update) {
         if (-not (Test-EdgeAlreadyInstalled)) {
             Write-HostRed
-            Write-HostRed 'IoT Edge is not yet installed. To install, run "Deploy-SecurityDaemon" first.'
+            Write-HostRed 'IoT Edge is not yet installed. To install, run "Deploy-IoTEdge" first.'
             return
         }
 
         if (-not (Test-MobyAlreadyInstalled)) {
             Write-HostRed
-            Write-HostRed 'IoT Edge Moby Engine is not yet installed. To install, run "Deploy-SecurityDaemon" first.'
+            Write-HostRed 'IoT Edge Moby Engine is not yet installed. To install, run "Deploy-IoTEdge" first.'
             return
         }
 
         if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
             Write-HostRed
-            Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run "Uninstall-SecurityDaemon -DeleteMobyDataRoot" first.'
+            Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run "Uninstall-IoTEdge -DeleteMobyDataRoot" first.'
             return
         }
     }
     else {
         if (Test-EdgeAlreadyInstalled) {
             Write-HostRed
-            Write-HostRed ('IoT Edge is already installed. To update, run "Update-SecurityDaemon". ' +
-                'Alternatively, if you want to finalize the installation on IoTCore, run "Initialize-SecurityDaemon".')
+            Write-HostRed ('IoT Edge is already installed. To update, run "Update-IoTEdge". ' +
+                'Alternatively, if you want to finalize the installation on IoTCore, run "Initialize-IoTEdge".')
             return
         }
 
         if (Test-MobyAlreadyInstalled) {
             Write-HostRed
-            Write-HostRed 'IoT Edge Moby Engine is already installed. To update, run "Update-SecurityDaemon".'
+            Write-HostRed 'IoT Edge Moby Engine is already installed. To update, run "Update-IoTEdge".'
             return
         }
     }
@@ -628,13 +632,13 @@ function Install-Packages(
     }
 
     # Download
-    Get-SecurityDaemon -RestartNeeded ([ref] $restartNeeded) -Update $Update
+    Get-IoTEdge -RestartNeeded ([ref] $restartNeeded) -Update $Update
     if ((-not $restartNeeded) -and $Update) {
         try {
             Start-Service $EdgeServiceName
         }
         catch {
-            throw 'Failed to start Security Daemon, make sure to initialize config file by running "Initialize-SecurityDaemon".'
+            throw 'Failed to start Security Daemon, make sure to initialize config file by running "Initialize-IoTEdge".'
         }
     }
 
@@ -642,7 +646,7 @@ function Install-Packages(
         Write-LogInformation
     }
     else {
-        Write-Host 'To complete the installation, run "Initialize-SecurityDaemon".'
+        Write-Host 'To complete the installation, run "Initialize-IoTEdge".'
     }
 
     if ($restartNeeded) {
@@ -716,7 +720,7 @@ function Write-LogInformation {
     Write-HostGreen 'This device is now provisioned with the IoT Edge runtime.'
     Write-HostGreen 'Check the status of the IoT Edge service with "Get-Service iotedge"'
     Write-HostGreen 'List running modules with "iotedge list"'
-    Write-HostGreen 'Display logs from the last five minutes in chronological order with "Get-SecurityDaemonLog"'
+    Write-HostGreen 'Display logs from the last five minutes in chronological order with "Get-IoTEdgeLog"'
 }
 
 function Test-IsDockerRunning {
@@ -909,7 +913,7 @@ function Try-StopService([string] $Name) {
     }
 }
 
-function Get-SecurityDaemon([ref] $RestartNeeded, [bool] $Update) {
+function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
     try {
         # If we create these archives ourselves, then delete them when we're done
         $deleteEdgeArchive = $false
@@ -954,7 +958,7 @@ function Get-SecurityDaemon([ref] $RestartNeeded, [bool] $Update) {
 
     if (Test-IotCore) {
         Write-Host ('Committing changes, this will cause a reboot on success. ' +
-            'If this is the first time installation, run "Initialize-SecurityDaemon" after the reboot completes.')
+            'If this is the first time installation, run "Initialize-IoTEdge" after the reboot completes.')
         $output = Invoke-Native 'ApplyUpdate -commit' -DoNotThrow -Passthru
         # On success, this should reboot, we currently cannot block that
         if ($LASTEXITCODE -ne 0) {
@@ -985,7 +989,7 @@ Function Remove-SecurityDaemonDirectory([string] $Path)
     elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
         Write-Verbose "$cmdErr"
         Write-HostRed ("Could not delete directory '$Path'. Please reboot " +
-            'your device and run "Uninstall-SecurityDaemon" again with "-Force".')
+            'your device and run "Uninstall-IoTEdge" again with "-Force".')
         $success = $false
     }
     else {
@@ -1013,7 +1017,7 @@ function Delete-Directory([string] $Path) {
     Invoke-Native "rd /s /q ""\\?\$Path"""
 }
 
-function Remove-SecurityDaemonResources([bool] $LegacyInstaller) {
+function Remove-IoTEdgeResources([bool] $LegacyInstaller) {
     $success = $true
 
     if ($LegacyEdgeInstallDirectory -ne $EdgeDataDirectory) {
@@ -1040,7 +1044,7 @@ function Remove-SecurityDaemonResources([bool] $LegacyInstaller) {
             Write-Warning "Could not delete '$LegacyEdgeEventLogInstallDirectory'."
             Write-Warning 'If you are reinstalling or updating IoT Edge, then this is safe to ignore.'
             Write-Warning ('Otherwise, please close Event Viewer, or any PowerShell windows where you ran Get-WinEvent, ' +
-                'then run "Uninstall-SecurityDaemon" again with "-Force".')
+                'then run "Uninstall-IoTEdge" again with "-Force".')
         }
         else {
             Write-Verbose "$cmdErr"
@@ -1074,7 +1078,7 @@ function Remove-SecurityDaemonResources([bool] $LegacyInstaller) {
             catch {
                 Write-Verbose "$_"
                 Write-HostRed ("Could not delete Moby data root directory '$root'. Please reboot " +
-                    'your device and run "Uninstall-SecurityDaemon" again with "-Force".')
+                    'your device and run "Uninstall-IoTEdge" again with "-Force".')
                 $success = $false
             }
         }
@@ -1092,7 +1096,7 @@ function Remove-SecurityDaemonResources([bool] $LegacyInstaller) {
         catch {
             Write-Verbose $_
             Write-HostRed ("Could not delete directory '$install'. Please reboot " +
-                'your device and run "Uninstall-SecurityDaemon" again with "-Force".')
+                'your device and run "Uninstall-IoTEdge" again with "-Force".')
             $success = $false
         }
     }
