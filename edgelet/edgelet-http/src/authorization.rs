@@ -13,8 +13,7 @@ use error::{Error, ErrorKind};
 use route::{Handler, Parameters};
 use IntoResponse;
 
-pub struct Authorization<H, M>
-{
+pub struct Authorization<H, M> {
     auth: CoreAuth<M>,
     inner: Arc<H>,
 }
@@ -89,7 +88,7 @@ mod tests {
     use hyper::{Body, Request, Response, StatusCode};
 
     use edgelet_core::{
-        LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleRuntimeErrorReason,
+        LogOptions, Module, ModuleRegistry, ModuleRuntimeErrorReason, ModuleRuntimeState,
         ModuleSpec, ModuleTop, SystemInfo,
     };
 
@@ -178,12 +177,18 @@ mod tests {
     }
 
     impl TestError {
-        pub fn new() -> Self { TestError { not_found: false } }
-        pub fn new_not_found() -> Self { TestError { not_found: true } }
+        pub fn new() -> Self {
+            TestError { not_found: false }
+        }
+        pub fn new_not_found() -> Self {
+            TestError { not_found: true }
+        }
     }
 
     impl Error for TestError {
-        fn description(&self) -> &str { "A test error occurred." }
+        fn description(&self) -> &str {
+            "A test error occurred."
+        }
     }
 
     impl<'a> From<&'a TestError> for ModuleRuntimeErrorReason {
@@ -241,10 +246,7 @@ mod tests {
     impl TestModule {
         pub fn new(name: &str, pid: i32) -> Self {
             let name = name.to_string();
-            TestModule {
-                name,
-                pid,
-            }
+            TestModule { name, pid }
         }
     }
 
@@ -287,11 +289,11 @@ mod tests {
             }
         }
 
-        pub fn new_with_behavior(modules: Vec<TestModule>, behavior: TestModuleListBehavior) -> Self {
-            TestModuleList {
-                modules,
-                behavior,
-            }
+        pub fn new_with_behavior(
+            modules: Vec<TestModule>,
+            behavior: TestModuleListBehavior,
+        ) -> Self {
+            TestModuleList { modules, behavior }
         }
     }
 
@@ -384,15 +386,15 @@ mod tests {
         }
 
         fn top(&self, id: &str) -> Self::TopFuture {
-            let module = self.modules
+            let module = self
+                .modules
                 .iter()
                 .find(|&m| m.name == id)
                 .ok_or(TestError::new_not_found());
             match self.behavior {
-                TestModuleListBehavior::Default =>
-                    module
-                        .map(|m| ModuleTop::new(m.name.clone(), vec![Pid::Value(m.pid)]))
-                        .into_future(),
+                TestModuleListBehavior::Default => module
+                    .map(|m| ModuleTop::new(m.name.clone(), vec![Pid::Value(m.pid)]))
+                    .into_future(),
                 TestModuleListBehavior::FailCall => notimpl_error!(),
             }
         }

@@ -151,7 +151,8 @@ impl ModuleRuntime for ModuleClient {
     type Logs = Logs;
 
     type CreateFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type GetFuture = Box<Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
+    type GetFuture =
+        Box<Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
     type InitFuture = FutureResult<(), Self::Error>;
     type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
     type ListWithDetailsStream =

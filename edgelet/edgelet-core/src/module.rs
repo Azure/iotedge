@@ -353,15 +353,12 @@ pub struct ModuleTop {
     /// Name of the module. Example: tempSensor
     name: String,
     /// A vector of process IDs (PIDs) representing a snapshot of all processes running inside the module.
-    process_ids: Vec<Pid>
+    process_ids: Vec<Pid>,
 }
 
 impl ModuleTop {
     pub fn new(name: String, process_ids: Vec<Pid>) -> Self {
-        ModuleTop {
-            name,
-            process_ids
-        }
+        ModuleTop { name, process_ids }
     }
 
     pub fn name(&self) -> &str {

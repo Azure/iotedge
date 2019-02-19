@@ -15,8 +15,7 @@ pub enum Policy {
     Module(&'static str),
 }
 
-pub struct Authorization<M>
-{
+pub struct Authorization<M> {
     runtime: M,
     policy: Policy,
 }
@@ -54,28 +53,27 @@ where
     ) -> impl Future<Item = bool, Error = Error> {
         name.map_or_else(
             || Either::A(future::ok(false)),
-            |name| Either::B(
-                self.runtime
-                    .top(&name)
-                    .then(move |result| {
-                        match result {
-                            Ok(mt) => {
-                                let authorize = mt.process_ids().contains(&pid);
-                                if !authorize {
-                                    info!("Request not authorized - caller pid {} not found in module {}", pid, name);
-                                }
-                                Ok(authorize)
-                            },
-                            Err(err) => match (&err).into() {
-                                ModuleRuntimeErrorReason::NotFound => {
-                                    info!("Request not authorized - module {} not found", name);
-                                    Ok(false)
-                                },
-                                _ => Err(Error::from(err.context(ErrorKind::ModuleRuntime))),
-                            },
+            |name| {
+                Either::B(self.runtime.top(&name).then(move |result| match result {
+                    Ok(mt) => {
+                        let authorize = mt.process_ids().contains(&pid);
+                        if !authorize {
+                            info!(
+                                "Request not authorized - caller pid {} not found in module {}",
+                                pid, name
+                            );
                         }
-                    })
-            )
+                        Ok(authorize)
+                    }
+                    Err(err) => match (&err).into() {
+                        ModuleRuntimeErrorReason::NotFound => {
+                            info!("Request not authorized - module {} not found", name);
+                            Ok(false)
+                        }
+                        _ => Err(Error::from(err.context(ErrorKind::ModuleRuntime))),
+                    },
+                }))
+            },
         )
     }
 
@@ -115,8 +113,8 @@ mod tests {
     use futures::stream::Empty;
     use futures::{future, stream, IntoFuture, Stream};
     use module::{
-        LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec,
-        ModuleTop, SystemInfo as CoreSystemInfo,
+        LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec, ModuleTop,
+        SystemInfo as CoreSystemInfo,
     };
 
     #[test]
@@ -228,7 +226,7 @@ mod tests {
     fn should_reject_module_when_runtime_returns_no_pid() {
         let runtime = TestModuleList::new_with_behavior(
             vec![TestModule::new("abc", 123)],
-            TestModuleListBehavior::NoPid
+            TestModuleListBehavior::NoPid,
         );
         let auth = Authorization::new(runtime, Policy::Module("abc"));
         assert_eq!(false, auth.authorize(None, Pid::Value(123)).wait().unwrap());
@@ -259,12 +257,18 @@ mod tests {
     }
 
     impl TestError {
-        pub fn new() -> Self { TestError { not_found: false } }
-        pub fn new_not_found() -> Self { TestError { not_found: true } }
+        pub fn new() -> Self {
+            TestError { not_found: false }
+        }
+        pub fn new_not_found() -> Self {
+            TestError { not_found: true }
+        }
     }
 
     impl Error for TestError {
-        fn description(&self) -> &str { "A test error occurred." }
+        fn description(&self) -> &str {
+            "A test error occurred."
+        }
     }
 
     impl<'a> From<&'a TestError> for ModuleRuntimeErrorReason {
@@ -299,10 +303,7 @@ mod tests {
     impl TestModule {
         pub fn new(name: &str, pid: i32) -> Self {
             let name = name.to_string();
-            TestModule {
-                name,
-                pid,
-            }
+            TestModule { name, pid }
         }
     }
 
@@ -400,23 +401,24 @@ mod tests {
         }
 
         fn get(&self, id: &str) -> Self::GetFuture {
-            let module = self.modules
+            let module = self
+                .modules
                 .iter()
                 .find(|&m| m.name == id)
                 .ok_or(TestError::new_not_found());
             match self.behavior {
-                TestModuleListBehavior::Default =>
-                    module.map(|m| (
-                        m.clone(),
-                        ModuleRuntimeState::default()
-                            .with_pid(Pid::Value(m.pid)),
-                    ))
+                TestModuleListBehavior::Default => module
+                    .map(|m| {
+                        (
+                            m.clone(),
+                            ModuleRuntimeState::default().with_pid(Pid::Value(m.pid)),
+                        )
+                    })
                     .into_future(),
-                TestModuleListBehavior::NoPid =>
-                    module.map(|m| (m.clone(), ModuleRuntimeState::default()))
+                TestModuleListBehavior::NoPid => module
+                    .map(|m| (m.clone(), ModuleRuntimeState::default()))
                     .into_future(),
-                TestModuleListBehavior::FailCall =>
-                    notimpl_error!(),
+                TestModuleListBehavior::FailCall => notimpl_error!(),
             }
         }
 
@@ -461,15 +463,15 @@ mod tests {
         }
 
         fn top(&self, id: &str) -> Self::TopFuture {
-            let module = self.modules
+            let module = self
+                .modules
                 .iter()
                 .find(|&m| m.name == id)
                 .ok_or(TestError::new_not_found());
             match self.behavior {
-                TestModuleListBehavior::Default =>
-                    module
-                        .map(|m| ModuleTop::new(m.name.clone(), vec![Pid::Value(m.pid)]))
-                        .into_future(),
+                TestModuleListBehavior::Default => module
+                    .map(|m| ModuleTop::new(m.name.clone(), vec![Pid::Value(m.pid)]))
+                    .into_future(),
                 TestModuleListBehavior::NoPid => unimplemented!(),
                 TestModuleListBehavior::FailCall => notimpl_error!(),
             }

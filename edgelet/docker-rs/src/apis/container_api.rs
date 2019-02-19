@@ -1261,7 +1261,8 @@ where
         &self,
         id: &str,
         ps_args: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse2001, Error = Error<serde_json::Value>> + Send> {
+    ) -> Box<Future<Item = ::models::InlineResponse2001, Error = Error<serde_json::Value>> + Send>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
