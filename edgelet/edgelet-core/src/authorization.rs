@@ -107,10 +107,10 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::error::Error;
     use std::time::Duration;
 
     use super::*;
-    use std::error::Error;
     use futures::future::FutureResult;
     use futures::stream::Empty;
     use futures::{future, stream, IntoFuture, Stream};
@@ -276,6 +276,18 @@ mod tests {
         }
     }
 
+    macro_rules! notimpl_error {
+        () => {
+            future::err(TestError::new())
+        };
+    }
+
+    macro_rules! notimpl_error_stream {
+        () => {
+            stream::once(Err(TestError::new()))
+        };
+    }
+
     struct TestConfig {}
 
     #[derive(Clone)]
@@ -292,18 +304,6 @@ mod tests {
                 pid,
             }
         }
-    }
-
-    macro_rules! notimpl_error {
-        () => {
-            future::err(TestError::new())
-        };
-    }
-
-    macro_rules! notimpl_error_stream {
-        () => {
-            stream::once(Err(TestError::new()))
-        };
     }
 
     impl Module for TestModule {
