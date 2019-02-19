@@ -329,6 +329,126 @@ function Deploy-SecurityDaemon {
 <#
 .SYNOPSIS
 
+Installs the IoT Edge Security Daemon and its dependencies. Wrapper for Deploy-SecurityDaemon and Initialize-SecurityDaemon.
+
+
+.INPUTS
+
+None
+
+
+.OUTPUTS
+
+None
+
+
+.EXAMPLE
+
+PS> Install-SecurityDaemon -Manual -DeviceConnectionString $deviceConnectionString -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Install-SecurityDaemon -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Install-SecurityDaemon -ExistingConfig -ContainerOs Windows
+#>
+function Install-SecurityDaemon {
+    [CmdletBinding(DefaultParameterSetName = 'Manual')]
+    param (
+        # Specified the daemon will be configured manually, using a device connection string.
+        [Parameter(ParameterSetName = 'Manual')]
+        [Switch] $Manual,
+
+        # Specified the daemon will be configured using DPS, using a scope ID and registration ID.
+        [Parameter(ParameterSetName = 'DPS')]
+        [Switch] $Dps,
+
+        # Specified the daemon will be configured to use an existing config.yaml
+        [Parameter(ParameterSetName = 'ExistingConfig')]
+        [Switch] $ExistingConfig,
+
+        # The device connection string.
+        [Parameter(Mandatory = $true, ParameterSetName = 'Manual')]
+        [String] $DeviceConnectionString,
+
+        # The DPS scope ID.
+        [Parameter(Mandatory = $true, ParameterSetName = 'DPS')]
+        [String] $ScopeId,
+
+        # The DPS registration ID.
+        [Parameter(Mandatory = $true, ParameterSetName = 'DPS')]
+        [String] $RegistrationId,
+
+        # The base OS of all the containers that will be run on this device via the security daemon.
+        #
+        # If set to Linux, a separate installation of Docker for Windows is expected.
+        #
+        # If set to Windows, the Moby Engine will be installed automatically. This will not affect any existing installation of Docker for Windows.
+        [ContainerOs] $ContainerOs = 'Windows',
+
+        # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
+        [Uri] $Proxy,
+
+        # If set to a directory path, the installer prefers to use IoTEdge CAB, Moby Engine CAB, Moby CLI CAB and VC Runtime MSI files from inside this directory
+        # over downloading them from the internet. Thus placing all four files in this directory can be used to have a completely offline install,
+        # or a specific subset can be placed to override the online versions of those specific components.
+        [String] $OfflineInstallationPath,
+
+        # IoT Edge Agent image to pull for the initial configuration.
+        [Parameter(ParameterSetName = 'Manual')]
+        [Parameter(ParameterSetName = 'DPS')]
+        [String] $AgentImage,
+
+        # Username used to access the container registry and pull the IoT Edge Agent image.
+        [Parameter(ParameterSetName = 'Manual')]
+        [Parameter(ParameterSetName = 'DPS')]
+        [String] $Username,
+
+        # Password used to access the container registry and pull the IoT Edge Agent image.
+        [Parameter(ParameterSetName = 'Manual')]
+        [Parameter(ParameterSetName = 'DPS')]
+        [SecureString] $Password,
+
+        # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
+        #
+        # If -Proxy is also specified, it overrides the "-Proxy" key set in this hashtable, if any.
+        #
+        # Example:
+        #
+        #     Update-SecurityDaemon -InvokeWebRequestParameters @{ '-Proxy' = 'http://localhost:8888'; '-ProxyCredential' = (Get-Credential).GetNetworkCredential() }
+        [HashTable] $InvokeWebRequestParameters,
+
+        # Restart if needed without prompting.
+        [Switch] $RestartIfNeeded
+    )
+
+    Deploy-SecurityDaemon `
+        -ContainerOs $ContainerOs `
+        -Proxy $Proxy `
+        -OfflineInstallationPath $OfflineInstallationPath `
+        -InvokeWebRequestParameters $InvokeWebRequestParameters `
+        -RestartIfNeeded:$RestartIfNeeded
+
+    Initialize-SecurityDaemon `
+        -Manual:$Manual `
+        -Dps:$Dps `
+        -ExistingConfig:$ExistingConfig `
+        -DeviceConnectionString $DeviceConnectionString `
+        -ScopeId $ScopeId `
+        -RegistrationId $RegistrationId `
+        -ContainerOs $ContainerOs `
+        -AgentImage $AgentImage `
+        -Username $Username `
+        -Password $Password
+}
+
+<#
+.SYNOPSIS
+
 Uninstalls the IoT Edge Security Daemon and its dependencies.
 
 
@@ -1522,6 +1642,11 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
 }
 
 Export-ModuleMember `
-    -Function Deploy-SecurityDaemon, Initialize-SecurityDaemon, Get-SecurityDaemonLog, Update-SecurityDaemon, Uninstall-SecurityDaemon `
-    -Alias Deploy-SecurityDaemon
+    -Function `
+        Deploy-SecurityDaemon, 
+        Initialize-SecurityDaemon, 
+        Get-SecurityDaemonLog, 
+        Update-SecurityDaemon, 
+        Install-SecurityDaemon, 
+        Uninstall-SecurityDaemon
 }
