@@ -160,7 +160,7 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     type Logs = EmptyBody<Self::Error>;
 
     type CreateFuture = FutureResult<(), Self::Error>;
-    type GetFuture = FutureResult<Self::Module, Self::Error>;
+    type GetFuture = FutureResult<(Self::Module, ModuleRuntimeState), Self::Error>;
     type InitFuture = FutureResult<(), Self::Error>;
     type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
     type ListWithDetailsStream =
@@ -200,7 +200,7 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
 
     fn get(&self, _id: &str) -> Self::GetFuture {
         match self.module {
-            Ok(ref m) => future::ok(m.clone()),
+            Ok(ref m) => future::ok((m.clone(), ModuleRuntimeState::default())),
             Err(ref e) => future::err(e.clone()),
         }
     }

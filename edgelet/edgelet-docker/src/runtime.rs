@@ -18,7 +18,7 @@ use client::DockerClient;
 use config::DockerConfig;
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
-use docker::models::{ContainerCreateBody, InlineResponse2001, NetworkConfig};
+use docker::models::{ContainerCreateBody, InlineResponse200, InlineResponse2001, NetworkConfig};
 use edgelet_core::{
     LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
     ModuleTop, pid::Pid, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
@@ -27,7 +27,7 @@ use edgelet_http::{UrlConnector, UrlExt};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 
 use error::{Error, ErrorKind, Result};
-use module::{DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
+use module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
 
 const WAIT_BEFORE_KILL_SECONDS: i32 = 10;
 
@@ -196,7 +196,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type Logs = Logs;
 
     type CreateFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type GetFuture = Box<Future<Item = Self::Module, Error = Self::Error> + Send>;
+    type GetFuture = Box<Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
     type InitFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
     type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
     type ListWithDetailsStream =
@@ -328,9 +328,46 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let id = id.to_string();
 
-        Box::new(future::err(Error::from(
+        if let Err(err) = ensure_not_empty_with_context(&id, || {
             ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
-        )))
+        }) {
+            return Box::new(future::err(Error::from(err)));
+        }
+
+        fn parse_response<'de, D>(resp: &InlineResponse200) -> std::result::Result<String, D::Error> where D: serde::Deserializer<'de> {
+            let name = resp.name()
+                .map(ToOwned::to_owned)
+                .ok_or_else(|| serde::de::Error::missing_field("Name"))?;
+            Ok(name)
+        }
+
+        let client_copy = self.client.clone();
+
+        Box::new(
+            self.client
+                .container_api()
+                .container_inspect(&id, false)
+                .then(|result| match result {
+                    Ok(container) => {
+                        let name = parse_response::<&mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>>(&container)
+                            .with_context(|_| ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone())))?;
+                        let config = DockerConfig::new(name.clone(), ContainerCreateBody::new(), None)
+                            .with_context(|_| ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone())))?;
+                        let module = DockerModule::new(client_copy, name, config)
+                            .with_context(|_| ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone())))?;
+                        let state = runtime_state(container.id(), container.state());
+                        Ok((module, state))
+                    }
+                    Err(err) => {
+                        let err = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id)),
+                        );
+                        log_failure(Level::Warn, &err);
+                        Err(err)
+                    }
+                }),
+        )
     }
 
     fn start(&self, id: &str) -> Self::StartFuture {
@@ -1260,7 +1297,7 @@ mod tests {
         type Logs = Empty<Self::Chunk, Self::Error>;
 
         type CreateFuture = FutureResult<(), Self::Error>;
-        type GetFuture = FutureResult<Self::Module, Self::Error>;
+        type GetFuture = FutureResult<(Self::Module, ModuleRuntimeState), Self::Error>;
         type InitFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
         type ListWithDetailsStream =

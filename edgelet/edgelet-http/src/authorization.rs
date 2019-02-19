@@ -7,16 +7,13 @@ use futures::{future, Future};
 use hyper::{Body, Request, Response};
 
 use edgelet_core::pid::Pid;
-use edgelet_core::{Authorization as CoreAuth, ModuleRuntime, Policy};
+use edgelet_core::{Authorization as CoreAuth, ModuleRuntime, ModuleRuntimeErrorReason, Policy};
 
 use error::{Error, ErrorKind};
 use route::{Handler, Parameters};
 use IntoResponse;
 
 pub struct Authorization<H, M>
-where
-    H: Handler<Parameters>,
-    M: 'static + ModuleRuntime,
 {
     auth: CoreAuth<M>,
     inner: Arc<H>,
@@ -26,6 +23,7 @@ impl<H, M> Authorization<H, M>
 where
     H: Handler<Parameters>,
     M: 'static + ModuleRuntime,
+    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     pub fn new(inner: H, policy: Policy, runtime: M) -> Self {
         Authorization {
@@ -39,6 +37,7 @@ impl<H, M> Handler<Parameters> for Authorization<H, M>
 where
     H: Handler<Parameters> + Sync,
     M: 'static + ModuleRuntime + Send,
+    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     fn handle(
         &self,
@@ -288,7 +287,7 @@ mod tests {
         type Chunk = String;
         type Logs = Empty<Self::Chunk, Self::Error>;
         type CreateFuture = FutureResult<(), Self::Error>;
-        type GetFuture = FutureResult<Self::Module, Self::Error>;
+        type GetFuture = FutureResult<(Self::Module, ModuleRuntimeState), Self::Error>;
         type InitFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
         type ListWithDetailsStream =

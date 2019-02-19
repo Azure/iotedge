@@ -383,7 +383,7 @@ pub trait ModuleRuntime {
     type Logs: Stream<Item = Self::Chunk, Error = Self::Error> + Send;
 
     type CreateFuture: Future<Item = (), Error = Self::Error> + Send;
-    type GetFuture: Future<Item = Self::Module, Error = Self::Error> + Send;
+    type GetFuture: Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send;
     type InitFuture: Future<Item = (), Error = Self::Error> + Send;
     type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error> + Send;
     type ListWithDetailsStream: Stream<
