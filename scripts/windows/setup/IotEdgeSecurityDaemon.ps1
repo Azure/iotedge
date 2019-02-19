@@ -18,7 +18,7 @@ Set-Variable SupportedBuildsForWindowsContainers -Value @($Windows1809)
 
 Set-Variable DockerServiceName -Value 'com.docker.service' -Option Constant
 
-Set-Variable EdgePackage -Value "microsoft-azure-iotedge" -Option Constant
+Set-Variable EdgePackage -Value 'microsoft-azure-iotedge' -Option Constant
 
 Set-Variable EdgeInstallDirectory -Value "$env:ProgramFiles\iotedge" -Option Constant
 Set-Variable EdgeDataDirectory -Value "$env:ProgramData\iotedge" -Option Constant
@@ -147,7 +147,7 @@ function Initialize-SecurityDaemon {
         return
     }
 
-    $configPath = Join-Path -Path $EdgeDataDirectory -ChildPath "config.yaml"
+    $configPath = Join-Path -Path $EdgeDataDirectory -ChildPath 'config.yaml'
     if ($ExistingConfig -and (-not (Test-Path $configPath))) {
         Write-HostRed
         Write-HostRed "$configPath was not found."
@@ -171,9 +171,9 @@ function Initialize-SecurityDaemon {
         Write-Host 'Generating config.yaml...'
 
         if (-not (Test-Path $EdgeDataDirectory)) {
-            New-Item -Path $EdgeDataDirectory -ItemType "Directory"
+            New-Item -Path $EdgeDataDirectory -ItemType 'Directory'
         }
-        Copy-Item -Path (Join-Path -Path $EdgeInstallDirectory -ChildPath "config.yaml") -Destination $configPath
+        Copy-Item -Path (Join-Path -Path $EdgeInstallDirectory -ChildPath 'config.yaml') -Destination $configPath
 
         Set-ProvisioningMode
         Set-AgentImage
@@ -385,8 +385,8 @@ function Uninstall-SecurityDaemon {
     $legacyInstaller = Test-LegacyInstaller
 
     if ((Test-IoTCore) -and (-not $legacyInstaller)) {
-        Write-HostRed ("Uninstall-SecurityDaemon is only supported on IoTCore to uninstall legacy installation. " +
-            "For new installations, please use Update-SecurityDaemon directly to update.")
+        Write-HostRed ('Uninstall-SecurityDaemon is only supported on IoTCore to uninstall legacy installation. ' +
+            'For new installations, please use "Update-SecurityDaemon" directly to update.')
         return
     }
 
@@ -415,8 +415,8 @@ function Uninstall-SecurityDaemon {
     }
 
     if ($restartNeeded) {
-        Write-HostRed "Reboot required."
-        Write-Host "You might need to rerun Uninstall-SecurityDaemon after the reboot to finish the cleanup."
+        Write-HostRed 'Reboot required.'
+        Write-Host 'You might need to rerun "Uninstall-SecurityDaemon" after the reboot to finish the cleanup.'
         Restart-Computer -Confirm:(-not $RestartIfNeeded)
     }
 }
@@ -496,9 +496,9 @@ function Install-Packages(
 
     if (-not $Update) {
         if (-not (Test-IotCore)) {
-            $result = Get-WindowsOptionalFeature -Online -FeatureName "Containers"
-            if ($result -and ($result.State -ne "Enabled")) {
-                $result = Enable-WindowsOptionalFeature -FeatureName "Containers" -Online -NoRestart
+            $result = Get-WindowsOptionalFeature -Online -FeatureName 'Containers'
+            if ($result -and ($result.State -ne 'Enabled')) {
+                $result = Enable-WindowsOptionalFeature -FeatureName 'Containers' -Online -NoRestart
                 if ($result.RestartNeeded) {
                     $restartNeeded = $true
                 }
@@ -526,7 +526,7 @@ function Install-Packages(
     }
 
     if ($restartNeeded) {
-        Write-HostRed "Reboot required."
+        Write-HostRed 'Reboot required.'
         Restart-Computer -Confirm:(-not $RestartIfNeeded)
     }
 }
@@ -715,20 +715,20 @@ function Test-AgentRegistryArgs {
 }
 
 function Get-ContainerOs {
-    $yamlPath = (Join-Path -Path $EdgeDataDirectory -ChildPath "config.yaml")
+    $yamlPath = (Join-Path -Path $EdgeDataDirectory -ChildPath 'config.yaml')
     if (-not (Test-Path $yamlPath)) {
-        return "Windows"
+        return 'Windows'
     }
     $configurationYaml = Get-Content $yamlPath -Raw
-    if (-not ($configurationYaml -match "moby_runtime:\s*uri:\s*'([^']+)'")) {
-        return "Windows"
+    if (-not ($configurationYaml -match 'moby_runtime:\s*uri:\s*''([^'']+)''')) {
+        return 'Windows'
     }
 
     if ($Matches[1] -eq $MobyLinuxNamedPipeUrl) {
-        return "Linux"
+        return 'Linux'
     }
 
-    return "Windows"
+    return 'Windows'
 }
 
 function Get-ExternalDockerServerOs {
@@ -769,7 +769,7 @@ function Uninstall-Package([string] $Name, [ref] $RestartNeeded) {
 
 function Get-Package([string] $Name) {
     if (Test-IotCore) {
-        return Invoke-Native "ApplyUpdate -getinstalledpackages" -Passthru |
+        return Invoke-Native 'ApplyUpdate -getinstalledpackages' -Passthru |
             Where-Object { $_ -like "*INFO: $Name,*"}
     }
     else {
@@ -793,7 +793,7 @@ function Get-SecurityDaemon([ref] $RestartNeeded, [bool] $Update) {
         $deleteEdgeArchive = $false
 
         if (Test-IotCore) {
-            Invoke-Native "ApplyUpdate -clear"
+            Invoke-Native 'ApplyUpdate -clear'
         }
 
         $edgeArchivePath = Download-File `
@@ -831,15 +831,15 @@ function Get-SecurityDaemon([ref] $RestartNeeded, [bool] $Update) {
     }
 
     if (Test-IotCore) {
-        Write-Host ("Committing changes, this will cause a reboot on success. " +
+        Write-Host ('Committing changes, this will cause a reboot on success. ' +
             'If this is the first time installation, run "Initialize-SecurityDaemon" after the reboot completes.')
-        $output = Invoke-Native "ApplyUpdate -commit" -DoNotThrow -Passthru
+        $output = Invoke-Native 'ApplyUpdate -commit' -DoNotThrow -Passthru
         # On success, this should reboot, we currently cannot block that
         if ($LASTEXITCODE -ne 0) {
             throw "Failed to deploy, consider rebooting. Please refer to the following for more information: `n$output"
         }
         Start-Sleep -Seconds 120
-        $output = Invoke-Native "ApplyUpdate -status" -DoNotThrow -Passthru
+        $output = Invoke-Native 'ApplyUpdate -status' -DoNotThrow -Passthru
         throw "Failed to deploy. Please refer to the following for more information: `n$output"
     }
 }
@@ -848,7 +848,7 @@ Function Remove-SecurityDaemonDirectory([string] $Path)
 {
     Write-Host "Deleting data directory '$Path'..."
     if (-not $DeleteConfig) {
-        Write-Host "Not deleting config.yaml since -DeleteConfig was not specified."
+        Write-Host 'Not deleting config.yaml since -DeleteConfig was not specified.'
     }
 
     if ($DeleteConfig) {
@@ -898,7 +898,7 @@ function Remove-SecurityDaemonResources([bool] $LegacyInstaller) {
         Remove-SecurityDaemonDirectory $LegacyEdgeInstallDirectory
     }
     Remove-SecurityDaemonDirectory $EdgeDataDirectory
-    $oldConfig = Join-Path -Path $LegacyEdgeInstallDirectory -ChildPath "config.yaml"
+    $oldConfig = Join-Path -Path $LegacyEdgeInstallDirectory -ChildPath 'config.yaml'
     if (($LegacyEdgeInstallDirectory -ne $EdgeDataDirectory) -and
         (-not $DeleteConfig) -and
         (Test-Path $oldConfig)) {
@@ -916,7 +916,7 @@ function Remove-SecurityDaemonResources([bool] $LegacyInstaller) {
         elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
             Write-Verbose "$cmdErr"
             Write-Warning "Could not delete '$LegacyEdgeEventLogInstallDirectory'."
-            Write-Warning "If you are reinstalling or updating IoT Edge, then this is safe to ignore."
+            Write-Warning 'If you are reinstalling or updating IoT Edge, then this is safe to ignore.'
             Write-Warning ('Otherwise, please close Event Viewer, or any PowerShell windows where you ran Get-WinEvent, ' +
                 'then run "Uninstall-SecurityDaemon" again with "-Force".')
         }
@@ -928,7 +928,7 @@ function Remove-SecurityDaemonResources([bool] $LegacyInstaller) {
     if ($LegacyInstaller) {
         # Check whether we need to clean up after an errant installation into the OS partition on IoT Core
         if ($env:ProgramData -ne 'C:\ProgramData') {
-            Write-Verbose "Multiple ProgramData directories found"
+            Write-Verbose 'Multiple ProgramData directories found'
             $existingMobyDataRoots = $LegacyMobyDataRootDirectory, $LegacyMobyStaticDataRootDirectory
             $existingMobyInstallations = $LegacyMobyInstallDirectory, $LegacyMobyStaticInstallDirectory
         }
@@ -958,7 +958,7 @@ function Remove-SecurityDaemonResources([bool] $LegacyInstaller) {
         }
     }
     else {
-        Write-Host "Not deleting Moby data root directory since -DeleteMobyDataRoot was not specified."
+        Write-Host 'Not deleting Moby data root directory since -DeleteMobyDataRoot was not specified.'
     }
 
     foreach ($install in $existingMobyInstallations | ?{ Test-Path $_ }) {
@@ -1167,7 +1167,7 @@ function Remove-FirewallExceptions {
 
 function Update-ConfigYaml([ScriptBlock] $UpdateFunc)
 {
-    $yamlPath = (Join-Path -Path $EdgeDataDirectory -ChildPath "config.yaml")
+    $yamlPath = (Join-Path -Path $EdgeDataDirectory -ChildPath 'config.yaml')
     $configurationYaml = Get-Content $yamlPath -Raw
     $configurationYaml = $UpdateFunc.Invoke($configurationYaml)
     $configurationYaml | Set-Content $yamlPath -Force
@@ -1264,8 +1264,8 @@ function Set-ConfigUri([string] $Section, [string] $ManagementUri, [string] $Wor
 }
 
 function Set-ListenConnectUri([string] $ManagementUri, [string] $WorkloadUri) {
-    Set-ConfigUri -Section "connect" -ManagementUri $ManagementUri -WorkloadUri $WorkloadUri
-    Set-ConfigUri -Section "listen" -ManagementUri $ManagementUri -WorkloadUri $WorkloadUri
+    Set-ConfigUri -Section 'connect' -ManagementUri $ManagementUri -WorkloadUri $WorkloadUri
+    Set-ConfigUri -Section 'listen' -ManagementUri $ManagementUri -WorkloadUri $WorkloadUri
 
     Set-MachineEnvironmentVariable 'IOTEDGE_HOST' $ManagementUri
     $env:IOTEDGE_HOST = $ManagementUri
@@ -1286,8 +1286,8 @@ function Set-CorrectProgramData {
     $forwardProgramData = $env:ProgramData -replace '\\', '/'
 
     Set-ListenConnectUri `
-        -ManagementUri ("unix:///{0}/iotedge/mgmt/sock" -f $forwardProgramData) `
-        -WorkloadUri ("unix:///{0}/iotedge/workload/sock" -f $forwardProgramData)
+        -ManagementUri ('unix:///{0}/iotedge/mgmt/sock' -f $forwardProgramData) `
+        -WorkloadUri ('unix:///{0}/iotedge/workload/sock' -f $forwardProgramData)
 
     Update-ConfigYaml({
         param($configurationYaml)
@@ -1296,7 +1296,7 @@ function Set-CorrectProgramData {
         $replacementContent = ('homedir: "{0}"' -f ($env:ProgramData -replace '\\', '\\'))
         $configurationYaml = $configurationYaml -replace $selectionRegex, $replacementContent
 
-        Write-HostGreen "Configured ProgramData directory."
+        Write-HostGreen 'Configured ProgramData directory.'
         return $configurationYaml
     })
 }
@@ -1342,7 +1342,7 @@ function Get-AgentRegistry {
     return 'index.docker.io'
 }
 
-function Stop-EdgeContainer([string] $Name = "") {
+function Stop-EdgeContainer([string] $Name = '') {
     $dockerExe = Get-DockerCommandPrefix
     $allContainersString = Invoke-Native "$dockerExe ps --all --format ""{{.ID}}""" -Passthru
     [string[]] $allContainers = $allContainersString -split {$_ -eq "`r" -or $_ -eq "`n"} | where {$_.Length -gt 0}
@@ -1384,7 +1384,7 @@ function Remove-IotEdgeContainers {
     }
 
     # Need to stop Agent first so it does not restart other containers
-    Stop-EdgeContainer -Name "/edgeAgent"
+    Stop-EdgeContainer -Name '/edgeAgent'
     Stop-EdgeContainer
 
     if ($DeleteMobyDataRoot) {
@@ -1434,7 +1434,7 @@ function Invoke-Native {
             if ($i -ne 0) {
                 Start-Sleep -Seconds $sleep
                 $sleep *= 2
-                Write-Verbose "Retrying..."
+                Write-Verbose 'Retrying...'
             }
 
             $out = cmd /c "($Command) 2>&1" 2>&1 | Out-String
@@ -1500,7 +1500,7 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
         Write-Host "Downloading $Description..."
 
         $OldProgressPreference = $ProgressPreference
-        $ProgressPreference = "SilentlyContinue"
+        $ProgressPreference = 'SilentlyContinue'
         $outFile = (Join-Path -Path $env:TEMP -ChildPath $DownloadFileName)
         try {
             Invoke-WebRequest `
