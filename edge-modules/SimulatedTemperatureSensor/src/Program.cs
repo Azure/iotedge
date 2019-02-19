@@ -133,7 +133,7 @@ namespace SimulatedTemperatureSensor
             ITransportSettings[] settings = GetTransportSettings();
 
             ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
-            await moduleClient.OpenAsync().ConfigureAwait(false);
+            await moduleClient.OpenAsync();
             await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null);
 
             Console.WriteLine("Successfully initialized module client.");

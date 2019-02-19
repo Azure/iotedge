@@ -66,9 +66,9 @@ namespace DirectMethodReceiver
 
             ITransportSettings[] settings = GetTransportSettings();
 
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);
-            await moduleClient.OpenAsync().ConfigureAwait(false);
-            await moduleClient.SetMethodHandlerAsync("HelloWorldMethod", HelloWorldMethod, null).ConfigureAwait(false);
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
+            await moduleClient.OpenAsync();
+            await moduleClient.SetMethodHandlerAsync("HelloWorldMethod", HelloWorldMethod, null);
 
             Console.WriteLine("Successfully initialized module client.");
         }
