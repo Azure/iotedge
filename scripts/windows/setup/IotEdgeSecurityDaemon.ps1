@@ -158,7 +158,7 @@ function Initialize-SecurityDaemon {
         Write-HostRed
         Write-HostRed "$configPath already exists."
         Write-HostRed (
-            'Delete it using "Uninstall-SecurityDaemon -Force -DeleteConfig" and then ' + 
+            'Delete it using "Uninstall-SecurityDaemon -Force -DeleteConfig" and then ' +
             're-run "Deploy-SecurityDaemon" and "Initialize-SecurityDaemon"')
         return
     }
@@ -335,7 +335,7 @@ Uninstalls the IoT Edge Security Daemon and its dependencies.
 .DESCRIPTION
 
 By default this cmdlet does not delete the config.yaml and the Moby Engine data root (for -ContainerOs 'Windows' installs),
-so that you can re-install the daemon using "Deploy-SecurityDaemon" and "Initialize-SecurityDaemon -ExistingConfig". 
+so that you can re-install the daemon using "Deploy-SecurityDaemon" and "Initialize-SecurityDaemon -ExistingConfig".
 To delete these as well, specify the -DeleteConfig and -DeleteMobyDataRoot flags.
 
 
@@ -520,7 +520,7 @@ function Install-Packages(
 
     if ($Update) {
         Write-LogInformation
-    } 
+    }
     else {
         Write-Host 'To complete the installation, run "Initialize-SecurityDaemon".'
     }
