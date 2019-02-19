@@ -110,7 +110,7 @@ namespace LoadGen
                     sequenceNumber = Interlocked.Increment(ref messageIdCounter);
                     message.Properties.Add("sequenceNumber", sequenceNumber.ToString());
                     message.Properties.Add("batchId", batchId.ToString());
-                    await client.SendEventAsync(Settings.Current.OutputName, message).ConfigureAwait(false);
+                    await client.SendEventAsync(Settings.Current.OutputName, message);
                 }
             }
             catch (Exception e)
@@ -126,7 +126,7 @@ namespace LoadGen
             twin["messagesSent"] = sequenceNumber;
             try
             {
-                await client.UpdateReportedPropertiesAsync(twin).ConfigureAwait(false);
+                await client.UpdateReportedPropertiesAsync(twin);
             }
             catch (Exception e)
             {
@@ -169,8 +169,8 @@ namespace LoadGen
 
             ITransportSettings[] settings = GetTransportSettings();
 
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);
-            await moduleClient.OpenAsync().ConfigureAwait(false);
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
+            await moduleClient.OpenAsync();
 
             Log.Information("Successfully initialized module client.");
             return moduleClient;

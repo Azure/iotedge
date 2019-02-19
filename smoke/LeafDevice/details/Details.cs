@@ -160,7 +160,7 @@ namespace LeafDeviceTest
 
             await deviceClient.SendEventAsync(message);
             Console.WriteLine("Message Sent.");
-            await deviceClient.SetMethodHandlerAsync("DirectMethod", DirectMethod, null).ConfigureAwait(false);
+            await deviceClient.SetMethodHandlerAsync("DirectMethod", DirectMethod, null);
             Console.WriteLine("Direct method callback is set.");
         }
 

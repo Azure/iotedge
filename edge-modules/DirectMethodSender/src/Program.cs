@@ -42,7 +42,7 @@ namespace DirectMethodSender
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
             Console.WriteLine($"Target device Id = [{targetDeviceId}], Target module Id = [{targetModuleId}]");
-            await CallDirectMethod(moduleClient, dmDelay, targetDeviceId, targetModuleId, cts).ConfigureAwait(false);
+            await CallDirectMethod(moduleClient, dmDelay, targetDeviceId, targetModuleId, cts);
             await moduleClient.CloseAsync();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
@@ -66,8 +66,8 @@ namespace DirectMethodSender
 
             ITransportSettings[] settings = GetTransportSettings();
 
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);
-            await moduleClient.OpenAsync().ConfigureAwait(false);
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
+            await moduleClient.OpenAsync();
 
             Console.WriteLine("Successfully initialized module client.");
             return moduleClient;
@@ -112,7 +112,7 @@ namespace DirectMethodSender
                     Console.WriteLine(e);
                 }
 
-                await Task.Delay(dmDelay, cts.Token).ConfigureAwait(false);
+                await Task.Delay(dmDelay, cts.Token);
             }
         }
     }
