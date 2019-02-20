@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -47,35 +48,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             using (await this.setLock.LockAsync())
             {
-                foreach (KeyValuePair<string, bool> subscriptionRegistration in sessionState.SubscriptionRegistrations)
+                try
                 {
-                    string topicName = subscriptionRegistration.Key;
-                    bool addSubscription = subscriptionRegistration.Value;
+                    IEnumerable<(DeviceSubscription, bool)> subscriptions = sessionState.SubscriptionRegistrations
+                        .Select(
+                            subscriptionRegistration =>
+                            {
+                                string topicName = subscriptionRegistration.Key;
+                                bool addSubscription = subscriptionRegistration.Value;
+                                DeviceSubscription deviceSubscription = GetDeviceSubscription(topicName);
+                                if (deviceSubscription == DeviceSubscription.Unknown)
+                                {
+                                    Events.UnknownTopicSubscription(topicName, id);
+                                }
 
-                    try
-                    {
-                        Events.ProcessingSubscription(id, topicName, addSubscription);
-                        DeviceSubscription deviceSubscription = GetDeviceSubscription(topicName);
-                        if (deviceSubscription == DeviceSubscription.Unknown)
-                        {
-                            Events.UnknownTopicSubscription(topicName, id);
-                        }
-                        else
-                        {
-                            if (addSubscription)
-                            {
-                                await this.edgeHub.AddSubscription(id, deviceSubscription);
-                            }
-                            else
-                            {
-                                await this.edgeHub.RemoveSubscription(id, deviceSubscription);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Events.ErrorHandlingSubscription(id, topicName, addSubscription, ex);
-                    }
+                                return (deviceSubscription, addSubscription);
+                            });
+
+                    await this.edgeHub.ProcessSubscriptions(id, subscriptions);
+                }
+                catch (Exception ex)
+                {
+                    Events.ErrorProcessingSubscriptions(id, ex);
                 }
             }
 
@@ -128,16 +122,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Log.LogInformation((int)EventIds.UnknownSubscription, Invariant($"Ignoring unknown subscription to topic {topicName} for client {id}."));
             }
 
-            public static void ErrorHandlingSubscription(string id, string topicName, bool addSubscription, Exception exception)
+            public static void ErrorProcessingSubscriptions(string id, Exception exception)
             {
-                string action = addSubscription ? "adding" : "removing";
-                Log.LogWarning((int)EventIds.ErrorHandlingSubscription, exception, Invariant($"Error {action} subscription {topicName} for client {id}."));
-            }
-
-            public static void ProcessingSubscription(string id, string topicName, bool addSubscription)
-            {
-                string action = addSubscription ? "Adding" : "Removing";
-                Log.LogDebug((int)EventIds.ErrorHandlingSubscription, Invariant($"{action} subscription {topicName} for client {id}."));
+                Log.LogWarning((int)EventIds.ErrorHandlingSubscription, exception, Invariant($"Error processing subscriptions for client {id}."));
             }
         }
     }

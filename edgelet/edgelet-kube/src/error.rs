@@ -7,6 +7,7 @@ use edgelet_core::{ModuleRuntimeErrorReason, RuntimeOperation};
 use edgelet_docker::Error as DockerError;
 use failure::{Backtrace, Context, Fail};
 use kube_client::Error as KubeClientError;
+use serde_json::Error as JsonError;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -38,6 +39,18 @@ pub enum ErrorKind {
     #[fail(display = "{}", _0)]
     RuntimeOperation(RuntimeOperation),
 
+    #[fail(display = "Auth name not valid")]
+    AuthName,
+
+    #[fail(display = "Auth server address not present ")]
+    AuthServerAddress,
+
+    #[fail(display = "Auth user name not present")]
+    AuthUser,
+
+    #[fail(display = "Auth password not present")]
+    AuthPassword,
+
     #[fail(display = "Metadata missing from Deployment")]
     DeploymentMeta,
 
@@ -49,6 +62,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Docker crate error")]
     DockerError,
+
+    #[fail(display = "Json convert error")]
+    JsonError,
 
     #[fail(display = "{}", _0)]
     NotFound(String),
@@ -110,6 +126,13 @@ impl From<DockerError> for Error {
     fn from(error: DockerError) -> Self {
         Error {
             inner: error.context(ErrorKind::DockerError),
+        }
+    }
+}
+impl From<JsonError> for Error {
+    fn from(error: JsonError) -> Self {
+        Error {
+            inner: error.context(ErrorKind::JsonError),
         }
     }
 }

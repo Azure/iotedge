@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     audience,
                     expiresOn
                 });
-            string signature = await this.signatureProvider.SignAsync(data).ConfigureAwait(false);
+            string signature = await this.signatureProvider.SignAsync(data);
 
             return SasTokenHelper.BuildSasToken(audience, signature, expiresOn);
         }

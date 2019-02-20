@@ -14,6 +14,7 @@ extern crate base64;
 extern crate clap;
 extern crate config;
 extern crate docker;
+extern crate dps;
 extern crate edgelet_core;
 extern crate edgelet_docker;
 extern crate edgelet_hsm;
@@ -80,9 +81,10 @@ use sha2::{Digest, Sha256};
 use url::Url;
 
 use docker::models::HostConfig;
+use dps::DPS_API_VERSION;
 use edgelet_core::crypto::{
-    CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity, KeyStore,
-    MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
+    Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity,
+    KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::WorkloadConfig;
@@ -101,7 +103,8 @@ use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
 use iothubservice::DeviceClient;
 use provisioning::provisioning::{
-    BackupProvisioning, DpsProvisioning, ManualProvisioning, Provision, ProvisioningResult,
+    BackupProvisioning, DpsProvisioning, DpsSymmetricKeyProvisioning, ManualProvisioning,
+    Provision, ProvisioningResult,
 };
 
 use settings::{Dps, Manual, Provisioning, Settings, DEFAULT_CONNECTION_STRING};
@@ -294,31 +297,54 @@ impl Main {
             }
             Provisioning::Dps(dps) => {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
-                let (key_store, provisioning_result, root_key, runtime) = dps_provision(
-                    &dps,
-                    hyper_client.clone(),
-                    dps_path,
-                    runtime,
-                    &mut tokio_runtime,
-                )?;
-                info!("Finished provisioning edge device.");
-                let cfg = WorkloadData::new(
-                    provisioning_result.hub_name().to_string(),
-                    provisioning_result.device_id().to_string(),
-                    IOTEDGE_ID_CERT_MAX_DURATION_SECS,
-                    IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
-                );
-                start_api(
-                    &settings,
-                    hyper_client,
-                    &runtime,
-                    &key_store,
-                    cfg,
-                    root_key,
-                    shutdown_signal,
-                    &crypto,
-                    tokio_runtime,
-                )?;
+
+                macro_rules! start_edgelet {
+                    ($key_store:ident, $provisioning_result:ident, $root_key:ident, $runtime:ident) => {{
+                        info!("Finished provisioning edge device.");
+
+                        let cfg = WorkloadData::new(
+                            $provisioning_result.hub_name().to_string(),
+                            $provisioning_result.device_id().to_string(),
+                            IOTEDGE_ID_CERT_MAX_DURATION_SECS,
+                            IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
+                        );
+                        start_api(
+                            &settings,
+                            hyper_client,
+                            &$runtime,
+                            &$key_store,
+                            cfg,
+                            $root_key,
+                            shutdown_signal,
+                            &crypto,
+                            tokio_runtime,
+                        )?;
+                    }};
+                }
+
+                if let Some(key) = dps.symmetric_key() {
+                    info!("Staring provisioning edge device via symmetric key...");
+                    let (key_store, provisioning_result, root_key, runtime) =
+                        dps_symmetric_key_provision(
+                            &dps,
+                            hyper_client.clone(),
+                            &dps_path,
+                            runtime,
+                            &mut tokio_runtime,
+                            key,
+                        )?;
+                    start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                } else {
+                    info!("Staring provisioning edge device via TPM...");
+                    let (key_store, provisioning_result, root_key, runtime) = dps_tpm_provision(
+                        &dps,
+                        hyper_client.clone(),
+                        dps_path,
+                        runtime,
+                        &mut tokio_runtime,
+                    )?;
+                    start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                }
             }
         };
 
@@ -614,7 +640,74 @@ fn manual_provision(
     tokio_runtime.block_on(provision)
 }
 
-fn dps_provision<HC, M>(
+fn dps_symmetric_key_provision<HC, M>(
+    provisioning: &Dps,
+    hyper_client: HC,
+    _backup_path: &PathBuf,
+    runtime: M,
+    tokio_runtime: &mut tokio::runtime::Runtime,
+    key: &str,
+) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey, M), Error>
+where
+    HC: 'static + ClientImpl,
+    M: ModuleRuntime + Send + 'static,
+{
+    let mut memory_hsm = MemoryKeyStore::new();
+    let key_bytes = base64::decode(key).context(ErrorKind::SymmetricKeyMalformed)?;
+
+    memory_hsm
+        .activate_identity_key(KeyIdentity::Device, "primary".to_string(), key_bytes)
+        .context(ErrorKind::ActivateSymmetricKey)?;
+
+    let dps = DpsSymmetricKeyProvisioning::new(
+        hyper_client,
+        provisioning.global_endpoint().clone(),
+        provisioning.scope_id().to_string(),
+        provisioning.registration_id().to_string(),
+        DPS_API_VERSION.to_string(),
+    )
+    .context(ErrorKind::Initialize(
+        InitializeErrorReason::DpsProvisioningClient,
+    ))?;
+    let provision = dps
+        .provision(memory_hsm.clone())
+        .map_err(|err| {
+            Error::from(err.context(ErrorKind::Initialize(
+                InitializeErrorReason::DpsProvisioningClient,
+            )))
+        })
+        .and_then(move |prov_result| {
+            if prov_result.reconfigure() {
+                info!("Successful DPS provisioning. This will trigger reconfiguration of modules.");
+                // Each time DPS provisions, it gets back a new device key. This results in obsolete
+                // module keys in IoTHub from the previous provisioning. We delete all containers
+                // after each DPS provisioning run so that IoTHub can be updated with new module
+                // keys when the deployment is executed by EdgeAgent.
+                let remove = runtime.remove_all().then(|result| {
+                    result.context(ErrorKind::Initialize(
+                        InitializeErrorReason::DpsProvisioningClient,
+                    ))?;
+                    Ok((prov_result, runtime))
+                });
+                Either::A(remove)
+            } else {
+                Either::B(future::ok((prov_result, runtime)))
+            }
+        })
+        .and_then(move |(prov_result, runtime)| {
+            let k =
+                memory_hsm
+                    .get(&KeyIdentity::Device, "primary")
+                    .context(ErrorKind::Initialize(
+                        InitializeErrorReason::DpsProvisioningClient,
+                    ))?;
+            let derived_key_store = DerivedKeyStore::new(k.clone());
+            Ok((derived_key_store, prov_result, k, runtime))
+        });
+    tokio_runtime.block_on(provision)
+}
+
+fn dps_tpm_provision<HC, M>(
     provisioning: &Dps,
     hyper_client: HC,
     backup_path: PathBuf,
@@ -639,7 +732,7 @@ where
         provisioning.global_endpoint().clone(),
         provisioning.scope_id().to_string(),
         provisioning.registration_id().to_string(),
-        "2017-11-15".to_string(),
+        "2018-11-01".to_string(),
         ek_result,
         srk_result,
     )
