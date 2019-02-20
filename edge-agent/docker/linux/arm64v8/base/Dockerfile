@@ -8,7 +8,9 @@ RUN apt-get update && \
 
 ARG EXE_DIR=.
 
-RUN mkdir -p ../publish && \ cp -vL ../native/arm/librocksdb.so ../publish/
+RUN mkdir -p ../publish
+
+COPY  ../native/arm/librocksdb.so ../publish/
 
 FROM microsoft/dotnet:${base_tag}
 
