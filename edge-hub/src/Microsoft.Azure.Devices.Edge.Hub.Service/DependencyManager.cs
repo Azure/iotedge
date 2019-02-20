@@ -129,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 .Map(s => TimeSpan.FromSeconds(s));
             bool useV1TwinManager = this.GetConfigurationValueIfExists<string>("TwinManagerVersion")
                 .Map(v => v.Equals("v1", StringComparison.OrdinalIgnoreCase))
-                .GetOrElse(false);
+                .GetOrElse(true);
 
             builder.RegisterModule(
                 new RoutingModule(
