@@ -273,7 +273,7 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
                     Ok(ref s) => future::ok(ModuleTop::new(m.name.clone(), vec![s.pid()])),
                     Err(ref e) => future::err(e.clone()),
                 }
-            },
+            }
             Err(ref e) => future::err(e.clone()),
         }
     }
