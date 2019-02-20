@@ -1,6 +1,7 @@
 ARG base_tag=1.0.0-preview010-linux-arm64v8
-FROM azureiotedge/azureiotedge-agent-base:${base_tag}
 
+FROM edgebuilds.azurecr.io/microsoft/azureiotedge-agent-base:${base_tag}
+ 
 ARG EXE_DIR=.
 
 WORKDIR /app
