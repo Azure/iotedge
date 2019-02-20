@@ -112,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
 
-            IClient client = await new ClientProvider().CreateAsync(identity, transportSettings).ConfigureAwait(false);
+            IClient client = await new ClientProvider().CreateAsync(identity, transportSettings);
 
             Assert.NotNull(client);
             Assert.True(client is ModuleClientWrapper);
