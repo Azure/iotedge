@@ -365,7 +365,7 @@ impl ModuleTop {
         &self.name
     }
 
-    pub fn process_ids(&self) -> &Vec<Pid> {
+    pub fn process_ids(&self) -> &[Pid] {
         &self.process_ids
     }
 }
