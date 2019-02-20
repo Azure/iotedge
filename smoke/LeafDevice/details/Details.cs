@@ -25,7 +25,8 @@ namespace LeafDeviceTest
     using Message = Microsoft.Azure.Devices.Client.Message;
     using ServiceClientTransportType = Microsoft.Azure.Devices.TransportType;
 
-   public enum DeviceProtocol {
+    public enum DeviceProtocol
+    {
         Amqp,
         AmqpWS,
         Mqtt,
@@ -160,7 +161,7 @@ namespace LeafDeviceTest
 
             await deviceClient.SendEventAsync(message);
             Console.WriteLine("Message Sent.");
-            await deviceClient.SetMethodHandlerAsync("DirectMethod", DirectMethod, null).ConfigureAwait(false);
+            await deviceClient.SetMethodHandlerAsync("DirectMethod", DirectMethod, null);
             Console.WriteLine("Direct method callback is set.");
         }
 
