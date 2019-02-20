@@ -5,10 +5,13 @@ FROM arm32v7/buildpack-deps:bionic as builder
 
 RUN apt-get update && \
     apt-get install -y libsnappy-dev
-    
-ARG EXE_DIR=.
 
-RUN mkdir -p ../publish && \ cp -vL ../native/arm/librocksdb.so ../publish/
+RUN git clone -b v5.4.6 --depth 1 https://github.com/facebook/rocksdb.git && \
+    cd rocksdb && \
+    CFLAGS="-static-libstdc++ -Wno-psabi -DSNAPPY" PORTABLE=1 make -j ${num_procs} shared_lib && \
+    strip librocksdb.so && \
+    mkdir -p ../publish && \
+    cp -vL librocksdb.so ../publish/
 
 FROM microsoft/dotnet:${base_tag}
 
