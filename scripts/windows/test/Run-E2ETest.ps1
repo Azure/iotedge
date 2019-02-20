@@ -28,7 +28,7 @@
     .PARAMETER TestName
         Name of E2E test to be run
         Note: Valid values are: 
-            "All", "DirectMethodAmqp", "DirectMethodMqtt", "QuickstartCerts", "TempSensor", "TempFilter", "TransparentGateway"
+            "All", "DirectMethodAmqp", "DirectMethodMqtt", "QuickstartCerts", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway"
 
     .PARAMETER ContainerRegistryUserName
         Username of container registry
@@ -63,7 +63,7 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $ReleaseArtifactImageBuildNumber = $(Throw "Release artifact image build number is required"),
 
-    [ValidateSet("All", "DirectMethodAmqp", "DirectMethodMqtt", "QuickstartCerts", "TempFilter", "TempSensor", "TransparentGateway")]
+    [ValidateSet("All", "DirectMethodAmqp", "DirectMethodMqtt", "QuickstartCerts", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway")]
     [string] $TestName = "All",
 
     [ValidateNotNullOrEmpty()]
@@ -154,18 +154,18 @@ Function InitializeWorkingFolder
 
 Function PrepareTestFromArtifacts
 {
-    PrintHighlightedMessage "Copy files to $TestWorkingFolder"
-    Copy-Item $IoTEdgeQuickstartArtifactFolder -Destination $QuickstartWorkingFolder -Recurse -Force
+    PrintHighlightedMessage "Copy artifact files to $TestWorkingFolder"
 
+    # IoT Edgelet
     If (Test-Path $PackagesArtifactFolder -PathType Container)
     {
-        Write-Host "Copy packages artifact from $PackagesArtifactFolder"
+        Write-Host "Copy packages artifact from $PackagesArtifactFolder to $PackagesWorkingFolder"
         Copy-Item $PackagesArtifactFolder -Destination $PackagesWorkingFolder -Recurse -Force
         Copy-Item $InstallationScriptPath -Destination $PackagesWorkingFolder -Force
     }
     ElseIf (Test-Path $IoTEdgedArtifactFolder -PathType Container)
     {
-        Write-Host "Copy IoTEdged artifact from $IoTEdgedArtifactFolder"
+        Write-Host "Copy packages artifact from $IoTEdgedArtifactFolder to $PackagesWorkingFolder"
         Copy-Item $IoTEdgedArtifactFolder -Destination $IoTEdgedWorkingFolder -Recurse -Force
         Copy-Item $InstallationScriptPath -Destination $IoTEdgedWorkingFolder -Force
     }
@@ -174,45 +174,63 @@ Function PrepareTestFromArtifacts
         Throw "Package and iotedged artifact folder doesn't exist"
     }
 
+    # IoT Edge Quickstart
+    Write-Host "Copy IoT Edge Quickstart from $IoTEdgeQuickstartArtifactFolder to $QuickstartWorkingFolder"
+    Copy-Item $IoTEdgeQuickstartArtifactFolder -Destination $QuickstartWorkingFolder -Recurse -Force
+
+    # Leaf device
     If (($TestName -eq "QuickstartCerts") -Or ($TestName -eq "TransparentGateway"))
     {
+        Write-Host "Copy Leaf device from $LeafDeviceArtifactFolder to $LeafDeviceWorkingFolder"
         Copy-Item $LeafDeviceArtifactFolder -Destination $LeafDeviceWorkingFolder -Recurse -Force
     }
 
+    # Deployment file
     If (($TestName -eq "DirectMethodAmqp") -Or
         ($TestName -eq "DirectMethodMqtt") -Or
-        ($TestName -eq "TempFilter"))
+        ($TestName -eq "TempFilter") -Or
+        ($TestName -eq "TempFilterFunctions"))
     {
         Switch ($TestName)
         {
             "DirectMethodAmqp"
             {
-                Write-Host "Copy deployment file from $DirectMethodModuleToModuleDeploymentArtifactsFilePath"
-                Copy-Item $DirectMethodModuleToModuleDeploymentArtifactsFilePath -Destination $DeploymentWorkingFilePath -Force
+                Write-Host "Copy deployment file from $DirectMethodModuleToModuleDeploymentArtifactFilePath"
+                Copy-Item $DirectMethodModuleToModuleDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
                 (Get-Content $DeploymentWorkingFilePath).replace('<UpstreamProtocol>','Amqp') | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<ClientTransportType>','Amqp_Tcp_Only') | Set-Content $DeploymentWorkingFilePath
             }
             "DirectMethodMqtt"
             {
-                Write-Host "Copy deployment file from $DirectMethodModuleToModuleDeploymentArtifactsFilePath"
-                Copy-Item $DirectMethodModuleToModuleDeploymentArtifactsFilePath -Destination $DeploymentWorkingFilePath -Force
+                Write-Host "Copy deployment file from $DirectMethodModuleToModuleDeploymentArtifactFilePath"
+                Copy-Item $DirectMethodModuleToModuleDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
                 (Get-Content $DeploymentWorkingFilePath).replace('<UpstreamProtocol>','Mqtt') | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<ClientTransportType>','Mqtt_Tcp_Only') | Set-Content $DeploymentWorkingFilePath
+
+                If ($Architecture -eq "arm32v7")
+                {
+                    (Get-Content $DeploymentWorkingFilePath).replace('<MqttEventsProcessorThreadCount>','1') | Set-Content $DeploymentWorkingFilePath
+                }
             }
             "TempFilter"
             {
-                Write-Host "Copy deployment file from $ModuleToModuleDeploymentArtifactsFilePath"
-                Copy-Item $ModuleToModuleDeploymentArtifactsFilePath -Destination $DeploymentWorkingFilePath -Force
+                Write-Host "Copy deployment file from $ModuleToModuleDeploymentArtifactFilePath"
+                Copy-Item $ModuleToModuleDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
+            }
+            "TempFilterFunctions"
+            {
+                Write-Host "Copy deployment file from $ModuleToFunctionDeploymentArtifactFilePath"
+                Copy-Item $ModuleToFunctionDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
             }
         }
 
         $ImageArchitectureLabel = $(GetImageArchitectureLabel)
-        (Get-Content $DeploymentWorkingFilePath).replace('<Architecture>',$ImageArchitectureLabel) | Set-Content $DeploymentWorkingFilePath
-        (Get-Content $DeploymentWorkingFilePath).replace('<OptimizeForPerformance>','true') | Set-Content $DeploymentWorkingFilePath
-        (Get-Content $DeploymentWorkingFilePath).replace('<Build.BuildNumber>',$ReleaseArtifactImageBuildNumber) | Set-Content $DeploymentWorkingFilePath
-        (Get-Content $DeploymentWorkingFilePath).replace('<CR.Username>',$ContainerRegistryUsername) | Set-Content $DeploymentWorkingFilePath
-        (Get-Content $DeploymentWorkingFilePath).replace('<CR.Password>',$ContainerRegistryPassword) | Set-Content $DeploymentWorkingFilePath
-        (Get-Content $DeploymentWorkingFilePath).replace('-linux-','-windows-') | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('<Architecture>', $ImageArchitectureLabel) | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('<OptimizeForPerformance>', 'true') | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('<Build.BuildNumber>', $ReleaseArtifactImageBuildNumber) | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('<CR.Username>', $ContainerRegistryUsername) | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('<CR.Password>', $ContainerRegistryPassword) | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('-linux-', '-windows-') | Set-Content $DeploymentWorkingFilePath
     }
 }
 
@@ -224,7 +242,7 @@ Function PrintLogs
         )
 
     $now = Get-Date
-    PrintHighlightedMessage "Test finished at $now, took $($now - $testStartTime)"
+    PrintHighlightedMessage "Test finished with exit code $testExitCode at $now, took $($now - $testStartTime)"
 
     If ($testExitCode -eq 0)
     {
@@ -237,7 +255,7 @@ Function PrintLogs
         LogName = "application"; StartTime = $testStartTime} |
 	    select TimeCreated, Message | 
 	    sort-object @{Expression="TimeCreated";Descending=$false} |
-        format-table -autosize -wrap
+        format-table -autosize -wrap | Out-Host
 
     $dockerCmd ="docker -H npipe:////./pipe/iotedge_moby_engine"
 
@@ -262,7 +280,8 @@ Function PrintLogs
     }
 
     if (($TestName -eq "TempSensor") -Or `
-        ($TestName -eq "TempFilter"))
+        ($TestName -eq "TempFilter") -Or `
+        ($TestName -eq "TempFilterFunctions"))
     {
         Try
         {
@@ -279,11 +298,23 @@ Function PrintLogs
     {
         Try {
             Write-Host "TEMP FILTER LOGS"
-    I       nvoke-Expression "$dockerCmd logs tempFilter"
+            Invoke-Expression "$dockerCmd logs tempFilter"
         }
         Catch
         {
             Write-Host "Cannot output Temp Filter logs"
+        }
+    }
+
+    if ($TestName -eq "TempFilterFunctions")
+    {
+        Try {
+            Write-Host "TEMP FILTER FUNCTIONS LOGS"
+            Invoke-Expression "$dockerCmd logs tempFilterFunctions"
+        }
+        Catch
+        {
+            Write-Host "Cannot output Temp Filter Functions logs"
         }
     }
 }
@@ -291,29 +322,33 @@ Function PrintLogs
 Function RunAllTests
 {
     $TestName = "DirectMethodAmqp"
-    $testExitCode = RunDirectMethodAmqpTest
+    $lastTestExitCode = RunDirectMethodAmqpTest
     
     $TestName = "DirectMethodMqtt"
     $testExitCode = RunDirectMethodMqttTest
-    $lastExitCode = If ($testExitCode > 0) { $testExitCode } Else { $lastExitCode }
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
     
     $TestName = "QuickstartCerts"
     $testExitCode = RunQuickstartCertsTest
-    $lastExitCode = If ($testExitCode > 0) { $testExitCode } Else { $lastExitCode }
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
     
     $TestName = "TempFilter"
     $testExitCode = RunTempFilterTest
-    $lastExitCode = If ($testExitCode > 0) { $testExitCode } Else { $lastExitCode }
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+
+    $TestName = "TempFilterFunctions"
+    $testExitCode = RunTempFilterFunctionsTest
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
     
     $TestName = "TempSensor"
     $testExitCode = RunTempSensorTest
-    $lastExitCode = If ($testExitCode > 0) { $testExitCode } Else { $lastExitCode }
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
     
     $TestName = "TransparentGateway"
     $testExitCode = RunTransparentGatewayTest
-    $lastExitCode = If ($testExitCode > 0) { $testExitCode } Else { $lastExitCode }
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
     
-    Return $lastExitCode
+    Return $lastTestExitCode
 }
 
 Function RunDirectMethodAmqpTest
@@ -329,14 +364,14 @@ Function RunDirectMethodAmqpTest
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
-            -r `"edgebuilds.azurecr.io`" ``
+            -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
-    $testExitCode = $lastExitCode
+    $testExitCode = $LastExitCode
 
     PrintLogs $testStartAt $testExitCode
     Return $testExitCode
@@ -355,14 +390,14 @@ Function RunDirectMethodMqttTest
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
-            -r `"edgebuilds.azurecr.io`" ``
+            -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
-    $testExitCode = $lastExitCode
+    $testExitCode = $LastExitCode
 
     PrintLogs $testStartAt $testExitCode
     Return $testExitCode
@@ -382,7 +417,7 @@ Function RunQuickstartCertsTest
         -c `"$IoTHubConnectionString`" ``
         -e `"doesNotNeed`" ``
         -n `"$env:computername`" ``
-        -r `"edgebuilds.azurecr.io`" ``
+        -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
         -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
@@ -401,7 +436,7 @@ Function RunQuickstartCertsTest
         -e "$EventHubConnectionString" `
         -ct "$caCertPath" `
         -ed "$env:computername" | Out-Host
-    $testExitCode = $lastExitCode
+    $testExitCode = $LastExitCode
     
     PrintLogs $testStartAt $testExitCode
     Return $testExitCode
@@ -420,14 +455,46 @@ Function RunTempFilterTest
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
-            -r `"edgebuilds.azurecr.io`" ``
+            -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilter`" ``
             -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
-    $testExitCode = $lastExitCode
+    $testExitCode = $LastExitCode
+
+    PrintLogs $testStartAt $testExitCode
+    Return $testExitCode
+}
+
+Function RunTempFilterFunctionsTest
+{
+    if ($Architecture -eq "arm32v7")
+    {
+        PrintHighlightedMessage "Temp Filter Functions test is not supported on $Architecture"
+        Return 0
+    }
+
+    PrintHighlightedMessage "Run TempFilterFunctions test for $Architecture"
+    TestSetup
+
+    $testStartAt = Get-Date
+    $deviceId = "e2e-${ReleaseLabel}-Windows-tempFilterFunc"
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
+    
+    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+            -d `"$deviceId`" ``
+            -c `"$IoTHubConnectionString`" ``
+            -e `"$EventHubConnectionString`" ``
+            -r `"$ContainerRegistry`" ``
+            -u `"$ContainerRegistryUsername`" ``
+            -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilterFunctions`" ``
+            -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+            -l `"$DeploymentWorkingFilePath`""
+    $testCommand = AppendInstallationOption($testCommand)
+    Invoke-Expression $testCommand | Out-Host
+    $testExitCode = $LastExitCode
 
     PrintLogs $testStartAt $testExitCode
     Return $testExitCode
@@ -446,13 +513,14 @@ Function RunTempSensorTest
         -d `"$deviceId`" ``
         -c `"$IoTHubConnectionString`" ``
         -e `"$EventHubConnectionString`" ``
-        -r `"edgebuilds.azurecr.io`" ``
+        -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
-        -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`""
+        -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+        -tw `"$TwinTestFileArtifactFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
-    $testExitCode = $lastExitCode
+    $testExitCode = $LastExitCode
 
     PrintLogs $testStartAt $testExitCode
     Return $testExitCode
@@ -472,7 +540,7 @@ Function RunTransparentGatewayTest
         -c `"$IoTHubConnectionString`" ``
         -e `"doesNotNeed`" ``
         -n `"$env:computername`" ``
-        -r `"edgebuilds.azurecr.io`" ``
+        -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
         -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
@@ -491,7 +559,7 @@ Function RunTransparentGatewayTest
         -e "$EventHubConnectionString" `
         -ct "$TrustedCACertificatePath" `
         -ed "$env:computername" | Out-Host
-    $testExitCode = $lastExitCode
+    $testExitCode = $LastExitCode
     
     PrintLogs $testStartAt $testExitCode
     Return $testExitCode
@@ -507,19 +575,20 @@ Function RunTest
         "DirectMethodAmqp" { $testExitCode = RunDirectMethodAmqpTest; break }
         "DirectMethodMqtt" { $testExitCode = RunDirectMethodMqttTest; break }
         "QuickstartCerts" { $testExitCode = RunQuickstartCertsTest; break }
-        "TempSensor" { $testExitCode = RunTempSensorTest; break }
         "TempFilter" { $testExitCode = RunTempFilterTest; break }
+        "TempFilterFunctions" { $testExitCode = RunTempFilterFunctionsTest; break }
+        "TempSensor" { $testExitCode = RunTempSensorTest; break }
         "TransparentGateway" { $testExitCode = RunTransparentGatewayTest; break }
 		default { Throw "$TestName test is not supported." }
     }
-    
-    Exit $testExitCode
+
+    Exit $testExitCode -gt 0
 }
 
 Function TestSetup
 {
     ValidateE2ETestParameters
-    CleanUp
+    CleanUp | Out-Host
     InitializeWorkingFolder
     PrepareTestFromArtifacts
 }
@@ -537,6 +606,11 @@ Function ValidateE2ETestParameters
         (Join-Path $IoTEdgeQuickstartArtifactFolder "*"),
         $InstallationScriptPath)
 
+    If (($TestName -eq "DirectMethodAmqp") -Or ($TestName -eq "DirectMethodMqtt"))
+    {
+        $validatingItems += $DirectMethodModuleToModuleDeploymentArtifactFilePath
+    }
+
     If (($TestName -eq "QuickstartCerts") -Or ($TestName -eq "TransparentGateway"))
     {
         $validatingItems += (Join-Path $LeafDeviceArtifactFolder "*")
@@ -544,12 +618,17 @@ Function ValidateE2ETestParameters
 
     If ($TestName -eq "TempFilter")
     {
-        $validatingItems += $ModuleToModuleDeploymentArtifactsFilePath
+        $validatingItems += $ModuleToModuleDeploymentArtifactFilePath
     }
 
-    If (($TestName -eq "DirectMethodAmqp") -Or ($TestName -eq "DirectMethodMqtt"))
+    If ($TestName -eq "TempFilterFunctions")
     {
-        $validatingItems += $DirectMethodModuleToModuleDeploymentArtifactsFilePath
+        $validatingItems += $ModuleToFunctionDeploymentArtifactFilePath
+    }
+
+    If ($TestName -eq "TempSensor")
+    {
+        $validatingItems += $TwinTestFileArtifactFilePath
     }
 
     If ($TestName -eq "TransparentGateway")
@@ -575,18 +654,24 @@ Function PrintHighlightedMessage
 }
 
 $Architecture = GetArchitecture
+$ContainerRegistry = "edgebuilds.azurecr.io"
 $E2ETestFolder = (Resolve-Path $E2ETestFolder).Path
 $InstallationScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\setup\IotEdgeSecurityDaemon.ps1"
 $ModuleToModuleDeploymentFilename = "module_to_module_deployment.template.json"
+$ModuleToFunctionsDeploymentFilename = "module_to_functions_deployment.template.json"
 $DirectMethodModuleToModuleDeploymentFilename = "dm_module_to_module_deployment.json"
+$TwinTestFilename = "twin_test_tempSensor.json"
 
 $IoTEdgeQuickstartArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\IoTEdgeQuickstart\$Architecture"
 $LeafDeviceArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\LeafDevice\$Architecture"
 $IoTEdgedArtifactFolder = Join-Path $E2ETestFolder "artifacts\iotedged-windows"
 $PackagesArtifactFolder = Join-Path $E2ETestFolder "artifacts\packages"
 $DeploymentFilesFolder = Join-Path $E2ETestFolder "artifacts\core-windows\e2e_deployment_files"
-$ModuleToModuleDeploymentArtifactsFilePath = Join-Path $DeploymentFilesFolder $ModuleToModuleDeploymentFilename
-$DirectMethodModuleToModuleDeploymentArtifactsFilePath = Join-Path $DeploymentFilesFolder $DirectMethodModuleToModuleDeploymentFilename
+$TestFileFolder = Join-Path $E2ETestFolder "artifacts\core-windows\e2e_test_files"
+$ModuleToModuleDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $ModuleToModuleDeploymentFilename
+$ModuleToFunctionDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $ModuleToFunctionsDeploymentFilename
+$TwinTestFileArtifactFilePath = Join-Path $TestFileFolder $TwinTestFilename
+$DirectMethodModuleToModuleDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $DirectMethodModuleToModuleDeploymentFilename
 
 $TestWorkingFolder = Join-Path $E2ETestFolder "working"
 $QuickstartWorkingFolder = (Join-Path $TestWorkingFolder "quickstart")

@@ -5,13 +5,20 @@ default_ca = CA_default
 
 [ CA_default ]
 # Directory and file locations.
-dir               = .
+dir               = $ENV::CERTIFICATE_OUTPUT_DIR
 certs             = $dir/certs
 crl_dir           = $dir/crl
 new_certs_dir     = $dir/newcerts
 database          = $dir/index.txt
 serial            = $dir/serial
 RANDFILE          = $dir/private/.rand
+# We enable this solely to facilitate non production and/or test automation environments.
+# This flag essentially allows the creation of certificates with the same subject name
+# (or distinguishing name DN). What this essentially boils down to is if a certificate
+# was created with a specific subject name it can be re-created and thus overwrites
+# the previous certificate and key. Without this openssl fails to re-create the certificate.
+# With this change, cert gen becomes more amenable to CRUD operations during test runs.
+unique_subject    = no
 
 # The root key and root certificate.
 private_key       = $dir/private/azure-iot-test-only.root.ca.key.pem
@@ -83,14 +90,14 @@ emailAddress_default            =
 [ v3_ca ]
 # Extensions for a typical CA.
 subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid:always,issuer
+authorityKeyIdentifier = keyid:always,issuer:always
 basicConstraints = critical, CA:true
 keyUsage = critical, digitalSignature, cRLSign, keyCertSign
 
 [ v3_intermediate_ca ]
 # Extensions for a typical intermediate CA.
 subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid:always,issuer
+authorityKeyIdentifier = keyid:always,issuer:always
 basicConstraints = critical, CA:true
 keyUsage = critical, digitalSignature, cRLSign, keyCertSign
 
@@ -100,7 +107,7 @@ basicConstraints = CA:FALSE
 nsCertType = client, email
 nsComment = "OpenSSL Generated Client Certificate"
 subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid,issuer
+authorityKeyIdentifier = keyid:always,issuer:always
 keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment
 extendedKeyUsage = clientAuth, emailProtection
 
@@ -110,7 +117,7 @@ basicConstraints = CA:FALSE
 nsCertType = server
 nsComment = "OpenSSL Generated Server Certificate"
 subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid,issuer:always
+authorityKeyIdentifier = keyid:always,issuer:always
 keyUsage = critical, digitalSignature, keyEncipherment
 extendedKeyUsage = serverAuth
 

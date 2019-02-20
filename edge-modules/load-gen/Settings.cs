@@ -12,7 +12,7 @@ namespace LoadGen
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     public class Settings
     {
-        static readonly Lazy<Settings> defaultSettings = new Lazy<Settings>(
+        static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
             () =>
             {
                 IConfiguration configuration = new ConfigurationBuilder()
@@ -46,10 +46,7 @@ namespace LoadGen
             this.OutputName = outputName;
         }
 
-        public static Settings Current
-        {
-            get { return defaultSettings.Value; }
-        }
+        public static Settings Current => DefaultSettings.Value;
 
         public TimeSpan MessageFrequency { get; }
 

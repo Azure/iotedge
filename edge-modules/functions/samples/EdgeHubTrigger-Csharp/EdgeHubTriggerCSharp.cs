@@ -33,7 +33,7 @@ namespace Functions.Samples
                 }
 
                 filteredMessage.Properties.Add("MessageType", "Alert");
-                await output.AddAsync(filteredMessage).ConfigureAwait(false);
+                await output.AddAsync(filteredMessage);
             }
         }
 

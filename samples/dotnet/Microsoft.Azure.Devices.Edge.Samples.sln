@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.168
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDownstreamDevice", "EdgeDownstreamDevice\EdgeDownstreamDevice.csproj", "{5DF80137-0A95-4B09-89F8-2105310D3D8B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		CheckInBuild|Any CPU = CheckInBuild|Any CPU
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5DF80137-0A95-4B09-89F8-2105310D3D8B}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{5DF80137-0A95-4B09-89F8-2105310D3D8B}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{5DF80137-0A95-4B09-89F8-2105310D3D8B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5DF80137-0A95-4B09-89F8-2105310D3D8B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5DF80137-0A95-4B09-89F8-2105310D3D8B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5DF80137-0A95-4B09-89F8-2105310D3D8B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D76838A6-A1D2-4F9E-B7A9-6725D97DBB6D}
+	EndGlobalSection
+EndGlobal

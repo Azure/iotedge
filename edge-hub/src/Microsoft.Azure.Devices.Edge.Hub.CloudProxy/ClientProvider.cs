@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}. CreateFromEnvironment supports only ModuleIdentity");
             }
 
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings).ConfigureAwait(false);
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
             return new ModuleClientWrapper(moduleClient);
         }
 
