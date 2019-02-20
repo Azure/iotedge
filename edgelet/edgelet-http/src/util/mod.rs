@@ -217,6 +217,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(windows, ignore)] // TODO: remove when windows build servers are upgraded to RS5
     fn test_pid() {
         let pair = socket_pair();
         assert_eq!(pair.a.pid().unwrap(), pair.b.pid().unwrap());
