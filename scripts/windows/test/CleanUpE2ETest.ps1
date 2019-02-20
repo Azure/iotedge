@@ -23,7 +23,7 @@ try {
 
 . $SecurityDaemonInstallScriptPath
 Write-Host "Uninstall iotedged"
-Uninstall-SecurityDaemon -Force -DeleteConfig -DeleteMobyDataRoot
+Uninstall-SecurityDaemon -Force
 
 Write-Host "Remove nat VM switch"
 Remove-VMSwitch -Force 'nat' -ErrorAction Ignore
