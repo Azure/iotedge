@@ -29,6 +29,8 @@ use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 use error::{Error, ErrorKind, Result};
 use module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
 
+type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
+
 const WAIT_BEFORE_KILL_SECONDS: i32 = 10;
 
 static LABEL_KEY: &str = "net.azure-devices.edge.owner";
@@ -187,6 +189,17 @@ impl ModuleRegistry for DockerModuleRuntime {
     }
 }
 
+fn parse_get_response<'de, D>(resp: &InlineResponse200) -> std::result::Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let name = resp
+        .name()
+        .map(ToOwned::to_owned)
+        .ok_or_else(|| serde::de::Error::missing_field("Name"))?;
+    Ok(name)
+}
+
 impl ModuleRuntime for DockerModuleRuntime {
     type Error = Error;
     type Config = DockerConfig;
@@ -325,17 +338,6 @@ impl ModuleRuntime for DockerModuleRuntime {
     }
 
     fn get(&self, id: &str) -> Self::GetFuture {
-        fn parse_response<'de, D>(resp: &InlineResponse200) -> std::result::Result<String, D::Error>
-        where
-            D: serde::Deserializer<'de>,
-        {
-            let name = resp
-                .name()
-                .map(ToOwned::to_owned)
-                .ok_or_else(|| serde::de::Error::missing_field("Name"))?;
-            Ok(name)
-        }
-
         debug!("Getting module {}...", id);
 
         let id = id.to_string();
@@ -354,9 +356,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .container_inspect(&id, false)
                 .then(|result| match result {
                     Ok(container) => {
-                        let name = parse_response::<
-                            &mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>,
-                        >(&container)
+                        let name = parse_get_response::<Deserializer>(&container)
                         .with_context(|_| {
                             ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
                         })?;
@@ -719,9 +719,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .container_top(&id, "")
                 .then(|result| match result {
                     Ok(resp) => {
-                        let p = parse_response::<
-                            &mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>,
-                        >(&resp)
+                        let p = parse_response::<Deserializer>(&resp)
                         .with_context(|_| {
                             ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.clone()))
                         })?;
@@ -1313,6 +1311,24 @@ mod tests {
             .unwrap()
             .block_on(task)
             .unwrap();
+    }
+
+    #[test]
+    fn parse_get_response_returns_the_name() {
+        let response = InlineResponse200::new()
+            .with_name("hello".to_string());
+        let name = parse_get_response::<Deserializer>(&response);
+        assert!(name.is_ok());
+        assert_eq!("hello".to_string(), name.unwrap());
+    }
+
+    #[test]
+    fn parse_get_response_without_name_returns_error() {
+        // serde::de::Error::missing_field("Name")
+        let response = InlineResponse200::new();
+        let name = parse_get_response::<Deserializer>(&response);
+        assert!(name.is_err());
+        assert!(format!("{}", name.unwrap_err()).starts_with("missing field `Name`"));
     }
 
     struct TestConfig;
