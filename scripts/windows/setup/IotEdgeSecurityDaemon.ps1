@@ -68,11 +68,6 @@ PS> Initialize-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -
 .EXAMPLE
 
 PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
-
-
-.EXAMPLE
-
-PS> Initialize-IoTEdge -ExistingConfig -ContainerOs Windows
 #>
 function Initialize-IoTEdge {
     [CmdletBinding(DefaultParameterSetName = 'Manual')]
@@ -84,10 +79,6 @@ function Initialize-IoTEdge {
         # Specified the daemon will be configured using DPS, using a scope ID and registration ID.
         [Parameter(ParameterSetName = 'DPS')]
         [Switch] $Dps,
-
-        # Specified the daemon will be configured to use an existing config.yaml
-        [Parameter(ParameterSetName = 'ExistingConfig')]
-        [Switch] $ExistingConfig,
 
         # The device connection string.
         [Parameter(Mandatory = $true, ParameterSetName = 'Manual')]
@@ -109,18 +100,12 @@ function Initialize-IoTEdge {
         [ContainerOs] $ContainerOs = 'Windows',
 
         # IoT Edge Agent image to pull for the initial configuration.
-        [Parameter(ParameterSetName = 'Manual')]
-        [Parameter(ParameterSetName = 'DPS')]
         [String] $AgentImage,
 
         # Username used to access the container registry and pull the IoT Edge Agent image.
-        [Parameter(ParameterSetName = 'Manual')]
-        [Parameter(ParameterSetName = 'DPS')]
         [String] $Username,
 
         # Password used to access the container registry and pull the IoT Edge Agent image.
-        [Parameter(ParameterSetName = 'Manual')]
-        [Parameter(ParameterSetName = 'DPS')]
         [SecureString] $Password
     )
 
@@ -148,44 +133,33 @@ function Initialize-IoTEdge {
     }
 
     $configPath = Join-Path -Path $EdgeDataDirectory -ChildPath 'config.yaml'
-    if ($ExistingConfig -and (-not (Test-Path $configPath))) {
-        Write-HostRed
-        Write-HostRed "$configPath was not found."
-        return
-    }
-
-    if ((-not $ExistingConfig) -and (Test-Path $configPath)) {
+    if (Test-Path $configPath) {
         Write-HostRed
         Write-HostRed "$configPath already exists."
         Write-HostRed (
-            'Delete it using "Uninstall-IoTEdge -Force -DeleteConfig" and then ' +
+            'Delete it using "Uninstall-IoTEdge -Force" and then ' +
             're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
         return
     }
 
     # config.yaml
-    if ($ExistingConfig) {
-        Write-HostGreen 'Using existing config.yaml'
+    Write-Host 'Generating config.yaml...'
+
+    if (-not (Test-Path $EdgeDataDirectory)) {
+        New-Item -Path $EdgeDataDirectory -ItemType 'Directory'
+    }
+    Copy-Item -Path (Join-Path -Path $EdgeInstallDirectory -ChildPath 'config.yaml') -Destination $configPath
+
+    Set-ProvisioningMode
+    Set-AgentImage
+    Set-Hostname
+    if ($ContainerOs -eq 'Linux') {
+        Set-GatewayAddress
     }
     else {
-        Write-Host 'Generating config.yaml...'
-
-        if (-not (Test-Path $EdgeDataDirectory)) {
-            New-Item -Path $EdgeDataDirectory -ItemType 'Directory'
-        }
-        Copy-Item -Path (Join-Path -Path $EdgeInstallDirectory -ChildPath 'config.yaml') -Destination $configPath
-
-        Set-ProvisioningMode
-        Set-AgentImage
-        Set-Hostname
-        if ($ContainerOs -eq 'Linux') {
-            Set-GatewayAddress
-        }
-        else {
-            Set-CorrectProgramData
-        }
-        Set-MobyEngineParameters
+        Set-CorrectProgramData
     }
+    Set-MobyEngineParameters
 
     # Start services
     Set-SystemPath
@@ -350,11 +324,6 @@ PS> Install-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -Con
 .EXAMPLE
 
 PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
-
-
-.EXAMPLE
-
-PS> Install-IoTEdge -ExistingConfig -ContainerOs Windows
 #>
 function Install-IoTEdge {
     [CmdletBinding(DefaultParameterSetName = 'Manual')]
@@ -366,10 +335,6 @@ function Install-IoTEdge {
         # Specified the daemon will be configured using DPS, using a scope ID and registration ID.
         [Parameter(ParameterSetName = 'DPS')]
         [Switch] $Dps,
-
-        # Specified the daemon will be configured to use an existing config.yaml
-        [Parameter(ParameterSetName = 'ExistingConfig')]
-        [Switch] $ExistingConfig,
 
         # The device connection string.
         [Parameter(Mandatory = $true, ParameterSetName = 'Manual')]
@@ -439,7 +404,6 @@ function Install-IoTEdge {
 
     if ($Manual) { $Params["-Manual"] = $true }
     if ($Dps) { $Params["-Dps"] = $true }
-    if ($ExistingConfig) { $Params["-ExistingConfig"] = $true }
     if ($DeviceConnectionString) { $Params["-DeviceConnectionString"] = $DeviceConnectionString }
     if ($ScopeId) { $Params["-ScopeId"] = $ScopeId }
     if ($RegistrationId) { $Params["-RegistrationId"] = $RegistrationId }
@@ -458,9 +422,7 @@ Uninstalls the IoT Edge Security Daemon and its dependencies.
 
 .DESCRIPTION
 
-By default this cmdlet does not delete the config.yaml and the Moby Engine data root (for -ContainerOs 'Windows' installs),
-so that you can re-install the daemon using "Deploy-IoTEdge" and "Initialize-IoTEdge -ExistingConfig".
-To delete these as well, specify the -DeleteConfig and -DeleteMobyDataRoot flags.
+This cmdlet will delete the config.yaml and the Moby Engine data root (for -ContainerOs 'Windows' installs).
 
 
 .INPUTS
@@ -480,22 +442,11 @@ PS> Uninstall-IoTEdge
 
 .EXAMPLE
 
-PS> Uninstall-IoTEdge -DeleteConfig -DeleteMobyDataRoot
-
-
-.EXAMPLE
-
 PS> Uninstall-IoTEdge -Force
 #>
 function Uninstall-IoTEdge {
     [CmdletBinding()]
     param (
-        # If set, the config.yaml will also be deleted.
-        [Switch] $DeleteConfig,
-
-        # If set, the Moby Engine data root will also be deleted. This directory is only created for -ContainerOs 'Windows' installs.
-        [Switch] $DeleteMobyDataRoot,
-
         # Forces the uninstallation in case the previous install was only partially successful.
         [Switch] $Force,
 
@@ -593,7 +544,7 @@ function Install-Packages(
 
         if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
             Write-HostRed
-            Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run "Uninstall-IoTEdge -DeleteMobyDataRoot" first.'
+            Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run "Uninstall-IoTEdge" first.'
             return
         }
     }
@@ -973,16 +924,7 @@ function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
 Function Remove-SecurityDaemonDirectory([string] $Path)
 {
     Write-Host "Deleting data directory '$Path'..."
-    if (-not $DeleteConfig) {
-        Write-Host 'Not deleting config.yaml since -DeleteConfig was not specified.'
-    }
-
-    if ($DeleteConfig) {
-        Remove-Item -Recurse $Path -ErrorAction SilentlyContinue -ErrorVariable cmdErr
-    }
-    else {
-        Remove-Item -Recurse $Path -Exclude 'config.yaml' -ErrorAction SilentlyContinue -ErrorVariable cmdErr
-    }
+    Remove-Item -Recurse $Path -ErrorAction SilentlyContinue -ErrorVariable cmdErr
     if ($?) {
         Write-Verbose "Deleted data directory '$Path'"
     }
@@ -1024,15 +966,6 @@ function Remove-IoTEdgeResources([bool] $LegacyInstaller) {
         Remove-SecurityDaemonDirectory $LegacyEdgeInstallDirectory
     }
     Remove-SecurityDaemonDirectory $EdgeDataDirectory
-    $oldConfig = Join-Path -Path $LegacyEdgeInstallDirectory -ChildPath 'config.yaml'
-    if (($LegacyEdgeInstallDirectory -ne $EdgeDataDirectory) -and
-        (-not $DeleteConfig) -and
-        (Test-Path $oldConfig)) {
-        if (-not (Test-Path $EdgeDataDirectory)) {
-            New-Item -Type Directory -Path $EdgeDataDirectory
-        }
-        Move-Item -Path $oldConfig -Destination $EdgeDataDirectory
-    }
 
     if (Test-Path $LegacyEdgeEventLogInstallDirectory) {
         Remove-Item -Recurse $LegacyEdgeEventLogInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
@@ -1068,23 +1001,18 @@ function Remove-IoTEdgeResources([bool] $LegacyInstaller) {
         $existingMobyInstallations = @()
     }
 
-    if ($DeleteMobyDataRoot) {
-        foreach ($root in $existingMobyDataRoots | ?{ Test-Path $_ }) {
-            try {
-                Write-Host "Deleting Moby data root directory '$root'..."
-                Delete-Directory $root
-                Write-Verbose "Deleted Moby data root directory '$root'"
-            }
-            catch {
-                Write-Verbose "$_"
-                Write-HostRed ("Could not delete Moby data root directory '$root'. Please reboot " +
-                    'your device and run "Uninstall-IoTEdge" again with "-Force".')
-                $success = $false
-            }
+    foreach ($root in $existingMobyDataRoots | ?{ Test-Path $_ }) {
+        try {
+            Write-Host "Deleting Moby data root directory '$root'..."
+            Delete-Directory $root
+            Write-Verbose "Deleted Moby data root directory '$root'"
         }
-    }
-    else {
-        Write-Host 'Not deleting Moby data root directory since -DeleteMobyDataRoot was not specified.'
+        catch {
+            Write-Verbose "$_"
+            Write-HostRed ("Could not delete Moby data root directory '$root'. Please reboot " +
+                'your device and run "Uninstall-IoTEdge" again with "-Force".')
+            $success = $false
+        }
     }
 
     foreach ($install in $existingMobyInstallations | ?{ Test-Path $_ }) {
@@ -1113,12 +1041,17 @@ function Get-MachineEnvironmentVariable([string] $Name) {
 
 function Set-MachineEnvironmentVariable([string] $Name, [string] $Value) {
     # Equivalent to "[System.Environment]::SetEnvironmentVariable($Name, $Value, [System.EnvironmentVariableTarget]::Machine)"
-    # but IoT Core doesn't have this overload
+    # but IoT Core doesn't have this overload; however, the direct registry route requires a reboot to make it available everywhere
 
-    Set-ItemProperty `
-        -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' `
-        -Name $Name `
-        -Value $Value
+    if (Test-IotCore) {
+        Set-ItemProperty `
+            -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' `
+            -Name $Name `
+            -Value $Value
+    }
+    else {
+        [System.Environment]::SetEnvironmentVariable($Name, $Value, [System.EnvironmentVariableTarget]::Machine)
+    }
 }
 
 function Remove-MachineEnvironmentVariable([string] $Name) {
@@ -1483,8 +1416,7 @@ function Stop-EdgeContainer([string] $Name = '') {
 
         $label = $inspectResult.Config.Labels | Get-Member -MemberType NoteProperty -Name 'net.azure-devices.edge.owner' | %{ $inspectResult.Config.Labels | Select-Object -ExpandProperty $_.Name }
 
-        if (($label -eq 'Microsoft.Azure.Devices.Edge.Agent') -or
-            $DeleteMobyDataRoot) {
+        if (($label -eq 'Microsoft.Azure.Devices.Edge.Agent')) {
             if (($inspectResult.Name -eq '/edgeAgent') -or ($inspectResult.Name -eq '/edgeHub')) {
                 Invoke-Native "$dockerExe rm --force ""$containerId""" -Backoff
                 Write-Verbose "Stopped and deleted container $($inspectResult.Name)"
@@ -1513,7 +1445,7 @@ function Remove-IotEdgeContainers {
     Stop-EdgeContainer -Name '/edgeAgent'
     Stop-EdgeContainer
 
-    if ($DeleteMobyDataRoot) {
+    if ($ContainerOs -eq "Windows") {
         try {
             $dockerExe = Get-DockerCommandPrefix
             Invoke-Native "$dockerExe container prune -f"
