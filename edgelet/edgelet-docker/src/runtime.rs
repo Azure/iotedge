@@ -200,6 +200,48 @@ where
     Ok(name)
 }
 
+fn parse_top_response<'de, D>(
+    resp: &InlineResponse2001,
+) -> std::result::Result<Vec<Pid>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let titles = resp
+        .titles()
+        .ok_or_else(|| serde::de::Error::missing_field("Titles"))?;
+    let pid_index = titles
+        .iter()
+        .position(|ref s| s.as_str() == "PID")
+        .ok_or_else(|| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Seq,
+                &"array including the column title 'PID'",
+            )
+        })?;
+    let processes = resp
+        .processes()
+        .ok_or_else(|| serde::de::Error::missing_field("Processes"))?;
+    let pids: std::result::Result<_, _> = processes
+        .iter()
+        .map(|ref p| {
+            let val = p.get(pid_index).ok_or_else(|| {
+                serde::de::Error::invalid_length(
+                    p.len(),
+                    &&*format!("at least {} columns", pid_index + 1),
+                )
+            })?;
+            let pid = val.parse::<i32>().map_err(|_| {
+                serde::de::Error::invalid_value(
+                    serde::de::Unexpected::Str(val),
+                    &"a process ID number",
+                )
+            })?;
+            Ok(Pid::Value(pid))
+        })
+        .collect();
+    Ok(pids?)
+}
+
 impl ModuleRuntime for DockerModuleRuntime {
     type Error = Error;
     type Config = DockerConfig;
@@ -670,48 +712,6 @@ impl ModuleRuntime for DockerModuleRuntime {
     }
 
     fn top(&self, id: &str) -> Self::TopFuture {
-        fn parse_response<'de, D>(
-            resp: &InlineResponse2001,
-        ) -> std::result::Result<Vec<Pid>, D::Error>
-        where
-            D: serde::Deserializer<'de>,
-        {
-            let titles = resp
-                .titles()
-                .ok_or_else(|| serde::de::Error::missing_field("Titles"))?;
-            let pid_index = titles
-                .iter()
-                .position(|ref s| s.as_str() == "PID")
-                .ok_or_else(|| {
-                    serde::de::Error::invalid_value(
-                        serde::de::Unexpected::Seq,
-                        &"array including the column title 'PID'",
-                    )
-                })?;
-            let processes = resp
-                .processes()
-                .ok_or_else(|| serde::de::Error::missing_field("Processes"))?;
-            let pids: std::result::Result<_, _> = processes
-                .iter()
-                .map(|ref p| {
-                    let val = p.get(pid_index).ok_or_else(|| {
-                        serde::de::Error::invalid_length(
-                            p.len(),
-                            &&*format!("at least {} columns", pid_index + 1),
-                        )
-                    })?;
-                    let pid = val.parse::<i32>().map_err(|_| {
-                        serde::de::Error::invalid_value(
-                            serde::de::Unexpected::Str(val),
-                            &"a process ID number",
-                        )
-                    })?;
-                    Ok(Pid::Value(pid))
-                })
-                .collect();
-            Ok(pids?)
-        }
-
         let id = id.to_string();
         Box::new(
             self.client
@@ -719,7 +719,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .container_top(&id, "")
                 .then(|result| match result {
                     Ok(resp) => {
-                        let p = parse_response::<Deserializer>(&resp)
+                        let p = parse_top_response::<Deserializer>(&resp)
                         .with_context(|_| {
                             ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.clone()))
                         })?;
@@ -1323,12 +1323,68 @@ mod tests {
     }
 
     #[test]
-    fn parse_get_response_without_name_returns_error() {
-        // serde::de::Error::missing_field("Name")
+    fn parse_get_response_returns_error_when_name_is_missing() {
         let response = InlineResponse200::new();
         let name = parse_get_response::<Deserializer>(&response);
         assert!(name.is_err());
-        assert!(format!("{}", name.unwrap_err()).starts_with("missing field `Name`"));
+        assert_eq!("missing field `Name`", format!("{}", name.unwrap_err()));
+    }
+
+    #[test]
+    fn parse_top_response_returns_pid_array() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["PID".to_string()])
+            .with_processes(vec![vec!["123".to_string()]]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_ok());
+        assert_eq!(vec![Pid::Value(123)], pids.unwrap());
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_titles_is_missing() {
+        let response = InlineResponse2001::new()
+            .with_processes(vec![vec!["123".to_string()]]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_err());
+        assert_eq!("missing field `Titles`", format!("{}", pids.unwrap_err()));
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_pid_title_is_missing() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["Command".to_string()]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_err());
+        assert_eq!("invalid value: sequence, expected array including the column title \'PID\'", format!("{}", pids.unwrap_err()));
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_processes_is_missing() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["PID".to_string()]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_err());
+        assert_eq!("missing field `Processes`", format!("{}", pids.unwrap_err()));
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_process_pid_is_missing() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["Command".to_string(), "PID".to_string()])
+            .with_processes(vec![vec!["sh".to_string()]]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_err());
+        assert_eq!("invalid length 1, expected at least 2 columns", format!("{}", pids.unwrap_err()));
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_process_pid_is_not_i32() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["PID".to_string()])
+            .with_processes(vec![vec!["xyz".to_string()]]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_err());
+        assert_eq!("invalid value: string \"xyz\", expected a process ID number", format!("{}", pids.unwrap_err()));
     }
 
     struct TestConfig;
