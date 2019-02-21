@@ -160,6 +160,7 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     type Logs = EmptyBody<Self::Error>;
 
     type CreateFuture = FutureResult<(), Self::Error>;
+    type GetFuture = FutureResult<(Self::Module, ModuleRuntimeState), Self::Error>;
     type InitFuture = FutureResult<(), Self::Error>;
     type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
     type ListWithDetailsStream =
@@ -171,6 +172,7 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     type StopFuture = FutureResult<(), Self::Error>;
     type SystemInfoFuture = FutureResult<SystemInfo, Self::Error>;
     type RemoveAllFuture = FutureResult<(), Self::Error>;
+    type TopFuture = FutureResult<ModuleTop, Self::Error>;
 
     fn system_info(&self) -> Self::SystemInfoFuture {
         match self.module {
@@ -192,6 +194,13 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         match self.module {
             Ok(_) => future::ok(()),
+            Err(ref e) => future::err(e.clone()),
+        }
+    }
+
+    fn get(&self, _id: &str) -> Self::GetFuture {
+        match self.module {
+            Ok(ref m) => future::ok((m.clone(), ModuleRuntimeState::default())),
             Err(ref e) => future::err(e.clone()),
         }
     }
@@ -254,5 +263,18 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
 
     fn remove_all(&self) -> Self::RemoveAllFuture {
         future::ok(())
+    }
+
+    fn top(&self, id: &str) -> Self::TopFuture {
+        match self.module {
+            Ok(ref m) => {
+                assert_eq!(id, m.name());
+                match m.state {
+                    Ok(ref s) => future::ok(ModuleTop::new(m.name.clone(), vec![s.pid()])),
+                    Err(ref e) => future::err(e.clone()),
+                }
+            }
+            Err(ref e) => future::err(e.clone()),
+        }
     }
 }
