@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class RequestManager : IRequestManager
     {
@@ -17,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         {
             try
             {
+                Preconditions.CheckNonWhiteSpace(request, nameof(request));                
                 if (!RequestHandlers.TryGetValue(request, out IRequestHandler requestHandler))
                 {
                     string supportedCommands = string.Join(",", RequestHandlers.Keys);

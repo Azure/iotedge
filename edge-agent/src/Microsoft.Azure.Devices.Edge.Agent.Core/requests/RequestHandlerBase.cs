@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     abstract class RequestHandlerBase<TU, TV> : IRequestHandler
         where TU : class
@@ -11,17 +12,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     {
         public async Task<string> HandleRequest(string payloadJson)
         {
+            TU payload = this.ParsePayload(payloadJson);
+            TV result = await this.HandleRequestInternal(payload);
+            string responseJson = result?.ToJson() ?? string.Empty;
+            return responseJson;
+        }
+
+        protected virtual TU ParsePayload(string payloadJson)
+        {
+            Preconditions.CheckNonWhiteSpace(payloadJson, nameof(payloadJson));
             try
             {
-                TU payload = payloadJson?.FromJson<TU>();
-                TV result = await this.HandleRequestInternal(payload);
-                string responseJson = result?.ToJson() ?? string.Empty;
-                return responseJson;
+                return payloadJson.FromJson<TU>();
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Console.WriteLine($"Error handling request - {e}");
-                return string.Empty;
+                throw new ArgumentException($"Error parsing command payload because of error - {ex.Message}");
             }
         }
 
