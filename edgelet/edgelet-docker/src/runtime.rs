@@ -200,9 +200,7 @@ where
     Ok(name)
 }
 
-fn parse_top_response<'de, D>(
-    resp: &InlineResponse2001,
-) -> std::result::Result<Vec<Pid>, D::Error>
+fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> std::result::Result<Vec<Pid>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -398,10 +396,10 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .container_inspect(&id, false)
                 .then(|result| match result {
                     Ok(container) => {
-                        let name = parse_get_response::<Deserializer>(&container)
-                        .with_context(|_| {
-                            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
-                        })?;
+                        let name =
+                            parse_get_response::<Deserializer>(&container).with_context(|_| {
+                                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
+                            })?;
                         let config =
                             DockerConfig::new(name.clone(), ContainerCreateBody::new(), None)
                                 .with_context(|_| {
@@ -719,8 +717,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .container_top(&id, "")
                 .then(|result| match result {
                     Ok(resp) => {
-                        let p = parse_top_response::<Deserializer>(&resp)
-                        .with_context(|_| {
+                        let p = parse_top_response::<Deserializer>(&resp).with_context(|_| {
                             ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.clone()))
                         })?;
                         Ok(ModuleTop::new(id, p))
@@ -1315,8 +1312,7 @@ mod tests {
 
     #[test]
     fn parse_get_response_returns_the_name() {
-        let response = InlineResponse200::new()
-            .with_name("hello".to_string());
+        let response = InlineResponse200::new().with_name("hello".to_string());
         let name = parse_get_response::<Deserializer>(&response);
         assert!(name.is_ok());
         assert_eq!("hello".to_string(), name.unwrap());
@@ -1342,8 +1338,7 @@ mod tests {
 
     #[test]
     fn parse_top_response_returns_error_when_titles_is_missing() {
-        let response = InlineResponse2001::new()
-            .with_processes(vec![vec!["123".to_string()]]);
+        let response = InlineResponse2001::new().with_processes(vec![vec!["123".to_string()]]);
         let pids = parse_top_response::<Deserializer>(&response);
         assert!(pids.is_err());
         assert_eq!("missing field `Titles`", format!("{}", pids.unwrap_err()));
@@ -1351,20 +1346,24 @@ mod tests {
 
     #[test]
     fn parse_top_response_returns_error_when_pid_title_is_missing() {
-        let response = InlineResponse2001::new()
-            .with_titles(vec!["Command".to_string()]);
+        let response = InlineResponse2001::new().with_titles(vec!["Command".to_string()]);
         let pids = parse_top_response::<Deserializer>(&response);
         assert!(pids.is_err());
-        assert_eq!("invalid value: sequence, expected array including the column title \'PID\'", format!("{}", pids.unwrap_err()));
+        assert_eq!(
+            "invalid value: sequence, expected array including the column title \'PID\'",
+            format!("{}", pids.unwrap_err())
+        );
     }
 
     #[test]
     fn parse_top_response_returns_error_when_processes_is_missing() {
-        let response = InlineResponse2001::new()
-            .with_titles(vec!["PID".to_string()]);
+        let response = InlineResponse2001::new().with_titles(vec!["PID".to_string()]);
         let pids = parse_top_response::<Deserializer>(&response);
         assert!(pids.is_err());
-        assert_eq!("missing field `Processes`", format!("{}", pids.unwrap_err()));
+        assert_eq!(
+            "missing field `Processes`",
+            format!("{}", pids.unwrap_err())
+        );
     }
 
     #[test]
@@ -1374,7 +1373,10 @@ mod tests {
             .with_processes(vec![vec!["sh".to_string()]]);
         let pids = parse_top_response::<Deserializer>(&response);
         assert!(pids.is_err());
-        assert_eq!("invalid length 1, expected at least 2 columns", format!("{}", pids.unwrap_err()));
+        assert_eq!(
+            "invalid length 1, expected at least 2 columns",
+            format!("{}", pids.unwrap_err())
+        );
     }
 
     #[test]
@@ -1384,7 +1386,10 @@ mod tests {
             .with_processes(vec![vec!["xyz".to_string()]]);
         let pids = parse_top_response::<Deserializer>(&response);
         assert!(pids.is_err());
-        assert_eq!("invalid value: string \"xyz\", expected a process ID number", format!("{}", pids.unwrap_err()));
+        assert_eq!(
+            "invalid value: string \"xyz\", expected a process ID number",
+            format!("{}", pids.unwrap_err())
+        );
     }
 
     struct TestConfig;
