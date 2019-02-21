@@ -619,7 +619,7 @@ function Setup-Environment([string] $ContainerOs) {
                 $false
             }
             else {
-                Write-HostRed ('Linux containers on Windows can be used for development and testing, ' +
+                Write-Warning ('Linux containers on Windows can be used for development and testing, ' +
                     'but not supported in production IoT Edge deployments. See aka.ms/iotedge-platsup for more details.')
                 $true
             }
