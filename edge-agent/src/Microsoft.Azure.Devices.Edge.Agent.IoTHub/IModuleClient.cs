@@ -12,6 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         Task SetMethodHandlerAsync(string methodName, MethodCallback callback);
 
+        Task SetDefaultMethodHandlerAsync(MethodCallback callback);
+
         Task<Twin> GetTwinAsync();
 
         Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties);
