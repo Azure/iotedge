@@ -1,0 +1,17 @@
+{
+  "profiles": {
+    "EdgeDownstreamDevice": {
+      "commandName": "Project",
+        "environmentVariables": {
+            "DEVICE_CONNECTION_STRING": "",
+            "CA_CERTIFICATE_PATH": "",
+            "MESSAGE_COUNT": "10",
+            "DEVICE_X509_CERTIFICATE_PFX_PATH": "",
+            "DEVICE_X509_CERTIFICATE_PFX_PASSWORD": "",
+            "DEVICE_X509_CERTIFICATE_PEM_PATH": "",
+            "DEVICE_X509_CERTIFICATE_KEY_PEM_PATH": "",
+            "DEVICE_ID": ""
+        }
+    }
+  }
+}
