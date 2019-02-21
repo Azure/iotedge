@@ -213,7 +213,7 @@
                                             "examples": [
                                                 "FROM /* INTO $upstream"
                                             ],
-                                            "pattern": "^(?i)FROM\\s\/.*?(\\s|\\sWHERE\\s.*?\\s)INTO\\s(\\$upstream|BrokeredEndpoint\\(.*?\\))$"
+                                            "pattern": "^.+$"
                                         }
                                     }
                                 },
@@ -292,7 +292,7 @@
         "env": {
             "type": "object",
             "patternProperties": {
-                "^[^\\+#$\\s]+$": {
+                "^[^\\+#$\\s\\.]+$": {
                     "type": "object",
                     "required": [
                         "value"
@@ -303,7 +303,8 @@
                         }
                     }
                 }
-            }
+            },
+            "additionalProperties": false
         },
         "createOptions": {
             "type": "string",
