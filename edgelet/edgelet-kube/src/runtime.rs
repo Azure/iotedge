@@ -9,8 +9,8 @@ use crate::convert::{auth_to_image_pull_secret, pod_to_module, spec_to_deploymen
 use crate::error::{Error, ErrorKind, Result};
 use crate::module::KubeModule;
 use edgelet_core::{
-    LogOptions, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, RuntimeOperation,
-    SystemInfo,
+    LogOptions, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ModuleTop,
+    RuntimeOperation, SystemInfo,
 };
 use edgelet_docker::DockerConfig;
 use edgelet_utils::{ensure_not_empty_with_context, sanitize_dns_label};
@@ -274,6 +274,8 @@ where
     type Logs = Logs;
 
     type CreateFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type GetFuture =
+        Box<Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
     type InitFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
     type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
     type ListWithDetailsStream =
@@ -285,6 +287,7 @@ where
     type StopFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<Future<Item = SystemInfo, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type TopFuture = Box<Future<Item = ModuleTop, Error = Self::Error> + Send>;
 
     fn init(&self) -> Self::InitFuture {
         Box::new(future::ok(()))
@@ -349,6 +352,10 @@ where
         Box::new(f)
     }
 
+    fn get(&self, _id: &str) -> Self::GetFuture {
+        unimplemented!()
+    }
+
     fn start(&self, _id: &str) -> Self::StartFuture {
         Box::new(future::ok(()))
     }
@@ -411,6 +418,10 @@ where
 
     fn remove_all(&self) -> Self::RemoveAllFuture {
         Box::new(future::ok(()))
+    }
+
+    fn top(&self, id: &str) -> Self::TopFuture {
+        Box::new(future::ok(ModuleTop::new(id.to_string(), Vec::new())))
     }
 }
 
