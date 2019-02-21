@@ -10,6 +10,7 @@ use edgelet_utils::ensure_not_empty_with_context;
 
 use client::DockerClient;
 use config::DockerConfig;
+use docker::models::InlineResponse200State;
 use edgelet_core::pid::Pid;
 use edgelet_core::{Module, ModuleOperation, ModuleRuntimeState, ModuleStatus};
 use error::{Error, ErrorKind, Result};
@@ -45,6 +46,41 @@ fn status_from_exit_code(exit_code: Option<i64>) -> Option<ModuleStatus> {
     })
 }
 
+pub fn runtime_state(
+    id: Option<&str>,
+    response_state: Option<&InlineResponse200State>,
+) -> ModuleRuntimeState {
+    response_state.map_or_else(ModuleRuntimeState::default, |state| {
+        let status = state
+            .status()
+            .and_then(|status| match status {
+                "created" | "paused" | "restarting" => Some(ModuleStatus::Stopped),
+                "removing" | "dead" | "exited" => status_from_exit_code(state.exit_code()),
+                "running" => Some(ModuleStatus::Running),
+                _ => Some(ModuleStatus::Unknown),
+            })
+            .unwrap_or_else(|| ModuleStatus::Unknown);
+        ModuleRuntimeState::default()
+            .with_status(status)
+            .with_exit_code(state.exit_code())
+            .with_status_description(state.status().map(ToOwned::to_owned))
+            .with_started_at(
+                state
+                    .started_at()
+                    .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
+                    .and_then(|started_at| DateTime::from_str(started_at).ok()),
+            )
+            .with_finished_at(
+                state
+                    .finished_at()
+                    .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
+                    .and_then(|finished_at| DateTime::from_str(finished_at).ok()),
+            )
+            .with_image_id(id.map(ToOwned::to_owned))
+            .with_pid(state.pid().map_or(Pid::None, Pid::Value))
+    })
+}
+
 impl<C: 'static + Connect> Module for DockerModule<C> {
     type Config = DockerConfig;
     type Error = Error;
@@ -67,44 +103,7 @@ impl<C: 'static + Connect> Module for DockerModule<C> {
             self.client
                 .container_api()
                 .container_inspect(&self.name, false)
-                .map(|resp| {
-                    resp.state()
-                        .map_or_else(ModuleRuntimeState::default, |state| {
-                            let status = state
-                                .status()
-                                .and_then(|status| match status {
-                                    "created" | "paused" | "restarting" => {
-                                        Some(ModuleStatus::Stopped)
-                                    }
-                                    "removing" | "dead" | "exited" => {
-                                        status_from_exit_code(state.exit_code())
-                                    }
-                                    "running" => Some(ModuleStatus::Running),
-                                    _ => Some(ModuleStatus::Unknown),
-                                })
-                                .unwrap_or_else(|| ModuleStatus::Unknown);
-                            ModuleRuntimeState::default()
-                                .with_status(status)
-                                .with_exit_code(state.exit_code())
-                                .with_status_description(state.status().map(ToOwned::to_owned))
-                                .with_started_at(
-                                    state
-                                        .started_at()
-                                        .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
-                                        .and_then(|started_at| DateTime::from_str(started_at).ok()),
-                                )
-                                .with_finished_at(
-                                    state
-                                        .finished_at()
-                                        .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
-                                        .and_then(|finished_at| {
-                                            DateTime::from_str(finished_at).ok()
-                                        }),
-                                )
-                                .with_image_id(resp.id().map(ToOwned::to_owned))
-                                .with_pid(state.pid().map_or(Pid::None, Pid::Value))
-                        })
-                })
+                .map(|resp| runtime_state(resp.id(), resp.state()))
                 .map_err(|err| {
                     Error::from_docker_error(
                         err,
