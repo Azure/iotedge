@@ -9,6 +9,6 @@ RUN apt-get update && \
     apt-get install -y libsnappy1v5 && \
     rm -rf /var/lib/apt/lists/* \
     ln -s /lib/aarch64-linux-gnu/libdl.so.2 /usr/lib/arm-linux-gnueabihf/libdl.so && \
-    ln -s /lib/aarch64-linux-gnu/libc.so.6 /usr/lib/arm-linux-gnueabihf/libc.so && \
+    ln -s /lib/aarch64-linux-gnu/libc.so.6 /usr/lib/arm-linux-gnueabihf/libc.so
 
 COPY  librocksdb.so /usr/lib
