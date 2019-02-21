@@ -5,16 +5,15 @@
     .DESCRIPTION
         It is used to wrap all related steps to run E2E tests for Windows;
         it runs clean up, E2E test of given name, and print logs.
-    
+
         To get details about parameters, please run "Get-Help .\Run-E2ETest.ps1 -Parameter *"
         To find out what E2E tests are supported, just run "Get-Help .\Run-E2ETest.ps1 -Parameter TestName"
-        
+
         Please ensure that E2E test folder have below folders/files:
         - artifacts\core-windows: artifact from Image build.
         - artifacts\iotedged-windows: artifact from edgelet build.
         - artifacts\packages: contains packages of Moby docker engine, CLI and IoT Edge security daemon.
           Either artifacts\iotedged-windows or packages folder exists, which is used for IoT Edge security daemon installation.
-        - certs: contains CA certs for certificate-related testing.
 
     .PARAMETER E2ETestFolder
         Path of E2E test folder
@@ -27,7 +26,7 @@
 
     .PARAMETER TestName
         Name of E2E test to be run
-        Note: Valid values are: 
+        Note: Valid values are:
             "All", "DirectMethodAmqp", "DirectMethodMqtt", "QuickstartCerts", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway"
 
     .PARAMETER ContainerRegistryUserName
@@ -43,7 +42,20 @@
         Event hub connection string for receive D2C messages
 
     .EXAMPLE
-        .\Run-E2ETest.ps1 -E2ETestFolder "C:\Data\e2etests" -ReleaseLabel "Release-ARM-1" -ReleaseArtifactImageBuildNumber "20190101.1" -Architecture "x64" -TestName "TempSensor" -ContainerRegistryUsername "EdgeBuilds" -ContainerRegistryPassword "xxxx" -IoTHubConnectionString "xxxx" -EventHubConnectionString "xxxx"
+        .\Run-E2ETest.ps1
+            -E2ETestFolder "C:\Data\e2etests"
+            -ReleaseLabel "Release-ARM-1"
+            -ReleaseArtifactImageBuildNumber "20190101.1"
+            -Architecture "x64"
+            -TestName "TempSensor"
+            -ContainerRegistryUsername "EdgeBuilds"
+            -ContainerRegistryPassword "xxxx"
+            -IoTHubConnectionString "xxxx"
+            -EventHubConnectionString "xxxx"
+            -EdgeCertGenScriptDir "dir path"
+            -EdgeE2ERootCACertRSAFile "file path"
+            -EdgeE2ERootCAKeyRSAFile "file path"
+            -EdgeE2ETestRootCAPassword "xxxx"
 
     .NOTES
         This script is to make running E2E tests easier and centralize E2E test steps in 1 place for reusability.
@@ -77,6 +89,21 @@ Param (
 
     [ValidateNotNullOrEmpty()]
     [string] $EventHubConnectionString = $(Throw "Event hub connection string is required")
+
+    [ValidateNotNullOrEmpty()]
+    [ValidateScript({(Test-Path $_ -PathType Container)})]
+    [string] $EdgeCertGenScriptDir = $(Throw "Certificate generation script dir")
+
+    [ValidateNotNullOrEmpty()]
+    [ValidateScript({(Test-Path $_ -PathType Leaf)})]
+    [string] $EdgeE2ERootCACertRSAFile = $(Throw "Root certificate PEM formatted file")
+
+    [ValidateNotNullOrEmpty()]
+    [ValidateScript({(Test-Path $_ -PathType Leaf)})]
+    [string] $EdgeE2ERootCAKeyRSAFile = $(Throw "Root private key PEM formatted file")
+
+    [ValidateNotNullOrEmpty()]
+    [string] $EdgeE2ETestRootCAPassword = $(Throw "Root private key password")
 )
 
 Set-StrictMode -Version "Latest"
@@ -97,7 +124,7 @@ Function CleanUp
     PrintHighlightedMessage "Test Clean Up"
     Write-Host "Do IoT Edge Moby system prune"
 
-    Try 
+    Try
     {
         docker -H npipe:////./pipe/iotedge_moby_engine system prune -f
     }
@@ -121,17 +148,17 @@ Function GetArchitecture
 {
     $processorArchitecture = $ENV:PROCESSOR_ARCHITECTURE
     $Is64Bit = if ((Get-CimInstance -ClassName win32_operatingsystem).OSArchitecture.StartsWith("64")) { $True } Else { $False }
-    
+
     If ($processorArchitecture.StartsWith("AMD") -And $Is64Bit)
     {
         Return "x64"
     }
-    
+
     If ($processorArchitecture.StartsWith("ARM") -And -Not $Is64Bit)
     {
         Return "arm32v7"
     }
-    
+
     Throw "Unsupported processor architecture $processorArchitecture (64-bit: $Is64Bit)"
 }
 
@@ -253,7 +280,7 @@ Function PrintLogs
     Get-WinEvent -ea SilentlyContinue `
         -FilterHashtable @{ProviderName= "iotedged";
         LogName = "application"; StartTime = $testStartTime} |
-	    select TimeCreated, Message | 
+	    select TimeCreated, Message |
 	    sort-object @{Expression="TimeCreated";Descending=$false} |
         format-table -autosize -wrap | Out-Host
 
@@ -263,7 +290,7 @@ Function PrintLogs
     {
         Write-Host "EDGE AGENT LOGS"
         Invoke-Expression "$dockerCmd logs edgeAgent"
-    } 
+    }
     Catch
     {
         Write-Host "Exception caught when output Edge Agent logs"
@@ -273,7 +300,7 @@ Function PrintLogs
     {
         Write-Host "EDGE HUB LOGS"
         Invoke-Expression "$dockerCmd logs edgeHub"
-    } 
+    }
     Catch
     {
         Write-Host "Exception caught when output Edge Hub logs"
@@ -287,7 +314,7 @@ Function PrintLogs
         {
             Write-Host "TEMP SENSOR LOGS"
             Invoke-Expression "$dockerCmd logs tempSensor"
-        } 
+        }
         Catch
         {
             Write-Host "Exception caught when output Temp Sensor logs"
@@ -323,15 +350,15 @@ Function RunAllTests
 {
     $TestName = "DirectMethodAmqp"
     $lastTestExitCode = RunDirectMethodAmqpTest
-    
+
     $TestName = "DirectMethodMqtt"
     $testExitCode = RunDirectMethodMqttTest
     $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
-    
+
     $TestName = "QuickstartCerts"
     $testExitCode = RunQuickstartCertsTest
     $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
-    
+
     $TestName = "TempFilter"
     $testExitCode = RunTempFilterTest
     $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
@@ -339,15 +366,15 @@ Function RunAllTests
     $TestName = "TempFilterFunctions"
     $testExitCode = RunTempFilterFunctionsTest
     $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
-    
+
     $TestName = "TempSensor"
     $testExitCode = RunTempSensorTest
     $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
-    
+
     $TestName = "TransparentGateway"
     $testExitCode = RunTransparentGatewayTest
     $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
-    
+
     Return $lastTestExitCode
 }
 
@@ -359,7 +386,7 @@ Function RunDirectMethodAmqpTest
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-DMAmqp"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
-    
+
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
@@ -385,7 +412,7 @@ Function RunDirectMethodMqttTest
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-DMMqtt"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
-    
+
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
@@ -437,7 +464,7 @@ Function RunQuickstartCertsTest
         -ct "$caCertPath" `
         -ed "$env:computername" | Out-Host
     $testExitCode = $LastExitCode
-    
+
     PrintLogs $testStartAt $testExitCode
     Return $testExitCode
 }
@@ -450,7 +477,7 @@ Function RunTempFilterTest
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-tempFilter"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
-    
+
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
@@ -482,7 +509,7 @@ Function RunTempFilterFunctionsTest
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-tempFilterFunc"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
-    
+
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
@@ -533,8 +560,13 @@ Function RunTransparentGatewayTest
 
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-TransGW"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt."
+    PrintHighlightedMessage "Run transparent gateway test with -d ""$deviceId"" started at $testStartAt."
 
+    # dot source the certificate script
+    . $EdgeCertGenScriptDir\ca-certs.ps1
+    Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
+    $TrustedCACertificatePath="$EdgeCertGenScriptDir\certs\azure-iot-test-only.root.ca.cert.pem"
+    New-CACertsEdgeDevice $deviceId
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
         -d `"$deviceId`" ``
         -c `"$IoTHubConnectionString`" ``
@@ -546,29 +578,83 @@ Function RunTransparentGatewayTest
         -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         --leave-running=Core ``
         --no-verify ``
-        --device_ca_cert `"$DeviceCACertificatePath`" ``
-        --device_ca_pk `"$DeviceCAPrimaryKeyPath`" ``
+        --device_ca_cert `"$EdgeCertGenScriptDir\certs\iot-edge-device-${device_id}-full-chain.cert.pem`" ``
+        --device_ca_pk `"$EdgeCertGenScriptDir\private\iot-edge-device-${device_id}.key.pem`" ``
         --trusted_ca_certs `"$TrustedCACertificatePath`""
+
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
 
-    Write-Host "Run LeafDevice"
+    Write-Host "Run LeafDevice with SAS auth not in scope"
     &$LeafDeviceExeTestPath `
-        -d "${deviceId}-leaf" `
+        -d "$deviceId-sas-noscope-leaf" `
         -c "$IoTHubConnectionString" `
         -e "$EventHubConnectionString" `
         -ct "$TrustedCACertificatePath" `
         -ed "$env:computername" | Out-Host
     $testExitCode = $LastExitCode
-    
     PrintLogs $testStartAt $testExitCode
+
+    if (0 -ne $testExitCode)
+    {
+        Write-Host "Run LeafDevice with SAS auth in scope"
+        &$LeafDeviceExeTestPath `
+            -d "$deviceId-sas-inscope-leaf" `
+            -c "$IoTHubConnectionString" `
+            -e "$EventHubConnectionString" `
+            -ct "$TrustedCACertificatePath" `
+            -ed-id "$deviceId" `
+            -ed "$env:computername" | Out-Host
+        $testExitCode = $LastExitCode
+        PrintLogs $testStartAt $testExitCode
+    }
+
+    if (0 -ne $testExitCode)
+    {
+        $LeafDeviceId="$deviceId-x509ca-leaf"
+        Write-Host "Run LeafDevice with X.509 CA auth in scope"
+        New-CACertsDevice "${deviceId}-x509ca-leaf"
+        &$LeafDeviceExeTestPath `
+            -d "$LeafDeviceId" `
+            -c "$IoTHubConnectionString" `
+            -e "$EventHubConnectionString" `
+            -ct "$TrustedCACertificatePath" `
+            -ed-id "$deviceId" `
+            -cac "$EdgeCertGenScriptDir\certs\iot-device-${LeafDeviceId}-full-chain.cert.pem" ``
+            -cak "$EdgeCertGenScriptDir\private\iot-device-${LeafDeviceId}.key.pem" ``
+            -ed "$env:computername" | Out-Host
+        $testExitCode = $LastExitCode
+        PrintLogs $testStartAt $testExitCode
+    }
+
+    if (0 -ne $testExitCode)
+    {
+        $LeafDeviceId="$deviceId-x509th-leaf"
+        Write-Host "Run LeafDevice with X.509 thumbprint auth in scope"
+        New-CACertsDevice "$LeafDeviceId-pri"
+        New-CACertsDevice "$LeafDeviceId-sec"
+        &$LeafDeviceExeTestPath `
+            -d "$LeafDeviceId" `
+            -c "$IoTHubConnectionString" `
+            -e "$EventHubConnectionString" `
+            -ct "$TrustedCACertificatePath" `
+            -ed-id "$deviceId" `
+            -ctpc "$EdgeCertGenScriptDir\certs\iot-device-${LeafDeviceId}-pri-full-chain.cert.pem" ``
+            -ctpk "$EdgeCertGenScriptDir\private\iot-device-${LeafDeviceId}-pri.key.pem" ``
+            -ctsc "$EdgeCertGenScriptDir\certs\iot-device-${LeafDeviceId}-sec-full-chain.cert.pem" ``
+            -ctsk "$EdgeCertGenScriptDir\private\iot-device-${LeafDeviceId}-sec.key.pem" ``
+            -ed "$env:computername" | Out-Host
+        $testExitCode = $LastExitCode
+        PrintLogs $testStartAt $testExitCode
+    }
+
     Return $testExitCode
 }
 
 Function RunTest
 {
     $testExitCode = 0
-    
+
     Switch ($TestName)
     {
         "All" { $testExitCode = RunAllTests; break }
@@ -631,12 +717,13 @@ Function ValidateE2ETestParameters
         $validatingItems += $TwinTestFileArtifactFilePath
     }
 
-    If ($TestName -eq "TransparentGateway")
-    {
-        $validatingItems += $DeviceCACertificatePath
-        $validatingItems += $DeviceCAPrimaryKeyPath
-        $validatingItems += $TrustedCACertificatePath
-    }
+    # If ($TestName -eq "TransparentGateway")
+    # {
+    #     $validatingItems += $EdgeCertGenScriptDir
+    #     $validatingItems += $EdgeE2ERootCACertRSAFile
+    #     $validatingItems += $EdgeE2ERootCAKeyRSAFile
+    #     $validatingItems += $EdgeE2ETestRootCAPassword
+    # }
 
     $validatingItems | ForEach-Object {
         If (-Not (Test-Path $_))
@@ -681,10 +768,6 @@ $PackagesWorkingFolder = (Join-Path $TestWorkingFolder "packages")
 $IoTEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuickstart.exe")
 $LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
 $DeploymentWorkingFilePath = Join-Path $QuickstartWorkingFolder "deployment.json"
-
-$DeviceCACertificatePath = (Join-Path $E2ETestFolder "certs\new-edge-device-full-chain.cert.pem")
-$DeviceCAPrimaryKeyPath = (Join-Path $E2ETestFolder "certs\private\new-edge-device.key.pem")
-$TrustedCACertificatePath = (Join-Path $E2ETestFolder "certs\azure-iot-test-only.root.ca.cert.pem")
 
 &$InstallationScriptPath
 RunTest
