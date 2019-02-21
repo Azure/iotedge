@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
-    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -21,7 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     {
         internal static readonly Version ExpectedSchemaVersion = new Version("1.0");
         static readonly TimeSpan DefaultConfigRefreshFrequency = TimeSpan.FromHours(1);
-        static readonly Task<MethodResponse> PingMethodResponse = Task.FromResult(new MethodResponse(200));
         static readonly TimeSpan DeviceClientInitializationWaitTime = TimeSpan.FromSeconds(5);
 
         readonly AsyncLock twinLock = new AsyncLock();
@@ -134,28 +132,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        Task<MethodResponse> PingMethodCallback(MethodRequest methodRequest, object userContext) => PingMethodResponse;
-
         async Task<MethodResponse> MethodCallback(MethodRequest methodRequest, object _)
         {
-            string responsePayload;
-            int responseStatus;
-            try
-            {
-                string request = methodRequest.Name;
-                string payloadJson = methodRequest.DataAsJson;
-                responsePayload = await this.requestManager.ProcessRequest(request, payloadJson);
-                responseStatus = 200;
-            }
-            catch (Exception e)
-            {
-                var errorPayload = new ErrorPayload(e.Message);
-                responsePayload = errorPayload.ToJson();
-                responseStatus = e is ArgumentException ? 400 : 500;
-            }
-            
-            var methodResponse = new MethodResponse(Encoding.UTF8.GetBytes(responsePayload), responseStatus);
-            return methodResponse;
+            (int responseStatus, string responsePayload) = await this.requestManager.ProcessRequest(methodRequest.Name, methodRequest.DataAsJson);            
+            return new MethodResponse(Encoding.UTF8.GetBytes(responsePayload), responseStatus);            
         }
 
         async void OnConnectionStatusChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
