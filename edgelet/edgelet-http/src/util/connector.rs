@@ -109,7 +109,7 @@ impl Connect for UrlConnector {
     type Future = Box<Future<Item = (Self::Transport, Connected), Error = Self::Error> + Send>;
 
     fn connect(&self, dst: Destination) -> Self::Future {
-        #[cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
+        #[allow(clippy::match_same_arms)]
         match (self, dst.scheme()) {
             (UrlConnector::Http(_), HTTP_SCHEME) => (),
 

@@ -4,12 +4,7 @@
 // on OpenSSL.
 #![cfg(not(windows))]
 #![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![deny(clippy::all, clippy::pedantic)]
 
 extern crate chrono;
 extern crate edgelet_core;
@@ -51,7 +46,7 @@ use edgelet_core::crypto::MemoryKeyStore;
 use edgelet_core::pid::Pid;
 use edgelet_core::{
     Certificate, CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate,
-    ModuleRuntimeState, ModuleStatus, WorkloadConfig, IOTEDGED_CA_ALIAS,
+    ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleStatus, WorkloadConfig, IOTEDGED_CA_ALIAS,
 };
 use edgelet_hsm::Crypto;
 use edgelet_http_workload::WorkloadService;
@@ -69,6 +64,17 @@ const COMMON_NAME: &str = "staycalm";
 pub enum Error {
     #[fail(display = "General error")]
     General,
+    #[fail(display = "Not found error")]
+    NotFound,
+}
+
+impl<'a> From<&'a Error> for ModuleRuntimeErrorReason {
+    fn from(err: &'a Error) -> Self {
+        match err {
+            Error::General => ModuleRuntimeErrorReason::Other,
+            Error::NotFound => ModuleRuntimeErrorReason::NotFound,
+        }
+    }
 }
 
 #[derive(Clone)]

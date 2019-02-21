@@ -1,13 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
-#![cfg_attr(feature = "cargo-clippy", allow(stutter, use_self))]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::stutter, clippy::use_self)]
 
 extern crate failure;
 #[cfg(test)]
@@ -100,6 +95,23 @@ pub fn prepare_dns_san_entries(names: &[&str]) -> String {
         })
         .collect::<Vec<String>>()
         .join(", ")
+}
+
+pub fn append_dns_san_entries(sans: &str, names: &[&str]) -> String {
+    let mut dns_sans = names
+        .iter()
+        .filter_map(|name| {
+            if name.trim().is_empty() {
+                None
+            } else {
+                Some(format!("DNS:{}", name.to_lowercase()))
+            }
+        })
+        .collect::<Vec<String>>()
+        .join(", ");
+    dns_sans.push_str(", ");
+    dns_sans.push_str(sans);
+    dns_sans
 }
 
 #[cfg(test)]
@@ -234,6 +246,13 @@ mod tests {
         assert_eq!(
             "DNS:edgehub, DNS:moo",
             prepare_dns_san_entries(&[" -edgehub -", "-----", "- moo- "])
+        );
+
+        // test appending host name to sanitized label
+        let sanitized_labels = prepare_dns_san_entries(&["1edgehub", "2edgy"]);
+        assert_eq!(
+            "DNS:2019host, DNS:2020host, DNS:edgehub, DNS:edgy",
+            append_dns_san_entries(&sanitized_labels, &["2019host", "   ", "2020host"])
         );
     }
 }

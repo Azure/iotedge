@@ -7,8 +7,8 @@ mod sign;
 mod trust_bundle;
 
 use edgelet_core::{
-    CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyStore, Module, ModuleRuntime, Policy,
-    WorkloadConfig,
+    CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyStore, Module, ModuleRuntime,
+    ModuleRuntimeErrorReason, Policy, WorkloadConfig,
 };
 use edgelet_http::authorization::Authorization;
 use edgelet_http::route::*;
@@ -33,8 +33,6 @@ pub struct WorkloadService {
 }
 
 impl WorkloadService {
-    // clippy bug: https://github.com/rust-lang-nursery/rust-clippy/issues/3220
-    #[cfg_attr(feature = "cargo-clippy", allow(new_ret_no_self))]
     pub fn new<K, H, M, W>(
         key_store: &K,
         hsm: H,
@@ -45,6 +43,7 @@ impl WorkloadService {
         K: KeyStore + Clone + Send + Sync + 'static,
         H: CreateCertificate + Decrypt + Encrypt + GetTrustBundle + Clone + Send + Sync + 'static,
         M: ModuleRuntime + Clone + Send + Sync + 'static,
+        for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
         <M::Module as Module>::Config: Serialize,
         M::Logs: Into<Body>,
         W: WorkloadConfig + Clone + Send + Sync + 'static,
