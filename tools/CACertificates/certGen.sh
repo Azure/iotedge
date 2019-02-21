@@ -350,8 +350,8 @@ function install_root_ca_from_cli()
 ###############################################################################
 function generate_verification_certificate()
 {
-    if [$# -ne 1]; then
-        echo "Usage: <subjectName>"
+    if [[ $# -ne 1 ]] || [[ -z ${1} ]]; then
+        echo "Usage error: Please provide a <subjectName>"
         exit 1
     fi
     local common_name="${1}"
@@ -369,8 +369,8 @@ function generate_verification_certificate()
 ###############################################################################
 function generate_device_certificate()
 {
-    if [$# -ne 1]; then
-        echo "Usage: <subjectName>"
+    if [[ $# -ne 1 ]] || [[ -z ${1} ]]; then
+        echo "Usage error: Please provide a <subjectName>"
         exit 1
     fi
     local common_name="${1}"
@@ -389,8 +389,8 @@ function generate_device_certificate()
 ###############################################################################
 function generate_edge_server_certificate()
 {
-    if [$# -ne 1]; then
-        echo "Usage: <subjectName>"
+    if [[ $# -ne 1 ]] || [[ -z ${1} ]]; then
+        echo "Usage error: Please provide a <subjectName>"
         exit 1
     fi
     local common_name="${1}"
@@ -409,8 +409,8 @@ function generate_edge_server_certificate()
 function generate_edge_device_certificate()
 {
     local device_prefix="new-edge-device"
-    if [$# -ne 1]; then
-        echo "Usage: <subjectName>"
+    if [[ $# -ne 1 ]] || [[ -z ${1} ]]; then
+        echo "Usage error: Please provide a <subjectName>"
         exit 1
     fi
 
