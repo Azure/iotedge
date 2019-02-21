@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             DateTime lastStartTimeUtc = DateTime.Parse("2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind);
             DateTime lastExitTimeUtc = DateTime.Parse("2017-11-13T23:49:35.127381Z", null, DateTimeStyles.RoundtripKind);
             var module = new EdgeAgentDockerRuntimeModule(
-                new DockerReportedConfig("booyah", string.Empty, "someSha"),
+                new DockerReportedConfig("booyah:latest", string.Empty, "someSha"),
                 ModuleStatus.Running,
                 0,
                 string.Empty,
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     type = "docker",
                     settings = new
                     {
-                        image = "booyah",
+                        image = "booyah:latest",
                         imageHash = "someSha",
                         createOptions = "{}"
                     },
@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // Assert
             Assert.Equal("docker", edgeAgent.Type);
             Assert.Equal(ModuleStatus.Running, edgeAgent.RuntimeStatus);
-            Assert.Equal("someImage", edgeAgent.Config.Image);
+            Assert.Equal("someImage:latest", edgeAgent.Config.Image);
             // TODO - Change Config for Runtime to DockerReportedConfig.
             // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal(lastStartTimeUtc, edgeAgent.LastStartTimeUtc);
@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // Assert
             Assert.Equal("docker", edgeAgent.Type);
             Assert.Equal(ModuleStatus.Running, edgeAgent.RuntimeStatus);
-            Assert.Equal("someImage", edgeAgent.Config.Image);
+            Assert.Equal("someImage:latest", edgeAgent.Config.Image);
             // TODO - Change Config for Runtime to DockerReportedConfig.
             // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal("bing", edgeAgent.ConfigurationInfo.Id);

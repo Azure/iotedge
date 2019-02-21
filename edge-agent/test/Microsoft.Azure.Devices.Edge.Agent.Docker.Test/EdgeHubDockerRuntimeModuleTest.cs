@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var module = new EdgeHubDockerRuntimeModule(
                 ModuleStatus.Running,
                 RestartPolicy.Always,
-                new DockerConfig("edg0eHubImage"),
+                new DockerConfig("edg0eHubImage:latest"),
                 0,
                 string.Empty,
                 DateTime.MinValue,
@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
   ""runtimeStatus"": ""running"",
   ""type"": ""docker"",
   ""settings"": {
-    ""image"": ""edg0eHubImage"",
+    ""image"": ""edg0eHubImage:latest"",
     ""createOptions"": ""{}""
   },
   ""env"": {}

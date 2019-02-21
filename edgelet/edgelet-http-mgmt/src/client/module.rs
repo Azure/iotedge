@@ -151,6 +151,8 @@ impl ModuleRuntime for ModuleClient {
     type Logs = Logs;
 
     type CreateFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type GetFuture =
+        Box<Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
     type InitFuture = FutureResult<(), Self::Error>;
     type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
     type ListWithDetailsStream =
@@ -162,6 +164,7 @@ impl ModuleRuntime for ModuleClient {
     type StopFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type TopFuture = Box<Future<Item = ModuleTop, Error = Self::Error> + Send>;
 
     fn system_info(&self) -> Self::SystemInfoFuture {
         unimplemented!()
@@ -172,6 +175,10 @@ impl ModuleRuntime for ModuleClient {
     }
 
     fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
+        unimplemented!()
+    }
+
+    fn get(&self, _id: &str) -> Self::GetFuture {
         unimplemented!()
     }
 
@@ -329,6 +336,10 @@ impl ModuleRuntime for ModuleClient {
                 .map(move |c| <Self as ModuleRuntime>::remove(&self_for_remove, c.name()));
             future::join_all(n).map(|_| ())
         }))
+    }
+
+    fn top(&self, _id: &str) -> Self::TopFuture {
+        unimplemented!()
     }
 }
 

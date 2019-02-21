@@ -37,7 +37,7 @@ sudo apt-get install -y git cmake build-essential curl libcurl4-openssl-dev libs
 1. Install openssl binaries
 
 	```powershell
-	vcpkg install openssl:x64-windows
+	.\vcpkg install openssl:x64-windows
 	```
 
 1. Set `OPENSSL_ROOT_DIR`
