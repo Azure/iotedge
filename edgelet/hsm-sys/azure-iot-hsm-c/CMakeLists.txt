@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 2.8.11)
 project(iothsm)
 set (iothsm_VERSION_MAJOR 1)
 set (iothsm_VERSION_MINOR 0)
-set (iothsm_VERSION_PATCH 6)
+set (iothsm_VERSION_PATCH 7)
 
 #Use solution folders.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)

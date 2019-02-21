@@ -1,5 +1,5 @@
 {
-  "version": "1.0.7-dev",
+  "version": "1.0.7-rc1",
   "build": "BUILDNUMBER",
   "commit": "COMMITID"
 }

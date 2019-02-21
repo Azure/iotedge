@@ -1,3 +1,35 @@
+# 1.0.7-rc1 (2019-02-21)
+
+## Edge Agent
+### Features
+* Agent pulls images before stopping ([57c6f7d](https://github.com/Azure/iotedge/commit/57c6f7d02c99634fc59f2f9a87fddc867691acb0), [4992833](https://github.com/Azure/iotedge/commit/4992833344f5fbf167c75af4b33b181e2b214692))
+* Update C# SDK version ([a3fc35c](https://github.com/Azure/iotedge/commit/a3fc35cd270c85fc25264aaf5eabb951ab59bb13))
+
+### Bug Fixes
+* Twin refresh timer logic is now a simple loop ([cb7af40](https://github.com/Azure/iotedge/commit/cb7af4090aca24d624e96ced572d6dc31b7c97c0))
+
+## Edge Hub
+### Features
+* Update C# SDK version ([a3fc35c](https://github.com/Azure/iotedge/commit/a3fc35cd270c85fc25264aaf5eabb951ab59bb13))
+
+### Bug Fixes
+* Defaults to OptimizeForPerformance=false on arm32v7 ([43d47b0](https://github.com/Azure/iotedge/commit/43d47b04c4e70fd7c48a5b05f728925010f2e1ba))
+* Limit MQTT thread count on arm32v7 ([2509438](https://github.com/Azure/iotedge/commit/2509438464cf9c7d99922ecd5e15caaf4e9ae242), [56a6db1](https://github.com/Azure/iotedge/commit/56a6db1f0faacf46162e2017a2f4344ac320c6e9))
+* Process subscriptions from clients in batch ([20cb6c4](https://github.com/Azure/iotedge/commit/20cb6c46b9c26557a31a7c22261507ed1d3ebe78))
+
+## iotedged
+### Features
+* Support for DPS symmetric key provisioning ([b7adfff](https://github.com/Azure/iotedge/commit/b7adfffefe85cef84e27302aa0c8f00a3e8a81c2))
+* All modules processes are authorized to connect ([777aec1](https://github.com/Azure/iotedge/commit/777aec16a673cad2407bf75291d29b6d5e71ef25))
+
+### Bug Fixes
+* Encode deviceid/moduleid for IoT Hub operations ([bb10be0](https://github.com/Azure/iotedge/commit/bb10be01360ed7393260351af2c6e8ad7498346d))
+
+## Simulated Temperature Sensor
+### Features
+* Add SendData and SendInterval twin configuration ([7dc7041](https://github.com/Azure/iotedge/commit/7dc7041f790ebe323d720913782e8085f1f65c21))
+* Update C# SDK version ([a3fc35c](https://github.com/Azure/iotedge/commit/a3fc35cd270c85fc25264aaf5eabb951ab59bb13))
+
 # 1.0.6.1 (2019-02-04)
 
 ## iotedged
