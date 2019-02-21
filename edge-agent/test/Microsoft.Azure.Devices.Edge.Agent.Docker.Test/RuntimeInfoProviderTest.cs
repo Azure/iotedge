@@ -204,7 +204,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     FinishedAt = lastExitTime.ToString("o"),
                 },
                 Name = "/sensor",
-                Image = hash
+                Image = hash,
+                Config = new Config { Image = "ubuntu" }
             };
 
             var systemInfoResponse = new SystemInfoResponse
@@ -225,7 +226,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.NotNull(module);
             var dockerModule = module as ModuleRuntimeInfo<DockerReportedConfig>;
             Assert.NotNull(dockerModule);
-            Assert.Equal(string.Empty, dockerModule.Config.Image);
+            Assert.Equal("ubuntu:latest", dockerModule.Config.Image);
 
             Assert.Equal("sensor", dockerModule.Name);
             Assert.Equal(0, dockerModule.ExitCode);
