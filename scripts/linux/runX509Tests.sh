@@ -25,7 +25,7 @@ RUN_LEAF_X509_THUMB=0
 RUN_LEAF_SAS=0
 INSTALL_CA_CERT=0
 TEST_EXECUTABLE=
-DEVICE_ID=
+LEAF_DEVICE_ID=
 EDGE_DEVICE_ID=""
 PACKAGES=
 CONNECTION_STRING=
@@ -54,12 +54,12 @@ usage()
     echo " -ld-x509th, --run-leaf-device-x509-thumbprint-auth  Run IoT leaf device X.509 thumbprint auth test"
     echo " -ld-sas, --run-leaf-device-sas-auth  Run IoT leaf device SAS auth test"
     echo " -exe, --test-executable  Test executable"
-    echo " -d, --device-id  Device Id for the edge quick start or leaf device"
+    echo " -ld-id, --leaf-device-id  Device Id for a leaf device"
     echo " -a, --packages  Quick start packages"
     echo " -c, --connection-string  Quick start/leaf device connection string"
     echo " -e, --eventhub-connection-string  Event hub connection string used for verification"
     echo " -n, --edge-hostname  Edge device hostname"
-    echo " -ed-id, --edge-device-id Edge device id for use in leaf device tests"
+    echo " -ed-id, --edge-device-id Edge device id for use in leaf device tests and for creating a Edge deployment"
     echo " -r, --registry  Edge image registry"
     echo " -u, --registry-username  Edge image registry username"
     echo " -p, --registry-password  Edge image registry password"
@@ -101,7 +101,7 @@ process_args()
             TEST_EXECUTABLE="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 6 ]; then
-            DEVICE_ID="$arg"
+            LEAF_DEVICE_ID="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 7 ]; then
             PACKAGES="$arg"
@@ -145,7 +145,7 @@ process_args()
                 "-ld-x509th" | "--run-leaf-device-x509-thumbprint-auth" ) RUN_LEAF_X509_THUMB=1;;
                 "-ld-sas" | "--run-leaf-device-sas-auth" ) RUN_LEAF_SAS=1;;
                 "-exe" | "--test-executable" ) save_next_arg=5;;
-                "-d" | "--device-id" ) save_next_arg=6;;
+                "-ld-id" | "--leaf-device-id" ) save_next_arg=6;;
                 "-a" | "--packages" ) save_next_arg=7;;
                 "-c" | "--connection-string" ) save_next_arg=8;;
                 "-n" | "--edge-hostname" ) save_next_arg=9;;
@@ -321,7 +321,7 @@ else
     if [ ${RUN_QUICKSTART} -eq 1 ]; then
         run_quickstart_as_gateway \
             ${TEST_EXECUTABLE} \
-            ${DEVICE_ID} \
+            ${EDGE_DEVICE_ID} \
             ${PACKAGES} \
             ${CONNECTION_STRING} \
             ${HOSTNAME} \
@@ -332,7 +332,7 @@ else
     elif [ ${RUN_LEAF_X509_CA} -eq 1 ]; then
         run_leaf_x509_ca_test \
             ${TEST_EXECUTABLE} \
-            ${DEVICE_ID} \
+            ${LEAF_DEVICE_ID} \
             ${CONNECTION_STRING} \
             ${EVENTHUB_CONNECTION_STRING} \
             ${HOSTNAME} \
@@ -341,7 +341,7 @@ else
     elif [ ${RUN_LEAF_X509_THUMB} -eq 1 ]; then
         run_leaf_x509_thumbprint_test \
             ${TEST_EXECUTABLE} \
-            ${DEVICE_ID} \
+            ${LEAF_DEVICE_ID} \
             ${CONNECTION_STRING} \
             ${EVENTHUB_CONNECTION_STRING} \
             ${HOSTNAME} \
@@ -350,7 +350,7 @@ else
     elif [ ${RUN_LEAF_SAS} -eq 1 ]; then
         run_leaf_sas_auth_test \
             ${TEST_EXECUTABLE} \
-            ${DEVICE_ID} \
+            ${LEAF_DEVICE_ID} \
             ${CONNECTION_STRING} \
             ${EVENTHUB_CONNECTION_STRING} \
             ${HOSTNAME} \
