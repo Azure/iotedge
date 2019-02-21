@@ -19,10 +19,10 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Autofac" Version="4.5.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="2.1.1" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.1.1" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.0.0" />
+    <PackageReference Include="Autofac" Version="4.9.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.2.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Storage.RocksDb\Microsoft.Azure.Devices.Edge.Storage.RocksDb.csproj" />
