@@ -7,7 +7,6 @@
 #[macro_use]
 extern crate clap;
 extern crate edgelet_core;
-extern crate edgelet_http;
 extern crate edgelet_http_mgmt;
 extern crate failure;
 extern crate futures;
@@ -21,12 +20,10 @@ use std::process;
 
 use clap::{App, AppSettings, Arg, SubCommand};
 use failure::{Fail, ResultExt};
-use futures::{Future, Stream};
+use futures::Future;
 use url::Url;
 
 use edgelet_core::{LogOptions, LogTail};
-use edgelet_http::client::ClientImpl;
-use edgelet_http::MaybeProxyClient;
 use edgelet_http_mgmt::ModuleClient;
 
 use iotedge::*;
@@ -147,89 +144,26 @@ fn run() -> Result<(), Error> {
     let mut tokio_runtime = tokio::runtime::Runtime::new().context(ErrorKind::InitializeTokio)?;
 
     match matches.subcommand() {
-        ("check", Some(args)) => {
-            let proxy = std::env::var("HTTPS_PROXY")
-                .ok()
-                .or_else(|| std::env::var("https_proxy").ok());
-            let proxy = if let Some(proxy) = proxy {
-                Some(
-                    proxy
-                        .parse::<hyper::Uri>()
-                        .context(ErrorKind::FetchLatestVersions(
-                            FetchLatestVersionsReason::CreateClient,
-                        ))?,
-                )
-            } else {
-                None
-            };
-            let hyper_client = MaybeProxyClient::new(proxy).context(
-                ErrorKind::FetchLatestVersions(FetchLatestVersionsReason::CreateClient),
-            )?;
-
-            let latest_versions: LatestVersions = {
-                let request = hyper::Request::get("https://aka.ms/latest-iotedge-stable")
-                    .body(hyper::Body::default())
-                    .expect("can't fail to create request");
-                let body: Result<_, Error> = tokio_runtime.block_on(
-                    hyper_client.call(request)
-                    .then(move |response| -> Result<_, Error> {
-                        let response = response.context(ErrorKind::FetchLatestVersions(FetchLatestVersionsReason::GetResponse))?;
-                        match response.status() {
-                            hyper::StatusCode::MOVED_PERMANENTLY => {
-                                let uri =
-                                    response.headers().get(hyper::header::LOCATION)
-                                    .ok_or_else(|| ErrorKind::FetchLatestVersions(FetchLatestVersionsReason::InvalidOrMissingLocationHeader))?
-                                    .to_str().context(ErrorKind::FetchLatestVersions(FetchLatestVersionsReason::InvalidOrMissingLocationHeader))?;
-                                let request =
-                                    hyper::Request::get(uri)
-                                    .body(hyper::Body::default())
-                                    .expect("can't fail to create request");
-                                Ok(hyper_client.call(request)
-                                .map_err(|err| err.context(ErrorKind::FetchLatestVersions(FetchLatestVersionsReason::GetResponse)).into()))
-                            },
-                            status_code => Err(ErrorKind::FetchLatestVersions(FetchLatestVersionsReason::ResponseStatusCode(status_code)).into()),
-                        }
-                    })
-                    .flatten()
-                    .and_then(|response| -> Result<_, Error> {
-                        match response.status() {
-                            hyper::StatusCode::OK => Ok(
-                                response.into_body()
-                                .concat2()
-                                .map_err(|err| err.context(ErrorKind::FetchLatestVersions(FetchLatestVersionsReason::GetResponse)).into()),
-                            ),
-                            status_code => Err(ErrorKind::FetchLatestVersions(FetchLatestVersionsReason::ResponseStatusCode(status_code)).into()),
-                        }
-                    })
-                    .flatten(),
-                );
-                serde_json::from_slice(&body?).context(ErrorKind::FetchLatestVersions(
-                    FetchLatestVersionsReason::GetResponse,
-                ))?
-            };
-
-            tokio_runtime.block_on(
-                Check::new(
-                    args.value_of_os("config-file")
-                        .unwrap_or_else(|| {
-                            OsStr::new(if cfg!(windows) {
-                                r"C:\ProgramData\iotedge\config.yaml"
-                            } else {
-                                "/etc/iotedge/config.yaml"
-                            })
+        ("check", Some(args)) => tokio_runtime.block_on(
+            Check::new(
+                args.value_of_os("config-file")
+                    .unwrap_or_else(|| {
+                        OsStr::new(if cfg!(windows) {
+                            r"C:\ProgramData\iotedge\config.yaml"
+                        } else {
+                            "/etc/iotedge/config.yaml"
                         })
-                        .to_os_string()
-                        .into(),
-                    args.value_of("ntp-server")
-                        .expect("arg has a default value")
-                        .to_string(),
-                    args.values_of("steps")
-                        .map(|values| values.map(ToOwned::to_owned).collect()),
-                    latest_versions,
-                )
-                .execute(),
+                    })
+                    .to_os_string()
+                    .into(),
+                args.value_of("ntp-server")
+                    .expect("arg has a default value")
+                    .to_string(),
+                args.values_of("steps")
+                    .map(|values| values.map(ToOwned::to_owned).collect()),
             )
-        }
+            .and_then(|mut check| check.execute()),
+        ),
         ("list", Some(_args)) => tokio_runtime.block_on(List::new(runtime, io::stdout()).execute()),
         ("restart", Some(args)) => tokio_runtime.block_on(
             Restart::new(

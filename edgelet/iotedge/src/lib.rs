@@ -24,6 +24,7 @@ extern crate tokio;
 extern crate edgelet_config;
 extern crate edgelet_core;
 extern crate edgelet_docker;
+extern crate edgelet_http;
 
 use futures::Future;
 

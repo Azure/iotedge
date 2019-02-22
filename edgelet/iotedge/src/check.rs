@@ -12,8 +12,8 @@ use std::process::Command;
 #[cfg(unix)]
 use failure::Fail;
 use failure::{self, Context, ResultExt};
-use futures::future::FutureResult;
-use futures::IntoFuture;
+use futures::future::{self, FutureResult};
+use futures::{Future, IntoFuture, Stream};
 #[cfg(unix)]
 use libc;
 use regex::Regex;
@@ -22,8 +22,11 @@ use serde_json;
 use edgelet_config::{Provisioning, Settings};
 use edgelet_core::{self, UrlExt};
 use edgelet_docker::DockerConfig;
+use edgelet_http::client::ClientImpl;
+use edgelet_http::MaybeProxyClient;
 
-use error::{Error, ErrorKind};
+use error::{Error, ErrorKind, FetchLatestVersionsReason};
+use LatestVersions;
 
 pub struct Check {
     config_file: PathBuf,
@@ -42,18 +45,107 @@ impl Check {
         config_file: PathBuf,
         ntp_server: String,
         steps_override: Option<Vec<String>>,
-        latest_versions: super::LatestVersions,
-    ) -> Self {
-        Check {
-            config_file,
-            ntp_server,
-            steps_override,
-            latest_versions,
+    ) -> impl Future<Item = Self, Error = Error> + Send {
+        let proxy = std::env::var("HTTPS_PROXY")
+            .ok()
+            .or_else(|| std::env::var("https_proxy").ok());
+        let proxy = if let Some(proxy) = proxy {
+            let proxy = proxy
+                .parse::<hyper::Uri>()
+                .context(ErrorKind::FetchLatestVersions(
+                    FetchLatestVersionsReason::CreateClient,
+                ));
+            match proxy {
+                Ok(proxy) => future::ok(Some(proxy)),
+                Err(err) => future::err(Error::from(err)),
+            }
+        } else {
+            future::ok(None)
+        };
 
-            settings: None,
-            docker_host_arg: None,
-            iothub_hostname: None,
-        }
+        let hyper_client = proxy.and_then(|proxy| {
+            Ok(
+                MaybeProxyClient::new(proxy).context(ErrorKind::FetchLatestVersions(
+                    FetchLatestVersionsReason::CreateClient,
+                ))?,
+            )
+        });
+
+        let request = hyper::Request::get("https://aka.ms/latest-iotedge-stable")
+            .body(hyper::Body::default())
+            .expect("can't fail to create request");
+
+        hyper_client
+            .and_then(|hyper_client| {
+                hyper_client.call(request).then(|response| match response {
+                    Ok(response) => Ok((response, hyper_client)),
+                    Err(err) => Err(err
+                        .context(ErrorKind::FetchLatestVersions(
+                            FetchLatestVersionsReason::GetResponse,
+                        ))
+                        .into()),
+                })
+            })
+            .and_then(move |(response, hyper_client)| match response.status() {
+                hyper::StatusCode::MOVED_PERMANENTLY => {
+                    let uri = response
+                        .headers()
+                        .get(hyper::header::LOCATION)
+                        .ok_or_else(|| {
+                            ErrorKind::FetchLatestVersions(
+                                FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
+                            )
+                        })?
+                        .to_str()
+                        .context(ErrorKind::FetchLatestVersions(
+                            FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
+                        ))?;
+                    let request = hyper::Request::get(uri)
+                        .body(hyper::Body::default())
+                        .expect("can't fail to create request");
+                    Ok(hyper_client.call(request).map_err(|err| {
+                        err.context(ErrorKind::FetchLatestVersions(
+                            FetchLatestVersionsReason::GetResponse,
+                        ))
+                        .into()
+                    }))
+                }
+                status_code => Err(ErrorKind::FetchLatestVersions(
+                    FetchLatestVersionsReason::ResponseStatusCode(status_code),
+                )
+                .into()),
+            })
+            .flatten()
+            .and_then(|response| -> Result<_, Error> {
+                match response.status() {
+                    hyper::StatusCode::OK => Ok(response.into_body().concat2().map_err(|err| {
+                        err.context(ErrorKind::FetchLatestVersions(
+                            FetchLatestVersionsReason::GetResponse,
+                        ))
+                        .into()
+                    })),
+                    status_code => Err(ErrorKind::FetchLatestVersions(
+                        FetchLatestVersionsReason::ResponseStatusCode(status_code),
+                    )
+                    .into()),
+                }
+            })
+            .flatten()
+            .and_then(|body| -> Result<_, Error> {
+                let latest_versions: LatestVersions = serde_json::from_slice(&body).context(
+                    ErrorKind::FetchLatestVersions(FetchLatestVersionsReason::GetResponse),
+                )?;
+                Ok(Check {
+                    config_file,
+                    ntp_server,
+                    steps_override,
+                    latest_versions,
+
+                    settings: None,
+                    docker_host_arg: None,
+                    iothub_hostname: None,
+                })
+            })
     }
 
     fn execute_inner(&mut self) -> Result<(), Error> {
@@ -61,10 +153,10 @@ impl Check {
 
         // DEVNOTE: Keep the names of top-level steps in sync with help-text of the "check" subcommand in main.rs (except for "pre-check")
         const CHECKS: &[(
-            &str,
+            &str, // Section name
             &[(
-                &str,
-                fn(&mut Check) -> Result<Option<String>, failure::Error>,
+                &str,                                                     // Check description
+                fn(&mut Check) -> Result<Option<String>, failure::Error>, // Check function
             )],
         )] = &[
             (
@@ -567,7 +659,8 @@ fn iotedged_version(check: &mut Check) -> Result<Option<String>, failure::Error>
     let output =
         String::from_utf8(output.stdout).context("could not parse output of iotedged --version")?;
 
-    let iotedged_version_regex = Regex::new(r"^iotedged ([^ ]+)(?: \(.*\))?$").unwrap();
+    let iotedged_version_regex = Regex::new(r"^iotedged ([^ ]+)(?: \(.*\))?$")
+        .expect("This hard-coded regex is expected to be valid.");
     let captures = iotedged_version_regex.captures(output.trim()).ok_or_else(||
         Context::new("could not parse output of iotedged --version {:?} : does not match expected format"))?;
     let version = captures
