@@ -202,6 +202,7 @@ function run_quickstart_as_gateway()
         -d ${edge_device_id} \
         -a ${packages} \
         -c ${connection_string} \
+        -e "somethingNonNullNeededHere" \
         -n ${edge_hostname} \
         -r ${registry} \
         -u ${registry_uname} \
