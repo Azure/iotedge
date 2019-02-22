@@ -45,8 +45,8 @@ where
                 let is_retriable = match err.kind() {
                     ErrorKind::SendClientRequest(err) | ErrorKind::ReceiveServerResponse(err) => {
                         err.kind() == std::io::ErrorKind::TimedOut || // Windows
-                        err.kind() == std::io::ErrorKind::WouldBlock
-                    } // Unix
+                        err.kind() == std::io::ErrorKind::WouldBlock // Unix
+                    }
 
                     _ => false,
                 };
