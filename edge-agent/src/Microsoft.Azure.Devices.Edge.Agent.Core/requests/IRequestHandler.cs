@@ -6,5 +6,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     interface IRequestHandler
     {
         Task<string> HandleRequest(string payloadJson);
-    }    
+    }
 }

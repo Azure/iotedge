@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             Assert.False(string.IsNullOrWhiteSpace(parsedJson["message"].ToString()));
 
             // Act
-            (responseStatus, responsePayload) = await requestManager.ProcessRequest("", payload);
+            (responseStatus, responsePayload) = await requestManager.ProcessRequest(string.Empty, payload);
 
             // Assert
             Assert.Equal(400, responseStatus);
