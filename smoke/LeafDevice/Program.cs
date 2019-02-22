@@ -57,7 +57,7 @@ Defaults:
         [Option("-proto|--protocol", Description = @"Protocol the leaf device will use to communicate with the Edge device.
                                                     Choices are Mqtt, MqttWs, Amqp, AmqpWs.
                                                     If protocol is unspecified, default is Mqtt.")]
-        public DeviceProtocol protocol { get; } = DeviceProtocol.Mqtt;
+        public DeviceProtocol Protocol { get; } = DeviceProtocol.Mqtt;
 
         [Option("-cac|--x509-ca-cert-path", Description = "Path to a X.509 leaf certificate file in PEM format to be used for X.509 CA authentication.")]
         public string X509CACertPath { get; } = string.Empty;
@@ -98,7 +98,7 @@ Defaults:
                     this.TrustedCACertificateFileName,
                     this.EdgeHostName,
                     this.EdgeGatewayDeviceId,
-                    this.protocol);
+                    this.Protocol);
 
                 if (!string.IsNullOrWhiteSpace(this.X509PrimaryCertPath) &&
                     !string.IsNullOrWhiteSpace(this.X509PrimaryKeyPath) &&

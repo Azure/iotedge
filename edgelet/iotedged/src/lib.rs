@@ -323,7 +323,7 @@ impl Main {
                         dps_symmetric_key_provision(
                             &dps,
                             hyper_client.clone(),
-                            &dps_path,
+                            dps_path,
                             runtime,
                             &mut tokio_runtime,
                             key,
@@ -642,7 +642,7 @@ fn manual_provision(
 fn dps_symmetric_key_provision<HC, M>(
     provisioning: &Dps,
     hyper_client: HC,
-    _backup_path: &PathBuf,
+    backup_path: PathBuf,
     runtime: M,
     tokio_runtime: &mut tokio::runtime::Runtime,
     key: &str,
@@ -668,7 +668,9 @@ where
     .context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
-    let provision = dps
+    let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
+
+    let provision = provision_with_file_backup
         .provision(memory_hsm.clone())
         .map_err(|err| {
             Error::from(err.context(ErrorKind::Initialize(

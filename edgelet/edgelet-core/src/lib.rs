@@ -44,8 +44,8 @@ pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
 pub use module::{
     LogOptions, LogTail, Module, ModuleOperation, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, RegistryOperation,
-    RuntimeOperation, SystemInfo,
+    ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, ModuleTop,
+    RegistryOperation, RuntimeOperation, SystemInfo,
 };
 pub use workload::WorkloadConfig;
 

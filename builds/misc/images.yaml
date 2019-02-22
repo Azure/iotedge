@@ -97,7 +97,7 @@ jobs:
       # Functions Sample
       - template: templates/image-linux.yaml
         parameters:
-          name: FunctionsSample
+          name: Functions Sample
           imageName: azureiotedge-functions-filter
           project: EdgeHubTriggerCSharp
 
@@ -183,10 +183,24 @@ jobs:
           imageName: azureiotedge-temperature-filter
           project: TemperatureFilter
 
+      # Load Gen
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Load Gen
+          imageName: azureiotedge-load-gen
+          project: load-gen
+
+      # Messages Analyzer
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Messages Analyzer
+          imageName: azureiotedge-analyzer
+          project: MessagesAnalyzer
+          
       # Functions Sample
       - template: templates/image-windows.yaml
         parameters:
-          name: FunctionsSample
+          name: Functions Sample
           imageName: azureiotedge-functions-filter
           project: EdgeHubTriggerCSharp
           arm32v7: 'false'
