@@ -17,7 +17,7 @@
         - certs: contains CA certs for certificate-related testing.
 
     .PARAMETER E2ETestFolder
-        Path of E2E test folder; Default is current directory.
+        Path of E2E test folder which contains artifacts and certs folders; Default is current directory.
 
     .PARAMETER ReleaseLabel
         Release label, can be uniquely identify the build (e.g <ReleaseName>-<ReleaseAttempt>); which is used as part of Edge device name.
