@@ -64,7 +64,7 @@ Param (
     [string] $ReleaseLabel = $(Throw "Release label is required"),
 
     [ValidateNotNullOrEmpty()]
-    [string] $ArtifactImageBuildNumber = $(Throw "Release artifact image build number is required"),
+    [string] $ArtifactImageBuildNumber = $(Throw "Artifact image build number is required"),
 
     [ValidateSet("All", "DirectMethodAmqp", "DirectMethodMqtt", "QuickstartCerts", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway")]
     [string] $TestName = "All",
