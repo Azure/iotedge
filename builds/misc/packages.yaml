@@ -6,6 +6,7 @@ trigger:
 pr: none
 variables:
   REVISION: '1'
+  WINDOWS_CODESIGN_SERVICE_CONNECTION: 'Azure IoT Edge Code Sign 2'
 jobs:
 
 ################################################################################
@@ -244,7 +245,7 @@ jobs:
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
         displayName: 'ESRP CodeSigning'
         inputs:
-          ConnectedServiceName: 'Azure IoT Edge Code Sign'
+          ConnectedServiceName: '$(WINDOWS_CODESIGN_SERVICE_CONNECTION)'
           FolderPath: '$(build.artifactstagingdirectory)'
           Pattern: '*.cab'
           CertificateId: 302
