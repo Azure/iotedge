@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                 this.Prop1 = prop1;
                 this.Prop2 = prop2;
             }
-            
+
             [JsonProperty("prop1")]
             public string Prop1 { get; }
 
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                 this.Prop1 = prop1;
                 this.Prop2 = prop2;
             }
-            
+
             [JsonProperty("prop1")]
             public string Prop1 { get; }
 
