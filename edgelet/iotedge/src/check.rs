@@ -9,7 +9,6 @@ use std::net::TcpStream;
 use std::path::PathBuf;
 use std::process::Command;
 
-#[cfg(unix)]
 use failure::Fail;
 use failure::{self, Context, ResultExt};
 use futures::future::{self, FutureResult};
