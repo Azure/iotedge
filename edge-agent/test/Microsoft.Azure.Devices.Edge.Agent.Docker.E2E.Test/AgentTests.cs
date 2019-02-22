@@ -81,8 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
         [MemberData(nameof(GenerateStartTestData))]
         public async Task AgentStartsUpModules(TestConfig testConfig)
         {
-            ILoggerFactory loggerFactory = new LoggerFactory()
-                .AddConsole();
+            ILoggerFactory loggerFactory = Mock.Of<ILoggerFactory>();
 
             // Build the docker host URL.
             string dockerHostUrl = ConfigHelper.TestConfig["dockerHostUrl"];
