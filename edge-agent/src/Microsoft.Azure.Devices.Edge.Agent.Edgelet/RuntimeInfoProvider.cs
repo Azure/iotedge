@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public RuntimeInfoProvider(IModuleManager moduleManager)
         {
-            this.moduleManager = moduleManager;
+            this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
         }
 
         public Task<IEnumerable<ModuleRuntimeInfo>> GetModules(CancellationToken token) =>

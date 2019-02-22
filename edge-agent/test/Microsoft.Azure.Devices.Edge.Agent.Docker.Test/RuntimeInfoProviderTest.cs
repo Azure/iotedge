@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using System;
     using System.Collections.Generic;
     using System.Globalization;
+    using System.IO;
     using System.Linq;
     using System.Text;
     using System.Threading;
@@ -13,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Commands;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Configuration;
     using Moq;
@@ -214,11 +216,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 Architecture = Architecture
             };
 
-            var dockerClient = Mock.Of<IDockerClient>(
-                dc =>
-                    dc.Containers == Mock.Of<IContainerOperations>(co => co.InspectContainerAsync(id, default(CancellationToken)) == Task.FromResult(inspectContainerResponse)) &&
-                    dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)));
-
             // Act
             ModuleRuntimeInfo module = RuntimeInfoProvider.InspectResponseToModule(inspectContainerResponse);
 
@@ -250,16 +247,73 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 dc =>
                     dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)));
 
-            var inputRuntimeInfo = new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.13", string.Empty));
-
             // Act
-            RuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(dockerClient);
+            var runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(dockerClient);
             SystemInfo systemInfo = await runtimeInfoProvider.GetSystemInfo();
 
             // Assert
             Assert.NotNull(systemInfo);
             Assert.Equal(systemInfo.OperatingSystemType, systemInfoResponse.OSType);
             Assert.Equal(systemInfo.Architecture, systemInfoResponse.Architecture);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task GetModuleLogsTest()
+        {
+            // Arrange
+            string id = "mod1";
+            string dummyLogs = new string('*', 1000);
+            Stream GetLogsStream() => new MemoryStream(Encoding.UTF8.GetBytes(dummyLogs));
+
+            var systemInfoResponse = new SystemInfoResponse
+            {
+                OSType = OperatingSystemType,
+                Architecture = Architecture
+            };
+
+            ContainerLogsParameters receivedContainerLogsParameters = null;
+            var containerOperations = new Mock<IContainerOperations>();
+            containerOperations.Setup(co => co.GetContainerLogsAsync(id, It.IsAny<ContainerLogsParameters>(), It.IsAny<CancellationToken>()))
+                .Callback<string, ContainerLogsParameters, CancellationToken>((m, c, t) => receivedContainerLogsParameters = c)
+                .ReturnsAsync(GetLogsStream);
+                                          
+
+            var dockerClient = Mock.Of<IDockerClient>(
+                dc =>
+                    dc.Containers == containerOperations.Object &&
+                    dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)));
+            var runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(dockerClient);
+
+            // Act
+            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(receivedContainerLogsParameters);
+            Assert.False(receivedContainerLogsParameters.Follow);
+            Assert.Null(receivedContainerLogsParameters.Tail);
+            Assert.True(receivedContainerLogsParameters.ShowStderr);
+            Assert.True(receivedContainerLogsParameters.ShowStdout);
+            var buffer = new byte[1024];
+            int readBytes = await receivedLogsStream.ReadAsync(buffer);
+            Assert.Equal(1000, readBytes);
+            string receivedLogs = Encoding.UTF8.GetString(buffer, 0, readBytes);
+            Assert.Equal(dummyLogs, receivedLogs);
+
+            // Act
+            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.Some(1000), CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(receivedContainerLogsParameters);
+            Assert.True(receivedContainerLogsParameters.Follow);
+            Assert.Equal("1000", receivedContainerLogsParameters.Tail);
+            Assert.True(receivedContainerLogsParameters.ShowStderr);
+            Assert.True(receivedContainerLogsParameters.ShowStdout);
+            buffer = new byte[1024];
+            readBytes = await receivedLogsStream.ReadAsync(buffer);
+            Assert.Equal(1000, readBytes);
+            receivedLogs = Encoding.UTF8.GetString(buffer, 0, readBytes);
+            Assert.Equal(dummyLogs, receivedLogs);
         }
     }
 }

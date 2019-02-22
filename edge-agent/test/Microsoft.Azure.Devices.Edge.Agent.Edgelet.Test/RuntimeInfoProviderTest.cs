@@ -3,7 +3,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -88,6 +90,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.Equal(5, runtimeInfo2.ExitCode);
             Assert.Equal(new DateTime(2011, 02, 03, 05, 06, 07), runtimeInfo2.ExitTime.OrDefault());
             Assert.Equal((runtimeInfo2 as ModuleRuntimeInfo<TestConfig>)?.Config.ImageHash, module2Hash);
+        }
+
+        [Fact]
+        public async Task GetLogsTest()
+        {
+            // Arrange
+            string id = "mod1";
+            string dummyLogs = new string('*', 1000);
+            Stream GetLogsStream() => new MemoryStream(Encoding.UTF8.GetBytes(dummyLogs));
+
+            var moduleManager = new Mock<IModuleManager>();
+            moduleManager.Setup(m => m.GetModuleLogs(id, It.IsAny<bool>(), It.IsAny<Option<int>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(GetLogsStream);
+
+            var runtimeInfoProvider = new RuntimeInfoProvider<TestConfig>(moduleManager.Object);
+
+            // Act
+            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), CancellationToken.None);
+
+            // Assert
+            var buffer = new byte[1024];
+            int readBytes = await receivedLogsStream.ReadAsync(buffer);
+            Assert.Equal(1000, readBytes);
+            string receivedLogs = Encoding.UTF8.GetString(buffer, 0, readBytes);
+            Assert.Equal(dummyLogs, receivedLogs);
         }
 
         class TestConfig

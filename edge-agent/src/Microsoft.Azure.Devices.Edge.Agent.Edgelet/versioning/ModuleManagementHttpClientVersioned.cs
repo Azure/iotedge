@@ -74,8 +74,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                     .GetOrElse(() => string.Format(CultureInfo.InvariantCulture, LogsUrlTemplate, baseUrl, module, this.Version.Name, follow.ToString().ToLowerInvariant()));
                 var logsUri = new Uri(logsUrl);
                 var httpRequest = new HttpRequestMessage(HttpMethod.Get, logsUri);
-                httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
                 Stream stream = await this.Execute(
                     async () =>
                     {

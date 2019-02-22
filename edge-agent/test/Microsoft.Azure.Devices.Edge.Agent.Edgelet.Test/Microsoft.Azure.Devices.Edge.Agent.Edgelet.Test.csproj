@@ -37,10 +37,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="TestServer\Controllers\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
   <PropertyGroup>
