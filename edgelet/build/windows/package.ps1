@@ -14,7 +14,7 @@ Function New-Package([string] $Name, [string] $Version)
     $pkggen = "${Env:ProgramFiles(x86)}\Windows Kits\10\tools\bin\i386\pkggen.exe"
     $manifest = "edgelet\build\windows\$Name.wm.xml"
     $cwd = "."
-    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_REPO_ROOT=..\..\..'  /cpu:amd64 /version:$Version"
+    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_REPO_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR' /cpu:amd64 /version:$Version"
 }
 
 #

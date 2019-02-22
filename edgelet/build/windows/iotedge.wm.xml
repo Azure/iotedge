@@ -14,7 +14,7 @@
     <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged.pdb" destinationDir="$(runtime.programFiles)\iotedge" />
     <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged_eventlog_messages.dll" destinationDir="$(runtime.programFiles)\iotedge" />
     <file source="$(_REPO_ROOT)\edgelet\hsm-sys\azure-iot-hsm-c\build\Release\iothsm.dll" destinationDir="$(runtime.programFiles)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\hsm-sys\azure-iot-hsm-c\build\Release\libeay32.dll" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_OPENSSL_ROOT_DIR)\bin\libeay32.dll" destinationDir="$(runtime.programFiles)\iotedge" />
     <file source="$(_REPO_ROOT)\edgelet\contrib\docs\LICENSE" destinationDir="$(runtime.programFiles)\iotedge\LICENSE" />
     <file source="$(_REPO_ROOT)\edgelet\contrib\docs\ThirdPartyNotices" destinationDir="$(runtime.programFiles)\iotedge\LICENSE" />
     <file source="$(_REPO_ROOT)\edgelet\contrib\docs\trademark" destinationDir="$(runtime.programFiles)\iotedge\LICENSE" />
