@@ -31,6 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             }
         }
 
-        protected abstract Task<TV> HandleRequestInternal(TU payloadJson);
+        protected abstract Task<TV> HandleRequestInternal(TU payload);
     }
 }
