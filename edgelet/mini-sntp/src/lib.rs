@@ -2,6 +2,8 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::doc_markdown, clippy::stutter, clippy::use_self)]
 
+use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
+
 use failure::ResultExt;
 
 mod error;
@@ -19,15 +21,15 @@ pub struct SntpTimeQueryResult {
 /// Ref: <https://tools.ietf.org/html/rfc2030>
 pub fn query<A>(addr: &A) -> Result<SntpTimeQueryResult, Error>
 where
-    A: std::net::ToSocketAddrs,
+    A: ToSocketAddrs,
 {
-    let ntp_pool_host = addr
+    let addr = addr
         .to_socket_addrs()
         .map_err(|err| ErrorKind::ResolveNtpPoolHostname(Some(err)))?
         .next()
         .ok_or(ErrorKind::ResolveNtpPoolHostname(None))?;
 
-    let socket = std::net::UdpSocket::bind("0.0.0.0:0").context(ErrorKind::BindLocalSocket)?;
+    let socket = UdpSocket::bind("0.0.0.0:0").context(ErrorKind::BindLocalSocket)?;
     socket
         .set_read_timeout(Some(std::time::Duration::from_secs(10)))
         .context(ErrorKind::SetReadTimeoutOnSocket)?;
@@ -35,6 +37,35 @@ where
         .set_write_timeout(Some(std::time::Duration::from_secs(10)))
         .context(ErrorKind::SetWriteTimeoutOnSocket)?;
 
+    let mut num_retries_remaining = 3;
+    while num_retries_remaining > 0 {
+        match query_inner(&socket, addr) {
+            Ok(result) => return Ok(result),
+            Err(err) => {
+                let is_retriable = match err.kind() {
+                    ErrorKind::SendClientRequest(err) | ErrorKind::ReceiveServerResponse(err) => {
+                        err.kind() == std::io::ErrorKind::TimedOut || // Windows
+                        err.kind() == std::io::ErrorKind::WouldBlock
+                    } // Unix
+
+                    _ => false,
+                };
+                if is_retriable {
+                    num_retries_remaining -= 1;
+                    if num_retries_remaining == 0 {
+                        return Err(err);
+                    }
+                } else {
+                    return Err(err);
+                }
+            }
+        }
+    }
+
+    unreachable!();
+}
+
+fn query_inner(socket: &UdpSocket, addr: SocketAddr) -> Result<SntpTimeQueryResult, Error> {
     let request_transmit_timestamp = {
         let (buf, request_transmit_timestamp) = create_client_request();
 
@@ -45,7 +76,7 @@ where
         while !buf.is_empty() {
             let sent = socket
                 .send_to(buf, addr)
-                .context(ErrorKind::SendClientRequest)?;
+                .map_err(ErrorKind::SendClientRequest)?;
             buf = &buf[sent..];
         }
 
@@ -60,8 +91,8 @@ where
             while !buf.is_empty() {
                 let (received, received_from) = socket
                     .recv_from(buf)
-                    .context(ErrorKind::ReceiveServerResponse)?;
-                if received_from == ntp_pool_host {
+                    .map_err(ErrorKind::ReceiveServerResponse)?;
+                if received_from == addr {
                     buf = &mut buf[received..];
                 }
             }

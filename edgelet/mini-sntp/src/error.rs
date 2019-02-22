@@ -1,6 +1,12 @@
 #[derive(Debug)]
 pub struct Error(failure::Context<ErrorKind>);
 
+impl Error {
+    pub fn kind(&self) -> &ErrorKind {
+        self.0.get_context()
+    }
+}
+
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
@@ -33,9 +39,9 @@ impl From<failure::Context<ErrorKind>> for Error {
 pub enum ErrorKind {
     BadServerResponse(BadServerResponseReason),
     BindLocalSocket,
-    ReceiveServerResponse,
+    ReceiveServerResponse(std::io::Error),
     ResolveNtpPoolHostname(Option<std::io::Error>),
-    SendClientRequest,
+    SendClientRequest(std::io::Error),
     SetReadTimeoutOnSocket,
     SetWriteTimeoutOnSocket,
 }
@@ -47,14 +53,18 @@ impl std::fmt::Display for ErrorKind {
                 write!(f, "could not parse NTP server response: {}", reason)
             }
             ErrorKind::BindLocalSocket => write!(f, "could not bind local UDP socket"),
-            ErrorKind::ReceiveServerResponse => write!(f, "could not receive NTP server response"),
+            ErrorKind::ReceiveServerResponse(err) => {
+                write!(f, "could not receive NTP server response: {}", err)
+            }
             ErrorKind::ResolveNtpPoolHostname(Some(err)) => {
                 write!(f, "could not resolve NTP pool hostname: {}", err)
             }
             ErrorKind::ResolveNtpPoolHostname(None) => {
                 write!(f, "could not resolve NTP pool hostname: no addresses found")
             }
-            ErrorKind::SendClientRequest => write!(f, "could not send SNTP client request"),
+            ErrorKind::SendClientRequest(err) => {
+                write!(f, "could not send SNTP client request: {}", err)
+            }
             ErrorKind::SetReadTimeoutOnSocket => {
                 write!(f, "could not set read timeout on local UDP socket")
             }
@@ -71,10 +81,10 @@ impl failure::Fail for ErrorKind {
         match self {
             ErrorKind::BadServerResponse(_) => None,
             ErrorKind::BindLocalSocket => None,
-            ErrorKind::ReceiveServerResponse => None,
+            ErrorKind::ReceiveServerResponse(err) => Some(err),
             ErrorKind::ResolveNtpPoolHostname(Some(err)) => Some(err),
             ErrorKind::ResolveNtpPoolHostname(None) => None,
-            ErrorKind::SendClientRequest => None,
+            ErrorKind::SendClientRequest(err) => Some(err),
             ErrorKind::SetReadTimeoutOnSocket => None,
             ErrorKind::SetWriteTimeoutOnSocket => None,
         }
