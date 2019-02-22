@@ -115,6 +115,13 @@ jobs:
           imageName: azureiotedge-direct-method-receiver
           project: DirectMethodReceiver
 
+      # Direct Method Cloud Sender
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Direct Method Cloud Sender
+          imageName: azureiotedge-direct-method-cloud-sender
+          project: DirectMethodCloudSender
+
 ################################################################################
   - job: windows
 ################################################################################
@@ -218,6 +225,13 @@ jobs:
           name: Direct Method Receiver
           imageName: azureiotedge-direct-method-receiver
           project: DirectMethodReceiver
+
+      # Direct Method Cloud Sender
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Direct Method Cloud Sender
+          imageName: azureiotedge-direct-method-cloud-sender
+          project: DirectMethodCloudSender
 
       - powershell: docker system prune -a -f
         displayName: Clean Machine

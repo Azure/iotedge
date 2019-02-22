@@ -11,7 +11,7 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using ModuleLib;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
 
     class Program
     {

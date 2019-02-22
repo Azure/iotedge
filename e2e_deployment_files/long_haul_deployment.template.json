@@ -205,6 +205,78 @@
               "image": "influxdb:1.5",
               "createOptions": "{\"ExposedPorts\":{\"8086/tcp\":{}},\"HostConfig\":{\"PortBindings\":{\"8086/tcp\":[{\"HostPort\":\"8086\"}]}}}"
             }
+          },
+          "DirectMethodCloudSender": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "TargetModuleId": {
+                "value": "DirectMethodReceiver"
+              },
+              "ClientTransportType": {
+                "value": "Mqtt_Tcp_Only"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
+              }
+            },
+            "settings": {
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-cloud-sender:<Build.BuildNumber>-linux-amd64",
+              "createOptions": ""
+            }
+          },
+          "DirectMethodReceiver": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "ClientTransportType": {
+                "value": "Mqtt_Tcp_Only"
+              }
+            },
+            "settings": {
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-amd64",
+              "createOptions": ""
+            }
+          },
+          "DirectMethodCloudSender2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "TargetModuleId": {
+                "value": "DirectMethodReceiver2"
+              },
+              "ClientTransportType": {
+                "value": "Amqp_Tcp_Only"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
+              }
+            },
+            "settings": {
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-cloud-sender:<Build.BuildNumber>-linux-amd64",
+              "createOptions": ""
+            }
+          },
+          "DirectMethodReceiver2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "ClientTransportType": {
+                "value": "Amqp_Tcp_Only"
+              }
+            },
+            "settings": {
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-amd64",
+              "createOptions": ""
+            }
           }
         }
       }
