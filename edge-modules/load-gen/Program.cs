@@ -9,7 +9,7 @@ namespace LoadGen
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
-    using ModuleLib;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Newtonsoft.Json;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
 
