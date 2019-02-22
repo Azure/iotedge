@@ -12,9 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     {
         static readonly IDictionary<string, IRequestHandler> DefaultRequestHandlers = new ReadOnlyDictionary<string, IRequestHandler>(
             new Dictionary<string, IRequestHandler>()
-        {
-            ["ping"] = new PingRequestHandler()
-        });
+            {
+                ["ping"] = new PingRequestHandler()
+            });
 
         readonly IDictionary<string, IRequestHandler> requestHandlers;
 
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         {
             try
             {
-                Preconditions.CheckNonWhiteSpace(request, nameof(request));                
+                Preconditions.CheckNonWhiteSpace(request, nameof(request));
                 if (!this.requestHandlers.TryGetValue(request, out IRequestHandler requestHandler))
                 {
                     string supportedCommands = string.Join(",", this.requestHandlers.Keys);
@@ -68,5 +68,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             string json = errorPayload.ToJson();
             return json;
         }
-    }    
+    }
 }

@@ -13,6 +13,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
     [Unit]
     public class RequestManagerTest
     {
+        public static IEnumerable<object[]> GetProcessRequestWithException()
+        {
+            yield return new object[] { "{\"prop2\":\"foo\",\"prop1\":100}", 400, new ArgumentNullException() };
+
+            yield return new object[] { "{\"prop2\":\"foo\",\"prop1\":100}", 400, new ArgumentException() };
+
+            yield return new object[] { "{\"prop2\":\"foo\",\"prop1\":100}", 500, new InvalidOperationException() };
+        }
+
         [Fact]
         public async Task TestProcessRequest()
         {
@@ -83,15 +92,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             Assert.NotNull(responsePayload);
             JObject parsedJson = JObject.Parse(responsePayload);
             Assert.False(string.IsNullOrWhiteSpace(parsedJson["message"].ToString()));
-        }
-
-        public static IEnumerable<object[]> GetProcessRequestWithException()
-        {
-            yield return new object[] { "{\"prop2\":\"foo\",\"prop1\":100}", 400, new ArgumentNullException() };
-
-            yield return new object[] { "{\"prop2\":\"foo\",\"prop1\":100}", 400, new ArgumentException() };
-
-            yield return new object[] { "{\"prop2\":\"foo\",\"prop1\":100}", 500, new InvalidOperationException() };
         }
     }
 }
