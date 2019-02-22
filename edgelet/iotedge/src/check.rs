@@ -20,9 +20,8 @@ use regex::Regex;
 use serde_json;
 
 use edgelet_config::{Provisioning, Settings};
-use edgelet_core;
+use edgelet_core::{self, UrlExt};
 use edgelet_docker::DockerConfig;
-use edgelet_http::UrlExt;
 
 use error::{Error, ErrorKind};
 
@@ -421,10 +420,16 @@ fn daemon_mgmt_endpoint_uri(check: &mut Check) -> Result<Option<String>, failure
         ("unix", "unix") => {
             args.push(Cow::Borrowed(OsStr::new("-v")));
 
+            // On Windows we mount the parent folder because we can't mount the socket files directly
+
             let container_path = connect_management_uri.to_uds_file_path().context("could not parse connect.management_uri as file path")?;
+            #[cfg(windows)]
+            let container_path = container_path.parent().ok_or_else(|| Context::new("connect.management_uri is not a valid file path - does not have a parent directory"))?;
             let container_path = container_path.to_str().ok_or_else(|| Context::new("connect.management_uri is a unix socket, but the file path is not valid utf-8"))?;
 
             let host_path = listen_management_uri.to_uds_file_path().context("could not parse listen.management_uri as file path")?;
+            #[cfg(windows)]
+            let host_path = host_path.parent().ok_or_else(|| Context::new("connect.management_uri is not a valid file path - does not have a parent directory"))?;
             let host_path = host_path.to_str().ok_or_else(|| Context::new("listen.management_uri is a unix socket, but the file path is not valid utf-8"))?;
 
             args.push(Cow::Owned(format!("{}:{}", host_path, container_path).into()));
@@ -537,11 +542,15 @@ fn container_runtime_network(check: &mut Check) -> Result<Option<String>, failur
 
 fn iotedged_version(check: &mut Check) -> Result<Option<String>, failure::Error> {
     let mut process = if cfg!(windows) {
-        Command::new(r"C:\ProgramData\iotedge\iotedged.exe")
+        Command::new(r"C:\Program Files\iotedge\iotedged.exe")
     } else {
         Command::new("/usr/bin/iotedged")
     };
     process.arg("--version");
+
+    if cfg!(windows) {
+        process.env("IOTEDGE_RUN_AS_CONSOLE", "true");
+    }
 
     let output = process
         .output()

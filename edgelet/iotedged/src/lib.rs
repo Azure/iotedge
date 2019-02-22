@@ -83,15 +83,16 @@ use edgelet_core::crypto::{
     KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
-use edgelet_core::WorkloadConfig;
-use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType};
-use edgelet_core::{ModuleRuntime, ModuleSpec};
+use edgelet_core::{
+    CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime, ModuleSpec, UrlExt,
+    WorkloadConfig, UNIX_SCHEME,
+};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
-use edgelet_http::{HyperExt, MaybeProxyClient, UrlExt, API_VERSION};
+use edgelet_http::{HyperExt, MaybeProxyClient, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
@@ -166,7 +167,6 @@ const EDGE_NETWORKID_KEY: &str = "NetworkId";
 const API_VERSION_KEY: &str = "IOTEDGE_APIVERSION";
 
 const IOTHUB_API_VERSION: &str = "2017-11-08-preview";
-const UNIX_SCHEME: &str = "unix";
 
 /// This is the name of the provisioning backup file
 const EDGE_PROVISIONING_BACKUP_FILENAME: &str = "provisioning_backup.json";

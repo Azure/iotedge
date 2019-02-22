@@ -34,7 +34,7 @@ where
         name: Option<String>,
         pid: Pid,
     ) -> impl Future<Item = bool, Error = Error> {
-        let name = name.map(|n| n.trim_left_matches('$').to_string());
+        let name = name.map(|n| n.trim_start_matches('$').to_string());
         match self.policy {
             Policy::Anonymous => Either::A(Either::A(self.auth_anonymous())),
             Policy::Caller => Either::A(Either::B(self.auth_caller(name, pid))),

@@ -17,8 +17,16 @@ $versionInfoFilePath = Join-Path $env:BUILD_REPOSITORY_LOCALPATH 'versionInfo.js
 $env:VERSION = Get-Content $versionInfoFilePath | ConvertFrom-JSON | % version
 $env:NO_VALGRIND = 'true'
 
+$originalRustflags = $env:RUSTFLAGS
+$env:RUSTFLAGS += ' -C target-feature=+crt-static'
 Write-Host "$cargo build -p iotedge-diagnostics --release --manifest-path $ManifestPath"
 Invoke-Expression "$cargo build -p iotedge-diagnostics --release --manifest-path $ManifestPath"
+if ($originalRustflags -eq '') {
+    Remove-Item Env:\RUSTFLAGS
+}
+else {
+    $env:RUSTFLAGS = $originalRustflags
+}
 if ($LastExitCode) {
     Throw "cargo build failed with exit code $LastExitCode"
 }

@@ -1,28 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
 
 #[macro_use]
 extern crate clap;
-extern crate futures;
-extern crate hyper;
-#[cfg(unix)]
-extern crate hyperlocal;
-#[cfg(windows)]
-extern crate hyperlocal_windows;
-extern crate serde_json;
-extern crate tokio;
-extern crate url;
-
-extern crate management;
 
 use futures::{Future, Stream};
+
+use edgelet_core::UrlExt;
 
 #[cfg(unix)]
 use hyperlocal::{UnixConnector, Uri as UnixUri};
@@ -82,8 +68,12 @@ fn main() {
                 "unix" => {
                     let client =
                         hyper::Client::builder().build::<_, hyper::Body>(UnixConnector::new());
-                    let uri =
-                        UnixUri::new(management_uri.path(), "/modules/?api-version=2018-06-28");
+                    let uri = UnixUri::new(
+                        management_uri
+                            .to_uds_file_path()
+                            .expect("couldn't get file path from URI"),
+                        "/modules/?api-version=2018-06-28",
+                    );
                     client.get(uri.into())
                 }
 
