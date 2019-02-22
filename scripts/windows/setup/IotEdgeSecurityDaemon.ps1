@@ -411,6 +411,9 @@ function Install-IoTEdge {
     if ($Username) { $Params["-Username"] = $Username }
     if ($Password) { $Params["-Password"] = $Password }
 
+    # Used to suppress some messages from Initialize-IoTEdge that have already been emitted by Deploy-IoTEdge
+    $calledFromInstall = $true
+
     Initialize-IoTEdge @Params
 }
 
@@ -596,7 +599,7 @@ function Install-Packages(
     if ($Update) {
         Write-LogInformation
     }
-    else {
+    elseif (-not (Test-Path Variable:\calledFromInstall)) {
         Write-Host 'To complete the installation, run "Initialize-IoTEdge".'
     }
 
@@ -619,8 +622,11 @@ function Setup-Environment([string] $ContainerOs) {
                 $false
             }
             else {
-                Write-Warning ('Linux containers on Windows can be used for development and testing, ' +
-                    'but are not supported in production IoT Edge deployments. See https://aka.ms/iotedge-platsup for more details.')
+                if (-not (Test-Path Variable:\calledFromInstall)) {
+                    Write-Warning ('Linux containers on Windows can be used for development and testing, ' +
+                        'but are not supported in production IoT Edge deployments. See https://aka.ms/iotedge-platsup for more details.')
+                }
+
                 $true
             }
         }
