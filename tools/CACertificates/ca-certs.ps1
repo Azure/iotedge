@@ -20,7 +20,8 @@ Set-StrictMode -Version 2.0
 # Errors in system routines will stop script execution
 $errorActionPreference       = "stop"
 
-$_basePath                   = $PWD
+$_basePath                   = $PSScriptRoot
+$env:CERTIFICATE_OUTPUT_DIR  = $_basePath
 $_rootCertCommonName         = "Azure IoT CA TestOnly Root CA"
 $_rootCertSubject            = "`"/CN=$_rootCertCommonName`""
 $_rootCAPrefix               = "azure-iot-test-only.root.ca"
@@ -220,11 +221,11 @@ function Test-CACertsPrerequisites([bool]$printMsg=$true)
 #>
 function PrepareFilesystem()
 {
-    Remove-Item -Path $_basePath/csr -Recurse -ErrorAction Ignore
-    Remove-Item -Path $_basePath/private -Recurse -ErrorAction Ignore
-    Remove-Item -Path $_basePath/certs -Recurse -ErrorAction Ignore
-    Remove-Item -Path $_basePath/intermediateCerts -ErrorAction Ignore
-    Remove-Item -Path $_basePath/newcerts -Recurse -ErrorAction Ignore
+    Remove-Item -Path $_basePath/csr -Recurse -Force -ErrorAction Ignore
+    Remove-Item -Path $_basePath/private -Recurse -Force -ErrorAction Ignore
+    Remove-Item -Path $_basePath/certs -Recurse -Force -ErrorAction Ignore
+    Remove-Item -Path $_basePath/intermediateCerts -Force -ErrorAction Ignore
+    Remove-Item -Path $_basePath/newcerts -Recurse -Force -ErrorAction Ignore
 
     New-Item -ItemType directory -Path $_basePath/csr
     New-Item -ItemType directory -Path $_basePath/private

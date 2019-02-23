@@ -46,13 +46,11 @@
             -E2ETestFolder "C:\Data\e2etests"
             -ReleaseLabel "Release-ARM-1"
             -ReleaseArtifactImageBuildNumber "20190101.1"
-            -Architecture "x64"
             -TestName "TempSensor"
             -ContainerRegistryUsername "EdgeBuilds"
             -ContainerRegistryPassword "xxxx"
             -IoTHubConnectionString "xxxx"
             -EventHubConnectionString "xxxx"
-            -EdgeCertGenScriptDir "dir path"
             -EdgeE2ERootCACertRSAFile "file path"
             -EdgeE2ERootCAKeyRSAFile "file path"
             -EdgeE2ETestRootCAPassword "xxxx"
@@ -88,19 +86,15 @@ Param (
     [string] $IoTHubConnectionString = $(Throw "IoT hub connection string is required"),
 
     [ValidateNotNullOrEmpty()]
-    [string] $EventHubConnectionString = $(Throw "Event hub connection string is required")
-
-    [ValidateNotNullOrEmpty()]
-    [ValidateScript({(Test-Path $_ -PathType Container)})]
-    [string] $EdgeCertGenScriptDir = $(Throw "Certificate generation script dir")
+    [string] $EventHubConnectionString = $(Throw "Event hub connection string is required"),
 
     [ValidateNotNullOrEmpty()]
     [ValidateScript({(Test-Path $_ -PathType Leaf)})]
-    [string] $EdgeE2ERootCACertRSAFile = $(Throw "Root certificate PEM formatted file")
+    [string] $EdgeE2ERootCACertRSAFile = $(Throw "Root certificate PEM formatted file"),
 
     [ValidateNotNullOrEmpty()]
     [ValidateScript({(Test-Path $_ -PathType Leaf)})]
-    [string] $EdgeE2ERootCAKeyRSAFile = $(Throw "Root private key PEM formatted file")
+    [string] $EdgeE2ERootCAKeyRSAFile = $(Throw "Root private key PEM formatted file"),
 
     [ValidateNotNullOrEmpty()]
     [string] $EdgeE2ETestRootCAPassword = $(Throw "Root private key password")
@@ -578,8 +572,8 @@ Function RunTransparentGatewayTest
         -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         --leave-running=Core ``
         --no-verify ``
-        --device_ca_cert `"$EdgeCertGenScriptDir\certs\iot-edge-device-${device_id}-full-chain.cert.pem`" ``
-        --device_ca_pk `"$EdgeCertGenScriptDir\private\iot-edge-device-${device_id}.key.pem`" ``
+        --device_ca_cert `"$EdgeCertGenScriptDir\certs\iot-edge-device-$deviceId-full-chain.cert.pem`" ``
+        --device_ca_pk `"$EdgeCertGenScriptDir\private\iot-edge-device-$deviceId.key.pem`" ``
         --trusted_ca_certs `"$TrustedCACertificatePath`""
 
     $testCommand = AppendInstallationOption($testCommand)
@@ -744,6 +738,7 @@ $Architecture = GetArchitecture
 $ContainerRegistry = "edgebuilds.azurecr.io"
 $E2ETestFolder = (Resolve-Path $E2ETestFolder).Path
 $InstallationScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\setup\IotEdgeSecurityDaemon.ps1"
+$EdgeCertGenScriptDir = Join-Path $E2ETestFolder "artifacts\core-windows\CACertificates"
 $ModuleToModuleDeploymentFilename = "module_to_module_deployment.template.json"
 $ModuleToFunctionsDeploymentFilename = "module_to_functions_deployment.template.json"
 $DirectMethodModuleToModuleDeploymentFilename = "dm_module_to_module_deployment.json"
