@@ -21,13 +21,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="2.2.0-*" />
-    <PackageReference Include="Microsoft.Azure.Devices" Version="1.17.2" />
-    <PackageReference Include="Microsoft.Azure.EventHubs" Version="2.2.1" />
-    <PackageReference Include="Microsoft.CodeCoverage" Version="1.0.3" />
+    <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="2.3.2" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.17.3" />
+    <PackageReference Include="Microsoft.Azure.EventHubs" Version="3.0.0" />
+    <PackageReference Include="Microsoft.CodeCoverage" Version="15.9.0" />
     <PackageReference Include="RunProcessAsTask" Version="1.2.3" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="4.5.0" />
-    <PackageReference Include="YamlDotNet" Version="5.2.1" />
+    <PackageReference Include="YamlDotNet" Version="5.4.0" />
   </ItemGroup>
 
   <ItemGroup>

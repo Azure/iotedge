@@ -81,15 +81,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 string statusDescription,
                 DateTime lastStartTime,
                 DateTime lastExitTime,
-                string imageHash
+                string imageHash,
+                string image
             ) = ExtractModuleRuntimeState(inspectResponse);
-
-            var dockerConfig = new DockerReportedConfig(string.Empty, string.Empty, imageHash);
 
             // Figure out module stats and runtime status
             ModuleStatus runtimeStatus = ToRuntimeStatus(inspectResponse.State);
 
-            var reportedConfig = new DockerReportedConfig(string.Empty, string.Empty, imageHash);
+            var reportedConfig = new DockerReportedConfig(image, string.Empty, imageHash);
             var moduleRuntimeInfo = new ModuleRuntimeInfo<DockerReportedConfig>(name, "docker", runtimeStatus, statusDescription, exitCode, Option.Some(lastStartTime), Option.Some(lastExitTime), reportedConfig);
             return moduleRuntimeInfo;
         }
@@ -100,7 +99,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             string statusDescription,
             DateTime lastStartTime,
             DateTime lastExitTime,
-            string imageHash
+            string imageHash,
+            string image
             )
             ExtractModuleRuntimeState(ContainerInspectResponse inspected)
         {
@@ -123,7 +123,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 lastExitTime = DateTime.Parse(lastExitTimeStr, null, DateTimeStyles.RoundtripKind);
             }
 
-            return (name, exitCode, statusDescription, lastStartTime, lastExitTime, inspected?.Image);
+            string image = inspected.Config.Image;
+            string hash = inspected?.Image;
+
+            return (name, exitCode, statusDescription, lastStartTime, lastExitTime, hash, image);
         }
 
         static ModuleStatus ToRuntimeStatus(ContainerState containerState)
