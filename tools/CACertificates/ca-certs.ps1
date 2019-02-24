@@ -199,7 +199,7 @@ function Test-CACertsPrerequisites([bool]$printMsg=$true)
     if ($TRUE -eq $printMsg)
     {
         Write-Host ("  Ok.")
-        Write-Host ("Testing if openssl_root_ca.cnf is available in PWD: $PWD")
+        Write-Host ("Testing if openssl_root_ca.cnf is available in script dir: $_basePath")
     }
     if (-not (Test-Path $_opensslRootConfigFile -PathType Leaf))
     {
@@ -221,24 +221,32 @@ function Test-CACertsPrerequisites([bool]$printMsg=$true)
 #>
 function PrepareFilesystem()
 {
-    Remove-Item -Path $_basePath/csr -Recurse -Force -ErrorAction Ignore
-    Remove-Item -Path $_basePath/private -Recurse -Force -ErrorAction Ignore
-    Remove-Item -Path $_basePath/certs -Recurse -Force -ErrorAction Ignore
-    Remove-Item -Path $_basePath/intermediateCerts -Force -ErrorAction Ignore
-    Remove-Item -Path $_basePath/newcerts -Recurse -Force -ErrorAction Ignore
+    $csrPath = Join-Path $_basePath "csr"
+    $privatePath = Join-Path $_basePath "private"
+    $certsPath = Join-Path $_basePath "certs"
+    $intermediateCertsPath = Join-Path $_basePath "intermediateCerts"
+    $newcertsPath = Join-Path $_basePath "newcerts"
+    $indexPath = Join-Path $_basePath "index.txt"
+    $serialPath = Join-Path $_basePath "serial"
 
-    New-Item -ItemType directory -Path $_basePath/csr
-    New-Item -ItemType directory -Path $_basePath/private
-    New-Item -ItemType directory -Path $_basePath/certs
-    New-Item -ItemType directory -Path $_basePath/intermediateCerts
-    New-Item -ItemType directory -Path $_basePath/newcerts
+    Remove-Item -Path $csrPath -Recurse -Force -ErrorAction Ignore
+    Remove-Item -Path $privatePath -Recurse -Force -ErrorAction Ignore
+    Remove-Item -Path $certsPath -Recurse -Force -ErrorAction Ignore
+    Remove-Item -Path $intermediateCertsPath -Force -ErrorAction Ignore
+    Remove-Item -Path $newcertsPath -Recurse -Force -ErrorAction Ignore
 
-    Remove-Item -Path $_basePath/index.txt -ErrorAction Ignore
-    New-Item $_basePath/index.txt -ItemType file
+    $item = New-Item -ItemType directory -Path $csrPath
+    $item = New-Item -ItemType directory -Path $privatePath
+    $item = New-Item -ItemType directory -Path $certsPath
+    $item = New-Item -ItemType directory -Path $intermediateCertsPath
+    $item = New-Item -ItemType directory -Path $newcertsPath
 
-    Remove-Item -Path $_basePath/serial -ErrorAction Ignore
-    New-Item $_basePath/serial -ItemType file
-    "1000`n" | Out-File -NoNewline -Encoding ASCII $_basePath/serial
+    Remove-Item -Path $indexPath -ErrorAction Ignore
+    $item = New-Item $indexPath -ItemType file
+
+    Remove-Item -Path $serialPath -ErrorAction Ignore
+    $item = New-Item $serialPath -ItemType file
+    "1000`n" | Out-File -NoNewline -Encoding ASCII $serialPath
 }
 
 <#
@@ -258,7 +266,7 @@ function New-PrivateKey([string]$prefix, [string]$keyPass=$NULL)
     Write-Host ("Creating the $prefix private Key")
 
     $passwordCreateCmd = ""
-    if ($NULL -ne $keypass)
+    if (-not [string]::IsNullOrWhiteSpace($keyPass))
     {
         $passwordCreateCmd = "-aes256 -passout pass:$keyPass"
     }
@@ -337,7 +345,7 @@ function New-IntermediateCertificate
     $keyFile = New-PrivateKey $prefix $keyPass
 
     $keyPassUseCmd = ""
-    if ($NULL -ne $keyPass)
+    if (-not [string]::IsNullOrWhiteSpace($keyPass))
     {
         $keyPassUseCmd = "-passin pass:$keyPass"
     }
@@ -353,7 +361,7 @@ function New-IntermediateCertificate
     Write-Host ("Signing the certificate for $prefix with issuer certificate $issuerPrefix")
     Write-Host "-----------------------------------"
     $keyPassUseCmd = ""
-    if ($NULL -ne $issuerKeyPass)
+    if (-not [string]::IsNullOrWhiteSpace($issuerKeyPass))
     {
         $keyPassUseCmd = "-key $issuerKeyPass"
     }
@@ -385,7 +393,7 @@ function New-IntermediateCertificate
     Write-Host ("Create the full chain $prefix PFX Certificate")
     Write-Host ("----------------------------------------")
     $keyPassUseCmd = ""
-    if ($NULL -ne $keyPass)
+    if (-not [string]::IsNullOrWhiteSpace($keyPass))
     {
         $keyPassUseCmd = "-passin pass:$keyPass -passout pass:$keyPass"
     }
@@ -413,8 +421,6 @@ function New-IntermediateCertificate
     Write-Host ("$prefix PFX Certificate Generated At:")
     Write-Host ("----------------------------------------")
     Write-Host ("    $certFilePfx`r`n")
-
-    return $certFile
 }
 
 function New-CertFullChain([string]$certFile, [string]$prefix, [string]$issuerPrefix, [string]$subject)
@@ -430,8 +436,6 @@ function New-CertFullChain([string]$certFile, [string]$prefix, [string]$issuerPr
     }
     Get-Content $certFile, $issuerFullChainCertFileName | Set-Content $fullCertChain
     Write-Host ("Certificate with subject {0} has been output to {1} and with full chain to {2}" -f $subject, $certFile, $fullCertChain)
-
-    return $fullCertChain
 }
 
 <#
@@ -452,9 +456,7 @@ function New-ClientCertificate([string]$prefix, [string]$issuerPrefix, [string]$
 {
     $subject = "`"/CN=$commonName`""
     Write-Warning ("Generating client certificate CN={0} which is for prototyping, NOT PRODUCTION.  It has a hard-coded password and will expire in {1} days." -f $commonName, $_days_until_expiration)
-    $certFile = New-IntermediateCertificate "usr_cert" $_days_until_expiration $subject $prefix  $issuerPrefix $_privateKeyPassword $_privateKeyPassword
-
-    return $certFile
+    New-IntermediateCertificate "usr_cert" $_days_until_expiration $subject $prefix  $issuerPrefix $NULL $_privateKeyPassword
 }
 
 <#
@@ -475,9 +477,7 @@ function New-ServerCertificate([string]$prefix, [string]$issuerPrefix, [string]$
 {
     $subject = "`"/CN=$commonName`""
     Write-Warning ("Generating server certificate CN={0} which is for prototyping, NOT PRODUCTION.  It has a hard-coded password and will expire in {1} days." -f $commonName, $_days_until_expiration)
-    $certFile = New-IntermediateCertificate "server_cert" $_days_until_expiration $subject $prefix $issuerPrefix $_privateKeyPassword $_privateKeyPassword
-
-    return $certFile
+    New-IntermediateCertificate "server_cert" $_days_until_expiration $subject $prefix $issuerPrefix $NULL $_privateKeyPassword
 }
 
 <#
@@ -494,12 +494,11 @@ function New-ServerCertificate([string]$prefix, [string]$issuerPrefix, [string]$
     .PARAMETER commonName
         Value of the CN field to set when generating the certifcate
 #>
-function New-IntermediateCACertificate([string]$prefix, [string]$issuerPrefix, [string]$commonName, [string]$issuerKeyPass)
+function New-IntermediateCACertificate([string]$prefix, [string]$issuerPrefix, [string]$commonName, [string]$keyPass=$NULL, [string]$issuerKeyPass=$NULL)
 {
     $subject = "`"/CN=$commonName`""
-    $certFile = New-IntermediateCertificate "v3_intermediate_ca" $_days_until_expiration $subject $prefix $issuerPrefix $_privateKeyPassword $issuerKeyPass
     Write-Warning ("Generating certificate CN={0} which is for prototyping, NOT PRODUCTION.  It has a hard-coded password and will expire in {1} days." -f $commonName, $_days_until_expiration)
-    return $certFile
+    New-IntermediateCertificate "v3_intermediate_ca" $_days_until_expiration $subject $prefix $issuerPrefix $keyPass $issuerKeyPass
 }
 
 <#
@@ -543,7 +542,7 @@ function New-RootCACertificate()
 #>
 function New-CACertsCertChain([Parameter(Mandatory=$TRUE)][ValidateSet("rsa","ecc")][string]$algorithm)
 {
-    Write-Host "Beginning to create certificates in your filesystem here $PWD"
+    Write-Host "Beginning to create certificates in your filesystem here $_basePath"
     Test-CACertsPrerequisites($FALSE)
     PrepareFilesystem
 
@@ -551,10 +550,8 @@ function New-CACertsCertChain([Parameter(Mandatory=$TRUE)][ValidateSet("rsa","ec
     Set-Content $algorithmUsedFile $algorithm
 
     New-RootCACertificate
-    $certFile = New-IntermediateCACertificate $_intermediatePrefix $_rootCAPrefix $_intermediateCommonName $_privateKeyPassword
+    New-IntermediateCACertificate $_intermediatePrefix $_rootCAPrefix $_intermediateCommonName $_privateKeyPassword $_privateKeyPassword
     Write-Host "Success"
-
-    return $certFile
 }
 
 <#
@@ -578,7 +575,7 @@ function Install-RootCACertificate(
     [Parameter(Position=2,Mandatory=$TRUE)][ValidateSet("rsa","ecc")][string]$algorithm,
     [Parameter(Position=3)][string]$rootPrivateKeyPassword=$_privateKeyPassword)
 {
-    Write-Host "Beginning to install the root certificates in your filesystem here $PWD"
+    Write-Host "Beginning to install the root certificates in your filesystem here $_basePath"
     Test-CACertsPrerequisites($FALSE)
     PrepareFilesystem
 
@@ -593,10 +590,8 @@ function Install-RootCACertificate(
     Write-Host ("Copying the Root CA certificate to $rootCertFile")
     Copy-Item $rootCAFile $rootCertFile
 
-    $certFile = New-IntermediateCACertificate $_intermediatePrefix $_rootCAPrefix $_intermediateCommonName $rootPrivateKeyPassword
+    New-IntermediateCACertificate $_intermediatePrefix $_rootCAPrefix $_intermediateCommonName $_privateKeyPassword $rootPrivateKeyPassword
     Write-Host "Success"
-
-    return $certFile
 }
 
 # Get-CACertsCertUseEdge retrieves the algorithm (RSA vs ECC) that was specified during New-CACertsCertChain
@@ -691,15 +686,13 @@ function New-CACertsDevice([Parameter(Mandatory=$TRUE)][string]$deviceName, [str
         # client certificate where the hostname is used as the common name
         # which essentially results in "loop" for validation purposes.
         $deviceName += ".ca"
-        $certFile = New-IntermediateCACertificate $devicePrefix $issuerPrefix $deviceName $_privateKeyPassword
+        New-IntermediateCACertificate $devicePrefix $issuerPrefix $deviceName $NULL $_privateKeyPassword
     }
     else
     {
         $devicePrefix = "iot-device-$deviceName"
-        $certFile = New-ClientCertificate $devicePrefix $issuerPrefix $deviceName
+        New-ClientCertificate $devicePrefix $issuerPrefix $deviceName
     }
-
-    return $certFile
 }
 
 <#
