@@ -55,6 +55,9 @@
             -EdgeE2ERootCAKeyRSAFile "file path"
             -EdgeE2ETestRootCAPassword "xxxx"
 
+        Note: Default container registry is "edgebuilds.azurecr.io".
+        To override, set parameter -ContainerRegistry "your.registry"
+
     .NOTES
         This script is to make running E2E tests easier and centralize E2E test steps in 1 place for reusability.
         It shares common tasks such as clean up and installation of IoT Edge Security Daemon.
@@ -77,9 +80,13 @@ Param (
     [string] $TestName = "All",
 
     [ValidateNotNullOrEmpty()]
+    [string] $ContainerRegistry = "edgebuilds.azurecr.io",
+
+    [ValidateNotNullOrEmpty()]
     [string] $ContainerRegistryUsername = $(Throw "Container registry username is required"),
 
-    [string] $ContainerRegistryPassword = "",
+    [ValidateNotNullOrEmpty()]
+    [string] $ContainerRegistryPassword = $(Throw "Container registry password is required"),
 
     [ValidateNotNullOrEmpty()]
     [string] $IoTHubConnectionString = $(Throw "IoT hub connection string is required"),
@@ -89,11 +96,11 @@ Param (
 
     [ValidateNotNullOrEmpty()]
     [ValidateScript({(Test-Path $_ -PathType Leaf)})]
-    [string] $EdgeE2ERootCACertRSAFile = $(Throw "Root certificate PEM formatted file"),
+    [string] $EdgeE2ERootCACertRSAFile = $(Throw "Root RSA certificate in a PEM formatted file"),
 
     [ValidateNotNullOrEmpty()]
     [ValidateScript({(Test-Path $_ -PathType Leaf)})]
-    [string] $EdgeE2ERootCAKeyRSAFile = $(Throw "Root private key PEM formatted file"),
+    [string] $EdgeE2ERootCAKeyRSAFile = $(Throw "Root RSA private key in a PEM formatted file"),
 
     [ValidateNotNullOrEmpty()]
     [string] $EdgeE2ETestRootCAPassword = $(Throw "Root private key password")
@@ -439,7 +446,8 @@ Function RunQuickstartCertsTest
         -n `"$env:computername`" ``
         -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
-        -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
+        -p `"$ContainerRegistryPassword`" ``
+        --optimize_for_performance true ``
         -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         --leave-running=Core ``
         --no-verify"
@@ -535,7 +543,8 @@ Function RunTempSensorTest
         -e `"$EventHubConnectionString`" ``
         -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
-        -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
+        -p `"$ContainerRegistryPassword`" ``
+        --optimize_for_performance true ``
         -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         -tw `"$TwinTestFileArtifactFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
@@ -660,7 +669,8 @@ Function RunTransparentGatewayTest
     Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
     # generate the edge gateway certs
     New-CACertsEdgeDevice $edgeDeviceId
-    #launch the edge as a gateway
+
+    #launch the edge as a transparent gateway
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
         -d `"$edgeDeviceId`" ``
         -c `"$IoTHubConnectionString`" ``
@@ -668,13 +678,15 @@ Function RunTransparentGatewayTest
         -n `"$env:computername`" ``
         -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
-        -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
+        -p `"$ContainerRegistryPassword`" ``
+        --optimize_for_performance true ``
         -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         --leave-running=Core ``
         --no-verify ``
         --device_ca_cert `"$EdgeCertGenScriptDir\certs\iot-edge-device-$edgeDeviceId-full-chain.cert.pem`" ``
         --device_ca_pk `"$EdgeCertGenScriptDir\private\iot-edge-device-$edgeDeviceId.key.pem`" ``
         --trusted_ca_certs `"$TrustedCACertificatePath`""
+
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
     $testExitCode = $LastExitCode
@@ -682,16 +694,24 @@ Function RunTransparentGatewayTest
 
     # run the various leaf device tests
     RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-noscope-leaf" $NULL
+    RunLeafDeviceTest "sas" "MqttWs" "$deviceId-mqttws-sas-noscope-leaf" $NULL
     RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-noscope-leaf" $NULL
+    RunLeafDeviceTest "sas" "AmqpWs" "$deviceId-amqpws-sas-noscope-leaf" $NULL
 
     RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "sas" "MqttWs" "$deviceId-mqttws-sas-inscope-leaf" $edgeDeviceId
     RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "sas" "AmqpWs" "$deviceId-amqpws-sas-inscope-leaf" $edgeDeviceId
 
     RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x509ca-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509CA" "MqttWs" "$deviceId-mqttws-x509ca-inscope-leaf" $edgeDeviceId
     RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x509ca-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509CA" "AmqpWs" "$deviceId-amqpws-x509ca-inscope-leaf" $edgeDeviceId
 
     RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-x509th-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509Thumprint" "MqttWs" "$deviceId-mqttws-x509th-inscope-leaf" $edgeDeviceId
     RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-x509th-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509Thumprint" "AmqpWs" "$deviceId-amqpws-x509th-inscope-leaf" $edgeDeviceId
 
     Return $testExitCode
 }
@@ -785,7 +805,6 @@ Function PrintHighlightedMessage
 }
 
 $Architecture = GetArchitecture
-$ContainerRegistry = "edgebuilds.azurecr.io"
 $E2ETestFolder = (Resolve-Path $E2ETestFolder).Path
 $InstallationScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\setup\IotEdgeSecurityDaemon.ps1"
 $EdgeCertGenScriptDir = Join-Path $E2ETestFolder "artifacts\core-windows\CACertificates"
