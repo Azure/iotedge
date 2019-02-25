@@ -14,7 +14,6 @@ extern crate iotedge;
 extern crate tokio;
 extern crate url;
 
-use std::ffi::OsStr;
 use std::io;
 use std::process;
 
@@ -76,7 +75,10 @@ fn run() -> Result<(), Error> {
                         .long("config-file")
                         .value_name("FILE")
                         .help("Sets daemon configuration file")
-                        .takes_value(true),
+                        .takes_value(true)
+                        .default_value(
+                            if cfg!(windows) { r"C:\ProgramData\iotedge\config.yaml" } else { "/etc/iotedge/config.yaml" }
+                        ),
                 )
                 .arg(
                     Arg::with_name("iotedged")
@@ -157,13 +159,7 @@ fn run() -> Result<(), Error> {
         ("check", Some(args)) => tokio_runtime.block_on(
             Check::new(
                 args.value_of_os("config-file")
-                    .unwrap_or_else(|| {
-                        OsStr::new(if cfg!(windows) {
-                            r"C:\ProgramData\iotedge\config.yaml"
-                        } else {
-                            "/etc/iotedge/config.yaml"
-                        })
-                    })
+                    .expect("arg has a default value")
                     .to_os_string()
                     .into(),
                 args.value_of_os("iotedged")
