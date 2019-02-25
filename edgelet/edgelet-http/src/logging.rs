@@ -29,7 +29,7 @@ where
     type ResBody = T::ResBody;
     type Error = T::Error;
     type Future = Box<
-        Future<
+        dyn Future<
                 Item = <<T as Service>::Future as Future>::Item,
                 Error = <<T as Service>::Future as Future>::Error,
             > + Send,
@@ -89,7 +89,7 @@ where
     type ResBody = <LoggingService<<T as NewService>::Service> as Service>::ResBody;
     type Error = <LoggingService<<T as NewService>::Service> as Service>::Error;
     type Service = LoggingService<<T as NewService>::Service>;
-    type Future = Box<Future<Item = Self::Service, Error = Self::InitError> + Send>;
+    type Future = Box<dyn Future<Item = Self::Service, Error = Self::InitError> + Send>;
     type InitError = <T as NewService>::InitError;
 
     fn new_service(&self) -> Self::Future {

@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::default_trait_access,
@@ -9,56 +9,13 @@
     clippy::use_self
 )]
 
-extern crate bytes;
-extern crate chrono;
-extern crate edgelet_core;
-extern crate failure;
-extern crate futures;
-extern crate hyper;
-#[cfg(windows)]
-extern crate hyper_named_pipe;
-extern crate hyper_proxy;
-extern crate hyper_tls;
-#[cfg(unix)]
-extern crate hyperlocal;
-#[cfg(windows)]
-extern crate hyperlocal_windows;
-#[cfg(target_os = "linux")]
-#[cfg(unix)]
-extern crate libc;
 #[macro_use]
 extern crate log;
-#[cfg(windows)]
-extern crate mio_uds_windows;
-#[cfg(unix)]
-extern crate nix;
-extern crate percent_encoding;
-extern crate regex;
 #[cfg(unix)]
 #[macro_use]
 extern crate scopeguard;
-extern crate serde;
 #[macro_use]
 extern crate serde_json;
-extern crate systemd;
-#[cfg(test)]
-#[cfg(windows)]
-extern crate tempdir;
-#[cfg(test)]
-extern crate tempfile;
-extern crate tokio;
-#[cfg(windows)]
-extern crate tokio_named_pipe;
-#[cfg(unix)]
-extern crate tokio_uds;
-#[cfg(windows)]
-extern crate tokio_uds_windows;
-extern crate typed_headers;
-extern crate url;
-#[cfg(windows)]
-extern crate winapi;
-
-extern crate edgelet_utils;
 
 #[cfg(unix)]
 use std::net;
@@ -118,7 +75,7 @@ impl IntoResponse for Response<Body> {
     }
 }
 
-pub struct Run(Box<Future<Item = (), Error = Error> + Send + 'static>);
+pub struct Run(Box<dyn Future<Item = (), Error = Error> + Send + 'static>);
 
 impl Future for Run {
     type Item = ();

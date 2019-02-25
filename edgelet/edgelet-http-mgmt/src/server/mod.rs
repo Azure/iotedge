@@ -17,8 +17,8 @@ use serde::Serialize;
 use self::identity::*;
 pub use self::module::*;
 use self::system_info::*;
+use crate::error::{Error, ErrorKind};
 use edgelet_http::Version;
-use error::{Error, ErrorKind};
 
 lazy_static! {
     static ref AGENT_NAME: String = "edgeAgent".to_string();

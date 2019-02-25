@@ -30,8 +30,8 @@ use url::{ParseError, Url};
 
 use edgelet_core::UrlExt;
 
-use error::{Error, ErrorKind, InvalidUrlReason};
-use util::{socket_file_exists, StreamSelector};
+use crate::error::{Error, ErrorKind, InvalidUrlReason};
+use crate::util::{socket_file_exists, StreamSelector};
 #[cfg(windows)]
 use PIPE_SCHEME;
 use {HTTP_SCHEME, UNIX_SCHEME};
@@ -107,7 +107,7 @@ impl UrlConnector {
 impl Connect for UrlConnector {
     type Transport = StreamSelector;
     type Error = io::Error;
-    type Future = Box<Future<Item = (Self::Transport, Connected), Error = Self::Error> + Send>;
+    type Future = Box<dyn Future<Item = (Self::Transport, Connected), Error = Self::Error> + Send>;
 
     fn connect(&self, dst: Destination) -> Self::Future {
         #[allow(clippy::match_same_arms)]

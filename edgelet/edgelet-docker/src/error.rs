@@ -7,10 +7,10 @@ use failure::{Backtrace, Context, Fail};
 use hyper::StatusCode;
 use serde_json;
 
-use docker::apis::{ApiError as DockerApiError, Error as DockerError};
-use edgelet_core::{
+use crate::edgelet_core::{
     ModuleOperation, ModuleRuntimeErrorReason, RegistryOperation, RuntimeOperation,
 };
+use docker::apis::{ApiError as DockerApiError, Error as DockerError};
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -85,7 +85,7 @@ pub enum ErrorKind {
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -95,7 +95,7 @@ impl Fail for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }
