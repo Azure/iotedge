@@ -51,6 +51,17 @@
             -ContainerRegistryPassword "xxxx"
             -IoTHubConnectionString "xxxx"
             -EventHubConnectionString "xxxx"
+
+        Transparent Gateway Test Command:
+        .\Run-E2ETest.ps1
+            -E2ETestFolder "C:\Data\e2etests"
+            -ReleaseLabel "Release-ARM-1"
+            -ReleaseArtifactImageBuildNumber "20190101.1"
+            -TestName "TransparentGateway"
+            -ContainerRegistryUsername "EdgeBuilds"
+            -ContainerRegistryPassword "xxxx"
+            -IoTHubConnectionString "xxxx"
+            -EventHubConnectionString "xxxx"
             -EdgeE2ERootCACertRSAFile "file path"
             -EdgeE2ERootCAKeyRSAFile "file path"
             -EdgeE2ETestRootCAPassword "xxxx"
@@ -95,15 +106,11 @@ Param (
     [string] $EventHubConnectionString = $(Throw "Event hub connection string is required"),
 
     [ValidateNotNullOrEmpty()]
-    [ValidateScript({(Test-Path $_ -PathType Leaf)})]
-    [string] $EdgeE2ERootCACertRSAFile = $(Throw "Root RSA certificate in a PEM formatted file"),
-
+    [string] $EdgeE2ERootCACertRSAFile = $NULL,
     [ValidateNotNullOrEmpty()]
-    [ValidateScript({(Test-Path $_ -PathType Leaf)})]
-    [string] $EdgeE2ERootCAKeyRSAFile = $(Throw "Root RSA private key in a PEM formatted file"),
-
+    [string] $EdgeE2ERootCAKeyRSAFile = $NULL,
     [ValidateNotNullOrEmpty()]
-    [string] $EdgeE2ETestRootCAPassword = $(Throw "Root private key password")
+    [string] $EdgeE2ETestRootCAPassword = $NULL
 )
 
 Set-StrictMode -Version "Latest"
@@ -656,7 +663,7 @@ Function RunLeafDeviceTest
 Function RunTransparentGatewayTest
 {
     PrintHighlightedMessage "Run Transparent Gateway test for $Architecture"
-    #TestSetup
+    TestSetup
 
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-TransGW"
