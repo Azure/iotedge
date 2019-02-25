@@ -11,4 +11,4 @@ RUN apt-get update && \
     ln -s /lib/aarch64-linux-gnu/libdl.so.2 /usr/lib/aarch64-linux-gnu/libdl.so.2 && \
     ln -s /lib/aarch64-linux-gnu/libc.so.6 /usr/lib/aarch64-linux-gnu/libc.so.6
 
-COPY  librocksdb.so.5.17.2 /usr/lib
+COPY  librocksdb.so /usr/lib
