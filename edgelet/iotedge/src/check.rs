@@ -158,7 +158,7 @@ impl Check {
             &str, // Section name
             &[(
                 &str,                                                     // Check description
-                fn(&mut Check) -> Result<Option<String>, failure::Error>, // Check function
+                fn(&mut Check) -> Result<Option<String>, failure::Error>, // Check function. Returns Ok(Some(warning)), Ok(None), or Err(err).
             )],
         )] = &[
             (
