@@ -838,3 +838,183 @@ where
         .output()
         .with_context(|_| format!("could not run {:?}", process))?)
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn config_file_checks_ok() {
+        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+        for filename in &[
+            "sample_settings.yaml",
+            "sample_settings.dps.sym.yaml",
+            "sample_settings.tg.yaml",
+        ] {
+            let config_file = format!(
+                "{}/../edgelet-config/test/{}/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                if cfg!(windows) { "windows" } else { "linux" },
+                filename
+            );
+
+            let mut check = runtime
+                .block_on(super::Check::new(
+                    config_file.into(),
+                    "iotedged".into(),             // unused for this test
+                    "pool.ntp.org:123".to_owned(), // unused for this test
+                    None,
+                ))
+                .unwrap();
+
+            match super::parse_settings(&mut check) {
+                Ok(None) => (),
+                Ok(Some(warning)) => panic!(
+                    "parsing {} failed with an unexpected warning: {}",
+                    filename, warning
+                ),
+                Err(err) => panic!(
+                    "parsing {} failed with an unexpected error: {}",
+                    filename, err
+                ),
+            }
+
+            match super::settings_connection_string(&mut check) {
+                Ok(None) => (),
+                Ok(Some(warning)) => panic!(
+                    "checking connection string in {} failed with an unexpected warning: {}",
+                    filename, warning
+                ),
+                Err(err) => panic!(
+                    "checking connection string in {} failed with an unexpected error: {}",
+                    filename, err
+                ),
+            }
+
+            match super::settings_hostname(&mut check) {
+                Ok(None) => panic!("checking hostname in {} succeeded unexpectedly", filename),
+                Ok(Some(warning)) => panic!(
+                    "checking connection string in {} succeeded unexpectedly with a warning: {}",
+                    filename, warning
+                ),
+                Err(err) => assert!(
+                    err.to_string()
+                        .contains("but config has hostname localhost"),
+                    "checking hostname in {} produced unexpected error: {}",
+                    filename,
+                    err,
+                ),
+            }
+
+            match super::settings_moby_runtime_uri(&mut check) {
+                Ok(None) => (),
+
+                Ok(Some(warning)) => panic!(
+                    "checking moby_runtime.uri in {} failed with an unexpected warning: {}",
+                    filename, warning
+                ),
+
+                Err(err) => panic!(
+                    "checking moby_runtime.uri in {} failed with an unexpected error: {}",
+                    filename, err
+                ),
+            }
+        }
+    }
+
+    #[test]
+    fn parse_settings_err() {
+        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+        let filename = "bad_sample_settings.yaml";
+        let config_file = format!(
+            "{}/../edgelet-config/test/{}/{}",
+            env!("CARGO_MANIFEST_DIR"),
+            if cfg!(windows) { "windows" } else { "linux" },
+            filename
+        );
+
+        let mut check = runtime
+            .block_on(super::Check::new(
+                config_file.into(),
+                "iotedged".into(),             // unused for this test
+                "pool.ntp.org:123".to_owned(), // unused for this test
+                None,
+            ))
+            .unwrap();
+
+        match super::parse_settings(&mut check) {
+            Ok(None) => panic!("parsing {} succeeded unexpectedly", filename),
+            Ok(Some(warning)) => panic!(
+                "parsing {} succeeded unexpectedly with a warning: {}",
+                filename, warning
+            ),
+            Err(err) => {
+                let err = err
+                    .iter_causes()
+                    .nth(1)
+                    .expect("expected to find cause-of-cause-of-error");
+                assert!(
+                    err.to_string()
+                        .contains("while parsing a flow mapping, did not find expected ',' or '}' at line 10 column 5"),
+                    "parsing {} produced unexpected error: {}",
+                    filename,
+                    err,
+                );
+            }
+        }
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn moby_runtime_uri_windows_wants_moby() {
+        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+        let filename = "sample_settings_notmoby.yaml";
+        let config_file = format!(
+            "{}/../edgelet-config/test/{}/{}",
+            env!("CARGO_MANIFEST_DIR"),
+            if cfg!(windows) { "windows" } else { "linux" },
+            filename
+        );
+
+        let mut check = runtime
+            .block_on(super::Check::new(
+                config_file.into(),
+                "iotedged".into(),             // unused for this test
+                "pool.ntp.org:123".to_owned(), // unused for this test
+                None,
+            ))
+            .unwrap();
+
+        match super::parse_settings(&mut check) {
+            Ok(None) => (),
+            Ok(Some(warning)) => panic!(
+                "parsing {} failed with an unexpected warning: {}",
+                filename, warning
+            ),
+            Err(err) => panic!(
+                "parsing {} failed with an unexpected error: {}",
+                filename, err
+            ),
+        }
+
+        match super::settings_moby_runtime_uri(&mut check) {
+            Ok(None) => panic!(
+                "checking moby_runtime.uri in {} succeeded unexpectedly",
+                filename
+            ),
+
+            Ok(Some(warning)) => assert!(
+                warning.contains("is not supported for production"),
+                "checking moby_runtime.uri in {} failed with an unexpected warning: {}",
+                filename,
+                warning
+            ),
+
+            Err(err) => panic!(
+                "checking moby_runtime.uri in {} failed with an unexpected error: {}",
+                filename, err
+            ),
+        }
+    }
+}

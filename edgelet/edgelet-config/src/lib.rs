@@ -490,7 +490,7 @@ mod tests {
         let connection_string = unwrap_manual_provisioning(p);
         assert_eq!(
             connection_string,
-            "HostName=something.something.com;DeviceId=something;SharedAccessKey=something"
+            "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
         );
     }
 
