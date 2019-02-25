@@ -314,8 +314,23 @@ mod tests {
             local_clock_offset,
             round_trip_delay,
         } = query(&("pool.ntp.org", 123))?;
+
         println!("local clock offset: {}", local_clock_offset);
         println!("round-trip delay: {}", round_trip_delay);
+
+        assert!(
+            (local_clock_offset - chrono::Duration::seconds(30))
+                .num_seconds()
+                .abs()
+                < 1
+        );
+        assert!(
+            (round_trip_delay - chrono::Duration::seconds(10))
+                .num_seconds()
+                .abs()
+                < 1
+        );
+
         Ok(())
     }
 }
