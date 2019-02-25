@@ -29,8 +29,9 @@ use LatestVersions;
 
 pub struct Check {
     config_file: PathBuf,
-    steps_override: Option<Vec<String>>,
+    iotedged: PathBuf,
     ntp_server: String,
+    steps_override: Option<Vec<String>>,
     latest_versions: super::LatestVersions,
 
     // These optional fields are populated by the pre-checks
@@ -42,6 +43,7 @@ pub struct Check {
 impl Check {
     pub fn new(
         config_file: PathBuf,
+        iotedged: PathBuf,
         ntp_server: String,
         steps_override: Option<Vec<String>>,
     ) -> impl Future<Item = Self, Error = Error> + Send {
@@ -136,6 +138,7 @@ impl Check {
                 )?;
                 Ok(Check {
                     config_file,
+                    iotedged,
                     ntp_server,
                     steps_override,
                     latest_versions,
@@ -632,11 +635,7 @@ fn container_runtime_network(check: &mut Check) -> Result<Option<String>, failur
 }
 
 fn iotedged_version(check: &mut Check) -> Result<Option<String>, failure::Error> {
-    let mut process = if cfg!(windows) {
-        Command::new(r"C:\Program Files\iotedge\iotedged.exe")
-    } else {
-        Command::new("/usr/bin/iotedged")
-    };
+    let mut process = Command::new(&check.iotedged);
     process.arg("--version");
 
     if cfg!(windows) {

@@ -79,6 +79,16 @@ fn run() -> Result<(), Error> {
                         .takes_value(true),
                 )
                 .arg(
+                    Arg::with_name("iotedged")
+                        .long("iotedged")
+                        .value_name("PATH_TO_IOTEDGED")
+                        .help("Sets the path of the iotedged binary.")
+                        .takes_value(true)
+                        .default_value(
+                            if cfg!(windows) { r"C:\Program Files\iotedge\iotedged.exe" } else { "/usr/bin/iotedged" }
+                        ),
+                )
+                .arg(
                     Arg::with_name("ntp-server")
                         .long("ntp-server")
                         .value_name("NTP_SERVER")
@@ -154,6 +164,10 @@ fn run() -> Result<(), Error> {
                             "/etc/iotedge/config.yaml"
                         })
                     })
+                    .to_os_string()
+                    .into(),
+                args.value_of_os("iotedged")
+                    .expect("arg has a default value")
                     .to_os_string()
                     .into(),
                 args.value_of("ntp-server")
