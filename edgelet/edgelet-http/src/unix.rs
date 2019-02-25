@@ -13,8 +13,8 @@ use tokio_uds::UnixListener;
 #[cfg(windows)]
 use tokio_uds_windows::UnixListener;
 
-use error::{Error, ErrorKind};
-use util::{incoming::Incoming, socket_file_exists};
+use crate::error::{Error, ErrorKind};
+use crate::util::{incoming::Incoming, socket_file_exists};
 
 pub fn listener<P: AsRef<Path>>(path: P) -> Result<Incoming, Error> {
     let listener = if socket_file_exists(path.as_ref()) {

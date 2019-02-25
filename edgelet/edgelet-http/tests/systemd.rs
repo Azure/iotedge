@@ -9,14 +9,8 @@
 // Thus these tests are in their own separate test crate, and use a Mutex to ensure
 // that only one runs at a time.
 
-extern crate edgelet_http;
-extern crate futures;
-extern crate hyper;
 #[macro_use]
 extern crate lazy_static;
-extern crate nix;
-extern crate systemd;
-extern crate url;
 
 use std::sync::{Mutex, MutexGuard};
 use std::{env, io};

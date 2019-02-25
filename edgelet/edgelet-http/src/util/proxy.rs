@@ -2,7 +2,7 @@
 
 use super::super::client::ClientImpl;
 use super::hyperwrap::Client;
-use error::Error;
+use crate::error::Error;
 use hyper::{Body, Request, Uri};
 
 #[derive(Clone)]

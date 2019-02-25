@@ -28,9 +28,9 @@ use hyperlocal::{UnixConnector, Uri as HyperlocalUri};
 use hyperlocal_windows::{UnixConnector, Uri as HyperlocalUri};
 use url::{ParseError, Url};
 
-use error::{Error, ErrorKind, InvalidUrlReason};
-use util::{socket_file_exists, StreamSelector};
-use UrlExt;
+use crate::error::{Error, ErrorKind, InvalidUrlReason};
+use crate::util::{socket_file_exists, StreamSelector};
+use crate::UrlExt;
 
 const UNIX_SCHEME: &str = "unix";
 #[cfg(windows)]
@@ -106,7 +106,7 @@ impl UrlConnector {
 impl Connect for UrlConnector {
     type Transport = StreamSelector;
     type Error = io::Error;
-    type Future = Box<Future<Item = (Self::Transport, Connected), Error = Self::Error> + Send>;
+    type Future = Box<dyn Future<Item = (Self::Transport, Connected), Error = Self::Error> + Send>;
 
     fn connect(&self, dst: Destination) -> Self::Future {
         #[allow(clippy::match_same_arms)]

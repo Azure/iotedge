@@ -5,7 +5,7 @@ use failure::ResultExt;
 use docker::models::{AuthConfig, ContainerCreateBody};
 use edgelet_utils::{ensure_not_empty_with_context, serde_clone};
 
-use error::{ErrorKind, Result};
+use crate::error::{ErrorKind, Result};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]

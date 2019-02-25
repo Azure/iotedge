@@ -3,23 +3,6 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
-extern crate edgelet_http;
-extern crate edgelet_test_utils;
-extern crate futures;
-extern crate hyper;
-#[cfg(windows)]
-extern crate hyper_named_pipe;
-#[cfg(unix)]
-extern crate hyperlocal;
-#[cfg(windows)]
-extern crate hyperlocal_windows;
-#[cfg(windows)]
-extern crate rand;
-extern crate tempdir;
-extern crate tokio;
-extern crate typed_headers;
-extern crate url;
-
 use std::io;
 
 use edgelet_http::UrlConnector;

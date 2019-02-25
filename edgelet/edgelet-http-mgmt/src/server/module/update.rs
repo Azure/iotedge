@@ -14,8 +14,8 @@ use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 
 use super::{spec_to_core, spec_to_details};
-use error::{Error, ErrorKind};
-use IntoResponse;
+use crate::error::{Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct UpdateModule<M> {
     runtime: M,
@@ -36,7 +36,7 @@ where
         &self,
         req: Request<Body>,
         _params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let runtime = self.runtime.clone();
 
         let start: bool = req
@@ -119,12 +119,12 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::server::module::tests::Error;
     use chrono::prelude::*;
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
     use management::models::{Config, ErrorResponse, ModuleDetails, ModuleSpec};
-    use server::module::tests::Error;
 
     use super::*;
 

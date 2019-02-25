@@ -12,8 +12,8 @@ use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use management::models::*;
 
-use error::{Error, ErrorKind};
-use IntoResponse;
+use crate::error::{Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct ListModules<M> {
     runtime: M,
@@ -34,7 +34,7 @@ where
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         debug!("List modules");
 
         let response = self
@@ -97,13 +97,13 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::server::module::tests::Error;
     use chrono::prelude::*;
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
     use futures::Stream;
     use management::models::ModuleList;
-    use server::module::tests::Error;
 
     use super::*;
 

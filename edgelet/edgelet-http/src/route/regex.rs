@@ -4,10 +4,10 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::default::Default;
 
+use crate::version::Version;
 use hyper::{Method, StatusCode};
 use percent_encoding::percent_decode;
 use regex::Regex;
-use version::Version;
 
 use super::{Builder, Handler, HandlerParamsPair, Recognizer};
 
@@ -66,7 +66,7 @@ impl Default for Parameters {
 
 struct RegexRoute {
     pattern: Regex,
-    handler: Box<Handler<Parameters> + Sync>,
+    handler: Box<dyn Handler<Parameters> + Sync>,
     version: Version,
 }
 
@@ -116,7 +116,7 @@ impl Recognizer for RegexRecognizer {
         method: &Method,
         api_version: Version,
         path: &str,
-    ) -> Result<HandlerParamsPair<Self::Parameters>, StatusCode> {
+    ) -> Result<HandlerParamsPair<'_, Self::Parameters>, StatusCode> {
         let routes = self.routes.get(method).ok_or(StatusCode::NOT_FOUND)?;
         for route in routes {
             if api_version >= route.version {
@@ -147,7 +147,7 @@ fn match_route(re: &Regex, path: &str) -> Option<Parameters> {
     })
 }
 
-fn normalize_pattern(pattern: &str) -> Cow<str> {
+fn normalize_pattern(pattern: &str) -> Cow<'_, str> {
     let pattern = pattern
         .trim()
         .trim_left_matches('^')

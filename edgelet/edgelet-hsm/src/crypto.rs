@@ -13,8 +13,8 @@ use edgelet_core::{
     PrivateKey as CorePrivateKey,
 };
 
-use certificate_properties::convert_properties;
-pub use error::{Error, ErrorKind};
+use crate::certificate_properties::convert_properties;
+pub use crate::error::{Error, ErrorKind};
 pub use hsm::{
     Buffer, Decrypt, Encrypt, GetTrustBundle, HsmCertificate, KeyBytes as HsmKeyBytes,
     PrivateKey as HsmPrivateKey,

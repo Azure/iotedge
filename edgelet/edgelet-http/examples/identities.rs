@@ -5,9 +5,6 @@
 
 #[macro_use]
 extern crate edgelet_http;
-extern crate futures;
-extern crate hyper;
-extern crate tokio;
 
 use edgelet_http::route::{Builder, Parameters, Router};
 use edgelet_http::{Error as HttpError, HyperExt, Version};

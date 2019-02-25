@@ -1,24 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
-#[cfg(unix)]
-extern crate base64;
-#[cfg(unix)]
-extern crate failure;
-extern crate futures;
-extern crate hyper;
 #[macro_use]
 extern crate serde_json;
-extern crate tokio;
-extern crate typed_headers;
-extern crate url;
-
-extern crate docker;
-extern crate edgelet_core;
-extern crate edgelet_docker;
-extern crate edgelet_test_utils;
 
 use std::collections::HashMap;
 use std::str;

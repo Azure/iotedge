@@ -3,10 +3,6 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
-extern crate edgelet_http;
-extern crate futures;
-extern crate hyper;
-
 use futures::{future, Future, Stream};
 use hyper::service::{NewService, Service};
 use hyper::{Body, Chunk, Request, Response, StatusCode};
