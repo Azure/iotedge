@@ -495,7 +495,7 @@ function Uninstall-IoTEdge {
     if ($restartNeeded) {
         Write-HostRed 'Reboot required.'
         Write-Host 'You might need to rerun "Uninstall-IoTEdge" after the reboot to finish the cleanup.'
-        Restart-Computer -Confirm:(-not $RestartIfNeeded)
+        Restart-Computer -Confirm:(-not $RestartIfNeeded) -Force:$RestartIfNeeded
     }
 }
 
@@ -605,7 +605,7 @@ function Install-Packages(
 
     if ($restartNeeded) {
         Write-HostRed 'Reboot required.'
-        Restart-Computer -Confirm:(-not $RestartIfNeeded)
+        Restart-Computer -Confirm:(-not $RestartIfNeeded) -Force:$RestartIfNeeded
     }
 }
 
