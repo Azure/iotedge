@@ -87,7 +87,7 @@ install_toolchain $TOOLCHAIN true
 sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty main universe"
 
 # Install OpenSSL, curl and uuid and valgrind
-sudo apt-get update
+sudo apt-get update || :
 sudo apt-get install -y \
     pkg-config \
     uuid-dev curl \
