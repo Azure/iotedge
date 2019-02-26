@@ -15,18 +15,16 @@ namespace IotEdgeQuickstart.Details
     {
         const string ConfigYamlFile = @"C:\ProgramData\iotedge\config.yaml";
 
-        readonly string archivePath;
+        readonly string offlineInstallationPath;
         readonly Option<RegistryCredentials> credentials;
         readonly TimeSpan iotEdgeServiceOperationWaitTime = TimeSpan.FromMinutes(5);
-        readonly string offlineInstallationPath;
         readonly Option<string> proxy;
         string scriptDir;
 
-        public IotedgedWindows(string archivePath, Option<RegistryCredentials> credentials, Option<string> proxy, string offlineInstallationPath)
+        public IotedgedWindows(string offlineInstallationPath, Option<RegistryCredentials> credentials, Option<string> proxy)
         {
-            this.archivePath = archivePath;
-            this.credentials = credentials;
             this.offlineInstallationPath = offlineInstallationPath;
+            this.credentials = credentials;
             this.proxy = proxy;
         }
 
@@ -121,12 +119,6 @@ namespace IotEdgeQuickstart.Details
                         ? this.offlineInstallationPath
                         : new FileInfo(this.offlineInstallationPath).DirectoryName;
                 }
-                else if (!string.IsNullOrEmpty(this.archivePath))
-                {
-                    this.scriptDir = File.GetAttributes(this.archivePath).HasFlag(FileAttributes.Directory)
-                        ? this.archivePath
-                        : new FileInfo(this.archivePath).DirectoryName;
-                }
                 else
                 {
                     this.scriptDir = Path.GetTempPath();
@@ -144,10 +136,6 @@ namespace IotEdgeQuickstart.Details
                 if (!string.IsNullOrEmpty(this.offlineInstallationPath))
                 {
                     args += $" -OfflineInstallationPath '{this.offlineInstallationPath}'";
-                }
-                else if (!string.IsNullOrEmpty(this.archivePath))
-                {
-                    args += $" -ArchivePath '{this.archivePath}'";
                 }
 
                 string commandForDebug = args;
