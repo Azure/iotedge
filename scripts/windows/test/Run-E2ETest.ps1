@@ -108,7 +108,7 @@ Function CleanUp
     }
 
     Write-Host "Uninstall iotedged"
-    Uninstall-SecurityDaemon -Force -DeleteConfig -DeleteMobyDataRoot
+    Uninstall-SecurityDaemon -Force
 
     # This may require once IoT Edge created its only bridge network
     #Write-Host "Remove nat VM switch"
