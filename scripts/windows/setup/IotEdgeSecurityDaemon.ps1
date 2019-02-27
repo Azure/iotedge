@@ -1358,7 +1358,7 @@ function Set-CorrectProgramData {
         param($configurationYaml)
 
         $selectionRegex = 'homedir:\s".*"'
-        $replacementContent = ('homedir: "{0}"' -f ($env:ProgramData -replace '\\', '\\'))
+        $replacementContent = ('homedir: "{0}"' -f ($EdgeDataDirectory -replace '\\', '\\'))
         $configurationYaml = $configurationYaml -replace $selectionRegex, $replacementContent
 
         Write-HostGreen 'Configured ProgramData directory.'
