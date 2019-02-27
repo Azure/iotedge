@@ -39,6 +39,9 @@ Set-Variable LegacyMobyStaticDataRootDirectory -Value 'C:\ProgramData\iotedge-mo
 Set-Variable LegacyMobyInstallDirectory -Value "$env:ProgramData\iotedge-moby" -Option Constant
 Set-Variable LegacyMobyStaticInstallDirectory -Value 'C:\ProgramData\iotedge-moby' -Option Constant
 
+Set-Variable ReinstallMessage -Value 'To reinstall, first remove the existing installation using "Uninstall-IoTEdge".' -Option Constant
+Set-Variable InstallMessage -Value 'To install, run "Deploy-IoTEdge" first.' -Option Constant
+
 enum ContainerOs {
     Linux
     Windows
@@ -114,13 +117,19 @@ function Initialize-IoTEdge {
 
     if (-not (Test-EdgeAlreadyInstalled)) {
         Write-HostRed
-        Write-HostRed 'IoT Edge is not yet installed. To install, run "Deploy-IoTEdge" first.'
+        Write-HostRed ('IoT Edge is not yet installed. ' + $InstallMessage)
+        return
+    }
+
+    if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
+        Write-HostRed
+        Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
         return
     }
 
     if (-not (Test-MobyAlreadyInstalled)) {
         Write-HostRed
-        Write-HostRed 'IoT Edge Moby Engine is not yet installed. To install, run "Deploy-IoTEdge" first.'
+        Write-HostRed ('IoT Edge Moby Engine is not yet installed. ' + $ReinstallMessage)
         return
     }
 
@@ -136,8 +145,7 @@ function Initialize-IoTEdge {
     if (Test-Path $configPath) {
         Write-HostRed
         Write-HostRed "$configPath already exists."
-        Write-HostRed (
-            'Delete it using "Uninstall-IoTEdge -Force" and then ' +
+        Write-HostRed ('Delete it using "Uninstall-IoTEdge -Force" and then ' +
             're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
         return
     }
@@ -391,12 +399,22 @@ function Install-IoTEdge {
         [Switch] $RestartIfNeeded
     )
 
+    # Used to indicate success of Deploy-IoTEdge so we can abort early in case of failure
+    $script:installPackagesSucceeded = $false
+    
+    # Used to suppress some messages from Deploy-IoTEdge since we are automatically running Initialize-IoTEdge
+    $calledFromInstall = $true
+
     Deploy-IoTEdge `
         -ContainerOs $ContainerOs `
         -Proxy $Proxy `
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded
+
+    if (-not $script:installPackagesSucceeded) {
+        return
+    }
 
     $Params = @{
         '-ContainerOs' = $ContainerOs
@@ -412,7 +430,7 @@ function Install-IoTEdge {
     if ($Password) { $Params["-Password"] = $Password }
 
     # Used to suppress some messages from Initialize-IoTEdge that have already been emitted by Deploy-IoTEdge
-    $calledFromInstall = $true
+    $initializeCalledFromInstall = $true
 
     Initialize-IoTEdge @Params
 }
@@ -535,33 +553,45 @@ function Install-Packages(
     if ($Update) {
         if (-not (Test-EdgeAlreadyInstalled)) {
             Write-HostRed
-            Write-HostRed 'IoT Edge is not yet installed. To install, run "Deploy-IoTEdge" first.'
-            return
-        }
-
-        if (-not (Test-MobyAlreadyInstalled)) {
-            Write-HostRed
-            Write-HostRed 'IoT Edge Moby Engine is not yet installed. To install, run "Deploy-IoTEdge" first.'
+            Write-HostRed ('IoT Edge is not yet installed. ' + $InstallMessage)
             return
         }
 
         if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
             Write-HostRed
-            Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run "Uninstall-IoTEdge" first.'
+            Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
+            return
+        }
+
+        if (-not (Test-MobyAlreadyInstalled)) {
+            Write-HostRed
+            Write-HostRed ('IoT Edge Moby Engine is not yet installed. ' + $ReinstallMessage)
             return
         }
     }
     else {
         if (Test-EdgeAlreadyInstalled) {
             Write-HostRed
-            Write-HostRed ('IoT Edge is already installed. To update, run "Update-IoTEdge". ' +
-                'Alternatively, if you want to finalize the installation on IoTCore, run "Initialize-IoTEdge".')
+            if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
+                Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
+            }
+            else {
+                Write-HostRed ('IoT Edge is already installed. To update, run "Update-IoTEdge". ' +
+                    'Alternatively, if you want to finalize the installation, run "Initialize-IoTEdge".')
+            }
             return
         }
 
         if (Test-MobyAlreadyInstalled) {
             Write-HostRed
-            Write-HostRed 'IoT Edge Moby Engine is already installed. To update, run "Update-IoTEdge".'
+            if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
+                Write-HostRed ('IoT Edge Moby Engine is installed in an invalid location. ' + 
+                    $ReinstallMessage)
+            }
+            else {
+                Write-HostRed ('IoT Edge Moby Engine is already installed, but IoT Edge is not. ' + 
+                    $ReinstallMessage)
+            }
             return
         }
     }
@@ -607,6 +637,8 @@ function Install-Packages(
         Write-HostRed 'Reboot required.'
         Restart-Computer -Confirm:(-not $RestartIfNeeded) -Force:$RestartIfNeeded
     }
+
+    $script:installPackagesSucceeded = $true
 }
 
 function Setup-Environment([string] $ContainerOs) {
@@ -622,7 +654,7 @@ function Setup-Environment([string] $ContainerOs) {
                 $false
             }
             else {
-                if (-not (Test-Path Variable:\calledFromInstall)) {
+                if (-not (Test-Path Variable:\initializeCalledFromInstall)) {
                     Write-Warning ('Linux containers on Windows can be used for development and testing, ' +
                         'but are not supported in production IoT Edge deployments. See https://aka.ms/iotedge-platsup for more details.')
                 }
@@ -1358,7 +1390,7 @@ function Set-CorrectProgramData {
         param($configurationYaml)
 
         $selectionRegex = 'homedir:\s".*"'
-        $replacementContent = ('homedir: "{0}"' -f ($env:ProgramData -replace '\\', '\\'))
+        $replacementContent = ('homedir: "{0}"' -f ($EdgeDataDirectory -replace '\\', '\\'))
         $configurationYaml = $configurationYaml -replace $selectionRegex, $replacementContent
 
         Write-HostGreen 'Configured ProgramData directory.'
