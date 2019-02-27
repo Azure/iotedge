@@ -588,7 +588,7 @@ Function RunTest
 		default { Throw "$TestName test is not supported." }
     }
 
-    Exit $testExitCode -gt 0
+    Return $testExitCode
 }
 
 Function TestSetup
@@ -692,4 +692,7 @@ $DeviceCAPrimaryKeyPath = (Join-Path $E2ETestFolder "certs\private\new-edge-devi
 $TrustedCACertificatePath = (Join-Path $E2ETestFolder "certs\azure-iot-test-only.root.ca.cert.pem")
 
 &$InstallationScriptPath
-RunTest
+
+$retCode = RunTest
+Write-Host "Exit test with code $retCode"
+Exit $retCode -gt 0
