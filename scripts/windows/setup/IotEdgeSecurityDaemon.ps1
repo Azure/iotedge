@@ -39,6 +39,9 @@ Set-Variable LegacyMobyStaticDataRootDirectory -Value 'C:\ProgramData\iotedge-mo
 Set-Variable LegacyMobyInstallDirectory -Value "$env:ProgramData\iotedge-moby" -Option Constant
 Set-Variable LegacyMobyStaticInstallDirectory -Value 'C:\ProgramData\iotedge-moby' -Option Constant
 
+Set-Variable ReinstallMessage -Value 'To reinstall, first remove the existing installation using "Uninstall-IoTEdge".' -Option Constant
+Set-Variable InstallMessage -Value 'To install, run "Deploy-IoTEdge" first.' -Option Constant
+
 enum ContainerOs {
     Linux
     Windows
@@ -114,19 +117,19 @@ function Initialize-IoTEdge {
 
     if (-not (Test-EdgeAlreadyInstalled)) {
         Write-HostRed
-        Write-HostRed 'IoT Edge is not yet installed. To install, run "Deploy-IoTEdge" first.'
+        Write-HostRed ('IoT Edge is not yet installed. ' + $InstallMessage)
         return
     }
 
     if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
         Write-HostRed
-        Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run "Uninstall-IoTEdge" first.'
+        Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
         return
     }
 
     if (-not (Test-MobyAlreadyInstalled)) {
         Write-HostRed
-        Write-HostRed 'IoT Edge Moby Engine is not yet installed. To reinstall, run "Uninstall-IoTEdge" first.'
+        Write-HostRed ('IoT Edge Moby Engine is not yet installed. ' + $ReinstallMessage)
         return
     }
 
@@ -142,8 +145,7 @@ function Initialize-IoTEdge {
     if (Test-Path $configPath) {
         Write-HostRed
         Write-HostRed "$configPath already exists."
-        Write-HostRed (
-            'Delete it using "Uninstall-IoTEdge -Force" and then ' +
+        Write-HostRed ('Delete it using "Uninstall-IoTEdge -Force" and then ' +
             're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
         return
     }
@@ -548,24 +550,22 @@ function Install-Packages(
         $InvokeWebRequestParameters['-Proxy'] = $Proxy
     }
 
-    $reinstallMessage = 'To reinstall, first remove the existing installation using "Uninstall-IoTEdge".'
-
     if ($Update) {
         if (-not (Test-EdgeAlreadyInstalled)) {
             Write-HostRed
-            Write-HostRed 'IoT Edge is not yet installed. To install, run "Deploy-IoTEdge" first.'
+            Write-HostRed ('IoT Edge is not yet installed. ' + $InstallMessage)
             return
         }
 
         if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
             Write-HostRed
-            Write-HostRed ('IoT Edge is installed in an invalid location. ' + $reinstallMessage)
+            Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
             return
         }
 
         if (-not (Test-MobyAlreadyInstalled)) {
             Write-HostRed
-            Write-HostRed ('IoT Edge Moby Engine is not yet installed. ' + $reinstallMessage)
+            Write-HostRed ('IoT Edge Moby Engine is not yet installed. ' + $ReinstallMessage)
             return
         }
     }
@@ -573,7 +573,7 @@ function Install-Packages(
         if (Test-EdgeAlreadyInstalled) {
             Write-HostRed
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
-                Write-HostRed ('IoT Edge is installed in an invalid location. ' + $reinstallMessage)
+                Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
             }
             else {
                 Write-HostRed ('IoT Edge is already installed. To update, run "Update-IoTEdge". ' +
@@ -586,11 +586,11 @@ function Install-Packages(
             Write-HostRed
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
                 Write-HostRed ('IoT Edge Moby Engine is installed in an invalid location. ' + 
-                    $reinstallMessage)
+                    $ReinstallMessage)
             }
             else {
                 Write-HostRed ('IoT Edge Moby Engine is already installed, but IoT Edge is not. ' + 
-                    $reinstallMessage)
+                    $ReinstallMessage)
             }
             return
         }
