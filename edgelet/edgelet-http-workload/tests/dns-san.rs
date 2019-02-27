@@ -46,7 +46,7 @@ use edgelet_core::crypto::MemoryKeyStore;
 use edgelet_core::pid::Pid;
 use edgelet_core::{
     Certificate, CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate,
-    ModuleRuntimeState, ModuleStatus, WorkloadConfig, IOTEDGED_CA_ALIAS,
+    ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleStatus, WorkloadConfig, IOTEDGED_CA_ALIAS,
 };
 use edgelet_hsm::Crypto;
 use edgelet_http_workload::WorkloadService;
@@ -64,6 +64,17 @@ const COMMON_NAME: &str = "staycalm";
 pub enum Error {
     #[fail(display = "General error")]
     General,
+    #[fail(display = "Not found error")]
+    NotFound,
+}
+
+impl<'a> From<&'a Error> for ModuleRuntimeErrorReason {
+    fn from(err: &'a Error) -> Self {
+        match err {
+            Error::General => ModuleRuntimeErrorReason::Other,
+            Error::NotFound => ModuleRuntimeErrorReason::NotFound,
+        }
+    }
 }
 
 #[derive(Clone)]

@@ -20,28 +20,28 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Func<Task> work = async () =>
             {
                 counter++;
-                await Task.Delay(TimeSpan.FromSeconds(2));
+                await Task.Delay(TimeSpan.FromSeconds(10));
                 if (counter % 3 == 0)
                 {
                     throw new InvalidOperationException();
                 }
             };
 
-            TimeSpan frequency = TimeSpan.FromSeconds(3);
-            TimeSpan startAfter = TimeSpan.FromSeconds(5);
+            TimeSpan frequency = TimeSpan.FromSeconds(15);
+            TimeSpan startAfter = TimeSpan.FromSeconds(25);
             var logger = Mock.Of<ILogger>();
 
             // Act
             using (new PeriodicTask(work, frequency, startAfter, logger, "test op"))
             {
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(4));
+                await Task.Delay(TimeSpan.FromSeconds(20));
                 Assert.Equal(0, counter);
-                await Task.Delay(TimeSpan.FromSeconds(2));
+                await Task.Delay(TimeSpan.FromSeconds(10));
                 Assert.Equal(1, counter);
-                for (int i = 0; i < 5; i++)
+                for (int i = 0; i < 3; i++)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    await Task.Delay(TimeSpan.FromSeconds(25));
                     Assert.Equal(2 + i, counter);
                 }
             }
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
                 try
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(3), cts);
+                    await Task.Delay(TimeSpan.FromSeconds(10), cts);
                 }
                 catch (TaskCanceledException)
                 {
@@ -73,27 +73,28 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 }
             };
 
-            TimeSpan frequency = TimeSpan.FromSeconds(3);
-            TimeSpan startAfter = TimeSpan.FromSeconds(5);
+            TimeSpan frequency = TimeSpan.FromSeconds(15);
+            TimeSpan startAfter = TimeSpan.FromSeconds(25);
             var logger = Mock.Of<ILogger>();
 
             // Act
             using (new PeriodicTask(work, frequency, startAfter, logger, "test op"))
             {
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(4));
+                await Task.Delay(TimeSpan.FromSeconds(20));
                 Assert.Equal(0, counter);
-                await Task.Delay(TimeSpan.FromSeconds(2));
+                await Task.Delay(TimeSpan.FromSeconds(10));
                 Assert.Equal(1, counter);
-                for (int i = 0; i < 5; i++)
+                for (int i = 0; i < 3; i++)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(6));
+                    await Task.Delay(TimeSpan.FromSeconds(25));
                     Assert.Equal(2 + i, counter);
                 }
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(4));
+            await Task.Delay(TimeSpan.FromSeconds(20));
             Assert.True(taskCancelled);
+            Assert.Equal(4, counter);
         }
     }
 }
