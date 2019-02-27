@@ -548,6 +548,8 @@ function Install-Packages(
         $InvokeWebRequestParameters['-Proxy'] = $Proxy
     }
 
+    $reinstallMessage = 'To reinstall, first remove the existing installation using "Uninstall-IoTEdge".'
+
     if ($Update) {
         if (-not (Test-EdgeAlreadyInstalled)) {
             Write-HostRed
@@ -557,13 +559,13 @@ function Install-Packages(
 
         if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
             Write-HostRed
-            Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run "Uninstall-IoTEdge" first.'
+            Write-HostRed ('IoT Edge is installed in an invalid location. ' + $reinstallMessage)
             return
         }
 
         if (-not (Test-MobyAlreadyInstalled)) {
             Write-HostRed
-            Write-HostRed 'IoT Edge Moby Engine is not yet installed. To reinstall, run "Uninstall-IoTEdge" first.'
+            Write-HostRed ('IoT Edge Moby Engine is not yet installed. ' + $reinstallMessage)
             return
         }
     }
@@ -571,7 +573,7 @@ function Install-Packages(
         if (Test-EdgeAlreadyInstalled) {
             Write-HostRed
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
-                Write-HostRed 'IoT Edge is installed in an invalid location. To reinstall, run "Uninstall-IoTEdge" first.'
+                Write-HostRed ('IoT Edge is installed in an invalid location. ' + $reinstallMessage)
             }
             else {
                 Write-HostRed ('IoT Edge is already installed. To update, run "Update-IoTEdge". ' +
@@ -583,11 +585,12 @@ function Install-Packages(
         if (Test-MobyAlreadyInstalled) {
             Write-HostRed
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
-                Write-HostRed 'IoT Edge Moby Engine is installed in an invalid location. To reinstall, run "Uninstall-IoTEdge" first.'
+                Write-HostRed ('IoT Edge Moby Engine is installed in an invalid location. ' + 
+                    $reinstallMessage)
             }
             else {
                 Write-HostRed ('IoT Edge Moby Engine is already installed, but IoT Edge is not. ' + 
-                    'To reinstall, run "Uninstall-IoTEdge" first.')
+                    $reinstallMessage)
             }
             return
         }
