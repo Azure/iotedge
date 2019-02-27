@@ -593,15 +593,15 @@ Function RunTest
 
 Function TestSetup
 {
-    ValidateE2ETestParameters
+    ValidateTestParameters
     CleanUp | Out-Host
     InitializeWorkingFolder
     PrepareTestFromArtifacts
 }
 
-Function ValidateE2ETestParameters
+Function ValidateTestParameters
 {
-    PrintHighlightedMessage "Validate E2E test parameters for $TestName"
+    PrintHighlightedMessage "Validate test parameters for $TestName"
 
     If (-Not((Test-Path (Join-Path $IoTEdgedArtifactFolder "*")) -Or (Test-Path (Join-Path $PackagesArtifactFolder "*"))))
     {
