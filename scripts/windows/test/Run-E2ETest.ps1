@@ -17,21 +17,24 @@
         - certs: contains CA certs for certificate-related testing.
 
     .PARAMETER E2ETestFolder
-        Path of E2E test folder
+        Path of E2E test folder which contains artifacts and certs folders; Default is current directory.
 
     .PARAMETER ReleaseLabel
         Release label, can be uniquely identify the build (e.g <ReleaseName>-<ReleaseAttempt>); which is used as part of Edge device name.
 
-    .PARAMETER ReleaseArtifactImageBuildNumber
-        Release artifact image build number; it is used to construct path of docker images, pulling from EdgeBuilds docker registry. E.g. 20190101.1.
+    .PARAMETER ArtifactImageBuildNumber
+        Artifact image build number; it is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.
 
     .PARAMETER TestName
         Name of E2E test to be run
         Note: Valid values are: 
             "All", "DirectMethodAmqp", "DirectMethodMqtt", "QuickstartCerts", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway"
 
-    .PARAMETER ContainerRegistryUserName
-        Username of container registry
+    .PARAMETER ContainerRegistry
+        Host address of container registry; Default is "edgebuilds.azurecr.io".
+
+    .PARAMETER ContainerRegistryUsername
+        Username of container registry; Default is "EdgeBuilds".
 
     .PARAMETER ContainerRegistryPassword
         Password of given username for container registory
@@ -43,7 +46,7 @@
         Event hub connection string for receive D2C messages
 
     .EXAMPLE
-        .\Run-E2ETest.ps1 -E2ETestFolder "C:\Data\e2etests" -ReleaseLabel "Release-ARM-1" -ReleaseArtifactImageBuildNumber "20190101.1" -Architecture "x64" -TestName "TempSensor" -ContainerRegistryUsername "EdgeBuilds" -ContainerRegistryPassword "xxxx" -IoTHubConnectionString "xxxx" -EventHubConnectionString "xxxx"
+        .\Run-E2ETest.ps1 -E2ETestFolder "C:\Data\e2etests" -ReleaseLabel "Release-ARM-1" -ArtifactImageBuildNumber "20190101.1" -TestName "TempSensor" -ContainerRegistry "edgebuilds.azurecr.io" -ContainerRegistryUsername "EdgeBuilds" -ContainerRegistryPassword "xxxx" -IoTHubConnectionString "xxxx" -EventHubConnectionString "xxxx"
 
     .NOTES
         This script is to make running E2E tests easier and centralize E2E test steps in 1 place for reusability.
@@ -61,13 +64,16 @@ Param (
     [string] $ReleaseLabel = $(Throw "Release label is required"),
 
     [ValidateNotNullOrEmpty()]
-    [string] $ReleaseArtifactImageBuildNumber = $(Throw "Release artifact image build number is required"),
+    [string] $ArtifactImageBuildNumber = $(Throw "Artifact image build number is required"),
 
     [ValidateSet("All", "DirectMethodAmqp", "DirectMethodMqtt", "QuickstartCerts", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway")]
     [string] $TestName = "All",
 
     [ValidateNotNullOrEmpty()]
-    [string] $ContainerRegistryUsername = $(Throw "Container registry username is required"),
+    [string] $ContainerRegistry = "edgebuilds.azurecr.io",
+    
+    [ValidateNotNullOrEmpty()]
+    [string] $ContainerRegistryUsername = "EdgeBuilds",
 
     [ValidateNotNullOrEmpty()]
     [string] $ContainerRegistryPassword = $(Throw "Container registry password is required"),
@@ -227,7 +233,7 @@ Function PrepareTestFromArtifacts
         $ImageArchitectureLabel = $(GetImageArchitectureLabel)
         (Get-Content $DeploymentWorkingFilePath).replace('<Architecture>', $ImageArchitectureLabel) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<OptimizeForPerformance>', 'true') | Set-Content $DeploymentWorkingFilePath
-        (Get-Content $DeploymentWorkingFilePath).replace('<Build.BuildNumber>', $ReleaseArtifactImageBuildNumber) | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('<Build.BuildNumber>', $ArtifactImageBuildNumber) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Username>', $ContainerRegistryUsername) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Password>', $ContainerRegistryPassword) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('-linux-', '-windows-') | Set-Content $DeploymentWorkingFilePath
@@ -367,7 +373,7 @@ Function RunDirectMethodAmqpTest
             -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
-            -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+            -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
@@ -393,7 +399,7 @@ Function RunDirectMethodMqttTest
             -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
-            -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+            -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
@@ -420,7 +426,7 @@ Function RunQuickstartCertsTest
         -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
-        -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+        -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         --leave-running=Core ``
         --no-verify"
     $testCommand = AppendInstallationOption($testCommand)
@@ -458,7 +464,7 @@ Function RunTempFilterTest
             -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilter`" ``
-            -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+            -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
@@ -490,7 +496,7 @@ Function RunTempFilterFunctionsTest
             -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilterFunctions`" ``
-            -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+            -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
@@ -516,7 +522,7 @@ Function RunTempSensorTest
         -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
-        -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+        -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         -tw `"$TwinTestFileArtifactFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
@@ -543,7 +549,7 @@ Function RunTransparentGatewayTest
         -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
-        -t `"${ReleaseArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+        -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         --leave-running=Core ``
         --no-verify ``
         --device_ca_cert `"$DeviceCACertificatePath`" ``
@@ -582,20 +588,20 @@ Function RunTest
 		default { Throw "$TestName test is not supported." }
     }
 
-    Exit $testExitCode -gt 0
+    Return $testExitCode
 }
 
 Function TestSetup
 {
-    ValidateE2ETestParameters
+    ValidateTestParameters
     CleanUp | Out-Host
     InitializeWorkingFolder
     PrepareTestFromArtifacts
 }
 
-Function ValidateE2ETestParameters
+Function ValidateTestParameters
 {
-    PrintHighlightedMessage "Validate E2E test parameters for $TestName"
+    PrintHighlightedMessage "Validate test parameters for $TestName"
 
     If (-Not((Test-Path (Join-Path $IoTEdgedArtifactFolder "*")) -Or (Test-Path (Join-Path $PackagesArtifactFolder "*"))))
     {
@@ -654,7 +660,6 @@ Function PrintHighlightedMessage
 }
 
 $Architecture = GetArchitecture
-$ContainerRegistry = "edgebuilds.azurecr.io"
 $E2ETestFolder = (Resolve-Path $E2ETestFolder).Path
 $InstallationScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\setup\IotEdgeSecurityDaemon.ps1"
 $ModuleToModuleDeploymentFilename = "module_to_module_deployment.template.json"
@@ -687,4 +692,7 @@ $DeviceCAPrimaryKeyPath = (Join-Path $E2ETestFolder "certs\private\new-edge-devi
 $TrustedCACertificatePath = (Join-Path $E2ETestFolder "certs\azure-iot-test-only.root.ca.cert.pem")
 
 &$InstallationScriptPath
-RunTest
+
+$retCode = RunTest
+Write-Host "Exit test with code $retCode"
+Exit $retCode -gt 0
