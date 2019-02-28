@@ -35,12 +35,6 @@ lazy_static! {
     static ref LOCK: Mutex<()> = Mutex::new(());
 }
 
-// TODO: This works around https://github.com/rust-lang/cargo/issues/6333
-// `cargo test` opens /dev/random and /dev/urandom at fds 3 and 4 so the first fd bound is 5.
-// Remove the `cfg(test)` definition when that issue is fixed. Also see systemd/src/linux.rs
-#[cfg(test)]
-const LISTEN_FDS_START: Fd = 5;
-#[cfg(not(test))]
 const LISTEN_FDS_START: Fd = 3;
 
 const ENV_FDS: &str = "LISTEN_FDS";
