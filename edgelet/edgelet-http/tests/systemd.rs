@@ -85,12 +85,14 @@ fn test_fd_ok() {
 
     if fd != LISTEN_FDS_START {
         // In CI, fd 3 seems to be bound to something else already. The reason is unknown.
-        // It used to be because of https://github.com/rust-lang/cargo/issues/6333 but that is fixed since Rust 1.33.0.
+        // It used to be because of https://github.com/rust-lang/cargo/issues/6333 but that seems to have been fixed
+        // in Rust 1.33.0.
         //
         // Since the rest of the code assumes that all fds between LISTEN_FDS_START and LISTEN_FDS_START + ENV_FDS are valid,
-        // it's not possible to work around it.
+        // it's not possible to work around it by telling `Http` to bind to `fd://1/` - it'll just complain that `fd://0/` (ie fd 3)
+        // isn't a valid fd.
         //
-        // On local builds, fd 3 *is* available, and E2E tests also use fds, so we can just pretend
+        // On local builds, fd 3 *does* seem to be available, and E2E tests also use fds for the iotedged service, so we can just pretend
         // the test succeeded without losing coverage.
 
         unistd::close(fd).unwrap();
