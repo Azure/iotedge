@@ -4,12 +4,12 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::default::Default;
 
-use crate::version::Version;
+use super::{Builder, Handler, HandlerParamsPair, Recognizer};
 use hyper::{Method, StatusCode};
 use percent_encoding::percent_decode;
 use regex::Regex;
 
-use super::{Builder, Handler, HandlerParamsPair, Recognizer};
+use crate::version::Version;
 
 pub trait IntoCaptures {
     fn into_captures(self) -> Vec<(Option<String>, String)>;

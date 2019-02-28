@@ -3,9 +3,6 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
-#[macro_use]
-extern crate serde_json;
-
 use std::collections::HashMap;
 use std::str;
 use std::sync::{Arc, RwLock};
@@ -16,6 +13,7 @@ use failure::Fail;
 use futures::prelude::*;
 use futures::{future, Stream};
 use hyper::{Body, Error as HyperError, Method, Request, Response};
+use serde_json::json;
 use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
 use url::form_urlencoded::parse as parse_query;
 use url::Url;

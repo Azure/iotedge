@@ -1,12 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
-#[macro_use]
-extern crate edgelet_http;
-
 use edgelet_http::route::{Builder, Parameters, Router};
+use edgelet_http::router;
 use edgelet_http::{Error as HttpError, HyperExt, Version};
 use futures::{future, Future};
 use hyper::header::CONTENT_TYPE;
@@ -17,7 +15,7 @@ use hyper::{Body, Request, Response, StatusCode};
 fn index(
     _req: Request<Body>,
     _params: Parameters,
-) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
     let response = Response::builder()
         .status(StatusCode::OK)
         .header(CONTENT_TYPE, "text/plain")
@@ -30,7 +28,7 @@ fn index(
 fn identities_list(
     _req: Request<Body>,
     _params: Parameters,
-) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
     let response = Response::builder()
         .status(StatusCode::OK)
         .header(CONTENT_TYPE, "application/json")
@@ -43,7 +41,7 @@ fn identities_list(
 fn identities_update(
     _req: Request<Body>,
     params: Parameters,
-) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
     let response = params
         .name("name")
         .map_or_else(|| {
@@ -65,7 +63,7 @@ fn identities_update(
 fn identities_delete(
     _req: Request<Body>,
     _params: Parameters,
-) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
     let response = Response::builder()
         .status(StatusCode::BAD_REQUEST)
         .body(Body::default())

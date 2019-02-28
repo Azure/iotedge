@@ -17,14 +17,15 @@ use tokio::prelude::*;
 use tokio::timer::Interval;
 use url::form_urlencoded::Serializer as UrlSerializer;
 
+use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};
+use edgelet_http::client::{Client, ClientImpl, TokenSource};
+use edgelet_http::ErrorKind as HttpErrorKind;
+
 use crate::error::{Error, ErrorKind};
 use crate::model::{
     DeviceRegistration, DeviceRegistrationResult, RegistrationOperationStatus, TpmAttestation,
     TpmRegistrationResult,
 };
-use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};
-use edgelet_http::client::{Client, ClientImpl, TokenSource};
-use edgelet_http::ErrorKind as HttpErrorKind;
 
 /// This is the interval at which to poll DPS for registration assignment status
 const DPS_ASSIGNMENT_RETRY_INTERVAL_SECS: u64 = 10;

@@ -8,7 +8,6 @@ use std::str::FromStr;
 use std::string::ToString;
 use std::time::Duration;
 
-use crate::pid::Pid;
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
@@ -18,6 +17,7 @@ use serde_json;
 use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};
 
 use crate::error::{Error, ErrorKind, Result};
+use crate::pid::Pid;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]

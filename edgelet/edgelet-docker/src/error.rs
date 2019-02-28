@@ -7,10 +7,11 @@ use failure::{Backtrace, Context, Fail};
 use hyper::StatusCode;
 use serde_json;
 
+use docker::apis::{ApiError as DockerApiError, Error as DockerError};
+
 use crate::edgelet_core::{
     ModuleOperation, ModuleRuntimeErrorReason, RegistryOperation, RuntimeOperation,
 };
-use docker::apis::{ApiError as DockerApiError, Error as DockerError};
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 

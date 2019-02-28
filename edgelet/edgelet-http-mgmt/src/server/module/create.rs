@@ -8,12 +8,12 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;
 
+use super::{spec_to_core, spec_to_details};
 use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use management::models::*;
 
-use super::{spec_to_core, spec_to_details};
 use crate::error::{Error, ErrorKind};
 use crate::IntoResponse;
 

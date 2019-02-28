@@ -15,8 +15,6 @@ use log::{debug, info, Level};
 use serde_json;
 use url::Url;
 
-use crate::client::DockerClient;
-use crate::config::DockerConfig;
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, InlineResponse2001, NetworkConfig};
@@ -27,6 +25,8 @@ use edgelet_core::{
 use edgelet_http::UrlConnector;
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 
+use crate::client::DockerClient;
+use crate::config::DockerConfig;
 use crate::error::{Error, ErrorKind, Result};
 use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
 

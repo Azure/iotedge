@@ -8,12 +8,13 @@ use hyper::client::connect::Connect;
 
 use edgelet_utils::ensure_not_empty_with_context;
 
-use crate::client::DockerClient;
-use crate::config::DockerConfig;
-use crate::error::{Error, ErrorKind, Result};
 use docker::models::InlineResponse200State;
 use edgelet_core::pid::Pid;
 use edgelet_core::{Module, ModuleOperation, ModuleRuntimeState, ModuleStatus};
+
+use crate::client::DockerClient;
+use crate::config::DockerConfig;
+use crate::error::{Error, ErrorKind, Result};
 
 pub const MODULE_TYPE: &str = "docker";
 pub const MIN_DATE: &str = "0001-01-01T00:00:00Z";
