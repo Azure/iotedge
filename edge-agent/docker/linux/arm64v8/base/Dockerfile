@@ -1,0 +1,16 @@
+ARG base_tag=3.0-runtime-bionic-arm64v8
+ARG num_procs=4
+
+FROM microsoft/dotnet:${base_tag}
+
+RUN mkdir -p ../publish
+
+RUN apt-get update && \
+    apt-get install -y libsnappy1v5 && \
+    rm -rf /var/lib/apt/lists/* && \
+    ln -s /lib/aarch64-linux-gnu/libdl.so.2 /usr/lib/aarch64-linux-gnu/libdl.so.2 && \
+    ln -s /lib/aarch64-linux-gnu/libdl.so.2 /lib/aarch64-linux-gnu/libdl.so && \
+    ln -s /lib/aarch64-linux-gnu/libdl.so.2 /usr/lib/aarch64-linux-gnu/libdl.so && \
+    ln -s /lib/aarch64-linux-gnu/libc.so.6 /usr/lib/aarch64-linux-gnu/libc.so.6
+
+COPY  librocksdb.so /usr/lib
