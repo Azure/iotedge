@@ -31,6 +31,8 @@ check_arch()
 {
     if [ "$ARCH" == "armv7l" ]; then
         ARCH="arm32v7"
+    elif [ "$ARCH" == "aarch64" ]; then
+        ARCH="arm64v8"
     else
         echo "Unsupported architecture"
         exit 1
@@ -48,7 +50,7 @@ usage()
     echo ""
     echo " -i, --image-name     Image name (azureiotedge-module-base, azureiotedge-agent-base, or azureiotedge-hub-base)"
     echo " -d, --project-dir    Project directory (required)."
-    echo "                      Directory which contains docker/linux/arm32v7/base/Dockerfile"
+    echo "                      Directory which contains docker/linux/arm32v7/base/Dockerfile or docker/linux/arm64v8/base/Dockerfile"
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -v, --image-version  Docker Image Version. (required)"
     echo "     --no-push        Build/tag only; don't push image to container registries"
