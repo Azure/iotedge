@@ -324,6 +324,27 @@ version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "edgelet-config"
+version = "0.1.0"
+dependencies = [
+ "base64 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "config 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "edgelet-core 0.1.0",
+ "edgelet-docker 0.1.0",
+ "edgelet-utils 0.1.0",
+ "failure 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.84 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.43 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sha2 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tempdir 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url_serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "edgelet-core"
 version = "0.1.0"
 dependencies = [
@@ -499,6 +520,7 @@ dependencies = [
 name = "edgelet-kube"
 version = "0.1.0"
 dependencies = [
+ "base64 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "docker 0.1.0",
  "edgelet-core 0.1.0",
  "edgelet-docker 0.1.0",
@@ -510,6 +532,8 @@ dependencies = [
  "k8s-openapi 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "kube-client 0.1.0",
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.84 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -838,11 +862,39 @@ dependencies = [
  "chrono 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono-humanize 0.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.31.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "edgelet-config 0.1.0",
  "edgelet-core 0.1.0",
+ "edgelet-docker 0.1.0",
+ "edgelet-http 0.1.0",
  "edgelet-http-mgmt 0.1.0",
  "failure 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.12.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
+ "management 0.1.0",
+ "mini-sntp 0.1.0",
+ "regex 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.84 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.43 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "tabwriter 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "iotedge-diagnostics"
+version = "0.1.0"
+dependencies = [
+ "clap 2.31.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "edgelet-core 0.1.0",
+ "futures 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.12.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyperlocal 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyperlocal-windows 0.1.0 (git+https://github.com/Azure/hyperlocal-windows)",
+ "management 0.1.0",
+ "serde_json 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -853,9 +905,9 @@ version = "0.1.0"
 dependencies = [
  "base64 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.31.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "config 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "docker 0.1.0",
  "dps 0.1.0",
+ "edgelet-config 0.1.0",
  "edgelet-core 0.1.0",
  "edgelet-docker 0.1.0",
  "edgelet-hsm 0.1.0",
@@ -873,15 +925,12 @@ dependencies = [
  "iothubservice 0.1.0",
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "provisioning 0.1.0",
- "serde 1.0.84 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha2 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-signal 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "url_serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "win-logger 0.1.0",
  "windows-service 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1080,6 +1129,14 @@ version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "unicase 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "mini-sntp"
+version = "0.1.0"
+dependencies = [
+ "chrono 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "failure 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1295,9 +1352,9 @@ dependencies = [
 name = "provisioning"
 version = "0.1.0"
 dependencies = [
- "base64 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "dps 0.1.0",
+ "edgelet-config 0.1.0",
  "edgelet-core 0.1.0",
  "edgelet-hsm 0.1.0",
  "edgelet-http 0.1.0",
@@ -1306,7 +1363,6 @@ dependencies = [
  "futures 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "hsm 0.1.0",
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "regex 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.84 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)",

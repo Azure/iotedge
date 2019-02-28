@@ -4,12 +4,10 @@ version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 
 [dependencies]
-base64 = "0.9"
 bytes = "0.4"
 failure = "0.1"
 futures = "0.1"
 log = "0.4"
-regex = "0.2"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
@@ -25,3 +23,5 @@ edgelet-utils = { path = "../edgelet-utils" }
 [dev_dependencies]
 tempdir = "0.3.7"
 tokio = "0.1.8"
+
+edgelet-config = { path = "../edgelet-config" }

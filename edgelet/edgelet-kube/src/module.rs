@@ -41,6 +41,7 @@ impl Module for KubeModule {
 
     fn runtime_state(&self) -> Self::RuntimeStateFuture {
         // Working on assumption that if Kube module exists (present in cluster), status is successful
+        // TODO: get Pod "last known good state" when we implement a more robust recovery in iotedged
         Box::new(future::ok(
             ModuleRuntimeState::default().with_status(ModuleStatus::Running),
         ))

@@ -132,6 +132,27 @@ where
             .flatten()
     }
 
+    pub fn replace_deployment(
+        &mut self,
+        name: &str,
+        namespace: &str,
+        deployment: &apps::Deployment,
+    ) -> impl Future<Item = apps::Deployment, Error = Error> {
+        apps::Deployment::replace_apps_v1_namespaced_deployment(name, namespace, deployment, None)
+            .map_err(Error::from)
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    apps::ReplaceAppsV1NamespacedDeploymentResponse::Created(deployment)
+                    | apps::ReplaceAppsV1NamespacedDeploymentResponse::Ok(deployment) => {
+                        Ok(deployment)
+                    }
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
+            })
+            .into_future()
+            .flatten()
+    }
+
     pub fn delete_deployment(
         &mut self,
         namespace: &str,
@@ -151,6 +172,37 @@ where
             self.request(req).and_then(|response| match response {
                 apps::DeleteAppsV1NamespacedDeploymentResponse::OkStatus(_)
                 | apps::DeleteAppsV1NamespacedDeploymentResponse::OkValue(_) => Ok(()),
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
+        })
+        .into_future()
+        .flatten()
+    }
+
+    pub fn list_deployments(
+        &mut self,
+        namespace: &str,
+        name: Option<&str>,
+        label_selector: Option<&str>,
+    ) -> impl Future<Item = apps::DeploymentList, Error = Error> {
+        let field_selector =
+            name.and_then(|deployment_name| Some(format!("metadata.name={}", deployment_name)));
+        apps::Deployment::list_apps_v1_namespaced_deployment(
+            namespace,
+            None,
+            field_selector.as_ref().map(String::as_ref),
+            None,
+            label_selector,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .map_err(Error::from)
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                apps::ListAppsV1NamespacedDeploymentResponse::Ok(deployments) => Ok(deployments),
                 _ => Err(Error::from(ErrorKind::Response)),
             })
         })
@@ -184,6 +236,74 @@ where
         })
         .into_future()
         .flatten()
+    }
+
+    pub fn list_secrets(
+        &mut self,
+        namespace: &str,
+        name: Option<&str>,
+    ) -> impl Future<Item = api_core::SecretList, Error = Error> {
+        let field_selector =
+            name.and_then(|secret_name| Some(format!("metadata.name={}", secret_name)));
+        api_core::Secret::list_core_v1_namespaced_secret(
+            namespace,
+            None,
+            field_selector.as_ref().map(String::as_ref),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .map_err(Error::from)
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                api_core::ListCoreV1NamespacedSecretResponse::Ok(secrets) => Ok(secrets),
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
+        })
+        .into_future()
+        .flatten()
+    }
+
+    pub fn create_secret(
+        &mut self,
+        namespace: &str,
+        secret: &api_core::Secret,
+    ) -> impl Future<Item = api_core::Secret, Error = Error> {
+        api_core::Secret::create_core_v1_namespaced_secret(namespace, secret, None)
+            .map_err(Error::from)
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    api_core::CreateCoreV1NamespacedSecretResponse::Accepted(s)
+                    | api_core::CreateCoreV1NamespacedSecretResponse::Created(s)
+                    | api_core::CreateCoreV1NamespacedSecretResponse::Ok(s) => Ok(s),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
+            })
+            .into_future()
+            .flatten()
+    }
+
+    pub fn replace_secret(
+        &mut self,
+        name: &str,
+        namespace: &str,
+        secret: &api_core::Secret,
+    ) -> impl Future<Item = api_core::Secret, Error = Error> {
+        api_core::Secret::replace_core_v1_namespaced_secret(name, namespace, secret, None)
+            .map_err(Error::from)
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    api_core::ReplaceCoreV1NamespacedSecretResponse::Created(s)
+                    | api_core::ReplaceCoreV1NamespacedSecretResponse::Ok(s) => Ok(s),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
+            })
+            .into_future()
+            .flatten()
     }
 
     fn request<R: K8sResponse>(
@@ -318,6 +438,47 @@ mod tests {
     }
 
     #[test]
+    fn replace_deployment_success() {
+        const NAMESPACE: &str = "custom-namespace";
+        const NAME: &str = "deployment-name";
+        let service1 = service_fn(
+            move |req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let p = req.uri().path();
+                assert!(p.contains(NAMESPACE));
+                assert!(p.contains(NAME));
+                let q = req.uri().query().unwrap();
+                assert!(q.is_empty());
+                req.into_body()
+                    .map_err(|_| ())
+                    .fold(BytesMut::new(), |mut buf, chunk| {
+                        buf.extend_from_slice(chunk.as_ref());
+                        future::ok::<_, ()>(buf)
+                    })
+                    .map_err(|_| ())
+                    .and_then(move |buf| {
+                        assert_eq!(::std::str::from_utf8(&buf).unwrap(), DEPLOYMENT_JSON);
+                        future::ok(())
+                    })
+                    .wait()
+                    .expect("Unexpected result");
+                let mut res = Response::new(Body::from(DEPLOYMENT_JSON));
+                *res.status_mut() = StatusCode::CREATED;
+                Ok(res)
+            },
+        );
+
+        let mut client = make_test_client(service1);
+
+        let deployment: apps::Deployment = serde_json::from_str(DEPLOYMENT_JSON).unwrap();
+        let fut = client.replace_deployment(NAME, NAMESPACE, &deployment);
+
+        Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .expect("Expected future to be OK");
+    }
+
+    #[test]
     fn delete_deployment_success() {
         const NAMESPACE: &str = "custom-namespace";
         const NAME: &str = "deployment1";
@@ -367,6 +528,51 @@ mod tests {
 
         let options: api_meta::DeleteOptions = serde_json::from_str(DELETE_OPTIONS).unwrap();
         let fut = client.delete_deployment(NAMESPACE, NAME, Some(&options));
+
+        Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .expect("Expected future to be OK");
+    }
+
+    const LIST_DEPLOYMENT_RESPONSE: &str = r###"{
+        "kind" : "DeploymentList",
+        "items" : [
+            {
+                "kind" : "Deployment"
+            }
+        ]
+        }"###;
+    #[test]
+    fn list_deployments_with_name_success() {
+        const NAMESPACE: &str = "custom-namespace";
+        const NAME: &str = "deployment1";
+        const FIELD_SELECTOR: &str = "metadata.name=deployment1";
+        const LABEL_SELECTOR: &str = "x=y";
+        let service = service_fn(|req: Request<Body>| -> Result<Response<Body>, HyperError> {
+            let p = req.uri().path();
+            let q = req.uri().query().unwrap();
+            assert!(p.contains(NAMESPACE));
+            assert!(
+                q.contains(&utf8_percent_encode(LABEL_SELECTOR, USERINFO_ENCODE_SET).to_string())
+            );
+            assert!(
+                q.contains(&utf8_percent_encode(FIELD_SELECTOR, USERINFO_ENCODE_SET).to_string())
+            );
+
+            Ok(Response::new(Body::from(LIST_DEPLOYMENT_RESPONSE)))
+        });
+        let mut client = make_test_client(service);
+
+        let fut = client
+            .list_deployments(NAMESPACE, Some(NAME), Some(LABEL_SELECTOR))
+            .map(|deployments| {
+                assert!(deployments
+                    .kind
+                    .as_ref()
+                    .map_or(false, |k| k == "DeploymentList"));
+                assert_eq!(1, deployments.items.len());
+            });
 
         Runtime::new()
             .unwrap()
@@ -454,6 +660,306 @@ mod tests {
 
         let deployment: apps::Deployment = serde_json::from_str(DEPLOYMENT_JSON).unwrap();
         let fut = client.create_deployment(NAMESPACE, &deployment);
+        let _ = Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .map_err(|e| {
+                assert!(e.to_string().contains("HTTP response error"));
+            })
+            .map(|r| {
+                panic!("expected an error result {:?}", r);
+            });
+    }
+
+    #[test]
+    fn create_deployment_service_error() {
+        const NAMESPACE: &str = "custom-namespace";
+        let service1 = service_fn(move |_req: Request<Body>| -> Result<Response<Body>, _> {
+            Err("Serious error here")
+        });
+
+        let mut client = make_test_client(service1);
+
+        let deployment: apps::Deployment = serde_json::from_str(DEPLOYMENT_JSON).unwrap();
+        let fut = client.create_deployment(NAMESPACE, &deployment);
+        let _ = Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .map_err(|e| {
+                assert!(e.to_string().contains("HTTP test error"));
+            })
+            .map(|r| {
+                panic!("expected an error result {:?}", r);
+            });
+    }
+
+    #[test]
+    fn delete_deployment_error_response() {
+        const NAMESPACE: &str = "custom-namespace";
+        const NAME: &str = "deployment2";
+        let service1 = service_fn(
+            move |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let mut res = Response::new(Body::empty());
+                *res.status_mut() = StatusCode::NOT_FOUND;
+                Ok(res)
+            },
+        );
+
+        let mut client = make_test_client(service1);
+
+        let fut = client.delete_deployment(NAMESPACE, NAME, None);
+        let _ = Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .map_err(|e| {
+                assert!(e.to_string().contains("HTTP response error"));
+            })
+            .map(|r| {
+                panic!("expected an error result {:?}", r);
+            });
+    }
+
+    #[test]
+    fn delete_deployment_service_error() {
+        const NAMESPACE: &str = "custom-namespace";
+        const NAME: &str = "deployment2";
+        let service1 = service_fn(move |_req: Request<Body>| -> Result<Response<Body>, _> {
+            Err("A Very serious error")
+        });
+
+        let mut client = make_test_client(service1);
+
+        let fut = client.delete_deployment(NAMESPACE, NAME, None);
+        let _ = Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .map_err(|e| {
+                assert!(e.to_string().contains("HTTP test error"));
+            })
+            .map(|r| {
+                panic!("expected an error result {:?}", r);
+            });
+    }
+
+    #[test]
+    fn list_pods_error_response() {
+        const NAMESPACE: &str = "custom-namespace";
+        const LABEL_SELECTOR: &str = "x=y";
+        let service = service_fn(
+            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let mut res = Response::new(Body::empty());
+                *res.status_mut() = StatusCode::SERVICE_UNAVAILABLE;
+                Ok(res)
+            },
+        );
+
+        let mut client = make_test_client(service);
+
+        let fut = client.list_pods(NAMESPACE, Some(LABEL_SELECTOR));
+        let _ = Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .map_err(|e| {
+                assert!(e.to_string().contains("HTTP response error"));
+            })
+            .map(|r| {
+                panic!("expected an error result {:?}", r);
+            });
+    }
+
+    #[test]
+    fn list_pods_service_error() {
+        const NAMESPACE: &str = "custom-namespace";
+        const LABEL_SELECTOR: &str = "x=y";
+        let service = service_fn(
+            |_req: Request<Body>| -> std::result::Result<Response<Body>, _> {
+                Err("Some terrible error")
+            },
+        );
+
+        let mut client = make_test_client(service);
+
+        let fut = client.list_pods(NAMESPACE, Some(LABEL_SELECTOR));
+        let _ = Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .map_err(|e| {
+                assert!(e.to_string().contains("HTTP test error"));
+            })
+            .map(|r| {
+                panic!("expected an error result {:?}", r);
+            });
+    }
+    #[test]
+    fn replace_deployment_error_response() {
+        const NAMESPACE: &str = "custom-namespace";
+        const NAME: &str = "deployment1";
+        let service1 = service_fn(
+            move |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let mut res = Response::new(Body::from(DEPLOYMENT_JSON));
+                *res.status_mut() = StatusCode::CONFLICT;
+                Ok(res)
+            },
+        );
+
+        let mut client = make_test_client(service1);
+
+        let deployment: apps::Deployment = serde_json::from_str(DEPLOYMENT_JSON).unwrap();
+        let fut = client.replace_deployment(NAME, NAMESPACE, &deployment);
+        if let Ok(r) = Runtime::new().unwrap().block_on(fut) {
+            panic!("expected an error result {:?}", r);
+        }
+    }
+
+    const LIST_SECRET_RESPONSE: &str = r###"{
+        "kind" : "SecretList",
+        "items" : [
+            {
+                "kind" : "Secret"
+            }
+        ]
+        }"###;
+    #[test]
+    fn list_secrets_with_name_success() {
+        const NAMESPACE: &str = "custom-namespace";
+        const NAME: &str = "secret1";
+        const FIELD_SELECTOR: &str = "metadata.name=secret1";
+        let service = service_fn(|req: Request<Body>| -> Result<Response<Body>, HyperError> {
+            let p = req.uri().path();
+            let q = req.uri().query().unwrap();
+            assert!(p.contains(NAMESPACE));
+            assert!(
+                q.contains(&utf8_percent_encode(FIELD_SELECTOR, USERINFO_ENCODE_SET).to_string())
+            );
+            Ok(Response::new(Body::from(LIST_SECRET_RESPONSE)))
+        });
+        let mut client = make_test_client(service);
+
+        let fut = client.list_secrets(NAMESPACE, Some(NAME)).map(|secrets| {
+            assert!(secrets.kind.as_ref().map_or(false, |k| k == "SecretList"));
+            assert_eq!(1, secrets.items.len());
+        });
+
+        Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .expect("Expected future to be OK");
+    }
+
+    const SECRET_JSON: &str = r##"{"kind":"Secret"}"##;
+    #[test]
+    fn create_secret_success() {
+        const NAMESPACE: &str = "custom-namespace";
+        let service1 = service_fn(
+            move |req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let p = req.uri().path();
+                assert!(p.contains(NAMESPACE));
+                let q = req.uri().query().unwrap();
+                assert!(q.is_empty());
+                req.into_body()
+                    .map_err(|_| ())
+                    .fold(BytesMut::new(), |mut buf, chunk| {
+                        buf.extend_from_slice(chunk.as_ref());
+                        future::ok::<_, ()>(buf)
+                    })
+                    .map_err(|_| ())
+                    .and_then(move |buf| {
+                        assert_eq!(::std::str::from_utf8(&buf).unwrap(), SECRET_JSON);
+                        future::ok(())
+                    })
+                    .wait()
+                    .expect("Unexpected result");
+                let mut res = Response::new(Body::from(SECRET_JSON));
+                *res.status_mut() = StatusCode::CREATED;
+                Ok(res)
+            },
+        );
+
+        let mut client = make_test_client(service1);
+
+        let secret: api_core::Secret = serde_json::from_str(SECRET_JSON).unwrap();
+        let fut = client.create_secret(NAMESPACE, &secret);
+
+        Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .expect("Expected future to be OK");
+    }
+
+    #[test]
+    fn replace_secret_success() {
+        const NAMESPACE: &str = "custom-namespace";
+        const NAME: &str = "secret1";
+        let service1 = service_fn(
+            move |req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let p = req.uri().path();
+                assert!(p.contains(NAMESPACE));
+                assert!(p.contains(NAME));
+                let q = req.uri().query().unwrap();
+                assert!(q.is_empty());
+                req.into_body()
+                    .map_err(|_| ())
+                    .fold(BytesMut::new(), |mut buf, chunk| {
+                        buf.extend_from_slice(chunk.as_ref());
+                        future::ok::<_, ()>(buf)
+                    })
+                    .map_err(|_| ())
+                    .and_then(move |buf| {
+                        assert_eq!(::std::str::from_utf8(&buf).unwrap(), SECRET_JSON);
+                        future::ok(())
+                    })
+                    .wait()
+                    .expect("Unexpected result");
+                let mut res = Response::new(Body::from(SECRET_JSON));
+                *res.status_mut() = StatusCode::CREATED;
+                Ok(res)
+            },
+        );
+
+        let mut client = make_test_client(service1);
+
+        let secret: api_core::Secret = serde_json::from_str(SECRET_JSON).unwrap();
+        let fut = client.replace_secret(NAME, NAMESPACE, &secret);
+
+        Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .expect("Expected future to be OK");
+    }
+
+    #[test]
+    fn create_service_error_response() {
+        let service_fn = service_fn(
+            move |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let mut res = Response::new(Body::from(SECRET_JSON));
+                *res.status_mut() = StatusCode::CONFLICT;
+                Ok(res)
+            },
+        );
+
+        let mut client = make_test_client(service_fn);
+        let secret: api_core::Secret = serde_json::from_str(SECRET_JSON).unwrap();
+        let fut = client.create_secret("NAMESPACE", &secret);
+
+        if let Ok(r) = Runtime::new().unwrap().block_on(fut) {
+            panic!("expected an error result {:?}", r);
+        }
+    }
+
+    #[test]
+    fn replace_service_error_response() {
+        let service_fn = service_fn(
+            move |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let mut res = Response::new(Body::from(SECRET_JSON));
+                *res.status_mut() = StatusCode::CONFLICT;
+                Ok(res)
+            },
+        );
+
+        let mut client = make_test_client(service_fn);
+        let secret: api_core::Secret = serde_json::from_str(SECRET_JSON).unwrap();
+        let fut = client.replace_secret("NAME", "NAMESPACE", &secret);
+
         if let Ok(r) = Runtime::new().unwrap().block_on(fut) {
             panic!("expected an error result {:?}", r);
         }

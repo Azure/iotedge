@@ -19,14 +19,38 @@ jobs:
       - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUri)
         name: install
         displayName: Install dependencies
+
+      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
+        displayName: 'Docker Login'
+
+      - script: edgelet/build/linux/install.sh --package-arm
+        displayName: Install Rust
+
+      - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
+        displayName: Modify path
+
+      - bash: 'cargo install --git https://github.com/myagley/cross.git --branch set-path'
+        displayName: 'Install cross (fork with docker fix)'
+
       - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin
         name: build
         displayName: Build (release)
+
+      - script: scripts/linux/buildDiagnostics.sh
+        displayName: Build iotedge-diagnostics
+
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-linux'
+
+      # azureiotedge-diagnostics
+      - template: templates/image-linux.yaml
+        parameters:
+          name: azureiotedge-diagnostics
+          imageName: azureiotedge-diagnostics
+          project: azureiotedge-diagnostics
 
       # Edge Agent
       - template: templates/image-linux.yaml
@@ -73,7 +97,7 @@ jobs:
       # Functions Sample
       - template: templates/image-linux.yaml
         parameters:
-          name: FunctionsSample
+          name: Functions Sample
           imageName: azureiotedge-functions-filter
           project: EdgeHubTriggerCSharp
 
@@ -91,6 +115,13 @@ jobs:
           imageName: azureiotedge-direct-method-receiver
           project: DirectMethodReceiver
 
+      # Direct Method Cloud Sender
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Direct Method Cloud Sender
+          imageName: azureiotedge-direct-method-cloud-sender
+          project: DirectMethodCloudSender
+
 ################################################################################
   - job: windows
 ################################################################################
@@ -106,16 +137,30 @@ jobs:
       - powershell: scripts/windows/setup/Install-Prerequisites.ps1 -DotnetSdkUrl $(NetCorePackageUri) -Dotnet -Nuget
         name: install
         displayName: Install
+
+      - script: echo $(registry.password)|docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin
+        displayName: Docker Login
+
       - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"Release" -PublishTests:$False -UpdateVersion
         name: build
         displayName: Build
+
+      - powershell: edgelet/build/windows/build-diagnostics.ps1
+        displayName: Build iotedge-diagnostics
+
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-windows'
-      - script: echo $(registry.password)|docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin
-        displayName: Docker Login
+
+      # azureiotedge-diagnostics
+      - template: templates/image-windows.yaml
+        parameters:
+          name: azureiotedge-diagnostics
+          imageName: azureiotedge-diagnostics
+          project: azureiotedge-diagnostics
+          arm32v7: 'false'
 
       # Edge Agent
       - template: templates/image-windows.yaml
@@ -145,10 +190,24 @@ jobs:
           imageName: azureiotedge-temperature-filter
           project: TemperatureFilter
 
+      # Load Gen
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Load Gen
+          imageName: azureiotedge-load-gen
+          project: load-gen
+
+      # Messages Analyzer
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Messages Analyzer
+          imageName: azureiotedge-analyzer
+          project: MessagesAnalyzer
+          
       # Functions Sample
       - template: templates/image-windows.yaml
         parameters:
-          name: FunctionsSample
+          name: Functions Sample
           imageName: azureiotedge-functions-filter
           project: EdgeHubTriggerCSharp
           arm32v7: 'false'
@@ -166,6 +225,13 @@ jobs:
           name: Direct Method Receiver
           imageName: azureiotedge-direct-method-receiver
           project: DirectMethodReceiver
+
+      # Direct Method Cloud Sender
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Direct Method Cloud Sender
+          imageName: azureiotedge-direct-method-cloud-sender
+          project: DirectMethodCloudSender
 
       - powershell: docker system prune -a -f
         displayName: Clean Machine
@@ -188,3 +254,5 @@ jobs:
       displayName: 'Publish Edge Hub Manifest'
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish Temperature Sensor Manifest'
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedge-diagnostics/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+      displayName: 'Publish azureiotedge-diagnostics Manifest'

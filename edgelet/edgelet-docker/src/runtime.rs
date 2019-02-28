@@ -18,16 +18,18 @@ use client::DockerClient;
 use config::DockerConfig;
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
-use docker::models::{ContainerCreateBody, NetworkConfig};
+use docker::models::{ContainerCreateBody, InlineResponse200, InlineResponse2001, NetworkConfig};
 use edgelet_core::{
-    LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
+    pid::Pid, LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
+    ModuleTop, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
 };
-use edgelet_http::{UrlConnector, UrlExt};
+use edgelet_http::UrlConnector;
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 
 use error::{Error, ErrorKind, Result};
-use module::{DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
+use module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
+
+type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
 const WAIT_BEFORE_KILL_SECONDS: i32 = 10;
 
@@ -187,6 +189,57 @@ impl ModuleRegistry for DockerModuleRuntime {
     }
 }
 
+fn parse_get_response<'de, D>(resp: &InlineResponse200) -> std::result::Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let name = resp
+        .name()
+        .map(ToOwned::to_owned)
+        .ok_or_else(|| serde::de::Error::missing_field("Name"))?;
+    Ok(name)
+}
+
+fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> std::result::Result<Vec<Pid>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let titles = resp
+        .titles()
+        .ok_or_else(|| serde::de::Error::missing_field("Titles"))?;
+    let pid_index = titles
+        .iter()
+        .position(|ref s| s.as_str() == "PID")
+        .ok_or_else(|| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Seq,
+                &"array including the column title 'PID'",
+            )
+        })?;
+    let processes = resp
+        .processes()
+        .ok_or_else(|| serde::de::Error::missing_field("Processes"))?;
+    let pids: std::result::Result<_, _> = processes
+        .iter()
+        .map(|ref p| {
+            let val = p.get(pid_index).ok_or_else(|| {
+                serde::de::Error::invalid_length(
+                    p.len(),
+                    &&*format!("at least {} columns", pid_index + 1),
+                )
+            })?;
+            let pid = val.parse::<i32>().map_err(|_| {
+                serde::de::Error::invalid_value(
+                    serde::de::Unexpected::Str(val),
+                    &"a process ID number",
+                )
+            })?;
+            Ok(Pid::Value(pid))
+        })
+        .collect();
+    Ok(pids?)
+}
+
 impl ModuleRuntime for DockerModuleRuntime {
     type Error = Error;
     type Config = DockerConfig;
@@ -196,6 +249,8 @@ impl ModuleRuntime for DockerModuleRuntime {
     type Logs = Logs;
 
     type CreateFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type GetFuture =
+        Box<Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
     type InitFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
     type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
     type ListWithDetailsStream =
@@ -207,6 +262,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type StopFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type TopFuture = Box<Future<Item = ModuleTop, Error = Self::Error> + Send>;
 
     fn init(&self) -> Self::InitFuture {
         info!("Initializing module runtime...");
@@ -319,6 +375,55 @@ impl ModuleRuntime for DockerModuleRuntime {
             });
 
         Box::new(result)
+    }
+
+    fn get(&self, id: &str) -> Self::GetFuture {
+        debug!("Getting module {}...", id);
+
+        let id = id.to_string();
+
+        if let Err(err) = ensure_not_empty_with_context(&id, || {
+            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
+        }) {
+            return Box::new(future::err(Error::from(err)));
+        }
+
+        let client_copy = self.client.clone();
+
+        Box::new(
+            self.client
+                .container_api()
+                .container_inspect(&id, false)
+                .then(|result| match result {
+                    Ok(container) => {
+                        let name =
+                            parse_get_response::<Deserializer>(&container).with_context(|_| {
+                                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
+                            })?;
+                        let config =
+                            DockerConfig::new(name.clone(), ContainerCreateBody::new(), None)
+                                .with_context(|_| {
+                                    ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
+                                        id.clone(),
+                                    ))
+                                })?;
+                        let module =
+                            DockerModule::new(client_copy, name, config).with_context(|_| {
+                                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
+                            })?;
+                        let state = runtime_state(container.id(), container.state());
+                        Ok((module, state))
+                    }
+                    Err(err) => {
+                        let err = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id)),
+                        );
+                        log_failure(Level::Warn, &err);
+                        Err(err)
+                    }
+                }),
+        )
     }
 
     fn start(&self, id: &str) -> Self::StartFuture {
@@ -602,6 +707,30 @@ impl ModuleRuntime for DockerModuleRuntime {
             });
             future::join_all(n).map(|_| ())
         }))
+    }
+
+    fn top(&self, id: &str) -> Self::TopFuture {
+        let id = id.to_string();
+        Box::new(
+            self.client
+                .container_api()
+                .container_top(&id, "")
+                .then(|result| match result {
+                    Ok(resp) => {
+                        let p = parse_top_response::<Deserializer>(&resp).with_context(|_| {
+                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.clone()))
+                        })?;
+                        Ok(ModuleTop::new(id, p))
+                    }
+                    Err(err) => {
+                        let err = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id)),
+                        );
+                        Err(err)
+                    }
+                }),
+        )
     }
 }
 
@@ -1042,6 +1171,54 @@ mod tests {
     }
 
     #[test]
+    fn get_fails_for_empty_id() {
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
+        let name = "";
+
+        let task = ModuleRuntime::get(&mri, name).then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(s)) if s == name => {
+                    Ok::<_, Error>(())
+                }
+                kind => panic!(
+                    "Expected `RuntimeOperation(GetModule)` error but got {:?}.",
+                    kind
+                ),
+            },
+        });
+
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn get_fails_for_white_space_id() {
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
+        let name = "    ";
+
+        let task = ModuleRuntime::get(&mri, name).then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(s)) if s == name => {
+                    Ok::<_, Error>(())
+                }
+                kind => panic!(
+                    "Expected `RuntimeOperation(GetModule)` error but got {:?}.",
+                    kind
+                ),
+            },
+        });
+
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
     fn list_with_details_filters_out_deleted_containers() {
         let runtime = TestModuleList {
             modules: vec![
@@ -1082,6 +1259,136 @@ mod tests {
                     ModuleRuntimeState::default().with_pid(Pid::Any)
                 ),
             ]
+        );
+    }
+
+    #[test]
+    fn top_fails_for_empty_id() {
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
+        let name = "";
+
+        let task = ModuleRuntime::top(&mri, name).then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(s)) if s == name => {
+                    Ok::<_, Error>(())
+                }
+                kind => panic!(
+                    "Expected `RuntimeOperation(TopModule)` error but got {:?}.",
+                    kind
+                ),
+            },
+        });
+
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn top_fails_for_white_space_id() {
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
+        let name = "    ";
+
+        let task = ModuleRuntime::top(&mri, name).then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(s)) if s == name => {
+                    Ok::<_, Error>(())
+                }
+                kind => panic!(
+                    "Expected `RuntimeOperation(TopModule)` error but got {:?}.",
+                    kind
+                ),
+            },
+        });
+
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn parse_get_response_returns_the_name() {
+        let response = InlineResponse200::new().with_name("hello".to_string());
+        let name = parse_get_response::<Deserializer>(&response);
+        assert!(name.is_ok());
+        assert_eq!("hello".to_string(), name.unwrap());
+    }
+
+    #[test]
+    fn parse_get_response_returns_error_when_name_is_missing() {
+        let response = InlineResponse200::new();
+        let name = parse_get_response::<Deserializer>(&response);
+        assert!(name.is_err());
+        assert_eq!("missing field `Name`", format!("{}", name.unwrap_err()));
+    }
+
+    #[test]
+    fn parse_top_response_returns_pid_array() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["PID".to_string()])
+            .with_processes(vec![vec!["123".to_string()]]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_ok());
+        assert_eq!(vec![Pid::Value(123)], pids.unwrap());
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_titles_is_missing() {
+        let response = InlineResponse2001::new().with_processes(vec![vec!["123".to_string()]]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_err());
+        assert_eq!("missing field `Titles`", format!("{}", pids.unwrap_err()));
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_pid_title_is_missing() {
+        let response = InlineResponse2001::new().with_titles(vec!["Command".to_string()]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_err());
+        assert_eq!(
+            "invalid value: sequence, expected array including the column title \'PID\'",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_processes_is_missing() {
+        let response = InlineResponse2001::new().with_titles(vec!["PID".to_string()]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_err());
+        assert_eq!(
+            "missing field `Processes`",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_process_pid_is_missing() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["Command".to_string(), "PID".to_string()])
+            .with_processes(vec![vec!["sh".to_string()]]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_err());
+        assert_eq!(
+            "invalid length 1, expected at least 2 columns",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_process_pid_is_not_i32() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["PID".to_string()])
+            .with_processes(vec![vec!["xyz".to_string()]]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_err());
+        assert_eq!(
+            "invalid value: string \"xyz\", expected a process ID number",
+            format!("{}", pids.unwrap_err())
         );
     }
 
@@ -1157,6 +1464,7 @@ mod tests {
         type Logs = Empty<Self::Chunk, Self::Error>;
 
         type CreateFuture = FutureResult<(), Self::Error>;
+        type GetFuture = FutureResult<(Self::Module, ModuleRuntimeState), Self::Error>;
         type InitFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
         type ListWithDetailsStream =
@@ -1168,12 +1476,17 @@ mod tests {
         type StopFuture = FutureResult<(), Self::Error>;
         type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
         type RemoveAllFuture = FutureResult<(), Self::Error>;
+        type TopFuture = FutureResult<ModuleTop, Self::Error>;
 
         fn init(&self) -> Self::InitFuture {
             unimplemented!()
         }
 
         fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
+            unimplemented!()
+        }
+
+        fn get(&self, _id: &str) -> Self::GetFuture {
             unimplemented!()
         }
 
@@ -1214,6 +1527,10 @@ mod tests {
         }
 
         fn remove_all(&self) -> Self::RemoveAllFuture {
+            unimplemented!()
+        }
+
+        fn top(&self, _id: &str) -> Self::TopFuture {
             unimplemented!()
         }
     }

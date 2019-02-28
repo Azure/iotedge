@@ -4,7 +4,7 @@ mod identity;
 mod module;
 mod system_info;
 
-use edgelet_core::{IdentityManager, Module, ModuleRuntime, Policy};
+use edgelet_core::{IdentityManager, Module, ModuleRuntime, ModuleRuntimeErrorReason, Policy};
 use edgelet_http::authorization::Authorization;
 use edgelet_http::route::*;
 use failure::{Compat, ResultExt};
@@ -33,6 +33,7 @@ impl ManagementService {
     pub fn new<M, I>(runtime: &M, identity: &I) -> impl Future<Item = Self, Error = Error>
     where
         M: 'static + ModuleRuntime + Clone + Send + Sync,
+        for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
         <M::Module as Module>::Config: DeserializeOwned + Serialize,
         M::Logs: Into<Body>,
         I: 'static + IdentityManager + Clone + Send + Sync,
