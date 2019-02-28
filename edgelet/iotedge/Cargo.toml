@@ -13,9 +13,25 @@ chrono-humanize = "0.0.11"
 clap = "2.31"
 failure = "0.1"
 futures = "0.1"
+hyper = "0.12"
+regex = "0.2"
+serde = "1.0"
+serde_derive = "1.0"
+serde_json = "1.0"
 tabwriter = "1.0"
 tokio = "0.1"
 url = "1.7"
 
+edgelet-config = { path = "../edgelet-config" }
 edgelet-core = { path = "../edgelet-core" }
+edgelet-docker = { path = "../edgelet-docker" }
+edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
+management = { path = "../management" }
+mini-sntp = { path = "../mini-sntp" }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["winsock2"] }
