@@ -33,8 +33,8 @@ use edgelet_core::UrlExt;
 use crate::error::{Error, ErrorKind, InvalidUrlReason};
 use crate::util::{socket_file_exists, StreamSelector};
 #[cfg(windows)]
-use PIPE_SCHEME;
-use {HTTP_SCHEME, UNIX_SCHEME};
+use crate::PIPE_SCHEME;
+use crate::{HTTP_SCHEME, UNIX_SCHEME};
 
 pub enum UrlConnector {
     Http(HttpConnector),
