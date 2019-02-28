@@ -7,6 +7,7 @@ use chrono::{DateTime, Duration, Utc};
 use failure::{Fail, ResultExt};
 use futures::{Future, IntoFuture, Stream};
 use hyper::{self, Body, Method, Request, Response};
+use log::{debug};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;

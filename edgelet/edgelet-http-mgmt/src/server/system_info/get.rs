@@ -4,6 +4,7 @@ use failure::ResultExt;
 use futures::Future;
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
+use log::{debug};
 use serde::Serialize;
 use serde_json;
 

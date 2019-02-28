@@ -4,18 +4,6 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::module_name_repetitions, clippy::use_self)]
 
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde_derive;
-
-// Need macros from serde_json for unit tests.
-#[cfg(test)]
-#[macro_use]
-extern crate serde_json;
-
 mod client;
 mod config;
 mod error;

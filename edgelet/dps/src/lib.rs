@@ -4,13 +4,6 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::module_name_repetitions, clippy::use_self)]
 
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate percent_encoding;
-#[macro_use]
-extern crate serde_derive;
-
 pub mod dps;
 pub mod error;
 mod model;

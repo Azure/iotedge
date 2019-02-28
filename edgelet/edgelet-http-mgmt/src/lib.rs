@@ -4,18 +4,6 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::module_name_repetitions, clippy::use_self)]
 
-#[macro_use]
-extern crate edgelet_http;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-#[cfg(test)]
-#[macro_use]
-extern crate serde_json;
-#[cfg(not(test))]
-extern crate serde_json;
-
 use hyper::{Body, Response};
 
 mod client;

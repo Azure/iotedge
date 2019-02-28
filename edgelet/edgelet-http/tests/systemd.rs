@@ -2,15 +2,15 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
+#[macro_use]
+extern crate lazy_static;
+
 // These tests are sensitive to the number of FDs open in the current process.
 // Specifically, the tests require that fd 3 be available to be bound to a socket
 // to simulate what happens when systemd passes down sockets during socket activation.
 //
 // Thus these tests are in their own separate test crate, and use a Mutex to ensure
 // that only one runs at a time.
-
-#[macro_use]
-extern crate lazy_static;
 
 use std::sync::{Mutex, MutexGuard};
 use std::{env, io};

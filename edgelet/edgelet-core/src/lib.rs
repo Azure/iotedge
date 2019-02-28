@@ -4,11 +4,6 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::module_name_repetitions, clippy::use_self)]
 
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-
 use std::path::{Path, PathBuf};
 
 use failure::ResultExt;
@@ -32,6 +27,7 @@ pub use crypto::{
 };
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
+pub use lazy_static::{lazy_static};
 pub use module::{
     LogOptions, LogTail, Module, ModuleOperation, ModuleRegistry, ModuleRuntime,
     ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, ModuleTop,

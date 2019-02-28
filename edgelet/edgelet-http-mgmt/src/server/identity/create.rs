@@ -103,7 +103,7 @@ mod tests {
     use edgelet_test_utils::identity::{TestIdentity, TestIdentityManager};
     use futures::Stream;
     use management::models::ErrorResponse;
-    use serde_json::Value;
+    use serde_json::{json, Value};
 
     use super::*;
 

@@ -9,14 +9,6 @@
     clippy::use_self
 )]
 
-#[macro_use]
-extern crate log;
-#[cfg(unix)]
-#[macro_use]
-extern crate scopeguard;
-#[macro_use]
-extern crate serde_json;
-
 #[cfg(unix)]
 use std::net;
 use std::net::ToSocketAddrs;
@@ -29,7 +21,7 @@ use futures::{future, Future, Poll, Stream};
 use hyper::server::conn::Http;
 use hyper::service::{NewService, Service};
 use hyper::{Body, Response};
-use log::Level;
+use log::{debug, error, Level};
 #[cfg(unix)]
 use systemd::Socket;
 use tokio::net::TcpListener;

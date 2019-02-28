@@ -16,6 +16,7 @@ use std::default::Default;
 
 #[allow(unused_imports)]
 use serde_json::Value;
+use serde_derive::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DeviceRegistration {
