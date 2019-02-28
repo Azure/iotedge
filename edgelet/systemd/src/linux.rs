@@ -18,7 +18,7 @@ use nix::unistd::Pid;
 use error::{Error, ErrorKind, SocketLookupType};
 use {Fd, Socket};
 
-const LISTEN_FDS_START: Fd = 3;
+pub const LISTEN_FDS_START: Fd = 3;
 
 const ENV_PID: &str = "LISTEN_PID";
 const ENV_FDS: &str = "LISTEN_FDS";

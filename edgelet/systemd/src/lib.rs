@@ -33,4 +33,4 @@ pub enum Socket {
 }
 
 #[cfg(target_os = "linux")]
-pub use self::linux::{listener, listener_name, listeners_name};
+pub use self::linux::{listener, listener_name, listeners_name, LISTEN_FDS_START};

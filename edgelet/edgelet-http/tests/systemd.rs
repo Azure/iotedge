@@ -28,7 +28,7 @@ use hyper::service::Service;
 use hyper::{Body, Request, Response, StatusCode};
 use nix::sys::socket::{self, AddressFamily, SockType};
 use nix::unistd::{self, getpid};
-use systemd::Fd;
+use systemd::{Fd, LISTEN_FDS_START};
 use url::Url;
 
 lazy_static! {
@@ -92,7 +92,7 @@ fn test_fd_ok() {
     // set the env var so that it contains the created fd
     env::set_var(ENV_FDS, format!("{}", fd - listen_fds_start + 1));
 
-    let url = Url::parse(&format!("fd://{}", fd - listen_fds_start)).unwrap();
+    let url = Url::parse(&format!("fd://{}", fd - LISTEN_FDS_START)).unwrap();
     let run = Http::new().bind_url(url, move || {
         let service = TestService {
             status_code: StatusCode::OK,
