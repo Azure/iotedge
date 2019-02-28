@@ -1180,7 +1180,7 @@ function Get-VcRuntime {
         Write-HostGreen 'Installed VC Runtime.'
     }
     catch {
-        if ($LASTEXITCODE -eq 1638) {
+        if ((Test-Path Variable:\LASTEXITCODE) -and ($LASTEXITCODE -eq 1638)) {
             Write-HostGreen 'Skipping VC Runtime installation because a newer version is already installed.'
         }
         else {
