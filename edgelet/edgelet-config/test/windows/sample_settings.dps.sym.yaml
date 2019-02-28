@@ -1,16 +1,19 @@
 
 # Configures the provisioning mode
 provisioning:
-  source: "manual"
-  device_connection_string: "HostName=something.something.com;DeviceId=something;SharedAccessKey=something"
+  source: "dps"
+  global_endpoint: "scheme://jibba-jabba.net"
+  scope_id: "i got no time for the jibba-jabba"
+  registration_id: "register me fool"
+  symmetric_key: "first name Mr last name T"
+
 agent:
   name: "edgeAgent"
   type: "docker"
-  env:
-    acd: "value2"
-    abc: "value1"
+  env: {}
   config:
-    image: "microsoft/azureiotedge-agent:1.0"
+    image: "microsoft/azureiotedge-agent:1.0-preview"
+    create_options: {}
     auth: {}
 hostname: "localhost"
 
@@ -25,7 +28,7 @@ connect:
 listen:
   workload_uri: "http://0.0.0.0:8081"
   management_uri: "http://0.0.0.0:8080"
-homedir: "/tmp"
+homedir: "C:\\Temp"
 moby_runtime:
-  uri: "http://localhost:2375"
+  uri: "npipe://./pipe/iotedge_moby_engine"
   network: "azure-iot-edge"

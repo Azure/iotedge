@@ -17,9 +17,9 @@ use serde_json;
 use url::Url;
 
 use edgelet_core::*;
-use edgelet_core::{ModuleOperation, RuntimeOperation, SystemInfo as CoreSystemInfo};
+use edgelet_core::{ModuleOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt};
 use edgelet_docker::{self, DockerConfig};
-use edgelet_http::{UrlConnector, UrlExt, API_VERSION};
+use edgelet_http::{UrlConnector, API_VERSION};
 
 use error::{Error, ErrorKind};
 
