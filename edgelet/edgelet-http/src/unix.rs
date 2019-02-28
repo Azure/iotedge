@@ -11,6 +11,8 @@ use log::{debug};
 use nix::sys::stat::{umask, Mode};
 #[cfg(unix)]
 use tokio_uds::UnixListener;
+#[cfg(unix)]
+use scopeguard::{defer};
 #[cfg(windows)]
 use tokio_uds_windows::UnixListener;
 
