@@ -1,9 +1,6 @@
 #![cfg(target_os = "linux")]
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-
-#[macro_use]
-extern crate lazy_static;
 
 // These tests are sensitive to the number of FDs open in the current process.
 // Specifically, the tests require that fd 3 be available to be bound to a socket
@@ -20,6 +17,7 @@ use futures::{future, Future};
 use hyper::server::conn::Http;
 use hyper::service::Service;
 use hyper::{Body, Request, Response, StatusCode};
+use lazy_static::lazy_static;
 use nix::sys::socket::{self, AddressFamily, SockType};
 use nix::unistd::{self, getpid};
 use systemd::{Fd, LISTEN_FDS_START};
@@ -42,7 +40,7 @@ impl Service for TestService {
     type ReqBody = Body;
     type ResBody = Body;
     type Error = io::Error;
-    type Future = Box<Future<Item = Response<Self::ResBody>, Error = Self::Error>>;
+    type Future = Box<dyn Future<Item = Response<Self::ResBody>, Error = Self::Error>>;
 
     fn call(&mut self, _req: Request<Self::ReqBody>) -> Self::Future {
         Box::new(if self.error {

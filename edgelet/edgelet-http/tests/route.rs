@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
 use futures::{future, Future, Stream};
@@ -15,7 +15,7 @@ use edgelet_http::Version;
 fn route1(
     _req: Request<Body>,
     params: Parameters,
-) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
     let response = params.name("name").map_or_else(
         || {
             Response::builder()
@@ -37,7 +37,7 @@ fn route1(
 fn route2(
     _req: Request<Body>,
     params: Parameters,
-) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
     let response = params.name("name").map_or_else(
         || {
             Response::builder()

@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
 use std::io;
@@ -151,7 +151,7 @@ const POST_BODY: &str = r#"{"donuts":"yes"}"#;
 
 fn post_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     // verify that the request body is what we expect
     Box::new(
         req.into_body()
