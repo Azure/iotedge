@@ -294,7 +294,10 @@ mod tests {
         env::set_var(ENV_FDS, "2");
         env::set_var(ENV_NAMES, "a:b");
         let listen_fds_start = create_fd(AddressFamily::Inet, SockType::Stream);
-        assert_eq!(create_fd(AddressFamily::Unix, SockType::Stream), listen_fds_start + 1);
+        assert_eq!(
+            create_fd(AddressFamily::Unix, SockType::Stream),
+            listen_fds_start + 1
+        );
         let fds = listen_fds_with_names(true, listen_fds_start).unwrap();
         assert_eq!(2, fds.len());
         if let Socket::Inet(fd, _) = fds["a"][0] {
