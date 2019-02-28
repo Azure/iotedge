@@ -2,7 +2,7 @@
 # Configures the provisioning mode
 provisioning:
   source: "manual"
-  device_connection_string: "HostName=something1.something1.com;DeviceId=something;SharedAccessKey=something"
+  device_connection_string: "HostName=something1.something1.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
 agent:
   name: "edgeAgent"
   type: "docker"

@@ -42,6 +42,9 @@ pub enum ErrorKind {
     #[fail(display = "Invalid module type {:?}", _0)]
     InvalidModuleType(String),
 
+    #[fail(display = "Invalid URL {:?}", _0)]
+    InvalidUrl(String),
+
     #[fail(display = "Item not found.")]
     KeyStoreItemNotFound,
 

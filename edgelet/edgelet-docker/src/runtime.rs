@@ -21,9 +21,9 @@ use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, InlineResponse2001, NetworkConfig};
 use edgelet_core::{
     pid::Pid, LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    ModuleTop, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
+    ModuleTop, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
 };
-use edgelet_http::{UrlConnector, UrlExt};
+use edgelet_http::UrlConnector;
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 
 use error::{Error, ErrorKind, Result};
