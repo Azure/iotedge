@@ -35,8 +35,6 @@ lazy_static! {
     static ref LOCK: Mutex<()> = Mutex::new(());
 }
 
-const LISTEN_FDS_START: Fd = 3;
-
 const ENV_FDS: &str = "LISTEN_FDS";
 const ENV_PID: &str = "LISTEN_PID";
 
@@ -84,12 +82,17 @@ fn test_fd_ok() {
     let _l = lock_env();
     set_current_pid();
     let fd = create_fd(AddressFamily::Unix, SockType::Stream);
-    assert_eq!(fd, LISTEN_FDS_START);
+
+    // Assume that this fd is the start of all fds systemd would give us.
+    // In the application, this would be fd 3. But in tests, some fds can be held open
+    // by cargo or the shell and inherited by the test process, so it's not reliable to assert
+    // that fds created within the tests start at 3.
+    let listen_fds_start = fd;
 
     // set the env var so that it contains the created fd
-    env::set_var(ENV_FDS, format!("{}", fd - LISTEN_FDS_START + 1));
+    env::set_var(ENV_FDS, format!("{}", fd - listen_fds_start + 1));
 
-    let url = Url::parse(&format!("fd://{}", fd - LISTEN_FDS_START)).unwrap();
+    let url = Url::parse(&format!("fd://{}", fd - listen_fds_start)).unwrap();
     let run = Http::new().bind_url(url, move || {
         let service = TestService {
             status_code: StatusCode::OK,
@@ -109,10 +112,15 @@ fn test_fd_err() {
     let _l = lock_env();
     set_current_pid();
     let fd = create_fd(AddressFamily::Unix, SockType::Stream);
-    assert_eq!(fd, LISTEN_FDS_START);
+
+    // Assume that this fd is the start of all fds systemd would give us.
+    // In the application, this would be fd 3. But in tests, some fds can be held open
+    // by cargo or the shell and inherited by the test process, so it's not reliable to assert
+    // that fds created within the tests start at 3.
+    let listen_fds_start = fd;
 
     // set the env var so that it contains the created fd
-    env::set_var(ENV_FDS, format!("{}", fd - LISTEN_FDS_START + 1));
+    env::set_var(ENV_FDS, format!("{}", fd - listen_fds_start + 1));
 
     let url = Url::parse("fd://100").unwrap();
     let run = Http::new().bind_url(url, move || {
