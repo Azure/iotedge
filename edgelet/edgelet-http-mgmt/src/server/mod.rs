@@ -7,12 +7,12 @@ mod system_info;
 use edgelet_core::{IdentityManager, Module, ModuleRuntime, ModuleRuntimeErrorReason, Policy};
 use edgelet_http::authorization::Authorization;
 use edgelet_http::route::*;
-use edgelet_http::{router};
+use edgelet_http::router;
 use failure::{Compat, ResultExt};
 use futures::{future, Future};
 use hyper::service::{NewService, Service};
 use hyper::{Body, Request};
-use lazy_static::{lazy_static};
+use lazy_static::lazy_static;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 

@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use failure::Fail;
 use futures::future::{self, Either, FutureResult};
 use futures::Future;
-use log::{info, Level, warn};
+use log::{info, warn, Level};
 use tokio::prelude::*;
 use tokio::timer::Interval;
 

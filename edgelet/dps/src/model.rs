@@ -12,11 +12,11 @@
 
 use std::default::Default;
 
+use serde_derive::{Deserialize, Serialize};
 /// [`DeviceRegistration`] : Device registration.
 
 #[allow(unused_imports)]
 use serde_json::Value;
-use serde_derive::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DeviceRegistration {

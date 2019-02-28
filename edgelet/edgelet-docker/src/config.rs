@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use failure::ResultExt;
-use serde_derive::{Serialize, Deserialize};
+use serde_derive::{Deserialize, Serialize};
 
 use docker::models::{AuthConfig, ContainerCreateBody};
 use edgelet_utils::{ensure_not_empty_with_context, serde_clone};
@@ -89,7 +89,7 @@ mod tests {
     use std::collections::HashMap;
 
     use docker::models::{ContainerCreateBody, HostConfig, HostConfigPortBindings};
-    use serde_json::{*};
+    use serde_json::*;
 
     #[test]
     #[should_panic]

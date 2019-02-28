@@ -98,8 +98,8 @@ mod tests {
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
     use hyper::Request;
-    use lazy_static::{lazy_static};
-    use serde_json::{json};
+    use lazy_static::lazy_static;
+    use serde_json::json;
 
     use management::models::{Config, ErrorResponse};
 

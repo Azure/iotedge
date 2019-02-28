@@ -3,7 +3,7 @@
 use failure::Fail;
 use futures::future::Either;
 use futures::{future, Future};
-use log::{info};
+use log::info;
 
 use crate::error::{Error, ErrorKind};
 use crate::module::{ModuleRuntime, ModuleRuntimeErrorReason};

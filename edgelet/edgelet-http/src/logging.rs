@@ -4,10 +4,10 @@
 use chrono::prelude::*;
 use edgelet_core::pid::Pid;
 use futures::prelude::*;
-use log::{info};
 use hyper::header::{CONTENT_LENGTH, USER_AGENT};
 use hyper::service::{NewService, Service};
 use hyper::Request;
+use log::info;
 
 #[derive(Clone)]
 pub struct LoggingService<T> {

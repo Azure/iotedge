@@ -3,7 +3,7 @@
 use failure::ResultExt;
 use futures::{Future, Stream};
 use hyper::{Body, Request, Response, StatusCode};
-use log::{debug};
+use log::debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;
@@ -75,9 +75,9 @@ mod tests {
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
-    use serde_json::{json};
-    use lazy_static::{*};
+    use lazy_static::*;
     use management::models::{Config, ErrorResponse, ModuleSpec};
+    use serde_json::json;
 
     use super::*;
 

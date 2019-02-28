@@ -6,13 +6,13 @@ use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 
 use failure::ResultExt;
-use log::{debug};
+use log::debug;
 #[cfg(unix)]
 use nix::sys::stat::{umask, Mode};
 #[cfg(unix)]
-use tokio_uds::UnixListener;
+use scopeguard::defer;
 #[cfg(unix)]
-use scopeguard::{defer};
+use tokio_uds::UnixListener;
 #[cfg(windows)]
 use tokio_uds_windows::UnixListener;
 

@@ -10,7 +10,7 @@ use failure::{Fail, ResultExt};
 use futures::prelude::*;
 use futures::{future, stream, Async, Stream};
 use hyper::{Body, Chunk as HyperChunk, Client};
-use lazy_static::{lazy_static};
+use lazy_static::lazy_static;
 use log::{debug, info, Level};
 use serde_json;
 use url::Url;
