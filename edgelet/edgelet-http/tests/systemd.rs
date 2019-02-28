@@ -80,7 +80,6 @@ fn create_fd(family: AddressFamily, type_: SockType) -> Fd {
 }
 
 #[test]
-#[ignore] // TODO: Unignore when https://github.com/rust-lang/cargo/issues/6333 is fixed
 fn test_fd_ok() {
     let _l = lock_env();
     set_current_pid();
