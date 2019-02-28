@@ -525,7 +525,7 @@ mod tests {
                         })
                         .map_err(|e| panic!("Error: {:?}", e))
                 })
-                .and_then(|_| Ok(Response::new(response.into())))
+                .and_then(move |_| Ok(Response::new(response.into())))
         };
         let client = Client::new(handler, token_source, api_version, host_name).unwrap();
 
