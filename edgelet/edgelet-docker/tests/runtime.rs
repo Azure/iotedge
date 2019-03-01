@@ -1,24 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-
-#[cfg(unix)]
-extern crate base64;
-#[cfg(unix)]
-extern crate failure;
-extern crate futures;
-extern crate hyper;
-#[macro_use]
-extern crate serde_json;
-extern crate tokio;
-extern crate typed_headers;
-extern crate url;
-
-extern crate docker;
-extern crate edgelet_core;
-extern crate edgelet_docker;
-extern crate edgelet_test_utils;
 
 use std::collections::HashMap;
 use std::str;
@@ -30,6 +13,7 @@ use failure::Fail;
 use futures::prelude::*;
 use futures::{future, Stream};
 use hyper::{Body, Error as HyperError, Method, Request, Response};
+use serde_json::json;
 use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
 use url::form_urlencoded::parse as parse_query;
 use url::Url;
@@ -55,7 +39,7 @@ const INVALID_IMAGE_HOST: &str = "invalidhost.com/nginx:latest";
 #[allow(clippy::needless_pass_by_value)]
 fn invalid_image_name_pull_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     // verify that path is /images/create and that the "fromImage" query
     // parameter has the image name we expect
     assert_eq!(req.uri().path(), "/images/create");
@@ -151,7 +135,7 @@ fn image_pull_with_invalid_image_name_fails() {
 #[allow(clippy::needless_pass_by_value)]
 fn invalid_image_host_pull_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     // verify that path is /images/create and that the "fromImage" query
     // parameter has the image name we expect
     assert_eq!(req.uri().path(), "/images/create");
@@ -249,7 +233,7 @@ fn image_pull_with_invalid_image_host_fails() {
 #[allow(clippy::needless_pass_by_value)]
 fn image_pull_with_invalid_creds_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     // verify that path is /images/create and that the "fromImage" query
     // parameter has the image name we expect
     assert_eq!(req.uri().path(), "/images/create");
@@ -359,7 +343,7 @@ fn image_pull_with_invalid_creds_fails() {
 #[allow(clippy::needless_pass_by_value)]
 fn image_pull_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     // verify that path is /images/create and that the "fromImage" query
     // parameter has the image name we expect
     assert_eq!(req.uri().path(), "/images/create");
@@ -425,7 +409,7 @@ fn image_pull_succeeds() {
 #[allow(clippy::needless_pass_by_value)]
 fn image_pull_with_creds_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     // verify that path is /images/create and that the "fromImage" query
     // parameter has the image name we expect
     assert_eq!(req.uri().path(), "/images/create");
@@ -505,7 +489,7 @@ fn image_pull_with_creds_succeeds() {
 #[allow(clippy::needless_pass_by_value)]
 fn image_remove_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     assert_eq!(req.method(), &Method::DELETE);
     assert_eq!(req.uri().path(), &format!("/images/{}", IMAGE_NAME));
 
@@ -544,7 +528,7 @@ fn image_remove_succeeds() {
 
 fn container_create_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     assert_eq!(req.method(), &Method::POST);
     assert_eq!(req.uri().path(), "/containers/create");
 
@@ -691,7 +675,7 @@ fn container_create_succeeds() {
 #[allow(clippy::needless_pass_by_value)]
 fn container_start_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     assert_eq!(req.method(), &Method::POST);
     assert_eq!(req.uri().path(), "/containers/m1/start");
 
@@ -718,7 +702,7 @@ fn container_start_succeeds() {
 #[allow(clippy::needless_pass_by_value)]
 fn container_stop_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     assert_eq!(req.method(), &Method::POST);
     assert_eq!(req.uri().path(), "/containers/m1/stop");
 
@@ -745,7 +729,7 @@ fn container_stop_succeeds() {
 #[allow(clippy::needless_pass_by_value)]
 fn container_stop_with_timeout_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     assert_eq!(req.method(), &Method::POST);
     assert_eq!(req.uri().path(), "/containers/m1/stop");
     assert_eq!(req.uri().query().unwrap(), "t=600");
@@ -773,7 +757,7 @@ fn container_stop_with_timeout_succeeds() {
 #[allow(clippy::needless_pass_by_value)]
 fn container_remove_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     assert_eq!(req.method(), &Method::DELETE);
     assert_eq!(req.uri().path(), "/containers/m1");
 
@@ -800,7 +784,7 @@ fn container_remove_succeeds() {
 #[allow(clippy::needless_pass_by_value)]
 fn container_list_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     assert_eq!(req.method(), &Method::GET);
     assert_eq!(req.uri().path(), "/containers/json");
 
@@ -938,7 +922,7 @@ fn container_list_succeeds() {
 #[allow(clippy::needless_pass_by_value)]
 fn container_logs_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     assert_eq!(req.method(), &Method::GET);
     assert_eq!(req.uri().path(), "/containers/mod1/logs");
 
