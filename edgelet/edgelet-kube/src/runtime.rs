@@ -142,7 +142,12 @@ impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
                 proxy_config_map_name.clone(),
             )
         })?;
-        ensure_not_empty_with_context(&image_pull_policy, || { ErrorKind::InvalidRunTimeParameter(String::from("image_pull_policy"), image_pull_policy.clone())})?;
+        ensure_not_empty_with_context(&image_pull_policy, || {
+            ErrorKind::InvalidRunTimeParameter(
+                String::from("image_pull_policy"),
+                image_pull_policy.clone(),
+            )
+        })?;
         ensure_not_empty_with_context(&service_account_name, || {
             ErrorKind::InvalidRunTimeParameter(
                 String::from("service_account_name"),
@@ -487,9 +492,9 @@ impl AsRef<[u8]> for Chunk {
 #[cfg(test)]
 mod tests {
 
+    use super::KubeModuleRuntime;
     use std::str::FromStr;
     use url::Url;
-    use super::KubeModuleRuntime;
 
     #[test]
     fn runtime_new() {
@@ -617,7 +622,7 @@ mod tests {
             management_uri.clone(),
         );
         assert!(result.is_err());
-        
+
         let result = KubeModuleRuntime::new(
             namespace.clone(),
             true,

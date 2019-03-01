@@ -654,7 +654,7 @@ mod tests {
                     assert_eq!(proxy.image.as_ref().unwrap(), "proxy:latest");
                     assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
                 }
-                assert_eq!(podspec.service_account_name.as_ref().unwrap(),"iotedge" );
+                assert_eq!(podspec.service_account_name.as_ref().unwrap(), "iotedge");
                 assert!(podspec.image_pull_secrets.is_some());
                 // 4 bind mounts, 2 volume mounts, 1 proxy configmap
                 assert_eq!(podspec.volumes.as_ref().map(Vec::len).unwrap(), 7);
