@@ -121,7 +121,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::server::module::tests::Error;
     use chrono::prelude::*;
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
@@ -131,6 +130,7 @@ mod tests {
     use serde_json::json;
 
     use super::*;
+    use crate::server::module::tests::Error;
 
     lazy_static! {
         static ref RUNTIME: TestRuntime<Error> = {

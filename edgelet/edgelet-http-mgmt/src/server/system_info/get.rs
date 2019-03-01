@@ -70,7 +70,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::server::module::tests::Error;
     use edgelet_core::{self, ModuleRuntimeState};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
@@ -78,6 +77,7 @@ mod tests {
     use management::models::SystemInfo;
 
     use super::*;
+    use crate::server::module::tests::Error;
 
     #[test]
     fn system_info_success() {

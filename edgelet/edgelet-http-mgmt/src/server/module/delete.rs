@@ -61,13 +61,14 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::server::module::tests::Error;
     use chrono::prelude::*;
+    
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
 
     use super::*;
+    use crate::server::module::tests::Error;
 
     #[test]
     fn success() {

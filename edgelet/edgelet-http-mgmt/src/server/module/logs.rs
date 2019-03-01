@@ -85,15 +85,15 @@ fn parse_options(query: &str) -> Result<LogOptions, Error> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    use crate::server::module::tests::Error;
     use chrono::prelude::*;
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_test_utils::module::*;
     use futures::Stream;
     use management::models::*;
     use serde_json;
+
+    use super::*;
+    use crate::server::module::tests::Error;
 
     #[test]
     fn correct_logoptions() {

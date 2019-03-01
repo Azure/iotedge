@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use hyper::{Body, Request, Uri};
+
 use super::super::client::ClientImpl;
 use super::hyperwrap::Client;
 use crate::error::Error;
-use hyper::{Body, Request, Uri};
 
 #[derive(Clone)]
 pub struct MaybeProxyClient {
