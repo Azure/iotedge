@@ -38,9 +38,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     throw new EdgeHubConnectionException("Identity does not contain device ID.");
                 }
 
-                if (!this.iotHubHostName.Equals(iotHubName))
+                if (!this.iotHubHostName.StartsWith(iotHubName, StringComparison.OrdinalIgnoreCase) ||
+                    this.iotHubHostName[iotHubName.Length] != '.')
                 {
-                    throw new EdgeHubConnectionException($"Identity contains an invalid IotHubHostName {iotHubName}, expected value {this.iotHubHostName}.");
+                    throw new EdgeHubConnectionException($"Identity contains an invalid IotHubHostName {iotHubName}.");
                 }
 
                 // TODO: Figure out where the device client type parameter value should come from.
