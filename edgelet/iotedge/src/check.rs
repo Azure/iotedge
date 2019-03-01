@@ -785,7 +785,7 @@ fn container_local_time(check: &mut Check) -> Result<Option<String>, failure::Er
     let output = std::str::from_utf8(output)
         .with_context(|_| format!("could not parse container output {:?}", output))?;
     let output = output
-        .trim_right()
+        .trim_end()
         .parse::<u64>()
         .with_context(|_| format!("could not parse container output {:?}", output))?;
     let actual_duration = std::time::Duration::from_secs(output);

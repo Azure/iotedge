@@ -45,7 +45,7 @@ jobs:
         displayName: Set Version
       - script: edgelet/build/linux/install.sh
         displayName: Install Rust
-      - script: 'cargo install --git https://github.com/myagley/cross.git --branch set-path'
+      - script: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
         displayName: 'Install cross (fork with docker fix)'
       - script: 'cross build --target armv7-unknown-linux-gnueabihf'
         displayName: armv7-unknown-linux-gnueabihf build

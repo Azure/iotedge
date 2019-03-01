@@ -1,7 +1,6 @@
 Param([Switch] $CreateTemplate, [Switch] $CreateCab, [Switch] $SkipInstallCerts)
 
 $EdgeCab = "Microsoft-Azure-IoTEdge.cab"
-$EdgeTemplateCab = "Microsoft-Azure-IoTEdge.template.cab"
 $EdgeTemplate = "Package-Template"
 
 Function New-Cabinet([String] $Destination, [String[]]$Files)
@@ -47,12 +46,15 @@ Function New-Package([string] $Name, [string] $Version)
         Throw "Failed to package cab"
     }
 
-    Move-Item -Path $EdgeCab -Destination $EdgeTemplateCab
+    if (Test-Path $EdgeTemplate) {
+        Remove-Item -Path $EdgeTemplate -Recurse -Force
+    }
     New-Item -ItemType Directory -Path $EdgeTemplate
-    expand $EdgeTemplateCab -f:* $EdgeTemplate
+    Invoke-Expression "& ${Env:SystemRoot}\system32\Expand.exe $EdgeCab -f:* $EdgeTemplate"
     if ($LASTEXITCODE) {
         Throw "Failed to expand cab"
     }
+    Remove-Item -Path $EdgeCab
 }
 
 if ($CreateTemplate) {
@@ -70,6 +72,7 @@ if ($CreateTemplate) {
         cmd /c installoemcerts.cmd
     }
 
+    $ProgressPreference = 'SilentlyContinue'
     Invoke-WebRequest $docker_cli_uri -out "moby-cli.zip" -UseBasicParsing
     if (Test-Path "moby-cli") {
         Remove-Item -Path "moby-cli" -Recurse -Force

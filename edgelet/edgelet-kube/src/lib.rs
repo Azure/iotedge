@@ -2,7 +2,11 @@
 
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::stutter, clippy::use_self, clippy::too_many_arguments)]
+#![allow(
+    clippy::module_name_repetitions,
+    clippy::too_many_arguments,
+    clippy::use_self
+)]
 
 mod constants;
 mod convert;
