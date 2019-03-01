@@ -223,8 +223,20 @@ jobs:
         inputs:
           workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
           cmakeArgs: '--build . --config Release'
-      - powershell: edgelet/build/windows/package.ps1
-        displayName: Package binaries
+      - powershell: edgelet/build/windows/package.ps1 -CreateTemplate
+        displayName: Prepare package template
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: 'ESRP Package Catalog CodeSigning Internal'
+        inputs:
+          ConnectedServiceName: '$(WINDOWS_CODESIGN_SERVICE_CONNECTION)'
+          FolderPath: '$(build.SourcesDirectory)'
+          Pattern: 'Package-Template/update.cat'
+          CertificateId: 302
+          OpusName: 'Azure IoT Edge'
+          OpusInfo: 'https://azure.microsoft.com/en-us/services/iot-edge/'
+          SessionTimeout: 20
+      - powershell: edgelet/build/windows/package.ps1 -CreateCab
+        displayName: Generate CAB package
       - task: CopyFiles@2
         displayName: 'Copy package to Artifact Staging'
         inputs:
