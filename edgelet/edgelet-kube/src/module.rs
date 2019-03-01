@@ -25,7 +25,7 @@ impl KubeModule {
 impl Module for KubeModule {
     type Config = DockerConfig;
     type Error = Error;
-    type RuntimeStateFuture = Box<Future<Item = ModuleRuntimeState, Error = Self::Error> + Send>;
+    type RuntimeStateFuture = Box<dyn Future<Item = ModuleRuntimeState, Error = Self::Error> + Send>;
 
     fn name(&self) -> &str {
         &self.name
