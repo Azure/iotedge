@@ -85,11 +85,12 @@ impl DockerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::collections::HashMap;
 
     use docker::models::{ContainerCreateBody, HostConfig, HostConfigPortBindings};
     use serde_json::json;
+
+    use super::*;
 
     #[test]
     #[should_panic]

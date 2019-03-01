@@ -93,13 +93,13 @@ where
 #[cfg(test)]
 mod tests {
     use chrono::prelude::*;
-    use edgelet_core::{ModuleRuntimeState, ModuleStatus};
-    use edgelet_http::route::Parameters;
-    use edgelet_test_utils::module::*;
     use hyper::Request;
     use lazy_static::lazy_static;
     use serde_json::json;
 
+    use edgelet_core::{ModuleRuntimeState, ModuleStatus};
+    use edgelet_http::route::Parameters;
+    use edgelet_test_utils::module::*;
     use management::models::{Config, ErrorResponse};
 
     use super::*;
