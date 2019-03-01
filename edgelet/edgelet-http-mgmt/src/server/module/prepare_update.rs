@@ -75,7 +75,7 @@ mod tests {
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
-    use lazy_static::*;
+    use lazy_static::lazy_static;
     use management::models::{Config, ErrorResponse, ModuleSpec};
     use serde_json::json;
 

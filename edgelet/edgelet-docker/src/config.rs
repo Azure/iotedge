@@ -89,7 +89,7 @@ mod tests {
     use std::collections::HashMap;
 
     use docker::models::{ContainerCreateBody, HostConfig, HostConfigPortBindings};
-    use serde_json::*;
+    use serde_json::json;
 
     #[test]
     #[should_panic]

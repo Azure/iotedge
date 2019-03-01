@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use super::super::client::ClientImpl;
 use failure::ResultExt;
 use futures::future;
 use hyper::client::HttpConnector;
@@ -11,6 +10,7 @@ use typed_headers::Credentials;
 use url::percent_encoding::percent_decode;
 use url::Url;
 
+use super::super::client::ClientImpl;
 use crate::error::{Error, ErrorKind, InvalidUrlReason};
 
 const DNS_WORKER_THREADS: usize = 4;
