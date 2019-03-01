@@ -6,37 +6,37 @@
 set -e
 
 function clean_up() {
-    print_highlighted_message "Clean up"
+    print_highlighted_message 'Clean up'
 
-    echo "Stop IoT Edge services"
+    echo 'Stop IoT Edge services'
     sudo systemctl stop iotedge.socket iotedge.mgmt.socket || true
     sudo systemctl kill iotedge || true
     sudo systemctl stop iotedge || true
 
-    echo "Remove IoT Edge and config file"
+    echo 'Remove IoT Edge and config file'
     sudo apt-get purge libiothsm-std --yes || true
     sudo rm -rf /var/lib/iotedge/
     sudo rm -rf /var/run/iotedge/
     sudo rm -rf /etc/iotedge/config.yaml
 
-    echo "Do docker system prune"
+    echo 'Do docker system prune'
     sudo docker system prune -af || true
 }
 
 function create_iotedge_service_config {
-    print_highlighted_message "Create IoT Edge service config"
+    print_highlighted_message 'Create IoT Edge service config'
     sudo mkdir /etc/systemd/system/iotedge.service.d/ || true
     sudo bash -c "echo '[Service]
 Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/iotedge.service.d/override.conf"
 }
 
 function get_image_architecture_label() {
-    local arch=$(uname -p)
-    local label=""
+    local arch="$(uname -p)"
+    local label
 
     case "$arch" in
-        "x86_64" ) label="amd64";;
-        "armhf" ) label="arm32v7";;
+        'x86_64' ) label='amd64';;
+        'armhf' ) label='arm32v7';;
         *) print_error "Unsupported OS architecture: $arch"; exit 1;;
     esac
 
@@ -44,8 +44,8 @@ function get_image_architecture_label() {
 }
 
 function get_iotedge_quickstart_artifact_file() {
-    local path=""
-    if [ "$image_architecture_label" = "amd64" ]; then
+    local path
+    if [ "$image_architecture_label" = 'amd64' ]; then
         path="$E2E_TEST_DIR/artifacts/core-linux/IotEdgeQuickstart.linux-x64.tar.gz"
     else
         path="$E2E_TEST_DIR/artifacts/core-linux/IotEdgeQuickstart.linux-arm.tar.gz"
@@ -55,8 +55,8 @@ function get_iotedge_quickstart_artifact_file() {
 }
 
 function get_iotedged_artifact_folder() {
-    local path=""
-    if [ "$image_architecture_label" = "amd64" ]; then
+    local path
+    if [ "$image_architecture_label" = 'amd64' ]; then
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu-amd64"
     else
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu-armhf"
@@ -66,8 +66,8 @@ function get_iotedged_artifact_folder() {
 }
 
 function get_leafdevice_artifact_file() {
-    local path=""
-    if [ "$image_architecture_label" = "amd64" ]; then
+    local path
+    if [ "$image_architecture_label" = 'amd64' ]; then
         path="$E2E_TEST_DIR/artifacts/core-linux/LeafDevice.linux-x64.tar.gz"
     else
         path="$E2E_TEST_DIR/artifacts/core-linux/LeafDevice.linux-arm.tar.gz"
@@ -77,61 +77,61 @@ function get_leafdevice_artifact_file() {
 }
 
 function prepare_test_from_artifacts() {
-    print_highlighted_message "Prepare test from artifacts"
+    print_highlighted_message 'Prepare test from artifacts'
 
-    echo "Remove working folder"
+    echo 'Remove working folder'
     sudo rm -rf "$working_folder"
     mkdir -p "$working_folder"
 
     declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
     iotedge_package="${pkg_list[@]:0}"
     
-    echo "Extract quickstart to working folder"
+    echo 'Extract quickstart to working folder'
     mkdir -p "$quickstart_working_folder"
     tar -C "$quickstart_working_folder" -xzf "$iotedge_quickstart_artifact_file"
 
-    if [[ "${TEST_NAME,,}" == "quickstartcerts" ]]; then
-        echo "Extract leaf device to working folder"
+    if [[ "${TEST_NAME,,}" == 'quickstartcerts' ]]; then
+        echo 'Extract leaf device to working folder'
         mkdir -p "$leafdevice_working_folder"
         tar -C "$leafdevice_working_folder" -xzf "$leafdevice_artifact_file"
     fi
 
-    if [[ "${TEST_NAME,,}" == "tempfilter" ]] ||
-       [[ "${TEST_NAME,,}" == "tempfilterfunctions" ]] ||
+    if [[ "${TEST_NAME,,}" == 'tempfilter' ]] ||
+       [[ "${TEST_NAME,,}" == 'tempfilterfunctions' ]] ||
        [[ "${TEST_NAME,,}" == directmethod* ]]; then
         case "${TEST_NAME,,}" in
-            "tempfilter")
+            'tempfilter')
                 echo "Copy deployment file from $module_to_module_deployment_artifact_file"
                 cp "$module_to_module_deployment_artifact_file" "$deployment_working_file";;
-            "tempfilterfunctions")
+            'tempfilterfunctions')
                 echo "Copy deployment file from $module_to_functions_deployment_artifact_file"
                 cp "$module_to_functions_deployment_artifact_file" "$deployment_working_file";;
-            "directmethodamqp")
+            'directmethodamqp')
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
 
                 sed -i -e "s@<UpstreamProtocol>@Amqp@g" "$deployment_working_file"
                 sed -i -e "s@<ClientTransportType>@Amqp_Tcp_Only@g" "$deployment_working_file";;
-            "directmethodamqpws")
+            'directmethodamqpws')
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
 
                 sed -i -e "s@<UpstreamProtocol>@Amqpws@g" "$deployment_working_file"
                 sed -i -e "s@<ClientTransportType>@Amqp_WebSocket_Only@g" "$deployment_working_file";;
-            "directmethodmqtt")
+            'directmethodmqtt')
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
 
-                if [[ $image_architecture_label == "arm32v7" ]]; then
+                if [[ $image_architecture_label == 'arm32v7' ]]; then
                     sed -i -e "s@<MqttEventsProcessorThreadCount>@1@g" "$deployment_working_file"
                 fi
                 sed -i -e "s@<UpstreamProtocol>@Mqtt@g" "$deployment_working_file"
                 sed -i -e "s@<ClientTransportType>@Mqtt_Tcp_Only@g" "$deployment_working_file";;
-            "directmethodmqttws")
+            'directmethodmqttws')
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
                 
-                if [[ $image_architecture_label == "arm32v7" ]]; then
+                if [[ $image_architecture_label == 'arm32v7' ]]; then
                     sed -i -e "s@<MqttEventsProcessorThreadCount>@1@g" "$deployment_working_file"
                 fi
                 sed -i -e "s@<UpstreamProtocol>@Mqttws@g" "$deployment_working_file"
@@ -168,46 +168,46 @@ function print_logs() {
     elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$elapsed_seconds")"
     print_highlighted_message "Test completed at $test_end_time, took $elapsed_time."
 
-    if (( $ret < 1 )); then
+    if (( ret < 1 )); then
         return;
     fi
 
-    print_highlighted_message "Print logs"
-    print_highlighted_message "LOGS FROM IOTEDGED"
+    print_highlighted_message 'Print logs'
+    print_highlighted_message 'LOGS FROM IOTEDGED'
     sudo journalctl -u iotedge -u docker --since "$test_start_time" --no-pager || true
 
-    print_highlighted_message "EDGE AGENT LOGS"
+    print_highlighted_message 'EDGE AGENT LOGS'
     sudo docker logs edgeAgent || true
 
-    print_highlighted_message "EDGE HUB LOGS"
+    print_highlighted_message 'EDGE HUB LOGS'
     sudo docker logs edgeHub || true
 
-    if [[ "${TEST_NAME,,}" == "tempsensor" ]]; then
-        print_highlighted_message "TEMP SENSOR LOGS"
+    if [[ "${TEST_NAME,,}" == 'tempsensor' ]]; then
+        print_highlighted_message 'TEMP SENSOR LOGS'
         sudo docker logs tempSensor || true
     fi
 
-    if [[ "${TEST_NAME,,}" == "tempfilter" ]]; then
-        print_highlighted_message "TEMP FILTER LOGS"
+    if [[ "${TEST_NAME,,}" == 'tempfilter' ]]; then
+        print_highlighted_message 'TEMP FILTER LOGS'
         sudo docker logs tempFilter || true
     fi
 
-    if [[ "${TEST_NAME,,}" == "tempfilterfunctions" ]]; then
-        print_highlighted_message "TEMP FILTER FUNCTIONS LOGS"
+    if [[ "${TEST_NAME,,}" == 'tempfilterfunctions' ]]; then
+        print_highlighted_message 'TEMP FILTER FUNCTIONS LOGS'
         sudo docker logs tempFilterFunctions || true
     fi
 
     if [[ "${TEST_NAME,,}" == directmethod* ]]; then
-        print_highlighted_message "DIRECT MTEHOD SENDER LOGS"
+        print_highlighted_message 'DIRECT MTEHOD SENDER LOGS'
         sudo docker logs DirectMethodSender || true
 
-        print_highlighted_message "DIRECT MTEHOD RECEIVER LOGS"
+        print_highlighted_message 'DIRECT MTEHOD RECEIVER LOGS'
         sudo docker logs DirectMethodReceiver || true
     fi
 }
 
 function process_args() {
-    print_highlighted_message "Process arguments"
+    print_highlighted_message 'Process arguments'
     saveNextArg=0
     for arg in "$@"
     do
@@ -240,30 +240,30 @@ function process_args() {
             saveNextArg=0
         else
             case "$arg" in
-                "-h" | "--help" ) usage;;
-                "-testDir" ) saveNextArg=1;;
-                "-releaseLabel" ) saveNextArg=2;;
-                "-artifactImageBuildNumber" ) saveNextArg=3;;
-                "-testName" ) saveNextArg=4;;
-                "-containerRegistry" ) saveNextArg=5;;
-                "-containerRegistryUsername" ) saveNextArg=6;;
-                "-containerRegistryPassword" ) saveNextArg=7;;
-                "-iotHubConnectionString" ) saveNextArg=8;;
-                "-eventHubConnectionString" ) saveNextArg=9;;
+                '-h' | '--help' ) usage;;
+                '-testDir' ) saveNextArg=1;;
+                '-releaseLabel' ) saveNextArg=2;;
+                '-artifactImageBuildNumber' ) saveNextArg=3;;
+                '-testName' ) saveNextArg=4;;
+                '-containerRegistry' ) saveNextArg=5;;
+                '-containerRegistryUsername' ) saveNextArg=6;;
+                '-containerRegistryPassword' ) saveNextArg=7;;
+                '-iotHubConnectionString' ) saveNextArg=8;;
+                '-eventHubConnectionString' ) saveNextArg=9;;
                 * ) usage;;
             esac
         fi
     done
 
     # Required parameters
-    [[ -z "$RELEASE_LABEL" ]] && { print_error "Release label is required."; exit 1; }
-    [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error "Artifact image build number is required"; exit 1; }
-    [[ -z "$TEST_NAME" ]] && { print_error "Test name is required"; exit 1; }
-    [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error "Container registry password is required"; exit 1; }
-    [[ -z "$IOTHUB_CONNECTION_STRING" ]] && { print_error "IoT hub connection string is required"; exit 1; }
-    [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error "Event hub connection string is required"; exit 1; }
+    [[ -z "$RELEASE_LABEL" ]] && { print_error 'Release label is required.'; exit 1; }
+    [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error 'Artifact image build number is required'; exit 1; }
+    [[ -z "$TEST_NAME" ]] && { print_error 'Test name is required'; exit 1; }
+    [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
+    [[ -z "$IOTHUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
+    [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
 
-    echo "Required parameters are provided"
+    echo 'Required parameters are provided'
 }
 
 function run_all_tests()
@@ -271,32 +271,32 @@ function run_all_tests()
     local funcRet=0
     local testRet=0
 
-    TEST_NAME="DirectMethodAmqp"
+    TEST_NAME='DirectMethodAmqp'
     run_directmethodamqp_test && funcRet=$? || funcRet=$?
 
-    TEST_NAME="DirectMethodAmqpws"
+    TEST_NAME='DirectMethodAmqpws'
     run_directmethodamqpws_test && testRet=$? || testRet=$?
-    if (( $funcRet = 0 )); then funcRet=$testRet; fi
+    if (( funcRet = 0 )); then funcRet=$testRet; fi
 
-    TEST_NAME="DirectMethodMqtt"
+    TEST_NAME='DirectMethodMqtt'
     run_directmethodmqtt_test && testRet=$? || testRet=$?
-    if (( $funcRet = 0 )); then funcRet=$testRet; fi
+    if (( funcRet = 0 )); then funcRet=$testRet; fi
 
-    TEST_NAME="DirectMethodMqttws"
+    TEST_NAME='DirectMethodMqttws'
     run_directmethodmqttws_test && testRet=$? || testRet=$?
-    if (( $funcRet = 0 )); then funcRet=$testRet; fi
+    if (( funcRet = 0 )); then funcRet=$testRet; fi
     
-    TEST_NAME="TempFilter"
+    TEST_NAME='TempFilter'
     run_tempfilter_test && testRet=$? || testRet=$?
-    if (( $funcRet = 0 )); then funcRet=$testRet; fi
-
-    TEST_NAME="TempFilterFunctions"
+    if (( funcRet = 0 )); then funcRet=$testRet; fi
+    
+    TEST_NAME='TempFilterFunctions'
     run_tempfilterfunctions_test && testRet=$? || testRet=$?
-    if (( $funcRet = 0 )); then funcRet=$testRet; fi
+    if (( funcRet = 0 )); then funcRet=$testRet; fi
 
-    TEST_NAME="TempSensor"
+    TEST_NAME='TempSensor'
     run_tempsensor_test && testRet=$? || testRet=$?
-    if (( $funcRet = 0 )); then funcRet=$testRet; fi
+    if (( funcRet = 0 )); then funcRet=$testRet; fi
 
     return $funcRet
 }
@@ -508,15 +508,15 @@ function run_test()
 {
     local ret=0
     case "${TEST_NAME,,}" in
-        "all") run_all_tests && ret=$? || ret=$?;;
-        "directmethodamqp") run_directmethodamqp_test && ret=$? || ret=$?;;
-        "directmethodamqpws") run_directmethodamqpws_test && ret=$? || ret=$?;;
-        "directmethodmqtt") run_directmethodmqtt_test && ret=$? || ret=$?;;
-        "directmethodmqttws") run_directmethodmqttws_test && ret=$? || ret=$?;;
-        "quickstartcerts") run_quickstartcerts_test && ret=$? || ret=$?;;
-        "tempsensor") run_tempsensor_test && ret=$? || ret=$?;;
-        "tempfilter") run_tempfilter_test && ret=$? || ret=$?;;
-        "tempfilterfunctions") run_tempfilterfunctions_test && ret=$? || ret=$?;;
+        'all') run_all_tests && ret=$? || ret=$?;;
+        'directmethodamqp') run_directmethodamqp_test && ret=$? || ret=$?;;
+        'directmethodamqpws') run_directmethodamqpws_test && ret=$? || ret=$?;;
+        'directmethodmqtt') run_directmethodmqtt_test && ret=$? || ret=$?;;
+        'directmethodmqttws') run_directmethodmqttws_test && ret=$? || ret=$?;;
+        'quickstartcerts') run_quickstartcerts_test && ret=$? || ret=$?;;
+        'tempsensor') run_tempsensor_test && ret=$? || ret=$?;;
+        'tempfilter') run_tempfilter_test && ret=$? || ret=$?;;
+        'tempfilterfunctions') run_tempfilterfunctions_test && ret=$? || ret=$?;;
         *) print_highlighted_message "Can't find any test with name '$TEST_NAME'";;
     esac
 
@@ -541,17 +541,17 @@ function validate_test_parameters() {
     required_folders+="$iotedged_artifact_folder"
 
     case "${TEST_NAME,,}" in
-        "tempsensor")
+        'tempsensor')
             required_files+=($twin_testfile_artifact_file);;
-        "tempfilter")
+        'tempfilter')
             required_files+=($module_to_module_deployment_artifact_file);;
-        "tempfilterfunctions")
+        'tempfilterfunctions')
             required_files+=($module_to_functions_deployment_artifact_file);;
-        "quickstartcerts")
+        'quickstartcerts')
             required_files+=($leafdevice_artifact_file);;
     esac
 
-    if [[ "${TEST_NAME,,}" == "directmethod*" ]]; then
+    if [[ "${TEST_NAME,,}" == directmethod* ]]; then
         required_files+=($dm_module_to_module_deployment_artifact_file)
     fi
 
@@ -572,26 +572,26 @@ function validate_test_parameters() {
         fi
     done
 
-    if (( $error > 0 )); then
+    if (( error > 0 )); then
         exit 1
     fi
 }
 
 function usage() {
     echo "$SCRIPT_NAME [options]"
-    echo ""
-    echo "options"
-    echo " -testDir                        Path of E2E test directory which contains artifacts and certs folders; defaul to current directory."
-    echo " -releaseLabel                   Release label can be uniquely identify the build (e.g <ReleaseName>-<ReleaseAttempt>); which is used as part of Edge device name."
-    echo " -testName                       Name of E2E test to be run."
+    echo ''
+    echo 'options'
+    echo ' -testDir                        Path of E2E test directory which contains artifacts and certs folders; defaul to current directory.'
+    echo ' -releaseLabel                   Release label can be uniquely identify the build (e.g <ReleaseName>-<ReleaseAttempt>); which is used as part of Edge device name.'
+    echo ' -testName                       Name of E2E test to be run.'
     echo "                                 Values are 'All', 'DirectMethodAmqp', 'DirectMethodMqtt', 'QuickstartCerts', 'TempFilter', 'TempFilterFunctions', "
     echo "                                 'TempSensor', 'TransparentGateway'"
-    echo " -artifactImageBuildNumber       Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1."
+    echo ' -artifactImageBuildNumber       Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
     echo " -containerRegistry              Host address of container registry, default is 'edgebuilds.azurecr.io'"
     echo " -containerRegistryUsername      Username of container registry, default is 'EdgeBuilds'"
-    echo " -containerRegistryPassword      Password of given username for container registory"
-    echo " -iotHubConnectionString         IoT hub connection string for creating edge device"
-    echo " -eventHubConnectionString       Event hub connection string for receive D2C messages"
+    echo ' -containerRegistryPassword      Password of given username for container registory'
+    echo ' -iotHubConnectionString         IoT hub connection string for creating edge device'
+    echo ' -eventHubConnectionString       Event hub connection string for receive D2C messages'
     exit 1;
 }
 
