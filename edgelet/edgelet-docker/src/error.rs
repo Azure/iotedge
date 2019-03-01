@@ -26,7 +26,7 @@ fn get_message(
 
     match content {
         Some(serde_json::Value::Object(props)) => {
-            if let serde_json::Value::String(message) = &props["message"] {
+            if let Some(serde_json::Value::String(message)) = props.get("message") {
                 return Ok(message.clone());
             }
 
