@@ -4,9 +4,9 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::cyclomatic_complexity,
+    clippy::module_name_repetitions,
     clippy::similar_names,
     clippy::shadow_unrelated,
-    clippy::stutter,
     clippy::use_self
 )]
 

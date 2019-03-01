@@ -1,6 +1,10 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::doc_markdown, clippy::stutter, clippy::use_self)]
+#![allow(
+    clippy::doc_markdown,
+    clippy::module_name_repetitions,
+    clippy::use_self
+)]
 
 use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 
