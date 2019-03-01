@@ -102,8 +102,8 @@ mod tests {
 
     use management::models::{Config, ErrorResponse};
 
-    use crate::server::module::tests::Error;
     use super::*;
+    use crate::server::module::tests::Error;
 
     lazy_static! {
         static ref RUNTIME: TestRuntime<Error> = {

@@ -106,11 +106,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
-    use std::time::Duration;
     use futures::future::FutureResult;
     use futures::stream::Empty;
     use futures::{future, stream, IntoFuture, Stream};
+    use std::error::Error;
+    use std::time::Duration;
 
     use super::*;
     use crate::module::{
