@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use serde_derive::*;
 use std::cmp;
 use std::fmt;
+
+use serde_derive::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum Pid {

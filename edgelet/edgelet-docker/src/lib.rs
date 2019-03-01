@@ -11,7 +11,6 @@ mod module;
 mod runtime;
 
 pub use config::DockerConfig;
-pub use edgelet_core;
 pub use error::{Error, ErrorKind};
 pub use module::{DockerModule, MODULE_TYPE};
 

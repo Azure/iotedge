@@ -7,6 +7,7 @@
 use std::path::{Path, PathBuf};
 
 use failure::ResultExt;
+use lazy_static::lazy_static;
 use url::Url;
 
 mod authorization;
@@ -27,7 +28,6 @@ pub use crypto::{
 };
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
-pub use lazy_static::lazy_static;
 pub use module::{
     LogOptions, LogTail, Module, ModuleOperation, ModuleRegistry, ModuleRuntime,
     ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, ModuleTop,

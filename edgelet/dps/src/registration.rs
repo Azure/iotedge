@@ -515,17 +515,17 @@ fn get_device_info(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use std::sync::Mutex;
 
-    use crate::DPS_API_VERSION;
     use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
     use http;
     use hyper::{self, Body, Request, Response, StatusCode};
     use serde_json;
     use tokio;
     use url::Url;
+
+    use super::*;
+    use crate::DPS_API_VERSION;
 
     #[test]
     fn server_register_with_tpm_auth_success() {

@@ -260,7 +260,7 @@ mod tests {
     use futures::future::{self, FutureResult};
 
     use crate::identity::{AuthType, Identity, IdentityManager, IdentitySpec};
-    use serde_derive::*;
+    use serde_derive::{Deserialize, Serialize};
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub enum Error {

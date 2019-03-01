@@ -108,15 +108,15 @@ where
 mod tests {
     use std::error::Error;
     use std::time::Duration;
+    use futures::future::FutureResult;
+    use futures::stream::Empty;
+    use futures::{future, stream, IntoFuture, Stream};
 
     use super::*;
     use crate::module::{
         LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec, ModuleTop,
         SystemInfo as CoreSystemInfo,
     };
-    use futures::future::FutureResult;
-    use futures::stream::Empty;
-    use futures::{future, stream, IntoFuture, Stream};
 
     #[test]
     fn should_authorize_anonymous() {

@@ -8,8 +8,7 @@ use hyper::StatusCode;
 use serde_json;
 
 use docker::apis::{ApiError as DockerApiError, Error as DockerError};
-
-use crate::edgelet_core::{
+use edgelet_core::{
     ModuleOperation, ModuleRuntimeErrorReason, RegistryOperation, RuntimeOperation,
 };
 
