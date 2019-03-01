@@ -2,6 +2,7 @@
 
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::use_self)]
 
 #[macro_use]
 extern crate clap;
