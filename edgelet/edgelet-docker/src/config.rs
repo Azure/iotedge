@@ -1,11 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use failure::ResultExt;
+use serde_derive::{Deserialize, Serialize};
 
 use docker::models::{AuthConfig, ContainerCreateBody};
 use edgelet_utils::{ensure_not_empty_with_context, serde_clone};
 
-use error::{ErrorKind, Result};
+use crate::error::{ErrorKind, Result};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -84,11 +85,12 @@ impl DockerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::collections::HashMap;
 
     use docker::models::{ContainerCreateBody, HostConfig, HostConfigPortBindings};
-    use serde_json;
+    use serde_json::json;
+
+    use super::*;
 
     #[test]
     #[should_panic]

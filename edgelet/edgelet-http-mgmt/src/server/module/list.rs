@@ -4,6 +4,7 @@ use failure::ResultExt;
 use futures::{Future, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
+use log::debug;
 use serde::Serialize;
 use serde_json;
 
@@ -12,8 +13,8 @@ use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use management::models::*;
 
-use error::{Error, ErrorKind};
-use IntoResponse;
+use crate::error::{Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct ListModules<M> {
     runtime: M,
@@ -34,7 +35,7 @@ where
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         debug!("List modules");
 
         let response = self
@@ -103,9 +104,9 @@ mod tests {
     use edgelet_test_utils::module::*;
     use futures::Stream;
     use management::models::ModuleList;
-    use server::module::tests::Error;
 
     use super::*;
+    use crate::server::module::tests::Error;
 
     #[test]
     fn success() {
