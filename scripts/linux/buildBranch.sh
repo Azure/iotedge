@@ -37,8 +37,8 @@ usage()
     echo "options"
     echo " -c, --config         Product binary configuration: Debug [default] or Release"
     echo " --no-rocksdb-bin     Do not copy the RocksDB binaries into the project's output folders"
-    echo " -OS"                 Sets OS Variable for dotnet build command (Used to build for .NET Core 3.0 - Linux ARM64)
-    echo " -Platform"           Sets Platform Variable for dotnet build command (Used to build for .NET Core 3.0 - Linux ARM64)
+    echo " --os                 Sets OS Variable for dotnet build command (Used to build for .NET Core 3.0 - Linux ARM64)"
+    echo " --platform           Sets Platform Variable for dotnet build command (Used to build for .NET Core 3.0 - Linux ARM64)"
     exit 1;
 }
 
@@ -56,13 +56,19 @@ process_args()
         if [ $save_next_arg -eq 1 ]; then
             CONFIGURATION="$arg"
             save_next_arg=0
+        else if [ $save_next_arg -eq 2 ]; then
+            DOTNETBUILD_OS="$arg"
+            save_next_arg=0
+        else if [ $save_next_arg -eq 3 ]; then
+            DOTNETBUILD_PLATFORM="$arg"
+            save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
                 "-c" | "--config" ) save_next_arg=1;;
                 "--no-rocksdb-bin" ) MSBUILD_OPTIONS="-p:RocksDbAsPackage=false";;
-                "-OS" ) DOTNETBUILD_OS="$2";;
-                "-Platform" ) DOTNETBUILD_PLATFORM="$2";;
+                "--os" ) save_next_arg=2;;
+                "--platform" ) save_next_arg=3;;
                 * ) usage;;
             esac
         fi
@@ -196,12 +202,18 @@ publish_leafdevice()
 build_solution()
 {
     echo "Building IoT Edge solution"
-    $DOTNET_ROOT_PATH/dotnet build \
-        -c $CONFIGURATION \
-        -p:OS=$DOTNETBUILD_OS \
-        -p:Platform=$DOTNETBUILD_PLATFORM \        
-        -o "$BUILD_BINARIESDIRECTORY" \
-        "$ROOT_FOLDER/Microsoft.Azure.Devices.Edge.sln"
+    build_command="$DOTNET_ROOT_PATH/dotnet build -c $CONFIGURATION"
+    
+    if [ -n "$DOTNETBUILD_OS" ]; then
+        build_command="$build_command -p:OS=$DOTNETBUILD_OS"
+    fi
+    
+    if [ -n "$DOTNETBUILD_PLATFORM" ]; then
+        build_command="$build_command -p:Platform=$DOTNETBUILD_PLATFORM"
+    fi
+    build_command="$build_command $ROOT_FOLDER/Microsoft.Azure.Devices.Edge.sln"
+        
+    eval $build_command
     if [ $? -gt 0 ]; then
         RES=1
     fi
