@@ -122,6 +122,123 @@ jobs:
           imageName: azureiotedge-direct-method-cloud-sender
           project: DirectMethodCloudSender
 
+          
+################################################################################
+  - job: linuxARM64
+################################################################################
+    displayName: LinuxARM64
+    pool:
+      name: Hosted Ubuntu 1604
+      vmImage: 'ubuntu-16.04'
+    variables:
+      NetCorePackageUri: https://download.visualstudio.microsoft.com/download/pr/716a5791-eca8-4b65-b1bd-6a9852327b00/4cb3c2c89e2428bebcdb7193eaa45b91/dotnet-sdk-3.0.100-preview-010184-linux-arm64.tar.gz
+    steps:
+      - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUri)
+        name: install
+        displayName: Install dependencies
+
+      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
+        displayName: 'Docker Login'
+
+      - script: edgelet/build/linux/install.sh --package-arm
+        displayName: Install Rust
+
+      - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
+        displayName: Modify path
+
+      - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
+        displayName: 'Install cross (fork with docker fix)'
+
+      - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin -OS Unix -Platform x64
+        name: build
+        displayName: Build (release)
+
+      - script: scripts/linux/buildDiagnostics.sh
+        displayName: Build iotedge-diagnostics
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts'
+        inputs:
+          PathtoPublish: '$(Build.BinariesDirectory)/publish'
+          ArtifactName: 'core-linux'
+
+      # azureiotedge-diagnostics
+      - template: templates/image-linux.yaml
+        parameters:
+          name: azureiotedge-diagnostics
+          imageName: azureiotedge-diagnostics
+          project: azureiotedge-diagnostics
+
+      # Edge Agent
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Edge Agent
+          imageName: azureiotedge-agent
+          project: Microsoft.Azure.Devices.Edge.Agent.Service
+
+      # Edge Hub
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Edge Hub
+          imageName: azureiotedge-hub
+          project: Microsoft.Azure.Devices.Edge.Hub.Service
+
+      # Simulated Temperature Sensor
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Temperature Sensor
+          imageName: azureiotedge-simulated-temperature-sensor
+          project: SimulatedTemperatureSensor
+
+      # Temperature Filter
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Temperature Filter
+          imageName: azureiotedge-temperature-filter
+          project: TemperatureFilter
+
+      # Load Gen
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Load Gen
+          imageName: azureiotedge-load-gen
+          project: load-gen
+
+      # Messages Analyzer
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Messages Analyzer
+          imageName: azureiotedge-analyzer
+          project: MessagesAnalyzer
+
+      # Functions Sample
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Functions Sample
+          imageName: azureiotedge-functions-filter
+          project: EdgeHubTriggerCSharp
+
+      # Direct Method Sender
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Direct Method Sender
+          imageName: azureiotedge-direct-method-sender
+          project: DirectMethodSender
+
+      # Direct Method Receiver
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Direct Method Receiver
+          imageName: azureiotedge-direct-method-receiver
+          project: DirectMethodReceiver
+
+      # Direct Method Cloud Sender
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Direct Method Cloud Sender
+          imageName: azureiotedge-direct-method-cloud-sender
+          project: DirectMethodCloudSender
+          
 ################################################################################
   - job: windows
 ################################################################################

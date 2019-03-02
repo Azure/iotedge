@@ -25,6 +25,8 @@ SRC_E2E_TEST_FILES_DIR=$ROOT_FOLDER/e2e_test_files
 SRC_CERT_TOOLS_DIR=$ROOT_FOLDER/tools/CACertificates
 FUNCTIONS_SAMPLE_DIR=$ROOT_FOLDER/edge-modules/functions/samples
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
+OS=
+PLATFORM
 
 DOTNET_RUNTIME=netcoreapp2.1
 
@@ -35,6 +37,8 @@ usage()
     echo "options"
     echo " -c, --config         Product binary configuration: Debug [default] or Release"
     echo " --no-rocksdb-bin     Do not copy the RocksDB binaries into the project's output folders"
+    echo " -OS"                 Sets OS Variable for dotnet build command (Used to build for .NET Core 3.0 - Linux ARM64)
+    echo " -Platform"           Sets Platform Variable for dotnet build command (Used to build for .NET Core 3.0 - Linux ARM64)
     exit 1;
 }
 
@@ -57,6 +61,8 @@ process_args()
                 "-h" | "--help" ) usage;;
                 "-c" | "--config" ) save_next_arg=1;;
                 "--no-rocksdb-bin" ) MSBUILD_OPTIONS="-p:RocksDbAsPackage=false";;
+                "-OS" ) DOTNETBUILD_OS="$2";;
+                "-Platform" ) DOTNETBUILD_PLATFORM="$2";;
                 * ) usage;;
             esac
         fi
@@ -192,6 +198,8 @@ build_solution()
     echo "Building IoT Edge solution"
     $DOTNET_ROOT_PATH/dotnet build \
         -c $CONFIGURATION \
+        -p:OS=$DOTNETBUILD_OS \
+        -p:Platform=$DOTNETBUILD_PLATFORM \        
         -o "$BUILD_BINARIESDIRECTORY" \
         "$ROOT_FOLDER/Microsoft.Azure.Devices.Edge.sln"
     if [ $? -gt 0 ]; then
