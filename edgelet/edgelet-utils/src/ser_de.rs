@@ -12,7 +12,7 @@ use serde::de::{self, Deserialize, DeserializeOwned, Deserializer, MapAccess, Vi
 use serde::ser::{Serialize, Serializer};
 use serde_json;
 
-use error::{ErrorKind, Result};
+use crate::error::{ErrorKind, Result};
 
 // This implementation has been adapted from: https://serde.rs/string-or-struct.html
 
@@ -34,7 +34,7 @@ where
     {
         type Value = T;
 
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
             formatter.write_str("string or map")
         }
 
@@ -83,10 +83,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::str::FromStr;
 
-    use serde_json;
+    use serde_derive::{Deserialize, Serialize};
+    use serde_json::json;
+
+    use super::*;
 
     #[derive(Debug, Deserialize)]
     struct Options {

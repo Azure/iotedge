@@ -13,8 +13,8 @@ use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use workload::models::TrustBundleResponse;
 
-use error::{EncryptionOperation, Error, ErrorKind};
-use IntoResponse;
+use crate::error::{EncryptionOperation, Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct TrustBundleHandler<T: GetTrustBundle> {
     hsm: T,
@@ -37,7 +37,7 @@ where
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let response = self
             .hsm
             .get_trust_bundle()
