@@ -9,9 +9,6 @@
     clippy::use_self
 )]
 
-#[macro_use]
-extern crate failure;
-
 use std::net::TcpListener;
 
 pub mod cert;
