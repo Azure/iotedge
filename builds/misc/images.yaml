@@ -14,7 +14,7 @@ jobs:
       name: Hosted Ubuntu 1604
       vmImage: 'ubuntu-16.04'
     variables:
-      NetCorePackageUri: https://download.visualstudio.microsoft.com/download/pr/716a5791-eca8-4b65-b1bd-6a9852327b00/4cb3c2c89e2428bebcdb7193eaa45b91/dotnet-sdk-3.0.100-preview-010184-linux-arm64.tar.gz
+      NetCorePackageUri: https://download.visualstudio.microsoft.com/download/pr/efa6dde9-a5ee-4322-b13c-a2a02d3980f0/dad445eba341c1d806bae5c8afb47015/dotnet-sdk-3.0.100-preview-010184-linux-x64.tar.gz
     steps:
       - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUri)
         name: install
