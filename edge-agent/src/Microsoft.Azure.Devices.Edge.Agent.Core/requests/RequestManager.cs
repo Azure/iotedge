@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     public class RequestManager : IRequestManager
     {
         static readonly IDictionary<string, IRequestHandler> DefaultRequestHandlers = new ReadOnlyDictionary<string, IRequestHandler>(
-            new Dictionary<string, IRequestHandler>()
+            new Dictionary<string, IRequestHandler>
             {
                 ["ping"] = new PingRequestHandler()
             });
@@ -27,10 +27,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
         internal RequestManager(IDictionary<string, IRequestHandler> requestHandlers)
         {
-            this.requestHandlers = Preconditions.CheckNotNull(requestHandlers, nameof(requestHandlers));
+            Preconditions.CheckNotNull(requestHandlers, nameof(requestHandlers));
+            this.requestHandlers = new ReadOnlyDictionary<string, IRequestHandler>(
+                new Dictionary<string, IRequestHandler>(requestHandlers, StringComparer.OrdinalIgnoreCase));
         }
 
-        public async Task<(int, string)> ProcessRequest(string request, string payloadJson)
+        public async Task<(int statusCode, Option<string> responsePayload)> ProcessRequest(string request, string payloadJson)
         {
             try
             {
@@ -43,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                     throw new ArgumentException(message);
                 }
 
-                string responsePayload = await requestHandler.HandleRequest(payloadJson);
+                Option<string> responsePayload = await requestHandler.HandleRequest(Option.Maybe(payloadJson));
                 Events.HandledRequest(request);
                 return ((int)HttpStatusCode.OK, responsePayload);
             }
@@ -54,14 +56,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             }
         }
 
-        static (int, string) GetErrorResponse(Exception ex)
+        static (int statusCode, Option<string> responsePayload) GetErrorResponse(Exception ex)
         {
             switch (ex)
             {
                 case ArgumentException _:
-                    return ((int)HttpStatusCode.BadRequest, GetErrorPayload(ex.Message));
+                    return ((int)HttpStatusCode.BadRequest, Option.Some(GetErrorPayload(ex.Message)));
                 default:
-                    return ((int)HttpStatusCode.InternalServerError, GetErrorPayload(ex.Message));
+                    return ((int)HttpStatusCode.InternalServerError, Option.Some(GetErrorPayload(ex.Message)));
             }
         }
 

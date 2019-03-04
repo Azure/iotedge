@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
 {
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -18,10 +19,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange/Act
             var pingRequestHandler = new PingRequestHandler();
-            string response = await pingRequestHandler.HandleRequest(payload);
+            Option<string> response = await pingRequestHandler.HandleRequest(Option.Maybe(payload));
 
             // Assert
-            Assert.Equal(string.Empty, response);
+            Assert.False(response.HasValue);
         }
     }
 }

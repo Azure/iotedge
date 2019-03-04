@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
@@ -23,19 +24,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             // Act / Assert
             if (expectedException != null)
             {
-                await Assert.ThrowsAsync(expectedException, () => requestHandler.HandleRequest(payloadJson));
+                await Assert.ThrowsAsync(expectedException, () => requestHandler.HandleRequest(Option.Maybe(payloadJson)));
             }
             else
             {
-                string responsePayload = await requestHandler.HandleRequest(payloadJson);
-                Assert.Equal(payloadJson, responsePayload);
+                Option<string> responsePayload = await requestHandler.HandleRequest(Option.Maybe(payloadJson));
+                Assert.True(responsePayload.HasValue);
+                Assert.Equal(payloadJson, responsePayload.OrDefault());
             }
         }
 
         class RequestHandlerImpl : RequestHandlerBase<RequestPayload, RequestResponse>
         {
-            protected override Task<RequestResponse> HandleRequestInternal(RequestPayload payload) =>
-                Task.FromResult(new RequestResponse(payload.Prop1, payload.Prop2));
+            protected override Task<Option<RequestResponse>> HandleRequestInternal(Option<RequestPayload> payload)
+            {
+                RequestPayload requestPayload = payload.Expect(() => new ArgumentException("Payload should not be null"));
+                return Task.FromResult(Option.Some(new RequestResponse(requestPayload.Prop1, requestPayload.Prop2)));
+            }
         }
 
         class RequestPayload

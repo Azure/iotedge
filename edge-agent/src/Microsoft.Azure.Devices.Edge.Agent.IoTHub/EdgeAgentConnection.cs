@@ -134,8 +134,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         async Task<MethodResponse> MethodCallback(MethodRequest methodRequest, object _)
         {
-            (int responseStatus, string responsePayload) = await this.requestManager.ProcessRequest(methodRequest.Name, methodRequest.DataAsJson);
-            return new MethodResponse(Encoding.UTF8.GetBytes(responsePayload), responseStatus);
+            (int responseStatus, Option<string> responsePayload) = await this.requestManager.ProcessRequest(methodRequest.Name, methodRequest.DataAsJson);
+            return responsePayload
+                .Map(r => new MethodResponse(Encoding.UTF8.GetBytes(r), responseStatus))
+                .GetOrElse(() => new MethodResponse(responseStatus));
         }
 
         async void OnConnectionStatusChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)

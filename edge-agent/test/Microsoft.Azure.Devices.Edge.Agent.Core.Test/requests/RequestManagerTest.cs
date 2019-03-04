@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Newtonsoft.Json.Linq;
@@ -27,8 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var requestHandler = new Mock<IRequestHandler>();
-            requestHandler.Setup(r => r.HandleRequest(It.IsAny<string>()))
-                .ReturnsAsync("{\"prop3\":\"foo\",\"prop4\":100}");
+            requestHandler.Setup(r => r.HandleRequest(It.IsAny<Option<string>>()))
+                .ReturnsAsync(Option.Some("{\"prop3\":\"foo\",\"prop4\":100}"));
             var requestHandlers = new Dictionary<string, IRequestHandler>
             {
                 ["req1"] = requestHandler.Object
@@ -37,12 +38,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             string payload = "{\"prop2\":\"foo\",\"prop1\":100}";
 
             // Act
-            (int responseStatus, string responsePayload) = await requestManager.ProcessRequest("req", payload);
+            (int responseStatus, Option<string> responsePayload) = await requestManager.ProcessRequest("req", payload);
 
             // Assert
             Assert.Equal(400, responseStatus);
-            Assert.NotNull(responsePayload);
-            JObject parsedJson = JObject.Parse(responsePayload);
+            Assert.True(responsePayload.HasValue);
+            JObject parsedJson = JObject.Parse(responsePayload.OrDefault());
             Assert.False(string.IsNullOrWhiteSpace(parsedJson["message"].ToString()));
 
             // Act
@@ -50,8 +51,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
 
             // Assert
             Assert.Equal(400, responseStatus);
-            Assert.NotNull(responsePayload);
-            parsedJson = JObject.Parse(responsePayload);
+            Assert.True(responsePayload.HasValue);
+            parsedJson = JObject.Parse(responsePayload.OrDefault());
             Assert.False(string.IsNullOrWhiteSpace(parsedJson["message"].ToString()));
 
             // Act
@@ -59,8 +60,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
 
             // Assert
             Assert.Equal(400, responseStatus);
-            Assert.NotNull(responsePayload);
-            parsedJson = JObject.Parse(responsePayload);
+            Assert.True(responsePayload.HasValue);
+            parsedJson = JObject.Parse(responsePayload.OrDefault());
             Assert.False(string.IsNullOrWhiteSpace(parsedJson["message"].ToString()));
 
             // Act
@@ -68,7 +69,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
 
             // Assert
             Assert.Equal(200, responseStatus);
-            Assert.Equal("{\"prop3\":\"foo\",\"prop4\":100}", responsePayload);
+            Assert.Equal("{\"prop3\":\"foo\",\"prop4\":100}", responsePayload.OrDefault());
+
+            // Act - Test for case sensitivity
+            (responseStatus, responsePayload) = await requestManager.ProcessRequest("ReQ1", payload);
+
+            // Assert
+            Assert.Equal(200, responseStatus);
+            Assert.Equal("{\"prop3\":\"foo\",\"prop4\":100}", responsePayload.OrDefault());
         }
 
         [Theory]
@@ -77,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var requestHandler = new Mock<IRequestHandler>();
-            requestHandler.Setup(r => r.HandleRequest(payload)).ThrowsAsync(handlerException);
+            requestHandler.Setup(r => r.HandleRequest(Option.Some(payload))).ThrowsAsync(handlerException);
             var requestHandlers = new Dictionary<string, IRequestHandler>
             {
                 ["req1"] = requestHandler.Object
@@ -85,12 +93,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             var requestManager = new RequestManager(requestHandlers);
 
             // Act
-            (int responseStatus, string responsePayload) = await requestManager.ProcessRequest("req1", payload);
+            (int responseStatus, Option<string> responsePayload) = await requestManager.ProcessRequest("req1", payload);
 
             // Assert
             Assert.Equal(expectedStatus, responseStatus);
-            Assert.NotNull(responsePayload);
-            JObject parsedJson = JObject.Parse(responsePayload);
+            Assert.True(responsePayload.HasValue);
+            JObject parsedJson = JObject.Parse(responsePayload.OrDefault());
             Assert.False(string.IsNullOrWhiteSpace(parsedJson["message"].ToString()));
         }
     }

@@ -10,20 +10,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         where TU : class
         where TV : class
     {
-        public async Task<string> HandleRequest(string payloadJson)
+        public async Task<Option<string>> HandleRequest(Option<string> payloadJson)
         {
-            TU payload = this.ParsePayload(payloadJson);
-            TV result = await this.HandleRequestInternal(payload);
-            string responseJson = result?.ToJson() ?? string.Empty;
+            Option<TU> payload = this.ParsePayload(payloadJson);
+            Option<TV> result = await this.HandleRequestInternal(payload);
+            Option<string> responseJson = result.Map(r => r.ToJson());
             return responseJson;
         }
 
-        protected virtual TU ParsePayload(string payloadJson)
+        protected virtual Option<TU> ParsePayload(Option<string> payloadJson)
         {
-            Preconditions.CheckNonWhiteSpace(payloadJson, nameof(payloadJson));
             try
             {
-                return payloadJson.FromJson<TU>();
+                return payloadJson.Map(p => p.FromJson<TU>());
             }
             catch (Exception ex)
             {
@@ -31,6 +30,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             }
         }
 
-        protected abstract Task<TV> HandleRequestInternal(TU payload);
+        protected abstract Task<Option<TV>> HandleRequestInternal(Option<TU> payload);
     }
 }
