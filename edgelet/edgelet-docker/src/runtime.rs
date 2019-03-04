@@ -10,12 +10,11 @@ use failure::{Fail, ResultExt};
 use futures::prelude::*;
 use futures::{future, stream, Async, Stream};
 use hyper::{Body, Chunk as HyperChunk, Client};
-use log::Level;
+use lazy_static::lazy_static;
+use log::{debug, info, Level};
 use serde_json;
 use url::Url;
 
-use client::DockerClient;
-use config::DockerConfig;
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, InlineResponse2001, NetworkConfig};
@@ -26,8 +25,10 @@ use edgelet_core::{
 use edgelet_http::UrlConnector;
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 
-use error::{Error, ErrorKind, Result};
-use module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
+use crate::client::DockerClient;
+use crate::config::DockerConfig;
+use crate::error::{Error, ErrorKind, Result};
+use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -108,8 +109,8 @@ impl DockerModuleRuntime {
 
 impl ModuleRegistry for DockerModuleRuntime {
     type Error = Error;
-    type PullFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type PullFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type RemoveFuture = Box<dyn Future<Item = (), Error = Self::Error>>;
     type Config = DockerConfig;
 
     fn pull(&self, config: &Self::Config) -> Self::PullFuture {
@@ -248,21 +249,21 @@ impl ModuleRuntime for DockerModuleRuntime {
     type Chunk = Chunk;
     type Logs = Logs;
 
-    type CreateFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type CreateFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type GetFuture =
-        Box<Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type InitFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
+        Box<dyn Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
+    type InitFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type ListFuture = Box<dyn Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
     type ListWithDetailsStream =
-        Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type LogsFuture = Box<Future<Item = Self::Logs, Error = Self::Error> + Send>;
-    type RemoveFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type RestartFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type StartFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type StopFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type SystemInfoFuture = Box<Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
-    type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type TopFuture = Box<Future<Item = ModuleTop, Error = Self::Error> + Send>;
+        Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
+    type LogsFuture = Box<dyn Future<Item = Self::Logs, Error = Self::Error> + Send>;
+    type RemoveFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type RestartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type StartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
+    type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type TopFuture = Box<dyn Future<Item = ModuleTop, Error = Self::Error> + Send>;
 
     fn init(&self) -> Self::InitFuture {
         info!("Initializing module runtime...");
@@ -790,7 +791,7 @@ impl AsRef<[u8]> for Chunk {
 /// instead of letting the whole `list_with_details` call fail.
 fn list_with_details<MR, M>(
     runtime: &MR,
-) -> Box<Stream<Item = (M, ModuleRuntimeState), Error = Error> + Send>
+) -> Box<dyn Stream<Item = (M, ModuleRuntimeState), Error = Error> + Send>
 where
     MR: ModuleRuntime<Error = Error, Config = <M as Module>::Config, Module = M>,
     <MR as ModuleRuntime>::ListFuture: 'static,
@@ -835,7 +836,7 @@ mod tests {
     use edgelet_core::pid::Pid;
     use edgelet_core::ModuleRegistry;
 
-    use error::{Error, ErrorKind};
+    use crate::error::{Error, ErrorKind};
 
     #[test]
     #[should_panic(expected = "URL does not have a recognized scheme")]
@@ -1468,7 +1469,7 @@ mod tests {
         type InitFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
         type ListWithDetailsStream =
-            Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
+            Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
         type LogsFuture = FutureResult<Self::Logs, Self::Error>;
         type RemoveFuture = FutureResult<(), Self::Error>;
         type RestartFuture = FutureResult<(), Self::Error>;
