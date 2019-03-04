@@ -305,6 +305,12 @@ fn spec_to_podspec<R: KubeRuntimeData>(
             name: auth_to_pull_secret_name(auth),
         }])
     });
+    // service account
+    let service_account_name = if EDGE_EDGE_AGENT_NAME == module_label_value {
+        Some(runtime.service_account_name().to_string())
+    } else {
+        None
+    };
 
     Ok(api_core::PodSpec {
         containers: vec![
@@ -313,6 +319,7 @@ fn spec_to_podspec<R: KubeRuntimeData>(
                 name: module_label_value,
                 env: Some(env_vars.clone()),
                 image: Some(module_image),
+                image_pull_policy: Some(runtime.image_pull_policy().to_string()),
                 security_context: security,
                 volume_mounts: Some(volume_mounts),
                 ..api_core::Container::default()
@@ -322,11 +329,13 @@ fn spec_to_podspec<R: KubeRuntimeData>(
                 name: PROXY_CONTAINER_NAME.to_string(),
                 env: Some(env_vars),
                 image: Some(runtime.proxy_image().to_string()),
+                image_pull_policy: Some(runtime.image_pull_policy().to_string()),
                 volume_mounts: Some(proxy_volume_mounts),
                 ..api_core::Container::default()
             },
         ],
         image_pull_secrets,
+        service_account_name,
         volumes: Some(volumes),
         ..api_core::PodSpec::default()
     })
@@ -429,6 +438,7 @@ mod tests {
         proxy_image: String,
         proxy_config_path: String,
         proxy_config_map_name: String,
+        image_pull_policy: String,
         service_account_name: String,
         workload_uri: Url,
         management_uri: Url,
@@ -444,6 +454,7 @@ mod tests {
             proxy_image: String,
             proxy_config_path: String,
             proxy_config_map_name: String,
+            image_pull_policy: String,
             service_account_name: String,
             workload_uri: Url,
             management_uri: Url,
@@ -457,6 +468,7 @@ mod tests {
                 proxy_image,
                 proxy_config_path,
                 proxy_config_map_name,
+                image_pull_policy,
                 service_account_name,
                 workload_uri,
                 management_uri,
@@ -488,6 +500,9 @@ mod tests {
         }
         fn proxy_config_map_name(&self) -> &str {
             &self.proxy_config_map_name
+        }
+        fn image_pull_policy(&self) -> &str {
+            &self.image_pull_policy
         }
         fn service_account_name(&self) -> &str {
             &self.service_account_name
@@ -573,6 +588,7 @@ mod tests {
         }
     }
 
+    #[allow(clippy::cyclomatic_complexity)]
     #[test]
     fn deployment_success() {
         let runtime = KubeRuntimeTest::new(
@@ -584,6 +600,7 @@ mod tests {
             String::from("proxy:latest"),
             String::from("/etc/traefik"),
             String::from("device1-iotedged-proxy-config"),
+            String::from("IfNotPresent"),
             String::from("iotedge"),
             Url::parse("http://localhost:35000").unwrap(),
             Url::parse("http://localhost:35001").unwrap(),
@@ -625,6 +642,7 @@ mod tests {
                     assert_eq!(module.env.as_ref().map(Vec::len).unwrap(), 3);
                     assert_eq!(module.volume_mounts.as_ref().map(Vec::len).unwrap(), 7);
                     assert_eq!(module.image.as_ref().unwrap(), "my-image:v1.0");
+                    assert_eq!(module.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
                 }
                 if let Some(proxy) = podspec
                     .containers
@@ -635,8 +653,9 @@ mod tests {
                     assert_eq!(proxy.env.as_ref().map(Vec::len).unwrap(), 3);
                     assert_eq!(proxy.volume_mounts.as_ref().map(Vec::len).unwrap(), 1);
                     assert_eq!(proxy.image.as_ref().unwrap(), "proxy:latest");
+                    assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
                 }
-
+                assert_eq!(podspec.service_account_name.as_ref().unwrap(), "iotedge");
                 assert!(podspec.image_pull_secrets.is_some());
                 // 4 bind mounts, 2 volume mounts, 1 proxy configmap
                 assert_eq!(podspec.volumes.as_ref().map(Vec::len).unwrap(), 7);
