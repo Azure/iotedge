@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
+namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
 {
     using System;
     using System.Globalization;
@@ -22,11 +22,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         readonly string iotHubName;
         readonly string deviceId;
+        readonly IAzureBlobUploader azureBlobUploader;
 
-        public AzureBlobLogsUploader(string iotHubName, string deviceId)
+        public AzureBlobLogsUploader(string iotHubName, string deviceId, IAzureBlobUploader azureBlobUploader)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.azureBlobUploader = Preconditions.CheckNotNull(azureBlobUploader, nameof(azureBlobUploader));
         }
 
         public async Task Upload(string uri, string id, byte[] payload, LogsContentEncoding logsContentEncoding, LogsContentType logsContentType)
@@ -44,10 +46,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 await ExecuteWithRetry(
                     () =>
                     {
-                        CloudBlockBlob blob = container.GetBlockBlobReference(blobName);
+                        IAzureBlob blob = this.azureBlobUploader.GetBlob(containerUri, blobName);
                         SetContentEncoding(blob, logsContentEncoding);
                         SetContentType(blob, logsContentType);
-                        return blob.UploadFromByteArrayAsync(payload, 0, payload.Length);
+                        return blob.UploadFromByteArrayAsync(payload);
                     },
                     r => Events.UploadErrorRetrying(blobName, container.Name, r));
                 Events.UploadSuccess(blobName, container.Name);
@@ -74,32 +76,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             return "log";
         }
 
-        internal string GetBlobName(string module, LogsContentEncoding logsContentEncoding, LogsContentType logsContentType)
+        internal string GetBlobName(string id, LogsContentEncoding logsContentEncoding, LogsContentType logsContentType)
         {
             string extension = GetExtension(logsContentEncoding, logsContentType);
-            string blobName = $"{module}-{DateTime.UtcNow.ToString("yyyy-MM-dd--HH-mm-ss", CultureInfo.InvariantCulture)}";
+            string blobName = $"{id}-{DateTime.UtcNow.ToString("yyyy-MM-dd--HH-mm-ss", CultureInfo.InvariantCulture)}";
             return $"{this.iotHubName}/{this.deviceId}/{blobName}.{extension}";
         }
 
-        static void SetContentType(CloudBlockBlob blob, LogsContentType logsContentType)
+        static void SetContentType(IAzureBlob blob, LogsContentType logsContentType)
         {
             switch (logsContentType)
             {
                 case LogsContentType.Json:
-                    blob.Properties.ContentType = "application/json";
+                    blob.BlobProperties.ContentType = "application/json";
                     break;
                 case LogsContentType.Text:
-                    blob.Properties.ContentType = "text/plain";
+                    blob.BlobProperties.ContentType = "text/plain";
                     break;
             }
         }
 
-        static void SetContentEncoding(CloudBlockBlob blob, LogsContentEncoding logsContentEncoding)
+        static void SetContentEncoding(IAzureBlob blob, LogsContentEncoding logsContentEncoding)
         {
             switch (logsContentEncoding)
             {
                 case LogsContentEncoding.Gzip:
-                    blob.Properties.ContentEncoding = "gzip";
+                    blob.BlobProperties.ContentEncoding = "gzip";
                     break;
             }
         }
