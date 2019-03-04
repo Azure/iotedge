@@ -208,7 +208,7 @@ build_solution()
         build_command="$build_command -p:OS=$DOTNETBUILD_OS"
     fi
     
-    if [ -n "$DOTNETBUILD_PLATFORM" ]; then
+    if [ -n "$DOTNET_RUNTIME" ]; then
         build_command="$build_command -p:DotNet_Runtime=$DOTNET_RUNTIME"
     fi
     build_command="$build_command $ROOT_FOLDER/Microsoft.Azure.Devices.Edge.sln"
