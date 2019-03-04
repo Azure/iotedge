@@ -986,7 +986,7 @@ function Delete-Directory([string] $Path) {
     # Deleting them is a three-step process:
     #
     # 1. Take ownership of all files
-    Invoke-Native "takeown /r /skipsl /f ""$Path"""
+    Invoke-Native "takeown /r /skipsl /f /d y ""$Path"""
 
     # 2. Reset their ACLs so that they inherit from their container
     Invoke-Native "icacls ""$Path"" /reset /t /l /q /c"
