@@ -133,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                 return (false, commandRunStatus.RunCount, TimeSpan.MinValue, TimeSpan.MinValue);
             }
 
-            TimeSpan coolOffPeriod = TimeSpan.FromSeconds(this.coolOffTimeUnit.Seconds * Math.Pow(2, commandRunStatus.RunCount));
+            TimeSpan coolOffPeriod = TimeSpan.FromSeconds(this.coolOffTimeUnit.TotalSeconds * Math.Pow(2, commandRunStatus.RunCount));
             TimeSpan elapsedTime = this.systemTime.UtcNow - commandRunStatus.LastRunTimeUtc;
 
             return (elapsedTime > coolOffPeriod, commandRunStatus.RunCount, coolOffPeriod, elapsedTime);

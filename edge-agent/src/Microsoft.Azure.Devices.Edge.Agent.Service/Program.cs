@@ -25,7 +25,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt")}] Edge Agent Main()");
             try
             {
-                var appSettings = new AgentAppSettings(ConfigFileName);
+                IConfigurationRoot config = new ConfigurationBuilder()
+                    .AddJsonFile(ConfigFileName)
+                    .AddEnvironmentVariables()
+                    .Build();
+                var appSettings = new AgentAppSettings(config);
                 return MainAsync(appSettings).Result;
             }
             catch (Exception ex)

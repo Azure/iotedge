@@ -17,13 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         readonly AppSettings appSettings;
 
-        public AgentAppSettings(string filePath)
+        public AgentAppSettings(IConfigurationRoot config)
         {
-            IConfigurationRoot config = new ConfigurationBuilder()
-                .AddJsonFile(filePath)
-                .AddEnvironmentVariables()
-                .Build();
-
             this.appSettings = config.Get<AppSettings>();
             this.Initialize(config);
             this.Validate();

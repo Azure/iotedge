@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using System.Net;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Extensions.Configuration;
     using Xunit;
 
     public class AgentAppSettingsTest
@@ -36,7 +37,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 File.WriteAllText(testDataFile, appSettingsJson);
 
-                var appSettings = new AgentAppSettings(testDataFile);
+                IConfigurationRoot config = new ConfigurationBuilder()
+                    .AddJsonFile(testDataFile)
+                    .Build();
+                var appSettings = new AgentAppSettings(config);
 
                 Assert.Equal(EdgeRuntimeMode.Docker, appSettings.RuntimeMode);
                 Assert.Equal("Fake-Device-Connection-String", appSettings.DeviceConnectionString);
@@ -80,7 +84,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 File.WriteAllText(testDataFile, appSettingsJson);
 
-                var appSettings = new AgentAppSettings(testDataFile);
+                IConfigurationRoot config = new ConfigurationBuilder()
+                    .AddJsonFile(testDataFile)
+                    .Build();
+                var appSettings = new AgentAppSettings(config);
 
                 Assert.Equal(EdgeRuntimeMode.Docker, appSettings.RuntimeMode);
                 Assert.Equal("Fake-Device-Connection-String", appSettings.DeviceConnectionString);
@@ -118,7 +125,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 try
                 {
-                    var appSettings = new AgentAppSettings(testDataFile);
+                    IConfigurationRoot config = new ConfigurationBuilder()
+                        .AddJsonFile(testDataFile)
+                        .Build();
+                    var appSettings = new AgentAppSettings(config);
                 }
                 catch (ArgumentOutOfRangeException e)
                 {
@@ -159,7 +169,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 try
                 {
-                    var appSettings = new AgentAppSettings(testDataFile);
+                    IConfigurationRoot config = new ConfigurationBuilder()
+                        .AddJsonFile(testDataFile)
+                        .Build();
+                    var appSettings = new AgentAppSettings(config);
                 }
                 catch (ArgumentNullException e)
                 {
@@ -200,7 +213,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 try
                 {
-                    var appSettings = new AgentAppSettings(testDataFile);
+                    IConfigurationRoot config = new ConfigurationBuilder()
+                        .AddJsonFile(testDataFile)
+                        .Build();
+                    var appSettings = new AgentAppSettings(config);
                 }
                 catch (ArgumentException e)
                 {
@@ -242,7 +258,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 try
                 {
-                    var appSettings = new AgentAppSettings(testDataFile);
+                    IConfigurationRoot config = new ConfigurationBuilder()
+                        .AddJsonFile(testDataFile)
+                        .Build();
+                    var appSettings = new AgentAppSettings(config);
                 }
                 catch (ArgumentException e)
                 {
@@ -284,7 +303,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 try
                 {
-                    var appSettings = new AgentAppSettings(testDataFile);
+                    IConfigurationRoot config = new ConfigurationBuilder()
+                        .AddJsonFile(testDataFile)
+                        .Build();
+                    var appSettings = new AgentAppSettings(config);
                 }
                 catch (ArgumentException e)
                 {

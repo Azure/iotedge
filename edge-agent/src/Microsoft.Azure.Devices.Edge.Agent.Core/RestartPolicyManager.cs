@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             modules.Where(module => this.ShouldRestart(module));
 
         internal TimeSpan GetCoolOffPeriod(int restartCount) =>
-            TimeSpan.FromSeconds(Math.Min(this.coolOffTimeUnit.Seconds * Math.Pow(2, restartCount), MaxCoolOffPeriodSecs));
+            TimeSpan.FromSeconds(Math.Min(this.coolOffTimeUnit.TotalSeconds * Math.Pow(2, restartCount), MaxCoolOffPeriodSecs));
 
         bool ShouldRestart(IRuntimeModule module)
         {

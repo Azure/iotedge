@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
+    // TODO: Should refactor further to group related parameters instead of a flat list
     public interface IAgentAppSettings
     {
         string ApiVersion { get; }

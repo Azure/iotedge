@@ -22,8 +22,6 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices" Version="1.17.1" />
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.18.1" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.1.1" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.1.1" />
   </ItemGroup>
 
   <ItemGroup>
