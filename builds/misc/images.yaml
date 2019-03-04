@@ -32,7 +32,7 @@ jobs:
       - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
         displayName: 'Install cross (fork with docker fix)'
 
-      - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin --os Unix --platform x64
+      - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin --os Unix
         name: build
         displayName: Build (release)
 
