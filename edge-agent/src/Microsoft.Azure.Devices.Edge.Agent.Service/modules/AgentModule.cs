@@ -28,34 +28,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<string> workloadApiVersion;
         readonly string moduleId;
         readonly Option<string> moduleGenerationId;
-
-        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, TimeSpan coolOffTimeUnit, bool usePersistentStorage, string storagePath)
-            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnit, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>())
+        
+        public AgentModule(IAgentAppSettings appSettings)
         {
-        }
-
-        public AgentModule(
-            int maxRestartCount,
-            TimeSpan intensiveCareTime,
-            TimeSpan coolOffTimeUnit,
-            bool usePersistentStorage,
-            string storagePath,
-            Option<Uri> workloadUri,
-            Option<string> workloadApiVersion,
-            string moduleId,
-            Option<string> moduleGenerationId)
-        {
-            this.maxRestartCount = maxRestartCount;
-            this.intensiveCareTime = intensiveCareTime;
-            this.coolOffTimeUnit = coolOffTimeUnit;
-            this.usePersistentStorage = usePersistentStorage;
+            this.maxRestartCount = appSettings.MaxRestartCount;
+            this.intensiveCareTime = appSettings.IntensiveCareTime;
+            this.coolOffTimeUnit = appSettings.CoolOffTimeUnit;
+            this.usePersistentStorage = appSettings.UsePersistentStorage;
             this.storagePath = Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
-            this.workloadUri = workloadUri;
-            this.workloadApiVersion = workloadApiVersion;
-            this.moduleId = moduleId;
-            this.moduleGenerationId = moduleGenerationId;
-        }
 
+            switch (appSettings.RuntimeMode)
+            {
+                case EdgeRuntimeMode.Docker:
+                    this.workloadUri = Option.None<Uri>();
+                    this.workloadApiVersion = Option.None<string>();
+                    this.moduleId = Constants.EdgeAgentModuleIdentityName;
+                    this.moduleGenerationId = Option.None<string>();
+                    break;
+
+                case EdgeRuntimeMode.Iotedged:
+                    this.workloadUri = Option.Some(new Uri(appSettings.WorkloadUri));
+                    this.workloadApiVersion = Option.Some(appSettings.ApiVersion);
+                    this.moduleId = appSettings.ModuleId;
+                    this.moduleGenerationId = Option.Some(appSettings.ModuleGenerationId);
+                    break;
+
+                default:
+                    throw new InvalidOperationException($"Runtime mode '{appSettings.RuntimeMode}' not supported.");
+            }
+        }
+        
         static Dictionary<Type, IDictionary<string, Type>> DeploymentConfigTypeMapping
         {
             get

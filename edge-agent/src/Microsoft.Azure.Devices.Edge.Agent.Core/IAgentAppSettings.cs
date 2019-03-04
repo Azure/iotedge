@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
@@ -30,6 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         IDictionary<string, string> DockerLoggingOptions { get; }
 
         IConfigurationSection DockerRegistryAuthConfigSection { get; }
+
+        IEnumerable<AuthConfig> DockerRegistryAuthConfigs { get; }
 
         string DockerUri { get; }
 
@@ -72,6 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         string ModuleId { get; }
 
         string NetworkId { get; }
+
+        string ProductInfo { get; }
 
         string RuntimeLogLevel { get; }
 

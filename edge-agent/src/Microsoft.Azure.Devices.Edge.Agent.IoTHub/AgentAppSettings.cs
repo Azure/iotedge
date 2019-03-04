@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System.Collections.Generic;
     using System.IO;
     using System.Net;
+    using Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -43,6 +44,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         public IDictionary<string, string> DockerLoggingOptions => this.appSettings.DockerLoggingOptions ?? new Dictionary<string, string>();
 
         public IConfigurationSection DockerRegistryAuthConfigSection { get; private set; }
+
+        public IEnumerable<AuthConfig> DockerRegistryAuthConfigs
+        {
+            get
+            {
+                IEnumerable<AuthConfig> dockerAuthConfig;
+
+                try
+                {
+                    dockerAuthConfig = this.DockerRegistryAuthConfigSection.Get<List<AuthConfig>>() ?? new List<AuthConfig>();
+                }
+                catch (Exception ex)
+                {
+                    throw new ApplicationException("Fatal error reading docker registry authorization config in Agent's appSettings.", ex);
+                }
+
+                return dockerAuthConfig;
+            }
+        }
 
         public string DockerUri => this.appSettings.DockerUri;
 
@@ -85,6 +105,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         public string ModuleId => this.appSettings.IoTEdge_ModuleId ?? Constants.EdgeAgentModuleIdentityName;
 
         public string NetworkId => this.appSettings.NetworkId;
+
+        public string ProductInfo => this.VersionInfo != VersionInfo.Empty ? this.VersionInfo.ToString() : null;
 
         public string RuntimeLogLevel => this.appSettings.RuntimeLogLevel ?? "info";
 

@@ -25,12 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt")}] Edge Agent Main()");
             try
             {
-                IConfigurationRoot config = new ConfigurationBuilder()
-                    .AddJsonFile(ConfigFileName)
-                    .AddEnvironmentVariables()
-                    .Build();
-                var appSettings = new AgentAppSettings(config);
-                return MainAsync(appSettings).Result;
+                return MainAsync().Result;
             }
             catch (Exception ex)
             {
@@ -39,8 +34,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
         }
 
-        public static async Task<int> MainAsync(IAgentAppSettings appSettings)
+        public static async Task<int> MainAsync()
         {
+            IConfigurationRoot config = new ConfigurationBuilder()
+                .AddJsonFile(ConfigFileName)
+                .AddEnvironmentVariables()
+                .Build();
+            var appSettings = new AgentAppSettings(config);
+
             ILogger logger = appSettings.Logger;
             logger.LogInformation("Starting module management agent.");
 
@@ -51,36 +52,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             LogLogo(logger);
 
-            IEnumerable<AuthConfig> dockerAuthConfig;
-
-            try
-            {
-                dockerAuthConfig = appSettings.DockerRegistryAuthConfigSection.Get<List<AuthConfig>>() ?? new List<AuthConfig>();
-            }
-            catch (Exception ex)
-            {
-                logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error reading the Agent's appSettings.");
-                return 1;
-            }
-
             IContainer container;
             try
             {
                 var builder = new ContainerBuilder();
                 builder.RegisterModule(new LoggingModule(appSettings.DockerLoggingDriver, appSettings.DockerLoggingOptions));
-                Option<string> productInfo = appSettings.VersionInfo != VersionInfo.Empty ? Option.Some(appSettings.VersionInfo.ToString()) : Option.None<string>();
+                builder.RegisterModule(new AgentModule(appSettings));
 
                 switch (appSettings.RuntimeMode)
                 {
                     case EdgeRuntimeMode.Docker:
-                        var dockerUri = new Uri(appSettings.DockerUri);
-                        builder.RegisterModule(new AgentModule(appSettings.MaxRestartCount, appSettings.IntensiveCareTime, appSettings.CoolOffTimeUnit, appSettings.UsePersistentStorage, appSettings.StoragePath));
-                        builder.RegisterModule(new DockerModule(appSettings.DeviceConnectionString, appSettings.EdgeDeviceHostName, dockerUri, dockerAuthConfig, appSettings.UpstreamProtocol, appSettings.HttpsProxy, productInfo));
+                        builder.RegisterModule(new DockerModule(appSettings));
                         break;
 
                     case EdgeRuntimeMode.Iotedged:
-                        builder.RegisterModule(new AgentModule(appSettings.MaxRestartCount, appSettings.IntensiveCareTime, appSettings.CoolOffTimeUnit, appSettings.UsePersistentStorage, appSettings.StoragePath, Option.Some(new Uri(appSettings.WorkloadUri)), Option.Some(appSettings.ApiVersion), appSettings.ModuleId, Option.Some(appSettings.ModuleGenerationId)));
-                        builder.RegisterModule(new EdgeletModule(appSettings.IoTHubHostName, appSettings.EdgeDeviceHostName, appSettings.DeviceId, new Uri(appSettings.ManagementUri), new Uri(appSettings.WorkloadUri), appSettings.ApiVersion, dockerAuthConfig, appSettings.UpstreamProtocol, appSettings.HttpsProxy, productInfo));
+                        builder.RegisterModule(new EdgeletModule(appSettings));
                         break;
 
                     default:

@@ -35,28 +35,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<IWebProxy> proxy;
         readonly Option<string> productInfo;
 
-        public EdgeletModule(
-            string iotHubHostname,
-            string gatewayHostName,
-            string deviceId,
-            Uri managementUri,
-            Uri workloadUri,
-            string apiVersion,
-            IEnumerable<AuthConfig> dockerAuthConfig,
-            Option<UpstreamProtocol> upstreamProtocol,
-            Option<IWebProxy> proxy,
-            Option<string> productInfo)
+        public EdgeletModule(IAgentAppSettings appSettings)
         {
-            this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
-            this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
-            this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
-            this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
-            this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
-            this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
-            this.upstreamProtocol = upstreamProtocol;
-            this.proxy = proxy;
-            this.productInfo = productInfo;
+            this.iotHubHostName = Preconditions.CheckNonWhiteSpace(appSettings.IoTHubHostName, nameof(appSettings.IoTHubHostName));
+            this.gatewayHostName = Preconditions.CheckNonWhiteSpace(appSettings.EdgeDeviceHostName, nameof(appSettings.EdgeDeviceHostName));
+            this.deviceId = Preconditions.CheckNonWhiteSpace(appSettings.DeviceId, nameof(appSettings.DeviceId));
+            
+            this.managementUri = Preconditions.CheckNotNull(new Uri(appSettings.ManagementUri), nameof(appSettings.ManagementUri));
+            this.workloadUri = Preconditions.CheckNotNull(new Uri(appSettings.WorkloadUri), nameof(appSettings.WorkloadUri));
+            this.apiVersion = Preconditions.CheckNonWhiteSpace(appSettings.ApiVersion, nameof(appSettings.ApiVersion));
+            this.dockerAuthConfig = Preconditions.CheckNotNull(appSettings.DockerRegistryAuthConfigs, nameof(appSettings.DockerRegistryAuthConfigs));
+            this.upstreamProtocol = appSettings.UpstreamProtocol;
+            this.proxy = appSettings.HttpsProxy;
+            this.productInfo = Option.Maybe(appSettings.ProductInfo);
         }
 
         protected override void Load(ContainerBuilder builder)

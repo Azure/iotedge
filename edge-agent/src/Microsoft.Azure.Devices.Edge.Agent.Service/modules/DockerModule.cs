@@ -27,25 +27,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<IWebProxy> proxy;
         readonly Option<string> productInfo;
 
-        public DockerModule(
-            string edgeDeviceConnectionString,
-            string gatewayHostName,
-            Uri dockerHostname,
-            IEnumerable<AuthConfig> dockerAuthConfig,
-            Option<UpstreamProtocol> upstreamProtocol,
-            Option<IWebProxy> proxy,
-            Option<string> productInfo)
+        public DockerModule(IAgentAppSettings appSettings)
         {
-            this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
-            this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
+            this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(appSettings.DeviceConnectionString, nameof(appSettings.DeviceConnectionString));
+            this.gatewayHostName = Preconditions.CheckNonWhiteSpace(appSettings.EdgeDeviceHostName, nameof(appSettings.EdgeDeviceHostName));
             IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(this.edgeDeviceConnectionString);
             this.deviceId = connectionStringParser.DeviceId;
             this.iotHubHostName = connectionStringParser.HostName;
-            this.dockerHostname = Preconditions.CheckNotNull(dockerHostname, nameof(dockerHostname));
-            this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
-            this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
-            this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
-            this.productInfo = productInfo;
+            this.dockerHostname = Preconditions.CheckNotNull(new Uri(appSettings.DockerUri), nameof(appSettings.DockerUri));
+            this.dockerAuthConfig = Preconditions.CheckNotNull(appSettings.DockerRegistryAuthConfigs, nameof(appSettings.DockerRegistryAuthConfigs));
+            this.upstreamProtocol = Preconditions.CheckNotNull(appSettings.UpstreamProtocol, nameof(appSettings.UpstreamProtocol));
+            this.proxy = Preconditions.CheckNotNull(appSettings.HttpsProxy, nameof(appSettings.HttpsProxy));
+            this.productInfo = Option.Maybe(appSettings.ProductInfo);
         }
 
         protected override void Load(ContainerBuilder builder)
