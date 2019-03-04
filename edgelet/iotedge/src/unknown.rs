@@ -2,8 +2,8 @@
 
 use futures::future::{self, FutureResult};
 
-use error::Error;
-use Command;
+use crate::error::Error;
+use crate::Command;
 
 pub struct Unknown {
     command: String,

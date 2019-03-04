@@ -95,7 +95,7 @@ use std::fmt;
 
 use failure::{Context, Fail};
 
-use error::ErrorKind;
+use crate::error::ErrorKind;
 
 /// Exits a function early with an `Error`.
 ///
@@ -443,7 +443,7 @@ mod tests {
     use futures::future;
     use futures::prelude::*;
 
-    use error::{Error, ErrorKind};
+    use crate::error::{Error, ErrorKind};
 
     fn check_value<T, F>(expected: &T, f: F)
     where
@@ -458,7 +458,7 @@ mod tests {
 
     fn check_fvalue<T, F>(expected: &T, f: F)
     where
-        F: Fn() -> Box<Future<Item = T, Error = Error>>,
+        F: Fn() -> Box<dyn Future<Item = T, Error = Error>>,
         T: PartialEq + Debug,
     {
         match f().wait() {
@@ -485,7 +485,7 @@ mod tests {
 
     fn check_ferror<T, V, F>(validator: V, f: F)
     where
-        F: Fn() -> Box<Future<Item = T, Error = Error>>,
+        F: Fn() -> Box<dyn Future<Item = T, Error = Error>>,
         V: Fn(&Error) -> bool,
         T: PartialEq + Debug,
     {
@@ -529,7 +529,7 @@ mod tests {
 
     #[test]
     fn validate_ensure_range() {
-        let validator: Box<Fn(&Error) -> bool> = Box::new(|err| {
+        let validator: Box<dyn Fn(&Error) -> bool> = Box::new(|err| {
             mem::discriminant(err.kind())
                 == mem::discriminant(&ErrorKind::ArgumentOutOfRange(
                     "".to_string(),
@@ -547,7 +547,7 @@ mod tests {
 
     #[test]
     fn validate_fensure_range() {
-        let validator: Box<Fn(&Error) -> bool> = Box::new(|err| {
+        let validator: Box<dyn Fn(&Error) -> bool> = Box::new(|err| {
             mem::discriminant(err.kind())
                 == mem::discriminant(&ErrorKind::ArgumentOutOfRange(
                     "".to_string(),
@@ -571,7 +571,7 @@ mod tests {
 
     #[test]
     fn validate_ensure_greater() {
-        let validator: Box<Fn(&Error) -> bool> = Box::new(|err| {
+        let validator: Box<dyn Fn(&Error) -> bool> = Box::new(|err| {
             mem::discriminant(err.kind())
                 == mem::discriminant(&ErrorKind::ArgumentTooLow("".to_string(), "".to_string()))
         });
@@ -582,7 +582,7 @@ mod tests {
 
     #[test]
     fn validate_fensure_greater() {
-        let validator: Box<Fn(&Error) -> bool> = Box::new(|err| {
+        let validator: Box<dyn Fn(&Error) -> bool> = Box::new(|err| {
             mem::discriminant(err.kind())
                 == mem::discriminant(&ErrorKind::ArgumentTooLow("".to_string(), "".to_string()))
         });
@@ -595,7 +595,7 @@ mod tests {
 
     #[test]
     fn validate_ensure_not_empty() {
-        let validator: Box<Fn(&Error) -> bool> = Box::new(|err| {
+        let validator: Box<dyn Fn(&Error) -> bool> = Box::new(|err| {
             mem::discriminant(err.kind())
                 == mem::discriminant(&ErrorKind::ArgumentEmpty("".to_string()))
         });
@@ -622,7 +622,7 @@ mod tests {
 
     #[test]
     fn validate_fensure_not_empty() {
-        let validator: Box<Fn(&Error) -> bool> = Box::new(|err| {
+        let validator: Box<dyn Fn(&Error) -> bool> = Box::new(|err| {
             mem::discriminant(err.kind())
                 == mem::discriminant(&ErrorKind::ArgumentEmpty("".to_string()))
         });
