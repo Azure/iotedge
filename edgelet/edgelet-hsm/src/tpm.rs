@@ -11,7 +11,7 @@ use edgelet_core::crypto::{
 use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 use hsm::{ManageTpmKeys, SignWithTpm, Tpm, TpmDigest};
 
-pub use error::{Error, ErrorKind};
+pub use crate::error::{Error, ErrorKind};
 
 const ROOT_KEY_NAME: &str = "primary";
 

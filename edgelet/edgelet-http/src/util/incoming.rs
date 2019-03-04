@@ -9,7 +9,7 @@ use tokio_uds::UnixListener;
 #[cfg(windows)]
 use tokio_uds_windows::UnixListener;
 
-use util::{IncomingSocketAddr, StreamSelector};
+use crate::util::{IncomingSocketAddr, StreamSelector};
 
 pub enum Incoming {
     Tcp(TcpListener),

@@ -21,7 +21,7 @@ use tokio_uds::UnixStream;
 #[cfg(windows)]
 use tokio_uds_windows::UnixStream;
 
-use pid::UnixStreamExt;
+use crate::pid::UnixStreamExt;
 
 pub mod connector;
 mod hyperwrap;
@@ -130,7 +130,7 @@ pub enum IncomingSocketAddr {
 }
 
 impl fmt::Display for IncomingSocketAddr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             IncomingSocketAddr::Tcp(ref socket) => socket.fmt(f),
             IncomingSocketAddr::Unix(ref socket) => {

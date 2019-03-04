@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use certificate_properties::CertificateType;
+use crate::certificate_properties::CertificateType;
 
 /// Trait to obtain configuration data needed by any implementation of the workload interface
 /// for module identity and certificate management.
