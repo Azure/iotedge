@@ -51,15 +51,15 @@ print_help_and_exit()
 process_args()
 {
     local save_next_arg=0
-    for arg in "$@"
+    for arg in "$@"; 
     do
         if [ $save_next_arg -eq 1 ]; then
             CONFIGURATION="$arg"
             save_next_arg=0
-        else if [ $save_next_arg -eq 2 ]; then
+        elif [ $save_next_arg -eq 2 ]; then
             DOTNETBUILD_OS="$arg"
             save_next_arg=0
-        else if [ $save_next_arg -eq 3 ]; then
+        elif [ $save_next_arg -eq 3 ]; then
             DOTNETBUILD_PLATFORM="$arg"
             save_next_arg=0
         else
