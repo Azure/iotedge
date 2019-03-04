@@ -213,7 +213,7 @@ build_solution()
     fi
     build_command="$build_command $ROOT_FOLDER/Microsoft.Azure.Devices.Edge.sln"
         
-    eval $build_command
+    eval ${build_command}
     if [ $? -gt 0 ]; then
         RES=1
     fi
