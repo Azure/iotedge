@@ -3,13 +3,6 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
-extern crate base64;
-extern crate bytes;
-extern crate edgelet_core;
-extern crate edgelet_hsm;
-extern crate hmac;
-extern crate sha2;
-
 use std::str;
 
 use hmac::{Hmac, Mac};
