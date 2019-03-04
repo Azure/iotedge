@@ -3,6 +3,7 @@ name = "edgelet-http"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 publish = false
+edition = "2018"
 
 [dependencies]
 bytes = "0.4"

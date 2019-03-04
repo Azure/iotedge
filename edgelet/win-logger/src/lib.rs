@@ -3,7 +3,7 @@
 #![cfg(windows)]
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::stutter, clippy::use_self)]
+#![allow(clippy::module_name_repetitions, clippy::use_self)]
 
 extern crate edgelet_utils;
 extern crate failure;

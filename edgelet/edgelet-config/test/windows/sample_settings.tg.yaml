@@ -2,7 +2,7 @@
 # Configures the provisioning mode
 provisioning:
   source: "manual"
-  device_connection_string: "HostName=something.something.com;DeviceId=something;SharedAccessKey=something"
+  device_connection_string: "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
 
 certificates:
   device_ca_cert: "device_ca_cert.pem"
@@ -30,6 +30,7 @@ connect:
 listen:
   workload_uri: "http://0.0.0.0:8081"
   management_uri: "http://0.0.0.0:8080"
-docker_uri: "http://localhost:2375"
 homedir: "C:\\Temp"
-network: "azure-iot-edge"
+moby_runtime:
+  uri: "npipe://./pipe/iotedge_moby_engine"
+  network: "azure-iot-edge"

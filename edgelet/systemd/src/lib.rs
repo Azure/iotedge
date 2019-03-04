@@ -2,7 +2,7 @@
 
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::stutter, clippy::use_self)]
+#![allow(clippy::module_name_repetitions, clippy::use_self)]
 
 extern crate failure;
 #[cfg(target_os = "linux")]
@@ -33,4 +33,4 @@ pub enum Socket {
 }
 
 #[cfg(target_os = "linux")]
-pub use self::linux::{listener, listener_name, listeners_name};
+pub use self::linux::{listener, listener_name, listeners_name, LISTEN_FDS_START};

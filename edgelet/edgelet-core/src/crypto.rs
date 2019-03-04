@@ -13,8 +13,8 @@ use failure::ResultExt;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
-use certificate_properties::CertificateProperties;
-use error::{Error, ErrorKind};
+use crate::certificate_properties::CertificateProperties;
+use crate::error::{Error, ErrorKind};
 
 /// This is the issuer alias used when `CertificateIssuer::DefaultCa` is provided by the caller
 pub const IOTEDGED_CA_ALIAS: &str = "iotedged-workload-ca";
@@ -26,7 +26,7 @@ pub enum KeyIdentity {
 }
 
 impl fmt::Display for KeyIdentity {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             KeyIdentity::Device => write!(f, "Device"),
             KeyIdentity::Module(m) => write!(f, "Module({})", m),
