@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-extern crate cmake;
 
 use std::env;
 use std::path::Path;
