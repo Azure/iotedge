@@ -14,8 +14,8 @@ use edgelet_http::Error as HttpError;
 use management::models::*;
 
 use super::{spec_to_core, spec_to_details};
-use error::{Error, ErrorKind};
-use IntoResponse;
+use crate::error::{Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct CreateModule<M> {
     runtime: M,
@@ -36,7 +36,7 @@ where
         &self,
         req: Request<Body>,
         _params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let runtime = self.runtime.clone();
         let response =
             req.into_body()
@@ -93,14 +93,17 @@ where
 #[cfg(test)]
 mod tests {
     use chrono::prelude::*;
+    use hyper::Request;
+    use lazy_static::lazy_static;
+    use serde_json::json;
+
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
-    use hyper::Request;
     use management::models::{Config, ErrorResponse};
-    use server::module::tests::Error;
 
     use super::*;
+    use crate::server::module::tests::Error;
 
     lazy_static! {
         static ref RUNTIME: TestRuntime<Error> = {

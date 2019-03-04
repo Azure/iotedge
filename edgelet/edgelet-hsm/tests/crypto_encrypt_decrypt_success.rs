@@ -3,9 +3,6 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
-extern crate edgelet_core;
-extern crate edgelet_hsm;
-
 use edgelet_core::crypto::{Decrypt, Encrypt, MasterEncryptionKey};
 use edgelet_hsm::Crypto;
 
