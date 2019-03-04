@@ -3,7 +3,9 @@
 use std::env;
 use std::io::Write;
 
+#[cfg(target_os = "windows")]
 use clap::crate_name;
+
 use edgelet_utils::log_failure;
 use env_logger;
 use log::{Level, LevelFilter};

@@ -44,7 +44,7 @@ mod imp {
     struct DisplaySignal(i32);
 
     impl fmt::Display for DisplaySignal {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             let s = match self.0 {
                 SIGINT => "SIGINT",
                 SIGTERM => "SIGTERM",
