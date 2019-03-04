@@ -1,7 +1,4 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System;
@@ -11,14 +8,14 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
     public abstract class Source : IDisposable
     {
-        public Router Router { get; }
-
-        protected bool Disposed { get; private set; }
-
         protected Source(Router router)
         {
             this.Router = Preconditions.CheckNotNull(router);
         }
+
+        public Router Router { get; }
+
+        protected bool Disposed { get; private set; }
 
         public abstract Task RunAsync();
 
@@ -36,6 +33,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             {
                 this.Router.Dispose();
             }
+
             this.Disposed = true;
         }
     }

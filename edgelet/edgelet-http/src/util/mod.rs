@@ -5,6 +5,7 @@ use std::io::{self, Read, Write};
 use std::net::SocketAddr;
 #[cfg(unix)]
 use std::os::unix::net::SocketAddr as UnixSocketAddr;
+use std::path::Path;
 
 use bytes::{Buf, BufMut};
 use edgelet_core::pid::Pid;
@@ -20,7 +21,7 @@ use tokio_uds::UnixStream;
 #[cfg(windows)]
 use tokio_uds_windows::UnixStream;
 
-use pid::UnixStreamExt;
+use crate::pid::UnixStreamExt;
 
 pub mod connector;
 mod hyperwrap;
@@ -38,7 +39,7 @@ pub enum StreamSelector {
 }
 
 impl StreamSelector {
-    #[cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
+    #[allow(clippy::match_same_arms)]
     pub fn pid(&self) -> io::Result<Pid> {
         match *self {
             StreamSelector::Tcp(_) => Ok(Pid::Any),
@@ -129,7 +130,7 @@ pub enum IncomingSocketAddr {
 }
 
 impl fmt::Display for IncomingSocketAddr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             IncomingSocketAddr::Tcp(ref socket) => socket.fmt(f),
             IncomingSocketAddr::Unix(ref socket) => {
@@ -140,6 +141,18 @@ impl fmt::Display for IncomingSocketAddr {
                 }
             }
         }
+    }
+}
+
+pub fn socket_file_exists(path: &Path) -> bool {
+    if cfg!(windows) {
+        use std::fs;
+        // Unix domain socket files in Windows are reparse points, so path.exists()
+        // (which calls fs::metadata(path)) won't work. Use fs::symlink_metadata()
+        // instead.
+        fs::symlink_metadata(path).is_ok()
+    } else {
+        path.exists()
     }
 }
 
@@ -189,7 +202,8 @@ mod tests {
                 .and_then(move |(sock, _)| {
                     tx.send(sock.unwrap()).unwrap();
                     Ok(())
-                }).map_err(|e| panic!("err={:?}", e)),
+                })
+                .map_err(|e| panic!("err={:?}", e)),
         );
 
         let a = rt.block_on(UnixStream::connect(&addr)).unwrap();

@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
@@ -14,19 +13,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class EdgeHubCertificates
     {
-
-        public X509Certificate2 ServerCertificate { get; }
-
-        public IList<X509Certificate2> CertificateChain { get; }
-
-        public IList<X509Certificate2> TrustBundle { get; }
-
         EdgeHubCertificates(X509Certificate2 serverCertificate, IList<X509Certificate2> certificateChain, IList<X509Certificate2> trustBundle)
         {
             this.ServerCertificate = Preconditions.CheckNotNull(serverCertificate, nameof(serverCertificate));
             this.CertificateChain = Preconditions.CheckNotNull(certificateChain, nameof(certificateChain));
             this.TrustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
         }
+
+        public X509Certificate2 ServerCertificate { get; }
+
+        public IList<X509Certificate2> CertificateChain { get; }
+
+        public IList<X509Certificate2> TrustBundle { get; }
 
         public static async Task<EdgeHubCertificates> LoadAsync(IConfigurationRoot configuration)
         {
@@ -49,15 +47,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 string edgeHubHostname = configuration.GetValue<string>(Constants.ConfigKey.EdgeDeviceHostName);
                 string moduleId = configuration.GetValue<string>(Constants.ConfigKey.ModuleId);
                 string generationId = configuration.GetValue<string>(Constants.ConfigKey.ModuleGenerationId);
+                string edgeletApiVersion = configuration.GetValue<string>(Constants.ConfigKey.WorkloadAPiVersion);
                 DateTime expiration = DateTime.UtcNow.AddDays(Constants.CertificateValidityDays);
 
-                certificates = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, Constants.WorkloadApiVersion, moduleId, generationId, edgeHubHostname, expiration);
+                certificates = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId, edgeHubHostname, expiration);
                 InstallCertificates(certificates.CertificateChain);
-                IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(workloadUri, Constants.WorkloadApiVersion, moduleId, generationId);
+                IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId);
 
-                result = new EdgeHubCertificates(certificates.ServerCertificate,
-                                                 certificates.CertificateChain?.ToList(),
-                                                 trustBundle?.ToList());
+                result = new EdgeHubCertificates(
+                    certificates.ServerCertificate,
+                    certificates.CertificateChain?.ToList(),
+                    trustBundle?.ToList());
             }
             else if (!string.IsNullOrEmpty(edgeHubDevCertPath) &&
                      !string.IsNullOrEmpty(edgeHubDevPrivateKeyPath) &&
@@ -71,9 +71,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
                 IEnumerable<X509Certificate2> trustBundle = CertificateHelper.ParseTrustedBundleFromFile(edgeHubDevTrustBundlePath);
 
-                result = new EdgeHubCertificates(certificates.ServerCertificate,
-                                                 certificates.CertificateChain?.ToList(),
-                                                 trustBundle?.ToList());
+                result = new EdgeHubCertificates(
+                    certificates.ServerCertificate,
+                    certificates.CertificateChain?.ToList(),
+                    trustBundle?.ToList());
             }
             else if (!string.IsNullOrEmpty(edgeHubDockerCertPFXPath) &&
                      !string.IsNullOrEmpty(edgeHubDockerCaChainCertPath))

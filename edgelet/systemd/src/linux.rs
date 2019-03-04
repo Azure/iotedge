@@ -18,7 +18,8 @@ use nix::unistd::Pid;
 use error::{Error, ErrorKind, SocketLookupType};
 use {Fd, Socket};
 
-const LISTEN_FDS_START: Fd = 3;
+pub const LISTEN_FDS_START: Fd = 3;
+
 const ENV_PID: &str = "LISTEN_PID";
 const ENV_FDS: &str = "LISTEN_FDS";
 const ENV_NAMES: &str = "LISTEN_FDNAMES";
@@ -29,9 +30,10 @@ const ENV_NAMES: &str = "LISTEN_FDNAMES";
 pub fn listener(num: usize) -> Result<Socket, Error> {
     debug!("Finding socket for number: {}", num);
     let sockets = listen_fds(false, LISTEN_FDS_START)?;
-    #[cfg_attr(
-        feature = "cargo-clippy",
-        allow(cast_possible_truncation, cast_possible_wrap, cast_sign_loss)
+    #[allow(
+        clippy::cast_possible_truncation,
+        clippy::cast_possible_wrap,
+        clippy::cast_sign_loss
     )]
     let socket = *sockets.get(num).ok_or_else(|| {
         Error::from(ErrorKind::SocketNotFound(SocketLookupType::Fd(
@@ -116,7 +118,8 @@ fn listen_fds(unset_environment: bool, start_fd: Fd) -> Result<Vec<Socket>, Erro
             } else {
                 Socket::Unknown
             }
-        }).collect();
+        })
+        .collect();
 
     Ok(sockets)
 }
@@ -258,10 +261,8 @@ mod tests {
         env::set_var(ENV_PID, format!("{}", pid));
     }
 
-    fn create_fd(no: i32, family: AddressFamily, type_: SockType) -> Fd {
-        let fd = socket::socket(family, type_, socket::SockFlag::empty(), None).unwrap();
-        assert_eq!(fd, no);
-        fd
+    fn create_fd(family: AddressFamily, type_: SockType) -> Fd {
+        socket::socket(family, type_, socket::SockFlag::empty(), None).unwrap()
     }
 
     fn close_fds<I: IntoIterator<Item = Socket>>(sockets: I) {
@@ -279,10 +280,10 @@ mod tests {
         let _l = lock_env();
         set_current_pid();
         env::set_var(ENV_FDS, "1");
-        create_fd(3, AddressFamily::Unix, SockType::Stream);
-        let fds = listen_fds(true, 3).unwrap();
+        let listen_fds_start = create_fd(AddressFamily::Unix, SockType::Stream);
+        let fds = listen_fds(true, listen_fds_start).unwrap();
         assert_eq!(1, fds.len());
-        assert_eq!(vec![Socket::Unix(3)], fds);
+        assert_eq!(vec![Socket::Unix(listen_fds_start)], fds);
         close_fds(fds);
     }
 
@@ -292,15 +293,19 @@ mod tests {
         set_current_pid();
         env::set_var(ENV_FDS, "2");
         env::set_var(ENV_NAMES, "a:b");
-        create_fd(3, AddressFamily::Inet, SockType::Stream);
-        create_fd(4, AddressFamily::Unix, SockType::Stream);
-        let fds = listen_fds_with_names(true, 3).unwrap();
+        let listen_fds_start = create_fd(AddressFamily::Inet, SockType::Stream);
+        assert_eq!(
+            create_fd(AddressFamily::Unix, SockType::Stream),
+            listen_fds_start + 1
+        );
+        let fds = listen_fds_with_names(true, listen_fds_start).unwrap();
         assert_eq!(2, fds.len());
-        if let Socket::Inet(3, _) = fds["a"][0] {
+        if let Socket::Inet(fd, _) = fds["a"][0] {
+            assert_eq!(fd, listen_fds_start);
         } else {
             panic!("Didn't parse Inet socket");
         }
-        assert_eq!(vec![Socket::Unix(4)], fds["b"]);
+        assert_eq!(vec![Socket::Unix(listen_fds_start + 1)], fds["b"]);
 
         for (_, socks) in fds {
             close_fds(socks);
@@ -309,18 +314,15 @@ mod tests {
 
     #[test]
     fn test_listen_fds_with_missing_env() {
-        let r = {
-            let _l = lock_env();
-            panic::catch_unwind(|| listen_fds_with_names(true, 3).unwrap())
-        };
+        let _l = lock_env();
 
-        match r {
+        match listen_fds_with_names(true, LISTEN_FDS_START) {
             Ok(_) => panic!("expected listen_fds_with_names to panic"),
-            Err(err) => match err.downcast_ref::<String>().map(String::as_str) {
-                Some(s) if s.contains(ENV_NAMES) => (),
-                other => panic!(
-                    "expected listen_fds_with_names to panic with {} but it panicked with {:?}",
-                    ENV_NAMES, other
+            Err(err) => match err.kind() {
+                ErrorKind::InvalidVar(s) if s == ENV_NAMES => (),
+                _ => panic!(
+                    "expected listen_fds_with_names to raise ErrorKind::InvalidVar({}) but it raised {:?}",
+                    ENV_NAMES, err
                 ),
             },
         }

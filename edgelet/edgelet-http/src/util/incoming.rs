@@ -9,7 +9,7 @@ use tokio_uds::UnixListener;
 #[cfg(windows)]
 use tokio_uds_windows::UnixListener;
 
-use util::{IncomingSocketAddr, StreamSelector};
+use crate::util::{IncomingSocketAddr, StreamSelector};
 
 pub enum Incoming {
     Tcp(TcpListener),
@@ -26,7 +26,7 @@ impl Stream for Incoming {
                 let accept = match listener.poll_accept() {
                     Ok(accept) => accept,
                     Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
-                        return Ok(::futures::Async::NotReady)
+                        return Ok(::futures::Async::NotReady);
                     }
                     Err(e) => return Err(e),
                 };
@@ -38,7 +38,7 @@ impl Stream for Incoming {
                 let accept = match listener.poll_accept() {
                     Ok(accept) => accept,
                     Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
-                        return Ok(::futures::Async::NotReady)
+                        return Ok(::futures::Async::NotReady);
                     }
                     Err(e) => return Err(e),
                 };

@@ -1,20 +1,15 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
 {
     using System;
     using System.Collections.Generic;
     using System.Text;
-    //using Microsoft.Azure.Devices.Common.Api;
-    //using Microsoft.Azure.Devices.DeviceManagement.Model;
-    using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Query;
     using Xunit;
 
-    public class BodyQueryTest: RoutingUnitTestBase
+    public class BodyQueryTest : RoutingUnitTestBase
     {
         const string MessageBody =
             @"{
@@ -47,7 +42,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
                }
             }";
 
-        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance,
+        static readonly IMessage Message1 = new Message(
+            TelemetryMessageSource.Instance,
             Encoding.UTF8.GetBytes(MessageBody),
             new Dictionary<string, string>
             {
@@ -60,16 +56,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             {
                 { "State", "CA" },
                 { "$body.message.Weather.Location.State", "CA" },
-                {  SystemProperties.ContentEncoding, "UTF-8" },
-                {  SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
+                { SystemProperties.ContentEncoding, "UTF-8" },
+                { SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
             });
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         // TODO = These tests don't pass at the moment, need to fix them. Might have to look into fixing the grammar.
         // Note - looks like Antlr code has changed internally from the version used in IoTHub codebase
         // which might affect the behavior.
-        //[InlineData("$body.properties,reported")]
-        //[InlineData("$body.properties []")]
+        // [InlineData("$body.properties,reported")]
+        // [InlineData("$body.properties []")]
         [InlineData("$body.properties[]")]
         [InlineData("$body.properties[1:2]")]
         [InlineData("$body;@")]
@@ -79,7 +76,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery));
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("50 >= $body.message.Weather.Temperature")]
         [InlineData("$BODY.message.Weather.Temperature >= 50")]
         [InlineData("$bODy.message.Weather.Temperature <= 50")]
@@ -101,7 +99,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(rule(Message1), Bool.True);
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("10 >= $body.message.Weather.Temperature")]
         [InlineData("$body.message.Weather.Temperature < 50")]
         [InlineData("$body.message.Weather.Temperature = '50'")] // no implicit cross type conversion
@@ -121,7 +120,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(rule(Message1), Bool.False);
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("$body.message.Weather.Temperature <> '100'")]
         [InlineData("$body.message.Weather.Location.City = City")]
         [InlineData("$body.message.Weather.Location.State = $State")]
@@ -133,7 +133,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(rule(Message1), Bool.True);
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("$body.message.Weather.Temperature ='100'")]
         [InlineData("$body.message.Weather.Temperature ='150'")]
         [InlineData("$body.message.Weather.Location.City != City")]
@@ -147,7 +148,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(rule(Message1), Bool.False);
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("$body.message.Weather.IsEnabled")]
         [InlineData("$body.message.Weather.IsEnabled = true")]
         [InlineData("$body.message.Weather.IsDisabled = false")]
@@ -161,7 +163,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(rule(Message1), Bool.True);
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("$body.message.Weather.IsEnabled AND $body.message.Weather.IsEnabled")]
         [InlineData("$body.message.Weather.IsEnabled OR $body.message.Weather.IsDisabled")]
         [InlineData("$body.message.Weather.IsDisabled OR NOT($body.message.Weather.IsDisabled)")]
@@ -172,7 +175,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(rule(Message1), Bool.True);
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("$body")]
         [InlineData("$body.message.Weather.HistoricalData[0].Temperature.InvalidKey")]
         [InlineData("$City <> $body.message.Weather.InvalidKey")]
@@ -183,7 +187,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(rule(Message1), Bool.Undefined);
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("$body.message.Weather.Temperature_PropertyConflict = '100'")]
         [InlineData("as_number($body.message.Weather.Temperature_PropertyConflict) = 100")]
         [InlineData("{$body.message.Weather.Temperature_PropertyConflict} <> 100")]
@@ -198,7 +203,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(result, Bool.True);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void BodyQuery_NotSupported()
         {
             string condition = "$BODY.message.Weather.Temperature >= 50";
@@ -207,7 +213,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route, RouteCompilerFlags.None));
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("$body.message.Weather.Time <> '100'")]
         [InlineData("$body.message.Weather <> null")]
         public void BodyQuery_NotSupportedJTokenTime(string condition)
@@ -219,7 +226,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(result, Bool.Undefined);
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("$body.message.Weather.NullValue = null")]
         [InlineData("$body.message.Temperature = null")]
         [InlineData("$body.message.Weather.Temperature != null")]
@@ -235,7 +243,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(result, Bool.True);
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("abs($body.message.Weather.FreezingTemperature) = 50.4")]
         [InlineData("ceiling(as_number($body.message.Weather.PreciseTemperature)) = 51")]
         [InlineData("concat($body.message.Weather.Location.Street, ', ', $body.message.Weather.Location.City, ', ', $body.message.Weather.Location.State) = 'One Microsoft Way, Redmond, WA'")]
@@ -266,7 +275,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(result, Bool.True);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void DebugBodyQuery()
         {
             string condition = "$BODY.State[0] != '40'";

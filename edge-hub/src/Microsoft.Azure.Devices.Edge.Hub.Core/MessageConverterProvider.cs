@@ -1,11 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-
-using System;
-using System.Collections.Generic;
-using Microsoft.Azure.Devices.Edge.Util;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
+    using System;
+    using System.Collections.Generic;
+    using Microsoft.Azure.Devices.Edge.Util;
+
     public class MessageConverterProvider : IMessageConverterProvider
     {
         readonly IDictionary<Type, IMessageConverter> converters;

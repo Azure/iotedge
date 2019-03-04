@@ -21,16 +21,10 @@ pub struct ClusterInfo {
     #[serde(rename = "Version", skip_serializing_if = "Option::is_none")]
     version: Option<::models::ObjectVersion>,
     /// Date and time at which the swarm was initialised in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format with nano-seconds.
-    #[serde(
-        rename = "CreatedAt",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "CreatedAt", skip_serializing_if = "Option::is_none")]
     created_at: Option<String>,
     /// Date and time at which the swarm was last updated in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format with nano-seconds.
-    #[serde(
-        rename = "UpdatedAt",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "UpdatedAt", skip_serializing_if = "Option::is_none")]
     updated_at: Option<String>,
     #[serde(rename = "Spec", skip_serializing_if = "Option::is_none")]
     spec: Option<::models::SwarmSpec>,

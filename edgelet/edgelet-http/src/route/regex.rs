@@ -9,6 +9,7 @@ use percent_encoding::percent_decode;
 use regex::Regex;
 
 use super::{Builder, Handler, HandlerParamsPair, Recognizer};
+use crate::version::Version;
 
 pub trait IntoCaptures {
     fn into_captures(self) -> Vec<(Option<String>, String)>;
@@ -65,7 +66,8 @@ impl Default for Parameters {
 
 struct RegexRoute {
     pattern: Regex,
-    handler: Box<Handler<Parameters> + Sync>,
+    handler: Box<dyn Handler<Parameters> + Sync>,
+    version: Version,
 }
 
 #[derive(Default)]
@@ -76,7 +78,7 @@ pub struct RegexRoutesBuilder {
 impl Builder for RegexRoutesBuilder {
     type Recognizer = RegexRecognizer;
 
-    fn route<S, H>(mut self, method: Method, pattern: S, handler: H) -> Self
+    fn route<S, H>(mut self, method: Method, version: Version, pattern: S, handler: H) -> Self
     where
         S: AsRef<str>,
         H: Handler<<Self::Recognizer as Recognizer>::Parameters> + Sync,
@@ -87,7 +89,11 @@ impl Builder for RegexRoutesBuilder {
         self.routes
             .entry(method)
             .or_insert_with(Vec::new)
-            .push(RegexRoute { pattern, handler });
+            .push(RegexRoute {
+                pattern,
+                handler,
+                version,
+            });
         self
     }
 
@@ -108,12 +114,15 @@ impl Recognizer for RegexRecognizer {
     fn recognize(
         &self,
         method: &Method,
+        api_version: Version,
         path: &str,
-    ) -> Result<HandlerParamsPair<Self::Parameters>, StatusCode> {
+    ) -> Result<HandlerParamsPair<'_, Self::Parameters>, StatusCode> {
         let routes = self.routes.get(method).ok_or(StatusCode::NOT_FOUND)?;
         for route in routes {
-            if let Some(params) = match_route(&route.pattern, path) {
-                return Ok((&*route.handler, params));
+            if api_version >= route.version {
+                if let Some(params) = match_route(&route.pattern, path) {
+                    return Ok((&*route.handler, params));
+                }
             }
         }
         Err(StatusCode::NOT_FOUND)
@@ -138,12 +147,12 @@ fn match_route(re: &Regex, path: &str) -> Option<Parameters> {
     })
 }
 
-fn normalize_pattern(pattern: &str) -> Cow<str> {
+fn normalize_pattern(pattern: &str) -> Cow<'_, str> {
     let pattern = pattern
         .trim()
-        .trim_left_matches('^')
-        .trim_right_matches('$')
-        .trim_right_matches('/');
+        .trim_start_matches('^')
+        .trim_end_matches('$')
+        .trim_end_matches('/');
     match pattern {
         "" => "^/$".into(),
         s => format!("^{}/?$", s).into(),

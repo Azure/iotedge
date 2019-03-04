@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
     using System;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -11,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     public class SasTokenHelperTest
     {
         [Fact]
-        public void BuildAudienceTest()
+        public void BuildAudienceModuleTest()
         {
             // Arrange
             string iotHubHostName = "testIotHub.azure-devices.net";
@@ -23,6 +21,49 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             // Assert
             Assert.Equal("testIotHub.azure-devices.net%2Fdevices%2Fdevice1%2Fmodules%2Fmodule1", audience);
+        }
+
+        [Fact]
+        public void BuildAudienceDeviceTest()
+        {
+            // Arrange
+            string iotHubHostName = "testIotHub.azure-devices.net";
+            string deviceId = "device1";
+
+            // Act
+            string audience = SasTokenHelper.BuildAudience(iotHubHostName, deviceId);
+
+            // Assert
+            Assert.Equal("testIotHub.azure-devices.net%2Fdevices%2Fdevice1", audience);
+        }
+
+        [Fact]
+        public void BuildAudienceModule_WithSplChars_Test()
+        {
+            // Arrange
+            string iotHubHostName = "testIotHub.azure-devices.net";
+            string deviceId = "n@m.et#st";
+            string moduleId = "$edgeAgent";
+
+            // Act
+            string audience = SasTokenHelper.BuildAudience(iotHubHostName, deviceId, moduleId);
+
+            // Assert
+            Assert.Equal("testIotHub.azure-devices.net%2Fdevices%2Fn%2540m.et%2523st%2Fmodules%2F%2524edgeAgent", audience);
+        }
+
+        [Fact]
+        public void BuildAudienceDevice_WithSplChars_Test()
+        {
+            // Arrange
+            string iotHubHostName = "testIotHub.azure-devices.net";
+            string deviceId = "n@m.et#st";
+
+            // Act
+            string audience = SasTokenHelper.BuildAudience(iotHubHostName, deviceId);
+
+            // Assert
+            Assert.Equal("testIotHub.azure-devices.net%2Fdevices%2Fn%2540m.et%2523st", audience);
         }
 
         [Fact]

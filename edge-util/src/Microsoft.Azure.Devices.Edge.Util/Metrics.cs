@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
@@ -15,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     public static class Metrics
     {
-        private static object gaugeListLock;
+        static readonly object gaugeListLock;
 
         static Metrics()
         {
@@ -24,16 +23,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
             gaugeListLock = new object();
         }
 
-        class NullDisposable : IDisposable
-        {
-            public void Dispose()
-            {
-            }
-        }
+        public static Option<IMetricsRoot> MetricsCollector { get; private set; }
 
-        public static Option<IMetricsRoot> MetricsCollector { private set; get; }
-
-        private static List<Action> Gauges { set; get; }
+        static List<Action> Gauges { get; set; }
 
         public static void BuildMetricsCollector(IConfigurationRoot configuration)
         {
@@ -56,8 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                                 options.InfluxDb.Database = metricsDbName;
                                 options.InfluxDb.CreateDataBaseIfNotExists = true;
                                 options.FlushInterval = TimeSpan.FromSeconds(10);
-                            }
-                        ).Build();
+                            }).Build();
                     MetricsCollector = Option.Some(metricsCollector);
                     StartReporting(metricsCollector);
                 }
@@ -73,8 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                                 options.AppendMetricsToTextFile = appendToMetricsFile;
                                 options.FlushInterval = TimeSpan.FromSeconds(20);
                                 options.OutputPathAndFileName = metricsStoreLocation;
-                            }
-                        ).Build();
+                            }).Build();
                     MetricsCollector = Option.Some(metricsCollector);
                     StartReporting(metricsCollector);
                 }
@@ -89,32 +79,13 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
-        static void StartReporting(IMetricsRoot metricsCollector)
-        {
-            // Start reporting metrics every 5s
-            var scheduler = new AppMetricsTaskScheduler(
-                    TimeSpan.FromSeconds(5),
-                    async () =>
-                    {
-                        foreach (var callback in Gauges)
-                        {
-                            callback();
-                        }
-                        await Task.WhenAll(metricsCollector.ReportRunner.RunAllAsync());
-                    });
-            scheduler.Start();
-        }
-
         public static void CountIncrement(MetricTags tags, CounterOptions options, long amount)
         {
             Preconditions.CheckNotNull(tags);
             Preconditions.CheckNotNull(options);
             Preconditions.CheckNotNull(amount);
 
-            MetricsCollector.ForEach(mroot =>
-            {
-                mroot.Measure.Counter.Increment(options, tags, amount);
-            });
+            MetricsCollector.ForEach(mroot => { mroot.Measure.Counter.Increment(options, tags, amount); });
         }
 
         public static void CountDecrement(MetricTags tags, CounterOptions options, long amount)
@@ -123,10 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(options);
             Preconditions.CheckNotNull(amount);
 
-            MetricsCollector.ForEach(mroot =>
-            {
-                mroot.Measure.Counter.Decrement(options, tags, amount);
-            });
+            MetricsCollector.ForEach(mroot => { mroot.Measure.Counter.Decrement(options, tags, amount); });
         }
 
         public static void CountIncrement(CounterOptions options, long amount)
@@ -134,10 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(options);
             Preconditions.CheckNotNull(amount);
 
-            MetricsCollector.ForEach(mroot =>
-            {
-                mroot.Measure.Counter.Increment(options, amount);
-            });
+            MetricsCollector.ForEach(mroot => { mroot.Measure.Counter.Increment(options, amount); });
         }
 
         public static void CountDecrement(CounterOptions options, long amount)
@@ -145,10 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(options);
             Preconditions.CheckNotNull(amount);
 
-            MetricsCollector.ForEach(mroot =>
-            {
-                mroot.Measure.Counter.Decrement(options, amount);
-            });
+            MetricsCollector.ForEach(mroot => { mroot.Measure.Counter.Decrement(options, amount); });
         }
 
         public static IDisposable Latency(MetricTags tags, TimerOptions options)
@@ -164,10 +126,31 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(options);
             Preconditions.CheckNotNull(amount);
 
-            MetricsCollector.ForEach(mroot =>
+            MetricsCollector.ForEach(mroot => { mroot.Measure.Gauge.SetValue(options, amount); });
+        }
+
+        static void StartReporting(IMetricsRoot metricsCollector)
+        {
+            // Start reporting metrics every 5s
+            var scheduler = new AppMetricsTaskScheduler(
+                TimeSpan.FromSeconds(5),
+                async () =>
+                {
+                    foreach (var callback in Gauges)
+                    {
+                        callback();
+                    }
+
+                    await Task.WhenAll(metricsCollector.ReportRunner.RunAllAsync());
+                });
+            scheduler.Start();
+        }
+
+        class NullDisposable : IDisposable
+        {
+            public void Dispose()
             {
-                mroot.Measure.Gauge.SetValue(options, amount);
-            });
+            }
         }
     }
 }

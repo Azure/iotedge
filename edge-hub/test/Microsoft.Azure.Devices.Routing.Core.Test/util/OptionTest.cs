@@ -3,14 +3,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
 {
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class OptionTest
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestCreate()
         {
             Option<int> some = Option.Some(2);
@@ -20,7 +21,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.False(none.HasValue);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestEquals()
         {
             Option<int> some1 = Option.Some(1);
@@ -45,7 +47,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.Equal(none1, none2);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestHashCode()
         {
             Option<int> some1 = Option.Some(1);
@@ -58,7 +61,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.NotEqual(some1.GetHashCode(), some2.GetHashCode());
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestToString()
         {
             Option<int> some1 = Option.Some(1);
@@ -70,7 +74,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.Equal("None", none.ToString());
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestEnumerable()
         {
             Option<int> some = Option.Some(6);
@@ -81,6 +86,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             {
                 i += value;
             }
+
             Assert.Equal(6, i);
 
             int count = 0;
@@ -89,13 +95,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             {
                 count++;
             }
+
             Assert.Equal(0, count);
 
             Assert.Equal(1, some.ToEnumerable().Count());
             Assert.Equal(0, none.ToEnumerable().Count());
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestContains()
         {
             Option<int> some = Option.Some(3);
@@ -108,7 +116,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.True(some2.Contains(null));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestExists()
         {
             Option<int> some = Option.Some(3);
@@ -119,7 +128,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.False(none.Exists(_ => true));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestGetOrElse()
         {
             Option<int> some = Option.Some(3);
@@ -129,7 +139,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.Equal(2, none.GetOrElse(2));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestElse()
         {
             Option<int> some = Option.Some(3);
@@ -139,7 +150,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.Equal(Option.Some(2), none.Else(Option.Some(2)));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestOrDefault()
         {
             Option<int> some = Option.Some(3);
@@ -151,7 +163,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.Equal(null, none2.OrDefault());
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestMap()
         {
             Option<int> some = Option.Some(3);
@@ -161,7 +174,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.Equal(Option.None<int>(), none.Map(v => v * 2));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestFlatMap()
         {
             Option<int> some = Option.Some(3);
@@ -171,7 +185,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.Equal(Option.None<int>(), none.FlatMap(v => Option.Some(v * 2)));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestFilter()
         {
             Option<int> some = Option.Some(3);
@@ -182,7 +197,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
             Assert.Equal(Option.None<int>(), none.Filter(_ => false));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestForEach()
         {
             Option<int> some = Option.Some(3);

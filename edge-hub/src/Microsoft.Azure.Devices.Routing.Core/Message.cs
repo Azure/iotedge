@@ -1,7 +1,4 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System;
@@ -14,25 +11,11 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Newtonsoft.Json;
-    using SystemPropertiesList = Microsoft.Azure.Devices.Routing.Core.SystemProperties;
+    using SystemPropertiesList = SystemProperties;
 
     public class Message : IMessage
     {
         readonly Lazy<IMessageQueryValueProvider> messageQueryProvider;
-
-        public IMessageSource MessageSource { get; }
-
-        public byte[] Body { get; }
-
-        public IReadOnlyDictionary<string, string> Properties { get; }
-
-        public IReadOnlyDictionary<string, string> SystemProperties { get; }
-
-        public long Offset { get; }
-
-        public DateTime EnqueuedTime { get; }
-
-        public DateTime DequeuedTime { get; }
 
         public Message(IMessageSource messageSource, byte[] body, IDictionary<string, string> properties)
             : this(messageSource, body, properties, new Dictionary<string, string>())
@@ -79,6 +62,20 @@ namespace Microsoft.Azure.Devices.Routing.Core
         {
         }
 
+        public IMessageSource MessageSource { get; }
+
+        public byte[] Body { get; }
+
+        public IReadOnlyDictionary<string, string> Properties { get; }
+
+        public IReadOnlyDictionary<string, string> SystemProperties { get; }
+
+        public long Offset { get; }
+
+        public DateTime EnqueuedTime { get; }
+
+        public DateTime DequeuedTime { get; }
+
         public QueryValue GetQueryValue(string queryString)
         {
             return this.messageQueryProvider.Value.GetQueryValue(queryString);
@@ -97,12 +94,13 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
 
             return this.MessageSource.Equals(other.MessageSource) &&
-                this.Offset == other.Offset &&
-                this.Body.SequenceEqual(other.Body) &&
-                this.Properties.Keys.Count() == other.Properties.Keys.Count() &&
-                this.Properties.Keys.All(key => other.Properties.ContainsKey(key) && Equals(this.Properties[key], other.Properties[key]) &&
-                    this.SystemProperties.Keys.Count() == other.SystemProperties.Keys.Count() &&
-                    this.SystemProperties.Keys.All(skey => other.SystemProperties.ContainsKey(skey) && Equals(this.SystemProperties[skey], other.SystemProperties[skey])));
+                   this.Offset == other.Offset &&
+                   this.Body.SequenceEqual(other.Body) &&
+                   this.Properties.Keys.Count() == other.Properties.Keys.Count() &&
+                   this.Properties.Keys.All(
+                       key => other.Properties.ContainsKey(key) && Equals(this.Properties[key], other.Properties[key]) &&
+                              this.SystemProperties.Keys.Count() == other.SystemProperties.Keys.Count() &&
+                              this.SystemProperties.Keys.All(skey => other.SystemProperties.ContainsKey(skey) && Equals(this.SystemProperties[skey], other.SystemProperties[skey])));
         }
 
         public override bool Equals(object obj)
@@ -134,6 +132,15 @@ namespace Microsoft.Azure.Devices.Routing.Core
             GC.SuppressFinalize(this);
         }
 
+        public long Size()
+        {
+            long size = 0L;
+            size += this.Properties.Aggregate(0, (acc, pair) => (acc + pair.Key.Length + pair.Value.Length));
+            size += this.SystemProperties.Aggregate(0, (acc, pair) => (acc + pair.Key.Length + pair.Value.Length));
+            size += this.Body.Length;
+            return size;
+        }
+
         protected virtual void Dispose(bool disposing)
         {
         }
@@ -163,20 +170,14 @@ namespace Microsoft.Azure.Devices.Routing.Core
                     return encoding;
                 }
 
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture,
-                    "Content encoding '{0}' is not supported.", encodingPropertyValue));
+                throw new InvalidOperationException(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "Content encoding '{0}' is not supported.",
+                        encodingPropertyValue));
             }
 
             throw new InvalidOperationException("Content encoding is not specified in system properties.");
-        }
-
-        public long Size()
-        {
-            long size = 0L;
-            size += this.Properties.Aggregate(0, (acc, pair) => (acc + pair.Key.Length + pair.Value.Length));
-            size += this.SystemProperties.Aggregate(0, (acc, pair) => (acc + pair.Key.Length + pair.Value.Length));
-            size += this.Body.Length;
-            return size;
         }
     }
 }

@@ -1,28 +1,25 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::similar_names)]
 
 #[macro_use]
 extern crate clap;
 extern crate edgelet_core;
 extern crate edgelet_http_mgmt;
 extern crate failure;
+extern crate futures;
 extern crate iotedge;
 extern crate tokio;
 extern crate url;
 
 use std::io;
-use std::io::Write;
 use std::process;
 
 use clap::{App, AppSettings, Arg, SubCommand};
 use failure::{Fail, ResultExt};
+use futures::Future;
 use url::Url;
 
 use edgelet_core::{LogOptions, LogTail};
@@ -37,16 +34,16 @@ const MGMT_URI: &str = "unix:///C:/ProgramData/iotedge/mgmt/sock";
 
 fn main() {
     if let Err(ref error) = run() {
-        let stderr = &mut io::stderr();
-        let errmsg = "Error writing to stderr";
-
         let mut fail: &Fail = error;
-        writeln!(stderr, "{}", error.to_string()).unwrap_or_else(|_| panic!(errmsg));
-        while let Some(cause) = fail.cause() {
-            writeln!(stderr, "\tcaused by: {}", cause.to_string())
-                .unwrap_or_else(|_| panic!(errmsg));
-            fail = cause;
+
+        eprintln!("{}", error.to_string());
+
+        for cause in fail.iter_causes() {
+            eprintln!("\tcaused by: {}", cause);
         }
+
+        eprintln!();
+
         process::exit(1);
     }
 }
@@ -68,7 +65,47 @@ fn run() -> Result<(), Error> {
                 .global(true)
                 .env("IOTEDGE_HOST")
                 .default_value(default_uri),
-        ).subcommand(SubCommand::with_name("list").about("List modules"))
+        )
+        .subcommand(
+            SubCommand::with_name("check")
+                .about("Check for common config and deployment issues")
+                .arg(
+                    Arg::with_name("config-file")
+                        .short("c")
+                        .long("config-file")
+                        .value_name("FILE")
+                        .help("Sets daemon configuration file")
+                        .takes_value(true)
+                        .default_value(
+                            if cfg!(windows) { r"C:\ProgramData\iotedge\config.yaml" } else { "/etc/iotedge/config.yaml" }
+                        ),
+                )
+                .arg(
+                    Arg::with_name("iotedged")
+                        .long("iotedged")
+                        .value_name("PATH_TO_IOTEDGED")
+                        .help("Sets the path of the iotedged binary.")
+                        .takes_value(true)
+                        .default_value(
+                            if cfg!(windows) { r"C:\Program Files\iotedge\iotedged.exe" } else { "/usr/bin/iotedged" }
+                        ),
+                )
+                .arg(
+                    Arg::with_name("ntp-server")
+                        .long("ntp-server")
+                        .value_name("NTP_SERVER")
+                        .help("Sets the NTP server to use when checking host local time.")
+                        .takes_value(true)
+                        .default_value("pool.ntp.org:123"),
+                )
+                .arg(
+                    Arg::with_name("steps")
+                        .help("Run specific steps instead of all steps. One or more of `config`, `deps`, `conn`")
+                        .multiple(true)
+                        .takes_value(true),
+                ),
+        )
+        .subcommand(SubCommand::with_name("list").about("List modules"))
         .subcommand(
             SubCommand::with_name("restart")
                 .about("Restart a module")
@@ -78,7 +115,8 @@ fn run() -> Result<(), Error> {
                         .required(true)
                         .index(1),
                 ),
-        ).subcommand(
+        )
+        .subcommand(
             SubCommand::with_name("logs")
                 .about("Fetch the logs of a module")
                 .arg(
@@ -86,20 +124,23 @@ fn run() -> Result<(), Error> {
                         .help("Sets the module identity to get logs")
                         .required(true)
                         .index(1),
-                ).arg(
+                )
+                .arg(
                     Arg::with_name("tail")
                         .help("Number of lines to show from the end of the log")
                         .long("tail")
                         .takes_value(true)
                         .value_name("NUM")
                         .default_value("all"),
-                ).arg(
+                )
+                .arg(
                     Arg::with_name("follow")
                         .help("Follow output log")
                         .short("f")
                         .long("follow"),
                 ),
-        ).subcommand(SubCommand::with_name("version").about("Show the version information"))
+        )
+        .subcommand(SubCommand::with_name("version").about("Show the version information"))
         .get_matches();
 
     let url = matches.value_of("host").map_or_else(
@@ -115,13 +156,32 @@ fn run() -> Result<(), Error> {
     let mut tokio_runtime = tokio::runtime::Runtime::new().context(ErrorKind::InitializeTokio)?;
 
     match matches.subcommand() {
+        ("check", Some(args)) => tokio_runtime.block_on(
+            Check::new(
+                args.value_of_os("config-file")
+                    .expect("arg has a default value")
+                    .to_os_string()
+                    .into(),
+                args.value_of_os("iotedged")
+                    .expect("arg has a default value")
+                    .to_os_string()
+                    .into(),
+                args.value_of("ntp-server")
+                    .expect("arg has a default value")
+                    .to_string(),
+                args.values_of("steps")
+                    .map(|values| values.map(ToOwned::to_owned).collect()),
+            )
+            .and_then(|mut check| check.execute()),
+        ),
         ("list", Some(_args)) => tokio_runtime.block_on(List::new(runtime, io::stdout()).execute()),
         ("restart", Some(args)) => tokio_runtime.block_on(
             Restart::new(
                 args.value_of("MODULE").unwrap().to_string(),
                 runtime,
                 io::stdout(),
-            ).execute(),
+            )
+            .execute(),
         ),
         ("logs", Some(args)) => {
             let id = args.value_of("MODULE").unwrap().to_string();

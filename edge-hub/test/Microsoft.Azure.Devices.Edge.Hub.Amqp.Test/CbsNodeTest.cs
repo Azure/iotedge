@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             };
             AmqpMessage invalidAmqpMessage2 = AmqpMessage.Create(amqpValue);
             invalidAmqpMessage2.ApplicationProperties.Map[CbsConstants.PutToken.Type] = "azure-devices.net:sastoken";
-            invalidAmqpMessage2.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = "";
+            invalidAmqpMessage2.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = string.Empty;
             invalidAmqpMessage2.ApplicationProperties.Map[CbsConstants.Operation] = CbsConstants.PutToken.OperationValue;
             // Act/Assert
             Assert.Throws<InvalidOperationException>(() => CbsNode.ValidateAndParseMessage(IoTHubHostName, invalidAmqpMessage2));
@@ -124,6 +124,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             audience = "edgehubtest1.azure-devices.net/device/device1/module/mod1";
             // Act/Assert
             Assert.Throws<InvalidOperationException>(() => CbsNode.ParseIds(audience));
+
+            // Arrange
+            audience = "edgehubtest1.azure-devices.net/devices/d%40n.f/modules/m%40n.p";
+            // Act
+            (deviceId, moduleId) = CbsNode.ParseIds(audience);
+            // Assert
+            Assert.Equal("d@n.f", deviceId);
+            Assert.Equal("m@n.p", moduleId);
         }
 
         [Fact]
@@ -182,105 +190,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             // Act
             (AmqpResponseStatusCode statusCode, string description) = await cbsNode.UpdateCbsToken(validAmqpMessage);
-
-            AmqpAuthentication amqpAuthentication = await cbsNode.GetAmqpAuthentication();
+            bool isAuthenticated = await cbsNode.AuthenticateAsync(identity.Id);
 
             // Assert
-            Assert.Equal(true, amqpAuthentication.IsAuthenticated);
-            Assert.True(amqpAuthentication.ClientCredentials.HasValue);
-            Assert.Equal(identity, amqpAuthentication.ClientCredentials.OrDefault().Identity);
+            Assert.True(isAuthenticated);
             Assert.Equal(AmqpResponseStatusCode.OK, statusCode);
             Assert.Equal(AmqpResponseStatusCode.OK.ToString(), description);
-        }
-
-        [Fact]
-        public async Task HandleMultipleTokensTest()
-        {
-            // Arrange
-            string iotHubHostName = "edgehubtest1.azure-devices.net";
-
-            var amqpValue1 = new AmqpValue
-            {
-                Value = TokenHelper.CreateSasToken("edgehubtest1.azure-devices.net/devices/device1/modules/mod1")
-            };
-            AmqpMessage validAmqpMessage1 = AmqpMessage.Create(amqpValue1);
-            validAmqpMessage1.ApplicationProperties.Map[CbsConstants.PutToken.Type] = "azure-devices.net:sastoken";
-            validAmqpMessage1.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = "iothub";
-            validAmqpMessage1.ApplicationProperties.Map[CbsConstants.Operation] = CbsConstants.PutToken.OperationValue;
-
-            var identity1 = Mock.Of<IIdentity>(i => i.Id == "device1/mod1");
-            var clientCredentials1 = Mock.Of<IClientCredentials>(c => c.Identity == identity1);
-            var clientCredentialsFactory = new Mock<IClientCredentialsFactory>();
-            clientCredentialsFactory.Setup(i => i.GetWithSasToken("device1", "mod1", It.IsAny<string>(), It.IsAny<string>(), true))
-                .Returns(clientCredentials1);
-
-            var amqpValue2 = new AmqpValue
-            {
-                Value = TokenHelper.CreateSasToken("edgehubtest1.azure-devices.net/devices/device1/modules/mod2")
-            };
-            AmqpMessage validAmqpMessage2 = AmqpMessage.Create(amqpValue2);
-            validAmqpMessage2.ApplicationProperties.Map[CbsConstants.PutToken.Type] = "azure-devices.net:sastoken";
-            validAmqpMessage2.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = "iothub";
-            validAmqpMessage2.ApplicationProperties.Map[CbsConstants.Operation] = CbsConstants.PutToken.OperationValue;
-
-            var identity2 = Mock.Of<IIdentity>(i => i.Id == "device1/mod2");
-            var clientCredentials2 = Mock.Of<IClientCredentials>(c => c.Identity == identity2);
-            clientCredentialsFactory.Setup(i => i.GetWithSasToken("device1", "mod2", It.IsAny<string>(), It.IsAny<string>(), true))
-                .Returns(clientCredentials2);
-
-            var authenticator = new Mock<IAuthenticator>();
-            authenticator.Setup(a => a.AuthenticateAsync(clientCredentials1)).ReturnsAsync(true);
-            authenticator.Setup(a => a.AuthenticateAsync(clientCredentials2)).ReturnsAsync(true);
-            var cbsNode = new CbsNode(clientCredentialsFactory.Object, iotHubHostName, authenticator.Object, new NullCredentialsCache());
-
-            // Act
-            (AmqpResponseStatusCode statusCode1, string description1) = await cbsNode.UpdateCbsToken(validAmqpMessage1);                        
-
-            // Assert
-            Assert.Equal(AmqpResponseStatusCode.OK, statusCode1);
-            Assert.Equal(AmqpResponseStatusCode.OK.ToString(), description1);
-
-            // Act
-            (AmqpResponseStatusCode statusCode2, string description2) = await cbsNode.UpdateCbsToken(validAmqpMessage2);
-
-            // Assert
-            Assert.Equal(AmqpResponseStatusCode.OK, statusCode2);
-            Assert.Equal(AmqpResponseStatusCode.OK.ToString(), description2);
-
-            // Act
-            bool isAuthenticated = await cbsNode.AuthenticateAsync("device1/mod1");
-
-            // Assert
-            Assert.True(isAuthenticated);
-            authenticator.Verify(a => a.AuthenticateAsync(clientCredentials1), Times.Once);
-
-            // Act
-            isAuthenticated = await cbsNode.AuthenticateAsync("device1/mod1");
-
-            // Assert
-            Assert.True(isAuthenticated);
-            authenticator.Verify(a => a.AuthenticateAsync(clientCredentials1), Times.Once);
-
-            // Act
-            isAuthenticated = await cbsNode.AuthenticateAsync("device1/mod2");
-
-            // Assert
-            Assert.True(isAuthenticated);
-            authenticator.Verify(a => a.AuthenticateAsync(clientCredentials2), Times.Once);
-
-            // Act
-            isAuthenticated = await cbsNode.AuthenticateAsync("device1/mod2");
-
-            // Assert
-            Assert.True(isAuthenticated);
-            authenticator.Verify(a => a.AuthenticateAsync(clientCredentials2), Times.Once);
-            authenticator.Verify(a => a.AuthenticateAsync(clientCredentials1), Times.Once);
-
-            // Act
-            isAuthenticated = await cbsNode.AuthenticateAsync("device1/mod3");
-
-            // Assert
-            Assert.False(isAuthenticated);
         }
     }
 }

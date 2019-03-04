@@ -1,24 +1,9 @@
-//Copyright(c) Microsoft.All rights reserved.
-//Microsoft would like to thank its contributors, a list
-//of whom are at http://aka.ms/entlib-contributors
-
-//Licensed under the Apache License, Version 2.0 (the "License"); you
-//may not use this file except in compliance with the License. You may
-//obtain a copy of the License at
-
-//http://www.apache.org/licenses/LICENSE-2.0
-
-//Unless required by applicable law or agreed to in writing, software
-//distributed under the License is distributed on an "AS IS" BASIS,
-//WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-//implied. See the License for the specific language governing permissions
-//and limitations under the License.
-
-using System;
-using System.Globalization;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 {
+    using System;
+    using System.Globalization;
+
     /// <summary>
     /// Implements the common guard methods.
     /// </summary>
@@ -35,11 +20,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
             ArgumentNotNull(argumentValue, argumentName);
             if (argumentValue.Length == 0)
             {
-                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, "String {0} cannot be empty", new object[]
-                {
-                    argumentName
-                }));
+                throw new ArgumentException(
+                    string.Format(
+                        CultureInfo.CurrentCulture,
+                        "String {0} cannot be empty",
+                        new object[]
+                        {
+                            argumentName
+                        }));
             }
+
             return true;
         }
 
@@ -55,6 +45,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
             {
                 throw new ArgumentNullException(argumentName);
             }
+
             return true;
         }
 
@@ -67,10 +58,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         {
             if (argumentValue < 0)
             {
-                throw new ArgumentOutOfRangeException(argumentName, argumentValue, string.Format(CultureInfo.CurrentCulture, "Argument {0} cannot be negative", new object[]
-                {
-                    argumentName
-                }));
+                throw new ArgumentOutOfRangeException(
+                    argumentName,
+                    argumentValue,
+                    string.Format(
+                        CultureInfo.CurrentCulture,
+                        "Argument {0} cannot be negative",
+                        new object[]
+                        {
+                            argumentName
+                        }));
             }
         }
 
@@ -83,10 +80,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         {
             if (argumentValue < 0L)
             {
-                throw new ArgumentOutOfRangeException(argumentName, argumentValue, string.Format(CultureInfo.CurrentCulture, "Argument {0} cannot be negative", new object[]
-                {
-                    argumentName
-                }));
+                throw new ArgumentOutOfRangeException(
+                    argumentName,
+                    argumentValue,
+                    string.Format(
+                        CultureInfo.CurrentCulture,
+                        "Argument {0} cannot be negative",
+                        new object[]
+                        {
+                            argumentName
+                        }));
             }
         }
 
@@ -100,11 +103,17 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         {
             if (argumentValue > ceilingValue)
             {
-                throw new ArgumentOutOfRangeException(argumentName, argumentValue, string.Format(CultureInfo.CurrentCulture, "Argument {0} cannot be greater than baseline value {1}", new object[]
-                {
+                throw new ArgumentOutOfRangeException(
                     argumentName,
-                    ceilingValue
-                }));
+                    argumentValue,
+                    string.Format(
+                        CultureInfo.CurrentCulture,
+                        "Argument {0} cannot be greater than baseline value {1}",
+                        new object[]
+                        {
+                            argumentName,
+                            ceilingValue
+                        }));
             }
         }
     }

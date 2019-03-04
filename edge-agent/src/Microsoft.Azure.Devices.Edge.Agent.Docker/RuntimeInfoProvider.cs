@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System;
@@ -13,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using CoreConstants = Core.Constants;
+    using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
 
     public class RuntimeInfoProvider : IRuntimeInfoProvider
     {
@@ -36,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.version = string.IsNullOrWhiteSpace(version) ? CoreConstants.Unknown : version;
         }
 
-        public async static Task<RuntimeInfoProvider> CreateAsync(IDockerClient client)
+        public static async Task<RuntimeInfoProvider> CreateAsync(IDockerClient client)
         {
             Preconditions.CheckNotNull(client, nameof(client));
 
@@ -65,18 +64,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             return modules;
         }
 
-        async Task<Option<ContainerInspectResponse>> GetEdgeAgentContainerAsync()
+        public Task<SystemInfo> GetSystemInfo() => Task.FromResult(new SystemInfo(this.operatingSystemType, this.architecture, this.version));
+
+        internal static ModuleRuntimeInfo InspectResponseToModule(ContainerInspectResponse inspectResponse)
         {
-            try
-            {
-                ContainerInspectResponse response = await this.client.Containers.InspectContainerAsync(CoreConstants.EdgeAgentModuleName);
-                return Option.Some(response);
-            }
-            catch (DockerContainerNotFoundException ex)
-            {
-                Events.EdgeAgentContainerNotFound(ex);
-                return Option.None<ContainerInspectResponse>();
-            }
+            // Get the following runtime state:
+            //  - name
+            //  - exit code
+            //  - exit status description
+            //  - last start time
+            //  - last exit time
+            //  - image hash
+            (
+                string name,
+                int exitCode,
+                string statusDescription,
+                DateTime lastStartTime,
+                DateTime lastExitTime,
+                string imageHash,
+                string image
+            ) = ExtractModuleRuntimeState(inspectResponse);
+
+            // Figure out module stats and runtime status
+            ModuleStatus runtimeStatus = ToRuntimeStatus(inspectResponse.State);
+
+            var reportedConfig = new DockerReportedConfig(image, string.Empty, imageHash);
+            var moduleRuntimeInfo = new ModuleRuntimeInfo<DockerReportedConfig>(name, "docker", runtimeStatus, statusDescription, exitCode, Option.Some(lastStartTime), Option.Some(lastExitTime), reportedConfig);
+            return moduleRuntimeInfo;
         }
 
         static (
@@ -85,9 +99,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             string statusDescription,
             DateTime lastStartTime,
             DateTime lastExitTime,
-            string imageHash
-        )
-        ExtractModuleRuntimeState(ContainerInspectResponse inspected)
+            string imageHash,
+            string image
+            )
+            ExtractModuleRuntimeState(ContainerInspectResponse inspected)
         {
             string name = inspected.Name?.Substring(1) ?? CoreConstants.Unknown;
             int exitCode = (inspected?.State != null) ? (int)inspected.State.ExitCode : 0;
@@ -108,35 +123,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 lastExitTime = DateTime.Parse(lastExitTimeStr, null, DateTimeStyles.RoundtripKind);
             }
 
-            return (name, exitCode, statusDescription, lastStartTime, lastExitTime, inspected?.Image);
-        }
+            string image = inspected.Config.Image;
+            string hash = inspected?.Image;
 
-        internal static ModuleRuntimeInfo InspectResponseToModule(ContainerInspectResponse inspectResponse)
-        {
-            // Get the following runtime state:
-            //  - name
-            //  - exit code
-            //  - exit status description
-            //  - last start time
-            //  - last exit time
-            //  - image hash
-            (
-            string name,
-            int exitCode,
-            string statusDescription,
-            DateTime lastStartTime,
-            DateTime lastExitTime,
-            string imageHash
-            ) = ExtractModuleRuntimeState(inspectResponse);
-
-            var dockerConfig = new DockerReportedConfig(string.Empty, string.Empty, imageHash);
-
-            // Figure out module stats and runtime status
-            ModuleStatus runtimeStatus = ToRuntimeStatus(inspectResponse.State);
-
-            var reportedConfig = new DockerReportedConfig(string.Empty, string.Empty, imageHash);
-            var moduleRuntimeInfo = new ModuleRuntimeInfo<DockerReportedConfig>(name, "docker", runtimeStatus, statusDescription, exitCode, Option.Some(lastStartTime), Option.Some(lastExitTime), reportedConfig);
-            return moduleRuntimeInfo;
+            return (name, exitCode, statusDescription, lastStartTime, lastExitTime, hash, image);
         }
 
         static ModuleStatus ToRuntimeStatus(ContainerState containerState)
@@ -173,12 +163,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             return status;
         }
 
-        public Task<SystemInfo> GetSystemInfo() => Task.FromResult(new SystemInfo(this.operatingSystemType, this.architecture, this.version));
+        async Task<Option<ContainerInspectResponse>> GetEdgeAgentContainerAsync()
+        {
+            try
+            {
+                ContainerInspectResponse response = await this.client.Containers.InspectContainerAsync(CoreConstants.EdgeAgentModuleName);
+                return Option.Some(response);
+            }
+            catch (DockerContainerNotFoundException ex)
+            {
+                Events.EdgeAgentContainerNotFound(ex);
+                return Option.None<ContainerInspectResponse>();
+            }
+        }
 
         static class Events
         {
-            static readonly ILogger Log = Util.Logger.Factory.CreateLogger<RuntimeInfoProvider>();
             const int IdStart = AgentEventIds.DockerEnvironment;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<RuntimeInfoProvider>();
             static bool edgeAgentContainerNotFoundReported;
 
             enum EventIds

@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -16,16 +17,32 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
         }
 
-        public async Task Put(TK key, TV value)
+        public Task Put(TK key, TV value) => this.Put(key, value, CancellationToken.None);
+
+        public Task<Option<TV>> Get(TK key) => this.Get(key, CancellationToken.None);
+
+        public Task Remove(TK key) => this.Remove(key, CancellationToken.None);
+
+        public Task<bool> Contains(TK key) => this.Contains(key, CancellationToken.None);
+
+        public Task<Option<(TK key, TV value)>> GetFirstEntry() => this.GetFirstEntry(CancellationToken.None);
+
+        public Task<Option<(TK key, TV value)>> GetLastEntry() => this.GetLastEntry(CancellationToken.None);
+
+        public Task IterateBatch(int batchSize, Func<TK, TV, Task> perEntityCallback) => this.IterateBatch(batchSize, perEntityCallback, CancellationToken.None);
+
+        public Task IterateBatch(TK startKey, int batchSize, Func<TK, TV, Task> perEntityCallback) => this.IterateBatch(startKey, batchSize, perEntityCallback, CancellationToken.None);
+
+        public async Task Put(TK key, TV value, CancellationToken cancellationToken)
         {
             string valueString = value.ToJson();
             string encryptedString = await this.encryptionProvider.EncryptAsync(valueString);
-            await this.entityStore.Put(key, encryptedString);
+            await this.entityStore.Put(key, encryptedString, cancellationToken);
         }
 
-        public async Task<Option<TV>> Get(TK key)
+        public async Task<Option<TV>> Get(TK key, CancellationToken cancellationToken)
         {
-            Option<string> encryptedValue = await this.entityStore.Get(key);
+            Option<string> encryptedValue = await this.entityStore.Get(key, cancellationToken);
             return await encryptedValue.Map(
                     async e =>
                     {
@@ -35,13 +52,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 .GetOrElse(() => Task.FromResult(Option.None<TV>()));
         }
 
-        public Task Remove(TK key) => this.entityStore.Remove(key);
+        public Task Remove(TK key, CancellationToken cancellationToken) => this.entityStore.Remove(key, cancellationToken);
 
-        public Task<bool> Contains(TK key) => this.entityStore.Contains(key);
+        public Task<bool> Contains(TK key, CancellationToken cancellationToken) => this.entityStore.Contains(key, cancellationToken);
 
-        public async Task<Option<(TK key, TV value)>> GetFirstEntry()
+        public async Task<Option<(TK key, TV value)>> GetFirstEntry(CancellationToken cancellationToken)
         {
-            Option<(TK key, string value)> encryptedValue = await this.entityStore.GetFirstEntry();
+            Option<(TK key, string value)> encryptedValue = await this.entityStore.GetFirstEntry(cancellationToken);
             return await encryptedValue.Map(
                     async e =>
                     {
@@ -51,9 +68,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 .GetOrElse(() => Task.FromResult(Option.None<(TK key, TV value)>()));
         }
 
-        public async Task<Option<(TK key, TV value)>> GetLastEntry()
+        public async Task<Option<(TK key, TV value)>> GetLastEntry(CancellationToken cancellationToken)
         {
-            Option<(TK key, string value)> encryptedValue = await this.entityStore.GetLastEntry();
+            Option<(TK key, string value)> encryptedValue = await this.entityStore.GetLastEntry(cancellationToken);
             return await encryptedValue.Map(
                     async e =>
                     {
@@ -63,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 .GetOrElse(() => Task.FromResult(Option.None<(TK key, TV value)>()));
         }
 
-        public Task IterateBatch(int batchSize, Func<TK, TV, Task> perEntityCallback)
+        public Task IterateBatch(int batchSize, Func<TK, TV, Task> perEntityCallback, CancellationToken cancellationToken)
         {
             return this.entityStore.IterateBatch(
                 batchSize,
@@ -72,10 +89,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     string decryptedValue = await this.encryptionProvider.DecryptAsync(stringValue);
                     var value = decryptedValue.FromJson<TV>();
                     await perEntityCallback(key, value);
-                });
+                },
+                cancellationToken);
         }
 
-        public Task IterateBatch(TK startKey, int batchSize, Func<TK, TV, Task> perEntityCallback)
+        public Task IterateBatch(TK startKey, int batchSize, Func<TK, TV, Task> perEntityCallback, CancellationToken cancellationToken)
         {
             return this.entityStore.IterateBatch(
                 startKey,
@@ -85,7 +103,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     string decryptedValue = await this.encryptionProvider.DecryptAsync(stringValue);
                     var value = decryptedValue.FromJson<TV>();
                     await perEntityCallback(key, value);
-                });
+                },
+                cancellationToken);
+        }
+
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         protected virtual void Dispose(bool disposing)
@@ -94,12 +119,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             {
                 this.entityStore?.Dispose();
             }
-        }
-
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
         }
     }
 }

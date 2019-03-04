@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
@@ -11,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
+    using Constants = Microsoft.Azure.Devices.Edge.Hub.Amqp.Constants;
 
     [Unit]
     public class AmqpMessageConverterTest
@@ -118,15 +118,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 amqpMessage.Properties.UserId = new ArraySegment<byte>(Encoding.UTF8.GetBytes(userId));
                 amqpMessage.Properties.AbsoluteExpiryTime = expiryTime;
 
-                amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsEnqueuedTimeKey] = enqueuedTime;
-                amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsDeliveryCountKey] = deliveryCount;
-                amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsLockTokenName] = lockToken;
-                amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsSequenceNumberName] = sequenceNumber;
+                amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsEnqueuedTimeKey] = enqueuedTime;
+                amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsDeliveryCountKey] = deliveryCount;
+                amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsLockTokenName] = lockToken;
+                amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsSequenceNumberName] = sequenceNumber;
 
-                amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesMessageSchemaKey] = messageSchema;
-                amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesCreationTimeKey] = creationTime;
-                amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesOperationKey] = operation;
-                amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesOutputNameKey] = outputName;
+                amqpMessage.ApplicationProperties.Map[Constants.MessagePropertiesMessageSchemaKey] = messageSchema;
+                amqpMessage.ApplicationProperties.Map[Constants.MessagePropertiesCreationTimeKey] = creationTime;
+                amqpMessage.ApplicationProperties.Map[Constants.MessagePropertiesOperationKey] = operation;
+                amqpMessage.ApplicationProperties.Map[Constants.MessagePropertiesOutputNameKey] = outputName;
 
                 amqpMessage.ApplicationProperties.Map["Prop1"] = "Value1";
                 amqpMessage.ApplicationProperties.Map["Prop2"] = "Value2";
@@ -293,18 +293,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 Assert.Equal(userId, Encoding.UTF8.GetString(amqpMessage.Properties.UserId.Array));
                 Assert.Equal(expiryTime, amqpMessage.Properties.AbsoluteExpiryTime.HasValue ? amqpMessage.Properties.AbsoluteExpiryTime.Value : DateTime.MinValue);
 
-                Assert.Equal(enqueuedTime, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsEnqueuedTimeKey]);
-                Assert.Equal(deliveryCount, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsDeliveryCountKey]);
-                Assert.Equal(lockToken, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsLockTokenName]);
-                Assert.Equal(sequenceNumber, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsSequenceNumberName]);
-                Assert.Equal(inputName, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsInputNameKey]);
-                Assert.Equal(connectionDeviceId, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsConnectionDeviceId]);
-                Assert.Equal(connectionModuleId, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsConnectionModuleId]);
+                Assert.Equal(enqueuedTime, amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsEnqueuedTimeKey]);
+                Assert.Equal(deliveryCount, amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsDeliveryCountKey]);
+                Assert.Equal(lockToken, amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsLockTokenName]);
+                Assert.Equal(sequenceNumber, amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsSequenceNumberName]);
+                Assert.Equal(inputName, amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsInputNameKey]);
+                Assert.Equal(connectionDeviceId, amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsConnectionDeviceId]);
+                Assert.Equal(connectionModuleId, amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsConnectionModuleId]);
 
-                Assert.Equal(messageSchema, amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesMessageSchemaKey]);
-                Assert.Equal(creationTime, amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesCreationTimeKey]);
-                Assert.Equal(operation, amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesOperationKey]);
-                Assert.False(amqpMessage.ApplicationProperties.Map.TryGetValue(Amqp.Constants.MessagePropertiesOutputNameKey, out string _));
+                Assert.Equal(messageSchema, amqpMessage.ApplicationProperties.Map[Constants.MessagePropertiesMessageSchemaKey]);
+                Assert.Equal(creationTime, amqpMessage.ApplicationProperties.Map[Constants.MessagePropertiesCreationTimeKey]);
+                Assert.Equal(operation, amqpMessage.ApplicationProperties.Map[Constants.MessagePropertiesOperationKey]);
+                Assert.False(amqpMessage.ApplicationProperties.Map.TryGetValue(Constants.MessagePropertiesOutputNameKey, out string _));
 
                 Assert.Equal("Value1", amqpMessage.ApplicationProperties.Map["Prop1"].ToString());
                 Assert.Equal("Value2", amqpMessage.ApplicationProperties.Map["Prop2"].ToString());

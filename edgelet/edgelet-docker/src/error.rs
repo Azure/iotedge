@@ -8,7 +8,9 @@ use hyper::StatusCode;
 use serde_json;
 
 use docker::apis::{ApiError as DockerApiError, Error as DockerError};
-use edgelet_core::{ModuleOperation, RegistryOperation, RuntimeOperation};
+use edgelet_core::{
+    ModuleOperation, ModuleRuntimeErrorReason, RegistryOperation, RuntimeOperation,
+};
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -24,7 +26,7 @@ fn get_message(
 
     match content {
         Some(serde_json::Value::Object(props)) => {
-            if let serde_json::Value::String(message) = &props["message"] {
+            if let Some(serde_json::Value::String(message)) = props.get("message") {
                 return Ok(message.clone());
             }
 
@@ -83,7 +85,7 @@ pub enum ErrorKind {
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -93,7 +95,7 @@ impl Fail for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }
@@ -136,5 +138,14 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
+    }
+}
+
+impl<'a> From<&'a Error> for ModuleRuntimeErrorReason {
+    fn from(err: &'a Error) -> Self {
+        match Fail::find_root_cause(err).downcast_ref::<ErrorKind>() {
+            Some(ErrorKind::NotFound(_)) => ModuleRuntimeErrorReason::NotFound,
+            _ => ModuleRuntimeErrorReason::Other,
+        }
     }
 }

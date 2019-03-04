@@ -1,36 +1,25 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::PathBuf;
 
-use base64;
 use bytes::Bytes;
 
 use failure::{Fail, ResultExt};
 use futures::future::Either;
 use futures::{future, Future, IntoFuture};
-use regex::Regex;
 use serde_json;
 use url::Url;
 
-use dps::registration::{DpsClient, DpsTokenSource};
+use dps::registration::{DpsAuthKind, DpsClient, DpsTokenSource};
 use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, MemoryKey, MemoryKeyStore};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
-use edgelet_utils::{ensure_not_empty_with_context, log_failure};
+use edgelet_utils::log_failure;
 use error::{Error, ErrorKind};
 use hsm::TpmKey as HsmTpmKey;
 use log::Level;
-
-const DEVICEID_KEY: &str = "DeviceId";
-const HOSTNAME_KEY: &str = "HostName";
-const SHAREDACCESSKEY_KEY: &str = "SharedAccessKey";
-
-const DEVICEID_REGEX: &str = r"^[A-Za-z0-9\-:.+%_#*?!(),=@;$']{1,128}$";
-const HOSTNAME_REGEX: &str = r"^[a-zA-Z0-9_\-\.]+$";
-const SHAREDACCESSKEY_REGEX: &str = r"^.+$";
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ProvisioningResult {
@@ -71,68 +60,12 @@ pub struct ManualProvisioning {
 }
 
 impl ManualProvisioning {
-    pub fn new(conn_string: &str) -> Result<Self, Error> {
-        ensure_not_empty_with_context(&conn_string, || ErrorKind::InvalidConnString)?;
-
-        let hash_map = ManualProvisioning::parse_conn_string(&conn_string)?;
-
-        let key = hash_map.get(SHAREDACCESSKEY_KEY).ok_or(
-            ErrorKind::ConnStringMissingRequiredParameter(SHAREDACCESSKEY_KEY),
-        )?;
-        let key_regex = Regex::new(SHAREDACCESSKEY_REGEX)
-            .expect("This hard-coded regex is expected to be valid.");
-        if !key_regex.is_match(&key) {
-            return Err(Error::from(ErrorKind::ConnStringMalformedParameter(
-                SHAREDACCESSKEY_REGEX,
-            )));
-        }
-        let key = MemoryKey::new(base64::decode(&key).context(
-            ErrorKind::ConnStringMalformedParameter(SHAREDACCESSKEY_REGEX),
-        )?);
-
-        let device_id = hash_map
-            .get(DEVICEID_KEY)
-            .ok_or(ErrorKind::ConnStringMissingRequiredParameter(DEVICEID_KEY))?;
-        let device_id_regex =
-            Regex::new(DEVICEID_REGEX).expect("This hard-coded regex is expected to be valid.");
-        if !device_id_regex.is_match(&device_id) {
-            return Err(Error::from(ErrorKind::ConnStringMalformedParameter(
-                DEVICEID_KEY,
-            )));
-        }
-
-        let hub = hash_map
-            .get(HOSTNAME_KEY)
-            .ok_or(ErrorKind::ConnStringMissingRequiredParameter(HOSTNAME_KEY))?;
-        let hub_regex =
-            Regex::new(HOSTNAME_REGEX).expect("This hard-coded regex is expected to be valid.");
-        if !hub_regex.is_match(&hub) {
-            return Err(Error::from(ErrorKind::ConnStringMalformedParameter(
-                HOSTNAME_KEY,
-            )));
-        }
-
-        let result = ManualProvisioning {
+    pub fn new(key: MemoryKey, device_id: String, hub: String) -> Self {
+        ManualProvisioning {
             key,
-            device_id: device_id.to_owned(),
-            hub: hub.to_owned(),
-        };
-        Ok(result)
-    }
-
-    fn parse_conn_string(conn_string: &str) -> Result<HashMap<String, String>, Error> {
-        let mut hash_map = HashMap::new();
-        let parts: Vec<&str> = conn_string.split(';').collect();
-        for p in parts {
-            let s: Vec<&str> = p.split('=').collect();
-            match s[0] {
-                SHAREDACCESSKEY_KEY | DEVICEID_KEY | HOSTNAME_KEY => {
-                    hash_map.insert(s[0].to_string(), s[1].to_string());
-                }
-                _ => (), // Ignore extraneous component in the connection string
-            }
+            device_id,
+            hub,
         }
-        Ok(hash_map)
     }
 }
 
@@ -159,7 +92,8 @@ impl Provision for ManualProvisioning {
                 device_id,
                 hub_name: hub,
                 reconfigure: false,
-            }).map_err(|err| Error::from(err.context(ErrorKind::Provision)));
+            })
+            .map_err(|err| Error::from(err.context(ErrorKind::Provision)));
         Box::new(result.into_future())
     }
 }
@@ -193,7 +127,8 @@ where
             None as Option<DpsTokenSource<TpmKey>>,
             api_version,
             endpoint,
-        ).context(ErrorKind::DpsInitialization)?;
+        )
+        .context(ErrorKind::DpsInitialization)?;
 
         let result = DpsProvisioning {
             client,
@@ -216,12 +151,13 @@ where
         self,
         key_activator: Self::Hsm,
     ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
+        let ek = Bytes::from(self.hsm_tpm_ek.as_ref());
+        let srk = Bytes::from(self.hsm_tpm_srk.as_ref());
         let c = DpsClient::new(
             self.client.clone(),
             self.scope_id.clone(),
             self.registration_id.clone(),
-            Bytes::from(self.hsm_tpm_ek.as_ref()),
-            Bytes::from(self.hsm_tpm_srk.as_ref()),
+            DpsAuthKind::Tpm { ek, srk },
             key_activator,
         );
 
@@ -238,11 +174,88 @@ where
                             hub_name,
                             reconfigure: false,
                         }
-                    }).map_err(|err| Error::from(err.context(ErrorKind::Provision))),
+                    })
+                    .map_err(|err| Error::from(err.context(ErrorKind::Provision))),
             ),
             Err(err) => Either::B(future::err(Error::from(err.context(ErrorKind::Provision)))),
         };
 
+        Box::new(d)
+    }
+}
+
+pub struct DpsSymmetricKeyProvisioning<C>
+where
+    C: ClientImpl,
+{
+    client: HttpClient<C, DpsTokenSource<MemoryKey>>,
+    scope_id: String,
+    registration_id: String,
+}
+
+impl<C> DpsSymmetricKeyProvisioning<C>
+where
+    C: ClientImpl,
+{
+    pub fn new(
+        client_impl: C,
+        endpoint: Url,
+        scope_id: String,
+        registration_id: String,
+        api_version: String,
+    ) -> Result<Self, Error> {
+        let client = HttpClient::new(
+            client_impl,
+            None as Option<DpsTokenSource<MemoryKey>>,
+            api_version,
+            endpoint,
+        )
+        .context(ErrorKind::DpsInitialization)?;
+        let result = DpsSymmetricKeyProvisioning {
+            client,
+            scope_id,
+            registration_id,
+        };
+        Ok(result)
+    }
+}
+
+impl<C> Provision for DpsSymmetricKeyProvisioning<C>
+where
+    C: 'static + ClientImpl,
+{
+    type Hsm = MemoryKeyStore;
+
+    fn provision(
+        self,
+        key_activator: Self::Hsm,
+    ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
+        let c = DpsClient::new(
+            self.client.clone(),
+            self.scope_id.clone(),
+            self.registration_id.clone(),
+            DpsAuthKind::SymmetricKey,
+            key_activator,
+        );
+
+        let d = match c {
+            Ok(c) => Either::A(
+                c.register()
+                    .map(|(device_id, hub_name)| {
+                        info!(
+                            "DPS registration assigned device \"{}\" in hub \"{}\"",
+                            device_id, hub_name
+                        );
+                        ProvisioningResult {
+                            device_id,
+                            hub_name,
+                            reconfigure: false,
+                        }
+                    })
+                    .map_err(|err| Error::from(err.context(ErrorKind::Provision))),
+            ),
+            Err(err) => Either::B(future::err(Error::from(err.context(ErrorKind::Provision)))),
+        };
         Box::new(d)
     }
 }
@@ -308,7 +321,8 @@ where
                         Ok(_) => Either::A(future::ok(prov_result.clone())),
                         Err(err) => Either::B(future::err(err)),
                     }
-                }).or_else(move |err| {
+                })
+                .or_else(move |err| {
                     log_failure(Level::Warn, &err);
                     match Self::restore(path_on_err) {
                         Ok(prov_result) => Either::A(future::ok(prov_result)),
@@ -325,6 +339,8 @@ mod tests {
 
     use tempdir::TempDir;
     use tokio;
+
+    use edgelet_config::{Manual, ParseManualDeviceConnectionStringError};
 
     use error::ErrorKind;
 
@@ -358,24 +374,29 @@ mod tests {
         }
     }
 
+    fn parse_connection_string(
+        s: &str,
+    ) -> Result<ManualProvisioning, ParseManualDeviceConnectionStringError> {
+        let (key, device_id, hub) = Manual::new(s.to_string()).parse_device_connection_string()?;
+        Ok(ManualProvisioning::new(key, device_id, hub))
+    }
+
     #[test]
     fn manual_get_credentials_success() {
         let provisioning =
-            ManualProvisioning::new("HostName=test.com;DeviceId=test;SharedAccessKey=test");
-        assert_eq!(provisioning.is_ok(), true);
+            parse_connection_string("HostName=test.com;DeviceId=test;SharedAccessKey=test")
+                .unwrap();
         let memory_hsm = MemoryKeyStore::new();
-        let task =
-            provisioning
-                .unwrap()
-                .provision(memory_hsm.clone())
-                .then(|result| match result {
-                    Ok(result) => {
-                        assert_eq!(result.hub_name, "test.com".to_string());
-                        assert_eq!(result.device_id, "test".to_string());
-                        Ok::<_, Error>(())
-                    }
-                    Err(err) => panic!("Unexpected {:?}", err),
-                });
+        let task = provisioning
+            .provision(memory_hsm.clone())
+            .then(|result| match result {
+                Ok(result) => {
+                    assert_eq!(result.hub_name, "test.com".to_string());
+                    assert_eq!(result.device_id, "test".to_string());
+                    Ok::<_, Error>(())
+                }
+                Err(err) => panic!("Unexpected {:?}", err),
+            });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
             .block_on(task)
@@ -384,42 +405,36 @@ mod tests {
 
     #[test]
     fn manual_malformed_conn_string_gets_error() {
-        let test = ManualProvisioning::new("HostName=test.com;DeviceId=test;");
-        assert_eq!(test.is_err(), true);
+        let test = parse_connection_string("HostName=test.com;DeviceId=test;");
+        assert!(test.is_err());
     }
 
     #[test]
     fn connection_string_split_success() {
         let provisioning =
-            ManualProvisioning::new("HostName=test.com;DeviceId=test;SharedAccessKey=test");
-        assert_eq!(provisioning.is_ok(), true);
+            parse_connection_string("HostName=test.com;DeviceId=test;SharedAccessKey=test")
+                .unwrap();
         let memory_hsm = MemoryKeyStore::new();
-        let task = provisioning
-            .unwrap()
-            .provision(memory_hsm.clone())
-            .then(|result| {
-                let result = result.expect("Unexpected");
-                assert_eq!(result.hub_name, "test.com".to_string());
-                assert_eq!(result.device_id, "test".to_string());
-                Ok::<_, Error>(())
-            });
+        let task = provisioning.provision(memory_hsm.clone()).then(|result| {
+            let result = result.expect("Unexpected");
+            assert_eq!(result.hub_name, "test.com".to_string());
+            assert_eq!(result.device_id, "test".to_string());
+            Ok::<_, Error>(())
+        });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
             .block_on(task)
             .unwrap();
 
         let provisioning1 =
-            ManualProvisioning::new("DeviceId=test;SharedAccessKey=test;HostName=test.com");
-        assert_eq!(provisioning1.is_ok(), true);
-        let task1 = provisioning1
-            .unwrap()
-            .provision(memory_hsm.clone())
-            .then(|result| {
-                let result = result.expect("Unexpected");
-                assert_eq!(result.hub_name, "test.com".to_string());
-                assert_eq!(result.device_id, "test".to_string());
-                Ok::<_, Error>(())
-            });
+            parse_connection_string("DeviceId=test;SharedAccessKey=test;HostName=test.com")
+                .unwrap();
+        let task1 = provisioning1.provision(memory_hsm.clone()).then(|result| {
+            let result = result.expect("Unexpected");
+            assert_eq!(result.hub_name, "test.com".to_string());
+            assert_eq!(result.device_id, "test".to_string());
+            Ok::<_, Error>(())
+        });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
             .block_on(task1)
@@ -428,14 +443,15 @@ mod tests {
 
     #[test]
     fn connection_string_split_error() {
-        let test1 = ManualProvisioning::new("DeviceId=test;SharedAccessKey=test");
-        assert_eq!(test1.is_err(), true);
-        let test2 = ManualProvisioning::new(
+        let test1 = parse_connection_string("DeviceId=test;SharedAccessKey=test");
+        assert!(test1.is_err());
+
+        let test2 = parse_connection_string(
             "HostName=test.com;Extra=something;DeviceId=test;SharedAccessKey=test",
-        );
-        assert_eq!(test2.is_ok(), true);
+        )
+        .unwrap();
         let memory_hsm = MemoryKeyStore::new();
-        let task1 = test2.unwrap().provision(memory_hsm.clone()).then(|result| {
+        let task1 = test2.provision(memory_hsm.clone()).then(|result| {
             let result = result.expect("Unexpected");
             assert_eq!(result.hub_name, "test.com".to_string());
             assert_eq!(result.device_id, "test".to_string());
@@ -535,7 +551,8 @@ mod tests {
             device_id: "something".to_string(),
             hub_name: "something".to_string(),
             reconfigure: true,
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(
             "{\"device_id\":\"something\",\"hub_name\":\"something\"}",
             json

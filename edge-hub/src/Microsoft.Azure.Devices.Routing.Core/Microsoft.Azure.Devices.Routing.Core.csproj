@@ -3,10 +3,18 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <NoWarn>3021</NoWarn>
-    <Configurations>Debug;Release;CodeCoverage</Configurations>
+    <Configurations>Debug;Release;CodeCoverage;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 
+  <PropertyGroup>
+  <!-- on windows, if you've done an flat download(xcopy install) of openjdk without really installing it or adding it to your path add a props file 
+  to %localappdata%\Microsoft\MSBuild\(toolversion)\Imports\Microsoft.Common.props\ImportBefore\OpenJDK.props> that defines
+  the JDK paths with trailing slashes. otherwise everything works the way it always has
+  -->
+    <JavaRuntime>"$(JDKBinPath)java"</JavaRuntime>
+
+  </PropertyGroup>
   <!--
     Normally, the 'Debug' configuration would work for code coverage, but Microsoft.CodeCoverage currently requires '<DebugType>full</DebugType>' for .NET Core.
     See https://github.com/Microsoft/vstest-docs/blob/06f9dc0aeb47be7204dc4e1a98c110ead3e978c7/docs/analyze.md#setup-a-project.
@@ -22,11 +30,11 @@
 
   <ItemGroup>
     <PackageReference Include="Antlr4" Version="4.6.1-beta002" />
-    <PackageReference Include="App.Metrics" Version="3.0.0-alpha-0780" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="2.1.1" />
-    <PackageReference Include="System.Collections.Immutable" Version="1.3.1" />
+    <PackageReference Include="App.Metrics" Version="3.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="2.2.0" />
+    <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
     <PackageReference Include="System.Reflection.Extensions" Version="4.3.0" />
-    <PackageReference Include="System.Reflection.TypeExtensions" Version="4.3.0" />
+    <PackageReference Include="System.Reflection.TypeExtensions" Version="4.5.1" />
     <PackageReference Include="System.Threading.Tasks.Dataflow" Version="4.7.0" />
   </ItemGroup>
 
@@ -74,9 +82,9 @@
     <PropertyGroup>
       <FullAntlr4ToolLocation>$(NuGetPackageRoot)antlr4.codegenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar</FullAntlr4ToolLocation>
     </PropertyGroup>
-    <Exec Command="java -version" EchoOff="true" />
+    <Exec Command="$(JavaRuntime) -version" EchoOff="true" />
     <MakeDir Directories="grammar\generated" />
-    <Exec Command="java -jar $(FullAntlr4ToolLocation) %(Antlr4Inputs.Identity) -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -listener -o grammar/generated" />
+    <Exec Command="$(JavaRunTime) -jar $(FullAntlr4ToolLocation) %(Antlr4Inputs.Identity) -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -listener -o grammar/generated" />
     <CreateProperty Value="true">
       <Output TaskParameter="ValueSetByTask" PropertyName="Antlr4CodeGenRan" />
     </CreateProperty>
@@ -91,4 +99,12 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>  
+  <Import Project="..\..\..\stylecop.props" />
 </Project>

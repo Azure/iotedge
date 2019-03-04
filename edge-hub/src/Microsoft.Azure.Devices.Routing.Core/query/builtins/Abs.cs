@@ -1,7 +1,4 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 {
     using System;
@@ -11,7 +8,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 
     public class Abs : Builtin
     {
-
         protected override BuiltinExecutor[] Executors => new[]
         {
             new BuiltinExecutor

@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
@@ -10,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
+    using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
 
     [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
@@ -22,18 +22,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             // Arrange
             string deviceName = string.Format("moduleMethodTest-{0}", transportSettings.First().GetTransportType().ToString("g"));
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            Devices.IotHubConnectionStringBuilder connectionStringBuilder = Devices.IotHubConnectionStringBuilder.Create(iotHubConnectionString);
+            IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             ModuleClient receiver = null;
 
             var request = new TestMethodRequest("Prop1", 10);
             var response = new TestMethodResponse("RespProp1", 20);
             TestMethodRequest receivedRequest = null;
+
             Task<MethodResponse> MethodHandler(MethodRequest methodRequest, object context)
             {
                 receivedRequest = JsonConvert.DeserializeObject<TestMethodRequest>(methodRequest.DataAsJson);
-                return Task.FromResult(new MethodResponse(
-                    Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(response)), 200));
+                return Task.FromResult(
+                    new MethodResponse(
+                        Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(response)),
+                        200));
             }
 
             string receiverModuleName = "method-module";
@@ -47,7 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await receiver.OpenAsync();
                 await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
 
-                await Task.Delay(TimeSpan.FromSeconds(5));
+                // Need longer sleep to ensure receiver is completely initialized
+                await Task.Delay(TimeSpan.FromSeconds(10));
 
                 // Act
                 CloudToDeviceMethodResult cloudToDeviceMethodResult = await sender.InvokeDeviceMethodAsync(
@@ -73,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     await rm.CloseAsync();
                 }
+
                 if (receiver != null)
                 {
                     await receiver.CloseAsync();
@@ -87,6 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     // ignored
                 }
             }
+
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(10));
         }
@@ -104,11 +110,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var request = new TestMethodRequest("Prop1", 10);
             var response = new TestMethodResponse("RespProp1", 20);
             TestMethodRequest receivedRequest = null;
+
             Task<MethodResponse> MethodHandler(MethodRequest methodRequest, object context)
             {
                 receivedRequest = JsonConvert.DeserializeObject<TestMethodRequest>(methodRequest.DataAsJson);
-                return Task.FromResult(new MethodResponse(
-                    Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(response)), 200));
+                return Task.FromResult(
+                    new MethodResponse(
+                        Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(response)),
+                        200));
             }
 
             (string deviceId, string receiverModuleConnectionString) = await RegistryManagerHelper.CreateDevice(deviceName, iotHubConnectionString, rm);
@@ -120,7 +129,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await receiver.OpenAsync();
                 await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
 
-                await Task.Delay(TimeSpan.FromSeconds(5));
+                // Need longer sleep to ensure receiver is completely initialized
+                await Task.Delay(TimeSpan.FromSeconds(10));
 
                 // Act
                 CloudToDeviceMethodResult cloudToDeviceMethodResult = await sender.InvokeDeviceMethodAsync(
@@ -145,6 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     await rm.CloseAsync();
                 }
+
                 if (receiver != null)
                 {
                     await receiver.CloseAsync();
@@ -159,6 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     // ignored
                 }
             }
+
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(10));
         }

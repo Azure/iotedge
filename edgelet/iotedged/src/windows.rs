@@ -27,13 +27,23 @@ const IOTEDGED_SERVICE_NAME: &str = crate_name!();
 define_windows_service!(ffi_service_main, iotedge_service_main);
 
 fn iotedge_service_main(args: Vec<OsString>) {
-    if let Err(err) = run_as_service(args) {
-        error!("Error while running service. Quitting.");
-        logging::log_error(&err);
+    match run_as_service(args) {
+        Ok(status_handle) => {
+            // Graceful shutdown
+            info!("Stopping {} service...", IOTEDGED_SERVICE_NAME);
+            update_service_state(status_handle, ServiceState::Stopped).unwrap();
+            info!("Stopped {} service.", IOTEDGED_SERVICE_NAME);
+        }
+
+        Err(err) => {
+            error!("Error while running service. Quitting.");
+            logging::log_error(&err);
+            std::process::exit(1);
+        }
     }
 }
 
-fn run_as_service(_: Vec<OsString>) -> Result<(), Error> {
+fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
     // setup a channel for notifying service stop/shutdown
     let (sender, receiver) = oneshot::channel();
     let sender = RefCell::new(Some(sender)); // register() takes Fn, not FnMut
@@ -61,7 +71,8 @@ fn run_as_service(_: Vec<OsString>) -> Result<(), Error> {
             ServiceControl::Interrogate => ServiceControlHandlerResult::NoError,
             _ => ServiceControlHandlerResult::NotImplemented,
         },
-    ).map_err(ServiceError::from)
+    )
+    .map_err(ServiceError::from)
     .context(ErrorKind::Initialize(
         InitializeErrorReason::RegisterWindowsService,
     ))?;
@@ -80,20 +91,17 @@ fn run_as_service(_: Vec<OsString>) -> Result<(), Error> {
                     err,
                 );
             }
-        }).map_err(|_| ());
+        })
+        .map_err(|_| ());
 
     // tell Windows we're all set
     update_service_state(status_handle, ServiceState::Running)?;
 
     // start running
     info!("Starting {} service.", IOTEDGED_SERVICE_NAME);
-    let result = main.run_until(shutdown_signal);
+    main.run_until(shutdown_signal)?;
 
-    // let Windows know that we stopped
-    info!("Stopped {} service.", IOTEDGED_SERVICE_NAME);
-    update_service_state(status_handle, ServiceState::Stopped)?;
-
-    result
+    Ok(status_handle)
 }
 
 pub fn run_as_console() -> Result<(), Error> {
@@ -134,6 +142,7 @@ fn update_service_state(
             exit_code: ServiceExitCode::Win32(0),
             checkpoint: 0,
             wait_hint: Duration::default(),
-        }).context(ErrorKind::UpdateWindowsServiceState)?;
+        })
+        .context(ErrorKind::UpdateWindowsServiceState)?;
     Ok(())
 }

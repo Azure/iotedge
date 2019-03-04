@@ -13,8 +13,8 @@ use failure::ResultExt;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
-use certificate_properties::CertificateProperties;
-use error::{Error, ErrorKind};
+use crate::certificate_properties::CertificateProperties;
+use crate::error::{Error, ErrorKind};
 
 /// This is the issuer alias used when `CertificateIssuer::DefaultCa` is provided by the caller
 pub const IOTEDGED_CA_ALIAS: &str = "iotedged-workload-ca";
@@ -26,7 +26,7 @@ pub enum KeyIdentity {
 }
 
 impl fmt::Display for KeyIdentity {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             KeyIdentity::Device => write!(f, "Device"),
             KeyIdentity::Module(m) => write!(f, "Module({})", m),
@@ -325,7 +325,8 @@ impl KeyStore for MemoryKeyStore {
             .get(&MemoryKeyIdentity::new(
                 identity.clone(),
                 key_name.to_string(),
-            )).cloned()
+            ))
+            .cloned()
             .ok_or_else(|| Error::from(ErrorKind::KeyStoreItemNotFound))
     }
 }
@@ -356,7 +357,8 @@ impl<K: Sign> KeyStore for DerivedKeyStore<K> {
             .sign(
                 SignatureAlgorithm::HMACSHA256,
                 format!("{}{}", data, key_name).as_bytes(),
-            ).context(ErrorKind::Sign)?;
+            )
+            .context(ErrorKind::Sign)?;
         Ok(MemoryKey::new(signature.as_bytes()))
     }
 }
@@ -533,7 +535,8 @@ mod tests {
             .sign(
                 SignatureAlgorithm::HMACSHA256,
                 b"The quick brown fox jumps over the lazy dog",
-            ).unwrap();
+            )
+            .unwrap();
         assert_eq!(
             "wBXO109hMjTfjUtQGtTmeqiqoqboLl8F5b7tR0of5yE=",
             base64::encode(digest.as_bytes())

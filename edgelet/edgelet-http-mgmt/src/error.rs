@@ -8,12 +8,13 @@ use edgelet_iothub::Error as IoTHubError;
 use failure::{Backtrace, Context, Fail};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode};
+use log::error;
 use serde_json;
 
 use management::apis::Error as MgmtError;
 use management::models::ErrorResponse;
 
-use IntoResponse;
+use crate::IntoResponse;
 
 #[derive(Debug)]
 pub struct Error {
@@ -44,10 +45,7 @@ pub enum ErrorKind {
     #[fail(display = "The request parameter `{}` is malformed", _0)]
     MalformedRequestParameter(&'static str),
 
-    #[fail(
-        display = "The request is missing required parameter `{}`",
-        _0
-    )]
+    #[fail(display = "The request is missing required parameter `{}`", _0)]
     MissingRequiredParameter(&'static str),
 
     #[fail(display = "{}", _0)]
@@ -56,18 +54,21 @@ pub enum ErrorKind {
     #[fail(display = "State not modified")]
     NotModified,
 
+    #[fail(display = "Could not prepare update for module {:?}", _0)]
+    PrepareUpdateModule(String),
+
     #[fail(display = "{}", _0)]
     RuntimeOperation(RuntimeOperation),
 
     #[fail(display = "Could not start management service")]
     StartService,
 
-    #[fail(display = "Could not update module")]
+    #[fail(display = "Could not update module {:?}", _0)]
     UpdateModule(String),
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -77,7 +78,7 @@ impl Fail for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }

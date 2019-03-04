@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
@@ -14,14 +14,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using ILogger = Extensions.Logging.ILogger;
 
     public class Program
     {
-        static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromMinutes(1);
         const string ConfigFileName = "appsettings_agent.json";
         const string EdgeAgentStorageFolder = "edgeAgent";
         const string VersionInfoFileName = "versionInfo.json";
+        static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromMinutes(1);
 
         public static int Main()
         {
@@ -54,6 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 logger.LogInformation($"Version - {versionInfo.ToString(true)}");
             }
+
             LogLogo(logger);
 
             string mode;
@@ -100,13 +100,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 builder.RegisterModule(new LoggingModule(dockerLoggingDriver, dockerLoggingOptions));
                 Option<string> productInfo = versionInfo != VersionInfo.Empty ? Option.Some(versionInfo.ToString()) : Option.None<string>();
                 Option<UpstreamProtocol> upstreamProtocol = configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol();
+                Option<IWebProxy> proxy = Proxy.Parse(configuration.GetValue<string>("https_proxy"), logger);
                 switch (mode.ToLowerInvariant())
                 {
                     case Constants.DockerMode:
                         var dockerUri = new Uri(configuration.GetValue<string>("DockerUri"));
                         string deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath));
-                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, productInfo));
+                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo));
                         break;
 
                     case Constants.IotedgedMode:
@@ -116,8 +117,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
                         string moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), moduleId, Option.Some(moduleGenerationId)));
-                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), dockerAuthConfig, upstreamProtocol, productInfo));
+                        string apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId)));
+                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo));
                         break;
 
                     default:
@@ -155,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 Option<Agent> agentOption = Option.None<Agent>();
 
                 try
-                {                    
+                {
                     Agent agent = await container.Resolve<Task<Agent>>();
                     agentOption = Option.Some(agent);
                     while (!cts.Token.IsCancellationRequested)
@@ -168,8 +170,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         {
                             logger.LogWarning(AgentEventIds.Agent, ex, "Agent reconcile concluded with errors.");
                         }
+
                         await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
                     }
+
                     logger.LogInformation("Closing module management agent.");
 
                     returnCode = 0;
@@ -189,6 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 await Cleanup(agentOption, logger);
                 completed.Set();
             }
+
             handler.ForEach(h => GC.KeepAlive(h));
             return returnCode;
         }
@@ -235,7 +240,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         static void LogLogo(ILogger logger)
         {
-            logger.LogInformation(@"
+            logger.LogInformation(
+                @"
         █████╗ ███████╗██╗   ██╗██████╗ ███████╗
        ██╔══██╗╚══███╔╝██║   ██║██╔══██╗██╔════╝
        ███████║  ███╔╝ ██║   ██║██████╔╝█████╗

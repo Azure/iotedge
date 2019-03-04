@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
@@ -33,6 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     }
                 }
             }
+
             return Option.None<T>();
         }
 
@@ -103,6 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 dictionary.Remove(key);
                 return true;
             }
+
             return false;
         }
 
@@ -127,6 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 value = dictVal;
                 return true;
             }
+
             value = default(TValue);
             return false;
         }

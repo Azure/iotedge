@@ -7,6 +7,7 @@ use chrono::{DateTime, Duration, Utc};
 use failure::{Fail, ResultExt};
 use futures::{Future, IntoFuture, Stream};
 use hyper::{self, Body, Method, Request, Response};
+use log::debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;
@@ -16,7 +17,7 @@ use url::Url;
 
 use edgelet_utils::ensure_not_empty_with_context;
 
-use error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind};
 
 pub trait TokenSource {
     type Error;
@@ -156,7 +157,8 @@ where
             .fold(
                 UrlSerializer::new(String::new()).append_pair("api-version", &self.api_version),
                 |ser, (key, val)| ser.append_pair(key, val),
-            ).finish();
+            )
+            .finish();
 
         // build the full url
         let path_query = format!("{}?{}", path, query);
@@ -197,7 +199,8 @@ where
                 self.add_sas_token(&mut req, path)?;
 
                 Ok(req)
-            }).map(|req| {
+            })
+            .map(|req| {
                 self.inner
                     .call(req)
                     .then(|resp| resp.context(ErrorKind::Http).map_err(Error::from))
@@ -207,13 +210,15 @@ where
                             let body = res.context(ErrorKind::Http)?;
                             Ok((status, body))
                         })
-                    }).and_then(|(status, body)| {
+                    })
+                    .and_then(|(status, body)| {
                         if status.is_success() {
                             Ok(body)
                         } else {
                             Err(Error::http_with_error_response(status, &*body))
                         }
-                    }).and_then(|body| {
+                    })
+                    .and_then(|body| {
                         if body.len() == 0 {
                             Ok(None)
                         } else {
@@ -223,7 +228,8 @@ where
                             ))
                         }
                     })
-            }).into_future()
+            })
+            .into_future()
             .flatten()
     }
 }
@@ -256,7 +262,7 @@ mod tests {
     use typed_headers::{mime, ContentType};
     use url::form_urlencoded::parse as parse_query;
 
-    use error::ErrorKind;
+    use crate::error::ErrorKind;
 
     struct StaticTokenSource {
         token: String,
@@ -296,14 +302,16 @@ mod tests {
         );
         match client {
             Ok(_) => panic!("Expected error but got a result."),
-            Err(err) => if let ErrorKind::InvalidApiVersion(s) = err.kind() {
-                assert_eq!(s, &api_version);
-            } else {
-                panic!(
-                    "Wrong error kind. Expected `InvalidApiVersion` found {:?}",
-                    err
-                );
-            },
+            Err(err) => {
+                if let ErrorKind::InvalidApiVersion(s) = err.kind() {
+                    assert_eq!(s, &api_version);
+                } else {
+                    panic!(
+                        "Wrong error kind. Expected `InvalidApiVersion` found {:?}",
+                        err
+                    );
+                }
+            }
         }
     }
 
@@ -320,14 +328,16 @@ mod tests {
         );
         match client {
             Ok(_) => panic!("Expected error but got a result."),
-            Err(err) => if let ErrorKind::InvalidApiVersion(s) = err.kind() {
-                assert_eq!(s, &api_version);
-            } else {
-                panic!(
-                    "Wrong error kind. Expected `InvalidApiVersion` found {:?}",
-                    err
-                );
-            },
+            Err(err) => {
+                if let ErrorKind::InvalidApiVersion(s) = err.kind() {
+                    assert_eq!(s, &api_version);
+                } else {
+                    panic!(
+                        "Wrong error kind. Expected `InvalidApiVersion` found {:?}",
+                        err
+                    );
+                }
+            }
         }
     }
 
@@ -512,8 +522,10 @@ mod tests {
                     str::from_utf8(&req_body)
                         .map(move |req_body| {
                             assert_eq!("\"Here be dragons\"".to_string(), req_body)
-                        }).map_err(|e| panic!("Error: {:?}", e))
-                }).and_then(|_| Ok(Response::new(response.into())))
+                        })
+                        .map_err(|e| panic!("Error: {:?}", e))
+                })
+                .and_then(move |_| Ok(Response::new(response.into())))
         };
         let client = Client::new(handler, token_source, api_version, host_name).unwrap();
 
@@ -547,8 +559,10 @@ mod tests {
                     str::from_utf8(&req_body)
                         .map(move |req_body| {
                             assert_eq!("\"Here be dragons\"".to_string(), req_body)
-                        }).map_err(|e| panic!("Error: {:?}", e))
-                }).and_then(|_| Ok(Response::new(Body::empty())))
+                        })
+                        .map_err(|e| panic!("Error: {:?}", e))
+                })
+                .and_then(|_| Ok(Response::new(Body::empty())))
         };
         let client = Client::new(handler, token_source, api_version, host_name).unwrap();
 

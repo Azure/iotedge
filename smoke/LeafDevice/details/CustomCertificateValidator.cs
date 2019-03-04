@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
-namespace LeafDevice.details
+namespace LeafDeviceTest
 {
     using System;
     using System.Collections.Generic;
@@ -37,7 +36,7 @@ namespace LeafDevice.details
         {
             Debug.WriteLine("CustomCertificateValidator.GetCustomCertificateValidation()");
 
-            return (sender, cert, chain, sslPolicyErrors) => this.ValidateCertificate(this.certs.First(), cert, chain, sslPolicyErrors);
+            return (sender, cert, chain, sslPolicyErrors) => ValidateCertificate(this.certs.First(), cert, chain, sslPolicyErrors);
         }
 
         void SetupCertificateValidation()
@@ -54,7 +53,7 @@ namespace LeafDevice.details
                         {
                             if (amqpTransportSettings.RemoteCertificateValidationCallback == null)
                             {
-                                amqpTransportSettings.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => this.ValidateCertificate(this.certs.First(), certificate, chain, sslPolicyErrors);
+                                amqpTransportSettings.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => ValidateCertificate(this.certs.First(), certificate, chain, sslPolicyErrors);
                             }
                         }
 
@@ -69,7 +68,7 @@ namespace LeafDevice.details
                         {
                             if (mqttTransportSettings.RemoteCertificateValidationCallback == null)
                             {
-                                mqttTransportSettings.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => this.ValidateCertificate(this.certs.First(), certificate, chain, sslPolicyErrors);
+                                mqttTransportSettings.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => ValidateCertificate(this.certs.First(), certificate, chain, sslPolicyErrors);
                             }
                         }
 
@@ -80,7 +79,7 @@ namespace LeafDevice.details
             }
         }
 
-        bool ValidateCertificate(X509Certificate2 trustedCertificate, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        static bool ValidateCertificate(X509Certificate2 trustedCertificate, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             Console.WriteLine("CustomCertificateValidator.ValidateCertificate is called.");
             // Terminate on errors other than those caused by a chain failure

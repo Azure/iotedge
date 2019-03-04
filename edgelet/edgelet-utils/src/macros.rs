@@ -503,7 +503,7 @@ mod tests {
     fn validate_ensure() {
         check_value(&15, || Ok(ensure!(15, 15 > 10)));
 
-        #[cfg_attr(feature = "cargo-clippy", allow(eq_op))]
+        #[allow(clippy::eq_op)]
         check_error(
             |err| {
                 mem::discriminant(err.kind())
@@ -517,7 +517,7 @@ mod tests {
     fn validate_fensure() {
         check_fvalue(&15, || Box::new(future::ok(fensure!(15, 15 > 10))));
 
-        #[cfg_attr(feature = "cargo-clippy", allow(eq_op))]
+        #[allow(clippy::eq_op)]
         check_ferror(
             |err| {
                 mem::discriminant(err.kind())
@@ -530,11 +530,12 @@ mod tests {
     #[test]
     fn validate_ensure_range() {
         let validator: Box<Fn(&Error) -> bool> = Box::new(|err| {
-            mem::discriminant(err.kind()) == mem::discriminant(&ErrorKind::ArgumentOutOfRange(
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-            ))
+            mem::discriminant(err.kind())
+                == mem::discriminant(&ErrorKind::ArgumentOutOfRange(
+                    "".to_string(),
+                    "".to_string(),
+                    "".to_string(),
+                ))
         });
 
         check_value(&10, || Ok(ensure_range!(10, 5, 15)));
@@ -547,11 +548,12 @@ mod tests {
     #[test]
     fn validate_fensure_range() {
         let validator: Box<Fn(&Error) -> bool> = Box::new(|err| {
-            mem::discriminant(err.kind()) == mem::discriminant(&ErrorKind::ArgumentOutOfRange(
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-            ))
+            mem::discriminant(err.kind())
+                == mem::discriminant(&ErrorKind::ArgumentOutOfRange(
+                    "".to_string(),
+                    "".to_string(),
+                    "".to_string(),
+                ))
         });
 
         check_fvalue(&10, || Box::new(future::ok(fensure_range!(10, 5, 15))));

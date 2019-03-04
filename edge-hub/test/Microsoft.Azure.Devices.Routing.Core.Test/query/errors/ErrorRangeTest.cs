@@ -1,18 +1,16 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Query.Errors
 {
     using System.Diagnostics.CodeAnalysis;
-    using Microsoft.Azure.Devices.Routing.Core.Query.Errors;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Query.Errors;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class ErrorRangeTest : RoutingUnitTestBase
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestEquals()
         {
             var range1 = new ErrorRange(new ErrorPosition(1, 1), new ErrorPosition(1, 3));

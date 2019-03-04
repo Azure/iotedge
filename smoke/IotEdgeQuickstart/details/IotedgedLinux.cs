@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace IotEdgeQuickstart.Details
 {
     using System;
+    using System.ComponentModel;
     using System.IO;
     using System.Linq;
     using System.Net;
@@ -16,12 +16,10 @@ namespace IotEdgeQuickstart.Details
         const int ManagementPort = 15580;
         const int WorkloadPort = 15581;
 
-        public string ConnectManagement { get; }
-        public string ConnectWorkload { get; }
-        public string ListenManagement { get; }
-        public string ListenWorkload { get; }
-
-        public HttpUris() : this(GetIpAddress()) {}
+        public HttpUris()
+            : this(GetIpAddress())
+        {
+        }
 
         public HttpUris(string hostname)
         {
@@ -30,6 +28,14 @@ namespace IotEdgeQuickstart.Details
             this.ListenManagement = $"http://0.0.0.0:{ManagementPort}";
             this.ListenWorkload = $"http://0.0.0.0:{WorkloadPort}";
         }
+
+        public string ConnectManagement { get; }
+
+        public string ConnectWorkload { get; }
+
+        public string ListenManagement { get; }
+
+        public string ListenWorkload { get; }
 
         static string GetIpAddress()
         {
@@ -101,21 +107,31 @@ namespace IotEdgeQuickstart.Details
 
                         string options = this.httpUris.Match(uris => $"-H {uris.ConnectManagement} ", () => string.Empty);
 
-                        string[] result = await Process.RunAsync(
-                            "iotedge",
-                            $"{options}list",
-                            cts.Token);
+                        try
+                        {
+                            string[] result = await Process.RunAsync(
+                                "iotedge",
+                                $"{options}list",
+                                cts.Token);
 
-                        string status = result
-                            .Where(ln => ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries).First() == name)
-                            .DefaultIfEmpty("name status")
-                            .Single()
-                            .Split(null as char[], StringSplitOptions.RemoveEmptyEntries)
-                            .ElementAt(1);  // second column is STATUS
+                            string status = result
+                                .Where(ln => ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries).First() == name)
+                                .DefaultIfEmpty("name status")
+                                .Single()
+                                .Split(null as char[], StringSplitOptions.RemoveEmptyEntries)
+                                .ElementAt(1); // second column is STATUS
 
-                        if (status == "running") break;
+                            if (status == "running")
+                            {
+                                break;
+                            }
 
-                        errorMessage = "Not found";
+                            errorMessage = "Not found";
+                        }
+                        catch (Win32Exception e)
+                        {
+                            Console.WriteLine($"Error searching for {name} module: {e.Message}. Retrying.");
+                        }
                     }
                 }
                 catch (OperationCanceledException e)
@@ -208,7 +224,6 @@ namespace IotEdgeQuickstart.Details
 
             string result = doc.ToString();
 
-
             FileAttributes attr = 0;
             if (File.Exists(YamlPath))
             {
@@ -241,7 +256,11 @@ namespace IotEdgeQuickstart.Details
                     {
                         await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
                         string[] result = await Process.RunAsync("bash", "-c \"systemctl --no-pager show iotedge | grep ActiveState=\"");
-                        if (result.First().Split("=").Last() == "active") break;
+                        if (result.First().Split("=").Last() == "active")
+                        {
+                            break;
+                        }
+
                         errorMessage = result.First();
                     }
                 }

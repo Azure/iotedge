@@ -1,15 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
-
-extern crate edgelet_core;
-extern crate edgelet_hsm;
+#![deny(clippy::all, clippy::pedantic)]
 
 use edgelet_core::{
     Certificate, CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate,
@@ -28,7 +20,8 @@ fn crypto_create_cert_success() {
         "test-iotedge-cn".to_string(),
         CertificateType::Ca,
         IOTEDGED_CA_ALIAS.to_string(),
-    ).with_issuer(CertificateIssuer::DeviceCa);
+    )
+    .with_issuer(CertificateIssuer::DeviceCa);
 
     // act create the default issuing CA cert
     let workload_ca_cert = crypto.create_certificate(&edgelet_ca_props).unwrap();
@@ -48,7 +41,8 @@ fn crypto_create_cert_success() {
         "Common Name".to_string(),
         CertificateType::Ca,
         "Alias".to_string(),
-    ).with_san_entries(san_entries);
+    )
+    .with_san_entries(san_entries);
 
     let cert_info = crypto.create_certificate(&props).unwrap();
 

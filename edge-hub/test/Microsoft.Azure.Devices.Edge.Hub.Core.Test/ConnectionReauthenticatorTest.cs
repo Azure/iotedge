@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
@@ -60,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 deviceConnectivityManager);
             connectionReauthenticator.Init();
 
-            // Assert            
+            // Assert
             connectionManager.Verify(c => c.GetConnectedClients(), Times.Never);
 
             await Task.Delay(reauthFrequency + TimeSpan.FromSeconds(1));
@@ -111,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 deviceConnectivityManager);
             connectionReauthenticator.Init();
 
-            // Assert            
+            // Assert
             connectionManager.Verify(c => c.GetConnectedClients(), Times.Never);
 
             await Task.Delay(reauthFrequency + TimeSpan.FromSeconds(1));
@@ -166,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 deviceConnectivityManager);
             connectionReauthenticator.Init();
 
-            // Assert            
+            // Assert
             connectionManager.Verify(c => c.GetConnectedClients(), Times.Never);
 
             await Task.Delay(reauthFrequency * 2 + TimeSpan.FromSeconds(1));
@@ -203,7 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityRemoved += null, null, "d1");
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityRemoved += null, null, "d1/m1");
 
-            // Assert            
+            // Assert
             Assert.NotNull(connectionReauthenticator);
             connectionManager.Verify(c => c.RemoveDeviceConnection("d1"), Times.Once);
             connectionManager.Verify(c => c.RemoveDeviceConnection("d1/m1"), Times.Once);
@@ -238,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 deviceConnectivityManager);
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityRemoved += null, null, "d2/$edgeHub");
 
-            // Assert            
+            // Assert
             Assert.NotNull(connectionReauthenticator);
             connectionManager.Verify(c => c.RemoveDeviceConnection("d2/$edgeHub"), Times.Never);
             authenticator.VerifyAll();
@@ -292,7 +291,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityUpdated += null, null, deviceServiceIdentity);
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityUpdated += null, null, moduleServiceIdentity);
 
-            // Assert            
+            // Assert
             Assert.NotNull(connectionReauthenticator);
             connectionManager.Verify(c => c.RemoveDeviceConnection("d1"), Times.Once);
             connectionManager.Verify(c => c.RemoveDeviceConnection("d1/m1"), Times.Once);
@@ -348,7 +347,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityUpdated += null, null, deviceServiceIdentity);
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityUpdated += null, null, moduleServiceIdentity);
 
-            // Assert            
+            // Assert
             Assert.NotNull(connectionReauthenticator);
             connectionManager.Verify(c => c.RemoveDeviceConnection("d1"), Times.Never);
             connectionManager.Verify(c => c.RemoveDeviceConnection("d1/m1"), Times.Never);
@@ -393,7 +392,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 deviceConnectivityManager);
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityUpdated += null, null, edgeHubServiceIdentity);
 
-            // Assert            
+            // Assert
             Assert.NotNull(connectionReauthenticator);
             connectionManager.Verify(c => c.RemoveDeviceConnection("d1"), Times.Never);
             connectionManager.Verify(c => c.RemoveDeviceConnection("d1/$edgeHub"), Times.Never);

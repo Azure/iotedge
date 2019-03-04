@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 {
     using System.Linq;
@@ -11,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
     [Unit]
     public class ColumnFamilyStoreTest : IClassFixture<TestRocksDbStoreProvider>
     {
-        private readonly TestRocksDbStoreProvider rocksDbStoreProvider;
+        readonly TestRocksDbStoreProvider rocksDbStoreProvider;
 
         public ColumnFamilyStoreTest(TestRocksDbStoreProvider rocksDbStoreProvider)
         {
@@ -50,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             string firstValue = "firstValue";
             await columnFamilyDbStore.Put(firstKey.ToBytes(), firstValue.ToBytes());
 
-            for(int i = 0; i < 10; i++)
+            for (int i = 0; i < 10; i++)
             {
                 string key = $"key{i}";
                 string value = "$value{i}";

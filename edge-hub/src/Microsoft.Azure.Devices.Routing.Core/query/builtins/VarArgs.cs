@@ -1,7 +1,4 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 {
     using System;
@@ -17,21 +14,21 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
     /// </summary>
     public class VarArgs : IArgs
     {
-        public Type[] Types { get; }
-
-        public int Arity => this.Types.Length;
-
         public VarArgs(params Type[] args)
         {
             this.Types = Preconditions.CheckNotNull(args);
         }
 
+        public Type[] Types { get; }
+
+        public int Arity => this.Types.Length;
+
         public bool Match(Type[] args, bool matchQueryValue)
         {
             int n = this.Types.Length - 1;
             return args.Length >= n &&
-                args.Take(n).Zip(this.Types, (a, t) => a == t || (matchQueryValue && a == typeof(QueryValue))).Aggregate(true, (acc, item) => acc && item) &&
-                args.Skip(n).Select(a => a == this.Types[n] || (matchQueryValue && a == typeof(QueryValue))).Aggregate(true, (acc, item) => acc && item);
+                   args.Take(n).Zip(this.Types, (a, t) => a == t || (matchQueryValue && a == typeof(QueryValue))).Aggregate(true, (acc, item) => acc && item) &&
+                   args.Skip(n).Select(a => a == this.Types[n] || (matchQueryValue && a == typeof(QueryValue))).Aggregate(true, (acc, item) => acc && item);
         }
     }
 }

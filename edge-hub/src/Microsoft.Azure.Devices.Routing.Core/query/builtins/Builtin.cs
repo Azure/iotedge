@@ -1,7 +1,4 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 {
     using System;
@@ -14,13 +11,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 
     public abstract class Builtin : IBuiltin
     {
+        public virtual bool IsBodyQuery => false;
+
         protected static Expression True { get; } = Expression.Constant(Bool.True);
 
         protected static Expression False { get; } = Expression.Constant(Bool.False);
 
         protected abstract BuiltinExecutor[] Executors { get; }
-
-        public virtual bool IsBodyQuery => false;
 
         public virtual bool IsValidMessageSource(IMessageSource source)
         {
@@ -42,7 +39,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
                 BuiltinExecutor executor = this.Executors.FirstOrDefault(ex => ex.InputArgs.Match(types, ex.IsQueryValueSupported));
                 // contextArgs currently are very straightforward. BodyQuery and TwinChangeIncludes use them to get message body.
                 // Not doing a match on internal args to retrieve the executor as of yet
-
                 if (executor != null)
                 {
                     if (executor.IsQueryValueSupported)
@@ -65,17 +61,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 
         static Expression[] WrapArgsAsQueryValue(Expression[] expressions)
         {
-            return expressions.Select(exp =>
-            {
-                if (exp.Type == typeof(QueryValue))
+            return expressions.Select(
+                exp =>
                 {
-                    return exp;
-                }
-                else
-                {
-                    return Expression.Convert(exp, typeof(QueryValue));
-                }
-            }).ToArray();
+                    if (exp.Type == typeof(QueryValue))
+                    {
+                        return exp;
+                    }
+                    else
+                    {
+                        return Expression.Convert(exp, typeof(QueryValue));
+                    }
+                }).ToArray();
         }
     }
 }

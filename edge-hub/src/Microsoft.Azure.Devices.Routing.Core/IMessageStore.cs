@@ -1,7 +1,4 @@
-﻿// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System;
@@ -9,18 +6,18 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
     /// <summary>
     /// Provides functionality to store messages
-    /// Assumes that each message has a SystemProperty EdgeMessageId that 
+    /// Assumes that each message has a SystemProperty EdgeMessageId that
     /// uniquely identifies a given message
-    /// Internally implement 2 types of stores (tables) - 
+    /// Internally implement 2 types of stores (tables) -
     ///     1. A message store containing messages
     ///     2. A message queue for each endpoint referencing messages in the message store
     /// </summary>
     public interface IMessageStore : IDisposable
     {
         /// <summary>
-        /// Finds message with same edgeMessageId in the message store, 
+        /// Finds message with same edgeMessageId in the message store,
         /// and if not found, creates one.
-        /// Creates an entry in the message queue for the given endpoint 
+        /// Creates an entry in the message queue for the given endpoint
         /// and returns the offset of that entry.
         /// </summary>
         Task<long> Add(string endpointId, IMessage message);

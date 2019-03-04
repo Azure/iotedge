@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -12,14 +10,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public class Authenticator : IAuthenticator
     {
-        readonly string edgeDeviceId;
         readonly IAuthenticator tokenAuthenticator;
         readonly IAuthenticator certificateAuthenticator;
         readonly ICredentialsCache credentialsCache;
 
-        public Authenticator(IAuthenticator tokenAuthenticator, IAuthenticator certificateAuthenticator, string edgeDeviceId, ICredentialsCache credentialsCache)
+        public Authenticator(IAuthenticator tokenAuthenticator, IAuthenticator certificateAuthenticator, ICredentialsCache credentialsCache)
         {
-            this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.tokenAuthenticator = Preconditions.CheckNotNull(tokenAuthenticator, nameof(tokenAuthenticator));
             this.certificateAuthenticator = Preconditions.CheckNotNull(certificateAuthenticator, nameof(certificateAuthenticator));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(ICredentialsCache));
@@ -66,8 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<Authenticator>();
             const int IdStart = HubCoreEventIds.Authenticator;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<Authenticator>();
 
             enum EventIds
             {

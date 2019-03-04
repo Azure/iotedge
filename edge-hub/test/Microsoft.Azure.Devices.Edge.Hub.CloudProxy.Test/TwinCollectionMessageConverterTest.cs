@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
@@ -76,11 +75,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public void ConvertsTwinCollectionsToMqttMessages(TwinCollection collection, string expectedJson)
         {
             EdgeMessage expectedMessage = new EdgeMessage.Builder(expectedJson.ToBody())
-                .SetSystemProperties(new Dictionary<string, string>()
-                {
-                    [SystemProperties.EnqueuedTime] = "",
-                    [SystemProperties.Version] = collection.Version.ToString()
-                })
+                .SetSystemProperties(
+                    new Dictionary<string, string>()
+                    {
+                        [SystemProperties.EnqueuedTime] = string.Empty,
+                        [SystemProperties.Version] = collection.Version.ToString()
+                    })
                 .Build();
             IMessage actualMessage = new TwinCollectionMessageConverter().ToMessage(collection);
             Assert.Equal(expectedMessage.Body, actualMessage.Body);
@@ -95,7 +95,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IMessage actualMessage = new TwinCollectionMessageConverter().ToMessage(new TwinCollection());
             Assert.InRange(
                 DateTime.Parse(actualMessage.SystemProperties[SystemProperties.EnqueuedTime], null, DateTimeStyles.RoundtripKind),
-                DateTime.UtcNow.Subtract(new TimeSpan(0, 1, 0)), DateTime.UtcNow);
+                DateTime.UtcNow.Subtract(new TimeSpan(0, 1, 0)),
+                DateTime.UtcNow);
         }
     }
 }

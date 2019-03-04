@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace MessagesAnalyzer
 {
     using System;
@@ -18,7 +17,7 @@ namespace MessagesAnalyzer
         const string DefaultWebhostPort = "5001";
         const double DefaultToleranceInMilliseconds = 1000 * 60;
 
-        static readonly Lazy<Settings> setting = new Lazy<Settings>(
+        static readonly Lazy<Settings> Setting = new Lazy<Settings>(
             () =>
             {
                 IConfiguration configuration = new ConfigurationBuilder()
@@ -27,16 +26,14 @@ namespace MessagesAnalyzer
                     .AddEnvironmentVariables()
                     .Build();
 
-                
                 IList<string> excludedModules = configuration.GetSection(ExcludeModulesIdsPropertyName).Get<List<string>>() ?? new List<string>();
 
-                
-                return new Settings(configuration.GetValue<string>(EventHubConnectionStringPropertyValue),
+                return new Settings(
+                    configuration.GetValue<string>(EventHubConnectionStringPropertyValue),
                     configuration.GetValue(DeviceIdPropertyName, DefaultDeviceId),
                     excludedModules,
                     configuration.GetValue(WebhostPortPropertyName, DefaultWebhostPort),
                     configuration.GetValue(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds));
-
             });
 
         Settings(string eventHubCs, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance)
@@ -48,7 +45,7 @@ namespace MessagesAnalyzer
             this.ToleranceInMilliseconds = tolerance;
         }
 
-        public static Settings Current => setting.Value;
+        public static Settings Current => Setting.Value;
 
         public string EventHubConnectionString { get; }
 
@@ -56,7 +53,7 @@ namespace MessagesAnalyzer
 
         public string DeviceId { get; }
 
-        public string WebhostPort { get;}
+        public string WebhostPort { get; }
 
         public double ToleranceInMilliseconds { get; }
     }

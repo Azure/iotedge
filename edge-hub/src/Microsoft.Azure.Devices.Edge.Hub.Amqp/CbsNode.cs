@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Amqp;
@@ -18,10 +19,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Extensions.Logging;
 
     /// <summary>
-    /// This class is used to get tokens from the Client on the CBS link. It generates 
-    /// an identity from the received token and authenticates it. 
+    /// This class is used to get tokens from the Client on the CBS link. It generates
+    /// an identity from the received token and authenticates it.
     /// </summary>
-    class CbsNode : ICbsNode
+    class CbsNode : ICbsNode, IAmqpAuthenticator
     {
         static readonly List<UriPathTemplate> ResourceTemplates = new List<UriPathTemplate>
         {
@@ -68,23 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     this.sendingLink = (EdgeSendingAmqpLink)link;
                 }
             }
+
             Events.LinkRegistered(link);
-        }
-
-        // TODO: Temporary implementation - just get the first credentials and return it. 
-        public async Task<AmqpAuthentication> GetAmqpAuthentication()
-        {
-            if (!this.clientCredentialsMap.Any())
-            {
-                throw new InvalidOperationException("No valid credentials found");
-            }
-
-            KeyValuePair<string, CredentialsInfo> creds = this.clientCredentialsMap.First();
-            if (!creds.Value.IsAuthenticated)
-            {
-                creds.Value.IsAuthenticated = await this.authenticator.AuthenticateAsync(creds.Value.ClientCredentials);
-            }
-            return new AmqpAuthentication(creds.Value.IsAuthenticated, Option.Some(creds.Value.ClientCredentials));
         }
 
         public async Task<bool> AuthenticateAsync(string id)
@@ -119,36 +105,78 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Events.ErrorAuthenticatingIdentity(id, e);
                 return false;
             }
-        }        
+        }
 
-        async void OnMessageReceived(AmqpMessage message)
+        public void Dispose()
         {
-            Events.NewTokenReceived();
-            try
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!this.disposed)
             {
-                await this.HandleTokenUpdate(message);
-            }
-            catch (Exception ex)
-            {
-                Events.ErrorHandlingTokenUpdate(ex);
+                this.disposed = true;
             }
         }
 
-        async Task HandleTokenUpdate(AmqpMessage message)
+        internal static (string token, string audience) ValidateAndParseMessage(string iotHubHostName, AmqpMessage message)
         {
-            using (await this.identitySyncLock.LockAsync())
+            string type = message.ApplicationProperties.Map[CbsConstants.PutToken.Type] as string;
+            if (!CbsConstants.SupportedTokenTypes.Any(t => string.Equals(type, t, StringComparison.OrdinalIgnoreCase)))
             {
-                try
+                throw new InvalidOperationException("Cbs message missing Type property");
+            }
+
+            if (string.IsNullOrEmpty(message.ApplicationProperties.Map[CbsConstants.PutToken.Audience] as string))
+            {
+                throw new InvalidOperationException("Cbs message missing audience property");
+            }
+
+            if (!(message.ApplicationProperties.Map[CbsConstants.Operation] is string operation)
+                || !operation.Equals(CbsConstants.PutToken.OperationValue, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Cbs message missing operation value {CbsConstants.PutToken.OperationValue}");
+            }
+
+            string token = message.ValueBody.Value as string;
+            if (string.IsNullOrEmpty(token))
+            {
+                throw new InvalidOperationException("Cbs message does not contain a valid token");
+            }
+
+            try
+            {
+                SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(iotHubHostName, token);
+                return (token, sharedAccessSignature.Audience);
+            }
+            catch (Exception e)
+            {
+                throw new InvalidOperationException("Cbs message does not contain a valid token", e);
+            }
+        }
+
+        internal static (string deviceId, string moduleId) ParseIds(string audience)
+        {
+            string decodedAudience = WebUtility.UrlDecode(audience);
+            string audienceUri = decodedAudience.StartsWith("amqps://", StringComparison.CurrentCultureIgnoreCase) ? decodedAudience : "amqps://" + decodedAudience;
+
+            foreach (UriPathTemplate template in ResourceTemplates)
+            {
+                (bool success, IList<KeyValuePair<string, string>> boundVariables) = template.Match(new Uri(audienceUri));
+                if (success)
                 {
-                    (AmqpResponseStatusCode statusCode, string description) = await this.UpdateCbsToken(message);
-                    await this.SendResponseAsync(message, statusCode, description);
-                }
-                catch (Exception e)
-                {
-                    await this.SendResponseAsync(message, AmqpResponseStatusCode.InternalServerError, e.Message);
-                    Events.ErrorUpdatingToken(e);
+                    IDictionary<string, string> boundVariablesDictionary = boundVariables.ToDictionary();
+                    string deviceId = boundVariablesDictionary[Templates.DeviceIdTemplateParameterName];
+                    string moduleId = boundVariablesDictionary.ContainsKey(Templates.ModuleIdTemplateParameterName)
+                        ? boundVariablesDictionary[Templates.ModuleIdTemplateParameterName]
+                        : null;
+                    return (deviceId, moduleId);
                 }
             }
+
+            throw new InvalidOperationException($"Matching template not found for audience {audienceUri}");
         }
 
         // Note: This method updates this.clientCredentialsMap, and should be invoked only within this.identitySyncLock
@@ -198,39 +226,49 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             return clientCredentials;
         }
 
-        internal static (string token, string audience) ValidateAndParseMessage(string iotHubHostName, AmqpMessage message)
+        internal ArraySegment<byte> GetDeliveryTag()
         {
-            string type = message.ApplicationProperties.Map[CbsConstants.PutToken.Type] as string;
-            if (!CbsConstants.SupportedTokenTypes.Any(t => string.Equals(type, t, StringComparison.OrdinalIgnoreCase)))
-            {
-                throw new InvalidOperationException("Cbs message missing Type property");
-            }
+            int deliveryId = Interlocked.Increment(ref this.deliveryCount);
+            return new ArraySegment<byte>(BitConverter.GetBytes(deliveryId));
+        }
 
-            if (string.IsNullOrEmpty(message.ApplicationProperties.Map[CbsConstants.PutToken.Audience] as string))
-            {
-                throw new InvalidOperationException("Cbs message missing audience property");
-            }
+        static AmqpMessage GetAmqpResponse(AmqpMessage requestMessage, AmqpResponseStatusCode statusCode, string statusDescription)
+        {
+            AmqpMessage response = AmqpMessage.Create();
+            response.Properties.CorrelationId = requestMessage.Properties.MessageId;
+            response.ApplicationProperties = new ApplicationProperties();
+            response.ApplicationProperties.Map[CbsConstants.PutToken.StatusCode] = (int)statusCode;
+            response.ApplicationProperties.Map[CbsConstants.PutToken.StatusDescription] = statusDescription;
+            return response;
+        }
 
-            if (!(message.ApplicationProperties.Map[CbsConstants.Operation] is string operation)
-                || !operation.Equals(CbsConstants.PutToken.OperationValue, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException($"Cbs message missing operation value {CbsConstants.PutToken.OperationValue}");
-            }
-
-            string token = message.ValueBody.Value as string;
-            if (string.IsNullOrEmpty(token))
-            {
-                throw new InvalidOperationException("Cbs message does not contain a valid token");
-            }
-
+        async void OnMessageReceived(AmqpMessage message)
+        {
+            Events.NewTokenReceived();
             try
             {
-                SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(iotHubHostName, token);
-                return (token, sharedAccessSignature.Audience);
+                await this.HandleTokenUpdate(message);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                throw new InvalidOperationException("Cbs message does not contain a valid token", e);
+                Events.ErrorHandlingTokenUpdate(ex);
+            }
+        }
+
+        async Task HandleTokenUpdate(AmqpMessage message)
+        {
+            using (await this.identitySyncLock.LockAsync())
+            {
+                try
+                {
+                    (AmqpResponseStatusCode statusCode, string description) = await this.UpdateCbsToken(message);
+                    await this.SendResponseAsync(message, statusCode, description);
+                }
+                catch (Exception e)
+                {
+                    await this.SendResponseAsync(message, AmqpResponseStatusCode.InternalServerError, e.Message);
+                    Events.ErrorUpdatingToken(e);
+                }
             }
         }
 
@@ -248,59 +286,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             }
         }
 
-        static AmqpMessage GetAmqpResponse(AmqpMessage requestMessage, AmqpResponseStatusCode statusCode, string statusDescription)
-        {
-            AmqpMessage response = AmqpMessage.Create();
-            response.Properties.CorrelationId = requestMessage.Properties.MessageId;
-            response.ApplicationProperties = new ApplicationProperties();
-            response.ApplicationProperties.Map[CbsConstants.PutToken.StatusCode] = (int)statusCode;
-            response.ApplicationProperties.Map[CbsConstants.PutToken.StatusDescription] = statusDescription;
-            return response;
-        }
-
-        internal static (string deviceId, string moduleId) ParseIds(string audience)
-        {
-            string audienceUri = audience.StartsWith("amqps://", StringComparison.CurrentCultureIgnoreCase) ? audience : "amqps://" + audience;
-
-            foreach (UriPathTemplate template in ResourceTemplates)
-            {
-                (bool success, IList<KeyValuePair<string, string>> boundVariables) = template.Match(new Uri(audienceUri));
-                if (success)
-                {
-                    IDictionary<string, string> boundVariablesDictionary = boundVariables.ToDictionary();
-                    string deviceId = boundVariablesDictionary[Templates.DeviceIdTemplateParameterName];
-                    string moduleId = boundVariablesDictionary.ContainsKey(Templates.ModuleIdTemplateParameterName)
-                        ? boundVariablesDictionary[Templates.ModuleIdTemplateParameterName]
-                        : null;
-                    return (deviceId, moduleId);
-                }
-            }
-
-            throw new InvalidOperationException($"Matching template not found for audience {audienceUri}");
-        }
-
-        internal ArraySegment<byte> GetDeliveryTag()
-        {
-            int deliveryId = Interlocked.Increment(ref this.deliveryCount);
-            return new ArraySegment<byte>(BitConverter.GetBytes(deliveryId));
-        }
-
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!this.disposed)
-            {
-                this.disposed = true;
-            }
-        }
-
         /// <summary>
-        /// This type is deliberately mutable because of the use case. 
+        /// This type is deliberately mutable because of the use case.
         /// </summary>
         class CredentialsInfo
         {
@@ -320,8 +307,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<CbsNode>();
             const int IdStart = AmqpEventIds.CbsNode;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<CbsNode>();
 
             enum EventIds
             {

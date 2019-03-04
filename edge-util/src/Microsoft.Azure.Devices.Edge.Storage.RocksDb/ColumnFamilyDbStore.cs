@@ -1,122 +1,158 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using App.Metrics;
     using App.Metrics.Timer;
-    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using RocksDbSharp;
 
     class ColumnFamilyDbStore : IDbStore
     {
         readonly IRocksDb db;
-        
+
         public ColumnFamilyDbStore(IRocksDb db, ColumnFamilyHandle handle)
         {
             this.db = Preconditions.CheckNotNull(db, nameof(db));
             this.Handle = Preconditions.CheckNotNull(handle, nameof(handle));
         }
 
-        internal ColumnFamilyHandle Handle { get; }        
+        internal ColumnFamilyHandle Handle { get; }
 
-        public Task<Option<byte[]>> Get(byte[] key)
+        public Task Put(byte[] key, byte[] value) => this.Put(key, value, CancellationToken.None);
+
+        public Task<Option<byte[]>> Get(byte[] key) => this.Get(key, CancellationToken.None);
+
+        public Task Remove(byte[] key) => this.Remove(key, CancellationToken.None);
+
+        public Task<bool> Contains(byte[] key) => this.Contains(key, CancellationToken.None);
+
+        public Task<Option<(byte[] key, byte[] value)>> GetFirstEntry() => this.GetFirstEntry(CancellationToken.None);
+
+        public Task<Option<(byte[] key, byte[] value)>> GetLastEntry() => this.GetLastEntry(CancellationToken.None);
+
+        public Task IterateBatch(int batchSize, Func<byte[], byte[], Task> perEntityCallback) => this.IterateBatch(batchSize, perEntityCallback, CancellationToken.None);
+
+        public Task IterateBatch(byte[] startKey, int batchSize, Func<byte[], byte[], Task> perEntityCallback) => this.IterateBatch(startKey, batchSize, perEntityCallback, CancellationToken.None);
+
+        public async Task<Option<byte[]>> Get(byte[] key, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
 
             Option<byte[]> returnValue;
             using (Metrics.DbGetLatency("all"))
             {
-                byte[] value = this.db.Get(key, this.Handle);
+                Func<byte[]> operation = () => this.db.Get(key, this.Handle);
+                byte[] value = await operation.ExecuteUntilCancelled(cancellationToken);
                 returnValue = value != null ? Option.Some(value) : Option.None<byte[]>();
             }
-            return Task.FromResult(returnValue);
+
+            return returnValue;
         }
 
-        public Task Put(byte[] key, byte[] value)
+        public Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
             Preconditions.CheckNotNull(value, nameof(value));
 
             using (Metrics.DbPutLatency("all"))
             {
-                this.db.Put(key, value, this.Handle);
+                Action operation = () => this.db.Put(key, value, this.Handle);
+                return operation.ExecuteUntilCancelled(cancellationToken);
             }
-            return Task.CompletedTask;
         }
 
-        public Task Remove(byte[] key)
+        public Task Remove(byte[] key, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
-            this.db.Remove(key, this.Handle);
-            return Task.CompletedTask;
-        }        
+            Action operation = () => this.db.Remove(key, this.Handle);
+            return operation.ExecuteUntilCancelled(cancellationToken);
+        }
 
-        public Task<Option<(byte[] key, byte[] value)>> GetLastEntry()
+        public async Task<Option<(byte[] key, byte[] value)>> GetLastEntry(CancellationToken cancellationToken)
         {
             using (Iterator iterator = this.db.NewIterator(this.Handle))
             {
-                iterator.SeekToLast();
+                Action operation = () => iterator.SeekToLast();
+                await operation.ExecuteUntilCancelled(cancellationToken);
                 if (iterator.Valid())
                 {
                     byte[] key = iterator.Key();
                     byte[] value = iterator.Value();
-                    return Task.FromResult(Option.Some((key, value)));
+                    return Option.Some((key, value));
                 }
                 else
                 {
-                    return Task.FromResult(Option.None<(byte[], byte[])>());
+                    return Option.None<(byte[], byte[])>();
                 }
             }
         }
 
-        public Task<Option<(byte[] key, byte[] value)>> GetFirstEntry()
+        public async Task<Option<(byte[] key, byte[] value)>> GetFirstEntry(CancellationToken cancellationToken)
         {
             using (Iterator iterator = this.db.NewIterator(this.Handle))
             {
-                iterator.SeekToFirst();
+                Action operation = () => iterator.SeekToFirst();
+                await operation.ExecuteUntilCancelled(cancellationToken);
                 if (iterator.Valid())
                 {
                     byte[] key = iterator.Key();
                     byte[] value = iterator.Value();
-                    return Task.FromResult(Option.Some((key, value)));
+                    return Option.Some((key, value));
                 }
                 else
                 {
-                    return Task.FromResult(Option.None<(byte[], byte[])>());
+                    return Option.None<(byte[], byte[])>();
                 }
             }
         }
 
-        public Task<bool> Contains(byte[] key)
+        public async Task<bool> Contains(byte[] key, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
-            byte[] value = this.db.Get(key, this.Handle);
-            return Task.FromResult(value != null);
+            Func<byte[]> operation = () => this.db.Get(key, this.Handle);
+            byte[] value = await operation.ExecuteUntilCancelled(cancellationToken);
+            return value != null;
         }
 
-        public Task IterateBatch(byte[] startKey, int batchSize, Func<byte[], byte[], Task> callback)
+        public Task IterateBatch(byte[] startKey, int batchSize, Func<byte[], byte[], Task> callback, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(startKey, nameof(startKey));
             Preconditions.CheckRange(batchSize, 1, nameof(batchSize));
             Preconditions.CheckNotNull(callback, nameof(callback));
 
-            return this.IterateBatch(iterator => iterator.Seek(startKey), batchSize, callback);
+            return this.IterateBatch(iterator => iterator.Seek(startKey), batchSize, callback, cancellationToken);
         }
 
-        public Task IterateBatch(int batchSize, Func<byte[], byte[], Task> callback)
+        public Task IterateBatch(int batchSize, Func<byte[], byte[], Task> callback, CancellationToken cancellationToken)
         {
             Preconditions.CheckRange(batchSize, 1, nameof(batchSize));
             Preconditions.CheckNotNull(callback, nameof(callback));
 
-            return this.IterateBatch(iterator => iterator.SeekToFirst(), batchSize, callback);
+            return this.IterateBatch(iterator => iterator.SeekToFirst(), batchSize, callback, cancellationToken);
         }
 
-        async Task IterateBatch(Action<Iterator> seeker, int batchSize, Func<byte[], byte[], Task> callback)
+        public void Dispose()
         {
-            // Use tailing iterator to prevent creating a snapshot. 
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Don't dispose the Db here as we don't know if the caller
+                // meant to dispose just the ColumnFamilyDbStore or the DB.
+                // this.db?.Dispose();
+            }
+        }
+
+        async Task IterateBatch(Action<Iterator> seeker, int batchSize, Func<byte[], byte[], Task> callback, CancellationToken cancellationToken)
+        {
+            // Use tailing iterator to prevent creating a snapshot.
             var readOptions = new ReadOptions();
             readOptions.SetTailing(true);
 
@@ -128,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                     byte[] key = iterator.Key();
                     byte[] value = iterator.Value();
                     await callback(key, value);
-                } 
+                }
             }
         }
 
@@ -150,30 +186,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                 RateUnit = TimeUnit.Seconds
             };
 
-            internal static MetricTags GetTags(string id)
+            public static IDisposable DbPutLatency(string identity) => Util.Metrics.Latency(GetTags(identity), DbPutLatencyOptions);
+
+            public static IDisposable DbGetLatency(string identity) => Util.Metrics.Latency(GetTags(identity), DbGetLatencyOptions);
+
+            static MetricTags GetTags(string id)
             {
                 return new MetricTags("EndpointId", id);
             }
-
-            public static IDisposable DbPutLatency(string identity) => Edge.Util.Metrics.Latency(GetTags(identity), DbPutLatencyOptions);
-
-            public static IDisposable DbGetLatency(string identity) => Edge.Util.Metrics.Latency(GetTags(identity), DbGetLatencyOptions);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                // Don't dispose the Db here as we don't know if the caller
-                // meant to dispose just the ColumnFamilyDbStore or the DB.
-                //this.db?.Dispose();
-            }
-        }
-
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
         }
     }
 }

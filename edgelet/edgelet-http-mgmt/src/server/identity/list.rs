@@ -12,8 +12,8 @@ use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use management::models::{Identity, IdentityList};
 
-use error::{Error, ErrorKind};
-use IntoResponse;
+use crate::error::{Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct ListIdentities<I> {
     id_manager: I,
@@ -34,7 +34,7 @@ where
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let response = self
             .id_manager
             .list()
@@ -52,7 +52,8 @@ where
                                 identity.generation_id().to_string(),
                                 identity.auth_type().to_string(),
                             )
-                        }).collect(),
+                        })
+                        .collect(),
                 );
                 let b = serde_json::to_string(&body).context(ErrorKind::IdentityOperation(
                     IdentityOperation::ListIdentities,
@@ -66,7 +67,8 @@ where
                         IdentityOperation::ListIdentities,
                     ))?;
                 Ok(response)
-            }).or_else(|e| Ok(e.into_response()));
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -109,7 +111,8 @@ mod tests {
                 }
 
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -132,7 +135,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 }

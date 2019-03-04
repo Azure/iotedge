@@ -9,8 +9,8 @@ use edgelet_core::{LogOptions, LogTail, ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 
-use error::{Error, ErrorKind};
-use IntoResponse;
+use crate::error::{Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct ModuleLogs<M> {
     runtime: M,
@@ -31,7 +31,7 @@ where
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let runtime = self.runtime.clone();
 
         let response = params
@@ -44,7 +44,8 @@ where
                     .query()
                     .map_or_else(|| Ok(LogOptions::default()), parse_options)?;
                 Ok((name, options))
-            }).map(move |(name, options)| {
+            })
+            .map(move |(name, options)| {
                 runtime.logs(&name, &options).then(|s| -> Result<_, Error> {
                     let s = s.with_context(|_| {
                         ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(name.clone()))
@@ -57,7 +58,8 @@ where
                         ))?;
                     Ok(response)
                 })
-            }).into_future()
+            })
+            .into_future()
             .flatten()
             .or_else(|e| future::ok(e.into_response()));
 
@@ -83,15 +85,15 @@ fn parse_options(query: &str) -> Result<LogOptions, Error> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use chrono::prelude::*;
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_test_utils::module::*;
     use futures::Stream;
     use management::models::*;
     use serde_json;
-    use server::module::tests::Error;
+
+    use super::*;
+    use crate::server::module::tests::Error;
 
     #[test]
     fn correct_logoptions() {
@@ -162,7 +164,8 @@ mod tests {
             .and_then(|b| {
                 assert_eq!(0, b.len());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -191,7 +194,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -211,7 +215,8 @@ mod tests {
         let handler = ModuleLogs::new(runtime);
         let request = Request::get(
             "http://localhost/modules/mod1/logs?api-version=2018-06-28&follow=asfda&tail=asfafda",
-        ).body(Body::default())
+        )
+        .body(Body::default())
         .unwrap();
         let parameters =
             Parameters::with_captures(vec![(Some("name".to_string()), "mod1".to_string())]);

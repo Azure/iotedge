@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System.Threading;
@@ -19,5 +18,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         /// <returns>An <see cref="IRuntimeInfo"/> object that contains the runtime information.</returns>
         Task<IRuntimeInfo> GetRuntimeInfoAsync();
-    }    
+    }
 }

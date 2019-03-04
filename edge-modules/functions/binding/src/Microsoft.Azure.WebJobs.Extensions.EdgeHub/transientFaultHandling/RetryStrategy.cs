@@ -1,20 +1,4 @@
-//Copyright(c) Microsoft.All rights reserved.
-//Microsoft would like to thank its contributors, a list
-//of whom are at http://aka.ms/entlib-contributors
-
-//Licensed under the Apache License, Version 2.0 (the "License"); you
-//may not use this file except in compliance with the License. You may
-//obtain a copy of the License at
-
-//http://www.apache.org/licenses/LICENSE-2.0
-
-//Unless required by applicable law or agreed to in writing, software
-//distributed under the License is distributed on an "AS IS" BASIS,
-//WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-//implied. See the License for the specific language governing permissions
-//and limitations under the License.
-
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 {
     using System;
@@ -61,6 +45,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         public static readonly bool DefaultFirstFastRetry = true;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.RetryStrategy" /> class.
+        /// </summary>
+        /// <param name="firstFastRetry">true to immediately retry in the first attempt; otherwise, false. The subsequent retries will remain subject to the configured retry interval.</param>
+        protected RetryStrategy(bool firstFastRetry)
+        {
+            this.FastFirstRetry = firstFastRetry;
+        }
+
+        /// <summary>
         /// Returns a default policy that performs no retries, but invokes the action only once.
         /// </summary>
         public static RetryStrategy NoRetry { get; } = new FixedInterval(0, DefaultRetryInterval);
@@ -87,20 +80,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         /// Gets or sets a value indicating whether the first retry attempt will be made immediately,
         /// whereas subsequent retries will remain subject to the retry interval.
         /// </summary>
-        public bool FastFirstRetry
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.RetryStrategy" /> class.
-        /// </summary>
-        /// <param name="firstFastRetry">true to immediately retry in the first attempt; otherwise, false. The subsequent retries will remain subject to the configured retry interval.</param>
-        protected RetryStrategy(bool firstFastRetry)
-        {
-            this.FastFirstRetry = firstFastRetry;
-        }
+        public bool FastFirstRetry { get; set; }
 
         /// <summary>
         /// Returns the corresponding ShouldRetry delegate.

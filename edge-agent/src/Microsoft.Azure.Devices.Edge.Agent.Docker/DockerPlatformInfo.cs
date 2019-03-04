@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System;
@@ -25,13 +24,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty("version")]
         public string Version { get; }
 
+        public static bool operator ==(DockerPlatformInfo info1, DockerPlatformInfo info2) => EqualityComparer<DockerPlatformInfo>.Default.Equals(info1, info2);
+
+        public static bool operator !=(DockerPlatformInfo info1, DockerPlatformInfo info2) => !(info1 == info2);
+
         public override bool Equals(object obj) => this.Equals(obj as DockerPlatformInfo);
 
         public bool Equals(DockerPlatformInfo other) =>
-                   other != null &&
-                   this.OperatingSystemType == other.OperatingSystemType &&
-                   this.Architecture == other.Architecture &&
-                   this.Version == other.Version;
+            other != null &&
+            this.OperatingSystemType == other.OperatingSystemType &&
+            this.Architecture == other.Architecture &&
+            this.Version == other.Version;
 
         public override int GetHashCode()
         {
@@ -41,9 +44,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.Version);
             return hashCode;
         }
-
-        public static bool operator ==(DockerPlatformInfo info1, DockerPlatformInfo info2) => EqualityComparer<DockerPlatformInfo>.Default.Equals(info1, info2);
-
-        public static bool operator !=(DockerPlatformInfo info1, DockerPlatformInfo info2) => !(info1 == info2);
     }
 }

@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Storage.Test
 {
-    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
@@ -10,10 +8,17 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
     [Unit]
     public class SerDeExtensionsTest
     {
+        public interface ITestInterface
+        {
+            string GetProp1();
+
+            long GetProp2();
+        }
+
         [Fact]
         public void ToJsonTest()
         {
-            Assert.Equal("", SerDeExtensions.ToJson(null));
+            Assert.Equal(string.Empty, SerDeExtensions.ToJson(null));
 
             string str = "Foo Bar";
             Assert.Equal(str, SerDeExtensions.ToJson(str));
@@ -33,10 +38,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         public void FromJsonTest()
         {
             Assert.Null(SerDeExtensions.FromJson<ITestInterface>(null));
-            Assert.Null(SerDeExtensions.FromJson<ITestInterface>(""));
+            Assert.Null(SerDeExtensions.FromJson<ITestInterface>(string.Empty));
 
             Assert.Equal(0, SerDeExtensions.FromJson<int>(null));
-            Assert.Equal(0, SerDeExtensions.FromJson<long>(""));
+            Assert.Equal(0, SerDeExtensions.FromJson<long>(string.Empty));
 
             string str = "Foo Bar";
             Assert.Equal(str, SerDeExtensions.FromJson<string>(str));
@@ -66,8 +71,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public void FromBytesTest()
         {
-            Assert.Equal("", SerDeExtensions.FromBytes(null));
-            Assert.Equal("", SerDeExtensions.FromBytes(new byte[0]));
+            Assert.Equal(string.Empty, SerDeExtensions.FromBytes(null));
+            Assert.Equal(string.Empty, SerDeExtensions.FromBytes(new byte[0]));
         }
 
         [Fact]
@@ -99,26 +104,21 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             Assert.Equal(testObj.GetProp2(), testObj2.GetProp2());
         }
 
-        public interface ITestInterface
-        {
-            string GetProp1();
-            long GetProp2();
-        }
-
         class TestClass : ITestInterface
         {
-            public string Prop1 { get; }
-            public long Prop2 { get; set; }
-
-            public string GetProp1() => this.Prop1;
-
-            public long GetProp2() => this.Prop2;
-
             [JsonConstructor]
             public TestClass(string prop1)
             {
                 this.Prop1 = prop1;
             }
+
+            public string Prop1 { get; }
+
+            public long Prop2 { get; set; }
+
+            public string GetProp1() => this.Prop1;
+
+            public long GetProp2() => this.Prop2;
         }
     }
 }

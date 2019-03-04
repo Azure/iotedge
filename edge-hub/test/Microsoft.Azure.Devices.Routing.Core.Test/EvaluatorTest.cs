@@ -5,27 +5,28 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
-    using Microsoft.Azure.Devices.Routing.Core.Endpoints;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
-    using Microsoft.Azure.Devices.Routing.Core.Test.Endpoints;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Test.Endpoints;
+    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class EvaluatorTest : RoutingUnitTestBase
     {
         static readonly IMessageSource InvalidMessageSource = CustomMessageSource.Create("/invalid/message/path");
-        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
-        static readonly IMessage InvalidMessage = new Message(InvalidMessageSource, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value3"}, {"key2", "value2"} });
-        static readonly IMessage Message4 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value4"}, {"key2", "value2"} });
+        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } });
+        static readonly IMessage InvalidMessage = new Message(InvalidMessageSource, new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value3" }, { "key2", "value2" } });
+        static readonly IMessage Message4 = new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value4" }, { "key2", "value2" } });
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void SmokeTest()
         {
             var endpoint1 = new TestEndpoint("id1");
             var endpoint2 = new TestEndpoint("id2");
-            var allEndpoints = new HashSet<Endpoint> {  endpoint1, endpoint2 };
+            var allEndpoints = new HashSet<Endpoint> { endpoint1, endpoint2 };
             var route1 = new Route("id1", "false", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1 });
             var route2 = new Route("id2", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint2 });
             var routes = new HashSet<Route> { route2, route1 };
@@ -36,7 +37,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Assert.Contains(endpoint2, endpoints);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestSetRoute()
         {
             var endpoint1 = new TestEndpoint("id1");
@@ -73,7 +75,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Assert.True(evaluator.Routes.SetEquals(new HashSet<Route> { route3, route4, route1 }));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestRemoveRoute()
         {
             var endpoint1 = new TestEndpoint("id1");
@@ -97,7 +100,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             endpoints = evaluator.Evaluate(Message1);
             Assert.Equal(1, endpoints.Count);
             Assert.Contains(endpoint1, endpoints);
-            Assert.True(evaluator.Routes.SetEquals(new HashSet<Route> {route3, route1 }));
+            Assert.True(evaluator.Routes.SetEquals(new HashSet<Route> { route3, route1 }));
 
             // Remove route3
             evaluator.RemoveRoute("id3");
@@ -114,7 +117,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Assert.True(evaluator.Routes.SetEquals(new HashSet<Route> { route1 }));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestReplaceRoutes()
         {
             var endpoint1 = new TestEndpoint("id1");
@@ -139,7 +143,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Assert.True(evaluator.Routes.SetEquals(newRoutes));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestMessageSource()
         {
             var endpoint1 = new NullEndpoint("id1");
@@ -161,7 +166,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestFallback()
         {
             var endpoint1 = new NullEndpoint("id1");
@@ -185,7 +191,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Assert.Equal(0, result3.Count);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestNoFallback()
         {
             var endpoint1 = new NullEndpoint("id1");

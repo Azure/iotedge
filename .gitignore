@@ -220,7 +220,7 @@ publish/
 # Publish Web Output
 *.[Pp]ublish.xml
 *.azurePubxml
-# TODO: Comment the next line if you want to checkin your web deploy settings 
+# TODO: Comment the next line if you want to checkin your web deploy settings
 # but database connection strings (with potential passwords) will be unencrypted
 *.pubxml
 *.publishproj
@@ -244,7 +244,6 @@ AppPackages/
 # Others
 *.[Cc]ache
 ClientBin/
-[Ss]tyle[Cc]op.*
 ~$*
 *~
 *.dbmdl
@@ -291,7 +290,7 @@ FakesAssemblies/
 .vscode/
 
 launchSettings.json
-target/
+target*/
 **/generated/*
 
 # macOS files
@@ -302,6 +301,9 @@ target/
 
 # IoT Edge artifacts
 backup.json
+
+# IoT Edge formatting artifacts
+stylecop.json
 
 # python
 **/*.egg-info

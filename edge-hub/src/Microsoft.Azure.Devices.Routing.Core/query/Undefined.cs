@@ -1,18 +1,15 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Query
 {
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
 
     public struct Undefined
     {
-        public static Undefined Instance { get; } = new Undefined();
-
         static readonly string UndefinedString = new string(new[] { 'u', 'n', 'd', 'e', 'f', 'i', 'n', 'e', 'd' });
         static readonly Bool UndefinedBool = Bool.Undefined;
         static readonly double UndefinedDouble = double.NaN;
+
+        public static Undefined Instance { get; } = new Undefined();
 
         // Equal
         public static Bool operator ==(Undefined x, Undefined y) => Bool.Undefined;
@@ -271,6 +268,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
         public static Bool IsDefined(double input) => (Bool)!double.IsNaN(input);
 
         public static Bool IsDefined(Bool input) => (Bool)!input.Equals(UndefinedBool);
+
         public static Bool IsDefined(QueryValue input) => (Bool)(input.ValueType != QueryValueType.None);
 
         public bool Equals(Undefined other) => true;

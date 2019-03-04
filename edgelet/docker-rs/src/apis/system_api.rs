@@ -9,16 +9,13 @@
  */
 
 use std::borrow::Borrow;
-use std::borrow::Cow;
 use std::sync::Arc;
 
-use futures;
 use futures::{Future, Stream};
 use hyper;
 use serde_json;
 use typed_headers::{self, http, mime, HeaderMapExt};
 
-use super::super::utils::UserAgent;
 use super::{configuration, Error};
 
 pub struct SystemApiClient<C: hyper::client::connect::Connect> {
@@ -104,13 +101,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::InlineResponse20010, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -152,13 +151,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::InlineResponse20013, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -208,13 +209,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::InlineResponse20012, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -256,13 +259,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::SystemInfo, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -301,13 +306,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<String, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -348,13 +355,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::InlineResponse20011, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))

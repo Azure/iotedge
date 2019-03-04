@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
+    using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;

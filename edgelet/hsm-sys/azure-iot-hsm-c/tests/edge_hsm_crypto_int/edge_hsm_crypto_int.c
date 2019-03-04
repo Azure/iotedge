@@ -96,7 +96,7 @@ static CERT_PROPS_HANDLE test_helper_create_certificate_props
 )
 {
     CERT_PROPS_HANDLE cert_props_handle = cert_properties_create();
-    ASSERT_IS_NOT_NULL_WITH_MSG(cert_props_handle, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(cert_props_handle, "Line:" TOSTRING(__LINE__));
     set_validity_seconds(cert_props_handle, validity);
     set_common_name(cert_props_handle, common_name);
     set_country_name(cert_props_handle, "US");
@@ -128,7 +128,7 @@ static void test_helper_generate_pki_certificate
                                            cert_file,
                                            issuer_private_key_file,
                                            issuer_cert_file);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 }
 
 static void test_helper_generate_self_signed
@@ -147,7 +147,7 @@ static void test_helper_generate_self_signed
                                                       private_key_file,
                                                       cert_file,
                                                       key_props);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 }
 
 static void test_helper_prepare_transparent_gateway_certs(void)
@@ -228,9 +228,9 @@ static void test_helper_prepare_transparent_gateway_certs(void)
     const char *trusted_files[1] = { NULL };
     trusted_files[0] = int_ca_2_path;
     char* trusted_ca_certs = concat_files_to_cstring(trusted_files, sizeof(trusted_files)/sizeof(trusted_files[0]));
-    ASSERT_IS_NOT_NULL_WITH_MSG(trusted_ca_certs, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(trusted_ca_certs, "Line:" TOSTRING(__LINE__));
     status = write_cstring_to_file(trusted_ca_path, trusted_ca_certs);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
     // cleanup
     free(trusted_ca_certs);
@@ -245,53 +245,53 @@ static void test_helper_setup_homedir(void)
     int status;
 
     TEST_IOTEDGE_HOMEDIR = hsm_test_util_create_temp_dir(&TEST_IOTEDGE_HOMEDIR_GUID);
-    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
-    ASSERT_IS_NOT_NULL_WITH_MSG(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
 
     printf("Temp dir created: [%s]\r\n", TEST_IOTEDGE_HOMEDIR);
     hsm_test_util_setenv("IOTEDGE_HOMEDIR", TEST_IOTEDGE_HOMEDIR);
     printf("IoT Edge home dir set to %s\n", TEST_IOTEDGE_HOMEDIR);
 
     STRING_HANDLE BASE_TG_CERTS_PATH = STRING_construct(TEST_IOTEDGE_HOMEDIR);
-    ASSERT_IS_NOT_NULL_WITH_MSG(BASE_TG_CERTS_PATH, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(BASE_TG_CERTS_PATH, "Line:" TOSTRING(__LINE__));
     status = STRING_concat(BASE_TG_CERTS_PATH, SLASH);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
     VALID_DEVICE_CA_PATH = STRING_clone(BASE_TG_CERTS_PATH);
     status = STRING_concat(VALID_DEVICE_CA_PATH, "device_ca_cert.pem");
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
     VALID_DEVICE_PK_PATH = STRING_clone(BASE_TG_CERTS_PATH);
     status = STRING_concat(VALID_DEVICE_PK_PATH, "device_pk_cert.pem");
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
     VALID_TRUSTED_CA_PATH = STRING_clone(BASE_TG_CERTS_PATH);
     status = STRING_concat(VALID_TRUSTED_CA_PATH, "trusted_ca_certs.pem");
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
     ROOT_CA_PATH = STRING_clone(BASE_TG_CERTS_PATH);
     status = STRING_concat(ROOT_CA_PATH, "root_ca_cert.pem");
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
     ROOT_PK_PATH = STRING_clone(BASE_TG_CERTS_PATH);
     status = STRING_concat(ROOT_PK_PATH, "root_ca_pk.pem");
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
     INT_1_CA_PATH = STRING_clone(BASE_TG_CERTS_PATH);
     status = STRING_concat(INT_1_CA_PATH, "int_1_ca_cert.pem");
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
     INT_1_PK_PATH = STRING_clone(BASE_TG_CERTS_PATH);
     status = STRING_concat(INT_1_PK_PATH, "int_1_ca_pk.pem");
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
     INT_2_CA_PATH = STRING_clone(BASE_TG_CERTS_PATH);
     status = STRING_concat(INT_2_CA_PATH, "int_2_ca_cert.pem");
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
     INT_2_PK_PATH = STRING_clone(BASE_TG_CERTS_PATH);
     status = STRING_concat(INT_2_PK_PATH, "int_2_ca_pk.pem");
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
     test_helper_prepare_transparent_gateway_certs();
 
@@ -351,10 +351,10 @@ static HSM_CLIENT_HANDLE test_helper_crypto_init(void)
 {
     int status;
     status = hsm_client_crypto_init();
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
     const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
     HSM_CLIENT_HANDLE result = interface->hsm_client_crypto_create();
-    ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
     return result;
 }
 
@@ -368,7 +368,7 @@ static void test_helper_crypto_deinit(HSM_CLIENT_HANDLE hsm_handle)
 static CERT_PROPS_HANDLE test_helper_create_ca_cert_properties(void)
 {
     CERT_PROPS_HANDLE certificate_props = cert_properties_create();
-    ASSERT_IS_NOT_NULL_WITH_MSG(certificate_props, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(certificate_props, "Line:" TOSTRING(__LINE__));
     set_common_name(certificate_props, TEST_CA_COMMON_NAME);
     set_validity_seconds(certificate_props, 3600);
     set_alias(certificate_props, TEST_CA_ALIAS);
@@ -380,7 +380,7 @@ static CERT_PROPS_HANDLE test_helper_create_ca_cert_properties(void)
 static CERT_PROPS_HANDLE test_helper_create_server_cert_properties(void)
 {
     CERT_PROPS_HANDLE certificate_props = cert_properties_create();
-    ASSERT_IS_NOT_NULL_WITH_MSG(certificate_props, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(certificate_props, "Line:" TOSTRING(__LINE__));
     set_common_name(certificate_props, TEST_SERVER_COMMON_NAME);
     set_validity_seconds(certificate_props, 3600);
     set_alias(certificate_props, TEST_SERVER_ALIAS);
@@ -392,7 +392,7 @@ static CERT_PROPS_HANDLE test_helper_create_server_cert_properties(void)
 static CERT_PROPS_HANDLE test_helper_create_client_cert_properties(void)
 {
     CERT_PROPS_HANDLE certificate_props = cert_properties_create();
-    ASSERT_IS_NOT_NULL_WITH_MSG(certificate_props, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(certificate_props, "Line:" TOSTRING(__LINE__));
     set_common_name(certificate_props, TEST_CLIENT_COMMON_NAME);
     set_validity_seconds(certificate_props, 3600);
     set_alias(certificate_props, TEST_CLIENT_ALIAS);
@@ -461,8 +461,8 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         int result = interface->hsm_client_get_random_bytes(hsm_handle, output_buffer, sizeof(output_buffer));
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, memcmp(unexpected_buffer, output_buffer, sizeof(unexpected_buffer)), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, memcmp(unexpected_buffer, output_buffer, sizeof(unexpected_buffer)), "Line:" TOSTRING(__LINE__));
 
         //cleanup
         test_helper_crypto_deinit(hsm_handle);
@@ -479,7 +479,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         CERT_INFO_HANDLE result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
 
         // assert
-        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         interface->hsm_client_destroy_certificate(hsm_handle, TEST_CA_ALIAS);
@@ -496,23 +496,23 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
         CERT_PROPS_HANDLE ca_certificate_props = test_helper_create_ca_cert_properties();
         CERT_INFO_HANDLE ca_cert_info = interface->hsm_client_create_certificate(hsm_handle, ca_certificate_props);
-        ASSERT_IS_NOT_NULL_WITH_MSG(ca_cert_info, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(ca_cert_info, "Line:" TOSTRING(__LINE__));
         CERT_PROPS_HANDLE certificate_props = test_helper_create_server_cert_properties();
 
         // act
         CERT_INFO_HANDLE result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
 
         // assert
-        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
         const char *certificate = certificate_info_get_certificate(result);
         const char *chain_certificate = certificate_info_get_chain(result);
         const void* private_key = certificate_info_get_private_key(result, &pk_size);
 
         // assert
-        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL_WITH_MSG(certificate, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL_WITH_MSG(chain_certificate, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL_WITH_MSG(private_key, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(certificate, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(chain_certificate, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(private_key, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         interface->hsm_client_destroy_certificate(hsm_handle, TEST_SERVER_ALIAS);
@@ -537,7 +537,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         CERT_INFO_HANDLE result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
 
         // assert
-        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         interface->hsm_client_destroy_certificate(hsm_handle, TEST_CA_ALIAS);
@@ -555,7 +555,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         CERT_PROPS_HANDLE ca_certificate_props = test_helper_create_ca_cert_properties();
         set_validity_seconds(ca_certificate_props, 3600);
         CERT_INFO_HANDLE ca_cert_info = interface->hsm_client_create_certificate(hsm_handle, ca_certificate_props);
-        ASSERT_IS_NOT_NULL_WITH_MSG(ca_cert_info, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(ca_cert_info, "Line:" TOSTRING(__LINE__));
         CERT_PROPS_HANDLE certificate_props = test_helper_create_server_cert_properties();
         set_validity_seconds(certificate_props, 3600 * 2);
 
@@ -563,19 +563,19 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         CERT_INFO_HANDLE result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
 
         // assert
-        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
         const char *certificate = certificate_info_get_certificate(result);
         const char *chain_certificate = certificate_info_get_chain(result);
         const void* private_key = certificate_info_get_private_key(result, &pk_size);
         int64_t expiration_time = certificate_info_get_valid_to(result);
         int64_t issuer_expiration_time = certificate_info_get_valid_to(ca_cert_info);
-        ASSERT_IS_TRUE_WITH_MSG((expiration_time <= issuer_expiration_time), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((expiration_time <= issuer_expiration_time), "Line:" TOSTRING(__LINE__));
 
         // assert
-        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL_WITH_MSG(certificate, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL_WITH_MSG(chain_certificate, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL_WITH_MSG(private_key, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(certificate, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(chain_certificate, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(private_key, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         interface->hsm_client_destroy_certificate(hsm_handle, TEST_SERVER_ALIAS);
@@ -596,7 +596,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         CERT_PROPS_HANDLE ca_certificate_props = test_helper_create_ca_cert_properties();
         set_validity_seconds(ca_certificate_props, 3600 * 2);
         CERT_INFO_HANDLE ca_cert_info = interface->hsm_client_create_certificate(hsm_handle, ca_certificate_props);
-        ASSERT_IS_NOT_NULL_WITH_MSG(ca_cert_info, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(ca_cert_info, "Line:" TOSTRING(__LINE__));
         CERT_PROPS_HANDLE certificate_props = test_helper_create_server_cert_properties();
         set_validity_seconds(certificate_props, 3600);
 
@@ -604,19 +604,19 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         CERT_INFO_HANDLE result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
 
         // assert
-        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
         const char *certificate = certificate_info_get_certificate(result);
         const char *chain_certificate = certificate_info_get_chain(result);
         const void* private_key = certificate_info_get_private_key(result, &pk_size);
         int64_t expiration_time = certificate_info_get_valid_to(result);
         int64_t issuer_expiration_time = certificate_info_get_valid_to(ca_cert_info);
-        ASSERT_IS_TRUE_WITH_MSG((expiration_time < issuer_expiration_time), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((expiration_time < issuer_expiration_time), "Line:" TOSTRING(__LINE__));
 
         // assert
-        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL_WITH_MSG(certificate, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL_WITH_MSG(chain_certificate, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL_WITH_MSG(private_key, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(certificate, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(chain_certificate, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(private_key, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         interface->hsm_client_destroy_certificate(hsm_handle, TEST_SERVER_ALIAS);
@@ -635,31 +635,31 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
         CERT_PROPS_HANDLE ca_certificate_props = test_helper_create_ca_cert_properties();
         CERT_INFO_HANDLE ca_cert_info = interface->hsm_client_create_certificate(hsm_handle, ca_certificate_props);
-        ASSERT_IS_NOT_NULL_WITH_MSG(ca_cert_info, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(ca_cert_info, "Line:" TOSTRING(__LINE__));
         CERT_PROPS_HANDLE certificate_props = test_helper_create_client_cert_properties();
 
         // act, assert multiple calls to create certificate only creates if not created
         CERT_INFO_HANDLE result_first, result_second;
         result_first = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
-        ASSERT_IS_NOT_NULL_WITH_MSG(result_first, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result_first, "Line:" TOSTRING(__LINE__));
         result_second = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
-        ASSERT_IS_NOT_NULL_WITH_MSG(result_second, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result_second, "Line:" TOSTRING(__LINE__));
         const char *first_certificate = certificate_info_get_certificate(result_first);
         const char *second_certificate = certificate_info_get_certificate(result_second);
         size_t first_len = strlen(first_certificate);
         size_t second_len = strlen(second_certificate);
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, first_len, second_len, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, first_len, second_len, "Line:" TOSTRING(__LINE__));
         int cmp_result = memcmp(first_certificate, second_certificate, first_len);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
 
         // destroy the certificate in the HSM and create a new one and test if different from prior call
         certificate_info_destroy(result_second);
         interface->hsm_client_destroy_certificate(hsm_handle, TEST_CLIENT_ALIAS);
         result_second = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
-        ASSERT_IS_NOT_NULL_WITH_MSG(result_second, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result_second, "Line:" TOSTRING(__LINE__));
         second_certificate = certificate_info_get_certificate(result_second);
         cmp_result = memcmp(first_certificate, second_certificate, first_len);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         interface->hsm_client_destroy_certificate(hsm_handle, TEST_CLIENT_ALIAS);
@@ -694,14 +694,14 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
         CERT_PROPS_HANDLE ca_certificate_props = test_helper_create_ca_cert_properties();
         CERT_INFO_HANDLE ca_cert_info = interface->hsm_client_create_certificate(hsm_handle, ca_certificate_props);
-        ASSERT_IS_NOT_NULL_WITH_MSG(ca_cert_info, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(ca_cert_info, "Line:" TOSTRING(__LINE__));
         CERT_PROPS_HANDLE certificate_props = test_helper_create_client_cert_properties();
 
         // act
         CERT_INFO_HANDLE result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
 
         // assert
-        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         interface->hsm_client_destroy_certificate(hsm_handle, TEST_CLIENT_ALIAS);
@@ -722,14 +722,14 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
 
         // act
         CERT_INFO_HANDLE result = interface->hsm_client_get_trust_bundle(hsm_handle);
-        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
 
         // assert
         const char *certificate = certificate_info_get_certificate(result);
         const void *private_key = certificate_info_get_private_key(result, &pk_size);
-        ASSERT_IS_NOT_NULL_WITH_MSG(certificate, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(private_key, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pk_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(certificate, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(private_key, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pk_size, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         certificate_info_destroy(result);
@@ -745,13 +745,13 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
 
         // act, assert
         status = interface->hsm_client_destroy_master_encryption_key(hsm_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         status = interface->hsm_client_create_master_encryption_key(hsm_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         status = interface->hsm_client_destroy_master_encryption_key(hsm_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         test_helper_crypto_deinit(hsm_handle);
@@ -771,24 +771,24 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
 
         // act, assert
         status = interface->hsm_client_create_master_encryption_key(hsm_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         status = interface->hsm_client_encrypt_data(hsm_handle, &id, &pt, &iv, &ciphertext_result);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL_WITH_MSG(ciphertext_result.buffer, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(size_t, 0, ciphertext_result.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(ciphertext_result.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(size_t, 0, ciphertext_result.size, "Line:" TOSTRING(__LINE__));
         status = memcmp(TEST_PLAINTEXT, ciphertext_result.buffer, TEST_PLAINTEXT_SIZE);
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         status = interface->hsm_client_decrypt_data(hsm_handle, &id, &ciphertext_result, &iv, &plaintext_result);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL_WITH_MSG(plaintext_result.buffer, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, TEST_PLAINTEXT_SIZE, plaintext_result.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(plaintext_result.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, TEST_PLAINTEXT_SIZE, plaintext_result.size, "Line:" TOSTRING(__LINE__));
         status = memcmp(TEST_PLAINTEXT, plaintext_result.buffer, TEST_PLAINTEXT_SIZE);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         status = interface->hsm_client_destroy_master_encryption_key(hsm_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(plaintext_result.buffer);
@@ -809,22 +809,22 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         SIZED_BUFFER ciphertext_result_2 = { NULL, 0 };
 
         status = interface->hsm_client_create_master_encryption_key(hsm_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = interface->hsm_client_encrypt_data(hsm_handle, &id, &pt, &iv, &ciphertext_result_1);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // act, assert
         status = interface->hsm_client_create_master_encryption_key(hsm_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = interface->hsm_client_encrypt_data(hsm_handle, &id, &pt, &iv, &ciphertext_result_2);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, ciphertext_result_1.size, ciphertext_result_2.size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, ciphertext_result_1.size, ciphertext_result_2.size, "Line:" TOSTRING(__LINE__));
         status = memcmp(ciphertext_result_1.buffer, ciphertext_result_2.buffer, ciphertext_result_1.size);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         status = interface->hsm_client_destroy_master_encryption_key(hsm_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(ciphertext_result_1.buffer);
@@ -839,15 +839,15 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
         const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
         status = interface->hsm_client_create_master_encryption_key(hsm_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = interface->hsm_client_destroy_master_encryption_key(hsm_handle);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // act
         status = interface->hsm_client_destroy_master_encryption_key(hsm_handle);
 
         // assert
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         test_helper_crypto_deinit(hsm_handle);
     }
@@ -866,13 +866,13 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
 
         // act, assert
         CERT_INFO_HANDLE result = interface->hsm_client_get_trust_bundle(hsm_handle);
-        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
         const char *certificate = certificate_info_get_certificate(result);
-        ASSERT_IS_NOT_NULL_WITH_MSG(certificate, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(certificate, "Line:" TOSTRING(__LINE__));
         char *expected_trust_bundle = read_file_into_cstring(trusted_ca_path, NULL);
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, strlen(certificate), strlen(expected_trust_bundle), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, strlen(certificate), strlen(expected_trust_bundle), "Line:" TOSTRING(__LINE__));
         int cmp = memcmp(certificate, expected_trust_bundle, strlen(certificate));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(expected_trust_bundle);
@@ -898,13 +898,13 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
 
         // act, assert
         CERT_INFO_HANDLE result = interface->hsm_client_create_certificate(hsm_handle, ca_certificate_props);
-        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
         const char *chain_certificate = certificate_info_get_chain(result);
-        ASSERT_IS_NOT_NULL_WITH_MSG(chain_certificate, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(chain_certificate, "Line:" TOSTRING(__LINE__));
         char *expected_chain_certificate = read_file_into_cstring(device_ca_path, NULL);
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, strlen(expected_chain_certificate), strlen(chain_certificate), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, strlen(expected_chain_certificate), strlen(chain_certificate), "Line:" TOSTRING(__LINE__));
         int cmp = memcmp(expected_chain_certificate, chain_certificate, strlen(chain_certificate));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(expected_chain_certificate);
@@ -925,14 +925,14 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         CERT_PROPS_HANDLE ca_certificate_props = test_helper_create_ca_cert_properties();
         set_validity_seconds(ca_certificate_props, 1);
         CERT_INFO_HANDLE result = interface->hsm_client_create_certificate(hsm_handle, ca_certificate_props);
-        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
 
         // act
         ThreadAPI_Sleep(2000);
         CERT_INFO_HANDLE temp_info_handle = interface->hsm_client_create_certificate(hsm_handle, ca_certificate_props);
 
         // assert
-        ASSERT_IS_NULL_WITH_MSG(temp_info_handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(temp_info_handle, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         interface->hsm_client_destroy_certificate(hsm_handle, TEST_CA_ALIAS);
@@ -957,13 +957,13 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
 
         // act, assert
         CERT_INFO_HANDLE result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
-        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
         const char *chain_certificate = certificate_info_get_chain(result);
-        ASSERT_IS_NOT_NULL_WITH_MSG(chain_certificate, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(chain_certificate, "Line:" TOSTRING(__LINE__));
         char *expected_chain_certificate = read_file_into_cstring(device_ca_path, NULL);
-        ASSERT_ARE_EQUAL_WITH_MSG(size_t, strlen(expected_chain_certificate), strlen(chain_certificate), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, strlen(expected_chain_certificate), strlen(chain_certificate), "Line:" TOSTRING(__LINE__));
         int cmp = memcmp(expected_chain_certificate, chain_certificate, strlen(chain_certificate));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(expected_chain_certificate);
@@ -993,43 +993,43 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         hsm_test_util_unsetenv(ENV_DEVICE_PK_PATH);
         hsm_test_util_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
         status = hsm_client_crypto_init();
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         hsm_test_util_unsetenv(ENV_DEVICE_CA_PATH);
         hsm_test_util_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
         hsm_test_util_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
         status = hsm_client_crypto_init();
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         hsm_test_util_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
         hsm_test_util_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
         hsm_test_util_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
         status = hsm_client_crypto_init();
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         hsm_test_util_unsetenv(ENV_DEVICE_CA_PATH);
         hsm_test_util_unsetenv(ENV_DEVICE_PK_PATH);
         hsm_test_util_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
         status = hsm_client_crypto_init();
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         hsm_test_util_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
         hsm_test_util_unsetenv(ENV_DEVICE_PK_PATH);
         hsm_test_util_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
         status = hsm_client_crypto_init();
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         hsm_test_util_unsetenv(ENV_DEVICE_CA_PATH);
         hsm_test_util_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
         hsm_test_util_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
         status = hsm_client_crypto_init();
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         hsm_test_util_setenv(ENV_DEVICE_CA_PATH, INVALID_PATH);
         hsm_test_util_setenv(ENV_DEVICE_PK_PATH, INVALID_PATH);
         hsm_test_util_setenv(ENV_TRUSTED_CA_CERTS_PATH, INVALID_PATH);
         status = hsm_client_crypto_init();
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         hsm_test_util_unsetenv(ENV_DEVICE_CA_PATH);

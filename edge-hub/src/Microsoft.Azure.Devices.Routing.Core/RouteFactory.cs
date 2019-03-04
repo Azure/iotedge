@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         public Route Create(string routeString)
         {
             // Parse route into constituents
-            this.ParseRoute(Preconditions.CheckNotNull(routeString, nameof(routeString)), out IMessageSource messageSource, out string condition, out Endpoint endpoint);            
+            this.ParseRoute(Preconditions.CheckNotNull(routeString, nameof(routeString)), out IMessageSource messageSource, out string condition, out Endpoint endpoint);
             var route = new Route(this.GetNextRouteId(), condition, this.IotHubName, messageSource, new HashSet<Endpoint> { endpoint });
             return route;
         }
@@ -60,10 +60,10 @@ namespace Microsoft.Azure.Devices.Routing.Core
             endpoint = listener.Endpoint;
         }
 
-        private class RouteParserListener : RouteBaseListener
+        class RouteParserListener : RouteBaseListener
         {
             readonly IEndpointFactory endpointFactory;
-            
+
             public RouteParserListener(IEndpointFactory endpointFactory)
             {
                 this.endpointFactory = endpointFactory;
@@ -98,9 +98,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
 
             public override void ExitFuncEndpoint(RouteParser.FuncEndpointContext context)
-            {                
+            {
                 string funcName = context.func.Text;
-                string address = context.endpoint.Text.Trim('"'); 
+                string address = context.endpoint.Text.Trim('"');
                 Endpoint endpoint = this.endpointFactory.CreateFunctionEndpoint(funcName, address);
                 this.Endpoint = endpoint;
             }

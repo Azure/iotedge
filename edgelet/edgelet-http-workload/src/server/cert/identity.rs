@@ -57,7 +57,8 @@ where
                         body.context(ErrorKind::CertOperation(CertOperation::CreateIdentityCert))?;
                     Ok((cn, alias, module_uri, body))
                 })
-            }).into_future()
+            })
+            .into_future()
             .flatten()
             .and_then(move |(cn, alias, module_uri, body)| {
                 let cert_req: IdentityCertificateRequest =
@@ -67,10 +68,10 @@ where
                     || Ok(max_duration),
                     |exp| compute_validity(exp, max_duration, ErrorKind::MalformedRequestBody),
                 )?;
-                #[cfg_attr(feature = "cargo-clippy", allow(cast_sign_loss))]
+                #[allow(clippy::cast_sign_loss)]
                 let expiration = match expiration {
                     expiration if expiration < 0 || expiration > max_duration => {
-                        return Err(Error::from(ErrorKind::MalformedRequestBody))
+                        return Err(Error::from(ErrorKind::MalformedRequestBody));
                     }
                     expiration => expiration as u64,
                 };
@@ -85,14 +86,16 @@ where
                     cn,
                     CertificateType::Client,
                     alias.clone(),
-                ).with_san_entries(sans);
+                )
+                .with_san_entries(sans);
                 refresh_cert(
                     &hsm,
                     alias,
                     &props,
                     ErrorKind::CertOperation(CertOperation::CreateIdentityCert),
                 )
-            }).or_else(|e| Ok(e.into_response()));
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -158,10 +161,7 @@ mod tests {
     }
 
     impl Default for TestWorkloadConfig {
-        #[cfg_attr(
-            feature = "cargo-clippy",
-            allow(cast_possible_wrap, cast_sign_loss)
-        )]
+        #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
         fn default() -> Self {
             assert!(MAX_DURATION_SEC < (i64::max_value() as u64));
 

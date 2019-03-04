@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
 {
     using System;
@@ -34,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                     {
                         failures = Option.Some(new List<Exception>());
                     }
+
                     failures.ForEach(f => f.Add(ex));
                 }
             }
@@ -45,8 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<OrderedPlanRunner>();
             const int IdStart = AgentEventIds.OrderedPlanRunner;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<OrderedPlanRunner>();
 
             enum EventIds
             {

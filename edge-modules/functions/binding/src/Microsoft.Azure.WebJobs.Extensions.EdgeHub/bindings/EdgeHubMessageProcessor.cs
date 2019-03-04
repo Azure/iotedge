@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 {
     using System.Threading.Tasks;
@@ -10,9 +9,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
     /// </summary>
     class EdgeHubMessageProcessor
     {
-        public delegate Task MessageHandler(Message message, object userContext);
-
         MessageHandler handler;
+
+        public delegate Task MessageHandler(Message message, object userContext);
 
         public Task TriggerMessage(Message message, object userContext)
         {

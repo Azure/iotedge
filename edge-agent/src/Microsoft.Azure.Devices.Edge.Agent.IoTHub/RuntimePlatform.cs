@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
-    using Newtonsoft.Json;
     using System;
     using System.Collections.Generic;
+    using Newtonsoft.Json;
 
     public class RuntimePlatform : IEquatable<RuntimePlatform>
     {
@@ -20,6 +19,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         [JsonProperty(PropertyName = "architecture")]
         public string Architecture { get; }
+
+        public static bool operator ==(RuntimePlatform platform1, RuntimePlatform platform2)
+        {
+            return EqualityComparer<RuntimePlatform>.Default.Equals(platform1, platform2);
+        }
+
+        public static bool operator !=(RuntimePlatform platform1, RuntimePlatform platform2)
+        {
+            return !(platform1 == platform2);
+        }
 
         public RuntimePlatform Clone() => new RuntimePlatform(this.OperatingSystem, this.Architecture);
 
@@ -41,16 +50,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.OperatingSystem);
             hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.Architecture);
             return hashCode;
-        }
-
-        public static bool operator ==(RuntimePlatform platform1, RuntimePlatform platform2)
-        {
-            return EqualityComparer<RuntimePlatform>.Default.Equals(platform1, platform2);
-        }
-
-        public static bool operator !=(RuntimePlatform platform1, RuntimePlatform platform2)
-        {
-            return !(platform1 == platform2);
         }
     }
 }

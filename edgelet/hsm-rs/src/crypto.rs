@@ -150,7 +150,8 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
                 0 => Some(()),
                 _ => None,
             }
-        }).ok_or_else(|| {
+        })
+        .ok_or_else(|| {
             unsafe { cert_properties_destroy(handle) };
             ErrorKind::CertProps
         })?;
@@ -165,7 +166,8 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
     match result {
         0 => Some(()),
         _ => None,
-    }.ok_or_else(|| {
+    }
+    .ok_or_else(|| {
         unsafe { cert_properties_destroy(handle) };
         ErrorKind::CertProps
     })?;
@@ -178,7 +180,8 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
                 0 => Some(()),
                 _ => None,
             }
-        }).ok_or_else(|| {
+        })
+        .ok_or_else(|| {
             unsafe { cert_properties_destroy(handle) };
             ErrorKind::CertProps
         })?;
@@ -191,7 +194,8 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
                 0 => Some(()),
                 _ => None,
             }
-        }).ok_or_else(|| {
+        })
+        .ok_or_else(|| {
             unsafe { cert_properties_destroy(handle) };
             ErrorKind::CertProps
         })?;
@@ -251,7 +255,8 @@ impl CreateCertificate for Crypto {
             .and_then(|c_alias| {
                 unsafe { if_fn(self.handle, c_alias.as_ptr()) };
                 Some(())
-            }).ok_or_else(|| ErrorKind::ToCStr)?;
+            })
+            .ok_or_else(|| ErrorKind::ToCStr)?;
         Ok(())
     }
 }
@@ -1132,7 +1137,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(feature = "cargo-clippy", allow(let_unit_value))]
+    #[allow(clippy::let_unit_value)]
     fn hsm_success() {
         let hsm_crypto = fake_good_hsm_crypto();
 

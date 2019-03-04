@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
@@ -8,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
 
     /// <summary>
     /// This class handles sending twin messages to the client (Get twin responses and
@@ -16,18 +16,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     /// </summary>
     public class TwinSendingLinkHandler : SendingLinkHandler
     {
-        public TwinSendingLinkHandler(ISendingAmqpLink link, Uri requestUri, IDictionary<string, string> boundVariables,
+        public TwinSendingLinkHandler(
+            IIdentity identity,
+            ISendingAmqpLink link,
+            Uri requestUri,
+            IDictionary<string, string> boundVariables,
+            IConnectionHandler connectionHandler,
             IMessageConverter<AmqpMessage> messageConverter)
-            : base(link, requestUri, boundVariables, messageConverter)
+            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter)
         {
         }
-
-        protected override QualityOfService QualityOfService => QualityOfService.AtMostOnce;
 
         public override LinkType Type => LinkType.TwinSending;
 
         public override string CorrelationId =>
             AmqpConnectionUtils.GetCorrelationId(this.Link);
+
+        protected override QualityOfService QualityOfService => QualityOfService.AtMostOnce;
 
         protected override async Task OnOpenAsync(TimeSpan timeout)
         {

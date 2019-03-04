@@ -1,19 +1,4 @@
-//Copyright(c) Microsoft.All rights reserved.
-//Microsoft would like to thank its contributors, a list
-//of whom are at http://aka.ms/entlib-contributors
-
-//Licensed under the Apache License, Version 2.0 (the "License"); you
-//may not use this file except in compliance with the License. You may
-//obtain a copy of the License at
-
-//http://www.apache.org/licenses/LICENSE-2.0
-
-//Unless required by applicable law or agreed to in writing, software
-//distributed under the License is distributed on an "AS IS" BASIS,
-//WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-//implied. See the License for the specific language governing permissions
-//and limitations under the License.
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 {
     using System;
@@ -44,38 +29,55 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
             Task task = taskAction();
             if (task == null)
             {
-                throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "{0} cannot be null", new object[]
-                {
-                    "taskAction"
-                }), nameof(taskAction));
+                throw new ArgumentException(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "{0} cannot be null",
+                        new object[]
+                        {
+                            "taskAction"
+                        }),
+                    nameof(taskAction));
             }
+
             if (task.Status == TaskStatus.RanToCompletion)
             {
                 return GetCachedTask();
             }
+
             if (task.Status == TaskStatus.Created)
             {
-                throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "{0} must be scheduled", new object[]
-                {
-                    "taskAction"
-                }), nameof(taskAction));
+                throw new ArgumentException(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "{0} must be scheduled",
+                        new object[]
+                        {
+                            "taskAction"
+                        }),
+                    nameof(taskAction));
             }
+
             var tcs = new TaskCompletionSource<bool>();
-            task.ContinueWith(delegate (Task t)
-            {
-                if (t.IsFaulted)
+            task.ContinueWith(
+                t =>
                 {
-                    if (t.Exception != null)
-                        tcs.TrySetException(t.Exception.InnerExceptions);
-                    return;
-                }
-                if (t.IsCanceled)
-                {
-                    tcs.TrySetCanceled();
-                    return;
-                }
-                tcs.TrySetResult(true);
-            }, TaskContinuationOptions.ExecuteSynchronously);
+                    if (t.IsFaulted)
+                    {
+                        if (t.Exception != null)
+                            tcs.TrySetException(t.Exception.InnerExceptions);
+                        return;
+                    }
+
+                    if (t.IsCanceled)
+                    {
+                        tcs.TrySetCanceled();
+                        return;
+                    }
+
+                    tcs.TrySetResult(true);
+                },
+                TaskContinuationOptions.ExecuteSynchronously);
             return tcs.Task;
         }
 
@@ -87,6 +89,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
                 taskCompletionSource.TrySetResult(true);
                 cachedBoolTask = taskCompletionSource.Task;
             }
+
             return cachedBoolTask;
         }
     }

@@ -1,6 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
@@ -21,13 +19,17 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             // Example returned string:
             // SharedAccessSignature sr=ENCODED(dh://myiothub.azure-devices.net/a/b/c?myvalue1=a)&sig=<Signature>&se=<ExpiresOnValue>[&skn=<KeyName>]
-
             var buffer = new StringBuilder();
-            buffer.AppendFormat(CultureInfo.InvariantCulture, "{0} {1}={2}&{3}={4}&{5}={6}",
+            buffer.AppendFormat(
+                CultureInfo.InvariantCulture,
+                "{0} {1}={2}&{3}={4}&{5}={6}",
                 SharedAccessSignature,
-                AudienceFieldName, audience,
-                SignatureFieldName, WebUtility.UrlEncode(signature),
-                ExpiryFieldName, WebUtility.UrlEncode(expiry));
+                AudienceFieldName,
+                audience,
+                SignatureFieldName,
+                WebUtility.UrlEncode(signature),
+                ExpiryFieldName,
+                WebUtility.UrlEncode(expiry));
 
             return buffer.ToString();
         }
@@ -40,7 +42,18 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return Convert.ToString(seconds, CultureInfo.InvariantCulture);
         }
 
+        /// <summary>
+        /// Builds the audience from iothub deviceId and moduleId.
+        /// Note that deviceId and moduleId need to be double encoded.
+        /// </summary>
         public static string BuildAudience(string iotHub, string deviceId, string moduleId) =>
-            WebUtility.UrlEncode(Invariant($"{iotHub}/devices/{deviceId}/modules/{moduleId}"));
+            WebUtility.UrlEncode(Invariant($"{iotHub}/devices/{WebUtility.UrlEncode(deviceId)}/modules/{WebUtility.UrlEncode(moduleId)}"));
+
+        /// <summary>
+        /// Builds the audience from iothub and deviceId.
+        /// Note that deviceId and moduleId need to be double encoded.
+        /// </summary>
+        public static string BuildAudience(string iotHub, string deviceId) =>
+            WebUtility.UrlEncode(Invariant($"{iotHub}/devices/{WebUtility.UrlEncode(deviceId)}"));
     }
 }

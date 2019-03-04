@@ -41,22 +41,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
 
                 (string deviceId, string moduleId, string deviceClientType) = ParseUserName(username);
-                IClientCredentials deviceCredentials;
+                IClientCredentials deviceCredentials = null;
 
-                if (password == null && this.clientCertAuthAllowed)
+                if (!string.IsNullOrEmpty(password))
                 {
-                    deviceCredentials = this.remoteCertificate.Map(cert =>
+                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, password, false);
+                }
+                else if (this.remoteCertificate.HasValue)
+                {
+                    if (!this.clientCertAuthAllowed)
                     {
-                        return this.clientCredentialsFactory.GetWithX509Cert(deviceId,
-                                                                             moduleId,
-                                                                             deviceClientType,
-                                                                             cert,
-                                                                             this.remoteCertificateChain);
-                    }).GetOrElse(() => throw new InvalidOperationException($"Unable to validate credientials since no certificate was provided and password is null"));
+                        Events.CertAuthNotEnabled(deviceId, moduleId);
+                        return UnauthenticatedDeviceIdentity.Instance;
+                    }
+
+                    this.remoteCertificate.ForEach(
+                        cert =>
+                        {
+                            deviceCredentials = this.clientCredentialsFactory.GetWithX509Cert(
+                                deviceId,
+                                moduleId,
+                                deviceClientType,
+                                cert,
+                                this.remoteCertificateChain);
+                        });
                 }
                 else
                 {
-                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, password, false);
+                    Events.AuthNotFound(deviceId, moduleId);
+                    return UnauthenticatedDeviceIdentity.Instance;
                 }
 
                 if (deviceCredentials == null
@@ -66,43 +79,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     Events.Error(clientId, username);
                     return UnauthenticatedDeviceIdentity.Instance;
                 }
+
                 Events.Success(clientId, username);
                 return new ProtocolGatewayIdentity(deviceCredentials);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                Events.ErrorCreatingIdentity(ex);
                 throw;
             }
         }
 
-        public bool RemoteCertificateValidationCallback(X509Certificate certificate, X509Chain chain)
+        public void RegisterConnectionCertificate(X509Certificate2 certificate, IList<X509Certificate2> chain)
         {
-            if (certificate != null)
-            {
-                this.remoteCertificate = Option.Some(new X509Certificate2(certificate));
-            }
-            if (chain != null)
-            {
-                this.remoteCertificateChain = chain.ChainElements.Cast<X509ChainElement>().Select(element => element.Certificate).ToList();
-            }
-
-            return true; // real validation in GetAsync above
-        }
-
-        public bool RemoteCertificateValidationCallback(X509Certificate2 certificate, IList<X509Certificate2> chain)
-        {
-            if (certificate != null)
-            {
-                this.remoteCertificate = Option.Some(certificate);
-            }
-            if (chain != null)
-            {
-                this.remoteCertificateChain = chain;
-   
-            }
-
-            return true; // real validation in GetAsync above
+            this.remoteCertificate = Option.Some(Preconditions.CheckNotNull(certificate, nameof(certificate)));
+            this.remoteCertificateChain = Preconditions.CheckNotNull(chain, nameof(chain));
         }
 
         internal static (string deviceId, string moduleId, string deviceClientType) ParseUserName(string username)
@@ -124,7 +115,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             // "iotHub1/device1/module1/foo?bar=b1&api-version=2010-01-01&DeviceClientType=customDeviceClient1"
             // "iotHub1/device1?&api-version=2010-01-01&DeviceClientType=customDeviceClient1"
             // "iotHub1/device1/module1?&api-version=2010-01-01&DeviceClientType=customDeviceClient1"
-
             string deviceId;
             string moduleId = string.Empty;
             IDictionary<string, string> queryParameters;
@@ -138,9 +128,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     deviceId = usernameSegments[1].Trim();
                     queryParameters = ParseDeviceClientType(usernameSegments[2].Substring(1).Trim());
                 }
-                // edgeHubHostName/device1/module1/?apiVersion=10-2-3&DeviceClientType=foo
                 else if (usernameSegments.Length == 4)
                 {
+                    // edgeHubHostName/device1/module1/?apiVersion=10-2-3&DeviceClientType=foo
                     deviceId = usernameSegments[1].Trim();
                     moduleId = usernameSegments[2].Trim();
                     queryParameters = ParseDeviceClientType(usernameSegments[3].Substring(1).Trim());
@@ -158,19 +148,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     deviceId = usernameSegments[1].Trim();
                     queryParameters = ParseDeviceClientType(usernameSegments[2].Trim());
                 }
-                // edgeHubHostName/device1/module1/apiVersion=10-2-3&DeviceClientType=foo
                 else if (usernameSegments.Length == 4 && usernameSegments[3].Contains("api-version="))
                 {
+                    // edgeHubHostName/device1/module1/apiVersion=10-2-3&DeviceClientType=foo
                     deviceId = usernameSegments[1].Trim();
                     moduleId = usernameSegments[2].Trim();
                     queryParameters = ParseDeviceClientType(usernameSegments[3].Trim());
                 }
-                // The Azure ML container is using an older client that returns a device client with the following format -
-                // username = edgeHubHostName/deviceId/moduleId/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003
-                // Notice how the DeviceClientType parameter is separated by a '/' instead of a '&', giving a usernameSegments.Length of 6 instead of the expected 4
-                // To allow those clients to work, check for that specific api-version, and version.
                 else if (usernameSegments.Length == 6 && username.EndsWith("/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003", StringComparison.OrdinalIgnoreCase))
                 {
+                    // The Azure ML container is using an older client that returns a device client with the following format -
+                    // username = edgeHubHostName/deviceId/moduleId/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003
+                    // Notice how the DeviceClientType parameter is separated by a '/' instead of a '&', giving a usernameSegments.Length of 6 instead of the expected 4
+                    // To allow those clients to work, check for that specific api-version, and version.
                     deviceId = usernameSegments[1].Trim();
                     moduleId = usernameSegments[2].Trim();
                     queryParameters = new Dictionary<string, string>
@@ -200,22 +190,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 deviceClientType = string.Empty;
             }
-            return (deviceId, moduleId, deviceClientType);
 
+            return (deviceId, moduleId, deviceClientType);
         }
 
         static IDictionary<string, string> ParseDeviceClientType(string queryParameterString)
         {
             // example input: "api-version=version&DeviceClientType=url-escaped-string&other-prop=value&some-other-prop"
-
             var kvsep = new[] { '=' };
 
             Dictionary<string, string> queryParameters = queryParameterString
-                .Split('&')                             // split input string into params
-                .Select(s => s.Split(kvsep, 2))         // split each param into a key/value pair
-                .GroupBy(s => s[0])                     // group duplicates (by key) together...
-                .Select(s => s.First())                 // ...and keep only the first one
-                .ToDictionary(                          // convert to Dictionary<string, string>
+                .Split('&') // split input string into params
+                .Select(s => s.Split(kvsep, 2)) // split each param into a key/value pair
+                .GroupBy(s => s[0]) // group duplicates (by key) together...
+                .Select(s => s.First()) // ...and keep only the first one
+                .ToDictionary( // convert to Dictionary<string, string>
                     s => s[0],
                     s => Uri.UnescapeDataString(s.ElementAtOrEmpty(1)));
             return queryParameters;
@@ -223,18 +212,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceIdentityProvider>();
             const int IdStart = MqttEventIds.SasTokenDeviceIdentityProvider;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceIdentityProvider>();
 
             enum EventIds
             {
                 CreateSuccess = IdStart,
-                CreateFailure
+                CreateFailure,
+                CertAuthNotEnabled,
+                AuthNotFound,
+                ErrorCreatingIdentity
             }
 
-            public static void Success(string clientId, string username) => Log.LogInformation((int)EventIds.CreateSuccess, Invariant($"Successfully generated identity for clientId {clientId} and username {username}"));
+            public static void Success(string clientId, string username)
+                => Log.LogInformation((int)EventIds.CreateSuccess, Invariant($"Successfully generated identity for clientId {clientId} and username {username}"));
 
-            public static void Error(string clientId, string username) => Log.LogError((int)EventIds.CreateFailure, Invariant($"Unable to generate identity for clientId {clientId} and username {username}"));
+            public static void Error(string clientId, string username)
+                => Log.LogError((int)EventIds.CreateFailure, Invariant($"Unable to generate identity for clientId {clientId} and username {username}"));
+
+            public static void CertAuthNotEnabled(string deviceId, string moduleId)
+                => Log.LogInformation((int)EventIds.CertAuthNotEnabled, Invariant($"Cannot create identity for {GetId(deviceId, moduleId)} because certificate authentication is not enabled"));
+
+            public static void AuthNotFound(string deviceId, string moduleId)
+                => Log.LogInformation((int)EventIds.AuthNotFound, Invariant($"Cannot create identity for {GetId(deviceId, moduleId)} because neither token nor certificate was presented"));
+
+            public static void ErrorCreatingIdentity(Exception ex)
+                => Log.LogError((int)EventIds.ErrorCreatingIdentity, ex, "Error creating client identity");
+
+            static string GetId(string deviceId, string moduleId) =>
+                string.IsNullOrWhiteSpace(moduleId) ? deviceId : $"{deviceId}/{moduleId}";
         }
     }
 }

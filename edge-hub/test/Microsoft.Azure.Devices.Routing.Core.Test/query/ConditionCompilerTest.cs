@@ -1,33 +1,370 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
 {
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
-    using Microsoft.Azure.Devices.Routing.Core;
-    using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Query;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class ConditionCompilerTest : RoutingUnitTestBase
     {
-        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[0],
-            new Dictionary<string, string> { { "key1", "value1" }, { "key2", "3" }, { "key3", "VALUE3"}, { "null_value", null }, { "$sys4", "value4" } },
-            new Dictionary<string, string> { { "sys1", "sysvalue1" }, { "sys2", "4" }, { "sys3", "SYSVALUE3"}, { "sysnull", null}, { "sys4", "sysvalue4" } });
+        static readonly IMessage Message1 = new Message(
+            TelemetryMessageSource.Instance,
+            new byte[0],
+            new Dictionary<string, string> { { "key1", "value1" }, { "key2", "3" }, { "key3", "VALUE3" }, { "null_value", null }, { "$sys4", "value4" } },
+            new Dictionary<string, string> { { "sys1", "sysvalue1" }, { "sys2", "4" }, { "sys3", "SYSVALUE3" }, { "sysnull", null }, { "sys4", "sysvalue4" } });
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(TestSuccessDataSource.TestData), MemberType = typeof(TestSuccessDataSource))]
+        public void TestSuccess(string condition, Bool expected)
+        {
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route);
+            Assert.Equal(expected, rule(Message1));
+        }
+
+        [Fact]
+        [Unit]
+        public void TestTest()
+        {
+            string condition = "as_number(key2) = 3";
+            Bool expected = Bool.True;
+
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route);
+            Assert.Equal(expected, rule(Message1));
+        }
+
+        [Fact]
+        [Unit]
+        public void TestSubstringLimits()
+        {
+            for (int i = -10; i <= 10; i++)
+            {
+                string condition = $"substring('hello', {i}) = 'he'";
+                var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+
+                // assert doesn't throw
+                Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route);
+                rule(Message1);
+            }
+
+            for (int i = -10; i <= 10; i++)
+            {
+                for (int j = -10; j <= 10; j++)
+                {
+                    string condition = $"substring('hello', {i}, {j}) = 'he'";
+                    var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+
+                    // assert doesn't throw
+                    Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route);
+                    rule(Message1);
+                }
+            }
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(TestCompilationFailureDataSource.TestData), MemberType = typeof(TestCompilationFailureDataSource))]
+        public void TestCompilationFailure(string condition)
+        {
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route));
+        }
+
+        static class TestCompilationFailureDataSource
+        {
+            static readonly IList<object[]> Data = new List<object[]>
+            {
+                new object[] { "is_defined(3 + none)" },
+                new object[] { "is_defined(3 + null_value)" },
+                new object[] { "is_defined(true + 3)" },
+                new object[] { "is_defined(3 + true)" },
+                new object[] { "is_defined(3 + undefined)" },
+                new object[] { "is_defined('a' + 'b')" },
+                new object[] { "is_defined(undefined + 3)" },
+                new object[] { "is_defined(undefined + undefined)" },
+                new object[] { "is_defined(3 - none)" },
+                new object[] { "is_defined(3 - null_value)" },
+                new object[] { "is_defined(true - 3)" },
+                new object[] { "is_defined(3 - true)" },
+                new object[] { "is_defined(3 - undefined)" },
+                new object[] { "is_defined('a' - 'b')" },
+                new object[] { "is_defined(undefined - 3)" },
+                new object[] { "is_defined(undefined - undefined)" },
+                new object[] { "is_defined(3 * none)" },
+                new object[] { "is_defined(3 * null_value)" },
+                new object[] { "is_defined(true * 3)" },
+                new object[] { "is_defined(3 * true)" },
+                new object[] { "is_defined(3 * undefined)" },
+                new object[] { "is_defined('a' * 'b')" },
+                new object[] { "is_defined(undefined * 3)" },
+                new object[] { "is_defined(undefined * undefined)" },
+                new object[] { "is_defined(3 / none)" },
+                new object[] { "is_defined(3 / null_value)" },
+                new object[] { "is_defined(true / 3)" },
+                new object[] { "is_defined(3 / true)" },
+                new object[] { "is_defined(3 / undefined)" },
+                new object[] { "is_defined('a' / 'b')" },
+                new object[] { "is_defined(undefined / 3)" },
+                new object[] { "is_defined(undefined / undefined)" },
+                new object[] { "is_defined(3 % none)" },
+                new object[] { "is_defined(3 % null_value)" },
+                new object[] { "is_defined(true % 3)" },
+                new object[] { "is_defined(3 % true)" },
+                new object[] { "is_defined(3 % undefined)" },
+                new object[] { "is_defined('a' % 'b')" },
+                new object[] { "is_defined(undefined % 3)" },
+                new object[] { "is_defined(undefined % undefined)" },
+                new object[] { "is_defined(3 = none)" },
+                new object[] { "is_defined(3 != none)" },
+                new object[] { "is_defined(3 <> none)" },
+                new object[] { "is_defined(3 > none)" },
+                new object[] { "is_defined(3 >= none)" },
+                new object[] { "is_defined(3 < none)" },
+                new object[] { "is_defined(3 <= none)" },
+                new object[] { "is_defined(3 <= none)" },
+                new object[] { "is_defined(3 <= none.key1)" },
+                new object[] { "is_defined(3 <= none.key1.key2)" },
+                new object[] { "is_defined(3 = null_value)" },
+                new object[] { "is_defined(3 != null_value)" },
+                new object[] { "is_defined(3 <> null_value)" },
+                new object[] { "is_defined(3 > null_value)" },
+                new object[] { "is_defined(3 >= null_value)" },
+                new object[] { "is_defined(3 < null_value)" },
+                new object[] { "is_defined(3 <= null_value)" },
+                new object[] { "is_defined(3 <= null_value)" },
+                // TODO = These tests don't pass at the moment, need to fix them. Might have to look into fixing the grammar.
+                // Note - looks like Antlr code has changed internally from the version used in IoTHub codebase
+                // which might affect the behavior.
+                // new object[] { "3 $ 4" },
+                // new object[] { "$ sys1 = 'sysvalue1'" },
+
+                // Coalesce
+                new object[] { "key1 ?? \"hello\" = \"value1\"" },
+                new object[] { "(key1 ?? 12.34)" },
+                new object[] { "(12.34 ?? key1)" },
+                new object[] { "(as_number(key2) ?? key1)" },
+                new object[] { "(key1 ?? null)" },
+                new object[] { "(null && key1)" },
+                new object[] { "(key1 ?? true)" },
+                new object[] { "(true && key1)" },
+
+                // Concat
+                new object[] { "concat() = 'avalue1d'" },
+                new object[] { "concat('a') = 'avalue1d'" },
+                new object[] { "concat(3) = 'avalue1d'" },
+                new object[] { "concat('a', null) = 'avalue1d'" },
+                new object[] { "concat('a', undefined) = 'avalue1d'" },
+                new object[] { "concat('a', true) = 'avalue1d'" },
+                new object[] { "'a' || null = 'avalue1d'" },
+                new object[] { "'a' || undefined = 'avalue1d'" },
+                new object[] { "'a' || true = 'avalue1d'" },
+
+                // Length
+                new object[] { "length(12.34) = 'hello'" },
+                new object[] { "length(null) = 'hello'" },
+                new object[] { "length(undefined) = 'value1'" },
+                new object[] { "length(true) = 'value1'" },
+                new object[] { "length(false) = 'value1'" },
+
+                // Lower
+                new object[] { "lower(12.34) = 'hello'" },
+                new object[] { "lower(null) = 'hello'" },
+                new object[] { "lower(undefined) = 'value1'" },
+                new object[] { "lower(true) = 'value1'" },
+                new object[] { "lower(false) = 'value1'" },
+
+                // Upper
+                new object[] { "upper(12.34) = 'hello'" },
+                new object[] { "upper(null) = 'hello'" },
+                new object[] { "upper(undefined) = 'value1'" },
+                new object[] { "upper(true) = 'value1'" },
+                new object[] { "upper(false) = 'value1'" },
+
+                // substring
+                new object[] { "substring() = 'hello'" },
+                new object[] { "substring('hello') = 'hello'" },
+                new object[] { "substring('hello', 'a') = 'hello'" },
+                new object[] { "substring('hello', 'a', 'b') = 'hello'" },
+                new object[] { "substring(12.34) = 'hello'" },
+                new object[] { "substring(null) = 'hello'" },
+                new object[] { "substring(undefined) = 'value1'" },
+                new object[] { "substring(true) = 'value1'" },
+                new object[] { "substring(false) = 'value1'" },
+
+                // index_of
+                new object[] { "index_of()" },
+                new object[] { "index_of('hello')" },
+                new object[] { "index_of('hello', 'a', 'b')" },
+                new object[] { "index_of('hello', 12.34)" },
+                new object[] { "index_of(12.34, 'hello')" },
+                new object[] { "index_of(12.34, 12.34)" },
+                new object[] { "index_of(null, 'hello')" },
+                new object[] { "index_of('hello', null)" },
+                new object[] { "index_of(null, null)" },
+                new object[] { "index_of(undefined, 'hello')" },
+                new object[] { "index_of('hello', undefined)" },
+                new object[] { "index_of(undefined, undefined)" },
+                new object[] { "index_of(true, 'hello')" },
+                new object[] { "index_of('hello', true)" },
+                new object[] { "index_of(true, true)" },
+
+                // starts_with
+                new object[] { "starts_with()" },
+                new object[] { "starts_with('hello')" },
+                new object[] { "starts_with('hello', 'a', 'b')" },
+                new object[] { "starts_with('hello', 12.34)" },
+                new object[] { "starts_with(12.34, 'hello')" },
+                new object[] { "starts_with(12.34, 12.34)" },
+                new object[] { "starts_with(null, 'hello')" },
+                new object[] { "starts_with('hello', null)" },
+                new object[] { "starts_with(null, null)" },
+                new object[] { "starts_with(undefined, 'hello')" },
+                new object[] { "starts_with('hello', undefined)" },
+                new object[] { "starts_with(undefined, undefined)" },
+                new object[] { "starts_with(true, 'hello')" },
+                new object[] { "starts_with('hello', true)" },
+                new object[] { "starts_with(true, true)" },
+
+                // ends_with
+                new object[] { "ends_with()" },
+                new object[] { "ends_with('hello')" },
+                new object[] { "ends_with('hello', 'a', 'b')" },
+                new object[] { "ends_with('hello', 12.34)" },
+                new object[] { "ends_with(12.34, 'hello')" },
+                new object[] { "ends_with(12.34, 12.34)" },
+                new object[] { "ends_with(null, 'hello')" },
+                new object[] { "ends_with('hello', null)" },
+                new object[] { "ends_with(null, null)" },
+                new object[] { "ends_with(undefined, 'hello')" },
+                new object[] { "ends_with('hello', undefined)" },
+                new object[] { "ends_with(undefined, undefined)" },
+                new object[] { "ends_with(true, 'hello')" },
+                new object[] { "ends_with('hello', true)" },
+                new object[] { "ends_with(true, true)" },
+
+                // contains
+                new object[] { "contains()" },
+                new object[] { "contains('hello')" },
+                new object[] { "contains('hello', 'a', 'b')" },
+                new object[] { "contains('hello', 12.34)" },
+                new object[] { "contains(12.34, 'hello')" },
+                new object[] { "contains(12.34, 12.34)" },
+                new object[] { "contains(null, 'hello')" },
+                new object[] { "contains('hello', null)" },
+                new object[] { "contains(null, null)" },
+                new object[] { "contains(undefined, 'hello')" },
+                new object[] { "contains('hello', undefined)" },
+                new object[] { "contains(undefined, undefined)" },
+                new object[] { "contains(true, 'hello')" },
+                new object[] { "contains('hello', true)" },
+                new object[] { "contains(true, true)" },
+
+                // Abs
+                new object[] { "is_defined(abs(null))" },
+                new object[] { "is_defined(abs(undefined))" },
+                new object[] { "is_defined(abs(true))" },
+                new object[] { "is_defined(abs(false))" },
+                new object[] { "is_defined(abs(key1))" },
+                new object[] { "is_defined(abs(3, 4))" },
+
+                // Exp
+                new object[] { "is_defined(exp(null))" },
+                new object[] { "is_defined(exp(undefined))" },
+                new object[] { "is_defined(exp(true))" },
+                new object[] { "is_defined(exp(false))" },
+                new object[] { "is_defined(exp(key1))" },
+                new object[] { "is_defined(exp(3, 4))" },
+
+                // Power
+                new object[] { "is_defined(power(null, 2))" },
+                new object[] { "is_defined(power(2, null))" },
+                new object[] { "is_defined(power(null, null))" },
+                new object[] { "is_defined(power(undefined, 2))" },
+                new object[] { "is_defined(power(2, undefined))" },
+                new object[] { "is_defined(power(undefined, undefined))" },
+                new object[] { "is_defined(power(true, 2))" },
+                new object[] { "is_defined(power(2, true))" },
+                new object[] { "is_defined(power(true, true))" },
+                new object[] { "is_defined(power(key1, 2))" },
+                new object[] { "is_defined(power(2, key1))" },
+                new object[] { "is_defined(power(2, 3, 4))" },
+
+                // Square
+                new object[] { "is_defined(square(null))" },
+                new object[] { "is_defined(square(undefined))" },
+                new object[] { "is_defined(square(true))" },
+                new object[] { "is_defined(square(false))" },
+                new object[] { "is_defined(square(key1))" },
+                new object[] { "is_defined(square(3, 3))" },
+
+                // Ceiling
+                new object[] { "is_defined(ceiling(null))" },
+                new object[] { "is_defined(ceiling(undefined))" },
+                new object[] { "is_defined(ceiling(true))" },
+                new object[] { "is_defined(ceiling(false))" },
+                new object[] { "is_defined(ceiling(key1))" },
+                new object[] { "is_defined(ceiling(3, 3))" },
+
+                // Floor
+                new object[] { "is_defined(floor(null))" },
+                new object[] { "is_defined(floor(undefined))" },
+                new object[] { "is_defined(floor(true))" },
+                new object[] { "is_defined(floor(false))" },
+                new object[] { "is_defined(floor(key1))" },
+                new object[] { "is_defined(floor(3, 3))" },
+
+                // Sign
+                new object[] { "is_defined(sign(null))" },
+                new object[] { "is_defined(sign(undefined))" },
+                new object[] { "is_defined(sign(true))" },
+                new object[] { "is_defined(sign(false))" },
+                new object[] { "is_defined(sign(key1))" },
+                new object[] { "is_defined(sign(3, 3))" },
+
+                // Sqrt
+                new object[] { "is_defined(sqrt(null))" },
+                new object[] { "is_defined(sqrt(undefined))" },
+                new object[] { "is_defined(sqrt(true))" },
+                new object[] { "is_defined(sqrt(false))" },
+                new object[] { "is_defined(sqrt(key1))" },
+                new object[] { "is_defined(sqrt(3, 3))" },
+
+                new object[] { "test == true" },
+                new object[] { "true == test" },
+
+                // empty unterminated string
+                new object[] { "none = \"" },
+
+                // and
+                new object[] { "none and true" },
+                new object[] { "undefined and \"hello\"" },
+
+                // or
+                new object[] { "none or true" },
+
+                // negate
+                new object[] { "- (key1)" },
+
+                // not
+                new object[] { "is_defined(not key1)" },
+            };
+
+            public static IEnumerable<object[]> TestData => Data;
+        }
 
         static class TestSuccessDataSource
         {
-            public static IEnumerable<object[]> TestData => Data;
-
             static readonly IList<object[]> Data = new List<object[]>
             {
                 // Empty
-                new object[] { "", Bool.Undefined },
+                new object[] { string.Empty, Bool.Undefined },
                 new object[] { "  ", Bool.Undefined },
 
                 // Literals
@@ -510,343 +847,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
                 new object[] { "is_defined(sqrt(3 / 0))", Bool.True },
                 new object[] { "is_defined(sqrt(3 % 0))", Bool.False },
             };
-        }
 
-        [Theory, Unit]
-        [MemberData(nameof(TestSuccessDataSource.TestData), MemberType = typeof(TestSuccessDataSource))]
-        public void TestSuccess(string condition, Bool expected)
-        {
-            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
-            Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route);
-            Assert.Equal(expected, rule(Message1));
-        }
-
-        [Fact, Unit]
-        public void TestTest()
-        {
-            string condition = "as_number(key2) = 3";
-            Bool expected = Bool.True;
-
-            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
-            Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route);
-            Assert.Equal(expected, rule(Message1));
-        }
-
-        [Fact, Unit]
-        public void TestSubstringLimits()
-        {
-            for (int i = -10; i <= 10; i++)
-            {
-                string condition = $"substring('hello', {i}) = 'he'";
-                var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
-
-                // assert doesn't throw
-                Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route);
-                rule(Message1);
-            }
-
-            for (int i = -10; i <= 10; i++)
-            {
-                for (int j = -10; j <= 10; j++)
-                {
-                    string condition = $"substring('hello', {i}, {j}) = 'he'";
-                    var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
-
-                    // assert doesn't throw
-                    Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route);
-                    rule(Message1);
-                }
-            }
-        }
-
-        static class TestCompilationFailureDataSource
-        {
             public static IEnumerable<object[]> TestData => Data;
-
-            static readonly IList<object[]> Data = new List<object[]>
-            {
-                new object[] { "is_defined(3 + none)" },
-                new object[] { "is_defined(3 + null_value)" },
-                new object[] { "is_defined(true + 3)" },
-                new object[] { "is_defined(3 + true)" },
-                new object[] { "is_defined(3 + undefined)" },
-                new object[] { "is_defined('a' + 'b')" },
-                new object[] { "is_defined(undefined + 3)" },
-                new object[] { "is_defined(undefined + undefined)" },
-                new object[] { "is_defined(3 - none)" },
-                new object[] { "is_defined(3 - null_value)" },
-                new object[] { "is_defined(true - 3)" },
-                new object[] { "is_defined(3 - true)" },
-                new object[] { "is_defined(3 - undefined)" },
-                new object[] { "is_defined('a' - 'b')" },
-                new object[] { "is_defined(undefined - 3)" },
-                new object[] { "is_defined(undefined - undefined)" },
-                new object[] { "is_defined(3 * none)" },
-                new object[] { "is_defined(3 * null_value)" },
-                new object[] { "is_defined(true * 3)" },
-                new object[] { "is_defined(3 * true)" },
-                new object[] { "is_defined(3 * undefined)" },
-                new object[] { "is_defined('a' * 'b')" },
-                new object[] { "is_defined(undefined * 3)" },
-                new object[] { "is_defined(undefined * undefined)" },
-                new object[] { "is_defined(3 / none)" },
-                new object[] { "is_defined(3 / null_value)" },
-                new object[] { "is_defined(true / 3)" },
-                new object[] { "is_defined(3 / true)" },
-                new object[] { "is_defined(3 / undefined)" },
-                new object[] { "is_defined('a' / 'b')" },
-                new object[] { "is_defined(undefined / 3)" },
-                new object[] { "is_defined(undefined / undefined)" },
-                new object[] { "is_defined(3 % none)" },
-                new object[] { "is_defined(3 % null_value)" },
-                new object[] { "is_defined(true % 3)" },
-                new object[] { "is_defined(3 % true)" },
-                new object[] { "is_defined(3 % undefined)" },
-                new object[] { "is_defined('a' % 'b')" },
-                new object[] { "is_defined(undefined % 3)" },
-                new object[] { "is_defined(undefined % undefined)" },
-                new object[] { "is_defined(3 = none)" },
-                new object[] { "is_defined(3 != none)" },
-                new object[] { "is_defined(3 <> none)" },
-                new object[] { "is_defined(3 > none)" },
-                new object[] { "is_defined(3 >= none)" },
-                new object[] { "is_defined(3 < none)" },
-                new object[] { "is_defined(3 <= none)" },
-                new object[] { "is_defined(3 <= none)" },
-                new object[] { "is_defined(3 <= none.key1)" },
-                new object[] { "is_defined(3 <= none.key1.key2)" },
-                new object[] { "is_defined(3 = null_value)" },
-                new object[] { "is_defined(3 != null_value)" },
-                new object[] { "is_defined(3 <> null_value)" },
-                new object[] { "is_defined(3 > null_value)" },
-                new object[] { "is_defined(3 >= null_value)" },
-                new object[] { "is_defined(3 < null_value)" },
-                new object[] { "is_defined(3 <= null_value)" },
-                new object[] { "is_defined(3 <= null_value)" },
-                // TODO = These tests don't pass at the moment, need to fix them. Might have to look into fixing the grammar.
-                // Note - looks like Antlr code has changed internally from the version used in IoTHub codebase
-                // which might affect the behavior.
-                //new object[] { "3 $ 4" },
-                //new object[] { "$ sys1 = 'sysvalue1'" },
-
-                // Coalesce
-                new object[] { "key1 ?? \"hello\" = \"value1\"" },
-                new object[] { "(key1 ?? 12.34)" },
-                new object[] { "(12.34 ?? key1)" },
-                new object[] { "(as_number(key2) ?? key1)" },
-                new object[] { "(key1 ?? null)" },
-                new object[] { "(null && key1)" },
-                new object[] { "(key1 ?? true)" },
-                new object[] { "(true && key1)" },
-
-                // Concat
-                new object[] { "concat() = 'avalue1d'" },
-                new object[] { "concat('a') = 'avalue1d'" },
-                new object[] { "concat(3) = 'avalue1d'" },
-                new object[] { "concat('a', null) = 'avalue1d'" },
-                new object[] { "concat('a', undefined) = 'avalue1d'" },
-                new object[] { "concat('a', true) = 'avalue1d'" },
-                new object[] { "'a' || null = 'avalue1d'" },
-                new object[] { "'a' || undefined = 'avalue1d'" },
-                new object[] { "'a' || true = 'avalue1d'" },
-
-                // Length
-                new object[] { "length(12.34) = 'hello'" },
-                new object[] { "length(null) = 'hello'" },
-                new object[] { "length(undefined) = 'value1'" },
-                new object[] { "length(true) = 'value1'" },
-                new object[] { "length(false) = 'value1'" },
-
-                // Lower
-                new object[] { "lower(12.34) = 'hello'" },
-                new object[] { "lower(null) = 'hello'" },
-                new object[] { "lower(undefined) = 'value1'" },
-                new object[] { "lower(true) = 'value1'" },
-                new object[] { "lower(false) = 'value1'" },
-
-                // Upper
-                new object[] { "upper(12.34) = 'hello'" },
-                new object[] { "upper(null) = 'hello'" },
-                new object[] { "upper(undefined) = 'value1'" },
-                new object[] { "upper(true) = 'value1'" },
-                new object[] { "upper(false) = 'value1'" },
-
-                // substring
-                new object[] { "substring() = 'hello'" },
-                new object[] { "substring('hello') = 'hello'" },
-                new object[] { "substring('hello', 'a') = 'hello'" },
-                new object[] { "substring('hello', 'a', 'b') = 'hello'" },
-                new object[] { "substring(12.34) = 'hello'" },
-                new object[] { "substring(null) = 'hello'" },
-                new object[] { "substring(undefined) = 'value1'" },
-                new object[] { "substring(true) = 'value1'" },
-                new object[] { "substring(false) = 'value1'" },
-
-                // index_of
-                new object[] { "index_of()" },
-                new object[] { "index_of('hello')" },
-                new object[] { "index_of('hello', 'a', 'b')" },
-                new object[] { "index_of('hello', 12.34)" },
-                new object[] { "index_of(12.34, 'hello')" },
-                new object[] { "index_of(12.34, 12.34)" },
-                new object[] { "index_of(null, 'hello')" },
-                new object[] { "index_of('hello', null)" },
-                new object[] { "index_of(null, null)" },
-                new object[] { "index_of(undefined, 'hello')" },
-                new object[] { "index_of('hello', undefined)" },
-                new object[] { "index_of(undefined, undefined)" },
-                new object[] { "index_of(true, 'hello')" },
-                new object[] { "index_of('hello', true)" },
-                new object[] { "index_of(true, true)" },
-
-                // starts_with
-                new object[] { "starts_with()" },
-                new object[] { "starts_with('hello')" },
-                new object[] { "starts_with('hello', 'a', 'b')" },
-                new object[] { "starts_with('hello', 12.34)" },
-                new object[] { "starts_with(12.34, 'hello')" },
-                new object[] { "starts_with(12.34, 12.34)" },
-                new object[] { "starts_with(null, 'hello')" },
-                new object[] { "starts_with('hello', null)" },
-                new object[] { "starts_with(null, null)" },
-                new object[] { "starts_with(undefined, 'hello')" },
-                new object[] { "starts_with('hello', undefined)" },
-                new object[] { "starts_with(undefined, undefined)" },
-                new object[] { "starts_with(true, 'hello')" },
-                new object[] { "starts_with('hello', true)" },
-                new object[] { "starts_with(true, true)" },
-
-                // ends_with
-                new object[] { "ends_with()" },
-                new object[] { "ends_with('hello')" },
-                new object[] { "ends_with('hello', 'a', 'b')" },
-                new object[] { "ends_with('hello', 12.34)" },
-                new object[] { "ends_with(12.34, 'hello')" },
-                new object[] { "ends_with(12.34, 12.34)" },
-                new object[] { "ends_with(null, 'hello')" },
-                new object[] { "ends_with('hello', null)" },
-                new object[] { "ends_with(null, null)" },
-                new object[] { "ends_with(undefined, 'hello')" },
-                new object[] { "ends_with('hello', undefined)" },
-                new object[] { "ends_with(undefined, undefined)" },
-                new object[] { "ends_with(true, 'hello')" },
-                new object[] { "ends_with('hello', true)" },
-                new object[] { "ends_with(true, true)" },
-
-                // contains
-                new object[] { "contains()" },
-                new object[] { "contains('hello')" },
-                new object[] { "contains('hello', 'a', 'b')" },
-                new object[] { "contains('hello', 12.34)" },
-                new object[] { "contains(12.34, 'hello')" },
-                new object[] { "contains(12.34, 12.34)" },
-                new object[] { "contains(null, 'hello')" },
-                new object[] { "contains('hello', null)" },
-                new object[] { "contains(null, null)" },
-                new object[] { "contains(undefined, 'hello')" },
-                new object[] { "contains('hello', undefined)" },
-                new object[] { "contains(undefined, undefined)" },
-                new object[] { "contains(true, 'hello')" },
-                new object[] { "contains('hello', true)" },
-                new object[] { "contains(true, true)" },
-
-                // Abs
-                new object[] { "is_defined(abs(null))" },
-                new object[] { "is_defined(abs(undefined))" },
-                new object[] { "is_defined(abs(true))" },
-                new object[] { "is_defined(abs(false))" },
-                new object[] { "is_defined(abs(key1))" },
-                new object[] { "is_defined(abs(3, 4))" },
-
-                // Exp
-                new object[] { "is_defined(exp(null))" },
-                new object[] { "is_defined(exp(undefined))" },
-                new object[] { "is_defined(exp(true))" },
-                new object[] { "is_defined(exp(false))" },
-                new object[] { "is_defined(exp(key1))" },
-                new object[] { "is_defined(exp(3, 4))" },
-
-                // Power
-                new object[] { "is_defined(power(null, 2))" },
-                new object[] { "is_defined(power(2, null))" },
-                new object[] { "is_defined(power(null, null))" },
-                new object[] { "is_defined(power(undefined, 2))" },
-                new object[] { "is_defined(power(2, undefined))" },
-                new object[] { "is_defined(power(undefined, undefined))" },
-                new object[] { "is_defined(power(true, 2))" },
-                new object[] { "is_defined(power(2, true))" },
-                new object[] { "is_defined(power(true, true))" },
-                new object[] { "is_defined(power(key1, 2))" },
-                new object[] { "is_defined(power(2, key1))" },
-                new object[] { "is_defined(power(2, 3, 4))" },
-
-                // Square
-                new object[] { "is_defined(square(null))" },
-                new object[] { "is_defined(square(undefined))" },
-                new object[] { "is_defined(square(true))" },
-                new object[] { "is_defined(square(false))" },
-                new object[] { "is_defined(square(key1))" },
-                new object[] { "is_defined(square(3, 3))" },
-
-                // Ceiling
-                new object[] { "is_defined(ceiling(null))" },
-                new object[] { "is_defined(ceiling(undefined))" },
-                new object[] { "is_defined(ceiling(true))" },
-                new object[] { "is_defined(ceiling(false))" },
-                new object[] { "is_defined(ceiling(key1))" },
-                new object[] { "is_defined(ceiling(3, 3))" },
-
-                // Floor
-                new object[] { "is_defined(floor(null))" },
-                new object[] { "is_defined(floor(undefined))" },
-                new object[] { "is_defined(floor(true))" },
-                new object[] { "is_defined(floor(false))" },
-                new object[] { "is_defined(floor(key1))" },
-                new object[] { "is_defined(floor(3, 3))" },
-
-                // Sign
-                new object[] { "is_defined(sign(null))" },
-                new object[] { "is_defined(sign(undefined))" },
-                new object[] { "is_defined(sign(true))" },
-                new object[] { "is_defined(sign(false))" },
-                new object[] { "is_defined(sign(key1))" },
-                new object[] { "is_defined(sign(3, 3))" },
-
-                // Sqrt
-                new object[] { "is_defined(sqrt(null))" },
-                new object[] { "is_defined(sqrt(undefined))" },
-                new object[] { "is_defined(sqrt(true))" },
-                new object[] { "is_defined(sqrt(false))" },
-                new object[] { "is_defined(sqrt(key1))" },
-                new object[] { "is_defined(sqrt(3, 3))" },
-
-                new object[] { "test == true" },
-                new object[] { "true == test" },
-
-                // empty unterminated string
-                new object[] { "none = \""},
-
-                // and
-                new object[] { "none and true" },
-                new object[] { "undefined and \"hello\"" },
-
-                // or
-                new object[] { "none or true" },
-
-                // negate
-                new object[] { "- (key1)" },
-
-                // not
-                new object[] { "is_defined(not key1)"},
-            };
-        }
-
-        [Theory, Unit]
-        [MemberData(nameof(TestCompilationFailureDataSource.TestData), MemberType = typeof(TestCompilationFailureDataSource))]
-        public void TestCompilationFailure(string condition)
-        {
-            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
-            Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route));
         }
     }
 }

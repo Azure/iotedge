@@ -1,12 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 {
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Threading;
-    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using RocksDbSharp;
@@ -19,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         readonly IRocksDb db;
         readonly ConcurrentDictionary<string, IDbStore> entityDbStoreDictionary;
 
-        readonly Timer compactionTimer; //TODO: Bug logged to be fixed to proper dispose and test. 
+        readonly Timer compactionTimer; // TODO: Bug logged to be fixed to proper dispose and test.
 
         DbStoreProvider(IRocksDbOptionsProvider optionsProvider, IRocksDb db, IDictionary<string, IDbStore> entityDbStoreDictionary)
         {
@@ -27,19 +25,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             this.optionsProvider = optionsProvider;
             this.entityDbStoreDictionary = new ConcurrentDictionary<string, IDbStore>(entityDbStoreDictionary);
             this.compactionTimer = new Timer(this.RunCompaction, null, CompactionPeriod, CompactionPeriod);
-        }
-
-        private void RunCompaction(object state)
-        {
-            Events.StartingCompaction();
-            foreach (KeyValuePair<string, IDbStore> entityDbStore in this.entityDbStoreDictionary)
-            {
-                if(entityDbStore.Value is ColumnFamilyDbStore cfDbStore)
-                {
-                    Events.CompactingStore(entityDbStore.Key);
-                    this.db.Compact(cfDbStore.Handle);
-                }
-            }
         }
 
         public static DbStoreProvider Create(IRocksDbOptionsProvider optionsProvider, string path, IEnumerable<string> partitionsList)
@@ -53,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                 var dbStorePartition = new ColumnFamilyDbStore(db, handle);
                 entityDbStoreDictionary[columnFamilyName] = dbStorePartition;
             }
+
             var dbStore = new DbStoreProvider(optionsProvider, db, entityDbStoreDictionary);
             return dbStore;
         }
@@ -61,11 +47,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         {
             Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
             if (!this.entityDbStoreDictionary.TryGetValue(partitionName, out IDbStore entityDbStore))
-            {                
+            {
                 ColumnFamilyHandle handle = this.db.CreateColumnFamily(this.optionsProvider.GetColumnFamilyOptions(), partitionName);
                 entityDbStore = new ColumnFamilyDbStore(this.db, handle);
                 entityDbStore = this.entityDbStoreDictionary.GetOrAdd(partitionName, entityDbStore);
             }
+
             return entityDbStore;
         }
 
@@ -84,6 +71,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             }
         }
 
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (disposing)
@@ -93,17 +86,24 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             }
         }
 
-        public void Dispose()
+        void RunCompaction(object state)
         {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
+            Events.StartingCompaction();
+            foreach (KeyValuePair<string, IDbStore> entityDbStore in this.entityDbStoreDictionary)
+            {
+                if (entityDbStore.Value is ColumnFamilyDbStore cfDbStore)
+                {
+                    Events.CompactingStore(entityDbStore.Key);
+                    this.db.Compact(cfDbStore.Handle);
+                }
+            }
         }
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<DbStoreProvider>();
             // Use an ID not used by other components
             const int IdStart = 4000;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DbStoreProvider>();
 
             enum EventIds
             {

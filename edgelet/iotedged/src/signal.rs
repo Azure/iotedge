@@ -21,16 +21,16 @@ mod imp {
     use super::ShutdownSignal;
 
     pub(super) fn shutdown() -> ShutdownSignal {
-        let signals = [SIGINT, SIGTERM].into_iter().map(|&sig| {
+        let signals = [SIGINT, SIGTERM].iter().map(|&sig| {
             Signal::new(sig)
                 .flatten_stream()
                 .into_future()
                 .map(move |_| {
                     info!(
-                            target: "iotedged::signal",
-                            "Received {}, starting shutdown",
-                            DisplaySignal(sig),
-                        );
+                        target: "iotedged::signal",
+                        "Received {}, starting shutdown",
+                        DisplaySignal(sig),
+                    );
                 })
         });
         let on_any_signal = future::select_all(signals)
@@ -70,7 +70,8 @@ mod imp {
                     target: "iotedged::signal",
                     "Received Ctrl+C, starting shutdown",
                 );
-            }).map_err(|_| unreachable!("ctrl_c never returns errors"));
+            })
+            .map_err(|_| unreachable!("ctrl_c never returns errors"));
         Box::new(on_ctrl_c)
     }
 }

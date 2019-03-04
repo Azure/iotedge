@@ -1,29 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
-
-extern crate edgelet_http;
-extern crate edgelet_test_utils;
-extern crate futures;
-extern crate hyper;
-#[cfg(windows)]
-extern crate hyper_named_pipe;
-#[cfg(unix)]
-extern crate hyperlocal;
-#[cfg(windows)]
-extern crate hyperlocal_windows;
-#[cfg(windows)]
-extern crate rand;
-extern crate tempdir;
-extern crate tokio;
-extern crate typed_headers;
-extern crate url;
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
 
 use std::io;
 
@@ -75,7 +53,8 @@ fn tcp_get() {
         .and_then(|res| {
             assert_eq!(StatusCode::OK, res.status());
             res.into_body().concat2()
-        }).map(|body| {
+        })
+        .map(|body| {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 
@@ -93,7 +72,8 @@ fn uds_get() {
 
     let server = run_uds_server(&file_path, |req| {
         hello_handler(req).map_err(|err| io::Error::new(io::ErrorKind::Other, err))
-    }).map_err(|err| eprintln!("{}", err));
+    })
+    .map_err(|err| eprintln!("{}", err));
 
     let mut url = Url::from_file_path(file_path).unwrap();
     url.set_scheme("unix").unwrap();
@@ -105,7 +85,8 @@ fn uds_get() {
         .and_then(|res| {
             assert_eq!(StatusCode::OK, res.status());
             res.into_body().concat2()
-        }).map(|body| {
+        })
+        .map(|body| {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 
@@ -125,13 +106,15 @@ fn make_url(path: &str) -> String {
 }
 
 #[cfg(windows)]
+#[allow(clippy::needless_pass_by_value)]
 fn pipe_get_handler(_req: Request<Body>) -> impl Future<Item = Response<Body>, Error = io::Error> {
     let response = Response::builder()
         .header(hyper::header::CONTENT_TYPE, "text/plain; charset=utf-8")
         .header(
             hyper::header::CONTENT_LENGTH,
             format!("{}", GET_RESPONSE.len()),
-        ).body(GET_RESPONSE.into())
+        )
+        .body(GET_RESPONSE.into())
         .expect("couldn't create response body");
     future::ok(response)
 }
@@ -154,7 +137,8 @@ fn pipe_get() {
         .and_then(|res| {
             assert_eq!(StatusCode::OK, res.status());
             res.into_body().concat2()
-        }).map(|body| {
+        })
+        .map(|body| {
             assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
         });
 
@@ -167,7 +151,7 @@ const POST_BODY: &str = r#"{"donuts":"yes"}"#;
 
 fn post_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     // verify that the request body is what we expect
     Box::new(
         req.into_body()
@@ -175,7 +159,8 @@ fn post_handler(
             .and_then(|body| {
                 assert_eq!(POST_BODY, &String::from_utf8_lossy(body.as_ref()));
                 Ok(())
-            }).map(|_| Response::new(Body::empty())),
+            })
+            .map(|_| Response::new(Body::empty())),
     )
 }
 
@@ -218,7 +203,8 @@ fn uds_post() {
 
     let server = run_uds_server(&file_path, |req| {
         hello_handler(req).map_err(|err| io::Error::new(io::ErrorKind::Other, err))
-    }).map_err(|err| eprintln!("{}", err));
+    })
+    .map_err(|err| eprintln!("{}", err));
 
     let mut url = Url::from_file_path(file_path).unwrap();
     url.set_scheme("unix").unwrap();

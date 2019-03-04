@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace IotEdgeQuickstart.Details
 {
     using System.Collections.Generic;
@@ -28,6 +27,7 @@ namespace IotEdgeQuickstart.Details
                 {
                     node.Add(key, new Dictionary<object, object>());
                 }
+
                 node = (Dictionary<object, object>)node[key];
             }
 
@@ -36,6 +36,7 @@ namespace IotEdgeQuickstart.Details
             {
                 node.Add(leaf, value);
             }
+
             node[leaf] = value;
         }
 

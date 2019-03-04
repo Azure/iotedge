@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         Task<DirectMethodResponse> InvokeMethod(DirectMethodRequest request);
 
         /// <summary>
-        /// This method is called when a client subscribes to Method invocations. 
+        /// This method is called when a client subscribes to Method invocations.
         /// It processes all the pending method requests for that client (i.e the method requests
         /// that came in before the client subscribed to method invocations and that haven't expired yet)
         /// </summary>

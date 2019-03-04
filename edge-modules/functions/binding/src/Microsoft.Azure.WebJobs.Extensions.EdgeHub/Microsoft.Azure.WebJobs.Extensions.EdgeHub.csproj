@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <AssemblyName>Microsoft.Azure.WebJobs.Extensions.EdgeHub</AssemblyName>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-    <Configurations>Debug;Release;CodeCoverage</Configurations>
+    <Configurations>Debug;Release;CodeCoverage;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 
@@ -37,4 +37,12 @@
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.18.1" />
     <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="..\..\..\..\..\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>..\..\..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>  
+  <Import Project="..\..\..\..\..\stylecop.props" />
 </Project>

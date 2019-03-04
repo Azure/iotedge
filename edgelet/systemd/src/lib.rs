@@ -1,13 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
-#![cfg_attr(feature = "cargo-clippy", allow(stutter, use_self))]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::module_name_repetitions, clippy::use_self)]
 
 extern crate failure;
 #[cfg(target_os = "linux")]
@@ -38,25 +33,4 @@ pub enum Socket {
 }
 
 #[cfg(target_os = "linux")]
-pub use self::linux::{listener, listener_name, listeners_name};
-
-// #[cfg(not(target_os = "linux"))]
-// pub use self::other::{listener, listener_name, listeners_name};
-
-// #[cfg(not(target_os = "linux"))]
-// mod other {
-//     use super::*;
-
-//     pub fn listener(_num: i32) -> Result<Socket, Error> {
-//         Err(Error::from(ErrorKind::NotFound))
-//         Err(Error::from(ErrorKind::SocketNotFound(SocketLookupType::Fd((num + (LISTEN_FDS_START as usize)) as Fd))))
-//     }
-
-//     pub fn listener_name(_name: &str) -> Result<Socket, Error> {
-//         Err(Error::from(ErrorKind::NotFound))
-//     }
-
-//     pub fn listeners_name(_name: &str) -> Result<Vec<Socket>, Error> {
-//         Err(Error::from(ErrorKind::NotFound))
-//     }
-// }
+pub use self::linux::{listener, listener_name, listeners_name, LISTEN_FDS_START};

@@ -1,35 +1,36 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-using Serilog;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace LoadGen
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Serilog;
+
     public class BufferPool
     {
-        private ConcurrentDictionary<ulong, List<Buffer>> buffers = new ConcurrentDictionary<ulong, List<Buffer>>();
+        readonly ConcurrentDictionary<ulong, List<Buffer>> buffers = new ConcurrentDictionary<ulong, List<Buffer>>();
 
         public Buffer AllocBuffer(ulong size)
         {
-            List<Buffer> buffers = this.buffers.GetOrAdd(size, (bufSize) =>
-            {
-                var list = new List<Buffer>
+            List<Buffer> buffers = this.buffers.GetOrAdd(
+                size,
+                bufferSize =>
                 {
-                    new Buffer(bufSize)
-                };
+                    var list = new List<Buffer>
+                    {
+                        new Buffer(bufferSize)
+                    };
 
-                Log.Information($"Allocated new list & buffer [{list[0].Id}] of size {size}");
-                return list;
-            });
+                    Log.Information($"Allocated new list & buffer [{list[0].Id}] of size {bufferSize}");
+                    return list;
+                });
 
             lock (buffers)
             {
-                Buffer buffer = buffers
-                    .Where(buf => buf.InUse.Get() == false)
-                    .FirstOrDefault();
+                Buffer buffer = buffers.FirstOrDefault(buf => buf.InUse.Get() == false);
 
                 if (buffer == null)
                 {
@@ -47,9 +48,16 @@ namespace LoadGen
 
     public class Buffer : IDisposable
     {
-        static long BufferIdCounter = 0;
+        static long bufferIdCounter = 0;
 
-        private byte[] buffer;
+        readonly byte[] buffer;
+
+        public Buffer(ulong size)
+        {
+            this.buffer = new byte[size];
+            this.InUse = new AtomicBoolean(false);
+            this.Id = Interlocked.Increment(ref bufferIdCounter);
+        }
 
         public AtomicBoolean InUse { get; set; }
 
@@ -58,13 +66,6 @@ namespace LoadGen
         public byte[] Data
         {
             get { return this.buffer; }
-        }
-
-        public Buffer(ulong size)
-        {
-            this.buffer = new byte[size];
-            this.InUse = new AtomicBoolean(false);
-            this.Id = Interlocked.Increment(ref BufferIdCounter);
         }
 
         public void Dispose()

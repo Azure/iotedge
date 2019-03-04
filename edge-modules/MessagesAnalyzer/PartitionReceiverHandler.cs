@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace MessagesAnalyzer
 {
     using System;
@@ -11,12 +10,12 @@ namespace MessagesAnalyzer
 
     class PartitionReceiveHandler : IPartitionReceiveHandler
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger<PartitionReceiveHandler>();
         const string DeviceIdPropertyName = "iothub-connection-device-id";
         const string ModuleIdPropertyName = "iothub-connection-module-id";
         const string SequenceNumberPropertyName = "sequenceNumber";
         const string EnqueuedTimePropertyName = "iothub-enqueuedtime";
         const string BatchIdPropertyName = "batchId";
+        static readonly ILogger Log = Logger.Factory.CreateLogger<PartitionReceiveHandler>();
         readonly string deviceId;
         readonly IList<string> excludedModulesIds;
 
@@ -25,6 +24,8 @@ namespace MessagesAnalyzer
             this.deviceId = deviceId;
             this.excludedModulesIds = excludedModulesIds;
         }
+
+        public int MaxBatchSize { get; set; }
 
         public Task ProcessEventsAsync(IEnumerable<EventData> events)
         {
@@ -42,24 +43,20 @@ namespace MessagesAnalyzer
                         eventData.Properties.TryGetValue(BatchIdPropertyName, out object batchId);
 
                         if (sequence != null && batchId != null)
-                        { 
-                            DateTime enqueuedtime = DateTime.MinValue.ToUniversalTime();
-                            if (eventData.SystemProperties.TryGetValue(EnqueuedTimePropertyName, out object enqueued))
-                            {
-                                if (DateTime.TryParse(enqueued.ToString(), out enqueuedtime))
-                                {
-                                    enqueuedtime = DateTime.SpecifyKind(enqueuedtime, DateTimeKind.Utc);
-                                }
-                            }
-
+                        {
                             if (long.TryParse(sequence.ToString(), out long sequenceNumber))
                             {
+                                DateTime enqueuedtime = GetEnqueuedTime(devId.ToString(), modId.ToString(), eventData);
                                 MessagesCache.Instance.AddMessage(modId.ToString(), batchId.ToString(), new MessageDetails(sequenceNumber, enqueuedtime));
+                            }
+                            else
+                            {
+                                Log.LogError($"Message for module [{modId}] and device [{this.deviceId}] contains invalid sequence number [{sequence}].");
                             }
                         }
                         else
                         {
-                            Log.LogDebug($"Message for moduleId: {modId} doesn't contain required properties");
+                            Log.LogDebug($"Message for module [{modId}] and device [{this.deviceId}] doesn't contain batch id and sequence number.");
                         }
                     }
                 }
@@ -68,12 +65,33 @@ namespace MessagesAnalyzer
             return Task.CompletedTask;
         }
 
-        public Task ProcessErrorAsync(Exception error)
+        static DateTime GetEnqueuedTime(string deviceId, string moduleId, EventData eventData)
         {
-            Log.LogError(error.StackTrace);
-            return Task.CompletedTask;
+            DateTime enqueuedtime = DateTime.MinValue.ToUniversalTime();
+
+            if (eventData.SystemProperties.TryGetValue(EnqueuedTimePropertyName, out object enqueued))
+            {
+                if (DateTime.TryParse(enqueued.ToString(), out enqueuedtime))
+                {
+                    enqueuedtime = DateTime.SpecifyKind(enqueuedtime, DateTimeKind.Utc);
+                }
+                else
+                {
+                    Log.LogError($"Message for module [{moduleId}] and device [{deviceId}] enqueued time [{enqueued}] cannot be parsed.");
+                }
+            }
+            else
+            {
+                Log.LogError($"Message for module [{moduleId}] and device [{deviceId}] doesn't contain {EnqueuedTimePropertyName} property.");
+            }
+
+            return enqueuedtime;
         }
 
-        public int MaxBatchSize { get; set; }
+        public Task ProcessErrorAsync(Exception error)
+        {
+            Log.LogError(error.ToString());
+            return Task.CompletedTask;
+        }
     }
 }

@@ -1,29 +1,28 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 {
     using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Newtonsoft.Json;
-    using Option = Microsoft.Azure.Devices.Routing.Core.Util.Option;
 
     public class CheckpointStore : ICheckpointStore
     {
         readonly IEntityStore<string, CheckpointEntity> underlyingStore;
 
-        CheckpointStore(IEntityStore<string, CheckpointEntity> underlyingStore)
+        internal CheckpointStore(IEntityStore<string, CheckpointEntity> underlyingStore)
         {
             this.underlyingStore = underlyingStore;
         }
 
-        public static CheckpointStore Create(IDbStoreProvider dbStoreProvider)
+        public static CheckpointStore Create(IStoreProvider storeProvider)
         {
-            IDbStore dbStore = Preconditions.CheckNotNull(dbStoreProvider, nameof(dbStoreProvider)).GetDbStore(Constants.CheckpointStorePartitionKey);
-            IEntityStore<string, CheckpointEntity> underlyingStore = new EntityStore<string, CheckpointEntity>(dbStore, nameof(CheckpointEntity), 12);
+            IEntityStore<string, CheckpointEntity> underlyingStore = Preconditions.CheckNotNull(storeProvider, nameof(storeProvider))
+                .GetEntityStore<string, CheckpointEntity>(Constants.CheckpointStorePartitionKey);
             return new CheckpointStore(underlyingStore);
         }
 
@@ -60,16 +59,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
         internal static CheckpointEntity GetCheckpointEntity(CheckpointData checkpointData)
         {
-            return new CheckpointEntity(checkpointData.Offset,
+            return new CheckpointEntity(
+                checkpointData.Offset,
                 checkpointData.LastFailedRevivalTime.Match(v => v, () => (DateTime?)null),
                 checkpointData.UnhealthySince.Match(v => v, () => (DateTime?)null));
         }
 
         internal static CheckpointData GetCheckpointData(CheckpointEntity checkpointEntity)
         {
-            return new CheckpointData(checkpointEntity.Offset,
-                checkpointEntity.LastFailedRevivalTime.HasValue ? Option.Some(checkpointEntity.LastFailedRevivalTime.Value) : Option.None<DateTime>(),
-                checkpointEntity.UnhealthySince.HasValue ? Option.Some(checkpointEntity.UnhealthySince.Value) : Option.None<DateTime>());
+            return new CheckpointData(
+                checkpointEntity.Offset,
+                checkpointEntity.LastFailedRevivalTime.HasValue ? Devices.Routing.Core.Util.Option.Some(checkpointEntity.LastFailedRevivalTime.Value) : Devices.Routing.Core.Util.Option.None<DateTime>(),
+                checkpointEntity.UnhealthySince.HasValue ? Devices.Routing.Core.Util.Option.Some(checkpointEntity.UnhealthySince.Value) : Devices.Routing.Core.Util.Option.None<DateTime>());
         }
 
         internal class CheckpointEntity

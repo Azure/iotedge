@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
 {
     using System;
@@ -48,25 +47,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             return Task.FromResult(createdModule);
         }
 
-        static ModuleDetails GetModuleDetails(ModuleSpec moduleSpec)
-        {
-            var moduleDetails = new ModuleDetails
-            {
-                Id = Guid.NewGuid().ToString(),
-                Name = moduleSpec.Name,
-                Type = moduleSpec.Type,
-                Status = new Status { ExitStatus = null, RuntimeStatus = new RuntimeStatus { Status = "Created", Description = "Created" }, StartTime = null },
-                Config = moduleSpec.Config
-            };
-            return moduleDetails;
-        }
-
         public Task DeleteIdentityAsync(string apiVersion, string name)
         {
             if (!this.identities.TryRemove(name, out Identity _))
             {
                 throw new InvalidOperationException("Identity not found");
             }
+
             return Task.CompletedTask;
         }
 
@@ -76,8 +63,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             {
                 throw new InvalidOperationException("Module not found");
             }
+
             return Task.CompletedTask;
         }
+
+        public Task PrepareUpdateModuleAsync(string api_version, string name, ModuleSpec module) => Task.CompletedTask;
 
         public Task<ModuleDetails> GetModuleAsync(string apiVersion, string name)
         {
@@ -85,6 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             {
                 throw new InvalidOperationException("Module not found");
             }
+
             return Task.FromResult(module);
         }
 
@@ -100,6 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             {
                 throw new InvalidOperationException("Module not found");
             }
+
             module.Status.RuntimeStatus.Status = "Running";
             return Task.CompletedTask;
         }
@@ -110,6 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             {
                 throw new InvalidOperationException("Module not found");
             }
+
             module.Status.RuntimeStatus.Status = "Running";
             return Task.CompletedTask;
         }
@@ -120,6 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             {
                 throw new InvalidOperationException("Module not found");
             }
+
             if (module.Status.RuntimeStatus.Status == "Stopped")
             {
                 return Task.FromResult(304);
@@ -137,8 +131,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             {
                 throw new InvalidOperationException("Module not found");
             }
-            this.modules[module.Name] = GetModuleDetails(module);
+
+            var moduleDetails = GetModuleDetails(module);
+            if (start)
+            {
+                moduleDetails.Status.RuntimeStatus.Status = "Running";
+            }
+
+            this.modules[module.Name] = moduleDetails;
             return Task.FromResult(this.modules[module.Name]);
+        }
+
+        static ModuleDetails GetModuleDetails(ModuleSpec moduleSpec)
+        {
+            var moduleDetails = new ModuleDetails
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = moduleSpec.Name,
+                Type = moduleSpec.Type,
+                Status = new Status { ExitStatus = null, RuntimeStatus = new RuntimeStatus { Status = "Created", Description = "Created" }, StartTime = null },
+                Config = moduleSpec.Config
+            };
+            return moduleDetails;
         }
     }
 }

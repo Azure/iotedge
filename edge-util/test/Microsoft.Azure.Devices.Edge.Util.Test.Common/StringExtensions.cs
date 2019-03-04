@@ -1,3 +1,4 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 {
     using System;
@@ -7,6 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 
     public static class StringExtensions
     {
+        public const string LowerCaseAlphabet = "abcdefghijklmnopqrstuvwyxz";
+
         public static string RemoveWhitespace(this string input) =>
             new string(input.Where(ch => !char.IsWhiteSpace(ch)).ToArray());
 
@@ -14,8 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 
         public static byte[] ToBody(this string input) =>
             Encoding.UTF8.GetBytes(input.RemoveWhitespace().SingleToDoubleQuotes());
-
-        public const string LowerCaseAlphabet = "abcdefghijklmnopqrstuvwyxz";
 
         public static string GenerateUniqueString(IEnumerable<string> existingStrings, int size, Random rng) =>
             GenerateUniqueString(existingStrings, size, rng, LowerCaseAlphabet);
@@ -27,7 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
             do
             {
                 str = GenerateString(size, rng, alphabet);
-            } while (existingStringsAsList.Contains(str));
+            }
+            while (existingStringsAsList.Contains(str));
 
             return str;
         }

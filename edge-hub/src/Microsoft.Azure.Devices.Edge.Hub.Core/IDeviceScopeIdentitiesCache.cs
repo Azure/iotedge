@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
@@ -10,6 +9,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public interface IDeviceScopeIdentitiesCache
     {
+        event EventHandler<string> ServiceIdentityRemoved;
+
+        event EventHandler<ServiceIdentity> ServiceIdentityUpdated;
+
         Task<Option<ServiceIdentity>> GetServiceIdentity(string id, bool refreshIfNotExists = false);
 
         void InitiateCacheRefresh();
@@ -17,9 +20,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         Task RefreshServiceIdentities(IEnumerable<string> ids);
 
         Task RefreshServiceIdentity(string id);
-
-        event EventHandler<ServiceIdentity> ServiceIdentityUpdated;
-
-        event EventHandler<string> ServiceIdentityRemoved;
     }
 }

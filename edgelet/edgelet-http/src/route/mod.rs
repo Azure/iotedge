@@ -10,38 +10,41 @@ use failure::{Compat, Fail};
 use futures::{future, Future};
 use hyper::service::{NewService, Service};
 use hyper::{Body, Method, Request, Response, StatusCode};
+use url::form_urlencoded::parse as parse_query;
 
-use error::Error;
+use crate::error::{Error, ErrorKind};
+use crate::version::Version;
+use crate::IntoResponse;
 
 pub mod macros;
 mod regex;
 
-pub type BoxFuture<T, E> = Box<Future<Item = T, Error = E>>;
+pub type BoxFuture<T, E> = Box<dyn Future<Item = T, Error = E>>;
 
 pub trait Handler<P>: 'static + Send {
     fn handle(
         &self,
         req: Request<Body>,
         params: P,
-    ) -> Box<Future<Item = Response<Body>, Error = Error> + Send>;
+    ) -> Box<dyn Future<Item = Response<Body>, Error = Error> + Send>;
 }
 
 impl<F, P> Handler<P> for F
 where
     F: 'static
-        + Fn(Request<Body>, P) -> Box<Future<Item = Response<Body>, Error = Error> + Send>
+        + Fn(Request<Body>, P) -> Box<dyn Future<Item = Response<Body>, Error = Error> + Send>
         + Send,
 {
     fn handle(
         &self,
         req: Request<Body>,
         params: P,
-    ) -> Box<Future<Item = Response<Body>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = Error> + Send> {
         (*self)(req, params)
     }
 }
 
-pub type HandlerParamsPair<'a, P> = (&'a Handler<P>, P);
+pub type HandlerParamsPair<'a, P> = (&'a dyn Handler<P>, P);
 
 pub trait Recognizer {
     type Parameters: 'static;
@@ -49,50 +52,51 @@ pub trait Recognizer {
     fn recognize(
         &self,
         method: &Method,
+        version: Version,
         path: &str,
-    ) -> Result<HandlerParamsPair<Self::Parameters>, StatusCode>;
+    ) -> Result<HandlerParamsPair<'_, Self::Parameters>, StatusCode>;
 }
 
 pub trait Builder: Sized {
     type Recognizer: Recognizer;
 
-    fn route<S, H>(self, method: Method, pattern: S, handler: H) -> Self
+    fn route<S, H>(self, method: Method, version: Version, pattern: S, handler: H) -> Self
     where
         S: AsRef<str>,
         H: Handler<<Self::Recognizer as Recognizer>::Parameters> + Sync;
 
     fn finish(self) -> Self::Recognizer;
 
-    fn get<S, H>(self, pattern: S, handler: H) -> Self
+    fn get<S, H>(self, version: Version, pattern: S, handler: H) -> Self
     where
         S: AsRef<str>,
         H: Handler<<Self::Recognizer as Recognizer>::Parameters> + Sync,
     {
-        self.route(Method::GET, pattern, handler)
+        self.route(Method::GET, version, pattern, handler)
     }
 
-    fn post<S, H>(self, pattern: S, handler: H) -> Self
+    fn post<S, H>(self, version: Version, pattern: S, handler: H) -> Self
     where
         S: AsRef<str>,
         H: Handler<<Self::Recognizer as Recognizer>::Parameters> + Sync,
     {
-        self.route(Method::POST, pattern, handler)
+        self.route(Method::POST, version, pattern, handler)
     }
 
-    fn put<S, H>(self, pattern: S, handler: H) -> Self
+    fn put<S, H>(self, version: Version, pattern: S, handler: H) -> Self
     where
         S: AsRef<str>,
         H: Handler<<Self::Recognizer as Recognizer>::Parameters> + Sync,
     {
-        self.route(Method::PUT, pattern, handler)
+        self.route(Method::PUT, version, pattern, handler)
     }
 
-    fn delete<S, H>(self, pattern: S, handler: H) -> Self
+    fn delete<S, H>(self, version: Version, pattern: S, handler: H) -> Self
     where
         S: AsRef<str>,
         H: Handler<<Self::Recognizer as Recognizer>::Parameters> + Sync,
     {
-        self.route(Method::DELETE, pattern, handler)
+        self.route(Method::DELETE, version, pattern, handler)
     }
 }
 
@@ -148,24 +152,40 @@ where
     type ReqBody = Body;
     type ResBody = Body;
     type Error = Compat<Error>;
-    type Future = Box<Future<Item = Response<Self::ResBody>, Error = Self::Error> + Send>;
+    type Future = Box<dyn Future<Item = Response<Self::ResBody>, Error = Self::Error> + Send>;
 
     fn call(&mut self, req: Request<Body>) -> Self::Future {
-        let method = req.method().clone();
-        let path = req.uri().path().to_owned();
-        match self.inner.recognize(&method, &path) {
-            Ok((handler, params)) => {
-                Box::new(handler.handle(req, params).map_err(|err| err.compat()))
-            }
+        let api_version = {
+            let query = req.uri().query();
+            query.and_then(|query| {
+                let mut query = parse_query(query.as_bytes());
+                let (_, api_version) = query.find(|&(ref key, _)| key == "api-version")?;
 
-            Err(code) => Box::new(future::ok(
-                Response::builder()
-                    .status(code)
-                    .body(Body::empty())
-                    .expect("hyper::Response with empty body should not fail to build"),
+                api_version.parse().ok()
+            })
+        };
+
+        match api_version {
+            Some(api_version) => {
+                let method = req.method().clone();
+                let path = req.uri().path().to_owned();
+                match self.inner.recognize(&method, api_version, &path) {
+                    Ok((handler, params)) => {
+                        Box::new(handler.handle(req, params).map_err(|err| err.compat()))
+                    }
+                    Err(code) => Box::new(future::ok(
+                        Response::builder()
+                            .status(code)
+                            .body(Body::empty())
+                            .expect("hyper::Response with empty body should not fail to build"),
+                    )),
+                }
+            }
+            None => Box::new(future::ok(
+                Error::from(ErrorKind::InvalidApiVersion(String::new())).into_response(),
             )),
         }
     }
 }
 
-pub use route::regex::{Parameters, RegexRecognizer, RegexRoutesBuilder};
+pub use crate::route::regex::{Parameters, RegexRecognizer, RegexRoutesBuilder};

@@ -1,16 +1,14 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.JsonPath
 {
-    using Microsoft.Azure.Devices.Routing.Core.Query.JsonPath;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Query.JsonPath;
     using Xunit;
 
     public class JsonPathValidatorTest
     {
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("root")]
         [InlineData("ROOT")]
         [InlineData("root.level1")]
@@ -25,7 +23,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.JsonPath
             Assert.True(JsonPathValidator.IsSupportedJsonPath(jsonPath, out _));
         }
 
-        [Theory, Unit]
+        [Theory]
+        [Unit]
         [InlineData("")]
         [InlineData("root.")]
         [InlineData("ROOT[")]
@@ -47,7 +46,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.JsonPath
             Assert.NotEmpty(errorDetails);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void JsonPathValidator_Debug()
         {
             string jsonPath = "message.Weather.HistoricalData[0].Temperature[1]";

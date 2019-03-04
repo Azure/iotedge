@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 {
     using System;
@@ -21,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             {
                 Directory.Delete(this.rocksDbFolder);
             }
+
             Directory.CreateDirectory(this.rocksDbFolder);
         }
 

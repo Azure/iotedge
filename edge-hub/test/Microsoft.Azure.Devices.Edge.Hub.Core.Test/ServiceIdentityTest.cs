@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System.Collections.Generic;
@@ -33,8 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             yield return new object[]
             {
-                new ServiceIdentity("d1", "1234", new List<string>{"123", "iotEdge"}, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
-                new ServiceIdentity("d1", "1234", new List<string>{"123", "iotEdge"}, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "1234", new List<string> { "123", "iotEdge" }, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "1234", new List<string> { "123", "iotEdge" }, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
                 true
             };
 
@@ -61,16 +60,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Module identities - Equal
             yield return new object[]
-{
+            {
                 new ServiceIdentity("d1", "m1", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
                 new ServiceIdentity("d1", "m1", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
                 true
-};
+            };
 
             yield return new object[]
             {
-                new ServiceIdentity("d1", "m1", "1234", new List<string>{"123", "iotEdge"}, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
-                new ServiceIdentity("d1", "m1", "1234", new List<string>{"123", "iotEdge"}, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "1234", new List<string> { "123", "iotEdge" }, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "1234", new List<string> { "123", "iotEdge" }, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
                 true
             };
 

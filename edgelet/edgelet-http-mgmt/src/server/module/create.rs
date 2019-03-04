@@ -14,8 +14,8 @@ use edgelet_http::Error as HttpError;
 use management::models::*;
 
 use super::{spec_to_core, spec_to_details};
-use error::{Error, ErrorKind};
-use IntoResponse;
+use crate::error::{Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct CreateModule<M> {
     runtime: M,
@@ -36,7 +36,7 @@ where
         &self,
         req: Request<Body>,
         _params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let runtime = self.runtime.clone();
         let response =
             req.into_body()
@@ -47,7 +47,8 @@ where
                         .context(ErrorKind::MalformedRequestBody)?;
                     let core_spec = spec_to_core::<M>(&spec, ErrorKind::MalformedRequestBody)?;
                     Ok((spec, core_spec))
-                }).and_then(move |(spec, core_spec)| {
+                })
+                .and_then(move |(spec, core_spec)| {
                     let module_name = spec.name().to_string();
                     runtime
                         .registry()
@@ -81,7 +82,8 @@ where
                                 RuntimeOperation::CreateModule(module_name),
                             )))),
                         })
-                }).flatten()
+                })
+                .flatten()
                 .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
@@ -91,14 +93,17 @@ where
 #[cfg(test)]
 mod tests {
     use chrono::prelude::*;
+    use hyper::Request;
+    use lazy_static::lazy_static;
+    use serde_json::json;
+
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
-    use hyper::Request;
     use management::models::{Config, ErrorResponse};
-    use server::module::tests::Error;
 
     use super::*;
+    use crate::server::module::tests::Error;
 
     lazy_static! {
         static ref RUNTIME: TestRuntime<Error> = {
@@ -149,7 +154,8 @@ mod tests {
 
                 assert_eq!(160, b.len());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -175,7 +181,8 @@ mod tests {
                     "Request body is malformed\n\tcaused by: expected value at line 1 column 1";
                 assert_eq!(expected, error_response.message());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -204,7 +211,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -233,7 +241,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 }

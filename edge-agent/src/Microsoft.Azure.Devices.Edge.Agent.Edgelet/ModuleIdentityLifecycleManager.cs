@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 {
     using System;
@@ -8,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -66,8 +65,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
             // Remove identities which exist in iotedged but don't exist in the deployment anymore. We exclude however, identities that
             // aren't managed by Edge since these have been created by some out-of-band process and Edge doesn't "own" the identity.
-            IEnumerable<string> removeIdentities = removedModuleNames.Where(m => identities.ContainsKey(m) &&
-                Constants.ModuleIdentityEdgeManagedByValue.Equals(identities[m].ManagedBy, StringComparison.OrdinalIgnoreCase));
+            IEnumerable<string> removeIdentities = removedModuleNames.Where(
+                m => identities.ContainsKey(m) &&
+                     Constants.ModuleIdentityEdgeManagedByValue.Equals(identities[m].ManagedBy, StringComparison.OrdinalIgnoreCase));
 
             // First remove identities (so that we don't go over the IoTHub limit).
             await Task.WhenAll(removeIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
@@ -84,6 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             {
                 moduleIdentities.Add(this.GetModuleIdentity(identities[Constants.EdgeAgentModuleIdentityName]));
             }
+
             return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
         }
 
@@ -92,8 +93,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleIdentityLifecycleManager>();
             const int IdStart = AgentEventIds.ModuleIdentityLifecycleManager;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleIdentityLifecycleManager>();
 
             enum EventIds
             {

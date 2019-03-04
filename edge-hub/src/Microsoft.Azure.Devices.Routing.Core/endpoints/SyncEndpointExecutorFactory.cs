@@ -32,6 +32,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         {
             IEndpointExecutor executor = new SyncEndpointExecutor(endpoint, checkpointer, endpointExecutorConfig);
             return Task.FromResult(executor);
-        }        
+        }
     }
 }

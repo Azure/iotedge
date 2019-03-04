@@ -10,13 +10,14 @@ use serde_json;
 use edgelet_core::{Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleStatus};
 use management::models::*;
 
-use error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind};
 
 mod create;
 mod delete;
 mod get;
 mod list;
 mod logs;
+mod prepare_update;
 mod restart;
 mod start;
 mod stop;
@@ -27,6 +28,7 @@ pub use self::delete::DeleteModule;
 pub use self::get::GetModule;
 pub use self::list::ListModules;
 pub use self::logs::ModuleLogs;
+pub use self::prepare_update::PrepareUpdateModule;
 pub use self::restart::RestartModule;
 pub use self::start::StartModule;
 pub use self::stop::StopModule;
@@ -43,7 +45,7 @@ where
     let name = spec.name().to_string();
     let type_ = spec.type_().to_string();
     let env = spec.config().env().map_or_else(HashMap::new, |vars| {
-        vars.into_iter()
+        vars.iter()
             .map(|var| (var.key().clone(), var.value().clone()))
             .collect()
     });
@@ -92,8 +94,8 @@ pub mod tests {
     use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
     use management::models::ErrorResponse;
 
-    use error::{Error as MgmtError, ErrorKind};
-    use IntoResponse;
+    use crate::error::{Error as MgmtError, ErrorKind};
+    use crate::IntoResponse;
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub enum Error {
@@ -122,7 +124,8 @@ pub mod tests {
                         "m1".to_string(),
                     )),
                 ),
-            ).context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+            )
+            .context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
                 "m1".to_string(),
             ))),
         );
@@ -152,7 +155,8 @@ pub mod tests {
         let error = MgmtError::from(
             DockerError::from(DockerErrorKind::Conflict.context(
                 DockerErrorKind::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string())),
-            )).context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+            ))
+            .context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
                 "m1".to_string(),
             ))),
         );
@@ -182,7 +186,8 @@ pub mod tests {
         let error = MgmtError::from(
             DockerError::from(DockerErrorKind::NotModified.context(
                 DockerErrorKind::RuntimeOperation(RuntimeOperation::StopModule("m1".to_string())),
-            )).context(ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(
+            ))
+            .context(ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(
                 "m1".to_string(),
             ))),
         );
@@ -198,7 +203,8 @@ pub mod tests {
             .and_then(|b| {
                 assert!(b.into_bytes().is_empty());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -224,7 +230,8 @@ pub mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -234,7 +241,8 @@ pub mod tests {
         let error = MgmtError::from(
             DockerError::from(DockerErrorKind::FormattedDockerRuntime(
                 "manifest for image:latest not found".to_string(),
-            )).context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+            ))
+            .context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
                 "m1".to_string(),
             ))),
         );
@@ -254,7 +262,8 @@ pub mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 }

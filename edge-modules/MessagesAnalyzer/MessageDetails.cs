@@ -1,19 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace MessagesAnalyzer
 {
     using System;
 
     class MessageDetails
     {
-        public long SequenceNumber { get; }
-
-        public DateTime EnquedDateTime { get; }
-
-        public MessageDetails(long seqNumber, DateTime enquedDateTime)
+        public MessageDetails(long seqNumber, DateTime enqueuedDateTime)
         {
             this.SequenceNumber = seqNumber;
-            this.EnquedDateTime = enquedDateTime;
+            this.EnqueuedDateTime = enqueuedDateTime;
         }
+
+        public long SequenceNumber { get; }
+
+        public DateTime EnqueuedDateTime { get; }
     }
 }

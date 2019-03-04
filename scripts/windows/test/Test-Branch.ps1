@@ -16,7 +16,9 @@ param (
     [String] $BuildBinariesDirectory = $Env:BUILD_BINARIESDIRECTORY,
 
     [ValidateNotNullOrEmpty()]
-    [String] $Filter
+    [String] $Filter,
+    
+    [String] $BuildConfig
 )
 
 Set-StrictMode -Version "Latest"
@@ -40,79 +42,55 @@ if (-not $BuildBinariesDirectory) {
     $BuildBinariesDirectory = DefaultBuildBinariesDirectory $BuildRepositoryLocalPath
 }
 
-$TEST_PROJ_PATTERN = "Microsoft.Azure*test.csproj"
+$SUFFIX = "Microsoft.Azure*test.dll"
 $LOGGER_ARG = "trx;LogFileName=result.trx"
-
 $DOTNET_PATH = [IO.Path]::Combine($AgentWorkFolder, "dotnet", "dotnet.exe")
-$OPENCOVER = [IO.Path]::Combine($BuildRepositoryLocalPath, "OpenCover.4.6.519", "tools", "OpenCover.Console.exe")
-$CODE_COVERAGE = Join-Path $BuildBinariesDirectory "code-coverage.xml"
-$OPENCOVER_COBERTURA_CONVERTER = [IO.Path]::Combine(
-    $BuildRepositoryLocalPath,
-    "OpenCoverToCoberturaConverter.0.2.6.0",
-    "tools",
-    "OpenCoverToCoberturaConverter.exe")
-$REPORT_GENERATOR = [IO.Path]::Combine(
-    $BuildRepositoryLocalPath,
-    "ReportGenerator.2.5.6",
-    "tools",
-    "ReportGenerator.exe"
-)
 
 if (-not (Test-Path $DOTNET_PATH -PathType Leaf)) {
     throw "$DOTNET_PATH not found."
 }
 
+if (-not $BuildConfig) {
+    $BuildConfig = "CheckInBuild"
+}
+
 <#
  # Run tests
  #>
+Write-Host "Running tests in all test projects with filter '$Filter' and $BuildConfig configuration."
 
-$BaseTestCommand = if ($Filter) {
-    "test --no-build --logger `"$LOGGER_ARG`" --filter `"$Filter`"" 
-}
-else {
-    "test --no-build --logger `"$LOGGER_ARG`""
-}
-
-Write-Host "Running tests in all test projects with filter '$Filter'."
-$Success = $True
-foreach ($Project in (Get-ChildItem $BuildRepositoryLocalPath -Include $TEST_PROJ_PATTERN -Recurse)) {
-    Write-Host "Running tests for $Project."
-    if (Test-Path $OPENCOVER -PathType "Leaf") {
-		Write-Host "Run command: $OPENCOVER -register:user -target:$DOTNET_PATH -targetargs:'$BaseTestCommand $Project' -skipautoprops -hideskipped:All -oldstyle -output:$CODE_COVERAGE -mergeoutput:$CODE_COVERAGE -returntargetcode ..."
-        &$OPENCOVER `
-            -register:user `
-            -target:$DOTNET_PATH `
-            -targetargs:"$BaseTestCommand $Project" `
-            -skipautoprops `
-            -hideskipped:All `
-            -oldstyle `
-            -output:$CODE_COVERAGE `
-            -mergeoutput:$CODE_COVERAGE `
-            -returntargetcode `
-			-filter:"+[*]* -[Moq*]* -[App.Metrics.Reporting*]*"
-    }
-    else {
-		Write-Host "Run command: '" + $DOTNET_PATH + "' " + $BaseTestCommand " -o " + $BuildBinariesDirectory + " " + $Project
-        Invoke-Expression "&`"$DOTNET_PATH`" $BaseTestCommand -o $BuildBinariesDirectory $Project"
-    }
-
-    $Success = $Success -and $LASTEXITCODE -eq 0
+$testProjectRunSerially = @( "Microsoft.Azure.Devices.Edge.Agent.Docker.Test.dll" )
+$testProjectDllsRunSerially = @()
+$testProjectsDlls = ""
+foreach ($testDll in (Get-ChildItem $BuildBinariesDirectory -Include $SUFFIX -Recurse)) {
+    Write-Host "Found test project:$testDll"
+    
+	if (($testProjectRunSerially | ?{ $testDll.FullName.EndsWith("\$_") }) -ne $null)
+	{
+		Write-Host "Run Serially for $testDll"
+		$testProjectDllsRunSerially += $testDll.FullName
+	}
+	else
+	{
+		$testProjectsDlls += " $testDll"
+	}
 }
 
-<#
- # Process results
- #>
+$testCommandPrefix = "$DOTNET_PATH vstest /Logger:`"$LOGGER_ARG`" /TestAdapterPath:`"$BuildBinariesDirectory`" /Parallel /InIsolation"
 
-if (Test-Path $OPENCOVER_COBERTURA_CONVERTER -PathType "Leaf") {
-    &$OPENCOVER_COBERTURA_CONVERTER -sources:. -input:$CODE_COVERAGE -output:(Join-Path $BuildBinariesDirectory "CoberturaCoverage.xml")
+if ($Filter) {
+    $testCommandPrefix += " /TestCaseFilter:`"$Filter`"" 
 }
 
-if (Test-Path $REPORT_GENERATOR -PathType "Leaf") {
-    &$REPORT_GENERATOR -reporttypes:MHtml -reports:$CODE_COVERAGE -targetdir:(Join-Path $BuildBinariesDirectory "report")
+foreach($testDll in $testProjectDllsRunSerially)
+{
+	$testCommand = "$testCommandPrefix $testDll"
+	Write-Host "Run test command serially: $testCommand"
+	Invoke-Expression "$testCommand"
 }
 
-if (-not $Success) {
-    throw "Failed tests."
-}
+$testCommand = $testCommandPrefix + $testProjectsDlls
+Write-Host "Run test command: $testCommand"
+Invoke-Expression "$testCommand"
 
 Write-Host "Done!"

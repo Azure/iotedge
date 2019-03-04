@@ -1,16 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 {
     using System.Threading.Tasks;
 
     public class NullCommandFactory : ICommandFactory
     {
-        public static NullCommandFactory Instance { get; } = new NullCommandFactory();
-
         NullCommandFactory()
         {
         }
+
+        public static NullCommandFactory Instance { get; } = new NullCommandFactory();
 
         public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo) => Task.FromResult<ICommand>(NullCommand.Instance);
 

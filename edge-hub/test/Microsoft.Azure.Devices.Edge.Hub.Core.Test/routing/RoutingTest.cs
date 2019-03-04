@@ -22,16 +22,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using Moq;
     using Newtonsoft.Json;
     using Xunit;
+    using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
-    using Message = Microsoft.Azure.Devices.Edge.Hub.Core.EdgeMessage;
+    using Message = EdgeMessage;
     using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
 
     [Integration]
     public class RoutingTest
     {
         static readonly Random Rand = new Random();
-
-        static TimeSpan GetSleepTime(int baseSleepSecs = 10) => TimeSpan.FromSeconds(baseSleepSecs + Rand.Next(0, 10));
 
         [Fact]
         public async Task RouteToCloudTest()
@@ -404,6 +403,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.True(module1.HasReceivedTwinChangeNotification());
         }
 
+        // Need longer sleep when run tests in parallel
+        static TimeSpan GetSleepTime(int baseSleepSecs = 15) => TimeSpan.FromSeconds(baseSleepSecs + Rand.Next(0, 10));
+
         static async Task<(IEdgeHub, IConnectionManager)> SetupEdgeHub(IEnumerable<string> routes, IoTHub iotHub, string edgeDeviceId)
         {
             string iotHubName = "testHub";
@@ -434,12 +436,106 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var routerConfig = new RouterConfig(endpoints, routesList);
             IDbStoreProvider dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-            IMessageStore messageStore = new MessageStore(storeProvider, CheckpointStore.Create(dbStoreProvider), TimeSpan.MaxValue);
+            IMessageStore messageStore = new MessageStore(storeProvider, CheckpointStore.Create(storeProvider), TimeSpan.MaxValue);
             IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(1, TimeSpan.FromMilliseconds(10)), messageStore);
             Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), iotHubName, routerConfig, endpointExecutorFactory);
             ITwinManager twinManager = new TwinManager(connectionManager, new TwinCollectionMessageConverter(), new TwinMessageConverter(), Option.None<IEntityStore<string, TwinInfo>>());
-            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager, twinManager, edgeDeviceId, Mock.Of<IInvokeMethodHandler>(), Mock.Of<IDeviceConnectivityManager>());
+            var invokeMethodHandler = Mock.Of<IInvokeMethodHandler>();
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
+            var subscriptionProcessor = new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager);
+            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager, twinManager, edgeDeviceId, invokeMethodHandler, subscriptionProcessor);
             return (edgeHub, connectionManager);
+        }
+
+        static IMessage GetMessage()
+        {
+            byte[] messageBody = Encoding.UTF8.GetBytes("Message body");
+            var properties = new Dictionary<string, string>()
+            {
+                { "Prop1", "Val1" },
+                { "Prop2", "Val2" }
+            };
+
+            var systemProperties = new Dictionary<string, string>
+            {
+                { SystemProperties.MessageId, Guid.NewGuid().ToString() }
+            };
+            return new Message(messageBody, properties, systemProperties);
+        }
+
+        static List<IMessage> GetMessages()
+        {
+            var messages = new List<IMessage>();
+            for (int i = 0; i < 10; i++)
+            {
+                messages.Add(GetMessage());
+            }
+
+            return messages;
+        }
+
+        static IMessage GetReportedPropertiesMessage()
+        {
+            var twinCollection = new TwinCollection();
+            twinCollection["Status"] = "running";
+            twinCollection["ElapsedTime"] = "0.5";
+            byte[] messageBody = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(twinCollection));
+            return new EdgeMessage.Builder(messageBody).Build();
+        }
+
+        static IClientCredentials SetupDeviceIdentity(string deviceId) =>
+            new TokenCredentials(new DeviceIdentity("iotHub", deviceId), Guid.NewGuid().ToString(), string.Empty, false);
+
+        static IClientCredentials SetupModuleCredentials(string moduleId, string deviceId) =>
+            new TokenCredentials(new ModuleIdentity("iotHub", deviceId, moduleId), Guid.NewGuid().ToString(), string.Empty, false);
+
+        class IoTHub
+        {
+            public List<IMessage> ReceivedMessages { get; } = new List<IMessage>();
+
+            public bool HasReceivedMessages(IEnumerable<IMessage> messages) => messages.All(m => this.HasReceivedMessage(m));
+
+            public bool HasReceivedMessage(IMessage message) => this.ReceivedMessages.Any(
+                m =>
+                    m.SystemProperties[SystemProperties.MessageId] == message.SystemProperties[SystemProperties.MessageId]);
+
+            public bool HasReceivedTwinChangeNotification() => this.ReceivedMessages.Any(
+                m =>
+                    m.SystemProperties[SystemProperties.MessageType] == Constants.TwinChangeNotificationMessageType);
+        }
+
+        class TestDevice
+        {
+            readonly IDeviceListener deviceListener;
+            readonly IDeviceIdentity deviceIdentity;
+
+            TestDevice(IDeviceIdentity deviceIdentity, IDeviceListener deviceListener)
+            {
+                this.deviceIdentity = deviceIdentity;
+                this.deviceListener = deviceListener;
+            }
+
+            public static async Task<TestDevice> Create(string deviceId, IEdgeHub edgeHub, IConnectionManager connectionManager)
+            {
+                IClientCredentials deviceCredentials = SetupDeviceIdentity(deviceId);
+                Try<ICloudProxy> cloudProxy = await connectionManager.CreateCloudConnectionAsync(deviceCredentials);
+                Assert.True(cloudProxy.Success);
+                var deviceProxy = Mock.Of<IDeviceProxy>();
+                var deviceListener = new DeviceMessageHandler(deviceCredentials.Identity, edgeHub, connectionManager);
+                deviceListener.BindDeviceProxy(deviceProxy);
+                return new TestDevice(deviceCredentials.Identity as IDeviceIdentity, deviceListener);
+            }
+
+            public Task SendMessages(IEnumerable<IMessage> messages) => Task.WhenAll(messages.Select(m => this.SendMessage(m)));
+
+            public Task SendMessage(IMessage message)
+            {
+                message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.deviceIdentity.DeviceId;
+                return this.deviceListener.ProcessDeviceMessageAsync(message);
+            }
+
+            public Task UpdateReportedProperties(IMessage reportedPropertiesMessage) =>
+                this.deviceListener.UpdateReportedPropertiesAsync(reportedPropertiesMessage, Guid.NewGuid().ToString());
         }
 
         class TestModule
@@ -469,11 +565,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 var receivedMessages = new List<IMessage>();
                 var deviceProxy = new Mock<IDeviceProxy>();
                 deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.Is<string>(e => inputEndpointIds.Contains(e))))
-                    .Callback<IMessage, string>((m, e) =>
-                    {
-                        receivedMessages.Add(m);
-                        deviceListener.ProcessMessageFeedbackAsync(m.SystemProperties[SystemProperties.LockToken], FeedbackStatus.Complete).Wait();
-                    })
+                    .Callback<IMessage, string>(
+                        (m, e) =>
+                        {
+                            receivedMessages.Add(m);
+                            deviceListener.ProcessMessageFeedbackAsync(m.SystemProperties[SystemProperties.LockToken], FeedbackStatus.Complete).Wait();
+                        })
                     .Returns(Task.CompletedTask);
                 deviceProxy.SetupGet(d => d.IsActive).Returns(true);
                 deviceListener.BindDeviceProxy(deviceProxy.Object);
@@ -506,102 +603,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             public bool HasReceivedMessages(IEnumerable<IMessage> messages) => messages.All(m => this.HasReceivedMessage(m));
 
-            public bool HasReceivedMessage(IMessage message) => this.receivedMessages.Any(m =>
-                m.SystemProperties[SystemProperties.MessageId] == message.SystemProperties[SystemProperties.MessageId]);
+            public bool HasReceivedMessage(IMessage message) => this.receivedMessages.Any(
+                m =>
+                    m.SystemProperties[SystemProperties.MessageId] == message.SystemProperties[SystemProperties.MessageId]);
 
             public Task UpdateReportedProperties(IMessage reportedPropertiesMessage) =>
                 this.deviceListener.UpdateReportedPropertiesAsync(reportedPropertiesMessage, Guid.NewGuid().ToString());
 
-            public bool HasReceivedTwinChangeNotification() => this.receivedMessages.Any(m =>
-                m.SystemProperties[SystemProperties.MessageType] == Core.Constants.TwinChangeNotificationMessageType);
+            public bool HasReceivedTwinChangeNotification() => this.receivedMessages.Any(
+                m =>
+                    m.SystemProperties[SystemProperties.MessageType] == Constants.TwinChangeNotificationMessageType);
         }
-
-        class TestDevice
-        {
-            readonly IDeviceListener deviceListener;
-            readonly IDeviceIdentity deviceIdentity;
-
-            TestDevice(IDeviceIdentity deviceIdentity, IDeviceListener deviceListener)
-            {
-                this.deviceIdentity = deviceIdentity;
-                this.deviceListener = deviceListener;
-            }
-
-            public static async Task<TestDevice> Create(string deviceId, IEdgeHub edgeHub, IConnectionManager connectionManager)
-            {
-                IClientCredentials deviceCredentials = SetupDeviceIdentity(deviceId);
-                Try<ICloudProxy> cloudProxy = await connectionManager.CreateCloudConnectionAsync(deviceCredentials);
-                Assert.True(cloudProxy.Success);
-                var deviceProxy = Mock.Of<IDeviceProxy>();                
-                var deviceListener = new DeviceMessageHandler(deviceCredentials.Identity, edgeHub, connectionManager);
-                deviceListener.BindDeviceProxy(deviceProxy);
-                return new TestDevice(deviceCredentials.Identity as IDeviceIdentity, deviceListener);
-            }
-
-            public Task SendMessages(IEnumerable<IMessage> messages) => Task.WhenAll(messages.Select(m => this.SendMessage(m)));
-
-            public Task SendMessage(IMessage message)
-            {
-                message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.deviceIdentity.DeviceId;
-                return this.deviceListener.ProcessDeviceMessageAsync(message);
-            }
-
-            public Task UpdateReportedProperties(IMessage reportedPropertiesMessage) =>
-                this.deviceListener.UpdateReportedPropertiesAsync(reportedPropertiesMessage, Guid.NewGuid().ToString());
-        }
-
-        class IoTHub
-        {
-            public List<IMessage> ReceivedMessages { get; } = new List<IMessage>();
-
-            public bool HasReceivedMessages(IEnumerable<IMessage> messages) => messages.All(m => this.HasReceivedMessage(m));
-
-            public bool HasReceivedMessage(IMessage message) => this.ReceivedMessages.Any(m =>
-                m.SystemProperties[SystemProperties.MessageId] == message.SystemProperties[SystemProperties.MessageId]);
-
-            public bool HasReceivedTwinChangeNotification() => this.ReceivedMessages.Any(m =>
-                m.SystemProperties[SystemProperties.MessageType] == Core.Constants.TwinChangeNotificationMessageType);
-        }
-
-        static IMessage GetMessage()
-        {
-            byte[] messageBody = Encoding.UTF8.GetBytes("Message body");
-            var properties = new Dictionary<string, string>()
-            {
-                { "Prop1", "Val1" },
-                { "Prop2", "Val2" }
-            };
-
-            var systemProperties = new Dictionary<string, string>
-            {
-                { SystemProperties.MessageId, Guid.NewGuid().ToString() }
-            };
-            return new Message(messageBody, properties, systemProperties);
-        }
-
-        static List<IMessage> GetMessages()
-        {
-            var messages = new List<IMessage>();
-            for (int i = 0; i < 10; i++)
-            {
-                messages.Add(GetMessage());
-            }
-            return messages;
-        }
-
-        static IMessage GetReportedPropertiesMessage()
-        {
-            var twinCollection = new TwinCollection();
-            twinCollection["Status"] = "running";
-            twinCollection["ElapsedTime"] = "0.5";
-            byte[] messageBody = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(twinCollection));
-            return new Message.Builder(messageBody).Build();
-        }
-
-        static IClientCredentials SetupDeviceIdentity(string deviceId) =>
-            new TokenCredentials(new DeviceIdentity("iotHub", deviceId), Guid.NewGuid().ToString(), string.Empty, false);
-
-        static IClientCredentials SetupModuleCredentials(string moduleId, string deviceId) =>
-            new TokenCredentials(new ModuleIdentity("iotHub", deviceId, moduleId), Guid.NewGuid().ToString(), string.Empty, false);
     }
 }

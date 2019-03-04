@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System.Text;
@@ -49,6 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 string json = value.ToJson();
                 bytes = json.ToBytes();
             }
+
             return bytes;
         }
 

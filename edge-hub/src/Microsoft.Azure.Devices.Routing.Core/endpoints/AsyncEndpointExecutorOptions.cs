@@ -8,10 +8,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
     public class AsyncEndpointExecutorOptions
     {
-        public int BatchSize { get; }
-
-        public TimeSpan BatchTimeout { get; }
-
         public AsyncEndpointExecutorOptions(int batchSize)
             : this(batchSize, Timeout.InfiniteTimeSpan)
         {
@@ -23,5 +19,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             this.BatchSize = batchSize;
             this.BatchTimeout = batchTimeout;
         }
+
+        public int BatchSize { get; }
+
+        public TimeSpan BatchTimeout { get; }
     }
 }

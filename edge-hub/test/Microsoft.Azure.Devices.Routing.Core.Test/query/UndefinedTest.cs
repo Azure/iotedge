@@ -1,20 +1,18 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq.Expressions;
-    using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Query;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class UndefinedTest : RoutingUnitTestBase
     {
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void SmokeTest()
         {
             BinaryExpression expression = Expression.LessThan(Expression.Add(Expression.Constant(3.0, typeof(double)), Expression.Constant(Undefined.Instance)), Expression.Constant(4.0));
@@ -22,7 +20,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.False(rule());
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestEquals()
         {
             var d1 = new Undefined();
@@ -36,14 +35,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(Bool.Undefined, d1 == Bool.False);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestTypes()
         {
             Assert.Equal(Bool.True, Undefined.IsDefined("undefined"));
             Assert.Equal(Bool.False, Undefined.IsDefined((string)Undefined.Instance));
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestArthimetic()
         {
             var d1 = new Undefined();
@@ -66,7 +67,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(double.NaN, d1 / d2);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestComparison()
         {
             var d1 = new Undefined();
@@ -89,7 +91,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(Bool.Undefined, d1 >= d2);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public void TestExpression()
         {
             // Add

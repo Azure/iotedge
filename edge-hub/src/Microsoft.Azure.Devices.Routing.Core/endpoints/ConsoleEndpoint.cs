@@ -1,7 +1,4 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System;
@@ -47,15 +44,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             readonly ConsoleEndpoint endpoint;
             int count;
 
-            public Endpoint Endpoint => this.endpoint;
-
-            public ITransientErrorDetectionStrategy ErrorDetectionStrategy => new ErrorDetectionStrategy(_ => true);
-
             public Processor(ConsoleEndpoint endpoint)
             {
                 this.endpoint = Preconditions.CheckNotNull(endpoint);
                 this.count = 0;
             }
+
+            public Endpoint Endpoint => this.endpoint;
+
+            public ITransientErrorDetectionStrategy ErrorDetectionStrategy => new ErrorDetectionStrategy(_ => true);
 
             public Task<ISinkResult<IMessage>> ProcessAsync(IMessage message, CancellationToken token) =>
                 this.ProcessAsync(new[] { message }, token);
@@ -69,8 +66,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     {
                         Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "({0}) {1}: {2}", this.count, this.endpoint, message));
                     }
+
                     this.count++;
                 }
+
                 Console.ResetColor();
                 ISinkResult<IMessage> result = new SinkResult<IMessage>(messages);
                 return Task.FromResult(result);

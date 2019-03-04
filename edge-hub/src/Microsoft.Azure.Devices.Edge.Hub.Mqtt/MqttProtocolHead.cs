@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Net;
     using System.Net.Security;
     using System.Net.Sockets;
@@ -19,13 +20,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway;
-    using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Logging;
 
     public class MqttProtocolHead : IProtocolHead
     {
+        const int MqttsPort = 8883;
+        const int DefaultListenBacklogSize = 200; // connections allowed pending accept
+        const int DefaultParentEventLoopCount = 1;
+        const int DefaultMaxInboundMessageSize = 256 * 1024;
+        const int DefaultThreadCount = 200;
+        const bool AutoRead = false;
+
         readonly ILogger logger = Logger.Factory.CreateLogger<MqttProtocolHead>();
         readonly ISettingsProvider settingsProvider;
         readonly X509Certificate tlsCertificate;
@@ -37,16 +44,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IByteBufferAllocator byteBufferAllocator;
         readonly bool clientCertAuthAllowed;
 
-        const int MqttsPort = 8883;
-        const int DefaultListenBacklogSize = 200; // connections allowed pending accept
-        const int DefaultParentEventLoopCount = 1;
-        const int DefaultMaxInboundMessageSize = 256 * 1024;
-        const int DefaultThreadCount = 200;
-        const bool AutoRead = false;
         IChannel serverChannel;
         IEventLoopGroup eventLoopGroup;
 
-        public MqttProtocolHead(ISettingsProvider settingsProvider,
+        public MqttProtocolHead(
+            ISettingsProvider settingsProvider,
             X509Certificate tlsCertificate,
             IMqttConnectionProvider mqttConnectionProvider,
             IAuthenticator authenticator,
@@ -90,7 +92,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
         }
 
-
         public async Task CloseAsync(CancellationToken token)
         {
             try
@@ -101,7 +102,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 await (this.eventLoopGroup?.ShutdownGracefullyAsync() ?? TaskEx.Done);
                 // TODO: gracefully shutdown the MultithreadEventLoopGroup in MqttWebSocketListener?
                 // TODO: this.webSocketListenerRegistry.TryUnregister("mqtts")?
-
                 this.logger.LogInformation("Stopped");
             }
             catch (Exception ex)
@@ -142,33 +142,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 // channel that accepts incoming connections
                 .Channel<TcpServerSocketChannel>()
                 // Channel initializer, it is handler that is purposed to help configure a new channel
-                .ChildHandler(new ActionChannelInitializer<ISocketChannel>(channel =>
-                {
-                    DeviceIdentityProvider identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, this.clientCertAuthAllowed);
-                    // configure the channel pipeline of the new Channel by adding handlers
-                    TlsSettings serverSettings = new ServerTlsSettings(
-                            certificate: this.tlsCertificate,
-                            negotiateClientCertificate: this.clientCertAuthAllowed
-                        );
+                .ChildHandler(
+                    new ActionChannelInitializer<ISocketChannel>(
+                        channel =>
+                        {
+                            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, this.clientCertAuthAllowed);
+                            // configure the channel pipeline of the new Channel by adding handlers
+                            TlsSettings serverSettings = new ServerTlsSettings(
+                                certificate: this.tlsCertificate,
+                                negotiateClientCertificate: this.clientCertAuthAllowed);
 
-                    channel.Pipeline.AddLast(new TlsHandler(stream =>
-                        new SslStream(stream,
-                                      true,
-                                      (sender, remoteCertificate, remoteChain, sslPolicyErrors) =>
-                                      this.clientCertAuthAllowed ?
-                                          identityProvider.RemoteCertificateValidationCallback(remoteCertificate, remoteChain) : true),
-                                      serverSettings));
+                            channel.Pipeline.AddLast(
+                                new TlsHandler(
+                                    stream =>
+                                        new SslStream(
+                                            stream,
+                                            true,
+                                            (sender, remoteCertificate, remoteChain, sslPolicyErrors) => this.RemoteCertificateValidationCallback(identityProvider, remoteCertificate, remoteChain)),
+                                    serverSettings));
 
-                    channel.Pipeline.AddLast(
-                        MqttEncoder.Instance,
-                        new MqttDecoder(true, maxInboundMessageSize),
-                        new MqttAdapter(
-                            settings,
-                            this.sessionProvider,
-                            identityProvider,
-                            null,
-                            bridgeFactory));
-                }));
+                            channel.Pipeline.AddLast(
+                                MqttEncoder.Instance,
+                                new MqttDecoder(true, maxInboundMessageSize),
+                                new MqttAdapter(
+                                    settings,
+                                    this.sessionProvider,
+                                    identityProvider,
+                                    null,
+                                    bridgeFactory));
+                        }));
 
             var mqttWebSocketListener = new MqttWebSocketListener(
                 settings,
@@ -179,11 +181,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 new MultithreadEventLoopGroup(Environment.ProcessorCount),
                 this.byteBufferAllocator,
                 AutoRead,
-                maxInboundMessageSize);
+                maxInboundMessageSize,
+                this.clientCertAuthAllowed);
 
             this.webSocketListenerRegistry.TryRegister(mqttWebSocketListener);
 
             return bootstrap;
+        }
+
+        bool RemoteCertificateValidationCallback(DeviceIdentityProvider identityProvider, X509Certificate certificate, X509Chain chain)
+        {
+            if (this.clientCertAuthAllowed && certificate != null)
+            {
+                IList<X509Certificate2> certChain = chain?.ChainElements?
+                        .Cast<X509ChainElement>()
+                        .Select(element => element.Certificate)
+                        .ToList()
+                    ?? new List<X509Certificate2>();
+                identityProvider.RegisterConnectionCertificate(new X509Certificate2(certificate), certChain);
+            }
+
+            return true;
         }
     }
 }

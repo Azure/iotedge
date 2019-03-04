@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
     using System;
@@ -21,36 +20,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             DateTime lastStartTimeUtc = DateTime.Parse("2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind);
             DateTime lastExitTimeUtc = DateTime.Parse("2017-11-13T23:49:35.127381Z", null, DateTimeStyles.RoundtripKind);
             var module = new EdgeAgentDockerRuntimeModule(
-                new DockerReportedConfig("booyah", string.Empty, "someSha"),
+                new DockerReportedConfig("booyah:latest", string.Empty, "someSha"),
                 ModuleStatus.Running,
                 0,
-                "",
+                string.Empty,
                 lastStartTimeUtc,
                 lastExitTimeUtc,
                 null,
-                new Dictionary<string, EnvVal>()
-            );
+                new Dictionary<string, EnvVal>());
 
             // Act
             JToken json = JToken.Parse(JsonConvert.SerializeObject(module));
 
             // Assert
-            JToken expected = JToken.FromObject(new
-            {
-                runtimeStatus = "running",
-                exitCode = 0,
-                lastStartTimeUtc = lastStartTimeUtc,
-                lastExitTimeUtc = lastExitTimeUtc,
-                statusDescription = "",
-                type = "docker",
-                settings = new
+            JToken expected = JToken.FromObject(
+                new
                 {
-                    image = "booyah",
-                    imageHash = "someSha",
-                    createOptions = "{}"
-                },
-                env = new { }
-            });
+                    runtimeStatus = "running",
+                    exitCode = 0,
+                    lastStartTimeUtc = lastStartTimeUtc,
+                    lastExitTimeUtc = lastExitTimeUtc,
+                    statusDescription = string.Empty,
+                    type = "docker",
+                    settings = new
+                    {
+                        image = "booyah:latest",
+                        imageHash = "someSha",
+                        createOptions = "{}"
+                    },
+                    env = new { }
+                });
 
             Assert.True(JToken.DeepEquals(expected, json));
         }
@@ -61,20 +60,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         {
             // Arrange
             DateTime lastStartTimeUtc = DateTime.Parse(
-                "2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind
-            );
-            string json = JsonConvert.SerializeObject(new
-            {
-                type = "docker",
-                runtimeStatus = "running",
-                settings = new
+                "2017-11-13T23:44:35.127381Z",
+                null,
+                DateTimeStyles.RoundtripKind);
+            string json = JsonConvert.SerializeObject(
+                new
                 {
-                    image = "someImage",
-                    createOptions = "{}",
-                    imageHash = "someSha"
-                },
-                lastStartTimeUtc = lastStartTimeUtc
-            });
+                    type = "docker",
+                    runtimeStatus = "running",
+                    settings = new
+                    {
+                        image = "someImage",
+                        createOptions = "{}",
+                        imageHash = "someSha"
+                    },
+                    lastStartTimeUtc = lastStartTimeUtc
+                });
 
             // Act
             var edgeAgent = JsonConvert.DeserializeObject<EdgeAgentDockerRuntimeModule>(json);
@@ -82,9 +83,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // Assert
             Assert.Equal("docker", edgeAgent.Type);
             Assert.Equal(ModuleStatus.Running, edgeAgent.RuntimeStatus);
-            Assert.Equal("someImage", edgeAgent.Config.Image);
+            Assert.Equal("someImage:latest", edgeAgent.Config.Image);
             // TODO - Change Config for Runtime to DockerReportedConfig.
-            //Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
+            // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal(lastStartTimeUtc, edgeAgent.LastStartTimeUtc);
         }
 
@@ -93,21 +94,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         public void TestJsonDeserialize2()
         {
             // Arrange
-            string json = JsonConvert.SerializeObject(new
-            {
-                type = "docker",
-                runtimeStatus = "running",
-                settings = new
+            string json = JsonConvert.SerializeObject(
+                new
                 {
-                    image = "someImage",
-                    createOptions = "{}",
-                    imageHash = "someSha"
-                },
-                configuration = new
-                {
-                    id = "bing"
-                }
-            });
+                    type = "docker",
+                    runtimeStatus = "running",
+                    settings = new
+                    {
+                        image = "someImage",
+                        createOptions = "{}",
+                        imageHash = "someSha"
+                    },
+                    configuration = new
+                    {
+                        id = "bing"
+                    }
+                });
 
             // Act
             var edgeAgent = JsonConvert.DeserializeObject<EdgeAgentDockerRuntimeModule>(json);
@@ -115,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // Assert
             Assert.Equal("docker", edgeAgent.Type);
             Assert.Equal(ModuleStatus.Running, edgeAgent.RuntimeStatus);
-            Assert.Equal("someImage", edgeAgent.Config.Image);
+            Assert.Equal("someImage:latest", edgeAgent.Config.Image);
             // TODO - Change Config for Runtime to DockerReportedConfig.
             // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal("bing", edgeAgent.ConfigurationInfo.Id);
@@ -131,12 +133,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 new DockerReportedConfig("booyah", string.Empty, "someSha"),
                 ModuleStatus.Running,
                 0,
-                "",
+                string.Empty,
                 lastStartTimeUtc,
                 lastExitTimeUtc,
                 new ConfigurationInfo("bing"),
-                new Dictionary<string, EnvVal>()
-            );
+                new Dictionary<string, EnvVal>());
             var updatedModule1 = (EdgeAgentDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Running);
             var updatedModule2 = (EdgeAgentDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Unknown);
 

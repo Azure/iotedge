@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
 {
     using System;
@@ -7,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
     using Newtonsoft.Json;
 
     public class SymmetricKeyAuthentication : IEquatable<SymmetricKeyAuthentication>
-
     {
         [JsonConstructor]
         public SymmetricKeyAuthentication(string primaryKey, string secondaryKey)
@@ -25,11 +23,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj))
+            {
                 return false;
+            }
+
             if (ReferenceEquals(this, obj))
+            {
                 return true;
+            }
+
             if (obj.GetType() != this.GetType())
+            {
                 return false;
+            }
+
             return this.Equals((SymmetricKeyAuthentication)obj);
         }
 

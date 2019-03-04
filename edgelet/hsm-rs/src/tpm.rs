@@ -431,7 +431,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(feature = "cargo-clippy", allow(let_unit_value))]
+    #[allow(clippy::let_unit_value)]
 
     fn tpm_success() {
         let hsm_tpm = fake_good_tpm_hsm();

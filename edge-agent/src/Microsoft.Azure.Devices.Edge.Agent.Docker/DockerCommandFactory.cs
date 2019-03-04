@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System.Threading.Tasks;
@@ -35,39 +34,48 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     new PullCommand(this.client, combinedDockerConfig),
                     await CreateCommand.BuildAsync(this.client, dockerModule, module.ModuleIdentity, this.dockerLoggerConfig, this.configSource, module.Module is EdgeHubDockerModule));
             }
+
             return NullCommand.Instance;
         }
 
         public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
-            if (current is DockerModule currentDockerModule && next.Module is DockerModule)
+            if (current is DockerModule currentDockerModule && next.Module is DockerModule nextDockerModule)
             {
+                CombinedDockerConfig combinedDockerConfig = this.combinedConfigProvider.GetCombinedConfig(nextDockerModule, runtimeInfo);
                 return new GroupCommand(
+                    new PullCommand(this.client, combinedDockerConfig),
+                    new StopCommand(this.client, currentDockerModule),
                     new RemoveCommand(this.client, currentDockerModule),
-                    await this.CreateAsync(next, runtimeInfo));
+                    await CreateCommand.BuildAsync(this.client, nextDockerModule, next.ModuleIdentity, this.dockerLoggerConfig, this.configSource, next.Module is EdgeHubDockerModule));
             }
+
             return NullCommand.Instance;
         }
 
         public Task<ICommand> RemoveAsync(IModule module) =>
-            Task.FromResult(module is DockerModule
-                ? new RemoveCommand(this.client, (DockerModule)module)
-                : (ICommand)NullCommand.Instance);
+            Task.FromResult(
+                module is DockerModule
+                    ? new RemoveCommand(this.client, (DockerModule)module)
+                    : (ICommand)NullCommand.Instance);
 
         public Task<ICommand> StartAsync(IModule module) =>
-            Task.FromResult(module is DockerModule
-                ? new StartCommand(this.client, (DockerModule)module)
-                : (ICommand)NullCommand.Instance);
+            Task.FromResult(
+                module is DockerModule
+                    ? new StartCommand(this.client, (DockerModule)module)
+                    : (ICommand)NullCommand.Instance);
 
         public Task<ICommand> StopAsync(IModule module) =>
-            Task.FromResult(module is DockerModule
-                ? new StopCommand(this.client, (DockerModule)module)
-                : (ICommand)NullCommand.Instance);
+            Task.FromResult(
+                module is DockerModule
+                    ? new StopCommand(this.client, (DockerModule)module)
+                    : (ICommand)NullCommand.Instance);
 
         public Task<ICommand> RestartAsync(IModule module) =>
-            Task.FromResult(module is DockerRuntimeModule
-                ? new RestartCommand(this.client, (DockerRuntimeModule)module)
-                : (ICommand)NullCommand.Instance);
+            Task.FromResult(
+                module is DockerRuntimeModule
+                    ? new RestartCommand(this.client, (DockerRuntimeModule)module)
+                    : (ICommand)NullCommand.Instance);
 
         public Task<ICommand> WrapAsync(ICommand command) => Task.FromResult(command);
     }

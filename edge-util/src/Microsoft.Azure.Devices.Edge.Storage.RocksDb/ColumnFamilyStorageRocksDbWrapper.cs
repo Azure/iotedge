@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     using RocksDbSharp;
 
     /// <summary>
-    /// Wrapper around RocksDb. This is mainly needed because each ColumnFamilyDbStore contains an instance of this object, 
+    /// Wrapper around RocksDb. This is mainly needed because each ColumnFamilyDbStore contains an instance of this object,
     /// and hence it could get disposed multiple times. This class makes sure the underlying RocksDb instance is disposed only once.
     ///
     /// Because of an issue where ListColumnFamilies does not return an accurate list of column families on Linux,
@@ -21,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     {
         const string DbFolderName = "db";
         const string ColumnFamiliesFileName = "columnfamilies";
+
         static readonly DbOptions Options = new DbOptions()
             .SetCreateIfMissing()
             .SetCreateMissingColumnFamilies();
@@ -69,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             {
                 return this.columnFamiliesProvider.ListColumnFamilies();
             }
-        }        
+        }
 
         public ColumnFamilyHandle GetColumnFamily(string columnFamilyName) => this.db.GetColumnFamily(columnFamilyName);
 
@@ -78,10 +79,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             lock (ColumnFamiliesLock)
             {
                 this.columnFamiliesProvider.AddColumnFamily(entityName);
-                ColumnFamilyHandle handle = this.db.CreateColumnFamily(columnFamilyOptions, entityName);                
+                ColumnFamilyHandle handle = this.db.CreateColumnFamily(columnFamilyOptions, entityName);
                 return handle;
             }
-        }        
+        }
 
         public void DropColumnFamily(string columnFamilyName)
         {
@@ -136,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
             public void AddColumnFamily(string entityName) => File.AppendAllLines(this.columnFamiliesFilePath, new List<string> { entityName });
 
-            public IEnumerable<string> ListColumnFamilies() => (File.Exists(this.columnFamiliesFilePath)) ? File.ReadAllLines(this.columnFamiliesFilePath).ToList() : new List<string> { DefaultPartitionName };
+            public IEnumerable<string> ListColumnFamilies() => File.Exists(this.columnFamiliesFilePath) ? File.ReadAllLines(this.columnFamiliesFilePath).ToList() : new List<string> { DefaultPartitionName };
         }
     }
 }

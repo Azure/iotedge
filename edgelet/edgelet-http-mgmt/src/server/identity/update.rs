@@ -14,8 +14,8 @@ use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use management::models::{Identity, UpdateIdentity as UpdateIdentityRequest};
 
-use error::{Error, ErrorKind};
-use IntoResponse;
+use crate::error::{Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct UpdateIdentity<I> {
     id_manager: Arc<Mutex<I>>,
@@ -38,7 +38,7 @@ where
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let id_manager = self.id_manager.clone();
 
         let response = params
@@ -47,7 +47,8 @@ where
             .map(|name| {
                 let name = name.to_string();
                 read_request(name.clone(), req).map(|spec| (spec, name))
-            }).into_future()
+            })
+            .into_future()
             .flatten()
             .and_then(move |(spec, name)| {
                 let mut rid = id_manager.lock().unwrap();
@@ -56,7 +57,8 @@ where
                         IdentityOperation::UpdateIdentity(name),
                     )))
                 })
-            }).and_then(|id| Ok(write_response(&id)))
+            })
+            .and_then(|id| Ok(write_response(&id)))
             .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
@@ -78,7 +80,8 @@ where
     serde_json::to_string(&identity)
         .with_context(|_| {
             ErrorKind::IdentityOperation(IdentityOperation::UpdateIdentity(module_id.clone()))
-        }).map_err(Error::from)
+        })
+        .map_err(Error::from)
         .and_then(|b| {
             Ok(Response::builder()
                 .status(StatusCode::OK)
@@ -88,7 +91,8 @@ where
                 .context(ErrorKind::IdentityOperation(
                     IdentityOperation::UpdateIdentity(module_id),
                 ))?)
-        }).unwrap_or_else(|e| e.into_response())
+        })
+        .unwrap_or_else(|e| e.into_response())
 }
 
 fn read_request(
@@ -113,7 +117,7 @@ mod tests {
     use edgelet_core::AuthType;
     use edgelet_test_utils::identity::{TestIdentity, TestIdentityManager};
     use management::models::ErrorResponse;
-    use serde_json::Value;
+    use serde_json::{json, Value};
 
     use super::*;
 
@@ -164,7 +168,8 @@ mod tests {
                 assert_eq!(AuthType::Sas, identity.auth_type());
 
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -196,7 +201,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 

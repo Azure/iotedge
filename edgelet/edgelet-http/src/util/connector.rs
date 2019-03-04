@@ -14,7 +14,6 @@
 //! HTTP and Unix sockets respectively.
 
 use std::io;
-use std::path::Path;
 
 use failure::ResultExt;
 use futures::{future, Future};
@@ -29,32 +28,19 @@ use hyperlocal::{UnixConnector, Uri as HyperlocalUri};
 use hyperlocal_windows::{UnixConnector, Uri as HyperlocalUri};
 use url::{ParseError, Url};
 
-use error::{Error, ErrorKind, InvalidUrlReason};
-use util::StreamSelector;
-use UrlExt;
+use edgelet_core::UrlExt;
 
-const UNIX_SCHEME: &str = "unix";
+use crate::error::{Error, ErrorKind, InvalidUrlReason};
+use crate::util::{socket_file_exists, StreamSelector};
 #[cfg(windows)]
-const PIPE_SCHEME: &str = "npipe";
-const HTTP_SCHEME: &str = "http";
+use crate::PIPE_SCHEME;
+use crate::{HTTP_SCHEME, UNIX_SCHEME};
 
 pub enum UrlConnector {
     Http(HttpConnector),
     #[cfg(windows)]
     Pipe(PipeConnector),
     Unix(UnixConnector),
-}
-
-fn socket_file_exists(path: &Path) -> bool {
-    if cfg!(windows) {
-        use std::fs;
-        // Unix domain socket files in Windows are reparse points, so path.exists()
-        // (which calls fs::metadata(path)) won't work. Use fs::symlink_metadata()
-        // instead.
-        fs::symlink_metadata(path).is_ok()
-    } else {
-        path.exists()
-    }
 }
 
 impl UrlConnector {
@@ -64,7 +50,9 @@ impl UrlConnector {
             PIPE_SCHEME => Ok(UrlConnector::Pipe(PipeConnector)),
 
             UNIX_SCHEME => {
-                let file_path = url.to_uds_file_path()?;
+                let file_path = url
+                    .to_uds_file_path()
+                    .map_err(|_| ErrorKind::InvalidUrl(url.to_string()))?;
                 if socket_file_exists(&file_path) {
                     Ok(UrlConnector::Unix(UnixConnector::new()))
                 } else {
@@ -96,7 +84,8 @@ impl UrlConnector {
                     scheme: scheme.to_string(),
                     base_path: base_path.to_string(),
                     path: path.to_string(),
-                })?.into()),
+                })?
+                .into()),
             UNIX_SCHEME => Ok(HyperlocalUri::new(base_path, &path).into()),
             HTTP_SCHEME => Ok(Url::parse(base_path)
                 .and_then(|base| base.join(path))
@@ -118,10 +107,10 @@ impl UrlConnector {
 impl Connect for UrlConnector {
     type Transport = StreamSelector;
     type Error = io::Error;
-    type Future = Box<Future<Item = (Self::Transport, Connected), Error = Self::Error> + Send>;
+    type Future = Box<dyn Future<Item = (Self::Transport, Connected), Error = Self::Error> + Send>;
 
     fn connect(&self, dst: Destination) -> Self::Future {
-        #[cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
+        #[allow(clippy::match_same_arms)]
         match (self, dst.scheme()) {
             (UrlConnector::Http(_), HTTP_SCHEME) => (),
 
@@ -134,7 +123,7 @@ impl Connect for UrlConnector {
                 return Box::new(future::err(io::Error::new(
                     io::ErrorKind::Other,
                     format!("Invalid scheme {}", scheme),
-                ))) as Self::Future
+                ))) as Self::Future;
             }
         };
 

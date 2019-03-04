@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace IotEdgeQuickstart.Details
 {
     using System;
@@ -16,14 +15,15 @@ namespace IotEdgeQuickstart.Details
     {
         const string ConfigYamlFile = @"C:\ProgramData\iotedge\config.yaml";
 
-        readonly string archivePath;
+        readonly string offlineInstallationPath;
         readonly Option<RegistryCredentials> credentials;
+        readonly TimeSpan iotEdgeServiceOperationWaitTime = TimeSpan.FromMinutes(5);
         readonly Option<string> proxy;
         string scriptDir;
 
-        public IotedgedWindows(string archivePath, Option<RegistryCredentials> credentials, Option<string> proxy)
+        public IotedgedWindows(string offlineInstallationPath, Option<RegistryCredentials> credentials, Option<string> proxy)
         {
-            this.archivePath = archivePath;
+            this.offlineInstallationPath = offlineInstallationPath;
             this.credentials = credentials;
             this.proxy = proxy;
         }
@@ -77,26 +77,17 @@ namespace IotEdgeQuickstart.Details
                         {
                             // Display error and retry for some transient exceptions such as hyper error
                             string exceptionDetails = e.ToString();
-                            WriteToConsole("List operation exception caught", new[] { exceptionDetails });
-
-                            if (exceptionDetails.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase))
+                            if (exceptionDetails.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
+                                exceptionDetails.Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase))
                             {
-                                try
-                                {
-                                    Console.WriteLine("Workaround: restart iotedge service.");
-                                    this.Restart().Wait();
-                                }
-                                catch (Exception restartOperationException)
-                                {
-                                    // Eat it up and let it retry in next iteration
-                                    Console.WriteLine(restartOperationException);
-                                }
+                                WriteToConsole("List operation exception caught. Retrying in case iotedge service is still starting...", new[] { exceptionDetails });
+                                return true;
                             }
 
-                            return true;
+                            return false;
                         },
                         TimeSpan.FromSeconds(5),
-                        5);
+                        cts.Token);
                 }
                 catch (OperationCanceledException)
                 {
@@ -113,22 +104,20 @@ namespace IotEdgeQuickstart.Details
         {
             // Windows installation does install + configure in one step. Since we need to connection string
             // to configure and we don't have that information here, we'll do installation in Configure().
-
             return Task.CompletedTask;
         }
 
         public async Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
-            Console.WriteLine($"Installing iotedged from {this.archivePath ?? "default location"}");
             Console.WriteLine($"Setting up iotedged with agent image '{image}'");
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
             {
-                if (!string.IsNullOrEmpty(this.archivePath))
+                if (!string.IsNullOrEmpty(this.offlineInstallationPath))
                 {
-                    this.scriptDir = File.GetAttributes(this.archivePath).HasFlag(FileAttributes.Directory)
-                        ? this.archivePath
-                        : new FileInfo(this.archivePath).DirectoryName;
+                    this.scriptDir = File.GetAttributes(this.offlineInstallationPath).HasFlag(FileAttributes.Directory)
+                        ? this.offlineInstallationPath
+                        : new FileInfo(this.offlineInstallationPath).DirectoryName;
                 }
                 else
                 {
@@ -140,26 +129,29 @@ namespace IotEdgeQuickstart.Details
                 }
 
                 string args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon -Manual " +
-                    $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
+                              $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
+
+                this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
+
+                if (!string.IsNullOrEmpty(this.offlineInstallationPath))
+                {
+                    args += $" -OfflineInstallationPath '{this.offlineInstallationPath}'";
+                }
+
+                string commandForDebug = args;
 
                 foreach (RegistryCredentials c in this.credentials)
                 {
                     args += $" -Username '{c.User}' -Password (ConvertTo-SecureString '{c.Password}' -AsPlainText -Force)";
                 }
 
-                this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
-
-                if (this.archivePath != null)
-                {
-                    args += $" -ArchivePath '{this.archivePath}'";
-                }
-
                 // note: ignore hostname for now
-                Console.WriteLine($"Run command to configure: {args}");
+                Console.WriteLine($"Run command to configure: {commandForDebug}");
                 string[] result = await Process.RunAsync("powershell", args, cts.Token);
                 WriteToConsole("Output from Configure iotedge windows service", result);
 
                 // Stop service and update config file
+                await Task.Delay(TimeSpan.FromSeconds(5));
                 await this.Stop();
 
                 UpdateConfigYamlFile(deviceCaCert, deviceCaPk, deviceCaCerts, runtimeLogLevel);
@@ -168,6 +160,87 @@ namespace IotEdgeQuickstart.Details
                 SetEnvironmentVariable();
             }
         }
+
+        public async Task Start()
+        {
+            Console.WriteLine("Starting iotedge service.");
+
+            // Configured service is not started up automatically in Windows 10 RS4, but should start up in RS5.
+            // Therefore we check if service is not running and start it up explicitly
+            try
+            {
+                var iotedgeService = new ServiceController("iotedge");
+
+                if (iotedgeService.Status != ServiceControllerStatus.Running)
+                {
+                    iotedgeService.Start();
+                    iotedgeService.WaitForStatus(ServiceControllerStatus.Running, this.iotEdgeServiceOperationWaitTime);
+                    iotedgeService.Refresh();
+
+                    if (iotedgeService.Status != ServiceControllerStatus.Running)
+                    {
+                        throw new Exception("Can't start iotedge service within timeout period.");
+                    }
+
+                    // Add delay to ensure iotedge service is completely started.
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    Console.WriteLine("iotedge service started.");
+                }
+                else
+                {
+                    Console.WriteLine("Iotedge service is already running.");
+                }
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Error starting iotedged: {e}");
+            }
+        }
+
+        public Task Stop()
+        {
+            Console.WriteLine("Stopping iotedge service.");
+
+            try
+            {
+                ServiceController[] services = ServiceController.GetServices();
+                var iotedgeService = services.FirstOrDefault(s => s.ServiceName.Equals("iotedge", StringComparison.OrdinalIgnoreCase));
+
+                // check service exists
+                if (iotedgeService != null)
+                {
+                    if (iotedgeService.Status != ServiceControllerStatus.Stopped)
+                    {
+                        iotedgeService.Stop();
+                        iotedgeService.WaitForStatus(ServiceControllerStatus.Stopped, this.iotEdgeServiceOperationWaitTime);
+                        iotedgeService.Refresh();
+
+                        if (iotedgeService.Status != ServiceControllerStatus.Stopped)
+                        {
+                            throw new Exception("Can't stop iotedge service within timeout period.");
+                        }
+
+                        Console.WriteLine("iotedge service stopped.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Iotedge service is already stopped.");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Iotedge service doesn't exist.");
+                }
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Error stopping iotedged: {e}");
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task Reset() => Task.CompletedTask;
 
         static void UpdateConfigYamlFile(string deviceCaCert, string deviceCaPk, string trustBundleCerts, LogLevel runtimeLogLevel)
         {
@@ -207,84 +280,6 @@ namespace IotEdgeQuickstart.Details
 
             Console.WriteLine($"Explicitly set environment variable [IOTEDGE_HOST={result.Groups[1].Value}]");
             Environment.SetEnvironmentVariable("IOTEDGE_HOST", result.Groups[1].Value);
-        }
-
-        public Task Start()
-        {
-            Console.WriteLine("Starting up iotedge service on Windows");
-
-            // Configured service is not started up automatically in Windows 10 RS4, but should start up in RS5.
-            // Therefore we check if service is not running and start it up explicitly
-            try
-            {
-                var iotedgeService = new ServiceController("iotedge");
-
-                if (iotedgeService.Status != ServiceControllerStatus.Running)
-                {
-                    iotedgeService.Start();
-                    iotedgeService.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromMinutes(2));
-                    iotedgeService.Refresh();
-
-                    if (iotedgeService.Status != ServiceControllerStatus.Running)
-                    {
-                        throw new Exception("Can't start up iotedge service within timeout period.");
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("Iotedge service is already started.");
-                }
-            }
-            catch (Exception e)
-            {
-                throw new Exception($"Error starting iotedged: {e}");
-            }
-
-            // Add delay to ensure iotedge service is completely started up.
-            Task.Delay(new TimeSpan(0, 0, 0, 5));
-            Console.WriteLine("iotedge service started on Windows");
-
-            return Task.CompletedTask;
-        }
-
-        public async Task Stop()
-        {
-            try
-            {
-                ServiceController[] services = ServiceController.GetServices();
-                var iotedgeService = services.FirstOrDefault(s => s.ServiceName.Equals("iotedge", StringComparison.OrdinalIgnoreCase));
-
-                // check service exists
-                if (iotedgeService != null)
-                {
-                    if (iotedgeService.Status == ServiceControllerStatus.Running)
-                    {
-                        iotedgeService.Stop();
-                        await Task.Delay(TimeSpan.FromSeconds(3));
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                throw new Exception($"Error stopping iotedged: {e}");
-            }
-        }
-
-        public async Task Restart()
-        {
-            await Process.RunAsync("powershell", "Restart-Service iotedge");
-            await Task.Delay(TimeSpan.FromSeconds(5));
-        }
-
-        public async Task Reset()
-        {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3)))
-            {
-                await Process.RunAsync(
-                    "powershell",
-                    $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Uninstall-SecurityDaemon",
-                    cts.Token);
-            }
         }
 
         static void WriteToConsole(string header, string[] result)

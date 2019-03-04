@@ -1,5 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
@@ -13,6 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName);
 
         Task<ISequentialStore<T>> GetSequentialStore<T>(string entityName);
+
+        Task<ISequentialStore<T>> GetSequentialStore<T>(string entityName, long defaultHeadOffset);
 
         Task RemoveStore<T>(ISequentialStore<T> sequentialStore);
 

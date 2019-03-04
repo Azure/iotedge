@@ -12,9 +12,6 @@ use edgelet_core::{
     KeyBytes as CoreKeyBytes, MasterEncryptionKey as CoreMasterEncryptionKey,
     PrivateKey as CorePrivateKey,
 };
-
-use certificate_properties::convert_properties;
-pub use error::{Error, ErrorKind};
 pub use hsm::{
     Buffer, Decrypt, Encrypt, GetTrustBundle, HsmCertificate, KeyBytes as HsmKeyBytes,
     PrivateKey as HsmPrivateKey,
@@ -24,6 +21,9 @@ use hsm::{
     CreateMasterEncryptionKey as HsmCreateMasterEncryptionKey, Crypto as HsmCrypto,
     DestroyMasterEncryptionKey as HsmDestroyMasterEncryptionKey,
 };
+
+use crate::certificate_properties::convert_properties;
+pub use crate::error::{Error, ErrorKind};
 
 /// The TPM Key Store.
 /// Activate a private key, and then you can use that key to sign data.
@@ -166,7 +166,8 @@ impl CoreCertificate for Certificate {
                 }
                 Some(HsmPrivateKey::Ref(key_string)) => Some(CorePrivateKey::Ref(key_string)),
                 None => None,
-            }).map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+            })
+            .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
     }
 

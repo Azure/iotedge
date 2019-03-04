@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
@@ -47,8 +46,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 Routing.LoggerFactory = Logger.Factory;
             }
 
-            EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration).ConfigureAwait(false);
-            Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, new DependencyManager(configuration, certificates.ServerCertificate, certificates.TrustBundle));
+            EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration);
+            bool clientCertAuthEnabled = configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
+            Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, new DependencyManager(configuration, certificates.ServerCertificate, certificates.TrustBundle), clientCertAuthEnabled);
             IContainer container = hosting.Container;
 
             ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             Metrics.BuildMetricsCollector(configuration);
 
-            using (IProtocolHead protocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting).ConfigureAwait(false))
+            using (IProtocolHead protocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting))
             using (var renewal = new CertificateRenewal(certificates, logger))
             {
                 await protocolHead.StartAsync();

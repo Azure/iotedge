@@ -1,7 +1,4 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.PerfCounters
 {
     public class NullRoutingPerfCounter : IRoutingPerfCounter
@@ -11,6 +8,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.PerfCounters
             errorString = string.Empty;
             return true;
         }
+
         public bool LogE2EEventProcessingLatency(string iotHubName, string endpointName, string endpointType, string status, long latencyInMs, out string errorString)
         {
             errorString = string.Empty;

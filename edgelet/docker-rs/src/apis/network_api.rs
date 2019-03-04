@@ -9,7 +9,6 @@
  */
 
 use std::borrow::Borrow;
-use std::borrow::Cow;
 use std::sync::Arc;
 
 use futures;
@@ -18,7 +17,6 @@ use hyper;
 use serde_json;
 use typed_headers::{self, http, mime, HeaderMapExt};
 
-use super::super::utils::UserAgent;
 use super::{configuration, Error};
 
 pub struct NetworkApiClient<C: hyper::client::connect::Connect> {
@@ -114,13 +112,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -167,13 +167,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::InlineResponse2011, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
@@ -213,13 +215,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -266,13 +270,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|_| futures::future::ok(())),
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 
@@ -317,13 +323,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::Network, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -368,13 +376,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<Vec<::models::Network>, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -419,13 +429,15 @@ where
                     body.concat2()
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
-                }).and_then(|(status, body)| {
+                })
+                .and_then(|(status, body)| {
                     if status.is_success() {
                         Ok(body)
                     } else {
                         Err(Error::from((status, &*body)))
                     }
-                }).and_then(|body| {
+                })
+                .and_then(|body| {
                     let parsed: Result<::models::InlineResponse20017, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))

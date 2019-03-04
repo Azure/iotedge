@@ -26,7 +26,7 @@ function usage()
     echo "options"
     echo " -h,  --help                   Print this help and exit."
     echo " -t,  --toolchain              Toolchain (default: stable)"
-    echo " -p,  --arm-package            Add additional dependencies for armhf packaging"
+    echo " -p,  --package-arm            Add additional dependencies for armhf packaging"
     exit 1;
 }
 
@@ -87,15 +87,15 @@ install_toolchain $TOOLCHAIN true
 sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty main universe"
 
 # Install OpenSSL, curl and uuid and valgrind
-sudo apt-get update && \
+sudo apt-get update || :
 sudo apt-get install -y \
     pkg-config \
     uuid-dev curl \
     libcurl4-openssl-dev \
     debhelper \
     dh-systemd \
-    valgrind && \
-sudo apt-get remove --yes libssl-dev && \
+    valgrind
+sudo apt-get remove --yes libssl-dev
 sudo apt-get install --yes --target-release xenial-updates libssl-dev
 
 if [[ -n "$ARM_PACKAGE" ]]; then

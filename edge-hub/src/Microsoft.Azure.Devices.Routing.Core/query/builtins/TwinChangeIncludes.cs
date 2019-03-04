@@ -1,7 +1,4 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 {
     using System;
@@ -17,6 +14,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 
     public class TwinChangeIncludes : Builtin
     {
+        public override bool IsBodyQuery => true;
+
         protected override BuiltinExecutor[] Executors => new[]
         {
             new BuiltinExecutor
@@ -26,8 +25,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
                 ExecutorFunc = Create
             },
         };
-
-        public override bool IsBodyQuery => true;
 
         public override bool IsValidMessageSource(IMessageSource source) => source is TwinChangeEventMessageSource;
 
@@ -51,7 +48,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
             if (!TwinChangeJsonPathValidator.IsSupportedJsonPath(queryString, out errorDetails))
             {
                 throw new ArgumentException(
-                    string.Format(CultureInfo.InvariantCulture,
+                    string.Format(
+                        CultureInfo.InvariantCulture,
                         "{0}",
                         errorDetails));
             }
@@ -92,8 +90,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 
         static class Events
         {
-            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<TwinChangeIncludes>();
             const int IdStart = Routing.EventIds.TwinChangeIncludes;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<TwinChangeIncludes>();
 
             enum EventIds
             {

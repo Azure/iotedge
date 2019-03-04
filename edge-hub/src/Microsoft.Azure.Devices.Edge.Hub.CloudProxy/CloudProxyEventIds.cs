@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     public static class CloudProxyEventIds
     {
-        const int EventIdStart = 3000;
         public const int CloudProxy = EventIdStart;
         public const int CloudReceiver = EventIdStart + 100;
         public const int CloudConnectionProvider = EventIdStart + 200;
@@ -15,5 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public const int DeviceScopeApiClient = EventIdStart + 800;
         public const int CloudTokenAuthenticator = EventIdStart + 900;
         public const int CertificateCredentialsAuthenticator = EventIdStart + 1000;
+        const int EventIdStart = 3000;
     }
 }

@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
@@ -8,21 +7,19 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Linq;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
-    using System.Text.RegularExpressions;
+    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
-    using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
     using Microsoft.Extensions.Logging;
     using Org.BouncyCastle.Crypto;
     using Org.BouncyCastle.Crypto.Parameters;
     using Org.BouncyCastle.OpenSsl;
     using Org.BouncyCastle.Pkcs;
     using Org.BouncyCastle.Security;
+    using X509Certificate = Org.BouncyCastle.X509.X509Certificate;
 
     public static class CertificateHelper
     {
-        public const string IotHubModuleCertificateUriScheme = "azureiot";
-
         public static string GetSha256Thumbprint(X509Certificate2 cert)
         {
             Preconditions.CheckNotNull(cert);
@@ -33,23 +30,17 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
-        static string ToHexString(byte[] bytes)
-        {
-            Preconditions.CheckNotNull(bytes);
-            return BitConverter.ToString(bytes).Replace("-", string.Empty);
-        }
-
         public static (IList<X509Certificate2>, Option<string>) BuildCertificateList(X509Certificate2 cert, Option<IList<X509Certificate2>> additionalCACertificates)
         {
             var chain = new X509Chain
             {
                 ChainPolicy =
                 {
-                    //For performance reasons do not check revocation status.
+                    // For performance reasons do not check revocation status.
                     RevocationMode = X509RevocationMode.NoCheck,
-                    //Does not check revocation status of the root certificate (sounds like it is meaningless with the option above - ask Simon or Alex)
+                    // Does not check revocation status of the root certificate (sounds like it is meaningless with the option above - ask Simon or Alex)
                     RevocationFlag = X509RevocationFlag.ExcludeRoot,
-                    //Certificate Authority can be unknown if it is not issued directly by a well-known CA
+                    // Certificate Authority can be unknown if it is not issued directly by a well-known CA
                     VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority
                 }
             };
@@ -104,52 +95,27 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
 
             (bool, Option<string>) result = trustedCACerts.Map(
-                caList =>
-                {
-                    bool match = false;
-                    foreach (X509Certificate2 chainElement in remoteCerts)
+                    caList =>
                     {
-                        string thumbprint = GetSha256Thumbprint(chainElement);
-                        if (remoteCertificateChain.Any(cert => GetSha256Thumbprint(cert) == thumbprint) &&
-                            caList.Any(cert => GetSha256Thumbprint(cert) == thumbprint))
+                        bool match = false;
+                        foreach (X509Certificate2 chainElement in remoteCerts)
                         {
-                            match = true;
-                            break;
+                            string thumbprint = GetSha256Thumbprint(chainElement);
+                            if (remoteCertificateChain.Any(cert => GetSha256Thumbprint(cert) == thumbprint) &&
+                                caList.Any(cert => GetSha256Thumbprint(cert) == thumbprint))
+                            {
+                                match = true;
+                                break;
+                            }
                         }
-                    }
-                    if (!match)
-                    {
-                        return (false, Option.Some($"Error validating cert with Subject: {remoteCertificate.SubjectName} Thumbprint: {GetSha256Thumbprint(remoteCertificate)}"));
-                    }
-                    else
-                    {
-                        return (true, Option.None<string>());
-                    }
-                })
-                .GetOrElse(() => { return (true, Option.None<string>()); });
+
+                        return match
+                            ? (true, Option.None<string>())
+                            : (false, Option.Some($"Error validating cert with Subject: {remoteCertificate.SubjectName} Thumbprint: {GetSha256Thumbprint(remoteCertificate)}"));
+                    })
+                .GetOrElse(() => (true, Option.None<string>()));
 
             return result;
-        }
-
-        static Option<string> GetCommonNameFromSubject(string subject)
-        {
-            var commonName = Option.None<string>();
-            string[] parts = subject.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (var part in parts)
-            {
-                var partTrimed = part.Trim();
-                if (partTrimed.StartsWith("CN", StringComparison.OrdinalIgnoreCase))
-                {
-                    string[] cnParts = partTrimed.Split(new char[] { '=' }, StringSplitOptions.RemoveEmptyEntries);
-                    if (cnParts.Length > 1)
-                    {
-                        commonName = Option.Some(cnParts[1].Trim());
-                    }
-                }
-            }
-
-            return commonName;
         }
 
         public static bool ValidateCommonName(X509Certificate2 certificate, string commonName)
@@ -157,12 +123,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(certificate);
             Preconditions.CheckNotNull(commonName);
 
-            return GetCommonNameFromSubject(certificate.Subject).Map(
-                subject =>
-                {
-                    return String.Equals(commonName, subject, StringComparison.Ordinal);
-                })
-                .GetOrElse(() => { return false; });
+            return GetCommonNameFromSubject(certificate.Subject)
+                .Map(subject => commonName.Equals(subject, StringComparison.Ordinal))
+                .GetOrElse(() => false);
         }
 
         public static bool ValidateCertificateThumbprint(X509Certificate2 certificate, IList<string> thumbprints)
@@ -170,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(certificate);
             Preconditions.CheckNotNull(thumbprints);
 
-            return thumbprints.Any(th => certificate.Thumbprint.Equals(th, StringComparison.OrdinalIgnoreCase));
+            return thumbprints.Any(th => certificate.Thumbprint?.Equals(th, StringComparison.OrdinalIgnoreCase) ?? false);
         }
 
         public static bool IsCACertificate(X509Certificate2 certificate)
@@ -205,37 +168,43 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(certificate);
             Preconditions.CheckNotNull(certificateChain);
             Preconditions.CheckNotNull(trustedCACerts);
-            Preconditions.CheckNotNull(logger);
 
-            DateTime currentTime = DateTime.Now;
-
-            if (certificate.NotAfter < currentTime)
+            if (!ValidateCertExpiry(certificate, logger))
             {
-                logger.LogWarning($"Certificate with subject: {certificate.Subject} has expired on UTC time: {certificate.NotAfter.ToString("MM-dd-yyyy H:mm:ss")}");
-                return false;
-            }
-
-            if (certificate.NotBefore > currentTime)
-            {
-                logger.LogWarning($"Certificate with subject: {certificate.Subject} is not valid until UTC time: {certificate.NotBefore.ToString("MM-dd-yyyy H:mm:ss")}");
                 return false;
             }
 
             if (IsCACertificate(certificate))
             {
-                logger.LogWarning($"Certificate with subject: {certificate.Subject} was found to be a CA certificate, this is not permitted per the authentication policy");
+                logger?.LogWarning($"Certificate with subject: {certificate.Subject} was found to be a CA certificate, this is not permitted per the authentication policy");
                 return false;
             }
 
-            bool result = false;
-            Option<string> errors = Option.None<string>();
-            (result, errors) = ValidateCert(certificate, certificateChain, trustedCACerts);
-            if (errors.HasValue)
-            {
-                errors.ForEach(v => logger.LogWarning(v));
-            }
+            (bool result, Option<string> errors) = ValidateCert(certificate, certificateChain, trustedCACerts);
+            errors.ForEach(v => logger?.LogWarning(v));
 
             return result;
+        }
+
+        public static bool ValidateCertExpiry(X509Certificate2 certificate, ILogger logger)
+        {
+            Preconditions.CheckNotNull(certificate);
+
+            DateTime currentTime = DateTime.Now;
+
+            if (certificate.NotAfter < currentTime)
+            {
+                logger?.LogWarning($"Certificate with subject: {certificate.Subject} has expired on UTC time: {certificate.NotAfter.ToString("MM-dd-yyyy H:mm:ss")}");
+                return false;
+            }
+
+            if (certificate.NotBefore > currentTime)
+            {
+                logger?.LogWarning($"Certificate with subject: {certificate.Subject} is not valid until UTC time: {certificate.NotBefore.ToString("MM-dd-yyyy H:mm:ss")}");
+                return false;
+            }
+
+            return true;
         }
 
         public static void InstallCerts(StoreName name, StoreLocation location, IEnumerable<X509Certificate2> certs)
@@ -266,25 +235,25 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static IEnumerable<X509Certificate2> GetCertificatesFromPem(IEnumerable<string> rawPemCerts) =>
             rawPemCerts
-                .Select(c => System.Text.Encoding.UTF8.GetBytes(c))
+                .Select(c => Encoding.UTF8.GetBytes(c))
                 .Select(c => new X509Certificate2(c))
                 .ToList();
 
-        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
+        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
         {
             if (string.IsNullOrEmpty(edgeHubHostname))
             {
                 throw new InvalidOperationException($"{nameof(edgeHubHostname)} is required.");
             }
 
-            CertificateResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, moduleId, moduleGenerationId).CreateServerCertificateAsync(edgeHubHostname, expiration);
+            ServerCertificateResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, workloadClientApiVersion, moduleId, moduleGenerationId).CreateServerCertificateAsync(edgeHubHostname, expiration);
             return ParseCertificateResponse(response);
         }
 
-        public static async Task<IEnumerable<X509Certificate2>> GetTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string moduleId, string moduleGenerationId)
+        public static async Task<IEnumerable<X509Certificate2>> GetTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId)
         {
-            TrustBundleResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, moduleId, moduleGenerationId).GetTrustBundleAsync();
-            return ParseTrustBundleResponse(response);
+            string response = await new WorkloadClient(workloadUri, workloadClientApiVersion, workloadApiVersion, moduleId, moduleGenerationId).GetTrustBundleAsync();
+            return ParseTrustedBundleCerts(response);
         }
 
         public static (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) GetServerCertificateAndChainFromFile(string serverWithChainFilePath, string serverPrivateKeyFilePath)
@@ -354,17 +323,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return ParseTrustedBundleCerts(certs);
         }
 
-        internal static IEnumerable<X509Certificate2> ParseTrustBundleResponse(TrustBundleResponse response)
+        internal static IEnumerable<X509Certificate2> ParseTrustedBundleCerts(string trustedCACerts)
         {
-            Preconditions.CheckNotNull(response, nameof(response));
-            return ParseTrustedBundleCerts(response.Certificate);
+            Preconditions.CheckNotNull(trustedCACerts, nameof(trustedCACerts));
+            return GetCertificatesFromPem(ParsePemCerts(trustedCACerts));
         }
 
-        internal static IEnumerable<X509Certificate2> ParseTrustedBundleCerts(string trustedCACerts) =>
-            GetCertificatesFromPem(ParsePemCerts(trustedCACerts));
-
-        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(CertificateResponse response) =>
-            ParseCertificateAndKey(response.Certificate, response.PrivateKey.Bytes);
+        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(ServerCertificateResponse response) =>
+            ParseCertificateAndKey(response.Certificate, response.PrivateKey);
 
         internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey)
         {
@@ -388,18 +354,20 @@ namespace Microsoft.Azure.Devices.Edge.Util
             object certObject = pemReader.ReadObject();
             while (certObject != null)
             {
-                if (certObject is Org.BouncyCastle.X509.X509Certificate x509Cert)
+                if (certObject is X509Certificate x509Cert)
                 {
                     chain.Add(new X509CertificateEntry(x509Cert));
                 }
+
                 // when processing certificates generated via openssl certObject type is of AsymmetricCipherKeyPair
                 if (certObject is AsymmetricCipherKeyPair)
                 {
                     certObject = ((AsymmetricCipherKeyPair)certObject).Private;
                 }
+
                 if (certObject is RsaPrivateCrtKeyParameters)
                 {
-                    keyParams = ((RsaPrivateCrtKeyParameters)certObject);
+                    keyParams = (RsaPrivateCrtKeyParameters)certObject;
                 }
 
                 certObject = pemReader.ReadObject();
@@ -418,6 +386,33 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 var cert = new X509Certificate2(p12File.ToArray());
                 return (cert, certsChain);
             }
+        }
+
+        static string ToHexString(byte[] bytes)
+        {
+            Preconditions.CheckNotNull(bytes);
+            return BitConverter.ToString(bytes).Replace("-", string.Empty);
+        }
+
+        static Option<string> GetCommonNameFromSubject(string subject)
+        {
+            Option<string> commonName = Option.None<string>();
+            string[] parts = subject.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string part in parts)
+            {
+                string partTrimed = part.Trim();
+                if (partTrimed.StartsWith("CN", StringComparison.OrdinalIgnoreCase))
+                {
+                    string[] cnParts = partTrimed.Split(new char[] { '=' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (cnParts.Length > 1)
+                    {
+                        commonName = Option.Some(cnParts[1].Trim());
+                    }
+                }
+            }
+
+            return commonName;
         }
     }
 }

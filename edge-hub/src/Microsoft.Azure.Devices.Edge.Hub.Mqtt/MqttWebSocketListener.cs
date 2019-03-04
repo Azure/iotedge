@@ -13,14 +13,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
 
     class MqttWebSocketListener : IWebSocketListener
-    { 
+    {
         readonly Settings settings;
         readonly MessagingBridgeFactoryFunc messagingBridgeFactoryFunc;
         readonly IAuthenticator authenticator;
@@ -30,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IByteBufferAllocator byteBufferAllocator;
         readonly bool autoRead;
         readonly int mqttDecoderMaxMessageSize;
+        readonly bool clientCertAuthAllowed;
 
         public MqttWebSocketListener(
             Settings settings,
@@ -40,8 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             IEventLoopGroup workerGroup,
             IByteBufferAllocator byteBufferAllocator,
             bool autoRead,
-            int mqttDecoderMaxMessageSize
-            )
+            int mqttDecoderMaxMessageSize,
+            bool clientCertAuthAllowed)
         {
             this.settings = Preconditions.CheckNotNull(settings, nameof(settings));
             this.messagingBridgeFactoryFunc = Preconditions.CheckNotNull(messagingBridgeFactoryFunc, nameof(messagingBridgeFactoryFunc));
@@ -52,19 +52,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.byteBufferAllocator = Preconditions.CheckNotNull(byteBufferAllocator, nameof(byteBufferAllocator));
             this.autoRead = autoRead;
             this.mqttDecoderMaxMessageSize = mqttDecoderMaxMessageSize;
+            this.clientCertAuthAllowed = clientCertAuthAllowed;
         }
 
         public string SubProtocol => Constants.WebSocketSubProtocol;
 
-        public async Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId)
+        public Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId)
+        {
+            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, this.clientCertAuthAllowed);
+            return this.ProcessWebSocketRequestAsyncInternal(identityProvider, webSocket, localEndPoint, remoteEndPoint, correlationId);
+        }
+
+        public Task ProcessWebSocketRequestAsync(
+            WebSocket webSocket,
+            Option<EndPoint> localEndPoint,
+            EndPoint remoteEndPoint,
+            string correlationId,
+            X509Certificate2 clientCert,
+            IList<X509Certificate2> clientCertChain)
+        {
+            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, this.clientCertAuthAllowed);
+            identityProvider.RegisterConnectionCertificate(clientCert, clientCertChain);
+            return this.ProcessWebSocketRequestAsyncInternal(identityProvider, webSocket, localEndPoint, remoteEndPoint, correlationId);
+        }
+
+        public async Task ProcessWebSocketRequestAsyncInternal(
+            DeviceIdentityProvider identityProvider,
+            WebSocket webSocket,
+            Option<EndPoint> localEndPoint,
+            EndPoint remoteEndPoint,
+            string correlationId)
         {
             try
             {
-                DeviceIdentityProvider identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, true);
-                var serverChannel = new ServerWebSocketChannel(
-                    webSocket,
-                    remoteEndPoint
-                );
+                var serverChannel = new ServerWebSocketChannel(webSocket, remoteEndPoint);
 
                 serverChannel
                     .Option(ChannelOption.Allocator, this.byteBufferAllocator)
@@ -85,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 Events.Established(correlationId);
 
-                await serverChannel.WebSocketClosed.Task;  // This will wait until the websocket is closed 
+                await serverChannel.WebSocketClosed.Task; // This will wait until the websocket is closed
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
@@ -96,8 +117,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<MqttWebSocketListener>();
             const int IdStart = MqttEventIds.MqttWebSocketListener;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<MqttWebSocketListener>();
 
             enum EventIds
             {
@@ -105,15 +126,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Exception
             }
 
-            public static void Established(string correlationId)
-            {
-                Log.LogInformation((int)Events.EventIds.Established, Invariant($"CorrelationId {correlationId}"));
-            }
+            public static void Established(string correlationId) =>
+                Log.LogInformation((int)EventIds.Established, Invariant($"Processed MQTT WebSocket request with CorrelationId {correlationId}"));
 
-            public static void Exception(string correlationId, Exception ex)
-            {
-                Log.LogWarning((int)Events.EventIds.Exception, ex, Invariant($"CorrelationId {correlationId}"));
-            }
+            public static void Exception(string correlationId, Exception ex) =>
+                Log.LogWarning((int)EventIds.Exception, ex, Invariant($"Error processing MQTT WebSocket request with CorrelationId {correlationId}"));
         }
     }
 }

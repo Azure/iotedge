@@ -6,26 +6,24 @@ use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 
 use failure::ResultExt;
+use log::debug;
 #[cfg(unix)]
 use nix::sys::stat::{umask, Mode};
+#[cfg(unix)]
+use scopeguard::defer;
 #[cfg(unix)]
 use tokio_uds::UnixListener;
 #[cfg(windows)]
 use tokio_uds_windows::UnixListener;
 
-use error::{Error, ErrorKind};
-use util::incoming::Incoming;
+use crate::error::{Error, ErrorKind};
+use crate::util::{incoming::Incoming, socket_file_exists};
 
 pub fn listener<P: AsRef<Path>>(path: P) -> Result<Incoming, Error> {
-    let listener = if path.as_ref().exists() {
+    let listener = if socket_file_exists(path.as_ref()) {
         // get the previous file's metadata
-        let metadata = fs::metadata(&path)
-            .with_context(|_| ErrorKind::Path(path.as_ref().display().to_string()))?;
-        debug!(
-            "read metadata {:?} for {}",
-            metadata,
-            path.as_ref().display()
-        );
+        #[cfg(unix)]
+        let metadata = get_metadata(path.as_ref())?;
 
         debug!("unlinking {}...", path.as_ref().display());
         fs::remove_file(&path)
@@ -50,6 +48,14 @@ pub fn listener<P: AsRef<Path>>(path: P) -> Result<Incoming, Error> {
     };
 
     Ok(listener)
+}
+
+#[cfg(unix)]
+fn get_metadata(path: &Path) -> Result<fs::Metadata, Error> {
+    let metadata =
+        fs::metadata(path).with_context(|_| ErrorKind::Path(path.display().to_string()))?;
+    debug!("read metadata {:?} for {}", metadata, path.display());
+    Ok(metadata)
 }
 
 #[cfg(unix)]

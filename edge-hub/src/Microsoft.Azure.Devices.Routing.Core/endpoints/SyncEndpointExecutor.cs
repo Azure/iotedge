@@ -1,11 +1,7 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System;
-    using static System.FormattableString;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -13,6 +9,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Extensions.Logging;
+    using static System.FormattableString;
 
     public class SyncEndpointExecutor : IEndpointExecutor
     {
@@ -26,10 +23,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         readonly CancellationTokenSource cts;
         readonly EndpointExecutorFsm machine;
         readonly AsyncLock sync;
-
-        public Endpoint Endpoint => this.machine.Endpoint;
-
-        public EndpointExecutorStatus Status => this.machine.Status;
 
         public SyncEndpointExecutor(Endpoint endpoint, ICheckpointer checkpointer)
             : this(endpoint, checkpointer, DefaultConfig)
@@ -47,6 +40,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             this.closed = new AtomicBoolean();
             this.sync = new AsyncLock();
         }
+
+        public Endpoint Endpoint => this.machine.Endpoint;
+
+        public EndpointExecutorStatus Status => this.machine.Status;
 
         public async Task Invoke(IMessage message)
         {
@@ -69,6 +66,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     await this.machine.RunAsync(command);
                     await command.Completion;
                 }
+
                 Events.InvokeSuccess(this);
             }
             catch (OperationCanceledException) when (this.cts.IsCancellationRequested)
@@ -117,6 +115,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     this.cts.Cancel();
                     await this.machine.RunAsync(Commands.Close);
                 }
+
                 Events.CloseSuccess(this);
             }
             catch (Exception ex)
@@ -130,7 +129,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         protected virtual void Dispose(bool disposing)
         {
-            //Debug.Assert(this.closed);
             if (disposing)
             {
                 this.cts.Dispose();
@@ -141,8 +139,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         static class Events
         {
-            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<SyncEndpointExecutor>();
             const int IdStart = Routing.EventIds.SyncEndpointExecutor;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<SyncEndpointExecutor>();
 
             enum EventIds
             {

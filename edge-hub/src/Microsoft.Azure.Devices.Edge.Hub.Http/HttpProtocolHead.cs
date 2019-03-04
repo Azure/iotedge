@@ -37,8 +37,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<HttpProtocolHead>();
             const int IdStart = HttpEventIds.HttpProtocolHead;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<HttpProtocolHead>();
 
             enum EventIds
             {

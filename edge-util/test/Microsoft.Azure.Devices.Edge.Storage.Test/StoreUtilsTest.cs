@@ -1,8 +1,7 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage.Test
 {
-    using Microsoft.Azure.Devices.Edge.Storage;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -18,6 +17,19 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
                 long offset2 = StoreUtils.GetOffsetFromKey(key);
                 Assert.Equal(offset, offset2);
             }
-        }        
+        }
+
+        [Fact]
+        public void TestOperation()
+        {
+            long offset = 1000;
+            byte[] key = StoreUtils.GetKeyFromOffset(offset);
+            byte[] obtainedKey = key.ToArray();
+            Assert.Equal(key, obtainedKey);
+
+            long obtainedOffset = StoreUtils.GetOffsetFromKey(key);
+            Assert.Equal(offset, obtainedOffset);
+            Assert.Equal(key, obtainedKey);
+        }
     }
 }

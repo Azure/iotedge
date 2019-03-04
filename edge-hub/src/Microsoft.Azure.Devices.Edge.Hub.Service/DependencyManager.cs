@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
@@ -45,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.iotHubHostname = iotHubConnectionStringBuilder.HostName;
                 this.edgeDeviceId = iotHubConnectionStringBuilder.DeviceId;
                 this.edgeModuleId = iotHubConnectionStringBuilder.ModuleId;
-                this.edgeDeviceHostName = string.Empty;
+                this.edgeDeviceHostName = this.configuration.GetValue(Constants.ConfigKey.EdgeDeviceHostName, string.Empty);
                 this.connectionString = Option.Some(edgeHubConnectionString);
             }
             else
@@ -84,10 +83,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             builder.RegisterModule(new HttpModule());
         }
 
+        internal static Option<UpstreamProtocol> GetUpstreamProtocol(IConfigurationRoot configuration) =>
+            Enum.TryParse(configuration.GetValue("UpstreamProtocol", string.Empty), true, out UpstreamProtocol upstreamProtocol)
+                ? Option.Some(upstreamProtocol)
+                : Option.None<UpstreamProtocol>();
+
         void RegisterAmqpModule(ContainerBuilder builder)
         {
             IConfiguration amqpSettings = this.configuration.GetSection("amqpSettings");
-            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), this.serverCertificate, this.iotHubHostname));
+            bool clientCertAuthEnabled = this.configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
+            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), this.serverCertificate, this.iotHubHostname, clientCertAuthEnabled));
         }
 
         void RegisterMqttModule(ContainerBuilder builder, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward, bool optimizeForPerformance)
@@ -117,7 +122,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan cloudConnectionIdleTimeout = TimeSpan.FromSeconds(cloudConnectionIdleTimeoutSecs);
             bool closeCloudConnectionOnIdleTimeout = this.configuration.GetValue("CloseCloudConnectionOnIdleTimeout", true);
             int cloudOperationTimeoutSecs = this.configuration.GetValue("CloudOperationTimeoutSecs", 20);
-            TimeSpan cloudOperationTimeout = TimeSpan.FromSeconds(cloudOperationTimeoutSecs); 
+            TimeSpan cloudOperationTimeout = TimeSpan.FromSeconds(cloudOperationTimeoutSecs);
+            Option<TimeSpan> minTwinSyncPeriod = this.GetConfigurationValueIfExists("MinTwinSyncPeriodSecs")
+                .Map(s => TimeSpan.FromSeconds(s));
+            Option<TimeSpan> reportedPropertiesSyncFrequency = this.GetConfigurationValueIfExists("ReportedPropertiesSyncFrequencySecs")
+                .Map(s => TimeSpan.FromSeconds(s));
+            bool useV1TwinManager = this.GetConfigurationValueIfExists<string>("TwinManagerVersion")
+                .Map(v => v.Equals("v1", StringComparison.OrdinalIgnoreCase))
+                .GetOrElse(true);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -136,7 +148,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     maxConnectedClients,
                     cloudConnectionIdleTimeout,
                     closeCloudConnectionOnIdleTimeout,
-                    cloudOperationTimeout));
+                    cloudOperationTimeout,
+                    minTwinSyncPeriod,
+                    reportedPropertiesSyncFrequency,
+                    useV1TwinManager));
         }
 
         void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)
@@ -144,6 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             string productInfo = VersionInfo.Get(Constants.VersionInfoFileName).ToString();
             bool cacheTokens = this.configuration.GetValue("CacheTokens", false);
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
+            Option<string> workloadApiVersion = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadAPiVersion);
             Option<string> moduleGenerationId = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.ModuleGenerationId);
 
             if (!Enum.TryParse(this.configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
@@ -153,6 +169,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             int scopeCacheRefreshRateSecs = this.configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
             TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
+
+            string proxy = this.configuration.GetValue("https_proxy", string.Empty);
 
             // Register modules
             builder.RegisterModule(
@@ -169,15 +187,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     storeAndForward.usePersistentStorage,
                     storeAndForward.storagePath,
                     workloadUri,
+                    workloadApiVersion,
                     scopeCacheRefreshRate,
                     cacheTokens,
-                    this.trustBundle));
+                    this.trustBundle,
+                    proxy));
         }
-
-        internal static Option<UpstreamProtocol> GetUpstreamProtocol(IConfigurationRoot configuration) =>
-            Enum.TryParse(configuration.GetValue("UpstreamProtocol", string.Empty), true, out UpstreamProtocol upstreamProtocol)
-                ? Option.Some(upstreamProtocol)
-                : Option.None<UpstreamProtocol>();
 
         (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) GetStoreAndForwardConfiguration()
         {
@@ -214,6 +229,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             var value = this.configuration.GetValue<T>(key);
             return EqualityComparer<T>.Default.Equals(value, default(T)) ? Option.None<T>() : Option.Some(value);
+        }
+
+        Option<long> GetConfigurationValueIfExists(string key)
+        {
+            long value = this.configuration.GetValue(key, long.MinValue);
+            return value == long.MinValue ? Option.None<long>() : Option.Some(value);
         }
     }
 }

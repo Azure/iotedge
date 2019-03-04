@@ -42,6 +42,9 @@ pub enum ErrorKind {
     #[fail(display = "Invalid module type {:?}", _0)]
     InvalidModuleType(String),
 
+    #[fail(display = "Invalid URL {:?}", _0)]
+    InvalidUrl(String),
+
     #[fail(display = "Item not found.")]
     KeyStoreItemNotFound,
 
@@ -51,15 +54,12 @@ pub enum ErrorKind {
     #[fail(display = "Signing error occurred.")]
     Sign,
 
-    #[fail(
-        display = "Signing error occurred. Invalid key length: {}",
-        _0
-    )]
+    #[fail(display = "Signing error occurred. Invalid key length: {}", _0)]
     SignInvalidKeyLength(usize),
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -69,7 +69,7 @@ impl Fail for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }

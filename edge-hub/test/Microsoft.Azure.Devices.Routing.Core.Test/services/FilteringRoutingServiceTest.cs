@@ -1,7 +1,4 @@
-// ---------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ---------------------------------------------------------------
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Services
 {
     using System;
@@ -9,11 +6,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Services
     using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Services;
     using Microsoft.Azure.Devices.Routing.Core.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Moq;
     using Xunit;
 
@@ -33,13 +30,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Services
 
         static FilteringRoutingServiceTest()
         {
-            RouteStore = new RouteStore(new Dictionary<string, RouterConfig>
-            {
-                { "hub1", new RouterConfig(AllEndpoints, AllRoutes)}
-            });
+            RouteStore = new RouteStore(
+                new Dictionary<string, RouterConfig>
+                {
+                    { "hub1", new RouterConfig(AllEndpoints, AllRoutes) }
+                });
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task SmokeTest()
         {
             var underlying = new Mock<IRoutingService>();
@@ -61,13 +60,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Services
             underlying.Verify(s => s.RouteAsync("hub2", It.IsAny<IEnumerable<IMessage>>()), Times.Never);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestRules()
         {
-            var store = new RouteStore(new Dictionary<string, RouterConfig>
-            {
-                { "hub1", new RouterConfig(AllEndpoints, new List<Route> { Route1 }) }
-            });
+            var store = new RouteStore(
+                new Dictionary<string, RouterConfig>
+                {
+                    { "hub1", new RouterConfig(AllEndpoints, new List<Route> { Route1 }) }
+                });
             var underlying = new Mock<IRoutingService>();
             var client = new FilteringRoutingService(underlying.Object, store, NullNotifierFactory.Instance);
 
@@ -75,7 +76,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Services
             underlying.Verify(s => s.RouteAsync("hub1", new[] { Message1 }), Times.Once);
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestClose()
         {
             var underlying = new Mock<IRoutingService>();
@@ -92,7 +94,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Services
             }
         }
 
-        [Fact, Unit]
+        [Fact]
+        [Unit]
         public async Task TestChangingHub()
         {
             var notifier = new TestNotifier();
@@ -110,7 +113,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Services
             underlying.Verify(s => s.RouteAsync("hub2", new[] { Message2 }), Times.Once);
 
             // change hub1
-            underlying.ResetCalls();
+            underlying.Invocations.Clear();
             store.Setup(s => s.GetRouterConfigAsync("hub1", It.IsAny<CancellationToken>())).ReturnsAsync(new RouterConfig(AllEndpoints, new[] { Route2 }, Option.None<Route>()));
             await notifier.Change("hub1");
 
@@ -120,7 +123,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Services
             underlying.Verify(s => s.RouteAsync("hub2", new[] { Message2 }), Times.Once);
 
             // change hub2
-            underlying.ResetCalls();
+            underlying.Invocations.Clear();
             store.Setup(s => s.GetRouterConfigAsync("hub2", It.IsAny<CancellationToken>())).ReturnsAsync(new RouterConfig(AllEndpoints, new[] { Route3 }, Option.None<Route>()));
             await notifier.Change("hub2");
 

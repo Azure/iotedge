@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
@@ -20,6 +19,15 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static VersionInfo Empty { get; } = new VersionInfo(string.Empty, string.Empty, string.Empty);
 
+        [JsonProperty(PropertyName = "version")]
+        public string Version { get; }
+
+        [JsonProperty(PropertyName = "build")]
+        public string Build { get; }
+
+        [JsonProperty(PropertyName = "commit")]
+        public string Commit { get; }
+
         public static VersionInfo Get(string fileName)
         {
             try
@@ -31,18 +39,16 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     return JsonConvert.DeserializeObject<VersionInfo>(fileText);
                 }
             }
-            catch (Exception ex) when (!ex.IsFatal()) { }
+            catch (Exception ex) when (!ex.IsFatal())
+            {
+            }
+
             return Empty;
         }
 
-        [JsonProperty(PropertyName = "version")]
-        public string Version { get; }
+        public static bool operator ==(VersionInfo info1, VersionInfo info2) => EqualityComparer<VersionInfo>.Default.Equals(info1, info2);
 
-        [JsonProperty(PropertyName = "build")]
-        public string Build { get; }
-
-        [JsonProperty(PropertyName = "commit")]
-        public string Commit { get; }
+        public static bool operator !=(VersionInfo info1, VersionInfo info2) => !(info1 == info2);
 
         public string ToString(bool includeCommitId)
         {
@@ -67,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return sb.ToString();
         }
 
-        public override string ToString() => this.ToString(false);        
+        public override string ToString() => this.ToString(false);
 
         public override bool Equals(object obj) => this.Equals(obj as VersionInfo);
 
@@ -88,9 +94,5 @@ namespace Microsoft.Azure.Devices.Edge.Util
             hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.Commit);
             return hashCode;
         }
-
-        public static bool operator ==(VersionInfo info1, VersionInfo info2) => EqualityComparer<VersionInfo>.Default.Equals(info1, info2);
-
-        public static bool operator !=(VersionInfo info1, VersionInfo info2) => !(info1 == info2);
     }
 }

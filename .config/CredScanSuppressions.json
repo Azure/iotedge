@@ -20,6 +20,10 @@
     {
       "hash": "uG0/Q6Fbxsdsr+4y8KxokL47oYyQAdBBEYCWKNNIMGQ=",
       "_justification": "This is a username and not a credential (edge-hub/test/Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test/IdentityTest.cs)"
+    },
+    {
+      "placeholder": "1234",
+      "_justification": "This private key password (defined in /tools/CACertificates/ca-certs.ps1 and /tools/CACertificates/certGen.sh) is intended only to help demonstrate and prototype CA certs and warnings are provided to not use in production."
     }
   ]
 }

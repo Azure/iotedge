@@ -44,14 +44,16 @@ where
                     .name("genid")
                     .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("genid")))?;
                 Ok((name, genid))
-            }).map(|(module_id, genid)| {
+            })
+            .map(|(module_id, genid)| {
                 let id = format!("{}{}", module_id.to_string(), genid.to_string());
                 req.into_body().concat2().then(|body| {
                     let body =
                         body.context(ErrorKind::EncryptionOperation(EncryptionOperation::Decrypt))?;
                     Ok((id, body))
                 })
-            }).into_future()
+            })
+            .into_future()
             .flatten()
             .and_then(move |(id, body)| -> Result<_, Error> {
                 let request: DecryptRequest =
@@ -74,7 +76,8 @@ where
                     .body(body.into())
                     .context(ErrorKind::EncryptionOperation(EncryptionOperation::Decrypt))?;
                 Ok(response)
-            }).or_else(|e| future::ok(e.into_response()));
+            })
+            .or_else(|e| future::ok(e.into_response()));
 
         Box::new(response)
     }
@@ -205,7 +208,8 @@ mod tests {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(expected, error_response.message());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 

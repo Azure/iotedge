@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System.Threading.Tasks;
@@ -9,8 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     public interface IConnectionHandler
     {
         Task<IDeviceListener> GetDeviceListener();
-
-        Task<AmqpAuthentication> GetAmqpAuthentication();
 
         Task RegisterLinkHandler(ILinkHandler linkHandler);
 

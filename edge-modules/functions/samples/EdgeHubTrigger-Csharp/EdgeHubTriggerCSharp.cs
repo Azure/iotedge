@@ -1,28 +1,27 @@
 // Copyright (c) Microsoft. All rights reserved.
-
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Azure.Devices.Client;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.EdgeHub;
-using Newtonsoft.Json;
-
 namespace Functions.Samples
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.WebJobs;
+    using Microsoft.Azure.WebJobs.Extensions.EdgeHub;
+    using Newtonsoft.Json;
+
     public static class EdgeHubSamples
     {
         [FunctionName("EdgeHubTrigger-CSharp")]
         public static async Task FilterMessageAndSendMessage(
-                    [EdgeHubTrigger("input1")] Message messageReceived,
-                    [EdgeHub(OutputName = "output1")] IAsyncCollector<Message> output)
+            [EdgeHubTrigger("input1")] Message messageReceived,
+            [EdgeHub(OutputName = "output1")] IAsyncCollector<Message> output)
         {
             const int defaultTemperatureThreshold = 19;
             byte[] messageBytes = messageReceived.GetBytes();
-            var messageString = System.Text.Encoding.UTF8.GetString(messageBytes);
+            var messageString = Encoding.UTF8.GetString(messageBytes);
 
-            // Get message body, containing the Temperature data         
+            // Get message body, containing the Temperature data
             var messageBody = JsonConvert.DeserializeObject<MessageBody>(messageString);
 
             if (messageBody != null && messageBody.Machine.Temperature > defaultTemperatureThreshold)
@@ -34,17 +33,15 @@ namespace Functions.Samples
                 }
 
                 filteredMessage.Properties.Add("MessageType", "Alert");
-                await output.AddAsync(filteredMessage).ConfigureAwait(false);
+                await output.AddAsync(filteredMessage);
             }
         }
 
-        public class MessageBody
+        public class Ambient
         {
-            public Machine Machine { get; set; }
+            public double Temperature { get; set; }
 
-            public Ambient Ambient { get; set; }
-
-            public DateTime TimeCreated { get; set; }
+            public int Humidity { get; set; }
         }
 
         public class Machine
@@ -54,11 +51,13 @@ namespace Functions.Samples
             public double Pressure { get; set; }
         }
 
-        public class Ambient
+        public class MessageBody
         {
-            public double Temperature { get; set; }
+            public Machine Machine { get; set; }
 
-            public int Humidity { get; set; }
+            public Ambient Ambient { get; set; }
+
+            public DateTime TimeCreated { get; set; }
         }
     }
 }

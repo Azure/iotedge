@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 {
     using System;
@@ -8,12 +7,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
     using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
-    using Devices.Client;
-    using Host.Bindings;
-    using Host.Executors;
-    using Host.Listeners;
-    using Host.Protocols;
-    using Host.Triggers;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.WebJobs.Host.Bindings;
+    using Microsoft.Azure.WebJobs.Host.Executors;
+    using Microsoft.Azure.WebJobs.Host.Listeners;
+    using Microsoft.Azure.WebJobs.Host.Protocols;
+    using Microsoft.Azure.WebJobs.Host.Triggers;
 
     /// <summary>
     /// Implements a trigger binding for EdgeHub which triggers a function

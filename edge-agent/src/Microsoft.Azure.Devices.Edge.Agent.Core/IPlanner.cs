@@ -1,10 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
-    using System.Threading.Tasks;
-
     using System.Collections.Immutable;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Allows the deployment strategy to be abstracted.

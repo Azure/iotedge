@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 {
     using System;
@@ -25,11 +24,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             IAuthenticator underlyingAuthenticator,
             bool allowDeviceAuthForModule,
             bool syncServiceIdentityOnFailure)
-            :
-            base(deviceScopeIdentitiesCache, underlyingAuthenticator, allowDeviceAuthForModule, syncServiceIdentityOnFailure)
+            : base(deviceScopeIdentitiesCache, underlyingAuthenticator, allowDeviceAuthForModule, syncServiceIdentityOnFailure)
         {
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
-            this.edgeHubHostName = Preconditions.CheckNonWhiteSpace(edgeHubHostName, nameof(edgeHubHostName));
+            this.edgeHubHostName = Preconditions.CheckNotNull(edgeHubHostName, nameof(edgeHubHostName));
         }
 
         protected override bool AreInputCredentialsValid(ITokenCredentials credentials) => this.TryGetSharedAccessSignature(credentials.Token, credentials.Identity, out SharedAccessSignature _);
@@ -38,6 +36,67 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             this.TryGetSharedAccessSignature(credentials.Token, credentials.Identity, out SharedAccessSignature sharedAccessSignature)
                 ? this.ValidateCredentials(sharedAccessSignature, serviceIdentity, credentials.Identity)
                 : false;
+
+        internal bool ValidateAudience(string audience, IIdentity identity)
+        {
+            Preconditions.CheckNonWhiteSpace(audience, nameof(audience));
+            audience = WebUtility.UrlDecode(audience.Trim());
+            // The audience should be in one of the following formats -
+            // {HostName}/devices/{deviceId}/modules/{moduleId}
+            // {HostName}/devices/{deviceId}
+            string[] parts = audience.Split('/');
+            string hostName;
+            if (parts.Length == 3)
+            {
+                hostName = parts[0];
+                string deviceId = parts[2];
+                if (identity is IDeviceIdentity deviceIdentity && deviceIdentity.DeviceId != deviceId)
+                {
+                    Events.IdMismatch(audience, identity, deviceIdentity.DeviceId);
+                    return false;
+                }
+                else if (identity is IModuleIdentity moduleIdentity && moduleIdentity.DeviceId != deviceId)
+                {
+                    Events.IdMismatch(audience, identity, moduleIdentity.DeviceId);
+                    return false;
+                }
+            }
+            else if (parts.Length == 5)
+            {
+                hostName = parts[0];
+                string deviceId = parts[2];
+                string moduleId = parts[4];
+                if (!(identity is IModuleIdentity moduleIdentity))
+                {
+                    Events.InvalidAudience(audience, identity);
+                    return false;
+                }
+                else if (moduleIdentity.DeviceId != deviceId)
+                {
+                    Events.IdMismatch(audience, identity, moduleIdentity.DeviceId);
+                    return false;
+                }
+                else if (moduleIdentity.ModuleId != moduleId)
+                {
+                    Events.IdMismatch(audience, identity, moduleIdentity.ModuleId);
+                    return false;
+                }
+            }
+            else
+            {
+                Events.InvalidAudience(audience, identity);
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(hostName) ||
+                !(this.iothubHostName.Equals(hostName) || this.edgeHubHostName.Equals(hostName)))
+            {
+                Events.InvalidHostName(identity.Id, hostName, this.iothubHostName, this.edgeHubHostName);
+                return false;
+            }
+
+            return true;
+        }
 
         bool TryGetSharedAccessSignature(string token, IIdentity identity, out SharedAccessSignature sharedAccessSignature)
         {
@@ -107,71 +166,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 .GetOrElse(() => throw new InvalidOperationException($"Unable to validate token because the service identity has empty symmetric keys"));
         }
 
-        internal bool ValidateAudience(string audience, IIdentity identity)
-        {
-            Preconditions.CheckNonWhiteSpace(audience, nameof(audience));
-            audience = WebUtility.UrlDecode(audience.Trim());
-            // The audience should be in one of the following formats -
-            // {HostName}/devices/{deviceId}/modules/{moduleId}
-            // {HostName}/devices/{deviceId}
-            string[] parts = audience.Split('/');
-            string hostName;
-            if (parts.Length == 3)
-            {
-                hostName = parts[0];
-                string deviceId = parts[2];
-                if (identity is IDeviceIdentity deviceIdentity && deviceIdentity.DeviceId != deviceId)
-                {
-                    Events.IdMismatch(audience, identity, deviceIdentity.DeviceId);
-                    return false;
-                }
-                else if (identity is IModuleIdentity moduleIdentity && moduleIdentity.DeviceId != deviceId)
-                {
-                    Events.IdMismatch(audience, identity, moduleIdentity.DeviceId);
-                    return false;
-                }
-            }
-            else if (parts.Length == 5)
-            {
-                hostName = parts[0];
-                string deviceId = parts[2];
-                string moduleId = parts[4];
-                if (!(identity is IModuleIdentity moduleIdentity))
-                {
-                    Events.InvalidAudience(audience, identity);
-                    return false;
-                }
-                else if (moduleIdentity.DeviceId != deviceId)
-                {
-                    Events.IdMismatch(audience, identity, moduleIdentity.DeviceId);
-                    return false;
-                }
-                else if (moduleIdentity.ModuleId != moduleId)
-                {
-                    Events.IdMismatch(audience, identity, moduleIdentity.ModuleId);
-                    return false;
-                }
-            }
-            else
-            {
-                Events.InvalidAudience(audience, identity);
-                return false;
-            }
-
-            if (string.IsNullOrWhiteSpace(hostName) ||
-                !(this.iothubHostName.Equals(hostName) || this.edgeHubHostName.Equals(hostName)))
-            {
-                Events.InvalidHostName(identity.Id, hostName, this.iothubHostName, this.edgeHubHostName);
-                return false;
-            }
-
-            return true;
-        }
-
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceScopeTokenAuthenticator>();
             const int IdStart = CloudProxyEventIds.TokenCredentialsAuthenticator;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceScopeTokenAuthenticator>();
 
             enum EventIds
             {
@@ -222,7 +220,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
             public static void ErrorParsingToken(IIdentity identity, Exception exception)
             {
-                Log.LogWarning((int)EventIds.ErrorParsingToken, exception, $"Error authenticating token for {identity.Id} because the token could not be parsed");
+                Log.LogInformation((int)EventIds.ErrorParsingToken, $"Error authenticating token for {identity.Id} because the token is expired or could not be parsed");
+                Log.LogDebug((int)EventIds.ErrorParsingToken, exception, $"Error parsing token for {identity.Id}");
             }
         }
     }

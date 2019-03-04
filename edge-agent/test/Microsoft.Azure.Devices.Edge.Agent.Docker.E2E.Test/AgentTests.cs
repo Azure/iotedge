@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 {
     using System;
@@ -13,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
     using global::Docker.DotNet;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
@@ -29,13 +27,61 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
     public class AgentTests
     {
+        public static IEnumerable<object[]> GenerateStartTestData()
+        {
+            IEnumerable<IConfigurationSection> testsToRun = ConfigHelper.TestConfig.GetSection("testSuite").GetChildren();
+
+            // Each test in the test suite supports the notion of a "validator". We determine what
+            // validator to use by looking at the "$type" property in the test configuration JSON.
+            // Here's an example:
+            //
+            //      {
+            //         "name": "mongo-server",
+            //         "version": "1.0",
+            //         "image": "mongo:3.4.4",
+            //         "imageCreateOptions": "{\"HostConfig\": {\"PortBindings\": {\"80/tcp\": [{\"HostPort\": \"8080\"}]}}}",
+            //         "validator": {
+            //             "$type": "RunCommandValidator",
+            //             "command": "docker",
+            //             "args": "run --rm --link mongo-server:mongo-server mongo:3.4.4 sh -c \"exec mongo --quiet --eval 'db.serverStatus().version' mongo-server:27017/test\"",
+            //             "outputEquals": "3.4.4"
+            //         }
+            //      }
+            //
+            // Here the value "RunCommandValidator" for "$type" means that Newtonsoft JSON will
+            // de-serialize the "validator" object from the JSON into an instance of type "RunCommandValidator".
+            // We provide the mapping from the value of "$type" to a fully qualified .NET type name by providing
+            // a "serialization binder" - in our case this is an instance of TypeNameSerializationBinder. The JSON
+            // deserializer consults the TypeNameSerializationBinder instance to determine what type to instantiate.
+            Type agentTestsType = typeof(AgentTests);
+            string format = $"{agentTestsType.Namespace}.{{0}}, {agentTestsType.Assembly.GetName().Name}";
+            var settings = new JsonSerializerSettings()
+            {
+                TypeNameHandling = TypeNameHandling.Auto,
+                SerializationBinder = new TypeNameSerializationBinder(format)
+            };
+
+            // appSettings.json contains an array property called "testSuite" which is a list of strings
+            // containing names of JSON files that contain the spec for the tests to run. We process all the
+            // JSON files and build a flat list of tests (instances of TestConfig).
+            IEnumerable<object[]> result = testsToRun.SelectMany(
+                cs =>
+                {
+                    string json = File.ReadAllText(cs.Value);
+                    return JsonConvert
+                        .DeserializeObject<TestConfig[]>(json, settings)
+                        .Select(config => new object[] { config });
+                });
+
+            return result;
+        }
+
         [Integration]
         [Theory]
         [MemberData(nameof(GenerateStartTestData))]
         public async Task AgentStartsUpModules(TestConfig testConfig)
         {
-            ILoggerFactory loggerFactory = new LoggerFactory()
-                .AddConsole();
+            ILoggerFactory loggerFactory = Mock.Of<ILoggerFactory>();
 
             // Build the docker host URL.
             string dockerHostUrl = ConfigHelper.TestConfig["dockerHostUrl"];
@@ -57,27 +103,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     testConfig.Name,
                     testConfig.Version,
                     ModuleStatus.Running,
-                    Core.RestartPolicy.OnUnhealthy,
+                    global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy,
                     dockerConfig,
                     null,
-                    null
-                );
+                    null);
                 var modules = new Dictionary<string, IModule> { [testConfig.Name] = dockerModule };
                 var systemModules = new SystemModules(null, null);
 
                 // Start up the agent and run a "reconcile".
                 var dockerLoggingOptions = new Dictionary<string, string>
                 {
-                    {"max-size", "1m"},
-                    {"max-file", "1" }
+                    { "max-size", "1m" },
+                    { "max-file", "1" }
                 };
                 var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
 
                 string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
-                IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
-                {
-                    { "DeviceConnectionString", $"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}" }
-                }).Build();
+                IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                    new Dictionary<string, string>
+                    {
+                        { "DeviceConnectionString", $"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}" }
+                    }).Build();
 
                 var runtimeConfig = new DockerRuntimeConfig("1.24.0", "{}");
                 var runtimeInfo = new DockerRuntimeInfo("docker", runtimeConfig);
@@ -112,8 +158,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 var moduleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
                 moduleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>())).Returns(Task.FromResult(identities));
 
-                Agent agent = await Agent.Create(configSource.Object, new RestartPlanner(commandFactory), new OrderedPlanRunner(), reporter,
-                    moduleIdentityLifecycleManager.Object, environmentProvider, configStore, deploymentConfigInfoSerde, NullEncryptionProvider.Instance);
+                Agent agent = await Agent.Create(
+                    configSource.Object,
+                    new RestartPlanner(commandFactory),
+                    new OrderedPlanRunner(),
+                    reporter,
+                    moduleIdentityLifecycleManager.Object,
+                    environmentProvider,
+                    configStore,
+                    deploymentConfigInfoSerde,
+                    NullEncryptionProvider.Instance);
                 await agent.ReconcileAsync(CancellationToken.None);
 
                 // Sometimes the container is still not ready by the time we run the validator.
@@ -128,6 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     {
                         Thread.Sleep(TimeSpan.FromSeconds(5));
                     }
+
                     ++attempts;
                 }
 
@@ -139,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
             }
         }
 
-        private static async Task RemoveContainer(IDockerClient client, TestConfig testConfig)
+        static async Task RemoveContainer(IDockerClient client, TestConfig testConfig)
         {
             // get current list of containers (running or otherwise) where their name
             // matches what's given in the test settings
@@ -157,57 +212,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 Force = true
             };
             await Task.WhenAll(toBeRemoved.Select(c => client.Containers.RemoveContainerAsync(c.ID, removeParams)));
-        }
-
-        public static IEnumerable<object[]> GenerateStartTestData()
-        {
-            IEnumerable<IConfigurationSection> testsToRun = ConfigHelper.TestConfig.GetSection("testSuite").GetChildren();
-
-            // Each test in the test suite supports the notion of a "validator". We determine what
-            // validator to use by looking at the "$type" property in the test configuration JSON.
-            // Here's an example:
-            //
-            //      {
-            //         "name": "mongo-server",
-            //         "version": "1.0",
-            //         "image": "mongo:3.4.4",
-            //         "imageCreateOptions": "{\"HostConfig\": {\"PortBindings\": {\"80/tcp\": [{\"HostPort\": \"8080\"}]}}}",
-            //         "validator": {
-            //             "$type": "RunCommandValidator",
-            //             "command": "docker",
-            //             "args": "run --rm --link mongo-server:mongo-server mongo:3.4.4 sh -c \"exec mongo --quiet --eval 'db.serverStatus().version' mongo-server:27017/test\"",
-            //             "outputEquals": "3.4.4"
-            //         }
-            //      }
-            //
-            // Here the value "RunCommandValidator" for "$type" means that Newtonsoft JSON will
-            // de-serialize the "validator" object from the JSON into an instance of type "RunCommandValidator".
-            // We provide the mapping from the value of "$type" to a fully qualified .NET type name by providing
-            // a "serialization binder" - in our case this is an instance of TypeNameSerializationBinder. The JSON
-            // deserializer consults the TypeNameSerializationBinder instance to determine what type to instantiate.
-
-            Type agentTestsType = typeof(AgentTests);
-            string format = $"{agentTestsType.Namespace}.{{0}}, {agentTestsType.Assembly.GetName().Name}";
-            var settings = new JsonSerializerSettings()
-            {
-                TypeNameHandling = TypeNameHandling.Auto,
-                SerializationBinder = new TypeNameSerializationBinder(format)
-            };
-
-            // appSettings.json contains an array property called "testSuite" which is a list of strings
-            // containing names of JSON files that contain the spec for the tests to run. We process all the
-            // JSON files and build a flat list of tests (instances of TestConfig).
-
-            IEnumerable<object[]> result = testsToRun.SelectMany(
-                cs =>
-                {
-                    string json = File.ReadAllText(cs.Value);
-                    return JsonConvert
-                        .DeserializeObject<TestConfig[]>(json, settings)
-                        .Select(config => new object[] { config });
-                });
-
-            return result;
         }
     }
 }

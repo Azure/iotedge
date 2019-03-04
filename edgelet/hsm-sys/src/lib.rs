@@ -8,16 +8,11 @@
 //! Intitial version created through bindgen <https://docs.rs/bindgen/>
 
 #![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
-#![cfg_attr(feature = "cargo-clippy", allow(
-    doc_markdown, // bindgen-generated docs
-    use_self, // bindgen-generated signatures
-))]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::doc_markdown, // bindgen-generated docs
+    clippy::use_self, // bindgen-generated signatures
+)]
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals)]
 
 use std::os::raw::{c_char, c_int, c_uchar, c_void};
@@ -106,12 +101,18 @@ pub type HSM_CLIENT_ACTIVATE_IDENTITY_KEY = Option<
     unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE, key: *const c_uchar, key_len: usize) -> c_int,
 >;
 pub type HSM_CLIENT_GET_ENDORSEMENT_KEY = Option<
-    unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE, key: *mut *mut c_uchar, key_len: *mut usize)
-        -> c_int,
+    unsafe extern "C" fn(
+        handle: HSM_CLIENT_HANDLE,
+        key: *mut *mut c_uchar,
+        key_len: *mut usize,
+    ) -> c_int,
 >;
 pub type HSM_CLIENT_GET_STORAGE_ROOT_KEY = Option<
-    unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE, key: *mut *mut c_uchar, key_len: *mut usize)
-        -> c_int,
+    unsafe extern "C" fn(
+        handle: HSM_CLIENT_HANDLE,
+        key: *mut *mut c_uchar,
+        key_len: *mut usize,
+    ) -> c_int,
 >;
 pub type HSM_CLIENT_SIGN_WITH_IDENTITY = Option<
     unsafe extern "C" fn(
@@ -173,8 +174,11 @@ pub type HSM_CLIENT_GET_COMMON_NAME =
 /// 0  -- On success
 /// Non 0 -- otherwise
 pub type HSM_CLIENT_GET_RANDOM_BYTES = Option<
-    unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE, buffer: *mut c_uchar, buffer_size: usize)
-        -> c_int,
+    unsafe extern "C" fn(
+        handle: HSM_CLIENT_HANDLE,
+        buffer: *mut c_uchar,
+        buffer_size: usize,
+    ) -> c_int,
 >;
 
 /// API to provision a master symmetric encryption key in the HSM.
@@ -396,8 +400,10 @@ extern "C" {
 /// CERT_INFO_HANDLE -- Valid non NULL handle on success
 /// NULL -- otherwise
 pub type HSM_CLIENT_CREATE_CERTIFICATE = Option<
-    unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE, certificate_props: CERT_PROPS_HANDLE)
-        -> CERT_INFO_HANDLE,
+    unsafe extern "C" fn(
+        handle: HSM_CLIENT_HANDLE,
+        certificate_props: CERT_PROPS_HANDLE,
+    ) -> CERT_INFO_HANDLE,
 >;
 
 /// This API deletes any crypto assets associated with the id.

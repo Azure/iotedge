@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System;
@@ -12,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -61,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             configStore.Setup(cs => cs.Get(It.IsAny<string>()))
                 .ReturnsAsync(Option.Some("encrypted"));
             encryptionDecryptionProvider.Setup(ep => ep.DecryptAsync(It.IsAny<string>()))
-                .ThrowsAsync(new IoTEdgedException("failed", 404, "", null, null));
+                .ThrowsAsync(new WorkloadCommunicationException("failed", 404));
 
             Agent agent = await Agent.Create(mockConfigSource.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, mockEnvironmentProvider.Object, configStore.Object, serde, encryptionDecryptionProvider.Object);
 
@@ -85,10 +84,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var runtimeInfo = Mock.Of<IRuntimeInfo>();
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
-            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule>
-            {
-                { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
-            });
+            var deploymentConfig = new DeploymentConfig(
+                "1.0",
+                runtimeInfo,
+                new SystemModules(null, null),
+                new Dictionary<string, IModule>
+                {
+                    { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
+                });
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
             ModuleSet currentModuleSet = desiredModuleSet;
@@ -125,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockPlanRunner = new Mock<IPlanRunner>();
             var mockReporter = new Mock<IReporter>();
             var token = new CancellationToken();
-            ModuleSet currentSet = ModuleSet.Empty;
+            var currentSet = ModuleSet.Empty;
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
@@ -147,35 +150,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockPlanRunner.Verify(r => r.ExecuteAsync(1, It.IsAny<Plan>(), token), Times.Never);
         }
 
-        static IEnumerable<object[]> GetExceptionsToTest()
-        {
-            return new List<object[]>
-            {
-                new object[]
-                {
-                    new ConfigEmptyException("Empty config"),
-                    DeploymentStatusCode.ConfigEmptyError
-                },
-                new object[]
-                {
-                    new InvalidSchemaVersionException("Bad schema"),
-                    DeploymentStatusCode.InvalidSchemaVersion
-                },
-                new object[]
-                {
-                    new ConfigFormatException("Bad config"),
-                    DeploymentStatusCode.ConfigFormatError
-                }
-            };
-        }
-
         [Theory]
         [Unit]
         [MemberData(nameof(GetExceptionsToTest))]
         public async void ReconcileAsyncAbortsWhenConfigSourceReturnsKnownExceptions(
             Exception testException,
-            DeploymentStatusCode statusCode
-        )
+            DeploymentStatusCode statusCode)
         {
             // Arrange
             var mockConfigSource = new Mock<IConfigSource>();
@@ -184,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockPlanRunner = new Mock<IPlanRunner>();
             var mockReporter = new Mock<IReporter>();
             var token = new CancellationToken();
-            ModuleSet currentSet = ModuleSet.Empty;
+            var currentSet = ModuleSet.Empty;
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
@@ -258,10 +238,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
-            var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), new Dictionary<string, IModule>
-            {
-                { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
-            });
+            var deploymentConfig = new DeploymentConfig(
+                "1.0",
+                Mock.Of<IRuntimeInfo>(),
+                new SystemModules(null, null),
+                new Dictionary<string, IModule>
+                {
+                    { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
+                });
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
@@ -299,19 +283,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var runtimeInfo = Mock.Of<IRuntimeInfo>();
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var encryptionDecryptionProvider = new Mock<IEncryptionProvider>();
-            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule>
-            {
-                { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
-            });
+            var deploymentConfig = new DeploymentConfig(
+                "1.0",
+                runtimeInfo,
+                new SystemModules(null, null),
+                new Dictionary<string, IModule>
+                {
+                    { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
+                });
             var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null);
-            Option<TestPlanRecorder> recordKeeper = Option.Some(new TestPlanRecorder());
+            var recordKeeper = Option.Some(new TestPlanRecorder());
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
             ModuleSet currentModuleSet = desiredModuleSet;
 
             var commandList = new List<ICommand>
             {
-                new TestCommand(TestCommandType.TestCreate, desiredModule, recordKeeper),
+                new TestCommand(TestCommandType.TestCreate, desiredModule, recordKeeper)
             };
             var testPlan = new Plan(commandList);
 
@@ -326,7 +314,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockPlanner.Setup(pl => pl.PlanAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty))
                 .ReturnsAsync(testPlan);
             encryptionDecryptionProvider.Setup(ep => ep.EncryptAsync(It.IsAny<string>()))
-                .ThrowsAsync(new IoTEdgedException("failed", 404, "", null, null));
+                .ThrowsAsync(new WorkloadCommunicationException("failed", 404));
 
             var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider.Object);
 
@@ -345,12 +333,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         {
             var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null);
             var currentModule = new TestModule("current", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null);
-            Option<TestPlanRecorder> recordKeeper = Option.Some(new TestPlanRecorder());
+            var recordKeeper = Option.Some(new TestPlanRecorder());
             var moduleExecutionList = new List<TestRecordType>
             {
                 new TestRecordType(TestCommandType.TestCreate, desiredModule),
                 new TestRecordType(TestCommandType.TestRemove, currentModule)
-
             };
             var commandList = new List<ICommand>
             {
@@ -362,7 +349,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var token = new CancellationToken();
 
             var runtimeInfo = Mock.Of<IRuntimeInfo>();
-            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule>() { ["desired"] = desiredModule });
+            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule> { ["desired"] = desiredModule });
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             ModuleSet desiredSet = deploymentConfig.GetModuleSet();
             ModuleSet currentSet = ModuleSet.Create(currentModule);
@@ -477,10 +464,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
-            var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), new Dictionary<string, IModule>
-            {
-                { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
-            });
+            var deploymentConfig = new DeploymentConfig(
+                "1.0",
+                Mock.Of<IRuntimeInfo>(),
+                new SystemModules(null, null),
+                new Dictionary<string, IModule>
+                {
+                    { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
+                });
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             var token = new CancellationToken();
 
@@ -521,11 +512,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
             var mockPlanRunner = new Mock<IPlanRunner>();
             mockPlanRunner.Setup(m => m.ExecuteAsync(It.IsAny<long>(), It.IsAny<Plan>(), It.IsAny<CancellationToken>()))
-                .Returns(async () =>
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(5));
-                    return true;
-                });
+                .Returns(
+                    async () =>
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(5));
+                        return true;
+                    });
 
             var mockReporter = new Mock<IReporter>();
             mockReporter.Setup(
@@ -552,9 +544,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             // Act
             var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
 
-            Task shutdownTask = agent.HandleShutdown(token);
-            Task waitTask = Task.Delay(TimeSpan.FromSeconds(6));
-            Task completedTask = await Task.WhenAny(shutdownTask, waitTask);
+            var shutdownTask = agent.HandleShutdown(token);
+            var waitTask = Task.Delay(TimeSpan.FromSeconds(6));
+            var completedTask = await Task.WhenAny(shutdownTask, waitTask);
 
             // Assert
             Assert.Equal(completedTask, shutdownTask);
@@ -562,5 +554,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockPlanRunner.Verify(r => r.ExecuteAsync(It.IsAny<long>(), It.IsAny<Plan>(), It.IsAny<CancellationToken>()), Times.Once);
             mockPlanner.Verify(r => r.CreateShutdownPlanAsync(It.IsAny<ModuleSet>()), Times.Once);
         }
+
+        static IEnumerable<object[]> GetExceptionsToTest() => new List<object[]>
+        {
+            new object[]
+            {
+                new ConfigEmptyException("Empty config"),
+                DeploymentStatusCode.ConfigEmptyError
+            },
+            new object[]
+            {
+                new InvalidSchemaVersionException("Bad schema"),
+                DeploymentStatusCode.InvalidSchemaVersion
+            },
+            new object[]
+            {
+                new ConfigFormatException("Bad config"),
+                DeploymentStatusCode.ConfigFormatError
+            }
+        };
     }
 }

@@ -8,6 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -19,9 +21,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     {
         static readonly long MaxBatchedMessageSize = 600 * 1024;
 
-        public EventsLinkHandler(IReceivingAmqpLink link, Uri requestUri, IDictionary<string, string> boundVariables,
+        public EventsLinkHandler(
+            IIdentity identity,
+            IReceivingAmqpLink link,
+            Uri requestUri,
+            IDictionary<string, string> boundVariables,
+            IConnectionHandler connectionHandler,
             IMessageConverter<AmqpMessage> messageConverter)
-            : base(link, requestUri, boundVariables, messageConverter)
+            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter)
         {
         }
 
@@ -61,19 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             }
         }
 
-        void AddMessageSystemProperties(IMessage message)
-        {
-            if (!string.IsNullOrWhiteSpace(this.DeviceId))
-            {
-                message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.DeviceId;
-            }
-
-            if (!string.IsNullOrWhiteSpace(this.ModuleId))
-            {
-                message.SystemProperties[SystemProperties.ConnectionModuleId] = this.ModuleId;
-            }
-        }
-
         internal static IList<AmqpMessage> ExpandBatchedMessage(AmqpMessage message)
         {
             var outputMessages = new List<AmqpMessage>();
@@ -83,10 +77,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 foreach (Data data in message.DataBody)
                 {
                     var payload = (ArraySegment<byte>)data.Value;
-                    AmqpMessage debatchedMessage = AmqpMessage.CreateAmqpStreamMessage(new BufferListStream(new List<ArraySegment<byte>>()
-                    {
-                        payload
-                    }));
+                    AmqpMessage debatchedMessage = AmqpMessage.CreateAmqpStreamMessage(
+                        new BufferListStream(
+                            new List<ArraySegment<byte>>()
+                            {
+                                payload
+                            }));
                     outputMessages.Add(debatchedMessage);
                 }
             }
@@ -94,9 +90,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             return outputMessages;
         }
 
+        void AddMessageSystemProperties(IMessage message)
+        {
+            if (this.Identity is IDeviceIdentity deviceIdentity)
+            {
+                message.SystemProperties[SystemProperties.ConnectionDeviceId] = deviceIdentity.DeviceId;
+            }
+
+            if (this.Identity is IModuleIdentity moduleIdentity)
+            {
+                message.SystemProperties[SystemProperties.ConnectionDeviceId] = moduleIdentity.DeviceId;
+                message.SystemProperties[SystemProperties.ConnectionModuleId] = moduleIdentity.ModuleId;
+            }
+        }
+
         void HandleException(Exception ex, AmqpMessage incoming, IList<AmqpMessage> outgoing)
         {
-            // Get AmqpException 
+            // Get AmqpException
             AmqpException amqpException = AmqpExceptionsHelper.GetAmqpException(ex);
             var rejected = new Rejected { Error = amqpException.Error };
             ((IReceivingAmqpLink)this.Link).DisposeMessage(incoming, rejected, true, true);
@@ -115,8 +125,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<EventsLinkHandler>();
             const int IdStart = AmqpEventIds.EventsLinkHandler;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<EventsLinkHandler>();
 
             enum EventIds
             {

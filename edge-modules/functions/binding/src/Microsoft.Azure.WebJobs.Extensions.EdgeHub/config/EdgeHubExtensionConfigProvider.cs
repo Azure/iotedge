@@ -1,15 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
-
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Azure.WebJobs.Host.Bindings;
-using Newtonsoft.Json.Linq;
-
 namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub.Config
 {
     using System;
+    using System.IO;
+    using System.Text;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.WebJobs.Description;
+    using Microsoft.Azure.WebJobs.Host.Bindings;
     using Microsoft.Azure.WebJobs.Host.Config;
     using Newtonsoft.Json;
 
@@ -36,17 +34,26 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub.Config
             rule2.BindToCollector<Message>(typeof(EdgeHubCollectorBuilder));
             rule2.AddConverter<string, Message>(ConvertStringToMessage);
             rule2.AddConverter<byte[], Message>(ConvertBytesToMessage);
-            rule2.AddOpenConverter<OpenType.Poco, Message>(ConvertPocoToMessage);
+            rule2.AddOpenConverter<OpenType.Poco, Message>(this.ConvertPocoToMessage);
         }
 
-        private Task<object> ConvertPocoToMessage(object src, Attribute attribute, ValueBindingContext context) => Task.FromResult<object>(ConvertStringToMessage(JsonConvert.SerializeObject(src)));
+        static Message ConvertBytesToMessage(byte[] msgBytes) => new Message(msgBytes);
 
-        private static Message ConvertBytesToMessage(byte[] msgBytes) => new Message(msgBytes);
+        static Message ConvertStringToMessage(string msg) => ConvertBytesToMessage(Encoding.UTF8.GetBytes(msg));
 
-        private static Message ConvertStringToMessage(string msg) => ConvertBytesToMessage(Encoding.UTF8.GetBytes(msg));
+        static byte[] ConvertMessageToBytes(Message msg)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                msg.BodyStream.CopyTo(ms);
+                byte[] bytes = ms.ToArray();
+                msg.BodyStream.Position = 0;
+                return bytes;
+            }
+        }
 
-        private static byte[] ConvertMessageToBytes(Message msg) => msg.GetBytes();
+        static string ConvertMessageToString(Message msg) => Encoding.UTF8.GetString(ConvertMessageToBytes(msg));
 
-        private static string ConvertMessageToString(Message msg) => Encoding.UTF8.GetString(ConvertMessageToBytes(msg));
+        Task<object> ConvertPocoToMessage(object src, Attribute attribute, ValueBindingContext context) => Task.FromResult<object>(ConvertStringToMessage(JsonConvert.SerializeObject(src)));
     }
 }

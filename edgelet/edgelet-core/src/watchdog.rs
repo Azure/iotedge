@@ -5,15 +5,17 @@ use std::time::{Duration, Instant};
 use failure::Fail;
 use futures::future::{self, Either, FutureResult};
 use futures::Future;
-use log::Level;
+use log::{info, warn, Level};
 use tokio::prelude::*;
 use tokio::timer::Interval;
 
 use edgelet_utils::log_failure;
 
-use error::{Error, ErrorKind};
-use identity::{Identity, IdentityManager, IdentitySpec};
-use module::{Module, ModuleRegistry, ModuleRuntime, ModuleSpec, ModuleStatus};
+use crate::error::{Error, ErrorKind};
+use crate::identity::{Identity, IdentityManager, IdentitySpec};
+use crate::module::{
+    Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ModuleStatus,
+};
 
 // Time to allow EdgeAgent to gracefully shutdown (including stopping all modules, and updating reported properties)
 const EDGE_RUNTIME_STOP_TIME: Duration = Duration::from_secs(60);
@@ -32,6 +34,7 @@ pub struct Watchdog<M, I> {
 impl<M, I> Watchdog<M, I>
 where
     M: 'static + ModuleRuntime + Clone,
+    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
     <M::Module as Module>::Config: Clone,
     I: 'static + IdentityManager + Clone,
 {
@@ -68,9 +71,10 @@ where
         shutdown_signal
             .select(watchdog)
             .then(move |result| match result {
-                Ok(((), _)) => Either::A(stop_runtime(&runtime_copy, &name)),
-                Err((e, _)) => Either::B(future::err(e)),
+                Ok(((), _)) => Ok(stop_runtime(&runtime_copy, &name)),
+                Err((err, _)) => Err(err),
             })
+            .flatten()
     }
 }
 
@@ -78,12 +82,16 @@ where
 fn stop_runtime<M>(runtime: &M, name: &str) -> impl Future<Item = (), Error = Error>
 where
     M: 'static + ModuleRuntime + Clone,
+    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
     <M::Module as Module>::Config: Clone,
 {
     info!("Stopping edge runtime module {}", name);
     runtime
         .stop(name, Some(EDGE_RUNTIME_STOP_TIME))
-        .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
+        .or_else(|err| match (&err).into() {
+            ModuleRuntimeErrorReason::NotFound => Ok(()),
+            _ => Err(Error::from(err.context(ErrorKind::ModuleRuntime))),
+        })
 }
 
 // Start watchdog on a timer for 1 minute
@@ -111,7 +119,8 @@ where
                 id_mgr.clone(),
                 spec.clone(),
                 module_id.clone(),
-            ).or_else(|e| {
+            )
+            .or_else(|e| {
                 warn!("Error in watchdog when checking for edge runtime status:");
                 log_failure(Level::Warn, &e);
                 future::ok(())
@@ -138,7 +147,8 @@ where
                 m.runtime_state()
                     .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
             })
-        }).and_then(move |state| match state {
+        })
+        .and_then(move |state| match state {
             Some(state) => {
                 let res = if *state.status() == ModuleStatus::Running {
                     info!("Edge runtime is running.");
@@ -158,7 +168,8 @@ where
             }
 
             None => Either::B(create_and_start(runtime, &id_mgr, spec, module_id)),
-        }).map(|_| ())
+        })
+        .map(|_| ())
 }
 
 // Gets the edge runtime module, if it exists.
@@ -172,11 +183,8 @@ where
 {
     runtime
         .list()
-        .map(move |m| {
-            m.into_iter()
-                .filter_map(move |m| if m.name() == name { Some(m) } else { None })
-                .next()
-        }).map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
+        .map(move |m| m.into_iter().find(move |m| m.name() == name))
+        .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
 }
 
 // Gets and updates the identity of the module.
@@ -198,7 +206,8 @@ where
                     .update(
                         IdentitySpec::new(module.module_id().to_string())
                             .with_generation_id(module.generation_id().to_string()),
-                    ).map_err(|e| Error::from(e.context(ErrorKind::IdentityManager)));
+                    )
+                    .map_err(|e| Error::from(e.context(ErrorKind::IdentityManager)));
                 Either::A(res)
             }
             None => Either::B(
@@ -250,7 +259,8 @@ mod tests {
 
     use futures::future::{self, FutureResult};
 
-    use identity::{AuthType, Identity, IdentityManager, IdentitySpec};
+    use crate::identity::{AuthType, Identity, IdentityManager, IdentitySpec};
+    use serde_derive::{Deserialize, Serialize};
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub enum Error {
@@ -447,7 +457,8 @@ mod tests {
             "iotedge",
             "1",
             AuthType::None,
-        )]).with_fail_update(true);
+        )])
+        .with_fail_update(true);
 
         assert_eq!(
             true,

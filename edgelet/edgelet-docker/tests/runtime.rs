@@ -1,29 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
-
-#[cfg(unix)]
-extern crate base64;
-#[cfg(unix)]
-extern crate failure;
-extern crate futures;
-extern crate hyper;
-#[macro_use]
-extern crate serde_json;
-extern crate tokio;
-extern crate typed_headers;
-extern crate url;
-
-extern crate docker;
-extern crate edgelet_core;
-extern crate edgelet_docker;
-extern crate edgelet_test_utils;
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
 
 use std::collections::HashMap;
 use std::str;
@@ -35,6 +13,7 @@ use failure::Fail;
 use futures::prelude::*;
 use futures::{future, Stream};
 use hyper::{Body, Error as HyperError, Method, Request, Response};
+use serde_json::json;
 use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
 use url::form_urlencoded::parse as parse_query;
 use url::Url;
@@ -57,10 +36,10 @@ const INVALID_IMAGE_NAME: &str = "invalidname:latest";
 const INVALID_IMAGE_HOST: &str = "invalidhost.com/nginx:latest";
 
 #[cfg(unix)]
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn invalid_image_name_pull_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     // verify that path is /images/create and that the "fromImage" query
     // parameter has the image name we expect
     assert_eq!(req.uri().path(), "/images/create");
@@ -119,7 +98,8 @@ fn image_pull_with_invalid_image_name_fails() {
         INVALID_IMAGE_NAME.to_string(),
         ContainerCreateBody::new(),
         Some(auth),
-    ).unwrap();
+    )
+    .unwrap();
 
     let task = mri.pull(&config);
 
@@ -137,9 +117,7 @@ fn image_pull_with_invalid_image_name_fails() {
                 edgelet_core::RegistryOperation::PullImage(name),
             ),
             Some(edgelet_docker::ErrorKind::NotFound(message)),
-        )
-            if name == INVALID_IMAGE_NAME =>
-        {
+        ) if name == INVALID_IMAGE_NAME => {
             assert_eq!(
                 &format!("manifest for {} not found", INVALID_IMAGE_NAME),
                 message
@@ -154,10 +132,10 @@ fn image_pull_with_invalid_image_name_fails() {
 }
 
 #[cfg(unix)]
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn invalid_image_host_pull_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     // verify that path is /images/create and that the "fromImage" query
     // parameter has the image name we expect
     assert_eq!(req.uri().path(), "/images/create");
@@ -215,7 +193,8 @@ fn image_pull_with_invalid_image_host_fails() {
         INVALID_IMAGE_HOST.to_string(),
         ContainerCreateBody::new(),
         Some(auth),
-    ).unwrap();
+    )
+    .unwrap();
 
     let task = mri.pull(&config);
 
@@ -233,9 +212,7 @@ fn image_pull_with_invalid_image_host_fails() {
                 edgelet_core::RegistryOperation::PullImage(name),
             ),
             Some(edgelet_docker::ErrorKind::FormattedDockerRuntime(message)),
-        )
-            if name == INVALID_IMAGE_HOST =>
-        {
+        ) if name == INVALID_IMAGE_HOST => {
             assert_eq!(
                 &format!(
                     "Get https://invalidhost.com: dial tcp: lookup {} on X.X.X.X: no such host",
@@ -253,10 +230,10 @@ fn image_pull_with_invalid_image_host_fails() {
 }
 
 #[cfg(unix)]
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn image_pull_with_invalid_creds_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     // verify that path is /images/create and that the "fromImage" query
     // parameter has the image name we expect
     assert_eq!(req.uri().path(), "/images/create");
@@ -326,7 +303,8 @@ fn image_pull_with_invalid_creds_fails() {
         IMAGE_NAME.to_string(),
         ContainerCreateBody::new(),
         Some(auth),
-    ).unwrap();
+    )
+    .unwrap();
 
     let task = mri.pull(&config);
 
@@ -344,9 +322,7 @@ fn image_pull_with_invalid_creds_fails() {
                 edgelet_core::RegistryOperation::PullImage(name),
             ),
             Some(edgelet_docker::ErrorKind::FormattedDockerRuntime(message)),
-        )
-            if name == IMAGE_NAME =>
-        {
+        ) if name == IMAGE_NAME => {
             assert_eq!(
                 &format!(
                     "Get {}: unauthorized: authentication required",
@@ -364,10 +340,10 @@ fn image_pull_with_invalid_creds_fails() {
 }
 
 #[cfg(unix)]
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn image_pull_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     // verify that path is /images/create and that the "fromImage" query
     // parameter has the image name we expect
     assert_eq!(req.uri().path(), "/images/create");
@@ -419,7 +395,8 @@ fn image_pull_succeeds() {
         IMAGE_NAME.to_string(),
         ContainerCreateBody::new(),
         Some(auth),
-    ).unwrap();
+    )
+    .unwrap();
 
     let task = mri.pull(&config);
 
@@ -429,10 +406,10 @@ fn image_pull_succeeds() {
 }
 
 #[cfg(unix)]
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn image_pull_with_creds_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     // verify that path is /images/create and that the "fromImage" query
     // parameter has the image name we expect
     assert_eq!(req.uri().path(), "/images/create");
@@ -499,7 +476,8 @@ fn image_pull_with_creds_succeeds() {
         IMAGE_NAME.to_string(),
         ContainerCreateBody::new(),
         Some(auth),
-    ).unwrap();
+    )
+    .unwrap();
 
     let task = mri.pull(&config);
 
@@ -508,16 +486,17 @@ fn image_pull_with_creds_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn image_remove_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     assert_eq!(req.method(), &Method::DELETE);
     assert_eq!(req.uri().path(), &format!("/images/{}", IMAGE_NAME));
 
     let response = serde_json::to_string(&vec![
-        ImageDeleteResponseItem::new().with_deleted(IMAGE_NAME.to_string()),
-    ]).unwrap();
+        ImageDeleteResponseItem::new().with_deleted(IMAGE_NAME.to_string())
+    ])
+    .unwrap();
     let response_len = response.len();
 
     let mut response = Response::new(response.into());
@@ -549,14 +528,15 @@ fn image_remove_succeeds() {
 
 fn container_create_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     assert_eq!(req.method(), &Method::POST);
     assert_eq!(req.uri().path(), "/containers/create");
 
     let response = json!({
         "Id": "12345",
         "Warnings": []
-    }).to_string();
+    })
+    .to_string();
     let response_len = response.len();
 
     Box::new(
@@ -573,12 +553,10 @@ fn container_create_handler(
                 }
 
                 for &v in &["/also/do/the/entrypoint", "and this"] {
-                    assert!(
-                        create_options
-                            .entrypoint()
-                            .unwrap()
-                            .contains(&v.to_string())
-                    );
+                    assert!(create_options
+                        .entrypoint()
+                        .unwrap()
+                        .contains(&v.to_string()));
                 }
 
                 for &v in &["k1=v1", "k2=v2", "k3=v3", "k4=v4", "k5=v5"] {
@@ -619,7 +597,8 @@ fn container_create_handler(
                 assert_eq!(*volumes, expected);
 
                 Ok(())
-            }).map(move |_| {
+            })
+            .map(move |_| {
                 let mut response = Response::new(response.into());
                 response
                     .headers_mut()
@@ -661,13 +640,16 @@ fn container_create_succeeds() {
             HostConfig::new()
                 .with_port_bindings(port_bindings)
                 .with_memory(memory),
-        ).with_cmd(vec![
+        )
+        .with_cmd(vec![
             "/do/the/custom/command".to_string(),
             "with these args".to_string(),
-        ]).with_entrypoint(vec![
+        ])
+        .with_entrypoint(vec![
             "/also/do/the/entrypoint".to_string(),
             "and this".to_string(),
-        ]).with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()])
+        ])
+        .with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()])
         .with_volumes(volumes);
 
     let module_config = ModuleSpec::new(
@@ -675,7 +657,8 @@ fn container_create_succeeds() {
         "docker".to_string(),
         DockerConfig::new("nginx:latest".to_string(), create_options, None).unwrap(),
         env,
-    ).unwrap();
+    )
+    .unwrap();
 
     let mri =
         DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
@@ -689,10 +672,10 @@ fn container_create_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn container_start_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     assert_eq!(req.method(), &Method::POST);
     assert_eq!(req.uri().path(), "/containers/m1/start");
 
@@ -716,10 +699,10 @@ fn container_start_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn container_stop_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     assert_eq!(req.method(), &Method::POST);
     assert_eq!(req.uri().path(), "/containers/m1/stop");
 
@@ -743,10 +726,10 @@ fn container_stop_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn container_stop_with_timeout_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     assert_eq!(req.method(), &Method::POST);
     assert_eq!(req.uri().path(), "/containers/m1/stop");
     assert_eq!(req.uri().query().unwrap(), "t=600");
@@ -771,10 +754,10 @@ fn container_stop_with_timeout_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn container_remove_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     assert_eq!(req.method(), &Method::DELETE);
     assert_eq!(req.uri().path(), "/containers/m1");
 
@@ -798,10 +781,10 @@ fn container_remove_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn container_list_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     assert_eq!(req.method(), &Method::GET);
     assert_eq!(req.uri().path(), "/containers/json");
 
@@ -814,7 +797,8 @@ fn container_list_handler(
         Some(
             &json!({
                 "label": vec!["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"]
-            }).to_string()
+            })
+            .to_string()
         )
     );
 
@@ -935,10 +919,10 @@ fn container_list_succeeds() {
     }
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn container_logs_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     assert_eq!(req.method(), &Method::GET);
     assert_eq!(req.uri().path(), "/containers/mod1/logs");
 
@@ -1032,9 +1016,10 @@ fn runtime_init_network_does_not_exist_create() {
                 assert_eq!(req.uri().path(), "/networks/create");
 
                 let response = json!({
-                            "Id": "12345",
-                            "Warnings": ""
-                        }).to_string();
+                    "Id": "12345",
+                    "Warnings": ""
+                })
+                .to_string();
                 let response_len = response.len();
 
                 let mut response = Response::new(response.into());
@@ -1048,7 +1033,8 @@ fn runtime_init_network_does_not_exist_create() {
             }
             _ => panic!("Method is not a get neither a post."),
         }
-    }).map_err(|err| eprintln!("{}", err));
+    })
+    .map_err(|err| eprintln!("{}", err));
 
     let mri =
         DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
@@ -1089,24 +1075,25 @@ fn runtime_init_network_exist_do_not_create() {
                 assert_eq!(req.uri().path(), "/networks");
 
                 let response = json!([
-                            {
-                                "Name": "azure-iot-edge",
-                                "Id": "8e3209d08ed5e73d1c9c8e7580ddad232b6dceb5bf0c6d74cadbed75422eef0e",
-                                "Created": "0001-01-01T00:00:00Z",
-                                "Scope": "local",
-                                "Driver": "bridge",
-                                "EnableIPv6": false,
-                                "Internal": false,
-                                "Attachable": false,
-                                "Ingress": false,
-                                "IPAM": {
-                                "Driver": "bridge",
-                                "Config": []
-                                },
-                                "Containers": {},
-                                "Options": {}
-                            }
-                        ]).to_string();
+                    {
+                        "Name": "azure-iot-edge",
+                        "Id": "8e3209d08ed5e73d1c9c8e7580ddad232b6dceb5bf0c6d74cadbed75422eef0e",
+                        "Created": "0001-01-01T00:00:00Z",
+                        "Scope": "local",
+                        "Driver": "bridge",
+                        "EnableIPv6": false,
+                        "Internal": false,
+                        "Attachable": false,
+                        "Ingress": false,
+                        "IPAM": {
+                        "Driver": "bridge",
+                        "Config": []
+                        },
+                        "Containers": {},
+                        "Options": {}
+                    }
+                ])
+                .to_string();
                 let response_len = response.len();
 
                 let mut response = Response::new(response.into());
@@ -1126,9 +1113,10 @@ fn runtime_init_network_exist_do_not_create() {
                 assert_eq!(req.uri().path(), "/networks/create");
 
                 let response = json!({
-                            "Id": "12345",
-                            "Warnings": ""
-                        }).to_string();
+                    "Id": "12345",
+                    "Warnings": ""
+                })
+                .to_string();
                 let response_len = response.len();
 
                 let mut response = Response::new(response.into());
@@ -1142,7 +1130,8 @@ fn runtime_init_network_exist_do_not_create() {
             }
             _ => panic!("Method is not a get neither a post."),
         }
-    }).map_err(|err| eprintln!("{}", err));
+    })
+    .map_err(|err| eprintln!("{}", err));
 
     let mri =
         DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
@@ -1178,11 +1167,12 @@ fn runtime_system_info_succeed() {
                 assert_eq!(req.uri().path(), "/info");
 
                 let response = json!(
-                                {
-                                    "OSType": "linux",
-                                    "Architecture": "x86_64",
-                                }
-                        ).to_string();
+                        {
+                            "OSType": "linux",
+                            "Architecture": "x86_64",
+                        }
+                )
+                .to_string();
                 let response_len = response.len();
 
                 let mut response = Response::new(response.into());
@@ -1196,7 +1186,8 @@ fn runtime_system_info_succeed() {
             }
             _ => panic!("Method is not a get neither a post."),
         }
-    }).map_err(|err| eprintln!("{}", err));
+    })
+    .map_err(|err| eprintln!("{}", err));
 
     let mri =
         DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
@@ -1245,7 +1236,8 @@ fn runtime_system_info_none_returns_unkown() {
             }
             _ => panic!("Method is not a get neither a post."),
         }
-    }).map_err(|err| eprintln!("{}", err));
+    })
+    .map_err(|err| eprintln!("{}", err));
 
     let mri =
         DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())

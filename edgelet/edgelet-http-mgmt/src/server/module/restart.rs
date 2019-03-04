@@ -8,8 +8,8 @@ use edgelet_core::{ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 
-use error::{Error, ErrorKind};
-use IntoResponse;
+use crate::error::{Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct RestartModule<M> {
     runtime: M,
@@ -29,7 +29,7 @@ where
         &self,
         _req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
@@ -42,7 +42,8 @@ where
                         RuntimeOperation::RestartModule(name),
                     )))),
                 })
-            }).into_future()
+            })
+            .into_future()
             .flatten()
             .and_then(|name| {
                 Ok(Response::builder()
@@ -51,7 +52,8 @@ where
                     .context(ErrorKind::RuntimeOperation(
                         RuntimeOperation::RestartModule(name),
                     ))?)
-            }).or_else(|e| Ok(e.into_response()));
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -63,9 +65,9 @@ mod tests {
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
-    use server::module::tests::Error;
 
     use super::*;
+    use crate::server::module::tests::Error;
 
     #[test]
     fn success() {

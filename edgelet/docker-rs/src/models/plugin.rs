@@ -25,10 +25,7 @@ pub struct Plugin {
     #[serde(rename = "Settings")]
     settings: ::models::PluginSettings,
     /// plugin remote reference used to push/pull the plugin
-    #[serde(
-        rename = "PluginReference",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "PluginReference", skip_serializing_if = "Option::is_none")]
     plugin_reference: Option<String>,
     #[serde(rename = "Config")]
     config: ::models::PluginConfig,

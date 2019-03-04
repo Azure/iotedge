@@ -41,7 +41,8 @@ mod windows {
                 "-h",
                 &out_dir,
                 "src\\resources\\event_messages.mc",
-            ]).status()
+            ])
+            .status()
             .expect("Message compilation failed");
 
         let rc_source_path = Path::new(&out_dir).join("event_messages.rc");
@@ -53,7 +54,8 @@ mod windows {
         fs::rename(
             Path::new(&out_dir).join("event_messages.res"),
             Path::new(&out_dir).join("event_messages.res.lib"),
-        ).expect("Rename of event_messages.res failed");
+        )
+        .expect("Rename of event_messages.res failed");
 
         println!("cargo:rustc-link-search=all={}", out_dir);
         println!("cargo:rustc-link-lib=event_messages.res");

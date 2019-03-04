@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     using Microsoft.AspNetCore.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-    using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Middleware;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Primitives;
@@ -38,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.True(result.success);
-            Assert.Equal("", result.message);
+            Assert.Equal(string.Empty, result.message);
         }
 
         [Fact]
@@ -176,7 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.True(result.success);
-            Assert.Equal("", result.message);
+            Assert.Equal(string.Empty, result.message);
         }
 
         [Fact]
@@ -249,6 +248,148 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             Assert.Equal($"Module {moduleId} on device {deviceId} cannot invoke methods. Only modules on IoT Edge device {edgeDeviceId} can invoke methods.", result.message);
         }
 
-        public class SomeException : Exception { }
+        [Fact]
+        public async Task AuthenticateRequestTestX509_Success()
+        {
+            string iothubHostName = "TestHub.azure-devices.net";
+            string deviceId = "device_2";
+            string moduleId = "module_1";
+            var httpContext = new DefaultHttpContext();
+            var clientCert = CertificateHelper.GenerateSelfSignedCert($"test_cert");
+            httpContext.Request.Headers.Add(HttpConstants.IdHeaderKey, $"{deviceId}/{moduleId}");
+            httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
+            httpContext.Connection.ClientCertificate = clientCert;
+            var authenticator = new Mock<IAuthenticator>();
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
+
+            var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
+
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
+            (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
+            Assert.NotNull(result);
+            Assert.True(result.success);
+            Assert.Equal(string.Empty, result.message);
+        }
+
+        [Fact]
+        public async Task AuthenticateRequestTestX509IgnoresAuthorizationHeader_Success()
+        {
+            string iothubHostName = "TestHub.azure-devices.net";
+            string deviceId = "device_2";
+            string moduleId = "module_1";
+            var httpContext = new DefaultHttpContext();
+            var clientCert = CertificateHelper.GenerateSelfSignedCert($"test_cert");
+            httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues("blah"));
+            httpContext.Request.Headers.Add(HttpConstants.IdHeaderKey, $"{deviceId}/{moduleId}");
+            httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
+            httpContext.Connection.ClientCertificate = clientCert;
+            var authenticator = new Mock<IAuthenticator>();
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
+
+            var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
+
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
+            (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
+            Assert.NotNull(result);
+            Assert.True(result.success);
+            Assert.Equal(string.Empty, result.message);
+        }
+
+        [Fact]
+        public async Task AuthenticateRequestX509Test_NoApiVersion_Success()
+        {
+            string iothubHostName = "TestHub.azure-devices.net";
+            string deviceId = "device_2";
+            string moduleId = "module_1";
+            var httpContext = new DefaultHttpContext();
+            var clientCert = CertificateHelper.GenerateSelfSignedCert($"test_cert");
+            httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues("blah"));
+            httpContext.Request.Headers.Add(HttpConstants.IdHeaderKey, $"{deviceId}/{moduleId}");
+            httpContext.Connection.ClientCertificate = clientCert;
+            var authenticator = new Mock<IAuthenticator>();
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
+
+            var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
+
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
+            (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
+            Assert.NotNull(result);
+            Assert.True(result.success);
+            Assert.Equal(string.Empty, result.message);
+        }
+
+        [Fact]
+        public async Task InvalidCredentialsRequestX509Test_AuthFailed()
+        {
+            string iothubHostName = "TestHub.azure-devices.net";
+            string deviceId = "device_2";
+            string moduleId = "module_1";
+            var httpContext = new DefaultHttpContext();
+            var clientCert = CertificateHelper.GenerateSelfSignedCert($"test_cert");
+            httpContext.Request.Headers.Add(HttpConstants.IdHeaderKey, $"{deviceId}/{moduleId}");
+            httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
+            httpContext.Connection.ClientCertificate = clientCert;
+            var authenticator = new Mock<IAuthenticator>();
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(false);
+
+            var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
+
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
+            (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
+            Assert.NotNull(result);
+            Assert.False(result.success);
+            Assert.Equal("Unable to authenticate device with Id device_2/module_1", result.message);
+        }
+
+        [Fact]
+        public async Task InvalidAuthenticateRequestX509Test_InvalidDeviceId()
+        {
+            string iothubHostName = "TestHub.azure-devices.net";
+            string deviceId = "device_2";
+            string moduleId = "module_1";
+            string edgeDeviceId = "edgeDeviceId1";
+            var httpContext = new DefaultHttpContext();
+            var clientCert = CertificateHelper.GenerateSelfSignedCert($"test_cert");
+            httpContext.Request.Headers.Add(HttpConstants.IdHeaderKey, $"{deviceId}/{moduleId}");
+            httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
+            httpContext.Connection.ClientCertificate = clientCert;
+
+            var authenticator = new Mock<IAuthenticator>();
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
+
+            var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
+
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, edgeDeviceId);
+            (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
+            Assert.NotNull(result);
+            Assert.False(result.success);
+            Assert.Equal($"Module {moduleId} on device {deviceId} cannot invoke methods. Only modules on IoT Edge device {edgeDeviceId} can invoke methods.", result.message);
+        }
+
+        [Fact]
+        public async Task InvalidAuthenticateRequestX509Test_NoModuleId()
+        {
+            string iothubHostName = "TestHub.azure-devices.net";
+            string deviceId = "device_2";
+            var httpContext = new DefaultHttpContext();
+            var clientCert = CertificateHelper.GenerateSelfSignedCert($"test_cert");
+            httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
+            httpContext.Connection.ClientCertificate = clientCert;
+
+            var authenticator = new Mock<IAuthenticator>();
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
+
+            var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
+
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName, deviceId);
+            (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
+            Assert.NotNull(result);
+            Assert.False(result.success);
+            Assert.Equal("Request header does not contain ModuleId", result.message);
+        }
+
+        public class SomeException : Exception
+        {
+        }
     }
 }

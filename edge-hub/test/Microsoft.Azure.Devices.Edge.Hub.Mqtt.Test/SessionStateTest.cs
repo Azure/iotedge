@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
@@ -7,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using System.Linq;
     using System.Threading.Tasks;
     using DotNetty.Codecs.Mqtt.Packets;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -91,8 +91,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 Assert.Equal(copySession.Subscriptions[i].CreationTime, sessionState.Subscriptions[i].CreationTime);
             }
 
-            Assert.Equal(copySession.SubscriptionRegistrations.Count, sessionState.SubscriptionRegistrations.Count);            
-            foreach(KeyValuePair<string, bool> subscriptionRegistration in copySession.SubscriptionRegistrations)
+            Assert.Equal(copySession.SubscriptionRegistrations.Count, sessionState.SubscriptionRegistrations.Count);
+            foreach (KeyValuePair<string, bool> subscriptionRegistration in copySession.SubscriptionRegistrations)
             {
                 Assert.Equal(subscriptionRegistration.Value, sessionState.SubscriptionRegistrations[subscriptionRegistration.Key]);
             }
@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.True(sessionState.SubscriptionRegistrations[MethodPostTopicPrefix]);
             Assert.False(sessionState.SubscriptionRegistrations[TwinSubscriptionTopicPrefix]);
 
-            IEntityStore<string, SessionState> entityStore = new StoreProvider(new InMemoryDbStoreProvider()).GetEntityStore<string, SessionState>(Core.Constants.SessionStorePartitionKey);
+            IEntityStore<string, SessionState> entityStore = new StoreProvider(new InMemoryDbStoreProvider()).GetEntityStore<string, SessionState>(Constants.SessionStorePartitionKey);
             string key = Guid.NewGuid().ToString();
             await entityStore.Put(key, sessionState);
             Option<SessionState> retrievedSessionStateOption = await entityStore.Get(key);

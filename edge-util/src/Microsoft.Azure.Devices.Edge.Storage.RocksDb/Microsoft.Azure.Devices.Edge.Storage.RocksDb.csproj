@@ -4,7 +4,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-    <Configurations>Debug;Release;CodeCoverage</Configurations>
+    <Configurations>Debug;Release;CodeCoverage;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 
@@ -28,12 +28,19 @@
       rocksdb binaries) in this library. If specified, you must ensure that rocksdb is
       installed and reachable in your runtime environment.
       -->
-    <PackageReference Include="RocksDbNative" Version="5.4.6.10" Condition="'$(RocksDbAsPackage)' != 'false'" />
-    <PackageReference Include="RocksDbSharp" Version="5.4.6.10" />
+    <PackageReference Include="RocksDbNative" Version="5.17.2" Condition="'$(RocksDbAsPackage)' != 'false'" />
+    <PackageReference Include="RocksDbSharp" Version="5.17.2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Storage\Microsoft.Azure.Devices.Edge.Storage.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>  
+  <Import Project="..\..\..\stylecop.props" />
 </Project>

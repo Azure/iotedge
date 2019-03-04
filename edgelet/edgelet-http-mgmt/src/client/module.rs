@@ -17,11 +17,11 @@ use serde_json;
 use url::Url;
 
 use edgelet_core::*;
-use edgelet_core::{ModuleOperation, RuntimeOperation, SystemInfo as CoreSystemInfo};
+use edgelet_core::{ModuleOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt};
 use edgelet_docker::{self, DockerConfig};
-use edgelet_http::{UrlConnector, UrlExt, API_VERSION};
+use edgelet_http::{UrlConnector, API_VERSION};
 
-use error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind};
 
 pub struct ModuleClient {
     client: Arc<APIClient>,
@@ -68,7 +68,7 @@ pub struct ModuleDetails(HttpModuleDetails, ModuleConfig);
 pub struct ModuleConfig(String, Config);
 
 impl fmt::Display for ModuleConfig {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let edgelet_docker::MODULE_TYPE = self.0.as_ref() {
             if let Ok(c) = serde_json::from_value::<DockerConfig>(self.1.settings().clone()) {
                 write!(f, "{}", c.image())?;
@@ -150,18 +150,21 @@ impl ModuleRuntime for ModuleClient {
     type Chunk = Chunk;
     type Logs = Logs;
 
-    type CreateFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type CreateFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type GetFuture =
+        Box<dyn Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
     type InitFuture = FutureResult<(), Self::Error>;
-    type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
+    type ListFuture = Box<dyn Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
     type ListWithDetailsStream =
-        Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type LogsFuture = Box<Future<Item = Self::Logs, Error = Self::Error> + Send>;
-    type RemoveFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type RestartFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type StartFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type StopFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type SystemInfoFuture = Box<Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
-    type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+        Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
+    type LogsFuture = Box<dyn Future<Item = Self::Logs, Error = Self::Error> + Send>;
+    type RemoveFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type RestartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type StartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
+    type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type TopFuture = Box<dyn Future<Item = ModuleTop, Error = Self::Error> + Send>;
 
     fn system_info(&self) -> Self::SystemInfoFuture {
         unimplemented!()
@@ -175,19 +178,24 @@ impl ModuleRuntime for ModuleClient {
         unimplemented!()
     }
 
+    fn get(&self, _id: &str) -> Self::GetFuture {
+        unimplemented!()
+    }
+
     fn start(&self, id: &str) -> Self::StartFuture {
         let id = id.to_string();
 
         let start = self
             .client
             .module_api()
-            .start_module(API_VERSION, &id)
+            .start_module(&API_VERSION.to_string(), &id)
             .map_err(|err| {
                 Error::from_mgmt_error(
                     err,
                     ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
                 )
-            }).then(|result| match result {
+            })
+            .then(|result| match result {
                 Err(e) => match e.kind() {
                     ErrorKind::NotModified => Ok(()),
                     _ => Err(e),
@@ -203,13 +211,14 @@ impl ModuleRuntime for ModuleClient {
         let stop = self
             .client
             .module_api()
-            .stop_module(API_VERSION, &id)
+            .stop_module(&API_VERSION.to_string(), &id)
             .map_err(|err| {
                 Error::from_mgmt_error(
                     err,
                     ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id)),
                 )
-            }).then(|result| match result {
+            })
+            .then(|result| match result {
                 Err(e) => match e.kind() {
                     ErrorKind::NotModified => Ok(()),
                     _ => Err(e),
@@ -225,13 +234,14 @@ impl ModuleRuntime for ModuleClient {
         let restart = self
             .client
             .module_api()
-            .restart_module(API_VERSION, &id)
+            .restart_module(&API_VERSION.to_string(), &id)
             .map_err(|err| {
                 Error::from_mgmt_error(
                     err,
                     ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(id)),
                 )
-            }).then(|result| match result {
+            })
+            .then(|result| match result {
                 Err(e) => match e.kind() {
                     ErrorKind::NotModified => Ok(()),
                     _ => Err(e),
@@ -249,17 +259,19 @@ impl ModuleRuntime for ModuleClient {
         let modules = self
             .client
             .module_api()
-            .list_modules(API_VERSION)
+            .list_modules(&API_VERSION.to_string())
             .map(|list| {
                 list.modules()
-                    .into_iter()
+                    .iter()
                     .cloned()
                     .map(|m| {
                         let type_ = m.type_().clone();
                         let config = m.config().clone();
                         ModuleDetails(m, ModuleConfig(type_, config))
-                    }).collect()
-            }).map_err(|err| {
+                    })
+                    .collect()
+            })
+            .map_err(|err| {
                 Error::from_mgmt_error(
                     err,
                     ErrorKind::RuntimeOperation(RuntimeOperation::ListModules),
@@ -272,13 +284,14 @@ impl ModuleRuntime for ModuleClient {
         let modules = self
             .client
             .module_api()
-            .list_modules(API_VERSION)
+            .list_modules(&API_VERSION.to_string())
             .map_err(|err| {
                 Error::from_mgmt_error(
                     err,
                     ErrorKind::RuntimeOperation(RuntimeOperation::ListModules),
                 )
-            }).map(|list| {
+            })
+            .map(|list| {
                 let iter = list.modules().to_owned().into_iter().map(|m| {
                     let type_ = m.type_().clone();
                     let config = m.config().clone();
@@ -287,7 +300,8 @@ impl ModuleRuntime for ModuleClient {
                     Ok((module, runtime_state))
                 });
                 stream::iter_result(iter)
-            }).into_stream()
+            })
+            .into_stream()
             .flatten();
         Box::new(modules)
     }
@@ -299,7 +313,7 @@ impl ModuleRuntime for ModuleClient {
         let result = self
             .client
             .module_api()
-            .module_logs(API_VERSION, &id, options.follow(), tail)
+            .module_logs(&API_VERSION.to_string(), &id, options.follow(), tail)
             .then(|logs| match logs {
                 Ok(logs) => Ok(Logs(id, logs)),
                 Err(err) => Err(Error::from_mgmt_error(
@@ -322,6 +336,10 @@ impl ModuleRuntime for ModuleClient {
                 .map(move |c| <Self as ModuleRuntime>::remove(&self_for_remove, c.name()));
             future::join_all(n).map(|_| ())
         }))
+    }
+
+    fn top(&self, _id: &str) -> Self::TopFuture {
+        unimplemented!()
     }
 }
 

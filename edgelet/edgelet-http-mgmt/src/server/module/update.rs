@@ -4,6 +4,8 @@ use failure::ResultExt;
 use futures::{future, Future, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
+use log::debug;
+use log::info;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;
@@ -14,8 +16,8 @@ use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 
 use super::{spec_to_core, spec_to_details};
-use error::{Error, ErrorKind};
-use IntoResponse;
+use crate::error::{Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct UpdateModule<M> {
     runtime: M,
@@ -36,7 +38,7 @@ where
         &self,
         req: Request<Body>,
         _params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let runtime = self.runtime.clone();
 
         let start: bool = req
@@ -47,7 +49,8 @@ where
                     .find(|&(ref key, _)| key == "start")
                     .and_then(|(_, v)| if v == "false" { None } else { Some(()) })
                     .map(|_| true)
-            }).unwrap_or_else(|| false);
+            })
+            .unwrap_or_else(|| false);
 
         let response = req
             .into_body()
@@ -57,7 +60,8 @@ where
                 let spec = serde_json::from_slice(&b).context(ErrorKind::MalformedRequestBody)?;
                 let core_spec = spec_to_core::<M>(&spec, ErrorKind::MalformedRequestBody)?;
                 Ok((core_spec, spec))
-            }).and_then(move |(core_spec, spec)| {
+            })
+            .and_then(move |(core_spec, spec)| {
                 let name = core_spec.name().to_string();
 
                 if start {
@@ -70,19 +74,22 @@ where
                     result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
                     Ok((core_spec, spec, name, runtime))
                 })
-            }).and_then(|(core_spec, spec, name, runtime)| {
+            })
+            .and_then(|(core_spec, spec, name, runtime)| {
                 debug!("Removed existing module {}", name);
                 runtime.registry().pull(core_spec.config()).then(|result| {
                     result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
                     Ok((core_spec, spec, name, runtime))
                 })
-            }).and_then(|(core_spec, spec, name, runtime)| {
+            })
+            .and_then(|(core_spec, spec, name, runtime)| {
                 debug!("Successfully pulled new image for module {}", name);
                 runtime.create(core_spec).then(|result| {
                     result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
                     Ok((name, spec, runtime))
                 })
-            }).and_then(move |(name, spec, runtime)| {
+            })
+            .and_then(move |(name, spec, runtime)| {
                 debug!("Created module {}", name);
                 if start {
                     info!("Starting module {}", name);
@@ -93,7 +100,8 @@ where
                 } else {
                     future::Either::B(future::ok((ModuleStatus::Stopped, spec, name)))
                 }
-            }).and_then(|(status, spec, name)| -> Result<_, Error> {
+            })
+            .and_then(|(status, spec, name)| -> Result<_, Error> {
                 let details = spec_to_details(&spec, status);
                 let b = serde_json::to_string(&details)
                     .with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
@@ -104,7 +112,8 @@ where
                     .body(b.into())
                     .context(ErrorKind::UpdateModule(name))?;
                 Ok(response)
-            }).or_else(|e| Ok(e.into_response()));
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -116,10 +125,12 @@ mod tests {
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
+    use lazy_static::lazy_static;
     use management::models::{Config, ErrorResponse, ModuleDetails, ModuleSpec};
-    use server::module::tests::Error;
+    use serde_json::json;
 
     use super::*;
+    use crate::server::module::tests::Error;
 
     lazy_static! {
         static ref RUNTIME: TestRuntime<Error> = {
@@ -170,7 +181,8 @@ mod tests {
 
                 assert_eq!(160, b.len());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -208,7 +220,8 @@ mod tests {
 
                 assert_eq!(160, b.len());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -234,7 +247,8 @@ mod tests {
                     "Request body is malformed\n\tcaused by: expected value at line 1 column 1";
                 assert_eq!(expected, error_response.message());
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -259,11 +273,12 @@ mod tests {
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
-                    "Could not update module\n\tcaused by: General error",
+                    "Could not update module \"test-module\"\n\tcaused by: General error",
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -292,7 +307,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 }

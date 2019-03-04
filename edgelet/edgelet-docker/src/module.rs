@@ -8,11 +8,13 @@ use hyper::client::connect::Connect;
 
 use edgelet_utils::ensure_not_empty_with_context;
 
-use client::DockerClient;
-use config::DockerConfig;
+use docker::models::InlineResponse200State;
 use edgelet_core::pid::Pid;
 use edgelet_core::{Module, ModuleOperation, ModuleRuntimeState, ModuleStatus};
-use error::{Error, ErrorKind, Result};
+
+use crate::client::DockerClient;
+use crate::config::DockerConfig;
+use crate::error::{Error, ErrorKind, Result};
 
 pub const MODULE_TYPE: &str = "docker";
 pub const MIN_DATE: &str = "0001-01-01T00:00:00Z";
@@ -45,10 +47,46 @@ fn status_from_exit_code(exit_code: Option<i64>) -> Option<ModuleStatus> {
     })
 }
 
+pub fn runtime_state(
+    id: Option<&str>,
+    response_state: Option<&InlineResponse200State>,
+) -> ModuleRuntimeState {
+    response_state.map_or_else(ModuleRuntimeState::default, |state| {
+        let status = state
+            .status()
+            .and_then(|status| match status {
+                "created" | "paused" | "restarting" => Some(ModuleStatus::Stopped),
+                "removing" | "dead" | "exited" => status_from_exit_code(state.exit_code()),
+                "running" => Some(ModuleStatus::Running),
+                _ => Some(ModuleStatus::Unknown),
+            })
+            .unwrap_or_else(|| ModuleStatus::Unknown);
+        ModuleRuntimeState::default()
+            .with_status(status)
+            .with_exit_code(state.exit_code())
+            .with_status_description(state.status().map(ToOwned::to_owned))
+            .with_started_at(
+                state
+                    .started_at()
+                    .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
+                    .and_then(|started_at| DateTime::from_str(started_at).ok()),
+            )
+            .with_finished_at(
+                state
+                    .finished_at()
+                    .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
+                    .and_then(|finished_at| DateTime::from_str(finished_at).ok()),
+            )
+            .with_image_id(id.map(ToOwned::to_owned))
+            .with_pid(state.pid().map_or(Pid::None, Pid::Value))
+    })
+}
+
 impl<C: 'static + Connect> Module for DockerModule<C> {
     type Config = DockerConfig;
     type Error = Error;
-    type RuntimeStateFuture = Box<Future<Item = ModuleRuntimeState, Error = Self::Error> + Send>;
+    type RuntimeStateFuture =
+        Box<dyn Future<Item = ModuleRuntimeState, Error = Self::Error> + Send>;
 
     fn name(&self) -> &str {
         &self.name
@@ -67,41 +105,8 @@ impl<C: 'static + Connect> Module for DockerModule<C> {
             self.client
                 .container_api()
                 .container_inspect(&self.name, false)
-                .map(|resp| {
-                    resp.state()
-                        .map_or_else(ModuleRuntimeState::default, |state| {
-                            let status = state
-                                .status()
-                                .and_then(|status| match status {
-                                    "created" | "paused" | "restarting" => {
-                                        Some(ModuleStatus::Stopped)
-                                    }
-                                    "removing" | "dead" | "exited" => {
-                                        status_from_exit_code(state.exit_code())
-                                    }
-                                    "running" => Some(ModuleStatus::Running),
-                                    _ => Some(ModuleStatus::Unknown),
-                                }).unwrap_or_else(|| ModuleStatus::Unknown);
-                            ModuleRuntimeState::default()
-                                .with_status(status)
-                                .with_exit_code(state.exit_code())
-                                .with_status_description(state.status().map(ToOwned::to_owned))
-                                .with_started_at(
-                                    state
-                                        .started_at()
-                                        .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
-                                        .and_then(|started_at| DateTime::from_str(started_at).ok()),
-                                ).with_finished_at(
-                                    state
-                                        .finished_at()
-                                        .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
-                                        .and_then(|finished_at| {
-                                            DateTime::from_str(finished_at).ok()
-                                        }),
-                                ).with_image_id(resp.id().map(ToOwned::to_owned))
-                                .with_pid(state.pid().map_or(Pid::None, Pid::Value))
-                        })
-                }).map_err(|err| {
+                .map(|resp| runtime_state(resp.id(), resp.state()))
+                .map_err(|err| {
                     Error::from_docker_error(
                         err,
                         ErrorKind::ModuleOperation(ModuleOperation::RuntimeState),
@@ -129,9 +134,9 @@ mod tests {
     use edgelet_core::{Module, ModuleStatus};
     use edgelet_test_utils::JsonConnector;
 
-    use client::DockerClient;
-    use config::DockerConfig;
-    use module::DockerModule;
+    use crate::client::DockerClient;
+    use crate::config::DockerConfig;
+    use crate::module::DockerModule;
 
     fn create_api_client<T: Serialize>(body: T) -> DockerClient<JsonConnector> {
         let client = Client::builder().build(JsonConnector::new(&body));
@@ -150,7 +155,8 @@ mod tests {
             create_api_client("boo"),
             "mod1".to_string(),
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!("mod1", docker_module.name());
         assert_eq!("docker", docker_module.type_());
         assert_eq!("ubuntu", docker_module.config().image());
@@ -163,7 +169,8 @@ mod tests {
             create_api_client("boo"),
             "".to_string(),
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
     }
 
     #[test]
@@ -173,7 +180,8 @@ mod tests {
             create_api_client("boo"),
             "     ".to_string(),
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
     }
 
     fn get_inputs() -> Vec<(&'static str, i64, ModuleStatus)> {
@@ -206,7 +214,8 @@ mod tests {
                 ),
                 "mod1".to_string(),
                 DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
-            ).unwrap();
+            )
+            .unwrap();
 
             let state = tokio::runtime::current_thread::Runtime::new()
                 .unwrap()
@@ -230,12 +239,14 @@ mod tests {
                             .with_started_at(started_at.clone())
                             .with_finished_at(finished_at.clone())
                             .with_pid(1234),
-                    ).with_id("mod1".to_string())
+                    )
+                    .with_id("mod1".to_string())
                     .with_exec_i_ds(vec!["id1".to_string(), "id2".to_string()]),
             ),
             "mod1".to_string(),
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
 
         let runtime_state = tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -265,11 +276,13 @@ mod tests {
                             .with_status("dead".to_string())
                             .with_started_at(started_at.clone())
                             .with_finished_at(finished_at.clone()),
-                    ).with_id("mod1".to_string()),
+                    )
+                    .with_id("mod1".to_string()),
             ),
             "mod1".to_string(),
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
 
         let runtime_state = tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -298,11 +311,13 @@ mod tests {
                             .with_status("running".to_string())
                             .with_started_at(started_at.clone())
                             .with_finished_at(finished_at.clone()),
-                    ).with_id("mod1".to_string()),
+                    )
+                    .with_id("mod1".to_string()),
             ),
             "mod1".to_string(),
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
 
         let runtime_state = tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -324,11 +339,13 @@ mod tests {
                             .with_status("running".to_string())
                             .with_started_at(started_at.clone())
                             .with_finished_at(finished_at.clone()),
-                    ).with_id("mod1".to_string()),
+                    )
+                    .with_id("mod1".to_string()),
             ),
             "mod1".to_string(),
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
 
         let runtime_state = tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -350,11 +367,13 @@ mod tests {
                             .with_status("stopped".to_string())
                             .with_started_at(started_at.clone())
                             .with_finished_at(finished_at.clone()),
-                    ).with_id("mod1".to_string()),
+                    )
+                    .with_id("mod1".to_string()),
             ),
             "mod1".to_string(),
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
 
         let runtime_state = tokio::runtime::current_thread::Runtime::new()
             .unwrap()

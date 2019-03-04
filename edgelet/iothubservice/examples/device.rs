@@ -9,16 +9,11 @@
 //! ```
 
 #![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
-#![cfg_attr(feature = "cargo-clippy", allow(
-    doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
-    use_self,
-))]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
+    clippy::use_self,
+)]
 
 extern crate chrono;
 extern crate clap;
@@ -77,7 +72,8 @@ fn main() {
         Some(token_source),
         "2017-11-08-preview".to_string(),
         Url::parse(&format!("https://{}.azure-devices.net", hub_name)).unwrap(),
-    ).unwrap();
+    )
+    .unwrap();
 
     let device_client = DeviceClient::new(client, device_id).unwrap();
 
@@ -177,7 +173,8 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .help("SAS token to use when connecting to IoT Hub")
                 .required(true)
                 .takes_value(true),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("hub-name")
                 .short("h")
                 .long("hub-name")
@@ -185,7 +182,8 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .help("IoT Hub name")
                 .required(true)
                 .takes_value(true),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("device-id")
                 .short("d")
                 .long("device-id")
@@ -193,18 +191,22 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .help("Device ID")
                 .required(true)
                 .takes_value(true),
-        ).subcommand(
+        )
+        .subcommand(
             SubCommand::with_name("create")
                 .about("Create a new module")
                 .arg(module_id.clone()),
-        ).subcommand(
+        )
+        .subcommand(
             SubCommand::with_name("delete")
                 .about("Delete module")
                 .arg(module_id.clone()),
-        ).subcommand(SubCommand::with_name("list").about("List modules"))
+        )
+        .subcommand(SubCommand::with_name("list").about("List modules"))
         .subcommand(
             SubCommand::with_name("get")
                 .about("Get an existing module")
                 .arg(module_id.clone()),
-        ).get_matches()
+        )
+        .get_matches()
 }

@@ -14,8 +14,8 @@ use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use management::models::{Identity, IdentitySpec as CreateIdentitySpec};
 
-use error::{Error, ErrorKind};
-use IntoResponse;
+use crate::error::{Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct CreateIdentity<I> {
     id_manager: Arc<Mutex<I>>,
@@ -38,7 +38,7 @@ where
         &self,
         req: Request<Body>,
         _params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let id_mgr = self.id_manager.clone();
         let response = read_request(req)
             .and_then(move |spec| {
@@ -77,7 +77,8 @@ where
                         })?;
                     Ok(response)
                 })
-            }).or_else(|e| Ok(e.into_response()));
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -102,7 +103,7 @@ mod tests {
     use edgelet_test_utils::identity::{TestIdentity, TestIdentityManager};
     use futures::Stream;
     use management::models::ErrorResponse;
-    use serde_json::Value;
+    use serde_json::{json, Value};
 
     use super::*;
 
@@ -140,7 +141,8 @@ mod tests {
                 assert_eq!(AuthType::Sas, identity.auth_type());
 
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -178,7 +180,8 @@ mod tests {
                 assert_eq!(AuthType::Sas, identity.auth_type());
 
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 
@@ -233,7 +236,8 @@ mod tests {
                     error.message()
                 );
                 Ok(())
-            }).wait()
+            })
+            .wait()
             .unwrap();
     }
 }

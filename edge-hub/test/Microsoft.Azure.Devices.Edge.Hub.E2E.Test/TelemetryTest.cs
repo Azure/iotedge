@@ -1,12 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -49,15 +47,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     await rm.CloseAsync();
                 }
+
                 if (sender != null)
                 {
                     await sender.Disconnect();
                 }
+
                 if (receiver != null)
                 {
                     await receiver.Disconnect();
                 }
             }
+
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(10));
         }
@@ -102,15 +103,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     await rm.CloseAsync();
                 }
+
                 if (sender != null)
                 {
                     await sender.Disconnect();
                 }
+
                 if (receiver != null)
                 {
                     await receiver.Disconnect();
                 }
             }
+
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(10));
         }
@@ -120,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         async Task SendLargeMessageHandleExceptionTest(ITransportSettings[] transportSettings)
         {
             TestModule sender = null;
-            
+
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
@@ -148,8 +152,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 if (rm != null)
                 {
                     await rm.CloseAsync();
-                }                
+                }
             }
+
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(10));
         }

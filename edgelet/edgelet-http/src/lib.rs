@@ -1,74 +1,19 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
-#![cfg_attr(
-    feature = "cargo-clippy",
-    allow(default_trait_access, similar_names, stutter, use_self)
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::default_trait_access,
+    clippy::module_name_repetitions,
+    clippy::similar_names,
+    clippy::use_self
 )]
-
-extern crate bytes;
-extern crate chrono;
-extern crate edgelet_core;
-extern crate failure;
-extern crate futures;
-extern crate hyper;
-#[cfg(windows)]
-extern crate hyper_named_pipe;
-extern crate hyper_proxy;
-extern crate hyper_tls;
-#[cfg(unix)]
-extern crate hyperlocal;
-#[cfg(windows)]
-extern crate hyperlocal_windows;
-#[cfg(target_os = "linux")]
-#[cfg(unix)]
-extern crate libc;
-#[macro_use]
-extern crate log;
-#[cfg(windows)]
-extern crate mio_uds_windows;
-#[cfg(unix)]
-extern crate nix;
-extern crate percent_encoding;
-extern crate regex;
-#[cfg(unix)]
-#[macro_use]
-extern crate scopeguard;
-extern crate serde;
-#[macro_use]
-extern crate serde_json;
-extern crate systemd;
-#[cfg(test)]
-#[cfg(windows)]
-extern crate tempdir;
-#[cfg(test)]
-extern crate tempfile;
-extern crate tokio;
-#[cfg(windows)]
-extern crate tokio_named_pipe;
-#[cfg(unix)]
-extern crate tokio_uds;
-#[cfg(windows)]
-extern crate tokio_uds_windows;
-extern crate typed_headers;
-extern crate url;
-#[cfg(windows)]
-extern crate winapi;
-
-extern crate edgelet_utils;
 
 #[cfg(unix)]
 use std::net;
 use std::net::ToSocketAddrs;
 #[cfg(unix)]
 use std::os::unix::io::FromRawFd;
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use failure::{Fail, ResultExt};
@@ -76,7 +21,7 @@ use futures::{future, Future, Poll, Stream};
 use hyper::server::conn::Http;
 use hyper::service::{NewService, Service};
 use hyper::{Body, Response};
-use log::Level;
+use log::{debug, error, Level};
 #[cfg(unix)]
 use systemd::Socket;
 use tokio::net::TcpListener;
@@ -84,6 +29,7 @@ use tokio::net::TcpListener;
 use tokio_uds::UnixListener;
 use url::Url;
 
+use edgelet_core::{UrlExt, UNIX_SCHEME};
 use edgelet_utils::log_failure;
 
 pub mod authorization;
@@ -99,14 +45,15 @@ mod version;
 pub use self::error::{BindListenerType, Error, ErrorKind, InvalidUrlReason};
 pub use self::util::proxy::MaybeProxyClient;
 pub use self::util::UrlConnector;
-pub use self::version::{ApiVersionService, API_VERSION};
+pub use self::version::{Version, API_VERSION};
 
 use self::pid::PidService;
 use self::util::incoming::Incoming;
 
 const HTTP_SCHEME: &str = "http";
+#[cfg(windows)]
+const PIPE_SCHEME: &str = "npipe";
 const TCP_SCHEME: &str = "tcp";
-const UNIX_SCHEME: &str = "unix";
 #[cfg(unix)]
 const FD_SCHEME: &str = "fd";
 
@@ -120,7 +67,7 @@ impl IntoResponse for Response<Body> {
     }
 }
 
-pub struct Run(Box<Future<Item = (), Error = Error> + Send + 'static>);
+pub struct Run(Box<dyn Future<Item = (), Error = Error> + Send + 'static>);
 
 impl Future for Run {
     type Item = ();
@@ -176,7 +123,8 @@ where
                         log_failure(Level::Error, &err);
                         Err(())
                     }
-                }).and_then(move |(srv, addr)| {
+                })
+                .and_then(move |(srv, addr)| {
                     let service = PidService::new(pid, srv);
                     protocol
                         .serve_connection(socket, service)
@@ -239,20 +187,16 @@ impl HyperExt for Http {
                 Incoming::Tcp(listener)
             }
             UNIX_SCHEME => {
-                let path = url.to_uds_file_path()?;
+                let path = url
+                    .to_uds_file_path()
+                    .map_err(|_| ErrorKind::InvalidUrl(url.to_string()))?;
                 unix::listener(path)?
             }
             #[cfg(unix)]
             FD_SCHEME => {
-                let host = match url.host_str() {
-                    Some(host) => host,
-                    None => {
-                        return Err(ErrorKind::InvalidUrlWithReason(
-                            url.to_string(),
-                            InvalidUrlReason::NoHost,
-                        ).into())
-                    }
-                };
+                let host = url.host_str().ok_or_else(|| {
+                    ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::NoHost)
+                })?;
 
                 // Try to parse the host as an FD number, then as an FD name
                 let socket = host
@@ -301,44 +245,5 @@ impl HyperExt for Http {
             new_service,
             incoming,
         })
-    }
-}
-
-pub trait UrlExt {
-    fn to_uds_file_path(&self) -> Result<PathBuf, Error>;
-    fn to_base_path(&self) -> Result<PathBuf, Error>;
-}
-
-impl UrlExt for Url {
-    fn to_uds_file_path(&self) -> Result<PathBuf, Error> {
-        debug_assert_eq!(self.scheme(), UNIX_SCHEME);
-
-        if cfg!(windows) {
-            // We get better handling of Windows file syntax if we parse a
-            // unix:// URL as a file:// URL. Specifically:
-            // - On Unix, `Url::parse("unix:///path")?.to_file_path()` succeeds and
-            //   returns "/path".
-            // - On Windows, `Url::parse("unix:///C:/path")?.to_file_path()` fails
-            //   with Err(()).
-            // - On Windows, `Url::parse("file:///C:/path")?.to_file_path()` succeeds
-            //   and returns "C:\\path".
-            debug_assert_eq!(self.scheme(), UNIX_SCHEME);
-            let mut s = self.to_string();
-            s.replace_range(..4, "file");
-            let url = Url::parse(&s).with_context(|_| ErrorKind::InvalidUrl(s.clone()))?;
-            let path = url
-                .to_file_path()
-                .map_err(|()| ErrorKind::InvalidUrl(url.to_string()))?;
-            Ok(path)
-        } else {
-            Ok(Path::new(self.path()).to_path_buf())
-        }
-    }
-
-    fn to_base_path(&self) -> Result<PathBuf, Error> {
-        match self.scheme() {
-            "unix" => Ok(self.to_uds_file_path()?),
-            _ => Ok(self.as_str().into()),
-        }
     }
 }

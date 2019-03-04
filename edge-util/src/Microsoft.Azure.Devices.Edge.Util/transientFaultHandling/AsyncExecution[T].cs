@@ -1,26 +1,11 @@
-//Copyright(c) Microsoft.All rights reserved.
-//Microsoft would like to thank its contributors, a list
-//of whom are at http://aka.ms/entlib-contributors
-
-//Licensed under the Apache License, Version 2.0 (the "License"); you
-//may not use this file except in compliance with the License. You may
-//obtain a copy of the License at
-
-//http://www.apache.org/licenses/LICENSE-2.0
-
-//Unless required by applicable law or agreed to in writing, software
-//distributed under the License is distributed on an "AS IS" BASIS,
-//WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-//implied. See the License for the specific language governing permissions
-//and limitations under the License.
-
-using System;
-using System.Globalization;
-using System.Threading;
-using System.Threading.Tasks;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
 {
+    using System;
+    using System.Globalization;
+    using System.Threading;
+    using System.Threading.Tasks;
+
     /// <summary>
     /// Handles the execution and retries of the user-initiated task.
     /// </summary>
@@ -66,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
                 {
                     return this.previousTask;
                 }
+
                 var taskCompletionSource = new TaskCompletionSource<TResult>();
                 taskCompletionSource.TrySetCanceled();
                 return taskCompletionSource.Task;
@@ -83,28 +69,43 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
                     {
                         throw;
                     }
+
                     var taskCompletionSource2 = new TaskCompletionSource<TResult>();
                     taskCompletionSource2.TrySetException(ex);
                     task = taskCompletionSource2.Task;
                 }
+
                 if (task == null)
                 {
-                    throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "{0} cannot be null", new object[]
-                    {
-                        "taskFunc"
-                    }), nameof(this.taskFunc));
+                    throw new ArgumentException(
+                        string.Format(
+                            CultureInfo.InvariantCulture,
+                            "{0} cannot be null",
+                            new object[]
+                            {
+                                "taskFunc"
+                            }),
+                        nameof(this.taskFunc));
                 }
+
                 if (task.Status == TaskStatus.RanToCompletion)
                 {
                     return task;
                 }
+
                 if (task.Status == TaskStatus.Created)
                 {
-                    throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "{0} must be scheduled", new object[]
-                    {
-                        "taskFunc"
-                    }), nameof(this.taskFunc));
+                    throw new ArgumentException(
+                        string.Format(
+                            CultureInfo.InvariantCulture,
+                            "{0} must be scheduled",
+                            new object[]
+                            {
+                                "taskFunc"
+                            }),
+                        nameof(this.taskFunc));
                 }
+
                 return task.ContinueWith(new Func<Task<TResult>, Task<TResult>>(this.ExecuteAsyncContinueWith), CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default).Unwrap();
             }
         }
@@ -115,6 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
             {
                 return runningTask;
             }
+
             TimeSpan zero;
             Exception innerException = runningTask.Exception.InnerException;
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -130,22 +132,27 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
                 {
                     taskCompletionSource.TrySetCanceled();
                 }
+
                 return taskCompletionSource.Task;
             }
+
             if (!this.isTransient(innerException) || !this.shouldRetry(this.retryCount++, innerException, out zero))
             {
                 return runningTask;
             }
+
             if (zero < TimeSpan.Zero)
             {
                 zero = TimeSpan.Zero;
             }
+
             this.onRetrying(this.retryCount, innerException, zero);
             this.previousTask = runningTask;
             if (zero > TimeSpan.Zero && (this.retryCount > 1 || !this.fastFirstRetry))
             {
                 return Task.Delay(zero, this.cancellationToken).ContinueWith(new Func<Task, Task<TResult>>(this.ExecuteAsyncImpl), CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default).Unwrap();
             }
+
             return this.ExecuteAsyncImpl(null);
         }
     }

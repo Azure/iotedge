@@ -1,31 +1,28 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
+    using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Exceptions;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
 
     public class ModuleClient : IModuleClient
     {
-        static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
-        static readonly RetryStrategy TransientRetryStrategy =
-            new Util.TransientFaultHandling.ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
         const uint DeviceClientTimeout = 30000; // ms
-        static readonly IDictionary<UpstreamProtocol, TransportType> UpstreamProtocolTransportTypeMap = new Dictionary<UpstreamProtocol, TransportType>
-        {
-            [UpstreamProtocol.Amqp] = TransportType.Amqp_Tcp_Only,
-            [UpstreamProtocol.AmqpWs] = TransportType.Amqp_WebSocket_Only,
-            [UpstreamProtocol.Mqtt] = TransportType.Mqtt_Tcp_Only,
-            [UpstreamProtocol.MqttWs] = TransportType.Mqtt_WebSocket_Only
-        };
+        static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
+
+        static readonly RetryStrategy TransientRetryStrategy =
+            new ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
 
         readonly Client.ModuleClient deviceClient;
 
@@ -34,14 +31,50 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.deviceClient = deviceClient;
         }
 
-        public static Task<IModuleClient> Create(Option<string> connectionString,
+        public static Task<IModuleClient> Create(
+            Option<string> connectionString,
             Option<UpstreamProtocol> upstreamProtocol,
             ConnectionStatusChangesHandler statusChangedHandler,
             Func<ModuleClient, Task> initialize,
+            Option<IWebProxy> proxy,
             Option<string> productInfo) =>
-            Create(upstreamProtocol, initialize, t => CreateAndOpenDeviceClient(t, connectionString, statusChangedHandler, productInfo));
+            Create(upstreamProtocol, initialize, u => CreateAndOpenDeviceClient(u, connectionString, statusChangedHandler, proxy, productInfo));
 
-        static async Task<IModuleClient> Create(Option<UpstreamProtocol> upstreamProtocol, Func<ModuleClient, Task> initialize, Func<TransportType, Task<Client.ModuleClient>> deviceClientCreator)
+        public Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyChanged) =>
+            this.deviceClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged, null);
+
+        public Task SetMethodHandlerAsync(string methodName, MethodCallback callback) =>
+            this.deviceClient.SetMethodHandlerAsync(methodName, callback, null);
+
+        public void Dispose() => this.deviceClient.Dispose();
+
+        public Task<Twin> GetTwinAsync() => this.deviceClient.GetTwinAsync();
+
+        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) => this.deviceClient.UpdateReportedPropertiesAsync(reportedProperties);
+
+        internal static Task<Client.ModuleClient> CreateDeviceClientForUpstreamProtocol(
+            Option<UpstreamProtocol> upstreamProtocol,
+            Func<UpstreamProtocol, Task<Client.ModuleClient>> deviceClientCreator)
+            => upstreamProtocol
+                .Map(deviceClientCreator)
+                .GetOrElse(
+                    async () =>
+                    {
+                        // The device SDK doesn't appear to be falling back to WebSocket from TCP,
+                        // so we'll do it explicitly until we can get the SDK sorted out.
+                        Try<Client.ModuleClient> result = await Fallback.ExecuteAsync(
+                            () => deviceClientCreator(UpstreamProtocol.Amqp),
+                            () => deviceClientCreator(UpstreamProtocol.AmqpWs));
+                        if (!result.Success)
+                        {
+                            Events.DeviceConnectionError(result.Exception);
+                            throw result.Exception;
+                        }
+
+                        return result.Value;
+                    });
+
+        static async Task<IModuleClient> Create(Option<UpstreamProtocol> upstreamProtocol, Func<ModuleClient, Task> initialize, Func<UpstreamProtocol, Task<Client.ModuleClient>> deviceClientCreator)
         {
             try
             {
@@ -68,38 +101,60 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        internal static Task<Client.ModuleClient> CreateDeviceClientForUpstreamProtocol(
-            Option<UpstreamProtocol> upstreamProtocol,
-            Func<TransportType, Task<Client.ModuleClient>> deviceClientCreator)
-            => upstreamProtocol
-            .Map(u => deviceClientCreator(UpstreamProtocolTransportTypeMap[u]))
-            .GetOrElse(
-                async () =>
+        static ITransportSettings GetTransportSettings(UpstreamProtocol protocol, Option<IWebProxy> proxy)
+        {
+            switch (protocol)
+            {
+                case UpstreamProtocol.Amqp:
                 {
-                    // The device SDK doesn't appear to be falling back to WebSocket from TCP,
-                    // so we'll do it explicitly until we can get the SDK sorted out.
-                    Try<Client.ModuleClient> result = await Fallback.ExecuteAsync(
-                        () => deviceClientCreator(TransportType.Amqp_Tcp_Only),
-                        () => deviceClientCreator(TransportType.Amqp_WebSocket_Only));
-                    if (!result.Success)
-                    {
-                        Events.DeviceConnectionError(result.Exception);
-                        throw result.Exception;
-                    }
-                    return result.Value;
-                });
+                    var settings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
+                    proxy.ForEach(p => settings.Proxy = p);
+                    return settings;
+                }
 
-        static async Task<Client.ModuleClient> CreateAndOpenDeviceClient(TransportType transport,
+                case UpstreamProtocol.AmqpWs:
+                {
+                    var settings = new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only);
+                    proxy.ForEach(p => settings.Proxy = p);
+                    return settings;
+                }
+
+                case UpstreamProtocol.Mqtt:
+                {
+                    var settings = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+                    proxy.ForEach(p => settings.Proxy = p);
+                    return settings;
+                }
+
+                case UpstreamProtocol.MqttWs:
+                {
+                    var settings = new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only);
+                    proxy.ForEach(p => settings.Proxy = p);
+                    return settings;
+                }
+
+                default:
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+            }
+        }
+
+        static async Task<Client.ModuleClient> CreateAndOpenDeviceClient(
+            UpstreamProtocol upstreamProtocol,
             Option<string> connectionString,
             ConnectionStatusChangesHandler statusChangedHandler,
+            Option<IWebProxy> proxy,
             Option<string> productInfo)
         {
-            Events.AttemptingConnectionWithTransport(transport);
-            Client.ModuleClient deviceClient = await connectionString.Map(cs => Task.FromResult(Client.ModuleClient.CreateFromConnectionString(cs, transport)))
-                .GetOrElse(() => Client.ModuleClient.CreateFromEnvironmentAsync(transport));
+            ITransportSettings settings = GetTransportSettings(upstreamProtocol, proxy);
+            Events.AttemptingConnectionWithTransport(settings.GetTransportType());
+            Client.ModuleClient deviceClient = await connectionString
+                .Map(cs => Task.FromResult(Client.ModuleClient.CreateFromConnectionString(cs, new[] { settings })))
+                .GetOrElse(() => Client.ModuleClient.CreateFromEnvironmentAsync(new[] { settings }));
             productInfo.ForEach(p => deviceClient.ProductInfo = p);
             await OpenAsync(statusChangedHandler, deviceClient);
-            Events.ConnectedWithTransport(transport);
+            Events.ConnectedWithTransport(settings.GetTransportType());
             return deviceClient;
         }
 
@@ -127,25 +182,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 typeof(UnauthorizedException)
             };
 
-            public bool IsTransient(Exception ex) => !(NonTransientExceptions.Contains(ex.GetType()));
+            public bool IsTransient(Exception ex) => !NonTransientExceptions.Contains(ex.GetType());
         }
-
-        public Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyChanged) =>
-            this.deviceClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged, null);
-
-        public Task SetMethodHandlerAsync(string methodName, MethodCallback callback) =>
-            this.deviceClient.SetMethodHandlerAsync(methodName, callback, null);
-
-        public void Dispose() => this.deviceClient.Dispose();
-
-        public Task<Twin> GetTwinAsync() => this.deviceClient.GetTwinAsync();
-
-        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) => this.deviceClient.UpdateReportedPropertiesAsync(reportedProperties);
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleClient>();
             const int IdStart = AgentEventIds.ModuleClient;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleClient>();
 
             enum EventIds
             {
@@ -179,7 +222,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             public static void RetryingDeviceClientConnection(RetryingEventArgs args)
             {
-                Log.LogDebug((int)EventIds.RetryingDeviceClientConnection,
+                Log.LogDebug(
+                    (int)EventIds.RetryingDeviceClientConnection,
                     $"Retrying connection to IoT Hub. Current retry count {args.CurrentRetryCount}.");
             }
 

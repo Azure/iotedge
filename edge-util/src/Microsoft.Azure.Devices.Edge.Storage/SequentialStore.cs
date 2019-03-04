@@ -1,23 +1,22 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
 
     /// <summary>
     /// Store for storing entities in an ordered list - Entities can be retrieved in the same order in which they were saved.
-    /// This can be used for implementing queues. 
-    /// Each saved entity is associated with an offset, which can be used to retrieve the entity. 
+    /// This can be used for implementing queues.
+    /// Each saved entity is associated with an offset, which can be used to retrieve the entity.
     /// </summary>
     class SequentialStore<T> : ISequentialStore<T>
     {
-        const int DefaultTailOffset = -1;
-        const int DefaultHeadOffset = 0;
+        const long DefaultHeadOffset = 0;
         readonly IEntityStore<byte[], T> entityStore;
         readonly AsyncLock headLockObject = new AsyncLock();
         readonly AsyncLock tailLockObject = new AsyncLock();
@@ -33,52 +32,62 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public string EntityName => this.entityStore.EntityName;
 
-        public static async Task<ISequentialStore<T>> Create(IEntityStore<byte[], T> entityStore)
+        public static Task<ISequentialStore<T>> Create(IEntityStore<byte[], T> entityStore)
+            => Create(entityStore, DefaultHeadOffset);
+
+        public static async Task<ISequentialStore<T>> Create(IEntityStore<byte[], T> entityStore, long defaultHeadOffset)
         {
             Preconditions.CheckNotNull(entityStore, nameof(entityStore));
-            Option<(byte[] key, T value)> firstEntry = await entityStore.GetFirstEntry();
-            Option<(byte[] key, T value)> lastEntry = await entityStore.GetLastEntry();
+            Option<(byte[] key, T value)> firstEntry = await entityStore.GetFirstEntry(CancellationToken.None);
+            Option<(byte[] key, T value)> lastEntry = await entityStore.GetLastEntry(CancellationToken.None);
             long MapLocalFunction((byte[] key, T) e) => StoreUtils.GetOffsetFromKey(e.key);
-            long headOffset = firstEntry.Map(MapLocalFunction).GetOrElse(DefaultHeadOffset);
-            long tailOffset = lastEntry.Map(MapLocalFunction).GetOrElse(DefaultTailOffset);
+            long headOffset = firstEntry.Map(MapLocalFunction).GetOrElse(defaultHeadOffset);
+            long tailOffset = lastEntry.Map(MapLocalFunction).GetOrElse(defaultHeadOffset - 1);
             var sequentialStore = new SequentialStore<T>(entityStore, headOffset, tailOffset);
             return sequentialStore;
         }
 
-        public async Task<long> Append(T item)
+        public Task<long> Append(T item) => this.Append(item, CancellationToken.None);
+
+        public Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate) => this.RemoveFirst(predicate, CancellationToken.None);
+
+        public Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize) => this.GetBatch(startingOffset, batchSize, CancellationToken.None);
+
+        public async Task<long> Append(T item, CancellationToken cancellationToken)
         {
-            using (await this.tailLockObject.LockAsync())
+            using (await this.tailLockObject.LockAsync(cancellationToken))
             {
                 long currentOffset = this.tailOffset + 1;
                 byte[] key = StoreUtils.GetKeyFromOffset(currentOffset);
-                await this.entityStore.Put(key, item);
+                await this.entityStore.Put(key, item, cancellationToken);
                 this.tailOffset = currentOffset;
                 return currentOffset;
             }
         }
 
-        public async Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate)
+        public async Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate, CancellationToken cancellationToken)
         {
-            using (await this.headLockObject.LockAsync())
+            using (await this.headLockObject.LockAsync(cancellationToken))
             {
-                // Tail offset could change here, but not holding a lock for efficiency. 
+                // Tail offset could change here, but not holding a lock for efficiency.
                 if (this.IsEmpty())
                 {
                     return false;
                 }
 
                 byte[] key = StoreUtils.GetKeyFromOffset(this.headOffset);
-                Option<T> value = await this.entityStore.Get(key);
+                Option<T> value = await this.entityStore.Get(key, cancellationToken);
                 bool result = await value
                     .Match(
                         async v =>
                         {
                             if (await predicate(this.headOffset, v))
                             {
-                                await this.entityStore.Remove(key);
+                                await this.entityStore.Remove(key, cancellationToken);
                                 this.headOffset++;
                                 return true;
                             }
+
                             return false;
                         },
                         () => Task.FromResult(false));
@@ -86,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
-        public async Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize)
+        public async Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize, CancellationToken cancellationToken)
         {
             Preconditions.CheckRange(batchSize, 1, nameof(batchSize));
 
@@ -102,13 +111,23 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
             var batch = new List<(long, T)>();
             byte[] startingKey = StoreUtils.GetKeyFromOffset(startingOffset);
-            await this.entityStore.IterateBatch(startingKey, batchSize, (k, v) =>
-            {
-                long offsetFromKey = StoreUtils.GetOffsetFromKey(k);
-                batch.Add((offsetFromKey, v));
-                return Task.CompletedTask;
-            });
+            await this.entityStore.IterateBatch(
+                startingKey,
+                batchSize,
+                (k, v) =>
+                {
+                    long offsetFromKey = StoreUtils.GetOffsetFromKey(k);
+                    batch.Add((offsetFromKey, v));
+                    return Task.CompletedTask;
+                },
+                cancellationToken);
             return batch;
+        }
+
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         protected virtual void Dispose(bool disposing)
@@ -117,12 +136,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             {
                 this.entityStore?.Dispose();
             }
-        }
-
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
         }
 
         bool IsEmpty() => this.headOffset > this.tailOffset;
