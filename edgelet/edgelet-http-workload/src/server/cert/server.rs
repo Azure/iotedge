@@ -16,8 +16,8 @@ use edgelet_utils::{
 };
 use workload::models::ServerCertificateRequest;
 
-use error::{CertOperation, Error, ErrorKind};
-use IntoResponse;
+use crate::error::{CertOperation, Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct ServerCertHandler<T: CreateCertificate, W: WorkloadConfig> {
     hsm: T,
@@ -39,7 +39,7 @@ where
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let hsm = self.hsm.clone();
         let cfg = self.config.clone();
         let max_duration = cfg.get_cert_max_duration(CertificateType::Server);
@@ -138,7 +138,9 @@ mod tests {
     #[derive(Clone, Default)]
     struct TestHsm {
         on_create: Option<
-            Arc<Box<Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + Send + Sync>>,
+            Arc<
+                Box<dyn Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + Send + Sync>,
+            >,
         >,
     }
 

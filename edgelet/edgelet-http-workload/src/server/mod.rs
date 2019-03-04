@@ -12,6 +12,7 @@ use edgelet_core::{
 };
 use edgelet_http::authorization::Authorization;
 use edgelet_http::route::*;
+use edgelet_http::{router, Version};
 use edgelet_http_mgmt::ListModules;
 use failure::{Compat, ResultExt};
 use futures::{future, Future};
@@ -24,8 +25,7 @@ use self::decrypt::DecryptHandler;
 use self::encrypt::EncryptHandler;
 use self::sign::SignHandler;
 use self::trust_bundle::TrustBundleHandler;
-use edgelet_http::Version;
-use error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind};
 
 #[derive(Clone)]
 pub struct WorkloadService {

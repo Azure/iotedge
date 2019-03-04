@@ -12,8 +12,8 @@ use edgelet_core::crypto::{KeyIdentity, KeyStore, Sign, Signature, SignatureAlgo
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 
-use error::{EncryptionOperation, Error, ErrorKind};
-use IntoResponse;
+use crate::error::{EncryptionOperation, Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct SignHandler<K>
 where
@@ -55,7 +55,7 @@ where
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
