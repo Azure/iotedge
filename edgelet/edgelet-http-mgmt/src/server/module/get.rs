@@ -13,7 +13,7 @@ impl Handler<Parameters> for GetModule {
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let response = Response::new(Body::default());
         Box::new(future::ok(response))
     }

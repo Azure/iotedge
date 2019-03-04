@@ -17,7 +17,8 @@ mod tests {
 
     use edgelet_test_utils::identity::Error;
     use management::models::ErrorResponse;
-    use IntoResponse;
+
+    use crate::IntoResponse;
 
     impl IntoResponse for Error {
         fn into_response(self) -> Response<Body> {

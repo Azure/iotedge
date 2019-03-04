@@ -9,9 +9,9 @@ use hyper::{Body, Request, Response};
 use edgelet_core::pid::Pid;
 use edgelet_core::{Authorization as CoreAuth, ModuleRuntime, ModuleRuntimeErrorReason, Policy};
 
-use error::{Error, ErrorKind};
-use route::{Handler, Parameters};
-use IntoResponse;
+use crate::error::{Error, ErrorKind};
+use crate::route::{Handler, Parameters};
+use crate::IntoResponse;
 
 pub struct Authorization<H, M> {
     auth: CoreAuth<M>,
@@ -42,7 +42,7 @@ where
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = Error> + Send> {
         let (name, pid) = (
             params.name("name").map(|n| n.to_string()),
             req.extensions()
@@ -93,7 +93,7 @@ mod tests {
     };
 
     use super::*;
-    use error::Error as HttpError;
+    use crate::error::Error as HttpError;
 
     #[test]
     fn handler_calls_inner_handler() {
@@ -171,7 +171,7 @@ mod tests {
     }
 
     impl std::fmt::Display for TestError {
-        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "TestError")
         }
     }
@@ -227,7 +227,7 @@ mod tests {
             &self,
             _req: Request<Body>,
             _params: Parameters,
-        ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+        ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
             let response = Response::builder()
                 .status(StatusCode::OK)
                 .body("from TestHandler".into())
@@ -324,7 +324,7 @@ mod tests {
         type InitFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
         type ListWithDetailsStream =
-            Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
+            Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
         type LogsFuture = FutureResult<Self::Logs, Self::Error>;
         type RemoveFuture = FutureResult<(), Self::Error>;
         type RestartFuture = FutureResult<(), Self::Error>;

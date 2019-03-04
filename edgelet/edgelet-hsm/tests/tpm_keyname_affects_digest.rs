@@ -3,11 +3,6 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
-extern crate base64;
-extern crate bytes;
-extern crate edgelet_core;
-extern crate edgelet_hsm;
-
 use std::str;
 
 use bytes::Bytes;

@@ -433,14 +433,30 @@ where
                         .and_then(move |body| Ok((status, body)))
                         .map_err(|e| Error::from(e))
                 })
-                .and_then(|(status, body)| {
-                    if status.is_success() {
-                        Ok(body)
-                    } else {
-                        Err(Error::from((status, &*body)))
+                .and_then(|(status, body)| -> Result<(), Error<serde_json::Value>> {
+                    if !status.is_success() {
+                        return Err(Error::from((status, &*body)));
                     }
-                })
-                .and_then(|_| futures::future::ok(())),
+
+                    // Response body is a sequence of JSON objects.
+                    // Each object is either a `{ "status": ... }` or an `{ "errorDetail": ... }`
+                    //
+                    // The overall success or failure of the operation is determined by which one
+                    // the last object is.
+
+                    let mut deserializer = serde_json::Deserializer::from_slice(&body).into_iter();
+                    let mut last_response: serde_json::Map<String, serde_json::Value> =
+                        deserializer.last().ok_or_else(|| {
+                            Error::Serde(serde::de::Error::custom(
+                                "empty response from container runtime",
+                            ))
+                        })??;
+                    if let Some(error_detail) = last_response.remove("errorDetail") {
+                        Err(Error::from((status, error_detail)))
+                    } else {
+                        Ok(())
+                    }
+                }),
         )
     }
 
