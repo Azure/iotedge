@@ -87,9 +87,9 @@ provisioning:
 # Adding container registry authorization:
 # replace "auth: {}" with
 #    auth:
-#      username: “username”
-#      password: “password”
-#      serveraddress: “serveraddress”
+#      username: "username"
+#      password: "password"
+#      serveraddress: "serveraddress"
 #
 ###############################################################################
 
