@@ -202,6 +202,8 @@ publish_leafdevice()
 build_solution()
 {
     echo "Building IoT Edge solution"
+    dotnet --version
+    
     build_command="$DOTNET_ROOT_PATH/dotnet build -c $CONFIGURATION"
     
     if [ -n "$DOTNETBUILD_OS" ]; then
