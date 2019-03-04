@@ -1,17 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![cfg(windows)]
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::module_name_repetitions, clippy::use_self)]
-
-extern crate edgelet_utils;
-extern crate failure;
-extern crate futures;
-extern crate hex;
-extern crate hyper;
-extern crate tokio_named_pipe;
-extern crate url;
 
 pub mod error;
 pub mod uri;
@@ -24,8 +16,8 @@ use hyper::client::connect::{Connect, Connected, Destination};
 
 use tokio_named_pipe::PipeStream;
 
-pub use error::{Error, ErrorKind};
-pub use uri::Uri;
+pub use crate::error::{Error, ErrorKind};
+pub use crate::uri::Uri;
 
 pub const NAMED_PIPE_SCHEME: &str = "npipe";
 

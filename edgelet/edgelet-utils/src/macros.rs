@@ -95,7 +95,7 @@ use std::fmt;
 
 use failure::{Context, Fail};
 
-use error::ErrorKind;
+use crate::error::ErrorKind;
 
 /// Exits a function early with an `Error`.
 ///
@@ -443,7 +443,7 @@ mod tests {
     use futures::future;
     use futures::prelude::*;
 
-    use error::{Error, ErrorKind};
+    use crate::error::{Error, ErrorKind};
 
     fn check_value<T, F>(expected: &T, f: F)
     where

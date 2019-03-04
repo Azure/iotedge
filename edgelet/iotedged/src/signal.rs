@@ -5,7 +5,7 @@
 
 use futures::Future;
 
-type ShutdownSignal = Box<Future<Item = (), Error = ()> + Send>;
+type ShutdownSignal = Box<dyn Future<Item = (), Error = ()> + Send>;
 
 pub fn shutdown() -> ShutdownSignal {
     imp::shutdown()
@@ -16,6 +16,7 @@ mod imp {
     use std::fmt;
 
     use futures::{future, Future, Stream};
+    use log::info;
     use tokio_signal::unix::{Signal, SIGINT, SIGTERM};
 
     use super::ShutdownSignal;
@@ -57,6 +58,7 @@ mod imp {
 #[cfg(not(unix))]
 mod imp {
     use futures::{Future, Stream};
+    use log::info;
     use tokio_signal;
 
     use super::ShutdownSignal;
