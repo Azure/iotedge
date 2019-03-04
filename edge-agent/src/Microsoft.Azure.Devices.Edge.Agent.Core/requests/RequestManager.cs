@@ -13,10 +13,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     public class RequestManager : IRequestManager
     {
         static readonly IDictionary<string, IRequestHandler> DefaultRequestHandlers = new ReadOnlyDictionary<string, IRequestHandler>(
-            new Dictionary<string, IRequestHandler>
-            {
-                ["ping"] = new PingRequestHandler()
-            });
+            new Dictionary<string, IRequestHandler>(
+                new Dictionary<string, IRequestHandler>
+                {
+                    ["ping"] = new PingRequestHandler()
+                },
+                StringComparer.OrdinalIgnoreCase));
 
         readonly IDictionary<string, IRequestHandler> requestHandlers;
 
