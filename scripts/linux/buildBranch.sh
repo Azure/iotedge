@@ -26,8 +26,6 @@ SRC_CERT_TOOLS_DIR=$ROOT_FOLDER/tools/CACertificates
 FUNCTIONS_SAMPLE_DIR=$ROOT_FOLDER/edge-modules/functions/samples
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
 OS=
-PLATFORM=
-
 DOTNET_RUNTIME=netcoreapp2.1
 
 usage()
@@ -38,7 +36,7 @@ usage()
     echo " -c, --config         Product binary configuration: Debug [default] or Release"
     echo " --no-rocksdb-bin     Do not copy the RocksDB binaries into the project's output folders"
     echo " --os                 Sets OS Variable for dotnet build command (Used to build for .NET Core 3.0 - Linux ARM64)"
-    echo " --platform           Sets Platform Variable for dotnet build command (Used to build for .NET Core 3.0 - Linux ARM64)"
+    echo " --dotnet_runtime     Set the dotnet_runtime version to build. (Default netcoreapp2.1)"
     exit 1;
 }
 
@@ -60,7 +58,7 @@ process_args()
             DOTNETBUILD_OS="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 3 ]; then
-            DOTNETBUILD_PLATFORM="$arg"
+            DOTNET_RUNTIME="$arg"
             save_next_arg=0
         else
             case "$arg" in
@@ -68,7 +66,7 @@ process_args()
                 "-c" | "--config" ) save_next_arg=1;;
                 "--no-rocksdb-bin" ) MSBUILD_OPTIONS="-p:RocksDbAsPackage=false";;
                 "--os" ) save_next_arg=2;;
-                "--platform" ) save_next_arg=3;;
+                "--dotnet_runtime" ) save_next_arg=3;;
                 * ) usage;;
             esac
         fi
@@ -211,7 +209,7 @@ build_solution()
     fi
     
     if [ -n "$DOTNETBUILD_PLATFORM" ]; then
-        build_command="$build_command -p:Platform=$DOTNETBUILD_PLATFORM"
+        build_command="$build_command -p:DotNet_Runtime=$DOTNET_RUNTIME"
     fi
     build_command="$build_command $ROOT_FOLDER/Microsoft.Azure.Devices.Edge.sln"
         
