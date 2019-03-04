@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes'?>
+<identity
+  xmlns="urn:Microsoft.CompPlat/ManifestSchema.v1.00"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  name="IoTEdge"
+  namespace="Azure"
+  owner="Microsoft"
+  >
+  <files>
+    <file source="$(_REPO_ROOT)\edgelet\contrib\config\windows\config.yaml" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedge.exe" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged.exe" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged.pdb" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged_eventlog_messages.dll" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\hsm-sys\azure-iot-hsm-c\build\Release\iothsm.dll" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_OPENSSL_ROOT_DIR)\bin\libeay32.dll" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\contrib\docs\LICENSE" destinationDir="$(runtime.programFiles)\iotedge\LICENSE" />
+    <file source="$(_REPO_ROOT)\edgelet\contrib\docs\ThirdPartyNotices" destinationDir="$(runtime.programFiles)\iotedge\LICENSE" />
+    <file source="$(_REPO_ROOT)\edgelet\contrib\docs\trademark" destinationDir="$(runtime.programFiles)\iotedge\LICENSE" />
+
+    <file source="$(_REPO_ROOT)\moby-engine\dockerd.exe" destinationDir="$(runtime.programFiles)\iotedge-moby" />
+    <file source="$(_REPO_ROOT)\moby-engine\LICENSE" destinationDir="$(runtime.programFiles)\iotedge-moby\legal-engine" />
+    <file source="$(_REPO_ROOT)\moby-engine\ThirdPartyNotices" destinationDir="$(runtime.programFiles)\iotedge-moby\legal-engine" />
+
+    <file source="$(_REPO_ROOT)\moby-cli\docker.exe" destinationDir="$(runtime.programFiles)\iotedge-moby" />
+    <file source="$(_REPO_ROOT)\moby-cli\LICENSE" destinationDir="$(runtime.programFiles)\iotedge-moby\legal-cli" />
+    <file source="$(_REPO_ROOT)\moby-cli\ThirdPartyNotices" destinationDir="$(runtime.programFiles)\iotedge-moby\legal-cli" />
+  </files>
+  <regKeys>
+    <regKey keyName="$(hklm.system)\CurrentControlSet\Services\EventLog\Application\iotedged">
+      <regValue name="CustomSource" value="1" type="REG_DWORD" />
+      <regValue name="EventMessageFile" value="$(runtime.programFiles)\iotedge\iotedged_eventlog_messages.dll" type="REG_SZ" />
+      <regValue name="TypesSupported" value="7" type="REG_DWORD" />
+    </regKey>
+    <regKey keyName="$(hklm.system)\CurrentControlSet\Services\EventLog\Application\iotedge-moby">
+      <regValue name="CustomSource" value="1" type="REG_DWORD" />
+      <regValue name="EventMessageFile" value="$(runtime.programFiles)\iotedge-moby\dockerd.exe" type="REG_SZ" />
+      <regValue name="TypesSupported" value="7" type="REG_DWORD" />
+    </regKey>
+  </regKeys>
+  <service
+    description="Moby Engine"
+    displayName="Moby Engine"
+    errorControl="normal"
+    imagePath="$(runtime.programFiles)\iotedge-moby\dockerd.exe -H npipe:////./pipe/iotedge_moby_engine --exec-opt isolation=process --run-service --data-root $(runtime.programData)\iotedge-moby --exec-root $(runtime.programData)\iotedge-moby\\exec-root"
+    name="iotedge-moby"
+    objectName="LocalSystem"
+    sidType="unrestricted"
+    start="auto"
+    startAfterInstall="none"
+    type="win32OwnProcess"
+    />
+  <service
+    dependOnService="iotedge-moby"
+    description="Azure IoT Edge Daemon"
+    displayName="Azure IoT Edge Daemon"
+    errorControl="normal"
+    imagePath="$(runtime.programFiles)\iotedge\iotedged.exe -c $(runtime.programData)\iotedge\config.yaml"
+    name="iotedge"
+    objectName="LocalSystem"
+    sidType="unrestricted"
+    start="auto"
+    startAfterInstall="none"
+    type="win32OwnProcess">
+    <failureActions resetPeriod="0">
+      <actions>
+        <action
+          delay="1000"
+          type="restartService"
+          />
+      </actions>
+    </failureActions>
+  </service>
+</identity>

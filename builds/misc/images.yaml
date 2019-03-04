@@ -73,7 +73,7 @@ jobs:
       # Functions Sample
       - template: templates/image-linux.yaml
         parameters:
-          name: FunctionsSample
+          name: Functions Sample
           imageName: azureiotedge-functions-filter
           project: EdgeHubTriggerCSharp
 
@@ -90,6 +90,13 @@ jobs:
           name: Direct Method Receiver
           imageName: azureiotedge-direct-method-receiver
           project: DirectMethodReceiver
+
+      # Direct Method Cloud Sender
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Direct Method Cloud Sender
+          imageName: azureiotedge-direct-method-cloud-sender
+          project: DirectMethodCloudSender
 
 ################################################################################
   - job: windows
@@ -145,10 +152,24 @@ jobs:
           imageName: azureiotedge-temperature-filter
           project: TemperatureFilter
 
+      # Load Gen
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Load Gen
+          imageName: azureiotedge-load-gen
+          project: load-gen
+
+      # Messages Analyzer
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Messages Analyzer
+          imageName: azureiotedge-analyzer
+          project: MessagesAnalyzer
+          
       # Functions Sample
       - template: templates/image-windows.yaml
         parameters:
-          name: FunctionsSample
+          name: Functions Sample
           imageName: azureiotedge-functions-filter
           project: EdgeHubTriggerCSharp
           arm32v7: 'false'
@@ -166,6 +187,13 @@ jobs:
           name: Direct Method Receiver
           imageName: azureiotedge-direct-method-receiver
           project: DirectMethodReceiver
+
+      # Direct Method Cloud Sender
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Direct Method Cloud Sender
+          imageName: azureiotedge-direct-method-cloud-sender
+          project: DirectMethodCloudSender
 
       - powershell: docker system prune -a -f
         displayName: Clean Machine

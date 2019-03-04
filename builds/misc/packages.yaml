@@ -6,6 +6,7 @@ trigger:
 pr: none
 variables:
   REVISION: '1'
+  WINDOWS_CODESIGN_SERVICE_CONNECTION: 'Azure IoT Edge Code Sign 2'
 jobs:
 
 ################################################################################
@@ -204,8 +205,18 @@ jobs:
     steps:
       - powershell: |
           $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
-          $version = "$base_version$(Build.BuildNumber)"
+          $version = ("{0}{1}" -f $base_version, $(Build.BuildNumber))
           Write-Host ("##vso[task.setvariable variable=VERSION;]$version")
+          Write-Host "Setting VERSION: '$version'"
+          $path = "$env:PATH;C:\Program Files (x86)\Windows Kits\10\bin\x64;C:\Program Files (x86)\Windows Kits\10\tools\bin\i386"
+          Write-Host ("##vso[task.setvariable variable=PATH;]$path")
+          Write-Host "Setting PATH: '$path'"
+          $signtool_oem_sign='/a /s my /i "Windows OEM Intermediate 2017 (TEST ONLY)" /n "Windows OEM Test Cert 2017 (TEST ONLY)" /fd SHA256'
+          Write-Host ("##vso[task.setvariable variable=SIGNTOOL_OEM_SIGN;]$signtool_oem_sign")
+          Write-Host ("##vso[task.setvariable variable=SIGN_MODE;]Test")
+          Write-Host ("##vso[task.setvariable variable=SIGN_OEM;]1")
+          Write-Host ("##vso[task.setvariable variable=SIGN_WITH_TIMESTAMP;]0")
+          Write-Host ("##vso[task.setvariable variable=WSKCONTENTROOT;]C:\Program Files (x86)\Windows Kits\10")
           Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
         displayName: Set Version
       - powershell: edgelet/build/windows/install.ps1
@@ -222,33 +233,25 @@ jobs:
         inputs:
           workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
           cmakeArgs: '--build . --config Release'
+      - powershell: edgelet/build/windows/package.ps1
+        displayName: Package iotedged, iotedge, libiothsm and docker/dockerd
       - task: CopyFiles@2
-        displayName: 'Copy iotedged to Artifact Staging'
+        displayName: 'Copy package to Artifact Staging'
         inputs:
-          SourceFolder: edgelet/target/release
+          SourceFolder: .
           Contents: |
-            *.exe
-            *.pdb
-            *.dll
+            *.cab
           TargetFolder: '$(build.artifactstagingdirectory)'
-      - task: CopyFiles@2
-        displayName: 'Copy libiothsm to Artifact Staging'
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: 'ESRP CodeSigning'
         inputs:
-          SourceFolder: 'edgelet/hsm-sys/azure-iot-hsm-c/build/Release'
-          Contents: |
-            *.dll
-            *.pdb
-          TargetFolder: '$(build.artifactstagingdirectory)'
-      - task: CopyFiles@2
-        displayName: 'Copy legal docs to Artifact Staging'
-        inputs:
-          SourceFolder: edgelet/contrib/docs
-          TargetFolder: '$(build.artifactstagingdirectory)/LICENSE'
-      - task: CopyFiles@2
-        displayName: 'Copy config to Artifact Staging'
-        inputs:
-          SourceFolder: edgelet/contrib/config/windows
-          TargetFolder: '$(build.artifactstagingdirectory)'
+          ConnectedServiceName: '$(WINDOWS_CODESIGN_SERVICE_CONNECTION)'
+          FolderPath: '$(build.artifactstagingdirectory)'
+          Pattern: '*.cab'
+          CertificateId: 302
+          OpusName: 'Azure IoT Edge'
+          OpusInfo: 'https://azure.microsoft.com/en-us/services/iot-edge/'
+          SessionTimeout: 20
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifact: iotedged-windows'
         inputs:
