@@ -10,13 +10,14 @@ use std::env;
 use std::net::SocketAddr;
 
 use failure::ResultExt;
+use log::debug;
 use nix::fcntl;
 use nix::sys::socket::{self, AddressFamily, SockType};
 use nix::sys::stat;
 use nix::unistd::Pid;
 
-use error::{Error, ErrorKind, SocketLookupType};
-use {Fd, Socket};
+use crate::error::{Error, ErrorKind, SocketLookupType};
+use crate::{Fd, Socket};
 
 pub const LISTEN_FDS_START: Fd = 3;
 
@@ -246,6 +247,7 @@ mod tests {
     use std::panic;
     use std::sync::{Mutex, MutexGuard};
 
+    use lazy_static::lazy_static;
     use nix::unistd;
 
     lazy_static! {

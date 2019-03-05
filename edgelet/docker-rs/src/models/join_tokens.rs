@@ -9,7 +9,7 @@
  */
 
 /// JoinTokens : JoinTokens contains the tokens workers and managers need to join the swarm.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

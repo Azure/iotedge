@@ -9,7 +9,7 @@
  */
 
 /// LocalNodeState : Current local status of this node.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

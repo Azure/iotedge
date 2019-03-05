@@ -1,14 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![cfg(windows)]
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::use_self)]
-
-extern crate futures;
-extern crate mio_named_pipes;
-extern crate tokio;
-extern crate winapi;
 
 use std::convert::AsRef;
 use std::fs::OpenOptions;
