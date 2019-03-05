@@ -9,14 +9,14 @@
  */
 
 /// ContainerSummaryInnerNetworkSettings : A summary of the container's network settings
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ContainerSummaryInnerNetworkSettings {
     #[serde(rename = "Networks", skip_serializing_if = "Option::is_none")]
-    networks: Option<::std::collections::HashMap<String, ::models::EndpointSettings>>,
+    networks: Option<::std::collections::HashMap<String, crate::models::EndpointSettings>>,
 }
 
 impl ContainerSummaryInnerNetworkSettings {
@@ -27,14 +27,14 @@ impl ContainerSummaryInnerNetworkSettings {
 
     pub fn set_networks(
         &mut self,
-        networks: ::std::collections::HashMap<String, ::models::EndpointSettings>,
+        networks: ::std::collections::HashMap<String, crate::models::EndpointSettings>,
     ) {
         self.networks = Some(networks);
     }
 
     pub fn with_networks(
         mut self,
-        networks: ::std::collections::HashMap<String, ::models::EndpointSettings>,
+        networks: ::std::collections::HashMap<String, crate::models::EndpointSettings>,
     ) -> Self {
         self.networks = Some(networks);
         self
@@ -42,7 +42,7 @@ impl ContainerSummaryInnerNetworkSettings {
 
     pub fn networks(
         &self,
-    ) -> Option<&::std::collections::HashMap<String, ::models::EndpointSettings>> {
+    ) -> Option<&::std::collections::HashMap<String, crate::models::EndpointSettings>> {
         self.networks.as_ref()
     }
 

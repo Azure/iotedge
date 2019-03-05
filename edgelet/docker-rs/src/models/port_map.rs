@@ -9,7 +9,7 @@
  */
 
 /// PortMap : PortMap describes the mapping of container ports to host ports, using the container's port-number and protocol as key in the format `<port>/<protocol>`, for example, `80/udp`.  If a container's port is mapped for both `tcp` and `udp`, two separate entries are added to the mapping table.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

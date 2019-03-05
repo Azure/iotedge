@@ -9,7 +9,7 @@
  */
 
 /// EngineDescription : EngineDescription provides information about an engine.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -20,7 +20,7 @@ pub struct EngineDescription {
     #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
     #[serde(rename = "Plugins", skip_serializing_if = "Option::is_none")]
-    plugins: Option<Vec<::models::EngineDescriptionPlugins>>,
+    plugins: Option<Vec<crate::models::EngineDescriptionPlugins>>,
 }
 
 impl EngineDescription {
@@ -67,16 +67,16 @@ impl EngineDescription {
         self.labels = None;
     }
 
-    pub fn set_plugins(&mut self, plugins: Vec<::models::EngineDescriptionPlugins>) {
+    pub fn set_plugins(&mut self, plugins: Vec<crate::models::EngineDescriptionPlugins>) {
         self.plugins = Some(plugins);
     }
 
-    pub fn with_plugins(mut self, plugins: Vec<::models::EngineDescriptionPlugins>) -> Self {
+    pub fn with_plugins(mut self, plugins: Vec<crate::models::EngineDescriptionPlugins>) -> Self {
         self.plugins = Some(plugins);
         self
     }
 
-    pub fn plugins(&self) -> Option<&[::models::EngineDescriptionPlugins]> {
+    pub fn plugins(&self) -> Option<&[crate::models::EngineDescriptionPlugins]> {
         self.plugins.as_ref().map(AsRef::as_ref)
     }
 

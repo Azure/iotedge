@@ -4,13 +4,14 @@ use failure::{Fail, ResultExt};
 use futures::future::{self, Either};
 use futures::Future;
 use hyper::{Method, StatusCode};
-use percent_encoding::{percent_encode, PercentEncode, PATH_SEGMENT_ENCODE_SET};
+use percent_encoding::{define_encode_set, percent_encode, PercentEncode, PATH_SEGMENT_ENCODE_SET};
 
 use edgelet_http::client::{Client, ClientImpl, TokenSource};
 use edgelet_http::error::ErrorKind as HttpErrorKind;
 use edgelet_utils::ensure_not_empty_with_context;
-use error::{Error, ErrorKind, ModuleOperationReason};
-use model::{AuthMechanism, Module};
+
+use crate::error::{Error, ErrorKind, ModuleOperationReason};
+use crate::model::{AuthMechanism, Module};
 
 define_encode_set! {
     pub IOTHUB_ENCODE_SET = [PATH_SEGMENT_ENCODE_SET] | { '=' }
@@ -233,8 +234,8 @@ mod tests {
     use typed_headers::{mime, ContentType, HeaderMapExt};
     use url::Url;
 
-    use error::{ErrorKind, ModuleOperationReason};
-    use model::{AuthType, SymmetricKey};
+    use crate::error::{ErrorKind, ModuleOperationReason};
+    use crate::model::{AuthType, SymmetricKey};
 
     struct NullTokenSource;
 

@@ -9,7 +9,7 @@
  */
 
 /// GraphDriverData : Information about a container's graph driver.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

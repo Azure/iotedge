@@ -9,7 +9,7 @@
  */
 
 /// ContainerCreateBodyNetworkingConfig : This container's networking configuration.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -17,7 +17,7 @@ use serde_json::Value;
 pub struct ContainerCreateBodyNetworkingConfig {
     /// A mapping of network name to endpoint configuration for that network.
     #[serde(rename = "EndpointsConfig", skip_serializing_if = "Option::is_none")]
-    endpoints_config: Option<::std::collections::HashMap<String, ::models::EndpointSettings>>,
+    endpoints_config: Option<::std::collections::HashMap<String, crate::models::EndpointSettings>>,
 }
 
 impl ContainerCreateBodyNetworkingConfig {
@@ -30,14 +30,14 @@ impl ContainerCreateBodyNetworkingConfig {
 
     pub fn set_endpoints_config(
         &mut self,
-        endpoints_config: ::std::collections::HashMap<String, ::models::EndpointSettings>,
+        endpoints_config: ::std::collections::HashMap<String, crate::models::EndpointSettings>,
     ) {
         self.endpoints_config = Some(endpoints_config);
     }
 
     pub fn with_endpoints_config(
         mut self,
-        endpoints_config: ::std::collections::HashMap<String, ::models::EndpointSettings>,
+        endpoints_config: ::std::collections::HashMap<String, crate::models::EndpointSettings>,
     ) -> Self {
         self.endpoints_config = Some(endpoints_config);
         self
@@ -45,7 +45,7 @@ impl ContainerCreateBodyNetworkingConfig {
 
     pub fn endpoints_config(
         &self,
-    ) -> Option<&::std::collections::HashMap<String, ::models::EndpointSettings>> {
+    ) -> Option<&::std::collections::HashMap<String, crate::models::EndpointSettings>> {
         self.endpoints_config.as_ref()
     }
 
