@@ -246,8 +246,8 @@ publish_app "DirectMethodSender"
 publish_app "DirectMethodReceiver"
 publish_app "DirectMethodCloudSender"
 
-publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
-publish_lib "EdgeHubTriggerCSharp"
+#publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
+#publish_lib "EdgeHubTriggerCSharp"
 
 publish_files $SRC_DOCKER_DIR $PUBLISH_FOLDER
 publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER

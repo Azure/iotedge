@@ -95,11 +95,11 @@ jobs:
           project: MessagesAnalyzer
 
       # Functions Sample
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Functions Sample
-          imageName: azureiotedge-functions-filter
-          project: EdgeHubTriggerCSharp
+      #- template: templates/image-linux.yaml
+      #  parameters:
+      #    name: Functions Sample
+      #    imageName: azureiotedge-functions-filter
+      #    project: EdgeHubTriggerCSharp
 
       # Direct Method Sender
       - template: templates/image-linux.yaml
