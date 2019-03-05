@@ -11,12 +11,13 @@ use std::time::Duration;
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
-use pid::Pid;
+use serde_derive::{Deserialize, Serialize};
 use serde_json;
 
 use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};
 
-use error::{Error, ErrorKind, Result};
+use crate::error::{Error, ErrorKind, Result};
+use crate::pid::Pid;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -36,7 +37,7 @@ impl FromStr for ModuleStatus {
 }
 
 impl fmt::Display for ModuleStatus {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             formatter,
             "{}",
@@ -425,7 +426,7 @@ pub enum ModuleOperation {
 }
 
 impl fmt::Display for ModuleOperation {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ModuleOperation::RuntimeState => write!(f, "Could not query module runtime state"),
         }
@@ -440,7 +441,7 @@ pub enum RegistryOperation {
 }
 
 impl fmt::Display for RegistryOperation {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             RegistryOperation::PullImage(name) => write!(f, "Could not pull image {}", name),
             RegistryOperation::RemoveImage(name) => write!(f, "Could not remove image {}", name),
@@ -465,7 +466,7 @@ pub enum RuntimeOperation {
 }
 
 impl fmt::Display for RuntimeOperation {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             RuntimeOperation::CreateModule(name) => write!(f, "Could not create module {}", name),
             RuntimeOperation::GetModule(name) => write!(f, "Could not get module {}", name),
@@ -491,8 +492,8 @@ mod tests {
     use std::str::FromStr;
     use std::string::ToString;
 
-    use error::ErrorKind;
-    use module::ModuleStatus;
+    use crate::error::ErrorKind;
+    use crate::module::ModuleStatus;
 
     fn get_inputs() -> Vec<(&'static str, ModuleStatus)> {
         vec![

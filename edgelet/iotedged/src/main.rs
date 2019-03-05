@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-
-extern crate iotedged;
 
 #[cfg(not(target_os = "windows"))]
 fn main() {

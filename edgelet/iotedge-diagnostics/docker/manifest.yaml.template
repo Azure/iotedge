@@ -1,0 +1,18 @@
+image: __REGISTRY__/__NAMESPACE__/azureiotedge-diagnostics:__VERSION__
+tags: __TAGS__
+manifests:
+  -
+    image: __REGISTRY__/__NAMESPACE__/azureiotedge-diagnostics:__VERSION__-linux-amd64
+    platform:
+      architecture: amd64
+      os: linux
+  -
+    image: __REGISTRY__/__NAMESPACE__/azureiotedge-diagnostics:__VERSION__-linux-arm32v7
+    platform:
+      architecture: arm
+      os: linux
+  -
+    image: __REGISTRY__/__NAMESPACE__/azureiotedge-diagnostics:__VERSION__-windows-amd64
+    platform:
+      architecture: amd64
+      os: windows

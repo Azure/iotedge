@@ -10,10 +10,19 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Clone, Copy, Debug, Fail)]
+#[derive(Clone, Debug, Fail)]
 pub enum ErrorKind {
     #[fail(display = "Invalid value for --host parameter")]
     BadHostParameter,
+
+    #[fail(display = "One or more diagnostics failed")]
+    Diagnostics,
+
+    #[fail(
+        display = "Error while fetching latest versions of edge components: {}",
+        _0
+    )]
+    FetchLatestVersions(FetchLatestVersionsReason),
 
     #[fail(display = "Missing --host parameter")]
     MissingHostParameter,
@@ -29,7 +38,7 @@ pub enum ErrorKind {
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -39,7 +48,7 @@ impl Fail for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }
@@ -55,5 +64,29 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum FetchLatestVersionsReason {
+    CreateClient,
+    GetResponse,
+    InvalidOrMissingLocationHeader,
+    ResponseStatusCode(hyper::StatusCode),
+}
+
+impl Display for FetchLatestVersionsReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            FetchLatestVersionsReason::CreateClient => write!(f, "could not create HTTP client"),
+            FetchLatestVersionsReason::GetResponse => write!(f, "could not send HTTP request"),
+            FetchLatestVersionsReason::InvalidOrMissingLocationHeader => write!(
+                f,
+                "redirect response has invalid or missing location header"
+            ),
+            FetchLatestVersionsReason::ResponseStatusCode(status_code) => {
+                write!(f, "response failed with status code {}", status_code)
+            }
+        }
     }
 }

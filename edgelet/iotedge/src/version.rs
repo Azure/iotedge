@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use clap::crate_name;
+
 use edgelet_core;
 use futures::future::{self, FutureResult};
 
-use error::Error;
-use Command;
+use crate::error::Error;
+use crate::Command;
 
 #[derive(Default)]
 pub struct Version;

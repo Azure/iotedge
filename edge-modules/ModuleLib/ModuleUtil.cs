@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace ModuleLib
+namespace Microsoft.Azure.Devices.Edge.ModuleUtil
 {
     using System;
     using System.Threading.Tasks;

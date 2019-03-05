@@ -2,7 +2,7 @@
 # Configures the provisioning mode
 provisioning:
   source: "manual"
-  device_connection_string: "HostName=something.something.com;DeviceId=something;SharedAccessKey=something"
+  device_connection_string: "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
 agent:
   name: "edgeAgent"
   type: "docker"
@@ -25,7 +25,7 @@ connect:
 listen:
   workload_uri: "http://0.0.0.0:8081"
   management_uri: "http://0.0.0.0:8080"
-homedir: "/tmp"
+homedir: "C:\\Temp"
 moby_runtime:
   uri: "http://localhost:2375"
   network: "azure-iot-edge"

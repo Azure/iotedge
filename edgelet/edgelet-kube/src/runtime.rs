@@ -36,6 +36,7 @@ pub struct KubeModuleRuntime<S> {
     proxy_image: String,
     proxy_config_path: String,
     proxy_config_map_name: String,
+    image_pull_policy: String,
     service_account_name: String,
     workload_uri: Url,
     management_uri: Url,
@@ -51,6 +52,7 @@ pub trait KubeRuntimeData {
     fn proxy_image(&self) -> &str;
     fn proxy_config_path(&self) -> &str;
     fn proxy_config_map_name(&self) -> &str;
+    fn image_pull_policy(&self) -> &str;
     fn service_account_name(&self) -> &str;
     fn workload_uri(&self) -> &Url;
     fn management_uri(&self) -> &Url;
@@ -81,6 +83,9 @@ impl<S> KubeRuntimeData for KubeModuleRuntime<S> {
     fn proxy_config_map_name(&self) -> &str {
         &self.proxy_config_map_name
     }
+    fn image_pull_policy(&self) -> &str {
+        &self.image_pull_policy
+    }
     fn service_account_name(&self) -> &str {
         &self.service_account_name
     }
@@ -102,6 +107,7 @@ impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
         proxy_image: String,
         proxy_config_path: String,
         proxy_config_map_name: String,
+        image_pull_policy: String,
         service_account_name: String,
         workload_uri: Url,
         management_uri: Url,
@@ -136,6 +142,12 @@ impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
                 proxy_config_map_name.clone(),
             )
         })?;
+        ensure_not_empty_with_context(&image_pull_policy, || {
+            ErrorKind::InvalidRunTimeParameter(
+                String::from("image_pull_policy"),
+                image_pull_policy.clone(),
+            )
+        })?;
         ensure_not_empty_with_context(&service_account_name, || {
             ErrorKind::InvalidRunTimeParameter(
                 String::from("service_account_name"),
@@ -160,6 +172,7 @@ impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
             proxy_image,
             proxy_config_path,
             proxy_config_map_name,
+            image_pull_policy,
             service_account_name,
             workload_uri,
             management_uri,
@@ -183,8 +196,8 @@ where
     <S as hyper::service::Service>::Future: Send,
 {
     type Error = Error;
-    type PullFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type PullFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type RemoveFuture = Box<dyn Future<Item = (), Error = Self::Error>>;
     type Config = DockerConfig;
 
     fn pull(&self, config: &Self::Config) -> Self::PullFuture {
@@ -273,21 +286,21 @@ where
     type Chunk = Chunk;
     type Logs = Logs;
 
-    type CreateFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type CreateFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type GetFuture =
-        Box<Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type InitFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
+        Box<dyn Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
+    type InitFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type ListFuture = Box<dyn Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
     type ListWithDetailsStream =
-        Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type LogsFuture = Box<Future<Item = Self::Logs, Error = Self::Error> + Send>;
-    type RemoveFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type RestartFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type StartFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type StopFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type SystemInfoFuture = Box<Future<Item = SystemInfo, Error = Self::Error> + Send>;
-    type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type TopFuture = Box<Future<Item = ModuleTop, Error = Self::Error> + Send>;
+        Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
+    type LogsFuture = Box<dyn Future<Item = Self::Logs, Error = Self::Error> + Send>;
+    type RemoveFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type RestartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type StartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type SystemInfoFuture = Box<dyn Future<Item = SystemInfo, Error = Self::Error> + Send>;
+    type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type TopFuture = Box<dyn Future<Item = ModuleTop, Error = Self::Error> + Send>;
 
     fn init(&self) -> Self::InitFuture {
         Box::new(future::ok(()))
@@ -479,7 +492,7 @@ impl AsRef<[u8]> for Chunk {
 #[cfg(test)]
 mod tests {
 
-    use super::*;
+    use super::KubeModuleRuntime;
     use std::str::FromStr;
     use url::Url;
 
@@ -492,6 +505,7 @@ mod tests {
         let proxy_image = String::from("proxy-image");
         let proxy_config_path = String::from("proxy-confg-path");
         let proxy_config_map_name = String::from("config-volume");
+        let image_pull_policy = String::from("IfNotPresent");
         let service_account_name = String::from("iotedge");
         let workload_uri = Url::from_str("http://localhost:35000").unwrap();
         let management_uri = Url::from_str("http://localhost:35001").unwrap();
@@ -505,6 +519,7 @@ mod tests {
             proxy_image.clone(),
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
             service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
@@ -521,6 +536,7 @@ mod tests {
             proxy_image.clone(),
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
             service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
@@ -536,6 +552,7 @@ mod tests {
             proxy_image.clone(),
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
             service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
@@ -551,6 +568,7 @@ mod tests {
             proxy_image.clone(),
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
             service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
@@ -566,6 +584,7 @@ mod tests {
             String::default(),
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
             service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
@@ -581,6 +600,7 @@ mod tests {
             proxy_image.clone(),
             String::default(),
             proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
             service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
@@ -595,6 +615,23 @@ mod tests {
             edge_hostname.clone(),
             proxy_image.clone(),
             proxy_config_path.clone(),
+            String::default(),
+            image_pull_policy.clone(),
+            service_account_name.clone(),
+            workload_uri.clone(),
+            management_uri.clone(),
+        );
+        assert!(result.is_err());
+
+        let result = KubeModuleRuntime::new(
+            namespace.clone(),
+            true,
+            iot_hub_hostname.clone(),
+            device_id.clone(),
+            edge_hostname.clone(),
+            proxy_image.clone(),
+            proxy_config_path.clone(),
+            proxy_config_map_name.clone(),
             String::default(),
             service_account_name.clone(),
             workload_uri.clone(),
@@ -611,6 +648,7 @@ mod tests {
             proxy_image.clone(),
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
             String::default(),
             workload_uri.clone(),
             management_uri.clone(),
