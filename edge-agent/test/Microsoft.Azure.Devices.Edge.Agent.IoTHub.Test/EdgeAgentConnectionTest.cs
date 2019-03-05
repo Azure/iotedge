@@ -417,7 +417,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 };
 
                 ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
-                IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler>{new PingRequestHandler()};
+                IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
                 IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers));
                 await Task.Delay(TimeSpan.FromSeconds(10));
 
