@@ -795,13 +795,21 @@ Function ValidateTestParameters
 
     If ($TestName -eq "TransparentGateway")
     {
+        if ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile))
+        {
+            $EdgeE2ERootCACertRSAFile=$DefaultInstalledRSARootCACert
+        }
+        if ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
+        {
+            $EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey
+        }
         $validatingItems += $EdgeCertGenScriptDir
         $validatingItems += $EdgeE2ERootCACertRSAFile
         $validatingItems += $EdgeE2ERootCAKeyRSAFile
     }
 
     $validatingItems | ForEach-Object {
-        If (-Not (Test-Path $_))
+        If (-Not (Test-Path -Path $_))
         {
             Throw "$_ is not found or it is empty"
         }
@@ -820,6 +828,8 @@ $E2ETestFolder = (Resolve-Path $E2ETestFolder).Path
 $InstallationScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\setup\IotEdgeSecurityDaemon.ps1"
 $EdgeCertGenScriptDir = Join-Path $E2ETestFolder "artifacts\core-windows\CACertificates"
 $EdgeCertGenScript = Join-Path $EdgeCertGenScriptDir "ca-certs.ps1"
+$DefaultInstalledRSARootCACert = Join-Path $EdgeCertGenScriptDir "rsa_root_ca.cert.pem"
+$DefaultInstalledRSARootCAKey = Join-Path $EdgeCertGenScriptDir "rsa_root_ca.key.pem"
 $TrustedCACertificatePath= Join-Path $EdgeCertGenScriptDir "\certs\azure-iot-test-only.root.ca.cert.pem"
 $ModuleToModuleDeploymentFilename = "module_to_module_deployment.template.json"
 $ModuleToFunctionsDeploymentFilename = "module_to_functions_deployment.template.json"
