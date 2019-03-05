@@ -47,12 +47,12 @@ use edgelet_core::crypto::{
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
-    CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime, ModuleSpec, UrlExt,
+    Certificate, CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime, ModuleSpec, Signature, UrlExt,
     WorkloadConfig, UNIX_SCHEME,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
-use edgelet_hsm::{Certificate, Crypto};
+use edgelet_hsm::Crypto;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
 use edgelet_http::{HyperExt, MaybeProxyClient, API_VERSION};
@@ -66,7 +66,7 @@ use provisioning::provisioning::{
     BackupProvisioning, DpsProvisioning, DpsSymmetricKeyProvisioning, ManualProvisioning,
     Provision, ProvisioningResult,
 };
-use native_tls::Identity;
+use native_tls::{Identity};
 
 use crate::workload::WorkloadData;
 
@@ -340,7 +340,7 @@ pub fn get_proxy_uri(https_proxy: Option<String>) -> Result<Option<Uri>, Error> 
     Ok(proxy_uri)
 }
 
-fn prepare_tls_server_cert<C>(crypto: &C) -> Result<Certificate, Error>
+fn prepare_tls_server_cert<C>(crypto: &C) -> Result<native_tls::Certificate, Error>
 where
     C: CreateCertificate,
 {
@@ -353,8 +353,20 @@ where
     )
     .with_issuer(CertificateIssuer::DeviceCa);
 
-    crypto
+    let cert = crypto
         .create_certificate(&edgelet_cert_props)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::PrepareWorkloadCa,
+        ))?;
+
+    let cert_pem = cert.pem().context(ErrorKind::Initialize(
+        InitializeErrorReason::PrepareWorkloadCa,
+    ))?;
+
+    native_tls::Certificate::from_pem(cert_pem.as_bytes())
+        .map_err(|err|
+            Error::from(err.context(ErrorKind::Initialize(InitializeErrorReason::PrepareWorkloadCa))))
+
 }
 
 fn prepare_workload_ca<C>(crypto: &C) -> Result<(), Error>
@@ -533,9 +545,9 @@ where
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
     let (work_tx, work_rx) = oneshot::channel();
 
-    // crypto::create_certificate()
+    let server_cert = prepare_tls_server_cert(crypto).unwrap();
 
-    let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx);
+    let mgmt = start_management(&settings, &runtime, &id_man, server_cert, mgmt_rx);
 
     let workload = start_workload(
         &settings,
@@ -891,6 +903,7 @@ fn start_management<K, HC>(
     mgmt: &DockerModuleRuntime,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
+    cert: native_tls::Certificate,
 ) -> impl Future<Item = (), Error = Error>
 where
     K: 'static + Sign + Clone + Send + Sync,
@@ -900,13 +913,6 @@ where
 
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
-
-
-    // TODO : Wrap this for TLS only? or detect if HTTP was asked for?
-    // TODO TODO TODO
-    let s = String::from("hello");
-    let der = s.into_bytes();
-    let cert = Identity::from_pkcs12(&der, "kevindaw").unwrap();
 
     ManagementService::new(mgmt, id_man)
         .then(move |service| -> Result<_, Error> {
