@@ -7,7 +7,7 @@ use failure::{Backtrace, Context, Fail};
 #[cfg(target_os = "linux")]
 use nix::unistd::Pid;
 
-use Fd;
+use crate::Fd;
 
 #[derive(Debug)]
 pub struct Error {
@@ -59,7 +59,7 @@ pub enum ErrorKind {
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -69,7 +69,7 @@ impl Fail for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }
@@ -105,7 +105,7 @@ pub enum SocketLookupType {
 }
 
 impl Display for SocketLookupType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             SocketLookupType::Fd(fd) => write!(f, "file descriptor {}", fd),
             SocketLookupType::Name(name) => write!(f, "name {}", name),

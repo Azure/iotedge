@@ -3,6 +3,7 @@ name = "iothubservice"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 publish = false
+edition = "2018"
 
 [dependencies]
 failure = "0.1"
