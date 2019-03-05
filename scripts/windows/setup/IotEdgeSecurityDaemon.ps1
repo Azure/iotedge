@@ -400,7 +400,7 @@ function Install-IoTEdge {
     )
 
     # Used to indicate success of Deploy-IoTEdge so we can abort early in case of failure
-    $script:installPackagesSucceeded = $false
+    $script:installPackagesCompleted = $false
 
     # Used to suppress some messages from Deploy-IoTEdge since we are automatically running Initialize-IoTEdge
     $calledFromInstall = $true
@@ -412,7 +412,7 @@ function Install-IoTEdge {
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded
 
-    if (-not $script:installPackagesSucceeded) {
+    if (-not $script:installPackagesCompleted) {
         return
     }
 
@@ -634,11 +634,12 @@ function Install-Packages(
     }
 
     if ($restartNeeded) {
-        Write-HostRed 'Reboot required.'
+        Write-HostRed 'Reboot required. To complete the installation after the reboot, run "Initialize-IoTEdge".'
         Restart-Computer -Confirm:(-not $RestartIfNeeded) -Force:$RestartIfNeeded
     }
-
-    $script:installPackagesSucceeded = $true
+    else {
+        $script:installPackagesCompleted = $true
+    }
 }
 
 function Setup-Environment([string] $ContainerOs) {
