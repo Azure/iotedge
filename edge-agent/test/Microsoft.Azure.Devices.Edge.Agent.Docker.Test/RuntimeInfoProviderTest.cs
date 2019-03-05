@@ -277,7 +277,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             containerOperations.Setup(co => co.GetContainerLogsAsync(id, It.IsAny<ContainerLogsParameters>(), It.IsAny<CancellationToken>()))
                 .Callback<string, ContainerLogsParameters, CancellationToken>((m, c, t) => receivedContainerLogsParameters = c)
                 .ReturnsAsync(GetLogsStream);
-                                          
 
             var dockerClient = Mock.Of<IDockerClient>(
                 dc =>

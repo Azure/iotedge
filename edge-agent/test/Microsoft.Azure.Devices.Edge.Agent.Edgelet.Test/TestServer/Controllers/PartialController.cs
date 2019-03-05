@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
-using Microsoft.AspNetCore.Mvc;
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer.Controllers
 {
     using System.IO;
     using System.Text;
+    using Microsoft.AspNetCore.Mvc;
     using Microsoft.Net.Http.Headers;
 
     public partial class Controller
@@ -47,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer.Controllers
         {
             byte[] bytes = Encoding.UTF8.GetBytes(TestLogs);
             var ms = new MemoryStream(bytes);
-            return new FileStreamResult(ms, new MediaTypeHeaderValue("text/plain"));            
+            return new FileStreamResult(ms, new MediaTypeHeaderValue("text/plain"));
         }
     }
 }
