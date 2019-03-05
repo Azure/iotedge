@@ -291,7 +291,7 @@
           "TempFilterToCloud2": "FROM /messages/modules/tempFilter2/outputs/* INTO $upstream",
           "TempSensorToTempFilter2": "FROM /messages/modules/tempSensor2/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/tempFilter2/inputs/input1\")",
           "upstreamDirectMethodCloudSender1": "FROM /messages/modules/DirectMethodCloudSender1/outputs/output1 INTO $upstream",
-          "upstreamDirectMethodCloudSender2": "FROM /messages/modules/DirectMethodCloudSender2/outputs/output1 INTO $upstream",
+          "upstreamDirectMethodCloudSender2": "FROM /messages/modules/DirectMethodCloudSender2/outputs/output1 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
