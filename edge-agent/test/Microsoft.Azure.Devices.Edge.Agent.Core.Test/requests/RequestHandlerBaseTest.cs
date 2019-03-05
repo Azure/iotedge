@@ -36,6 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
 
         class RequestHandlerImpl : RequestHandlerBase<RequestPayload, RequestResponse>
         {
+            public override string RequestName => "TestImpl";
+
             protected override Task<Option<RequestResponse>> HandleRequestInternal(Option<RequestPayload> payload)
             {
                 RequestPayload requestPayload = payload.Expect(() => new ArgumentException("Payload should not be null"));

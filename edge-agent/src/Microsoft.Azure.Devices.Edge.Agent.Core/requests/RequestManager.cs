@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -12,26 +13,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
     public class RequestManager : IRequestManager
     {
-        static readonly IDictionary<string, IRequestHandler> DefaultRequestHandlers = new ReadOnlyDictionary<string, IRequestHandler>(
-            new Dictionary<string, IRequestHandler>(
-                new Dictionary<string, IRequestHandler>
-                {
-                    ["ping"] = new PingRequestHandler()
-                },
-                StringComparer.OrdinalIgnoreCase));
-
         readonly IDictionary<string, IRequestHandler> requestHandlers;
 
-        public RequestManager()
-            : this(DefaultRequestHandlers)
+        public RequestManager(IEnumerable<IRequestHandler> requestHandlers)
         {
-        }
-
-        internal RequestManager(IDictionary<string, IRequestHandler> requestHandlers)
-        {
-            Preconditions.CheckNotNull(requestHandlers, nameof(requestHandlers));
-            this.requestHandlers = new ReadOnlyDictionary<string, IRequestHandler>(
-                new Dictionary<string, IRequestHandler>(requestHandlers, StringComparer.OrdinalIgnoreCase));
+            this.requestHandlers = Preconditions.CheckNotNull(requestHandlers, nameof(requestHandlers))
+                .ToDictionary(r => r.RequestName, r => r, StringComparer.OrdinalIgnoreCase);
         }
 
         public async Task<(int statusCode, Option<string> responsePayload)> ProcessRequest(string request, string payloadJson)

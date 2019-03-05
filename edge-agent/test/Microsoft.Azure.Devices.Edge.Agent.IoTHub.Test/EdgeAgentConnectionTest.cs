@@ -417,7 +417,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 };
 
                 ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
-                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager());
+                IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler>{new PingRequestHandler()};
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers));
                 await Task.Delay(TimeSpan.FromSeconds(10));
 
                 Option<DeploymentConfigInfo> deploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
@@ -534,7 +535,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 };
 
                 ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
-                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager());
+                IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers));
                 await Task.Delay(TimeSpan.FromSeconds(20));
 
                 Option<DeploymentConfigInfo> deploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
@@ -631,9 +633,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             serde.Setup(s => s.Deserialize(It.IsAny<string>()))
                 .Returns(deploymentConfig);
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
 
             // Act
-            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager());
+            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(requestHandlers));
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
             // Assert
@@ -679,8 +682,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serde.Setup(s => s.Deserialize(It.IsAny<string>()))
                 .Throws<FormatException>();
 
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+
             // Act
-            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager());
+            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(requestHandlers));
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
 
@@ -723,8 +728,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             deviceClient.Setup(d => d.GetTwinAsync())
                 .ReturnsAsync(twin);
 
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+
             // Act
-            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager());
+            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(requestHandlers));
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
 
@@ -784,8 +791,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serde.Setup(s => s.Deserialize(It.IsAny<string>()))
                 .Returns(deploymentConfig);
 
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+
             // Act
-            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager());
+            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(requestHandlers));
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
@@ -838,8 +847,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         return false;
                     });
 
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(), retryStrategy.Object, TimeSpan.FromHours(1));
+            IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(requestHandlers), retryStrategy.Object, TimeSpan.FromHours(1));
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(
                 ConnectionStatus.Connected,
@@ -911,8 +922,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             deviceClient.Setup(d => d.SetMethodHandlerAsync(It.IsAny<string>(), It.IsAny<MethodCallback>()))
                 .Returns(Task.CompletedTask);
 
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(), retryStrategy.Object, TimeSpan.FromHours(1));
+            IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(requestHandlers), retryStrategy.Object, TimeSpan.FromHours(1));
             Assert.NotNull(connectionStatusChangesHandler);
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
@@ -978,7 +991,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serde.Setup(s => s.Deserialize(It.IsAny<string>()))
                 .Returns(deploymentConfig);
 
-            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager());
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(requestHandlers));
 
             await Task.Delay(TimeSpan.FromSeconds(5));
 
@@ -1063,13 +1077,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 };
 
                 ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
+                IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
 
                 // Assert
                 Module edgeAgentModule = await registryManager.GetModuleAsync(edgeDevice.Id, Constants.EdgeAgentModuleIdentityName);
                 Assert.NotNull(edgeAgentModule);
                 Assert.True(edgeAgentModule.ConnectionState == DeviceConnectionState.Disconnected);
 
-                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager());
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers));
                 await Task.Delay(TimeSpan.FromSeconds(5));
 
                 edgeAgentModule = await registryManager.GetModuleAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName);
@@ -1153,11 +1168,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
                 ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+                IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
 
                 // Assert
                 await Assert.ThrowsAsync<DeviceNotFoundException>(() => serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("ping")));
 
-                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager());
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers));
                 await Task.Delay(TimeSpan.FromSeconds(10));
 
                 CloudToDeviceMethodResult methodResult = await serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("ping"));
@@ -1246,8 +1262,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             moduleClientProvider.Setup(m => m.Create(It.IsAny<ConnectionStatusChangesHandler>(), It.IsAny<Func<IModuleClient, Task>>()))
                 .ReturnsAsync(moduleClient.Object);
 
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+
             // Act
-            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(), TimeSpan.FromSeconds(3)))
+            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers), TimeSpan.FromSeconds(3)))
             {
                 await Task.Delay(TimeSpan.FromSeconds(8));
 

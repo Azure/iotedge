@@ -39,7 +39,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         protected override void Load(ContainerBuilder builder)
         {
             // IRequestManager
-            builder.Register(c => new RequestManager())
+            builder.Register(
+                    c =>
+                    {
+                        var requestHandlers = new List<IRequestHandler>
+                        {
+                            new PingRequestHandler()
+                        };
+                        return new RequestManager(requestHandlers);
+                    })
                 .As<IRequestManager>()
                 .SingleInstance();
 

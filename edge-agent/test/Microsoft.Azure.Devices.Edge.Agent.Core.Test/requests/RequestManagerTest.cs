@@ -30,9 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             var requestHandler = new Mock<IRequestHandler>();
             requestHandler.Setup(r => r.HandleRequest(It.IsAny<Option<string>>()))
                 .ReturnsAsync(Option.Some("{\"prop3\":\"foo\",\"prop4\":100}"));
-            var requestHandlers = new Dictionary<string, IRequestHandler>
+            requestHandler.SetupGet(r => r.RequestName).Returns("req1");
+            var requestHandlers = new List<IRequestHandler>
             {
-                ["req1"] = requestHandler.Object
+                requestHandler.Object
             };
             var requestManager = new RequestManager(requestHandlers);
             string payload = "{\"prop2\":\"foo\",\"prop1\":100}";
@@ -86,9 +87,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             // Arrange
             var requestHandler = new Mock<IRequestHandler>();
             requestHandler.Setup(r => r.HandleRequest(Option.Some(payload))).ThrowsAsync(handlerException);
-            var requestHandlers = new Dictionary<string, IRequestHandler>
+            requestHandler.SetupGet(r => r.RequestName).Returns("req1");
+            var requestHandlers = new List<IRequestHandler>
             {
-                ["req1"] = requestHandler.Object
+                requestHandler.Object
             };
             var requestManager = new RequestManager(requestHandlers);
 
