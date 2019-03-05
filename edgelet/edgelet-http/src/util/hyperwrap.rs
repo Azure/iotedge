@@ -11,7 +11,7 @@ use url::percent_encoding::percent_decode;
 use url::Url;
 
 use super::super::client::ClientImpl;
-use error::{Error, ErrorKind, InvalidUrlReason};
+use crate::error::{Error, ErrorKind, InvalidUrlReason};
 
 const DNS_WORKER_THREADS: usize = 4;
 
@@ -140,7 +140,7 @@ impl Client {
 }
 
 impl ClientImpl for Client {
-    type Response = Box<future::Future<Item = Response<Body>, Error = HyperError> + Send>;
+    type Response = Box<dyn future::Future<Item = Response<Body>, Error = HyperError> + Send>;
 
     fn call(&self, req: Request<Body>) -> Self::Response {
         match *self {

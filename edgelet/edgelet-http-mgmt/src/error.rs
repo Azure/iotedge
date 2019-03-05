@@ -8,12 +8,13 @@ use edgelet_iothub::Error as IoTHubError;
 use failure::{Backtrace, Context, Fail};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode};
+use log::error;
 use serde_json;
 
 use management::apis::Error as MgmtError;
 use management::models::ErrorResponse;
 
-use IntoResponse;
+use crate::IntoResponse;
 
 #[derive(Debug)]
 pub struct Error {
@@ -67,7 +68,7 @@ pub enum ErrorKind {
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -77,7 +78,7 @@ impl Fail for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }

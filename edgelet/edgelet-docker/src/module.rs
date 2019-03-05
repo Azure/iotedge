@@ -8,12 +8,13 @@ use hyper::client::connect::Connect;
 
 use edgelet_utils::ensure_not_empty_with_context;
 
-use client::DockerClient;
-use config::DockerConfig;
 use docker::models::InlineResponse200State;
 use edgelet_core::pid::Pid;
 use edgelet_core::{Module, ModuleOperation, ModuleRuntimeState, ModuleStatus};
-use error::{Error, ErrorKind, Result};
+
+use crate::client::DockerClient;
+use crate::config::DockerConfig;
+use crate::error::{Error, ErrorKind, Result};
 
 pub const MODULE_TYPE: &str = "docker";
 pub const MIN_DATE: &str = "0001-01-01T00:00:00Z";
@@ -84,7 +85,8 @@ pub fn runtime_state(
 impl<C: 'static + Connect> Module for DockerModule<C> {
     type Config = DockerConfig;
     type Error = Error;
-    type RuntimeStateFuture = Box<Future<Item = ModuleRuntimeState, Error = Self::Error> + Send>;
+    type RuntimeStateFuture =
+        Box<dyn Future<Item = ModuleRuntimeState, Error = Self::Error> + Send>;
 
     fn name(&self) -> &str {
         &self.name
@@ -132,9 +134,9 @@ mod tests {
     use edgelet_core::{Module, ModuleStatus};
     use edgelet_test_utils::JsonConnector;
 
-    use client::DockerClient;
-    use config::DockerConfig;
-    use module::DockerModule;
+    use crate::client::DockerClient;
+    use crate::config::DockerConfig;
+    use crate::module::DockerModule;
 
     fn create_api_client<T: Serialize>(body: T) -> DockerClient<JsonConnector> {
         let client = Client::builder().build(JsonConnector::new(&body));
