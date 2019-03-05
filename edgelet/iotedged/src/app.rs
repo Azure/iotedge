@@ -2,15 +2,16 @@
 
 use std::path::Path;
 
-use clap::{App, Arg, ArgMatches};
+use clap::{crate_authors, crate_description, crate_name, App, Arg, ArgMatches};
 use failure::ResultExt;
+use log::info;
 
 use edgelet_config::Settings;
 use edgelet_core;
 use edgelet_docker::DockerConfig;
 
-use error::{Error, ErrorKind, InitializeErrorReason};
-use logging;
+use crate::error::{Error, ErrorKind, InitializeErrorReason};
+use crate::logging;
 
 pub fn create_base_app<'a, 'b>() -> App<'a, 'b> {
     App::new(crate_name!())

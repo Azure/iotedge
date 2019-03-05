@@ -1,5 +1,5 @@
 #![cfg(target_os = "linux")]
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
 // These tests are sensitive to the number of FDs open in the current process.
@@ -9,15 +9,6 @@
 // Thus these tests are in their own separate test crate, and use a Mutex to ensure
 // that only one runs at a time.
 
-extern crate edgelet_http;
-extern crate futures;
-extern crate hyper;
-#[macro_use]
-extern crate lazy_static;
-extern crate nix;
-extern crate systemd;
-extern crate url;
-
 use std::sync::{Mutex, MutexGuard};
 use std::{env, io};
 
@@ -26,6 +17,7 @@ use futures::{future, Future};
 use hyper::server::conn::Http;
 use hyper::service::Service;
 use hyper::{Body, Request, Response, StatusCode};
+use lazy_static::lazy_static;
 use nix::sys::socket::{self, AddressFamily, SockType};
 use nix::unistd::{self, getpid};
 use systemd::{Fd, LISTEN_FDS_START};
@@ -48,7 +40,7 @@ impl Service for TestService {
     type ReqBody = Body;
     type ResBody = Body;
     type Error = io::Error;
-    type Future = Box<Future<Item = Response<Self::ResBody>, Error = Self::Error>>;
+    type Future = Box<dyn Future<Item = Response<Self::ResBody>, Error = Self::Error>>;
 
     fn call(&mut self, _req: Request<Self::ReqBody>) -> Self::Future {
         Box::new(if self.error {

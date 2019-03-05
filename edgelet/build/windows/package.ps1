@@ -3,7 +3,7 @@ Param([Switch] $CreateTemplate, [Switch] $CreateCab, [Switch] $SkipInstallCerts)
 $EdgeCab = "Microsoft-Azure-IoTEdge.cab"
 $EdgeTemplate = "Package-Template"
 
-Function New-Cabinet([String] $Destination, [String[]]$Files)
+Function New-Cabinet([String] $Destination, [String[]] $Files, [String] $Path)
 {
     $Ddf = [IO.Path]::GetTempFileName()
     $CabinetName = Split-Path -Leaf $Destination
@@ -12,18 +12,32 @@ Function New-Cabinet([String] $Destination, [String[]]$Files)
         $DiskDirectory = "."
     }
     $DiskDirectory = (Get-Item -Path $DiskDirectory).FullName
+    $Directories = $Files | Group-Object -Property { Split-Path -Parent $_ }
     $DdfContent = @"
-.OPTION EXPLICIT
+.Option Explicit
+.Set SourceDir=$Path
+.Set DiskDirectoryTemplate=$DiskDirectory
 .Set CabinetNameTemplate=$CabinetName
-.Set DiskDirectoryTemplate=CDROM
 .Set CompressionType=LZX
 .Set Compress=on
 .Set UniqueFiles=Off
 .Set Cabinet=On
-.Set DiskDirectory1=$DiskDirectory
 .Set MaxDiskSize=0
+
+"@
+    $Directories | ForEach-Object {
+        $Directory = $_.Name
+        if (-not $Directory)
+        {
+            $Directory = " ;"
+        }
+        $Files = $_.Group
+        $DdfContent += @"
+.Set DestinationDir=$Directory
 $($OFS="`r`n"; $Files)
-"@ 
+
+"@
+    }
     $DdfContent | Out-File $Ddf -Encoding Ascii
 
     $DdfContent
@@ -123,12 +137,5 @@ elseif ($CreateCab) {
     $Files = Get-ChildItem -Path $EdgeTemplate -Recurse | Where-Object { -not $_.PSIsContainer } | ForEach-Object {
         return $_.FullName.Remove(0, $TemplateDirLength)
     }
-    try {
-        Push-Location -Path $EdgeTemplate
-        New-Cabinet -Destination "..\$EdgeCab" -Files $Files
-    }
-    finally {
-        Pop-Location
-    }
-    
+    New-Cabinet -Destination $EdgeCab -Files $Files -Path $EdgeTemplate
 }

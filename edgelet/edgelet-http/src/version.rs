@@ -24,7 +24,7 @@ impl FromStr for Version {
 }
 
 impl fmt::Display for Version {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Version::Version2018_06_28 => write!(f, "2018-06-28"),
             Version::Version2019_01_30 => write!(f, "2019-01-30"),

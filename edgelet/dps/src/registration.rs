@@ -10,7 +10,8 @@ use failure::{Fail, ResultExt};
 use futures::future::Either;
 use futures::{future, Future};
 use hyper::{Method, StatusCode};
-use percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};
+use log::{debug, info};
+use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
 use serde_json;
 use tokio::prelude::*;
 use tokio::timer::Interval;
@@ -19,8 +20,9 @@ use url::form_urlencoded::Serializer as UrlSerializer;
 use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};
 use edgelet_http::client::{Client, ClientImpl, TokenSource};
 use edgelet_http::ErrorKind as HttpErrorKind;
-use error::{Error, ErrorKind};
-use model::{
+
+use crate::error::{Error, ErrorKind};
+use crate::model::{
     DeviceRegistration, DeviceRegistrationResult, RegistrationOperationStatus, TpmAttestation,
     TpmRegistrationResult,
 };
@@ -159,7 +161,7 @@ where
         registration_id: &str,
         registration: &DeviceRegistration,
         key: K,
-    ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
         let token_source =
             DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), key);
         debug!(
@@ -188,7 +190,7 @@ where
         registration_id: &str,
         operation_id: &str,
         key: K,
-    ) -> Box<Future<Item = Option<DeviceRegistrationResult>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Option<DeviceRegistrationResult>, Error = Error> + Send> {
         let token_source =
             DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), key);
         let request = client.read().expect("RwLock read failure")
@@ -256,7 +258,7 @@ where
         operation_id: String,
         key: K,
         retry_count: u64,
-    ) -> Box<Future<Item = Option<DeviceRegistrationResult>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Option<DeviceRegistrationResult>, Error = Error> + Send> {
         debug!(
             "DPS registration result will retry {} times every {} seconds",
             retry_count, DPS_ASSIGNMENT_RETRY_INTERVAL_SECS
@@ -295,7 +297,7 @@ where
         scope_id: String,
         registration_id: String,
         key_store: &A,
-    ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
         let cli = client.clone();
         let registration = DeviceRegistration::new().with_registration_id(registration_id.clone());
         let f = Self::get_symmetric_challenge_key(key_store)
@@ -336,7 +338,7 @@ where
         tpm_ek: &Bytes,
         tpm_srk: &Bytes,
         key_store: &A,
-    ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
         let tpm_attestation = TpmAttestation::new(base64::encode(&tpm_ek))
             .with_storage_root_key(base64::encode(&tpm_srk));
         let registration = DeviceRegistration::new()
@@ -407,7 +409,7 @@ where
         Box::new(r)
     }
 
-    pub fn register(&self) -> Box<Future<Item = (String, String), Error = Error> + Send> {
+    pub fn register(&self) -> Box<dyn Future<Item = (String, String), Error = Error> + Send> {
         let key_store = self.key_store.clone();
         let mut key_store_status = self.key_store.clone();
         let client_with_token_status = self.client.clone();
@@ -513,8 +515,6 @@ fn get_device_info(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use std::sync::Mutex;
 
     use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
@@ -523,7 +523,9 @@ mod tests {
     use serde_json;
     use tokio;
     use url::Url;
-    use DPS_API_VERSION;
+
+    use super::*;
+    use crate::DPS_API_VERSION;
 
     #[test]
     fn server_register_with_tpm_auth_success() {
@@ -553,7 +555,7 @@ mod tests {
                     future::ok(response)
                 }
                 Some(_) => {
-                    let mut result = RegistrationOperationStatus::new("something".to_string())
+                    let result = RegistrationOperationStatus::new("something".to_string())
                         .with_status("assigning".to_string());
                     future::ok(Response::new(
                         serde_json::to_string(&result).unwrap().into(),
@@ -614,7 +616,7 @@ mod tests {
                     panic!("Expected header");
                 }
                 Some(_) => {
-                    let mut result = RegistrationOperationStatus::new("something".to_string())
+                    let result = RegistrationOperationStatus::new("something".to_string())
                         .with_status("assigning".to_string());
                     future::ok(Response::new(
                         serde_json::to_string(&result).unwrap().into(),

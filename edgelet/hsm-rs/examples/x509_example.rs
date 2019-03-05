@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-
-extern crate hsm;
 
 use hsm::{GetCerts, X509};
 
