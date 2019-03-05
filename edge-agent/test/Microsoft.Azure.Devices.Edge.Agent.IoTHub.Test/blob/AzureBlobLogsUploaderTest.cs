@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
     using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.logs;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.WindowsAzure.Storage.Blob;
