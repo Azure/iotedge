@@ -14,8 +14,8 @@ use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use management::models::{Identity, UpdateIdentity as UpdateIdentityRequest};
 
-use error::{Error, ErrorKind};
-use IntoResponse;
+use crate::error::{Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct UpdateIdentity<I> {
     id_manager: Arc<Mutex<I>>,
@@ -38,7 +38,7 @@ where
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let id_manager = self.id_manager.clone();
 
         let response = params
@@ -117,7 +117,7 @@ mod tests {
     use edgelet_core::AuthType;
     use edgelet_test_utils::identity::{TestIdentity, TestIdentityManager};
     use management::models::ErrorResponse;
-    use serde_json::Value;
+    use serde_json::{json, Value};
 
     use super::*;
 

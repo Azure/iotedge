@@ -71,6 +71,26 @@ provisioning:
 # then update itself based on the Edge Agent module definition present in the
 # deployment in IoT Hub.
 #
+# Settings:
+#     name     - name of the edge agent module. Expected to be "edgeAgent".
+#     type     - type of module. Always "docker".
+#     env      - Any environment variable that needs to be set for edge agent module.
+#     config   - type specific configuration for edge agent module.
+#       image  - (docker) Modules require a docker image tag.
+#       auth   - (docker) Modules may need authoriation to connect to container registry.
+#
+# Adding environment variables:
+# replace "env: {}" with 
+#  env:
+#    key: "value"
+#
+# Adding container registry authorization:
+# replace "auth: {}" with
+#    auth:
+#      username: "username"
+#      password: "password"
+#      serveraddress: "serveraddress"
+#
 ###############################################################################
 
 agent:
