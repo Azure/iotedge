@@ -987,7 +987,7 @@ function Delete-Directory([string] $Path) {
     # Deleting them is a three-step process:
     #
     # 1. Take ownership of all files
-    Invoke-Native "takeown /r /skipsl /f /d y ""$Path"""
+    Invoke-Native "takeown /r /skipsl /d y /f ""$Path"""
 
     # 2. Reset their ACLs so that they inherit from their container
     Invoke-Native "icacls ""$Path"" /reset /t /l /q /c"
@@ -1498,16 +1498,24 @@ function Remove-IotEdgeContainers {
 }
 
 function Get-DockerCommandPrefix {
+    $prefix = ""
+    # in case the installation has not been completed
+    if (-not (Get-Command "docker.exe" -ErrorAction SilentlyContinue)) {
+        $prefix = "$MobyInstallDirectory\"
+    }
+
     switch ($ContainerOs) {
         'Linux' {
-            return '"docker"'
+            return ('"{0}docker"' -f $prefix)
         }
 
         'Windows' {
             # docker needs two more slashes after the scheme
             $namedPipeUrl = $MobyNamedPipeUrl -replace 'npipe://\./pipe/', 'npipe:////./pipe/'
-            return """docker"" -H ""$namedPipeUrl"""
+            return ('"{0}docker" -H "{1}"' -f $prefix, $namedPipeUrl)
         }
+
+        
     }
 }
 
