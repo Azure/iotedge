@@ -9,7 +9,7 @@
  */
 
 /// ClusterInfo : ClusterInfo represents information about the swarm as is returned by the \"/info\" endpoint. Join-tokens are not included.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -19,7 +19,7 @@ pub struct ClusterInfo {
     #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
     ID: Option<String>,
     #[serde(rename = "Version", skip_serializing_if = "Option::is_none")]
-    version: Option<::models::ObjectVersion>,
+    version: Option<crate::models::ObjectVersion>,
     /// Date and time at which the swarm was initialised in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format with nano-seconds.
     #[serde(rename = "CreatedAt", skip_serializing_if = "Option::is_none")]
     created_at: Option<String>,
@@ -27,9 +27,9 @@ pub struct ClusterInfo {
     #[serde(rename = "UpdatedAt", skip_serializing_if = "Option::is_none")]
     updated_at: Option<String>,
     #[serde(rename = "Spec", skip_serializing_if = "Option::is_none")]
-    spec: Option<::models::SwarmSpec>,
+    spec: Option<crate::models::SwarmSpec>,
     #[serde(rename = "TLSInfo", skip_serializing_if = "Option::is_none")]
-    tls_info: Option<::models::TlsInfo>,
+    tls_info: Option<crate::models::TlsInfo>,
     /// Whether there is currently a root CA rotation in progress for the swarm
     #[serde(
         rename = "RootRotationInProgress",
@@ -69,16 +69,16 @@ impl ClusterInfo {
         self.ID = None;
     }
 
-    pub fn set_version(&mut self, version: ::models::ObjectVersion) {
+    pub fn set_version(&mut self, version: crate::models::ObjectVersion) {
         self.version = Some(version);
     }
 
-    pub fn with_version(mut self, version: ::models::ObjectVersion) -> Self {
+    pub fn with_version(mut self, version: crate::models::ObjectVersion) -> Self {
         self.version = Some(version);
         self
     }
 
-    pub fn version(&self) -> Option<&::models::ObjectVersion> {
+    pub fn version(&self) -> Option<&crate::models::ObjectVersion> {
         self.version.as_ref()
     }
 
@@ -120,16 +120,16 @@ impl ClusterInfo {
         self.updated_at = None;
     }
 
-    pub fn set_spec(&mut self, spec: ::models::SwarmSpec) {
+    pub fn set_spec(&mut self, spec: crate::models::SwarmSpec) {
         self.spec = Some(spec);
     }
 
-    pub fn with_spec(mut self, spec: ::models::SwarmSpec) -> Self {
+    pub fn with_spec(mut self, spec: crate::models::SwarmSpec) -> Self {
         self.spec = Some(spec);
         self
     }
 
-    pub fn spec(&self) -> Option<&::models::SwarmSpec> {
+    pub fn spec(&self) -> Option<&crate::models::SwarmSpec> {
         self.spec.as_ref()
     }
 
@@ -137,16 +137,16 @@ impl ClusterInfo {
         self.spec = None;
     }
 
-    pub fn set_tls_info(&mut self, tls_info: ::models::TlsInfo) {
+    pub fn set_tls_info(&mut self, tls_info: crate::models::TlsInfo) {
         self.tls_info = Some(tls_info);
     }
 
-    pub fn with_tls_info(mut self, tls_info: ::models::TlsInfo) -> Self {
+    pub fn with_tls_info(mut self, tls_info: crate::models::TlsInfo) -> Self {
         self.tls_info = Some(tls_info);
         self
     }
 
-    pub fn tls_info(&self) -> Option<&::models::TlsInfo> {
+    pub fn tls_info(&self) -> Option<&crate::models::TlsInfo> {
         self.tls_info.as_ref()
     }
 

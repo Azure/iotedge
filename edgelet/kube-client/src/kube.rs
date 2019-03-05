@@ -2,6 +2,8 @@
 
 use std::collections::BTreeMap;
 
+use serde_derive::{Deserialize, Serialize};
+
 pub trait NameValue {
     type Item;
 

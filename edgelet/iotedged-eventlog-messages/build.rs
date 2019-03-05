@@ -1,10 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-
-#[cfg(windows)]
-extern crate version_compare;
-#[cfg(windows)]
-extern crate winreg;
-
+#![deny(rust_2018_idioms)]
 fn main() {
     #[cfg(windows)]
     windows::main()

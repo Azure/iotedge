@@ -9,7 +9,7 @@
  */
 
 /// TaskSpecPluginSpec : Invalid when specified with `ContainerSpec`. *(Experimental release only.)*
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -25,7 +25,7 @@ pub struct TaskSpecPluginSpec {
     #[serde(rename = "Disabled", skip_serializing_if = "Option::is_none")]
     disabled: Option<bool>,
     #[serde(rename = "PluginPrivilege", skip_serializing_if = "Option::is_none")]
-    plugin_privilege: Option<Vec<::models::Body>>,
+    plugin_privilege: Option<Vec<crate::models::Body>>,
 }
 
 impl TaskSpecPluginSpec {
@@ -90,16 +90,16 @@ impl TaskSpecPluginSpec {
         self.disabled = None;
     }
 
-    pub fn set_plugin_privilege(&mut self, plugin_privilege: Vec<::models::Body>) {
+    pub fn set_plugin_privilege(&mut self, plugin_privilege: Vec<crate::models::Body>) {
         self.plugin_privilege = Some(plugin_privilege);
     }
 
-    pub fn with_plugin_privilege(mut self, plugin_privilege: Vec<::models::Body>) -> Self {
+    pub fn with_plugin_privilege(mut self, plugin_privilege: Vec<crate::models::Body>) -> Self {
         self.plugin_privilege = Some(plugin_privilege);
         self
     }
 
-    pub fn plugin_privilege(&self) -> Option<&[::models::Body]> {
+    pub fn plugin_privilege(&self) -> Option<&[crate::models::Body]> {
         self.plugin_privilege.as_ref().map(AsRef::as_ref)
     }
 
