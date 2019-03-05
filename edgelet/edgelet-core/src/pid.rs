@@ -3,6 +3,8 @@
 use std::cmp;
 use std::fmt;
 
+use serde_derive::{Deserialize, Serialize};
+
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum Pid {
     None,
@@ -11,7 +13,7 @@ pub enum Pid {
 }
 
 impl fmt::Display for Pid {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Pid::None => write!(f, "none"),
             Pid::Any => write!(f, "any"),

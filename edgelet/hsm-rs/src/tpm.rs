@@ -8,7 +8,7 @@ use std::slice;
 
 use super::*;
 use super::{ManageTpmKeys, SignWithTpm};
-use error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind};
 
 /// Hsm for TPM
 /// create an instance of this to use the TPM interface of an HSM

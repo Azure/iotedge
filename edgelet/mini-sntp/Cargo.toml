@@ -1,0 +1,10 @@
+[package]
+name = "mini-sntp"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs"]
+edition = "2018"
+publish = false
+
+[dependencies]
+chrono = "0.4"
+failure = "0.1"
