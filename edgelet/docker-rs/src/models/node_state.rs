@@ -9,7 +9,7 @@
  */
 
 /// NodeState : NodeState represents the state of a node.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

@@ -9,7 +9,7 @@
  */
 
 /// NetworkSettings : NetworkSettings exposes the network settings in the API
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -37,7 +37,7 @@ pub struct NetworkSettings {
     )]
     link_local_i_pv6_prefix_len: Option<i32>,
     #[serde(rename = "Ports", skip_serializing_if = "Option::is_none")]
-    ports: Option<::models::PortMap>,
+    ports: Option<crate::models::PortMap>,
     /// SandboxKey identifies the sandbox
     #[serde(rename = "SandboxKey", skip_serializing_if = "Option::is_none")]
     sandbox_key: Option<String>,
@@ -46,13 +46,13 @@ pub struct NetworkSettings {
         rename = "SecondaryIPAddresses",
         skip_serializing_if = "Option::is_none"
     )]
-    secondary_ip_addresses: Option<Vec<::models::Address>>,
+    secondary_ip_addresses: Option<Vec<crate::models::Address>>,
     ///
     #[serde(
         rename = "SecondaryIPv6Addresses",
         skip_serializing_if = "Option::is_none"
     )]
-    secondary_i_pv6_addresses: Option<Vec<::models::Address>>,
+    secondary_i_pv6_addresses: Option<Vec<crate::models::Address>>,
     /// EndpointID uniquely represents a service endpoint in a Sandbox.  <p><br /></p>  > **Deprecated**: This field is only propagated when attached to the > default \"bridge\" network. Use the information from the \"bridge\" > network inside the `Networks` map instead, which contains the same > information. This field was deprecated in Docker 1.9 and is scheduled > to be removed in Docker 17.12.0
     #[serde(rename = "EndpointID", skip_serializing_if = "Option::is_none")]
     endpoint_id: Option<String>,
@@ -82,7 +82,7 @@ pub struct NetworkSettings {
     mac_address: Option<String>,
     /// Information about all networks that the container is connected to.
     #[serde(rename = "Networks", skip_serializing_if = "Option::is_none")]
-    networks: Option<::std::collections::HashMap<String, ::models::EndpointSettings>>,
+    networks: Option<::std::collections::HashMap<String, crate::models::EndpointSettings>>,
 }
 
 impl NetworkSettings {
@@ -195,16 +195,16 @@ impl NetworkSettings {
         self.link_local_i_pv6_prefix_len = None;
     }
 
-    pub fn set_ports(&mut self, ports: ::models::PortMap) {
+    pub fn set_ports(&mut self, ports: crate::models::PortMap) {
         self.ports = Some(ports);
     }
 
-    pub fn with_ports(mut self, ports: ::models::PortMap) -> Self {
+    pub fn with_ports(mut self, ports: crate::models::PortMap) -> Self {
         self.ports = Some(ports);
         self
     }
 
-    pub fn ports(&self) -> Option<&::models::PortMap> {
+    pub fn ports(&self) -> Option<&crate::models::PortMap> {
         self.ports.as_ref()
     }
 
@@ -229,19 +229,22 @@ impl NetworkSettings {
         self.sandbox_key = None;
     }
 
-    pub fn set_secondary_ip_addresses(&mut self, secondary_ip_addresses: Vec<::models::Address>) {
+    pub fn set_secondary_ip_addresses(
+        &mut self,
+        secondary_ip_addresses: Vec<crate::models::Address>,
+    ) {
         self.secondary_ip_addresses = Some(secondary_ip_addresses);
     }
 
     pub fn with_secondary_ip_addresses(
         mut self,
-        secondary_ip_addresses: Vec<::models::Address>,
+        secondary_ip_addresses: Vec<crate::models::Address>,
     ) -> Self {
         self.secondary_ip_addresses = Some(secondary_ip_addresses);
         self
     }
 
-    pub fn secondary_ip_addresses(&self) -> Option<&[::models::Address]> {
+    pub fn secondary_ip_addresses(&self) -> Option<&[crate::models::Address]> {
         self.secondary_ip_addresses.as_ref().map(AsRef::as_ref)
     }
 
@@ -251,20 +254,20 @@ impl NetworkSettings {
 
     pub fn set_secondary_i_pv6_addresses(
         &mut self,
-        secondary_i_pv6_addresses: Vec<::models::Address>,
+        secondary_i_pv6_addresses: Vec<crate::models::Address>,
     ) {
         self.secondary_i_pv6_addresses = Some(secondary_i_pv6_addresses);
     }
 
     pub fn with_secondary_i_pv6_addresses(
         mut self,
-        secondary_i_pv6_addresses: Vec<::models::Address>,
+        secondary_i_pv6_addresses: Vec<crate::models::Address>,
     ) -> Self {
         self.secondary_i_pv6_addresses = Some(secondary_i_pv6_addresses);
         self
     }
 
-    pub fn secondary_i_pv6_addresses(&self) -> Option<&[::models::Address]> {
+    pub fn secondary_i_pv6_addresses(&self) -> Option<&[crate::models::Address]> {
         self.secondary_i_pv6_addresses.as_ref().map(AsRef::as_ref)
     }
 
@@ -410,14 +413,14 @@ impl NetworkSettings {
 
     pub fn set_networks(
         &mut self,
-        networks: ::std::collections::HashMap<String, ::models::EndpointSettings>,
+        networks: ::std::collections::HashMap<String, crate::models::EndpointSettings>,
     ) {
         self.networks = Some(networks);
     }
 
     pub fn with_networks(
         mut self,
-        networks: ::std::collections::HashMap<String, ::models::EndpointSettings>,
+        networks: ::std::collections::HashMap<String, crate::models::EndpointSettings>,
     ) -> Self {
         self.networks = Some(networks);
         self
@@ -425,7 +428,7 @@ impl NetworkSettings {
 
     pub fn networks(
         &self,
-    ) -> Option<&::std::collections::HashMap<String, ::models::EndpointSettings>> {
+    ) -> Option<&::std::collections::HashMap<String, crate::models::EndpointSettings>> {
         self.networks.as_ref()
     }
 

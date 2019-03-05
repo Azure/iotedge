@@ -9,7 +9,7 @@
  */
 
 /// TlsInfo : Information about the issuer of leaf TLS certificates and the trusted root CA certificate
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

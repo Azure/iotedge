@@ -33,24 +33,24 @@ impl<C: hyper::client::connect::Connect> SystemApiClient<C> {
 pub trait SystemApi: Send + Sync {
     fn system_auth(
         &self,
-        auth_config: ::models::AuthConfig,
-    ) -> Box<Future<Item = ::models::InlineResponse20010, Error = Error<serde_json::Value>>>;
+        auth_config: crate::models::AuthConfig,
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse20010, Error = Error<serde_json::Value>>>;
     fn system_data_usage(
         &self,
-    ) -> Box<Future<Item = ::models::InlineResponse20013, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse20013, Error = Error<serde_json::Value>>>;
     fn system_events(
         &self,
         since: &str,
         until: &str,
         filters: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse20012, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse20012, Error = Error<serde_json::Value>>>;
     fn system_info(
         &self,
-    ) -> Box<Future<Item = ::models::SystemInfo, Error = Error<serde_json::Value>> + Send>;
-    fn system_ping(&self) -> Box<Future<Item = String, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::SystemInfo, Error = Error<serde_json::Value>> + Send>;
+    fn system_ping(&self) -> Box<dyn Future<Item = String, Error = Error<serde_json::Value>>>;
     fn system_version(
         &self,
-    ) -> Box<Future<Item = ::models::InlineResponse20011, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse20011, Error = Error<serde_json::Value>>>;
 }
 
 impl<C> SystemApi for SystemApiClient<C>
@@ -61,8 +61,9 @@ where
 {
     fn system_auth(
         &self,
-        auth_config: ::models::AuthConfig,
-    ) -> Box<Future<Item = ::models::InlineResponse20010, Error = Error<serde_json::Value>>> {
+        auth_config: crate::models::AuthConfig,
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse20010, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -110,7 +111,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::InlineResponse20010, _> =
+                    let parsed: Result<crate::models::InlineResponse20010, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -119,7 +120,8 @@ where
 
     fn system_data_usage(
         &self,
-    ) -> Box<Future<Item = ::models::InlineResponse20013, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse20013, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -160,7 +162,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::InlineResponse20013, _> =
+                    let parsed: Result<crate::models::InlineResponse20013, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -172,7 +174,8 @@ where
         since: &str,
         until: &str,
         filters: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse20012, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse20012, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -218,7 +221,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::InlineResponse20012, _> =
+                    let parsed: Result<crate::models::InlineResponse20012, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -227,7 +230,8 @@ where
 
     fn system_info(
         &self,
-    ) -> Box<Future<Item = ::models::SystemInfo, Error = Error<serde_json::Value>> + Send> {
+    ) -> Box<dyn Future<Item = crate::models::SystemInfo, Error = Error<serde_json::Value>> + Send>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -268,13 +272,14 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::SystemInfo, _> = serde_json::from_slice(&body);
+                    let parsed: Result<crate::models::SystemInfo, _> =
+                        serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
         )
     }
 
-    fn system_ping(&self) -> Box<Future<Item = String, Error = Error<serde_json::Value>>> {
+    fn system_ping(&self) -> Box<dyn Future<Item = String, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -323,7 +328,8 @@ where
 
     fn system_version(
         &self,
-    ) -> Box<Future<Item = ::models::InlineResponse20011, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse20011, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -364,7 +370,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::InlineResponse20011, _> =
+                    let parsed: Result<crate::models::InlineResponse20011, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),

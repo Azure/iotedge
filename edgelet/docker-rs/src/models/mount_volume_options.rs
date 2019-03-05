@@ -9,7 +9,7 @@
  */
 
 /// MountVolumeOptions : Optional configuration for the `volume` type.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -22,7 +22,7 @@ pub struct MountVolumeOptions {
     #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
     #[serde(rename = "DriverConfig", skip_serializing_if = "Option::is_none")]
-    driver_config: Option<::models::MountVolumeOptionsDriverConfig>,
+    driver_config: Option<crate::models::MountVolumeOptionsDriverConfig>,
 }
 
 impl MountVolumeOptions {
@@ -69,19 +69,22 @@ impl MountVolumeOptions {
         self.labels = None;
     }
 
-    pub fn set_driver_config(&mut self, driver_config: ::models::MountVolumeOptionsDriverConfig) {
+    pub fn set_driver_config(
+        &mut self,
+        driver_config: crate::models::MountVolumeOptionsDriverConfig,
+    ) {
         self.driver_config = Some(driver_config);
     }
 
     pub fn with_driver_config(
         mut self,
-        driver_config: ::models::MountVolumeOptionsDriverConfig,
+        driver_config: crate::models::MountVolumeOptionsDriverConfig,
     ) -> Self {
         self.driver_config = Some(driver_config);
         self
     }
 
-    pub fn driver_config(&self) -> Option<&::models::MountVolumeOptionsDriverConfig> {
+    pub fn driver_config(&self) -> Option<&crate::models::MountVolumeOptionsDriverConfig> {
         self.driver_config.as_ref()
     }
 
