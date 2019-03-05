@@ -1,14 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![cfg(windows)]
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::module_name_repetitions, clippy::use_self)]
-
-extern crate edgelet_utils;
-extern crate failure;
-extern crate log;
-extern crate winapi;
 
 pub mod error;
 mod handle;
@@ -29,8 +24,8 @@ use winapi::um::winnt::{
 
 use edgelet_utils::ensure_not_empty_with_context;
 
-use error::{Error, ErrorKind};
-use handle::Handle;
+use crate::error::{Error, ErrorKind};
+use crate::handle::Handle;
 
 pub struct EventLogger {
     name: String,
@@ -72,11 +67,11 @@ impl EventLogger {
 }
 
 impl Log for EventLogger {
-    fn enabled(&self, metadata: &Metadata) -> bool {
+    fn enabled(&self, metadata: &Metadata<'_>) -> bool {
         metadata.level() <= self.min_level
     }
 
-    fn log(&self, record: &Record) {
+    fn log(&self, record: &Record<'_>) {
         if self.enabled(record.metadata()) {
             let message: Vec<u16> =
                 OsString::from(format!("{} -- {}", record.target(), record.args()))
