@@ -71,6 +71,10 @@
             -EdgeE2ERootCAKeyRSAFile "file path"
             -EdgeE2ETestRootCAPassword "xxxx"
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 63d567a82d7e841bb9dfd39fc989365ce2babb8d
     .NOTES
         This script is to make running E2E tests easier and centralize E2E test steps in 1 place for reusability.
         It shares common tasks such as clean up and installation of IoT Edge Security Daemon.
@@ -455,7 +459,8 @@ Function RunQuickstartCertsTest
         -n `"$env:computername`" ``
         -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
-        -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
+        -p `"$ContainerRegistryPassword`" ``
+        --optimize_for_performance true ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         --leave-running=Core ``
         --no-verify"
@@ -551,7 +556,8 @@ Function RunTempSensorTest
         -e `"$EventHubConnectionString`" ``
         -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
-        -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
+        -p `"$ContainerRegistryPassword`" ``
+        --optimize_for_performance true ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         -tw `"$TwinTestFileArtifactFilePath`""
     $testCommand = AppendInstallationOption($testCommand)
@@ -685,7 +691,8 @@ Function RunTransparentGatewayTest
         -n `"$env:computername`" ``
         -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
-        -p `"$ContainerRegistryPassword`" --optimize_for_performance true ``
+        -p `"$ContainerRegistryPassword`" ``
+        --optimize_for_performance true ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         --leave-running=Core ``
         --no-verify ``
