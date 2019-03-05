@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
@@ -9,37 +9,17 @@
     clippy::use_self,
 )]
 
-extern crate base64;
-extern crate config;
-extern crate failure;
-#[macro_use]
-extern crate log;
-extern crate regex;
-extern crate serde;
-extern crate sha2;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
-#[cfg(test)]
-extern crate tempdir;
-extern crate url;
-extern crate url_serde;
-
-extern crate edgelet_core;
-#[cfg(test)]
-extern crate edgelet_docker;
-extern crate edgelet_utils;
-
 use std::fs::OpenOptions;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use config::{Config, Environment, File, FileFormat};
 use failure::{Context, Fail};
-use log::Level;
+use log::{debug, Level};
 use regex::Regex;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde_derive::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use url::Url;
 

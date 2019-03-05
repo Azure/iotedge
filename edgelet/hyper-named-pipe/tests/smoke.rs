@@ -1,17 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![cfg(windows)]
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-
-extern crate futures;
-extern crate hyper;
-extern crate rand;
-extern crate tokio;
-extern crate typed_headers;
-
-extern crate edgelet_test_utils;
-extern crate hyper_named_pipe;
 
 use std::io;
 
