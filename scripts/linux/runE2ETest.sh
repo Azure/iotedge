@@ -9,24 +9,24 @@ function clean_up() {
     print_highlighted_message 'Clean up'
 
     echo 'Stop IoT Edge services'
-    sudo systemctl stop iotedge.socket iotedge.mgmt.socket || true
-    sudo systemctl kill iotedge || true
-    sudo systemctl stop iotedge || true
+    systemctl stop iotedge.socket iotedge.mgmt.socket || true
+    systemctl kill iotedge || true
+    systemctl stop iotedge || true
 
     echo 'Remove IoT Edge and config file'
-    sudo apt-get purge libiothsm-std --yes || true
-    sudo rm -rf /var/lib/iotedge/
-    sudo rm -rf /var/run/iotedge/
-    sudo rm -rf /etc/iotedge/config.yaml
+    apt-get purge libiothsm-std --yes || true
+    rm -rf /var/lib/iotedge/
+    rm -rf /var/run/iotedge/
+    rm -rf /etc/iotedge/config.yaml
 
     echo 'Do docker system prune'
-    sudo docker system prune -af || true
+    docker system prune -af || true
 }
 
 function create_iotedge_service_config {
     print_highlighted_message 'Create IoT Edge service config'
-    sudo mkdir /etc/systemd/system/iotedge.service.d/ || true
-    sudo bash -c "echo '[Service]
+    mkdir /etc/systemd/system/iotedge.service.d/ || true
+    bash -c "echo '[Service]
 Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/iotedge.service.d/override.conf"
 }
 
@@ -80,7 +80,7 @@ function prepare_test_from_artifacts() {
     print_highlighted_message 'Prepare test from artifacts'
 
     echo 'Remove working folder'
-    sudo rm -rf "$working_folder"
+    rm -rf "$working_folder"
     mkdir -p "$working_folder"
 
     declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
@@ -174,35 +174,35 @@ function print_logs() {
 
     print_highlighted_message 'Print logs'
     print_highlighted_message 'LOGS FROM IOTEDGED'
-    sudo journalctl -u iotedge -u docker --since "$test_start_time" --no-pager || true
+    journalctl -u iotedge -u docker --since "$test_start_time" --no-pager || true
 
     print_highlighted_message 'EDGE AGENT LOGS'
-    sudo docker logs edgeAgent || true
+    docker logs edgeAgent || true
 
     print_highlighted_message 'EDGE HUB LOGS'
-    sudo docker logs edgeHub || true
+    docker logs edgeHub || true
 
     if [[ "${TEST_NAME,,}" == 'tempsensor' ]]; then
         print_highlighted_message 'TEMP SENSOR LOGS'
-        sudo docker logs tempSensor || true
+        docker logs tempSensor || true
     fi
 
     if [[ "${TEST_NAME,,}" == 'tempfilter' ]]; then
         print_highlighted_message 'TEMP FILTER LOGS'
-        sudo docker logs tempFilter || true
+        docker logs tempFilter || true
     fi
 
     if [[ "${TEST_NAME,,}" == 'tempfilterfunctions' ]]; then
         print_highlighted_message 'TEMP FILTER FUNCTIONS LOGS'
-        sudo docker logs tempFilterFunctions || true
+        docker logs tempFilterFunctions || true
     fi
 
     if [[ "${TEST_NAME,,}" == directmethod* ]]; then
         print_highlighted_message 'DIRECT MTEHOD SENDER LOGS'
-        sudo docker logs DirectMethodSender || true
+        docker logs DirectMethodSender || true
 
         print_highlighted_message 'DIRECT MTEHOD RECEIVER LOGS'
-        sudo docker logs DirectMethodReceiver || true
+        docker logs DirectMethodReceiver || true
     fi
 }
 
@@ -305,7 +305,7 @@ function run_directmethod_test()
 {
     SECONDS=0
     local ret=0
-    sudo "$quickstart_working_folder/IotEdgeQuickstart" \
+    "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
         -a "$iotedge_package" \
         -c "$IOTHUB_CONNECTION_STRING" \
@@ -386,11 +386,12 @@ function run_quickstartcerts_test() {
 
     SECONDS=0
     local ret=0
-    sudo "$quickstart_working_folder/IotEdgeQuickstart" \
+    "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
         -a "$iotedge_package" \
         -c "$IOTHUB_CONNECTION_STRING" \
         -e "doesNotNeed" \
+        -n "$(hostname)" \
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
@@ -400,10 +401,11 @@ function run_quickstartcerts_test() {
         --no-verify && ret=$? || ret=$?
 
     declare -a certs=( /var/lib/iotedge/hsm/certs/edge_owner_ca*.pem )
+    echo "cert: ${certs[0]}"
     # Workaround for multiple certificates in the x509store - remove this after quick start certs have Authority Key Identifier
-    sudo rm -rf ~/.dotnet/corefx/cryptography/x509stores/root/
+    rm -rf ~/.dotnet/corefx/cryptography/x509stores/root/
 
-    sudo "$leafdevice_working_folder/LeafDevice" \
+    "$leafdevice_working_folder/LeafDevice" \
         -c "$IOTHUB_CONNECTION_STRING" \
         -e "$EVENTHUB_CONNECTION_STRING" \
         -d "$device_id-leaf" \
@@ -427,7 +429,7 @@ function run_tempfilter_test() {
 
     SECONDS=0
     local ret=0
-    sudo "$quickstart_working_folder/IotEdgeQuickstart" \
+    "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
         -a "$iotedge_package" \
         -c "$IOTHUB_CONNECTION_STRING" \
@@ -456,7 +458,7 @@ function run_tempfilterfunctions_test() {
 
     SECONDS=0
     local ret=0
-    sudo "$quickstart_working_folder/IotEdgeQuickstart" \
+    "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
         -a "$iotedge_package" \
         -c "$IOTHUB_CONNECTION_STRING" \
@@ -485,7 +487,7 @@ function run_tempsensor_test() {
 
     SECONDS=0
     local ret=0
-    sudo "$quickstart_working_folder/IotEdgeQuickstart" \
+    "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
         -a "$iotedge_package" \
         -c "$IOTHUB_CONNECTION_STRING" \
