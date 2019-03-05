@@ -9,7 +9,7 @@
  */
 
 /// Platform : Platform represents the platform (Arch/OS).
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

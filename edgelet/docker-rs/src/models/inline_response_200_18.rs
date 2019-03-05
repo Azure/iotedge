@@ -9,7 +9,7 @@
  */
 
 /// InlineResponse20018 : Describes a permission the user has to accept upon installing the plugin.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

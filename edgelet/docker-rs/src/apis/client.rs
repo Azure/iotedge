@@ -7,11 +7,11 @@ use hyper;
 
 pub struct APIClient<C: hyper::client::connect::Connect> {
     configuration: Arc<Configuration<C>>,
-    container_api: Box<::apis::ContainerApi>,
-    image_api: Box<::apis::ImageApi>,
-    network_api: Box<::apis::NetworkApi>,
-    system_api: Box<::apis::SystemApi>,
-    volume_api: Box<::apis::VolumeApi>,
+    container_api: Box<dyn crate::apis::ContainerApi>,
+    image_api: Box<dyn crate::apis::ImageApi>,
+    network_api: Box<dyn crate::apis::NetworkApi>,
+    system_api: Box<dyn crate::apis::SystemApi>,
+    volume_api: Box<dyn crate::apis::VolumeApi>,
 }
 
 impl<C: hyper::client::connect::Connect + 'static> APIClient<C> {
@@ -20,31 +20,31 @@ impl<C: hyper::client::connect::Connect + 'static> APIClient<C> {
 
         APIClient {
             configuration: configuration.clone(),
-            container_api: Box::new(::apis::ContainerApiClient::new(configuration.clone())),
-            image_api: Box::new(::apis::ImageApiClient::new(configuration.clone())),
-            network_api: Box::new(::apis::NetworkApiClient::new(configuration.clone())),
-            system_api: Box::new(::apis::SystemApiClient::new(configuration.clone())),
-            volume_api: Box::new(::apis::VolumeApiClient::new(configuration.clone())),
+            container_api: Box::new(crate::apis::ContainerApiClient::new(configuration.clone())),
+            image_api: Box::new(crate::apis::ImageApiClient::new(configuration.clone())),
+            network_api: Box::new(crate::apis::NetworkApiClient::new(configuration.clone())),
+            system_api: Box::new(crate::apis::SystemApiClient::new(configuration.clone())),
+            volume_api: Box::new(crate::apis::VolumeApiClient::new(configuration.clone())),
         }
     }
 
-    pub fn container_api(&self) -> &::apis::ContainerApi {
+    pub fn container_api(&self) -> &dyn crate::apis::ContainerApi {
         self.container_api.as_ref()
     }
 
-    pub fn image_api(&self) -> &::apis::ImageApi {
+    pub fn image_api(&self) -> &dyn crate::apis::ImageApi {
         self.image_api.as_ref()
     }
 
-    pub fn network_api(&self) -> &::apis::NetworkApi {
+    pub fn network_api(&self) -> &dyn crate::apis::NetworkApi {
         self.network_api.as_ref()
     }
 
-    pub fn system_api(&self) -> &::apis::SystemApi {
+    pub fn system_api(&self) -> &dyn crate::apis::SystemApi {
         self.system_api.as_ref()
     }
 
-    pub fn volume_api(&self) -> &::apis::VolumeApi {
+    pub fn volume_api(&self) -> &dyn crate::apis::VolumeApi {
         self.volume_api.as_ref()
     }
 }

@@ -9,14 +9,14 @@
  */
 
 /// ServiceSpecMode : Scheduling mode for the service.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServiceSpecMode {
     #[serde(rename = "Replicated", skip_serializing_if = "Option::is_none")]
-    replicated: Option<::models::ServiceSpecModeReplicated>,
+    replicated: Option<crate::models::ServiceSpecModeReplicated>,
     #[serde(rename = "Global", skip_serializing_if = "Option::is_none")]
     global: Option<Value>,
 }
@@ -30,16 +30,16 @@ impl ServiceSpecMode {
         }
     }
 
-    pub fn set_replicated(&mut self, replicated: ::models::ServiceSpecModeReplicated) {
+    pub fn set_replicated(&mut self, replicated: crate::models::ServiceSpecModeReplicated) {
         self.replicated = Some(replicated);
     }
 
-    pub fn with_replicated(mut self, replicated: ::models::ServiceSpecModeReplicated) -> Self {
+    pub fn with_replicated(mut self, replicated: crate::models::ServiceSpecModeReplicated) -> Self {
         self.replicated = Some(replicated);
         self
     }
 
-    pub fn replicated(&self) -> Option<&::models::ServiceSpecModeReplicated> {
+    pub fn replicated(&self) -> Option<&crate::models::ServiceSpecModeReplicated> {
         self.replicated.as_ref()
     }
 
