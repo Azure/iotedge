@@ -52,7 +52,7 @@ use edgelet_core::{
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
-use edgelet_hsm::Crypto;
+use edgelet_hsm::{Certificate, Crypto};
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
 use edgelet_http::{HyperExt, MaybeProxyClient, API_VERSION};
@@ -340,6 +340,23 @@ pub fn get_proxy_uri(https_proxy: Option<String>) -> Result<Option<Uri>, Error> 
     Ok(proxy_uri)
 }
 
+fn prepare_tls_server_cert<C>(crypto: &C) -> Result<Certificate, Error>
+where
+    C: CreateCertificate,
+{
+    // TODO: Kevin
+    let edgelet_cert_props = CertificateProperties::new(
+        IOTEDGED_VALIDITY,
+        IOTEDGED_COMMONNAME.to_string(),
+        CertificateType::Server,
+        IOTEDGED_CA_ALIAS.to_string(),
+    )
+    .with_issuer(CertificateIssuer::DeviceCa);
+
+    crypto
+        .create_certificate(&edgelet_cert_props)
+}
+
 fn prepare_workload_ca<C>(crypto: &C) -> Result<(), Error>
 where
     C: CreateCertificate,
@@ -515,6 +532,8 @@ where
 
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
     let (work_tx, work_rx) = oneshot::channel();
+
+    // crypto::create_certificate()
 
     let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx);
 
