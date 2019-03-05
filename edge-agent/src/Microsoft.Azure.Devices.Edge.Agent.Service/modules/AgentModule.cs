@@ -28,14 +28,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<string> workloadApiVersion;
         readonly string moduleId;
         readonly Option<string> moduleGenerationId;
-        
+
         public AgentModule(IAgentAppSettings appSettings)
         {
             this.maxRestartCount = appSettings.MaxRestartCount;
             this.intensiveCareTime = appSettings.IntensiveCareTime;
             this.coolOffTimeUnit = appSettings.CoolOffTimeUnit;
             this.usePersistentStorage = appSettings.UsePersistentStorage;
-            this.storagePath = Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
+            this.storagePath = Preconditions.CheckNonWhiteSpace(appSettings.StoragePath, nameof(appSettings.StoragePath));
 
             switch (appSettings.RuntimeMode)
             {
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     throw new InvalidOperationException($"Runtime mode '{appSettings.RuntimeMode}' not supported.");
             }
         }
-        
+
         static Dictionary<Type, IDictionary<string, Type>> DeploymentConfigTypeMapping
         {
             get

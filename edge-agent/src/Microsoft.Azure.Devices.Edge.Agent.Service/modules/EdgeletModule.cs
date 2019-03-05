@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(appSettings.IoTHubHostName, nameof(appSettings.IoTHubHostName));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(appSettings.EdgeDeviceHostName, nameof(appSettings.EdgeDeviceHostName));
             this.deviceId = Preconditions.CheckNonWhiteSpace(appSettings.DeviceId, nameof(appSettings.DeviceId));
-            
+
             this.managementUri = Preconditions.CheckNotNull(new Uri(appSettings.ManagementUri), nameof(appSettings.ManagementUri));
             this.workloadUri = Preconditions.CheckNotNull(new Uri(appSettings.WorkloadUri), nameof(appSettings.WorkloadUri));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(appSettings.ApiVersion, nameof(appSettings.ApiVersion));
