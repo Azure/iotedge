@@ -955,7 +955,7 @@ fn container_logs_succeeds() {
         DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
             .unwrap();
 
-    let options = LogOptions::new().with_follow(true).with_tail(LogTail::All);
+    let options = LogOptions::new().with_follow(true).with_tail(LogTail::All).with_since(10000);
     let task = mri.logs("mod1", &options);
 
     let expected_body = [

@@ -180,7 +180,11 @@ fn run() -> Result<(), Error> {
                 .value_of("tail")
                 .and_then(|a| a.parse::<LogTail>().ok())
                 .unwrap_or_default();
-            let options = LogOptions::new().with_follow(follow).with_tail(tail);
+            let since = args
+                .value_of("since")
+                .and_then(|a| a.parse::<i32>().ok())
+                .unwrap_or_default(); 
+            let options = LogOptions::new().with_follow(follow).with_tail(tail).with_since(since);
             tokio_runtime.block_on(Logs::new(id, options, runtime).execute())
         }
         ("version", Some(_args)) => tokio_runtime.block_on(Version::new().execute()),
