@@ -9,7 +9,7 @@
  */
 
 /// HealthConfig : A test to perform to check that the container is healthy.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

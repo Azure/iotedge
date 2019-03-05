@@ -9,14 +9,14 @@
  */
 
 /// NodeStatus : NodeStatus represents the status of a node.  It provides the current status of the node, as seen by the manager.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NodeStatus {
     #[serde(rename = "State", skip_serializing_if = "Option::is_none")]
-    state: Option<::models::NodeState>,
+    state: Option<crate::models::NodeState>,
     #[serde(rename = "Message", skip_serializing_if = "Option::is_none")]
     message: Option<String>,
     /// IP address of the node.
@@ -34,16 +34,16 @@ impl NodeStatus {
         }
     }
 
-    pub fn set_state(&mut self, state: ::models::NodeState) {
+    pub fn set_state(&mut self, state: crate::models::NodeState) {
         self.state = Some(state);
     }
 
-    pub fn with_state(mut self, state: ::models::NodeState) -> Self {
+    pub fn with_state(mut self, state: crate::models::NodeState) -> Self {
         self.state = Some(state);
         self
     }
 
-    pub fn state(&self) -> Option<&::models::NodeState> {
+    pub fn state(&self) -> Option<&crate::models::NodeState> {
         self.state.as_ref()
     }
 

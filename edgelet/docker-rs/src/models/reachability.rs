@@ -9,7 +9,7 @@
  */
 
 /// Reachability : Reachability represents the reachability of a node.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

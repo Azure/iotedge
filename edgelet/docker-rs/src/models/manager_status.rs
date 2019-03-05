@@ -9,7 +9,7 @@
  */
 
 /// ManagerStatus : ManagerStatus represents the status of a manager.  It provides the current status of a node's manager component, if the node is a manager.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -18,7 +18,7 @@ pub struct ManagerStatus {
     #[serde(rename = "Leader", skip_serializing_if = "Option::is_none")]
     leader: Option<bool>,
     #[serde(rename = "Reachability", skip_serializing_if = "Option::is_none")]
-    reachability: Option<::models::Reachability>,
+    reachability: Option<crate::models::Reachability>,
     /// The IP address and port at which the manager is reachable.
     #[serde(rename = "Addr", skip_serializing_if = "Option::is_none")]
     addr: Option<String>,
@@ -51,16 +51,16 @@ impl ManagerStatus {
         self.leader = None;
     }
 
-    pub fn set_reachability(&mut self, reachability: ::models::Reachability) {
+    pub fn set_reachability(&mut self, reachability: crate::models::Reachability) {
         self.reachability = Some(reachability);
     }
 
-    pub fn with_reachability(mut self, reachability: ::models::Reachability) -> Self {
+    pub fn with_reachability(mut self, reachability: crate::models::Reachability) -> Self {
         self.reachability = Some(reachability);
         self
     }
 
-    pub fn reachability(&self) -> Option<&::models::Reachability> {
+    pub fn reachability(&self) -> Option<&crate::models::Reachability> {
         self.reachability.as_ref()
     }
 

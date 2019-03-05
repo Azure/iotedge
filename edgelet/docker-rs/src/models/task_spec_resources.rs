@@ -9,7 +9,7 @@
  */
 
 /// TaskSpecResources : Resource requirements which apply to each individual container created as part of the service.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -17,10 +17,10 @@ use serde_json::Value;
 pub struct TaskSpecResources {
     /// Define resources limits.
     #[serde(rename = "Limits", skip_serializing_if = "Option::is_none")]
-    limits: Option<::models::ResourceObject>,
+    limits: Option<crate::models::ResourceObject>,
     /// Define resources reservation.
     #[serde(rename = "Reservation", skip_serializing_if = "Option::is_none")]
-    reservation: Option<::models::ResourceObject>,
+    reservation: Option<crate::models::ResourceObject>,
 }
 
 impl TaskSpecResources {
@@ -32,16 +32,16 @@ impl TaskSpecResources {
         }
     }
 
-    pub fn set_limits(&mut self, limits: ::models::ResourceObject) {
+    pub fn set_limits(&mut self, limits: crate::models::ResourceObject) {
         self.limits = Some(limits);
     }
 
-    pub fn with_limits(mut self, limits: ::models::ResourceObject) -> Self {
+    pub fn with_limits(mut self, limits: crate::models::ResourceObject) -> Self {
         self.limits = Some(limits);
         self
     }
 
-    pub fn limits(&self) -> Option<&::models::ResourceObject> {
+    pub fn limits(&self) -> Option<&crate::models::ResourceObject> {
         self.limits.as_ref()
     }
 
@@ -49,16 +49,16 @@ impl TaskSpecResources {
         self.limits = None;
     }
 
-    pub fn set_reservation(&mut self, reservation: ::models::ResourceObject) {
+    pub fn set_reservation(&mut self, reservation: crate::models::ResourceObject) {
         self.reservation = Some(reservation);
     }
 
-    pub fn with_reservation(mut self, reservation: ::models::ResourceObject) -> Self {
+    pub fn with_reservation(mut self, reservation: crate::models::ResourceObject) -> Self {
         self.reservation = Some(reservation);
         self
     }
 
-    pub fn reservation(&self) -> Option<&::models::ResourceObject> {
+    pub fn reservation(&self) -> Option<&crate::models::ResourceObject> {
         self.reservation.as_ref()
     }
 
