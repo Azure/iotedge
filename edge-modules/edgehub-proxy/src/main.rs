@@ -140,6 +140,7 @@ fn run() -> Result<(), Error> {
             .value_of("host")
             .expect("no value for required HOST"),
     )?;
+    let client = client(&url)?;
 
     let api_version = matches
         .value_of("apiversion")
@@ -151,46 +152,41 @@ fn run() -> Result<(), Error> {
         .value_of("genid")
         .expect("no value for required GENID");
 
-    if env::var("USE_PROVIDED_CERT").is_err() {
+    if let ("cert-server", Some(args)) = matches.subcommand() {
+        let common_name = args
+            .value_of("common name")
+            .expect("no value for required COMMON_NAME");
+        let expiration = args
+            .value_of("expiration")
+            .expect("no value for required EXPIRATION");
+        info!("Retrieving server certificate with common name \"{}\" and expiration \"{}\" from {}...", common_name, expiration, url);
 
-        let client = client(&url)?;
+        let cert_request =
+            ServerCertificateRequest::new(common_name.to_string(), expiration.to_string());
+        let request =
+            client
+                .workload_api()
+                .create_server_certificate(api_version, module, gen, cert_request);
 
-        if let ("cert-server", Some(args)) = matches.subcommand() {
-            let common_name = args
-                .value_of("common name")
-                .expect("no value for required COMMON_NAME");
-            let expiration = args
-                .value_of("expiration")
-                .expect("no value for required EXPIRATION");
-            info!("Retrieving server certificate with common name \"{}\" and expiration \"{}\" from {}...", common_name, expiration, url);
+        let response = tokio_runtime.block_on(request)?;
+        info!("Retrieved server certificate.");
 
-            let cert_request =
-                ServerCertificateRequest::new(common_name.to_string(), expiration.to_string());
-            let request =
-                client
-                    .workload_api()
-                    .create_server_certificate(api_version, module, gen, cert_request);
+        if let Some(crt_path) = args.value_of("crt file") {
+            fs::write(crt_path, response.certificate())?;
+        }
 
-            let response = tokio_runtime.block_on(request)?;
-            info!("Retrieved server certificate.");
-
-            if let Some(crt_path) = args.value_of("crt file") {
-                fs::write(crt_path, response.certificate())?;
+        if let Some(key_path) = args.value_of("key file") {
+            if let Some(bytes) = response.private_key().bytes() {
+                fs::write(key_path, bytes)?;
             }
+        }
 
-            if let Some(key_path) = args.value_of("key file") {
-                if let Some(bytes) = response.private_key().bytes() {
-                    fs::write(key_path, bytes)?;
-                }
-            }
-
-            if let Some(combined_path) = args.value_of("combined file") {
-                if let Some(bytes) = response.private_key().bytes() {
-                    fs::write(
-                        combined_path,
-                        format!("{}{}", response.certificate(), bytes),
-                    )?;
-                }
+        if let Some(combined_path) = args.value_of("combined file") {
+            if let Some(bytes) = response.private_key().bytes() {
+                fs::write(
+                    combined_path,
+                    format!("{}{}", response.certificate(), bytes),
+                )?;
             }
         }
     }

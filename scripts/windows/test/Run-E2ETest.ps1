@@ -45,11 +45,10 @@
         Event hub connection string for receive D2C messages
 
     .EXAMPLE
-
         .\Run-E2ETest.ps1
             -E2ETestFolder "C:\Data\e2etests"
             -ReleaseLabel "Release-ARM-1"
-            -ReleaseArtifactImageBuildNumber "20190101.1"
+            -ArtifactImageBuildNumber "20190101.1"
             -TestName "TempSensor"
             -ContainerRegistry "edgebuilds.azurecr.io"
             -ContainerRegistryUsername "EdgeBuilds"
@@ -61,7 +60,7 @@
         .\Run-E2ETest.ps1
             -E2ETestFolder "C:\Data\e2etests"
             -ReleaseLabel "Release-ARM-1"
-            -ReleaseArtifactImageBuildNumber "20190101.1"
+            -ArtifactImageBuildNumber "20190101.1"
             -TestName "TransparentGateway"
             -ContainerRegistry "edgebuilds.azurecr.io"
             -ContainerRegistryUsername "EdgeBuilds"
@@ -72,7 +71,10 @@
             -EdgeE2ERootCAKeyRSAFile "file path"
             -EdgeE2ETestRootCAPassword "xxxx"
 
+<<<<<<< HEAD
+=======
 
+>>>>>>> 63d567a82d7e841bb9dfd39fc989365ce2babb8d
     .NOTES
         This script is to make running E2E tests easier and centralize E2E test steps in 1 place for reusability.
         It shares common tasks such as clean up and installation of IoT Edge Security Daemon.
