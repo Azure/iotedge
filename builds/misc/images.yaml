@@ -46,20 +46,20 @@ jobs:
           ArtifactName: 'core-linux'
 
      # azureiotedge-diagnostics
-     - template: templates/image-linux.yaml
-       parameters:
-         name: azureiotedge-diagnostics
-         imageName: azureiotedge-diagnostics
-         project: azureiotedge-diagnostics
+      - template: templates/image-linux.yaml
+        parameters:
+          name: azureiotedge-diagnostics
+          imageName: azureiotedge-diagnostics
+          project: azureiotedge-diagnostics
 
     # Edge Agent
-     - template: templates/image-linux.yaml
-       parameters:
-         name: Edge Agent
-         imageName: azureiotedge-agent
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Edge Agent
+          imageName: azureiotedge-agent
           project: Microsoft.Azure.Devices.Edge.Agent.Service
 
-      # Edge Hub
+     # Edge Hub
       - template: templates/image-linux.yaml
         parameters:
           name: Edge Hub
