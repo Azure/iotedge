@@ -39,11 +39,11 @@ jobs:
       - script: scripts/linux/buildDiagnostics.sh
         displayName: Build iotedge-diagnostics
 
-     - task: PublishBuildArtifacts@1
-       displayName: 'Publish Artifacts'
-       inputs:
-         PathtoPublish: '$(Build.BinariesDirectory)/publish'
-         ArtifactName: 'core-linux'
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts'
+        inputs:
+          PathtoPublish: '$(Build.BinariesDirectory)/publish'
+          ArtifactName: 'core-linux'
 
      # azureiotedge-diagnostics
      - template: templates/image-linux.yaml
