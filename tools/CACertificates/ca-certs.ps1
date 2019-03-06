@@ -37,7 +37,12 @@ $_certSuffix                 = "cert.pem"
 $_certPfxSuffix              = "cert.pfx"
 $_csrSuffix                  = "csr.pem"
 # Whether to use ECC or RSA is stored in a file.  If it doesn't exist, we default to ECC.
-$algorithmUsedFile           = "./algorithmUsed.txt"
+$algorithmUsedFile           = "$_basePath/algorithmUsed.txt"
+# avoid pesky conf file not found warnings when running certain openssl
+# commands that do not accept a config file argument
+$env:OPENSSL_CONF            = "$_opensslRootConfigFile"
+# despite being specified in openssl conf file, on windows hosts this is required
+$env:RANDFILE                = "$_basePath/.rnd"
 
 <#
     .SYNOPSIS
