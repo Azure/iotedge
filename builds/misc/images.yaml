@@ -362,6 +362,7 @@ jobs:
     dependsOn:
       - linux
       - windows
+      - linuxARM64
     variables:
       tags: "['latest']"
     steps:
