@@ -682,6 +682,18 @@ Function RunTransparentGatewayTest
     $edgeDeviceId = $deviceId
     PrintHighlightedMessage "Run transparent gateway test with -d ""$edgeDeviceId"" started at $testStartAt."
 
+    # setup environment before invoking cert gen script
+    $OpenSSLExeName="openssl.exe"
+    if ($NULL -eq (Get-Command $OpenSSLExeName -ErrorAction SilentlyContinue))
+    {
+        # if openssl is not in path add default openssl install path and try again
+        $env:PATH += ";$DefaultOpensslInstallPath"
+        if ($NULL -eq (Get-Command $OpenSSLExeName -ErrorAction SilentlyContinue))
+        {
+            throw ("$OpenSSLExeName is unavailable. Please install $OpenSSLExeName and set it in the PATH before proceeding.")
+        }
+    }
+    $env:FORCE_NO_PROD_WARNING="True"
     # dot source the certificate script
     . "$EdgeCertGenScript"
     # install the provided root CA to seed the certificate chain
@@ -817,6 +829,7 @@ Function PrintHighlightedMessage
 
 $Architecture = GetArchitecture
 $E2ETestFolder = (Resolve-Path $E2ETestFolder).Path
+$DefaultOpensslInstallPath = "C:\vcpkg\installed\x64-windows\tools\openssl"
 $InstallationScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\setup\IotEdgeSecurityDaemon.ps1"
 $EdgeCertGenScriptDir = Join-Path $E2ETestFolder "artifacts\core-windows\CACertificates"
 $EdgeCertGenScript = Join-Path $EdgeCertGenScriptDir "ca-certs.ps1"

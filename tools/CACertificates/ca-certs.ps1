@@ -43,6 +43,26 @@ $algorithmUsedFile           = "$_basePath/algorithmUsed.txt"
 $env:OPENSSL_CONF            = "$_opensslRootConfigFile"
 # despite being specified in openssl conf file, on windows hosts this is required
 $env:RANDFILE                = "$_basePath/.rnd"
+$FORCE_NO_PROD_WARNING       = if (-not (Test-Path env:FORCE_NO_PROD_WARNING)) { $False } else { $True }
+
+<#
+    .SYNOPSIS
+        Print a warning message conditionally
+    .DESCRIPTION
+        The Invoke-External cmdlet enables the synchronous execution of external commands. The external
+        error stream is automatically redirected into the external output stream. Execution information is
+        written to the verbose stream. If a nonzero exit code is returned from the external command, the
+        output string is thrown as an exception.
+    .PARAMETER Message
+        The message string to print.
+#>
+function Write-Warning-Msg([Parameter(Mandatory = $true)][String] $Message)
+{
+    if (-not $FORCE_NO_PROD_WARNING)
+    {
+        Write-Warning $Message
+    }
+}
 
 <#
     .SYNOPSIS
@@ -167,7 +187,7 @@ function Test-CACertNotInstalledAlready([bool]$printMsg=$true)
         $cleanup_msg += " - Navigate to Certificates -> Intermediate Certificate Authorities -> Certificates. Remove certificates issued by 'Azure IoT CA TestOnly*'.$nl"
         $cleanup_msg += " - Navigate to Certificates -> Local Computer -> Personal. Remove certificates issued by 'Azure IoT CA TestOnly*'.$nl"
         $cleanup_msg += "$nl$nl"
-        Write-Warning("Certificate {0} already installed in the certificate store. {1}" -f $_rootCertSubject,  $cleanup_msg)
+        Write-Warning-Msg("Certificate {0} already installed in the certificate store. {1}" -f $_rootCertSubject,  $cleanup_msg)
         throw ("Certificate {0} already installed." -f $_rootCertSubject)
     }
     if ($TRUE -eq $printMsg)
@@ -460,7 +480,7 @@ function New-CertFullChain([string]$certFile, [string]$prefix, [string]$issuerPr
 function New-ClientCertificate([string]$prefix, [string]$issuerPrefix, [string]$commonName)
 {
     $subject = "`"/CN=$commonName`""
-    Write-Warning ("Generating client certificate CN={0} which is for prototyping, NOT PRODUCTION.  It has a hard-coded password and will expire in {1} days." -f $commonName, $_days_until_expiration)
+    Write-Warning-Msg ("Generating client certificate CN={0} which is for prototyping, NOT PRODUCTION.  It has a hard-coded password and will expire in {1} days." -f $commonName, $_days_until_expiration)
     New-IntermediateCertificate "usr_cert" $_days_until_expiration $subject $prefix  $issuerPrefix $NULL $_privateKeyPassword
 }
 
@@ -481,7 +501,7 @@ function New-ClientCertificate([string]$prefix, [string]$issuerPrefix, [string]$
 function New-ServerCertificate([string]$prefix, [string]$issuerPrefix, [string]$commonName)
 {
     $subject = "`"/CN=$commonName`""
-    Write-Warning ("Generating server certificate CN={0} which is for prototyping, NOT PRODUCTION.  It has a hard-coded password and will expire in {1} days." -f $commonName, $_days_until_expiration)
+    Write-Warning-Msg ("Generating server certificate CN={0} which is for prototyping, NOT PRODUCTION.  It has a hard-coded password and will expire in {1} days." -f $commonName, $_days_until_expiration)
     New-IntermediateCertificate "server_cert" $_days_until_expiration $subject $prefix $issuerPrefix $NULL $_privateKeyPassword
 }
 
@@ -502,7 +522,7 @@ function New-ServerCertificate([string]$prefix, [string]$issuerPrefix, [string]$
 function New-IntermediateCACertificate([string]$prefix, [string]$issuerPrefix, [string]$commonName, [string]$keyPass=$NULL, [string]$issuerKeyPass=$NULL)
 {
     $subject = "`"/CN=$commonName`""
-    Write-Warning ("Generating certificate CN={0} which is for prototyping, NOT PRODUCTION.  It has a hard-coded password and will expire in {1} days." -f $commonName, $_days_until_expiration)
+    Write-Warning-Msg ("Generating certificate CN={0} which is for prototyping, NOT PRODUCTION.  It has a hard-coded password and will expire in {1} days." -f $commonName, $_days_until_expiration)
     New-IntermediateCertificate "v3_intermediate_ca" $_days_until_expiration $subject $prefix $issuerPrefix $keyPass $issuerKeyPass
 }
 
@@ -532,7 +552,7 @@ function New-RootCACertificate()
     Invoke-External $cmd
 
     # Now use splatting to process this
-    Write-Warning ("Generating certificate {0} which is for prototyping, NOT PRODUCTION.  It has a hard-coded password and will expire in {1} days." -f $_rootCertSubject, $_days_until_expiration)
+    Write-Warning-Msg ("Generating certificate {0} which is for prototyping, NOT PRODUCTION.  It has a hard-coded password and will expire in {1} days." -f $_rootCertSubject, $_days_until_expiration)
 
     return $certFile
 }
@@ -747,5 +767,5 @@ function New-CACertsEdgeServer([Parameter(Mandatory=$TRUE)][string]$hostName, [s
     New-ServerCertificate $serverPrefix $issuerPrefix $hostName
 }
 
-Write-Warning "This script is provided for prototyping only."
-Write-Warning "DO NOT USE CERTIFICATES FROM THIS SCRIPT FOR PRODUCTION!"
+Write-Warning-Msg "This script is provided for prototyping only."
+Write-Warning-Msg "DO NOT USE CERTIFICATES FROM THIS SCRIPT FOR PRODUCTION!"
