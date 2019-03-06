@@ -140,7 +140,7 @@ publish_project()
     fi
 
     echo "Publishing $type '$name'"
-    $DOTNET_ROOT_PATH/dotnet publish -f $framework -c $config $option -o $output $path
+    $DOTNET_ROOT_PATH/dotnet publish -f $framework -p:DotNet_Runtime=$DOTNET_RUNTIME -c $config $option -o $output $path
     if [ $? -gt 0 ]; then
         RES=1
     fi
@@ -249,13 +249,13 @@ publish_app "DirectMethodCloudSender"
 #publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
 #publish_lib "EdgeHubTriggerCSharp"
 
-publish_files $SRC_DOCKER_DIR $PUBLISH_FOLDER
-publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
-publish_files $SRC_BIN_DIR $PUBLISH_FOLDER
-publish_files $SRC_STRESS_DIR $PUBLISH_FOLDER
-publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
-publish_files $SRC_E2E_TEST_FILES_DIR $PUBLISH_FOLDER
-publish_files $SRC_CERT_TOOLS_DIR $PUBLISH_FOLDER
+#publish_files $SRC_DOCKER_DIR $PUBLISH_FOLDER
+#publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
+#publish_files $SRC_BIN_DIR $PUBLISH_FOLDER
+#publish_files $SRC_STRESS_DIR $PUBLISH_FOLDER
+#publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
+#publish_files $SRC_E2E_TEST_FILES_DIR $PUBLISH_FOLDER
+#publish_files $SRC_CERT_TOOLS_DIR $PUBLISH_FOLDER
 
 #publish_quickstart linux-arm
 #publish_quickstart linux-x64
