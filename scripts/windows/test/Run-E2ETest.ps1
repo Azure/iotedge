@@ -109,8 +109,10 @@ Param (
 
     [ValidateNotNullOrEmpty()]
     [string] $EdgeE2ERootCACertRSAFile = $NULL,
+
     [ValidateNotNullOrEmpty()]
     [string] $EdgeE2ERootCAKeyRSAFile = $NULL,
+
     [ValidateNotNullOrEmpty()]
     [string] $EdgeE2ETestRootCAPassword = $NULL
 )
@@ -609,8 +611,7 @@ Function RunLeafDeviceTest
                 $(Throw "For X.509 leaf device, the Edge device Id is requried")
             }
             Write-Host "Run LeafDevice with X.509 CA auth in scope"
-            $x = New-CACertsDevice "$leafDeviceId"
-            Write-Host "Got X as $x"
+            New-CACertsDevice "$leafDeviceId"
             $testCommand = "&$LeafDeviceExeTestPath ``
                 -d `"$leafDeviceId`" ``
                 -c `"$IoTHubConnectionString`" ``
@@ -665,6 +666,15 @@ Function RunLeafDeviceTest
 Function RunTransparentGatewayTest
 {
     PrintHighlightedMessage "Run Transparent Gateway test for $Architecture"
+
+    if ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile))
+    {
+        $EdgeE2ERootCACertRSAFile=$DefaultInstalledRSARootCACert
+    }
+    if ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
+    {
+        $EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey
+    }
     TestSetup
 
     $testStartAt = Get-Date
@@ -703,24 +713,16 @@ Function RunTransparentGatewayTest
 
     # run the various leaf device tests
     RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-noscope-leaf" $NULL
-    RunLeafDeviceTest "sas" "MqttWs" "$deviceId-mqttws-sas-noscope-leaf" $NULL
     RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-noscope-leaf" $NULL
-    RunLeafDeviceTest "sas" "AmqpWs" "$deviceId-amqpws-sas-noscope-leaf" $NULL
 
     RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "sas" "MqttWs" "$deviceId-mqttws-sas-inscope-leaf" $edgeDeviceId
     RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "sas" "AmqpWs" "$deviceId-amqpws-sas-inscope-leaf" $edgeDeviceId
 
     RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x509ca-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "x509CA" "MqttWs" "$deviceId-mqttws-x509ca-inscope-leaf" $edgeDeviceId
     RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x509ca-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "x509CA" "AmqpWs" "$deviceId-amqpws-x509ca-inscope-leaf" $edgeDeviceId
 
     RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-x509th-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "x509Thumprint" "MqttWs" "$deviceId-mqttws-x509th-inscope-leaf" $edgeDeviceId
     RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-x509th-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "x509Thumprint" "AmqpWs" "$deviceId-amqpws-x509th-inscope-leaf" $edgeDeviceId
 
     Return $testExitCode
 }
@@ -793,14 +795,6 @@ Function ValidateTestParameters
 
     If ($TestName -eq "TransparentGateway")
     {
-        if ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile))
-        {
-            $EdgeE2ERootCACertRSAFile=$DefaultInstalledRSARootCACert
-        }
-        if ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
-        {
-            $EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey
-        }
         $validatingItems += $EdgeCertGenScriptDir
         $validatingItems += $EdgeE2ERootCACertRSAFile
         $validatingItems += $EdgeE2ERootCAKeyRSAFile
