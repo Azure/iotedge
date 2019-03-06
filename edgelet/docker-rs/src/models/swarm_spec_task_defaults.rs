@@ -9,14 +9,14 @@
  */
 
 /// SwarmSpecTaskDefaults : Defaults for creating tasks in this cluster.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmSpecTaskDefaults {
     #[serde(rename = "LogDriver", skip_serializing_if = "Option::is_none")]
-    log_driver: Option<::models::SwarmSpecTaskDefaultsLogDriver>,
+    log_driver: Option<crate::models::SwarmSpecTaskDefaultsLogDriver>,
 }
 
 impl SwarmSpecTaskDefaults {
@@ -25,16 +25,19 @@ impl SwarmSpecTaskDefaults {
         SwarmSpecTaskDefaults { log_driver: None }
     }
 
-    pub fn set_log_driver(&mut self, log_driver: ::models::SwarmSpecTaskDefaultsLogDriver) {
+    pub fn set_log_driver(&mut self, log_driver: crate::models::SwarmSpecTaskDefaultsLogDriver) {
         self.log_driver = Some(log_driver);
     }
 
-    pub fn with_log_driver(mut self, log_driver: ::models::SwarmSpecTaskDefaultsLogDriver) -> Self {
+    pub fn with_log_driver(
+        mut self,
+        log_driver: crate::models::SwarmSpecTaskDefaultsLogDriver,
+    ) -> Self {
         self.log_driver = Some(log_driver);
         self
     }
 
-    pub fn log_driver(&self) -> Option<&::models::SwarmSpecTaskDefaultsLogDriver> {
+    pub fn log_driver(&self) -> Option<&crate::models::SwarmSpecTaskDefaultsLogDriver> {
         self.log_driver.as_ref()
     }
 

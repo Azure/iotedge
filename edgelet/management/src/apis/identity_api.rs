@@ -34,17 +34,17 @@ pub trait IdentityApi: Send + Sync {
         &self,
         api_version: &str,
         name: &str,
-        identity: ::models::IdentitySpec,
-    ) -> Box<Future<Item = ::models::Identity, Error = Error<serde_json::Value>>>;
+        identity: crate::models::IdentitySpec,
+    ) -> Box<dyn Future<Item = crate::models::Identity, Error = Error<serde_json::Value>>>;
     fn delete_identity(
         &self,
         api_version: &str,
         name: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn list_identities(
         &self,
         api_version: &str,
-    ) -> Box<Future<Item = ::models::IdentityList, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::IdentityList, Error = Error<serde_json::Value>>>;
 }
 
 impl<C> IdentityApi for IdentityApiClient<C>
@@ -57,8 +57,8 @@ where
         &self,
         api_version: &str,
         name: &str,
-        identity: ::models::IdentitySpec,
-    ) -> Box<Future<Item = ::models::Identity, Error = Error<serde_json::Value>>> {
+        identity: crate::models::IdentitySpec,
+    ) -> Box<dyn Future<Item = crate::models::Identity, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::PUT;
@@ -109,7 +109,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::Identity, _> = serde_json::from_slice(&body);
+                    let parsed: Result<crate::models::Identity, _> = serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
         )
@@ -119,7 +119,7 @@ where
         &self,
         api_version: &str,
         name: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::DELETE;
@@ -169,7 +169,7 @@ where
     fn list_identities(
         &self,
         api_version: &str,
-    ) -> Box<Future<Item = ::models::IdentityList, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::IdentityList, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -213,7 +213,8 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::IdentityList, _> = serde_json::from_slice(&body);
+                    let parsed: Result<crate::models::IdentityList, _> =
+                        serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
         )

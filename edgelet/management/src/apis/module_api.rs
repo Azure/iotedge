@@ -33,50 +33,50 @@ pub trait ModuleApi: Send + Sync {
     fn create_module(
         &self,
         api_version: &str,
-        module: ::models::ModuleSpec,
-    ) -> Box<Future<Item = ::models::ModuleDetails, Error = Error<serde_json::Value>>>;
+        module: crate::models::ModuleSpec,
+    ) -> Box<dyn Future<Item = crate::models::ModuleDetails, Error = Error<serde_json::Value>>>;
     fn delete_module(
         &self,
         api_version: &str,
         name: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn get_module(
         &self,
         api_version: &str,
         name: &str,
-    ) -> Box<Future<Item = ::models::ModuleDetails, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::ModuleDetails, Error = Error<serde_json::Value>>>;
     fn list_modules(
         &self,
         api_version: &str,
-    ) -> Box<Future<Item = ::models::ModuleList, Error = Error<serde_json::Value>> + Send>;
+    ) -> Box<dyn Future<Item = crate::models::ModuleList, Error = Error<serde_json::Value>> + Send>;
     fn module_logs(
         &self,
         api_version: &str,
         name: &str,
         follow: bool,
         tail: &str,
-    ) -> Box<Future<Item = hyper::Body, Error = Error<serde_json::Value>> + Send>;
+    ) -> Box<dyn Future<Item = hyper::Body, Error = Error<serde_json::Value>> + Send>;
     fn restart_module(
         &self,
         api_version: &str,
         name: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn start_module(
         &self,
         api_version: &str,
         name: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn stop_module(
         &self,
         api_version: &str,
         name: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn update_module(
         &self,
         api_version: &str,
         name: &str,
-        module: ::models::ModuleSpec,
-    ) -> Box<Future<Item = ::models::ModuleDetails, Error = Error<serde_json::Value>>>;
+        module: crate::models::ModuleSpec,
+    ) -> Box<dyn Future<Item = crate::models::ModuleDetails, Error = Error<serde_json::Value>>>;
 }
 
 impl<C> ModuleApi for ModuleApiClient<C>
@@ -88,8 +88,9 @@ where
     fn create_module(
         &self,
         api_version: &str,
-        module: ::models::ModuleSpec,
-    ) -> Box<Future<Item = ::models::ModuleDetails, Error = Error<serde_json::Value>>> {
+        module: crate::models::ModuleSpec,
+    ) -> Box<dyn Future<Item = crate::models::ModuleDetails, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -140,7 +141,8 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::ModuleDetails, _> = serde_json::from_slice(&body);
+                    let parsed: Result<crate::models::ModuleDetails, _> =
+                        serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
         )
@@ -150,7 +152,7 @@ where
         &self,
         api_version: &str,
         name: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::DELETE;
@@ -201,7 +203,8 @@ where
         &self,
         api_version: &str,
         name: &str,
-    ) -> Box<Future<Item = ::models::ModuleDetails, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::ModuleDetails, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -245,7 +248,8 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::ModuleDetails, _> = serde_json::from_slice(&body);
+                    let parsed: Result<crate::models::ModuleDetails, _> =
+                        serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
         )
@@ -254,7 +258,8 @@ where
     fn list_modules(
         &self,
         api_version: &str,
-    ) -> Box<Future<Item = ::models::ModuleList, Error = Error<serde_json::Value>> + Send> {
+    ) -> Box<dyn Future<Item = crate::models::ModuleList, Error = Error<serde_json::Value>> + Send>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -298,7 +303,8 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::ModuleList, _> = serde_json::from_slice(&body);
+                    let parsed: Result<crate::models::ModuleList, _> =
+                        serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
         )
@@ -310,7 +316,7 @@ where
         name: &str,
         follow: bool,
         tail: &str,
-    ) -> Box<Future<Item = hyper::Body, Error = Error<serde_json::Value>> + Send> {
+    ) -> Box<dyn Future<Item = hyper::Body, Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -358,7 +364,7 @@ where
         &self,
         api_version: &str,
         name: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -409,7 +415,7 @@ where
         &self,
         api_version: &str,
         name: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -460,7 +466,7 @@ where
         &self,
         api_version: &str,
         name: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -511,8 +517,9 @@ where
         &self,
         api_version: &str,
         name: &str,
-        module: ::models::ModuleSpec,
-    ) -> Box<Future<Item = ::models::ModuleDetails, Error = Error<serde_json::Value>>> {
+        module: crate::models::ModuleSpec,
+    ) -> Box<dyn Future<Item = crate::models::ModuleDetails, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::PUT;
@@ -563,7 +570,8 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::ModuleDetails, _> = serde_json::from_slice(&body);
+                    let parsed: Result<crate::models::ModuleDetails, _> =
+                        serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
         )

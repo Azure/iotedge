@@ -9,7 +9,7 @@
  */
 
 /// SwarmSpec : User modifiable swarm configuration.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -22,17 +22,17 @@ pub struct SwarmSpec {
     #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
     #[serde(rename = "Orchestration", skip_serializing_if = "Option::is_none")]
-    orchestration: Option<::models::SwarmSpecOrchestration>,
+    orchestration: Option<crate::models::SwarmSpecOrchestration>,
     #[serde(rename = "Raft", skip_serializing_if = "Option::is_none")]
-    raft: Option<::models::SwarmSpecRaft>,
+    raft: Option<crate::models::SwarmSpecRaft>,
     #[serde(rename = "Dispatcher", skip_serializing_if = "Option::is_none")]
-    dispatcher: Option<::models::SwarmSpecDispatcher>,
+    dispatcher: Option<crate::models::SwarmSpecDispatcher>,
     #[serde(rename = "CAConfig", skip_serializing_if = "Option::is_none")]
-    ca_config: Option<::models::SwarmSpecCaConfig>,
+    ca_config: Option<crate::models::SwarmSpecCaConfig>,
     #[serde(rename = "EncryptionConfig", skip_serializing_if = "Option::is_none")]
-    encryption_config: Option<::models::SwarmSpecEncryptionConfig>,
+    encryption_config: Option<crate::models::SwarmSpecEncryptionConfig>,
     #[serde(rename = "TaskDefaults", skip_serializing_if = "Option::is_none")]
-    task_defaults: Option<::models::SwarmSpecTaskDefaults>,
+    task_defaults: Option<crate::models::SwarmSpecTaskDefaults>,
 }
 
 impl SwarmSpec {
@@ -84,16 +84,19 @@ impl SwarmSpec {
         self.labels = None;
     }
 
-    pub fn set_orchestration(&mut self, orchestration: ::models::SwarmSpecOrchestration) {
+    pub fn set_orchestration(&mut self, orchestration: crate::models::SwarmSpecOrchestration) {
         self.orchestration = Some(orchestration);
     }
 
-    pub fn with_orchestration(mut self, orchestration: ::models::SwarmSpecOrchestration) -> Self {
+    pub fn with_orchestration(
+        mut self,
+        orchestration: crate::models::SwarmSpecOrchestration,
+    ) -> Self {
         self.orchestration = Some(orchestration);
         self
     }
 
-    pub fn orchestration(&self) -> Option<&::models::SwarmSpecOrchestration> {
+    pub fn orchestration(&self) -> Option<&crate::models::SwarmSpecOrchestration> {
         self.orchestration.as_ref()
     }
 
@@ -101,16 +104,16 @@ impl SwarmSpec {
         self.orchestration = None;
     }
 
-    pub fn set_raft(&mut self, raft: ::models::SwarmSpecRaft) {
+    pub fn set_raft(&mut self, raft: crate::models::SwarmSpecRaft) {
         self.raft = Some(raft);
     }
 
-    pub fn with_raft(mut self, raft: ::models::SwarmSpecRaft) -> Self {
+    pub fn with_raft(mut self, raft: crate::models::SwarmSpecRaft) -> Self {
         self.raft = Some(raft);
         self
     }
 
-    pub fn raft(&self) -> Option<&::models::SwarmSpecRaft> {
+    pub fn raft(&self) -> Option<&crate::models::SwarmSpecRaft> {
         self.raft.as_ref()
     }
 
@@ -118,16 +121,16 @@ impl SwarmSpec {
         self.raft = None;
     }
 
-    pub fn set_dispatcher(&mut self, dispatcher: ::models::SwarmSpecDispatcher) {
+    pub fn set_dispatcher(&mut self, dispatcher: crate::models::SwarmSpecDispatcher) {
         self.dispatcher = Some(dispatcher);
     }
 
-    pub fn with_dispatcher(mut self, dispatcher: ::models::SwarmSpecDispatcher) -> Self {
+    pub fn with_dispatcher(mut self, dispatcher: crate::models::SwarmSpecDispatcher) -> Self {
         self.dispatcher = Some(dispatcher);
         self
     }
 
-    pub fn dispatcher(&self) -> Option<&::models::SwarmSpecDispatcher> {
+    pub fn dispatcher(&self) -> Option<&crate::models::SwarmSpecDispatcher> {
         self.dispatcher.as_ref()
     }
 
@@ -135,16 +138,16 @@ impl SwarmSpec {
         self.dispatcher = None;
     }
 
-    pub fn set_ca_config(&mut self, ca_config: ::models::SwarmSpecCaConfig) {
+    pub fn set_ca_config(&mut self, ca_config: crate::models::SwarmSpecCaConfig) {
         self.ca_config = Some(ca_config);
     }
 
-    pub fn with_ca_config(mut self, ca_config: ::models::SwarmSpecCaConfig) -> Self {
+    pub fn with_ca_config(mut self, ca_config: crate::models::SwarmSpecCaConfig) -> Self {
         self.ca_config = Some(ca_config);
         self
     }
 
-    pub fn ca_config(&self) -> Option<&::models::SwarmSpecCaConfig> {
+    pub fn ca_config(&self) -> Option<&crate::models::SwarmSpecCaConfig> {
         self.ca_config.as_ref()
     }
 
@@ -154,20 +157,20 @@ impl SwarmSpec {
 
     pub fn set_encryption_config(
         &mut self,
-        encryption_config: ::models::SwarmSpecEncryptionConfig,
+        encryption_config: crate::models::SwarmSpecEncryptionConfig,
     ) {
         self.encryption_config = Some(encryption_config);
     }
 
     pub fn with_encryption_config(
         mut self,
-        encryption_config: ::models::SwarmSpecEncryptionConfig,
+        encryption_config: crate::models::SwarmSpecEncryptionConfig,
     ) -> Self {
         self.encryption_config = Some(encryption_config);
         self
     }
 
-    pub fn encryption_config(&self) -> Option<&::models::SwarmSpecEncryptionConfig> {
+    pub fn encryption_config(&self) -> Option<&crate::models::SwarmSpecEncryptionConfig> {
         self.encryption_config.as_ref()
     }
 
@@ -175,16 +178,19 @@ impl SwarmSpec {
         self.encryption_config = None;
     }
 
-    pub fn set_task_defaults(&mut self, task_defaults: ::models::SwarmSpecTaskDefaults) {
+    pub fn set_task_defaults(&mut self, task_defaults: crate::models::SwarmSpecTaskDefaults) {
         self.task_defaults = Some(task_defaults);
     }
 
-    pub fn with_task_defaults(mut self, task_defaults: ::models::SwarmSpecTaskDefaults) -> Self {
+    pub fn with_task_defaults(
+        mut self,
+        task_defaults: crate::models::SwarmSpecTaskDefaults,
+    ) -> Self {
         self.task_defaults = Some(task_defaults);
         self
     }
 
-    pub fn task_defaults(&self) -> Option<&::models::SwarmSpecTaskDefaults> {
+    pub fn task_defaults(&self) -> Option<&crate::models::SwarmSpecTaskDefaults> {
         self.task_defaults.as_ref()
     }
 

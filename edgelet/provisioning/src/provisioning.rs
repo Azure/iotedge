@@ -5,10 +5,11 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 
 use bytes::Bytes;
-
 use failure::{Fail, ResultExt};
 use futures::future::Either;
 use futures::{future, Future, IntoFuture};
+use log::info;
+use serde_derive::{Deserialize, Serialize};
 use serde_json;
 use url::Url;
 
@@ -17,9 +18,10 @@ use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, MemoryKey, MemoryKey
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_utils::log_failure;
-use error::{Error, ErrorKind};
 use hsm::TpmKey as HsmTpmKey;
 use log::Level;
+
+use crate::error::{Error, ErrorKind};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ProvisioningResult {
@@ -49,7 +51,7 @@ pub trait Provision {
     fn provision(
         self,
         key_activator: Self::Hsm,
-    ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send>;
+    ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send>;
 }
 
 #[derive(Debug)]
@@ -75,7 +77,7 @@ impl Provision for ManualProvisioning {
     fn provision(
         self,
         mut key_activator: Self::Hsm,
-    ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
         let ManualProvisioning {
             key,
             device_id,
@@ -150,7 +152,7 @@ where
     fn provision(
         self,
         key_activator: Self::Hsm,
-    ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
         let ek = Bytes::from(self.hsm_tpm_ek.as_ref());
         let srk = Bytes::from(self.hsm_tpm_srk.as_ref());
         let c = DpsClient::new(
@@ -229,7 +231,7 @@ where
     fn provision(
         self,
         key_activator: Self::Hsm,
-    ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
         let c = DpsClient::new(
             self.client.clone(),
             self.scope_id.clone(),
@@ -309,7 +311,7 @@ where
     fn provision(
         self,
         key_activator: Self::Hsm,
-    ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
         let path = self.path.clone();
         let path_on_err = self.path.clone();
         Box::new(
@@ -342,7 +344,7 @@ mod tests {
 
     use edgelet_config::{Manual, ParseManualDeviceConnectionStringError};
 
-    use error::ErrorKind;
+    use crate::error::ErrorKind;
 
     struct TestProvisioning {}
 
@@ -352,7 +354,7 @@ mod tests {
         fn provision(
             self,
             _key_activator: Self::Hsm,
-        ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
+        ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
             Box::new(future::ok(ProvisioningResult {
                 device_id: "TestDevice".to_string(),
                 hub_name: "TestHub".to_string(),
@@ -369,7 +371,7 @@ mod tests {
         fn provision(
             self,
             _key_activator: Self::Hsm,
-        ) -> Box<Future<Item = ProvisioningResult, Error = Error> + Send> {
+        ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
             Box::new(future::err(Error::from(ErrorKind::Provision)))
         }
     }

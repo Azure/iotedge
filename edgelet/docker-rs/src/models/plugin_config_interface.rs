@@ -9,37 +9,37 @@
  */
 
 /// PluginConfigInterface : The interface between Docker and the plugin
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginConfigInterface {
     #[serde(rename = "Types")]
-    types: Vec<::models::PluginInterfaceType>,
+    types: Vec<crate::models::PluginInterfaceType>,
     #[serde(rename = "Socket")]
     socket: String,
 }
 
 impl PluginConfigInterface {
     /// The interface between Docker and the plugin
-    pub fn new(types: Vec<::models::PluginInterfaceType>, socket: String) -> Self {
+    pub fn new(types: Vec<crate::models::PluginInterfaceType>, socket: String) -> Self {
         PluginConfigInterface {
             types: types,
             socket: socket,
         }
     }
 
-    pub fn set_types(&mut self, types: Vec<::models::PluginInterfaceType>) {
+    pub fn set_types(&mut self, types: Vec<crate::models::PluginInterfaceType>) {
         self.types = types;
     }
 
-    pub fn with_types(mut self, types: Vec<::models::PluginInterfaceType>) -> Self {
+    pub fn with_types(mut self, types: Vec<crate::models::PluginInterfaceType>) -> Self {
         self.types = types;
         self
     }
 
-    pub fn types(&self) -> &[::models::PluginInterfaceType] {
+    pub fn types(&self) -> &[crate::models::PluginInterfaceType] {
         &self.types
     }
 

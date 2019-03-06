@@ -9,7 +9,7 @@
  */
 
 /// ServiceUpdateStatus : The status of a service update.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

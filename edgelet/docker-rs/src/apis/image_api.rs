@@ -19,7 +19,7 @@ use typed_headers::{self, http, mime, HeaderMapExt};
 
 use super::{configuration, Error};
 
-use models::ImageDeleteResponseItem;
+use crate::models::ImageDeleteResponseItem;
 
 pub struct ImageApiClient<C: hyper::client::connect::Connect> {
     configuration: Arc<configuration::Configuration<C>>,
@@ -36,7 +36,7 @@ impl<C: hyper::client::connect::Connect> ImageApiClient<C> {
 pub trait ImageApi: Send + Sync {
     fn build_prune(
         &self,
-    ) -> Box<Future<Item = ::models::InlineResponse2006, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse2006, Error = Error<serde_json::Value>>>;
     fn image_build(
         &self,
         input_stream: Vec<u8>,
@@ -64,10 +64,10 @@ pub trait ImageApi: Send + Sync {
         content_type: &str,
         x_registry_config: &str,
         platform: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn image_commit(
         &self,
-        container_config: ::models::ContainerConfig,
+        container_config: crate::models::ContainerConfig,
         container: &str,
         repo: &str,
         tag: &str,
@@ -75,7 +75,7 @@ pub trait ImageApi: Send + Sync {
         author: &str,
         pause: bool,
         changes: &str,
-    ) -> Box<Future<Item = ::models::IdResponse, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::IdResponse, Error = Error<serde_json::Value>>>;
     fn image_create(
         &self,
         from_image: &str,
@@ -85,62 +85,66 @@ pub trait ImageApi: Send + Sync {
         input_image: &str,
         x_registry_auth: &str,
         platform: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn image_delete(
         &self,
         name: &str,
         force: bool,
         noprune: bool,
-    ) -> Box<Future<Item = Vec<ImageDeleteResponseItem>, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = Vec<ImageDeleteResponseItem>, Error = Error<serde_json::Value>>>;
     fn image_get(
         &self,
         name: &str,
-    ) -> Box<Future<Item = Vec<u8>, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = Vec<u8>, Error = Error<serde_json::Value>>>;
     fn image_get_all(
         &self,
         names: Vec<String>,
-    ) -> Box<Future<Item = Vec<u8>, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = Vec<u8>, Error = Error<serde_json::Value>>>;
     fn image_history(
         &self,
         name: &str,
-    ) -> Box<Future<Item = Vec<::models::InlineResponse2007>, Error = Error<serde_json::Value>>>;
+    ) -> Box<
+        dyn Future<Item = Vec<crate::models::InlineResponse2007>, Error = Error<serde_json::Value>>,
+    >;
     fn image_inspect(
         &self,
         name: &str,
-    ) -> Box<Future<Item = ::models::Image, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::Image, Error = Error<serde_json::Value>>>;
     fn image_list(
         &self,
         all: bool,
         filters: &str,
         digests: bool,
-    ) -> Box<Future<Item = Vec<::models::ImageSummary>, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = Vec<crate::models::ImageSummary>, Error = Error<serde_json::Value>>>;
     fn image_load(
         &self,
         images_tarball: Vec<u8>,
         quiet: bool,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn image_prune(
         &self,
         filters: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse2009, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse2009, Error = Error<serde_json::Value>>>;
     fn image_push(
         &self,
         name: &str,
         x_registry_auth: &str,
         tag: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn image_search(
         &self,
         term: &str,
         limit: i32,
         filters: &str,
-    ) -> Box<Future<Item = Vec<::models::InlineResponse2008>, Error = Error<serde_json::Value>>>;
+    ) -> Box<
+        dyn Future<Item = Vec<crate::models::InlineResponse2008>, Error = Error<serde_json::Value>>,
+    >;
     fn image_tag(
         &self,
         name: &str,
         repo: &str,
         tag: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
 }
 
 impl<C> ImageApi for ImageApiClient<C>
@@ -151,7 +155,8 @@ where
 {
     fn build_prune(
         &self,
-    ) -> Box<Future<Item = ::models::InlineResponse2006, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse2006, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -192,7 +197,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::InlineResponse2006, _> =
+                    let parsed: Result<crate::models::InlineResponse2006, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -226,7 +231,7 @@ where
         content_type: &str,
         x_registry_config: &str,
         platform: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -305,7 +310,7 @@ where
 
     fn image_commit(
         &self,
-        container_config: ::models::ContainerConfig,
+        container_config: crate::models::ContainerConfig,
         container: &str,
         repo: &str,
         tag: &str,
@@ -313,7 +318,7 @@ where
         author: &str,
         pause: bool,
         changes: &str,
-    ) -> Box<Future<Item = ::models::IdResponse, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::IdResponse, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -370,7 +375,8 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::IdResponse, _> = serde_json::from_slice(&body);
+                    let parsed: Result<crate::models::IdResponse, _> =
+                        serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
         )
@@ -385,7 +391,7 @@ where
         input_image: &str,
         x_registry_auth: &str,
         platform: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -465,7 +471,8 @@ where
         name: &str,
         force: bool,
         noprune: bool,
-    ) -> Box<Future<Item = Vec<ImageDeleteResponseItem>, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = Vec<ImageDeleteResponseItem>, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::DELETE;
@@ -510,7 +517,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<Vec<::models::ImageDeleteResponseItem>, _> =
+                    let parsed: Result<Vec<crate::models::ImageDeleteResponseItem>, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -520,7 +527,7 @@ where
     fn image_get(
         &self,
         name: &str,
-    ) -> Box<Future<Item = Vec<u8>, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = Vec<u8>, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -570,7 +577,7 @@ where
     fn image_get_all(
         &self,
         names: Vec<String>,
-    ) -> Box<Future<Item = Vec<u8>, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = Vec<u8>, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -623,8 +630,9 @@ where
     fn image_history(
         &self,
         name: &str,
-    ) -> Box<Future<Item = Vec<::models::InlineResponse2007>, Error = Error<serde_json::Value>>>
-    {
+    ) -> Box<
+        dyn Future<Item = Vec<crate::models::InlineResponse2007>, Error = Error<serde_json::Value>>,
+    > {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -665,7 +673,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<Vec<::models::InlineResponse2007>, _> =
+                    let parsed: Result<Vec<crate::models::InlineResponse2007>, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -675,7 +683,7 @@ where
     fn image_inspect(
         &self,
         name: &str,
-    ) -> Box<Future<Item = ::models::Image, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::Image, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -716,7 +724,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::Image, _> = serde_json::from_slice(&body);
+                    let parsed: Result<crate::models::Image, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
         )
@@ -727,7 +735,8 @@ where
         all: bool,
         filters: &str,
         digests: bool,
-    ) -> Box<Future<Item = Vec<::models::ImageSummary>, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = Vec<crate::models::ImageSummary>, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -773,7 +782,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<Vec<::models::ImageSummary>, _> =
+                    let parsed: Result<Vec<crate::models::ImageSummary>, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -784,7 +793,7 @@ where
         &self,
         images_tarball: Vec<u8>,
         quiet: bool,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -841,7 +850,8 @@ where
     fn image_prune(
         &self,
         filters: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse2009, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse2009, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -885,7 +895,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::InlineResponse2009, _> =
+                    let parsed: Result<crate::models::InlineResponse2009, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -897,7 +907,7 @@ where
         name: &str,
         x_registry_auth: &str,
         tag: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -950,8 +960,9 @@ where
         term: &str,
         limit: i32,
         filters: &str,
-    ) -> Box<Future<Item = Vec<::models::InlineResponse2008>, Error = Error<serde_json::Value>>>
-    {
+    ) -> Box<
+        dyn Future<Item = Vec<crate::models::InlineResponse2008>, Error = Error<serde_json::Value>>,
+    > {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -997,7 +1008,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<Vec<::models::InlineResponse2008>, _> =
+                    let parsed: Result<Vec<crate::models::InlineResponse2008>, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -1009,7 +1020,7 @@ where
         name: &str,
         repo: &str,
         tag: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;

@@ -9,7 +9,7 @@
  */
 
 /// TaskSpecContainerSpecFile : File represents a specific target that is backed by a file.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
