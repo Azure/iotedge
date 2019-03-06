@@ -798,6 +798,7 @@ Function ValidateTestParameters
         $validatingItems += $EdgeCertGenScriptDir
         $validatingItems += $EdgeE2ERootCACertRSAFile
         $validatingItems += $EdgeE2ERootCAKeyRSAFile
+        $validatingItems += $TrustedCACertificatePath
     }
 
     $validatingItems | ForEach-Object {
