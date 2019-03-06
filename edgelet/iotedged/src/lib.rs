@@ -145,6 +145,9 @@ const EDGE_SETTINGS_SUBDIR: &str = "cache";
 const IOTEDGED_VALIDITY: u64 = 7_776_000; // 90 days
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
 
+// These are the properties of the TLS server certificate.
+const IOTEDGED_TLS_COMMONNAME: &str = "iotedged tls certificate";
+
 const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200; // 2 hours
 const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 7_776_000; // 90 days
 
@@ -347,25 +350,25 @@ where
     // TODO: Kevin
     let edgelet_cert_props = CertificateProperties::new(
         IOTEDGED_VALIDITY,
-        IOTEDGED_COMMONNAME.to_string(),
+        IOTEDGED_TLS_COMMONNAME.to_string(),
         CertificateType::Server,
-        IOTEDGED_CA_ALIAS.to_string(),
+        "iotedge-tls".to_string(),
     )
     .with_issuer(CertificateIssuer::DeviceCa);
 
     let cert = crypto
         .create_certificate(&edgelet_cert_props)
         .context(ErrorKind::Initialize(
-            InitializeErrorReason::PrepareWorkloadCa,
+            InitializeErrorReason::CreateTLSCertificate,
         ))?;
 
     let cert_pem = cert.pem().context(ErrorKind::Initialize(
-        InitializeErrorReason::PrepareWorkloadCa,
+        InitializeErrorReason::CreateTLSCertificate,
     ))?;
 
     native_tls::Certificate::from_pem(cert_pem.as_bytes())
         .map_err(|err|
-            Error::from(err.context(ErrorKind::Initialize(InitializeErrorReason::PrepareWorkloadCa))))
+            Error::from(err.context(ErrorKind::Initialize(InitializeErrorReason::CreateTLSCertificate))))
 
 }
 
@@ -547,7 +550,7 @@ where
 
     let server_cert = prepare_tls_server_cert(crypto).unwrap();
 
-    let mgmt = start_management(&settings, &runtime, &id_man, server_cert, mgmt_rx);
+    let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, &server_cert);
 
     let workload = start_workload(
         &settings,
@@ -556,6 +559,7 @@ where
         work_rx,
         crypto,
         workload_config,
+        &server_cert,
     );
 
     let (runt_tx, runt_rx) = oneshot::channel();
@@ -903,7 +907,7 @@ fn start_management<K, HC>(
     mgmt: &DockerModuleRuntime,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
-    cert: native_tls::Certificate,
+    cert: &native_tls::Certificate,
 ) -> impl Future<Item = (), Error = Error>
 where
     K: 'static + Sign + Clone + Send + Sync,
@@ -914,6 +918,8 @@ where
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
 
+    let parsed_cert = Identity::from_pkcs12(&cert.to_der().unwrap(), "foobar").unwrap();
+
     ManagementService::new(mgmt, id_man)
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
@@ -923,7 +929,7 @@ where
             info!("Listening on {} with 1 thread for management API.", url);
             let run = Http::new()
                 // .bind_url(url.clone(), service)
-                .bind_tls_url(url.clone(), cert, service)
+                .bind_tls_url(url.clone(), parsed_cert, service)
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,
@@ -943,6 +949,7 @@ fn start_workload<K, C, W>(
     shutdown: Receiver<()>,
     crypto: &C,
     config: W,
+    cert: &native_tls::Certificate,
 ) -> impl Future<Item = (), Error = Error>
 where
     K: KeyStore + Clone + Send + Sync + 'static,
@@ -962,6 +969,8 @@ where
     let label = "work".to_string();
     let url = settings.listen().workload_uri().clone();
 
+    let parsed_cert = Identity::from_pkcs12(&cert.to_der().unwrap(), "foobar").unwrap();
+
     WorkloadService::new(key_store, crypto.clone(), runtime, config)
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
@@ -969,7 +978,8 @@ where
             ))?;
             let service = LoggingService::new(label, service);
             let run = Http::new()
-                .bind_url(url.clone(), service)
+                // .bind_url(url.clone(), service)
+                .bind_tls_url(url.clone(), parsed_cert, service)
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::WorkloadService,
