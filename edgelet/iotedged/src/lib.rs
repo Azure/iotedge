@@ -918,7 +918,7 @@ where
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
 
-    let parsed_cert = Identity::from_pkcs12(&cert.to_der().unwrap(), "foobar").unwrap();
+    let parsed_cert = Identity::from_pkcs12(&cert.to_der().unwrap(), "").unwrap();
 
     ManagementService::new(mgmt, id_man)
         .then(move |service| -> Result<_, Error> {
