@@ -19,6 +19,7 @@ namespace DirectMethodCloudSender
 
     class Program
     {
+        const string RouteOutputName = "output1";
         static readonly ILogger Logger = ModuleUtil.CreateLogger("DirectMethodCloudSender");
 
         public static int Main() => MainAsync().Result;
@@ -93,7 +94,7 @@ namespace DirectMethodCloudSender
                             eventMessage.Properties.Add("sequenceNumber", count.ToString());
                             eventMessage.Properties.Add("batchId", batchId.ToString());
                             Logger.LogInformation($"Calling Direct Method from cloud with count {count} succeeded.");
-                            await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method Call succeeded.")));
+                            await moduleClient.SendEventAsync(RouteOutputName, eventMessage);
                         }
                         else
                         {

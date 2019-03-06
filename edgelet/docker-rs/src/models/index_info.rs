@@ -9,7 +9,7 @@
  */
 
 /// IndexInfo : IndexInfo contains information about a registry.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

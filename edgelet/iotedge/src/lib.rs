@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::module_name_repetitions,
@@ -8,29 +8,8 @@
     clippy::use_self
 )]
 
-extern crate bytes;
-extern crate chrono;
-extern crate chrono_humanize;
-#[macro_use]
-extern crate clap;
-extern crate failure;
-#[macro_use]
-extern crate futures;
-#[cfg(unix)]
-extern crate libc;
-extern crate regex;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
-extern crate tabwriter;
-extern crate tokio;
-
-extern crate edgelet_config;
-extern crate edgelet_core;
-extern crate edgelet_docker;
-extern crate edgelet_http;
-
 use futures::Future;
+use serde_derive::Deserialize;
 
 mod check;
 mod error;
@@ -40,13 +19,13 @@ mod restart;
 mod unknown;
 mod version;
 
-pub use check::Check;
-pub use error::{Error, ErrorKind, FetchLatestVersionsReason};
-pub use list::List;
-pub use logs::Logs;
-pub use restart::Restart;
-pub use unknown::Unknown;
-pub use version::Version;
+pub use crate::check::Check;
+pub use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
+pub use crate::list::List;
+pub use crate::logs::Logs;
+pub use crate::restart::Restart;
+pub use crate::unknown::Unknown;
+pub use crate::version::Version;
 
 pub trait Command {
     type Future: Future<Item = ()> + Send;

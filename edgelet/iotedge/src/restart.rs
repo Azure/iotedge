@@ -8,8 +8,8 @@ use futures::Future;
 
 use edgelet_core::ModuleRuntime;
 
-use error::{Error, ErrorKind};
-use Command;
+use crate::error::{Error, ErrorKind};
+use crate::Command;
 
 pub struct Restart<M, W> {
     id: String,
@@ -32,7 +32,7 @@ where
     M: 'static + ModuleRuntime + Clone,
     W: 'static + Write + Send,
 {
-    type Future = Box<Future<Item = (), Error = Error> + Send>;
+    type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
 
     fn execute(&mut self) -> Self::Future {
         let id = self.id.clone();
