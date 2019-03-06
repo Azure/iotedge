@@ -39,88 +39,88 @@ jobs:
       - script: scripts/linux/buildDiagnostics.sh
         displayName: Build iotedge-diagnostics
 
-#      - task: PublishBuildArtifacts@1
-#        displayName: 'Publish Artifacts'
-#        inputs:
-#          PathtoPublish: '$(Build.BinariesDirectory)/publish'
-#          ArtifactName: 'core-linux'
+     - task: PublishBuildArtifacts@1
+       displayName: 'Publish Artifacts'
+       inputs:
+         PathtoPublish: '$(Build.BinariesDirectory)/publish'
+         ArtifactName: 'core-linux'
 
-#      # azureiotedge-diagnostics
-#      - template: templates/image-linux.yaml
-#        parameters:
-#          name: azureiotedge-diagnostics
-#          imageName: azureiotedge-diagnostics
-#          project: azureiotedge-diagnostics
+     # azureiotedge-diagnostics
+     - template: templates/image-linux.yaml
+       parameters:
+         name: azureiotedge-diagnostics
+         imageName: azureiotedge-diagnostics
+         project: azureiotedge-diagnostics
 
-#     # Edge Agent
-#      - template: templates/image-linux.yaml
-#        parameters:
-#          name: Edge Agent
-#          imageName: azureiotedge-agent
-#          project: Microsoft.Azure.Devices.Edge.Agent.Service
+    # Edge Agent
+     - template: templates/image-linux.yaml
+       parameters:
+         name: Edge Agent
+         imageName: azureiotedge-agent
+          project: Microsoft.Azure.Devices.Edge.Agent.Service
 
-#      # Edge Hub
-#      - template: templates/image-linux.yaml
-#        parameters:
-#          name: Edge Hub
-#          imageName: azureiotedge-hub
-#          project: Microsoft.Azure.Devices.Edge.Hub.Service
+      # Edge Hub
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Edge Hub
+          imageName: azureiotedge-hub
+          project: Microsoft.Azure.Devices.Edge.Hub.Service
 
-#      # Simulated Temperature Sensor
-#      - template: templates/image-linux.yaml
-#        parameters:
-#          name: Temperature Sensor
-#          imageName: azureiotedge-simulated-temperature-sensor
-#          project: SimulatedTemperatureSensor
+        # Simulated Temperature Sensor
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Temperature Sensor
+          imageName: azureiotedge-simulated-temperature-sensor
+          project: SimulatedTemperatureSensor
 
-#      # Temperature Filter
-#      - template: templates/image-linux.yaml
-#        parameters:
-#          name: Temperature Filter
-#          imageName: azureiotedge-temperature-filter
-#          project: TemperatureFilter
+      # Temperature Filter
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Temperature Filter
+          imageName: azureiotedge-temperature-filter
+          project: TemperatureFilter
 
-#      # Load Gen
-#      - template: templates/image-linux.yaml
-#        parameters:
-#          name: Load Gen
-#          imageName: azureiotedge-load-gen
-#          project: load-gen
+      # Load Gen
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Load Gen
+          imageName: azureiotedge-load-gen
+          project: load-gen
 
-#      # Messages Analyzer
-#      - template: templates/image-linux.yaml
-#        parameters:
-#          name: Messages Analyzer
-#          imageName: azureiotedge-analyzer
-#          project: MessagesAnalyzer
+      # Messages Analyzer
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Messages Analyzer
+          imageName: azureiotedge-analyzer
+          project: MessagesAnalyzer
 
       # Functions Sample
-      #- template: templates/image-linux.yaml
-      #  parameters:
-      #    name: Functions Sample
-      #    imageName: azureiotedge-functions-filter
-      #    project: EdgeHubTriggerCSharp
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Functions Sample
+          imageName: azureiotedge-functions-filter
+          project: EdgeHubTriggerCSharp
 
       # Direct Method Sender
-#      - template: templates/image-linux.yaml
-#        parameters:
-#          name: Direct Method Sender
-#          imageName: azureiotedge-direct-method-sender
-#          project: DirectMethodSender
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Direct Method Sender
+          imageName: azureiotedge-direct-method-sender
+          project: DirectMethodSender
 
       # Direct Method Receiver
-#      - template: templates/image-linux.yaml
-#        parameters:
-#          name: Direct Method Receiver
-#          imageName: azureiotedge-direct-method-receiver
-#          project: DirectMethodReceiver
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Direct Method Receiver
+          imageName: azureiotedge-direct-method-receiver
+          project: DirectMethodReceiver
 
       # Direct Method Cloud Sender
-#      - template: templates/image-linux.yaml
-#        parameters:
-#          name: Direct Method Cloud Sender
-#          imageName: azureiotedge-direct-method-cloud-sender
-#          project: DirectMethodCloudSender
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Direct Method Cloud Sender
+          imageName: azureiotedge-direct-method-cloud-sender
+          project: DirectMethodCloudSender
           
 #TODO: Check what I need to do on this manifest
 ################################################################################
