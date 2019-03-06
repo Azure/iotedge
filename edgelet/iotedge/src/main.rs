@@ -1,23 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::similar_names)]
-
-#[macro_use]
-extern crate clap;
-extern crate edgelet_core;
-extern crate edgelet_http_mgmt;
-extern crate failure;
-extern crate futures;
-extern crate iotedge;
-extern crate tokio;
-extern crate url;
 
 use std::io;
 use std::process;
 
-use clap::{App, AppSettings, Arg, SubCommand};
+use clap::{crate_description, crate_name, App, AppSettings, Arg, SubCommand};
 use failure::{Fail, ResultExt};
 use futures::Future;
 use url::Url;
@@ -34,7 +24,7 @@ const MGMT_URI: &str = "unix:///C:/ProgramData/iotedge/mgmt/sock";
 
 fn main() {
     if let Err(ref error) = run() {
-        let mut fail: &Fail = error;
+        let fail: &dyn Fail = error;
 
         eprintln!("{}", error.to_string());
 

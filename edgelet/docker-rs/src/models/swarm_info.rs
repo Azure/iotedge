@@ -9,7 +9,7 @@
  */
 
 /// SwarmInfo : Represents generic information about swarm.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -31,7 +31,7 @@ pub struct SwarmInfo {
     error: Option<String>,
     /// List of ID's and addresses of other managers in the swarm.
     #[serde(rename = "RemoteManagers", skip_serializing_if = "Option::is_none")]
-    remote_managers: Option<Vec<::models::PeerNode>>,
+    remote_managers: Option<Vec<crate::models::PeerNode>>,
     /// Total number of nodes in the swarm.
     #[serde(rename = "Nodes", skip_serializing_if = "Option::is_none")]
     nodes: Option<i32>,
@@ -39,7 +39,7 @@ pub struct SwarmInfo {
     #[serde(rename = "Managers", skip_serializing_if = "Option::is_none")]
     managers: Option<i32>,
     #[serde(rename = "Cluster", skip_serializing_if = "Option::is_none")]
-    cluster: Option<::models::ClusterInfo>,
+    cluster: Option<crate::models::ClusterInfo>,
 }
 
 impl SwarmInfo {
@@ -152,16 +152,16 @@ impl SwarmInfo {
         self.error = None;
     }
 
-    pub fn set_remote_managers(&mut self, remote_managers: Vec<::models::PeerNode>) {
+    pub fn set_remote_managers(&mut self, remote_managers: Vec<crate::models::PeerNode>) {
         self.remote_managers = Some(remote_managers);
     }
 
-    pub fn with_remote_managers(mut self, remote_managers: Vec<::models::PeerNode>) -> Self {
+    pub fn with_remote_managers(mut self, remote_managers: Vec<crate::models::PeerNode>) -> Self {
         self.remote_managers = Some(remote_managers);
         self
     }
 
-    pub fn remote_managers(&self) -> Option<&[::models::PeerNode]> {
+    pub fn remote_managers(&self) -> Option<&[crate::models::PeerNode]> {
         self.remote_managers.as_ref().map(AsRef::as_ref)
     }
 
@@ -203,16 +203,16 @@ impl SwarmInfo {
         self.managers = None;
     }
 
-    pub fn set_cluster(&mut self, cluster: ::models::ClusterInfo) {
+    pub fn set_cluster(&mut self, cluster: crate::models::ClusterInfo) {
         self.cluster = Some(cluster);
     }
 
-    pub fn with_cluster(mut self, cluster: ::models::ClusterInfo) -> Self {
+    pub fn with_cluster(mut self, cluster: crate::models::ClusterInfo) -> Self {
         self.cluster = Some(cluster);
         self
     }
 
-    pub fn cluster(&self) -> Option<&::models::ClusterInfo> {
+    pub fn cluster(&self) -> Option<&crate::models::ClusterInfo> {
         self.cluster.as_ref()
     }
 

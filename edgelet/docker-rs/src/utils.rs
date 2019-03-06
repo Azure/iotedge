@@ -5,7 +5,7 @@ use std::borrow::Cow;
 use std::str::FromStr;
 use typed_headers::{self, http};
 
-use models::ContainerCreateBody;
+use crate::models::ContainerCreateBody;
 
 impl FromStr for ContainerCreateBody {
     type Err = serde_json::Error;
@@ -44,7 +44,7 @@ impl<'a> typed_headers::Header for UserAgent<'a> {
         }
     }
 
-    fn to_values(&self, values: &mut typed_headers::ToValues) {
+    fn to_values(&self, values: &mut typed_headers::ToValues<'_>) {
         typed_headers::util::encode_single_value(&self.0, values);
     }
 }

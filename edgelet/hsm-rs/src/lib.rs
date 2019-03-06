@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::cyclomatic_complexity,
@@ -10,10 +10,6 @@
     clippy::use_self
 )]
 
-extern crate chrono;
-extern crate failure;
-extern crate hsm_sys;
-
 use hsm_sys::*;
 
 mod crypto;
@@ -21,12 +17,12 @@ mod error;
 pub mod tpm;
 mod x509;
 
-pub use crypto::{
+pub use crate::crypto::{
     Buffer, CertificateProperties, CertificateType, Crypto, HsmCertificate, KeyBytes, PrivateKey,
 };
-pub use error::{Error, ErrorKind};
-pub use tpm::{Tpm, TpmDigest, TpmKey};
-pub use x509::{X509Data, X509};
+pub use crate::error::{Error, ErrorKind};
+pub use crate::tpm::{Tpm, TpmDigest, TpmKey};
+pub use crate::x509::{X509Data, X509};
 
 // Traits
 

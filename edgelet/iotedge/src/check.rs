@@ -16,6 +16,7 @@ use futures::{Future, IntoFuture, Stream};
 #[cfg(unix)]
 use libc;
 use regex::Regex;
+use serde_derive::Deserialize;
 use serde_json;
 
 use edgelet_config::{Provisioning, Settings};
@@ -24,8 +25,8 @@ use edgelet_docker::DockerConfig;
 use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
 
-use error::{Error, ErrorKind, FetchLatestVersionsReason};
-use LatestVersions;
+use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
+use crate::LatestVersions;
 
 pub struct Check {
     config_file: PathBuf,
@@ -303,7 +304,7 @@ impl Check {
     }
 }
 
-impl ::Command for Check {
+impl crate::Command for Check {
     type Future = FutureResult<(), Error>;
 
     fn execute(&mut self) -> Self::Future {

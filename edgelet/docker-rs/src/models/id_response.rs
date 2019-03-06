@@ -9,7 +9,7 @@
  */
 
 /// IdResponse : Response to an API call that returns just an Id
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

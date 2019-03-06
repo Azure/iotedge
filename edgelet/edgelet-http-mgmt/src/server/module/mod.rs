@@ -10,7 +10,7 @@ use serde_json;
 use edgelet_core::{Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleStatus};
 use management::models::*;
 
-use error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind};
 
 mod create;
 mod delete;
@@ -94,8 +94,8 @@ pub mod tests {
     use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
     use management::models::ErrorResponse;
 
-    use error::{Error as MgmtError, ErrorKind};
-    use IntoResponse;
+    use crate::error::{Error as MgmtError, ErrorKind};
+    use crate::IntoResponse;
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub enum Error {

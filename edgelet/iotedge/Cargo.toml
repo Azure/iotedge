@@ -5,6 +5,7 @@ authors = ["Azure IoT Edge Devs"]
 description = """
 The iotedge tool is used to manage the IoT Edge runtime.
 """
+edition = "2018"
 
 [dependencies]
 bytes = "0.4"

@@ -12,6 +12,7 @@
 
 use std::default::Default;
 
+use serde_derive::{Deserialize, Serialize};
 /// [`DeviceRegistration`] : Device registration.
 
 #[allow(unused_imports)]

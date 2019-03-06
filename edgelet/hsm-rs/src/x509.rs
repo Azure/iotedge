@@ -7,7 +7,7 @@ use std::string::String;
 
 use super::GetCerts;
 use super::*;
-use error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind};
 
 /// Hsm for x509
 /// create an instance of this to use the x509 interface of an HSM

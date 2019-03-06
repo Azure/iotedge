@@ -10,6 +10,7 @@ use futures::prelude::*;
 use futures::stream;
 use futures::IntoFuture;
 use hyper::Body;
+use serde_derive::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
 pub struct TestRegistry<E> {
@@ -164,7 +165,7 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     type InitFuture = FutureResult<(), Self::Error>;
     type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
     type ListWithDetailsStream =
-        Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
+        Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
     type LogsFuture = FutureResult<Self::Logs, Self::Error>;
     type RemoveFuture = FutureResult<(), Self::Error>;
     type RestartFuture = FutureResult<(), Self::Error>;

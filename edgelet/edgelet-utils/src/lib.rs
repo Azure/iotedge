@@ -1,29 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::module_name_repetitions, clippy::use_self)]
-
-extern crate failure;
-#[cfg(test)]
-extern crate futures;
-#[macro_use]
-extern crate log;
-extern crate serde;
-
-// Need serde_derive only for unit tests.
-#[cfg(test)]
-#[macro_use]
-extern crate serde_derive;
-
-// Need macros from serde_json for unit tests.
-#[cfg(test)]
-#[macro_use]
-extern crate serde_json;
-
-// Need stuff other than macros from serde_json for non-test code.
-#[cfg(not(test))]
-extern crate serde_json;
 
 mod error;
 mod logging;
@@ -32,10 +11,10 @@ mod ser_de;
 
 use std::collections::HashMap;
 
-pub use error::{Error, ErrorKind};
-pub use logging::log_failure;
-pub use macros::ensure_not_empty_with_context;
-pub use ser_de::{serde_clone, serialize_ordered, string_or_struct};
+pub use crate::error::{Error, ErrorKind};
+pub use crate::logging::log_failure;
+pub use crate::macros::ensure_not_empty_with_context;
+pub use crate::ser_de::{serde_clone, serialize_ordered, string_or_struct};
 
 pub fn parse_query(query: &str) -> HashMap<&str, &str> {
     query

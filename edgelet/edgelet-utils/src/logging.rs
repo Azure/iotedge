@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use failure::Fail;
-use log::Level;
+use log::{log, Level};
 
 pub fn log_failure(level: Level, fail: &dyn Fail) {
     log!(level, "{}", fail);

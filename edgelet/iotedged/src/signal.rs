@@ -5,7 +5,7 @@
 
 use futures::Future;
 
-type ShutdownSignal = Box<Future<Item = (), Error = ()> + Send>;
+type ShutdownSignal = Box<dyn Future<Item = (), Error = ()> + Send>;
 
 pub fn shutdown() -> ShutdownSignal {
     imp::shutdown()
@@ -16,6 +16,7 @@ mod imp {
     use std::fmt;
 
     use futures::{future, Future, Stream};
+    use log::info;
     use tokio_signal::unix::{Signal, SIGINT, SIGTERM};
 
     use super::ShutdownSignal;
@@ -43,7 +44,7 @@ mod imp {
     struct DisplaySignal(i32);
 
     impl fmt::Display for DisplaySignal {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             let s = match self.0 {
                 SIGINT => "SIGINT",
                 SIGTERM => "SIGTERM",
@@ -57,6 +58,7 @@ mod imp {
 #[cfg(not(unix))]
 mod imp {
     use futures::{Future, Stream};
+    use log::info;
     use tokio_signal;
 
     use super::ShutdownSignal;

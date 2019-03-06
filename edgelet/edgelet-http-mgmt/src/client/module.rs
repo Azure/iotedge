@@ -21,7 +21,7 @@ use edgelet_core::{ModuleOperation, RuntimeOperation, SystemInfo as CoreSystemIn
 use edgelet_docker::{self, DockerConfig};
 use edgelet_http::{UrlConnector, API_VERSION};
 
-use error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind};
 
 pub struct ModuleClient {
     client: Arc<APIClient>,
@@ -68,7 +68,7 @@ pub struct ModuleDetails(HttpModuleDetails, ModuleConfig);
 pub struct ModuleConfig(String, Config);
 
 impl fmt::Display for ModuleConfig {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let edgelet_docker::MODULE_TYPE = self.0.as_ref() {
             if let Ok(c) = serde_json::from_value::<DockerConfig>(self.1.settings().clone()) {
                 write!(f, "{}", c.image())?;
@@ -150,21 +150,21 @@ impl ModuleRuntime for ModuleClient {
     type Chunk = Chunk;
     type Logs = Logs;
 
-    type CreateFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type CreateFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type GetFuture =
-        Box<Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
+        Box<dyn Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
     type InitFuture = FutureResult<(), Self::Error>;
-    type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
+    type ListFuture = Box<dyn Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
     type ListWithDetailsStream =
-        Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type LogsFuture = Box<Future<Item = Self::Logs, Error = Self::Error> + Send>;
-    type RemoveFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type RestartFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type StartFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type StopFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type SystemInfoFuture = Box<Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
-    type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type TopFuture = Box<Future<Item = ModuleTop, Error = Self::Error> + Send>;
+        Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
+    type LogsFuture = Box<dyn Future<Item = Self::Logs, Error = Self::Error> + Send>;
+    type RemoveFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type RestartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type StartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
+    type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type TopFuture = Box<dyn Future<Item = ModuleTop, Error = Self::Error> + Send>;
 
     fn system_info(&self) -> Self::SystemInfoFuture {
         unimplemented!()

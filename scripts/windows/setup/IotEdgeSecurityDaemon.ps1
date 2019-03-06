@@ -401,7 +401,7 @@ function Install-IoTEdge {
 
     # Used to indicate success of Deploy-IoTEdge so we can abort early in case of failure
     $script:installPackagesSucceeded = $false
-    
+
     # Used to suppress some messages from Deploy-IoTEdge since we are automatically running Initialize-IoTEdge
     $calledFromInstall = $true
 
@@ -585,11 +585,11 @@ function Install-Packages(
         if (Test-MobyAlreadyInstalled) {
             Write-HostRed
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
-                Write-HostRed ('IoT Edge Moby Engine is installed in an invalid location. ' + 
+                Write-HostRed ('IoT Edge Moby Engine is installed in an invalid location. ' +
                     $ReinstallMessage)
             }
             else {
-                Write-HostRed ('IoT Edge Moby Engine is already installed, but IoT Edge is not. ' + 
+                Write-HostRed ('IoT Edge Moby Engine is already installed, but IoT Edge is not. ' +
                     $ReinstallMessage)
             }
             return
@@ -986,7 +986,7 @@ function Delete-Directory([string] $Path) {
     # Deleting them is a three-step process:
     #
     # 1. Take ownership of all files
-    Invoke-Native "takeown /r /skipsl /f ""$Path"""
+    Invoke-Native "takeown /r /skipsl /f /d y ""$Path"""
 
     # 2. Reset their ACLs so that they inherit from their container
     Invoke-Native "icacls ""$Path"" /reset /t /l /q /c"
@@ -1312,21 +1312,21 @@ function Set-AgentImage {
     if ($AgentImage) {
         Update-ConfigYaml({
             param($configurationYaml)
-
             $selectionRegex = 'image:\s*".*"'
             $replacementContent = "image: '$AgentImage'"
+            $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
             if ($Username -and $Password) {
-                $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
-                $selectionRegex = 'auth:\s*\{\s*\}'
+                $selectionRegex = '\n    auth:\s*\{\s*\}'
                 $agentRegistry = Get-AgentRegistry
                 $cred = New-Object System.Management.Automation.PSCredential ($Username, $Password)
                 $replacementContent = @(
-                    'auth:',
+                    '',
+                    '    auth:',
                     "      serveraddress: '$agentRegistry'",
                     "      username: '$Username'",
                     "      password: '$($cred.GetNetworkCredential().Password)'")
+                $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
             }
-            $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
             Write-HostGreen "Configured device with agent image '$AgentImage'."
             return $configurationYaml
         })
@@ -1622,11 +1622,11 @@ New-Alias -Name Uninstall-SecurityDaemon -Value Uninstall-IoTEdge -Force
 
 Export-ModuleMember `
     -Function `
-        Deploy-IoTEdge, 
-        Initialize-IoTEdge, 
-        Get-IoTEdgeLog, 
-        Update-IoTEdge, 
-        Install-IoTEdge, 
+        Deploy-IoTEdge,
+        Initialize-IoTEdge,
+        Get-IoTEdgeLog,
+        Update-IoTEdge,
+        Install-IoTEdge,
         Uninstall-IoTEdge `
     -Alias `
         Install-SecurityDaemon,

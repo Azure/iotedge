@@ -9,7 +9,7 @@
  */
 
 /// TaskSpecContainerSpec : Invalid when specified with `PluginSpec`.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -43,7 +43,7 @@ pub struct TaskSpecContainerSpec {
     #[serde(rename = "Groups", skip_serializing_if = "Option::is_none")]
     groups: Option<Vec<String>>,
     #[serde(rename = "Privileges", skip_serializing_if = "Option::is_none")]
-    privileges: Option<::models::TaskSpecContainerSpecPrivileges>,
+    privileges: Option<crate::models::TaskSpecContainerSpecPrivileges>,
     /// Whether a pseudo-TTY should be allocated.
     #[serde(rename = "TTY", skip_serializing_if = "Option::is_none")]
     TTY: Option<bool>,
@@ -55,7 +55,7 @@ pub struct TaskSpecContainerSpec {
     read_only: Option<bool>,
     /// Specification for mounts to be added to containers created as part of the service.
     #[serde(rename = "Mounts", skip_serializing_if = "Option::is_none")]
-    mounts: Option<Vec<::models::Mount>>,
+    mounts: Option<Vec<crate::models::Mount>>,
     /// Signal to stop the container.
     #[serde(rename = "StopSignal", skip_serializing_if = "Option::is_none")]
     stop_signal: Option<String>,
@@ -63,18 +63,18 @@ pub struct TaskSpecContainerSpec {
     #[serde(rename = "StopGracePeriod", skip_serializing_if = "Option::is_none")]
     stop_grace_period: Option<i64>,
     #[serde(rename = "HealthCheck", skip_serializing_if = "Option::is_none")]
-    health_check: Option<::models::HealthConfig>,
+    health_check: Option<crate::models::HealthConfig>,
     /// A list of hostname/IP mappings to add to the container's `hosts` file. The format of extra hosts is specified in the [hosts(5)](http://man7.org/linux/man-pages/man5/hosts.5.html) man page:      IP_address canonical_hostname [aliases...]
     #[serde(rename = "Hosts", skip_serializing_if = "Option::is_none")]
     hosts: Option<Vec<String>>,
     #[serde(rename = "DNSConfig", skip_serializing_if = "Option::is_none")]
-    dns_config: Option<::models::TaskSpecContainerSpecDnsConfig>,
+    dns_config: Option<crate::models::TaskSpecContainerSpecDnsConfig>,
     /// Secrets contains references to zero or more secrets that will be exposed to the service.
     #[serde(rename = "Secrets", skip_serializing_if = "Option::is_none")]
-    secrets: Option<Vec<::models::TaskSpecContainerSpecSecrets>>,
+    secrets: Option<Vec<crate::models::TaskSpecContainerSpecSecrets>>,
     /// Configs contains references to zero or more configs that will be exposed to the service.
     #[serde(rename = "Configs", skip_serializing_if = "Option::is_none")]
-    configs: Option<Vec<::models::TaskSpecContainerSpecConfigs>>,
+    configs: Option<Vec<crate::models::TaskSpecContainerSpecConfigs>>,
 }
 
 impl TaskSpecContainerSpec {
@@ -258,19 +258,19 @@ impl TaskSpecContainerSpec {
         self.groups = None;
     }
 
-    pub fn set_privileges(&mut self, privileges: ::models::TaskSpecContainerSpecPrivileges) {
+    pub fn set_privileges(&mut self, privileges: crate::models::TaskSpecContainerSpecPrivileges) {
         self.privileges = Some(privileges);
     }
 
     pub fn with_privileges(
         mut self,
-        privileges: ::models::TaskSpecContainerSpecPrivileges,
+        privileges: crate::models::TaskSpecContainerSpecPrivileges,
     ) -> Self {
         self.privileges = Some(privileges);
         self
     }
 
-    pub fn privileges(&self) -> Option<&::models::TaskSpecContainerSpecPrivileges> {
+    pub fn privileges(&self) -> Option<&crate::models::TaskSpecContainerSpecPrivileges> {
         self.privileges.as_ref()
     }
 
@@ -329,16 +329,16 @@ impl TaskSpecContainerSpec {
         self.read_only = None;
     }
 
-    pub fn set_mounts(&mut self, mounts: Vec<::models::Mount>) {
+    pub fn set_mounts(&mut self, mounts: Vec<crate::models::Mount>) {
         self.mounts = Some(mounts);
     }
 
-    pub fn with_mounts(mut self, mounts: Vec<::models::Mount>) -> Self {
+    pub fn with_mounts(mut self, mounts: Vec<crate::models::Mount>) -> Self {
         self.mounts = Some(mounts);
         self
     }
 
-    pub fn mounts(&self) -> Option<&[::models::Mount]> {
+    pub fn mounts(&self) -> Option<&[crate::models::Mount]> {
         self.mounts.as_ref().map(AsRef::as_ref)
     }
 
@@ -380,16 +380,16 @@ impl TaskSpecContainerSpec {
         self.stop_grace_period = None;
     }
 
-    pub fn set_health_check(&mut self, health_check: ::models::HealthConfig) {
+    pub fn set_health_check(&mut self, health_check: crate::models::HealthConfig) {
         self.health_check = Some(health_check);
     }
 
-    pub fn with_health_check(mut self, health_check: ::models::HealthConfig) -> Self {
+    pub fn with_health_check(mut self, health_check: crate::models::HealthConfig) -> Self {
         self.health_check = Some(health_check);
         self
     }
 
-    pub fn health_check(&self) -> Option<&::models::HealthConfig> {
+    pub fn health_check(&self) -> Option<&crate::models::HealthConfig> {
         self.health_check.as_ref()
     }
 
@@ -414,16 +414,19 @@ impl TaskSpecContainerSpec {
         self.hosts = None;
     }
 
-    pub fn set_dns_config(&mut self, dns_config: ::models::TaskSpecContainerSpecDnsConfig) {
+    pub fn set_dns_config(&mut self, dns_config: crate::models::TaskSpecContainerSpecDnsConfig) {
         self.dns_config = Some(dns_config);
     }
 
-    pub fn with_dns_config(mut self, dns_config: ::models::TaskSpecContainerSpecDnsConfig) -> Self {
+    pub fn with_dns_config(
+        mut self,
+        dns_config: crate::models::TaskSpecContainerSpecDnsConfig,
+    ) -> Self {
         self.dns_config = Some(dns_config);
         self
     }
 
-    pub fn dns_config(&self) -> Option<&::models::TaskSpecContainerSpecDnsConfig> {
+    pub fn dns_config(&self) -> Option<&crate::models::TaskSpecContainerSpecDnsConfig> {
         self.dns_config.as_ref()
     }
 
@@ -431,16 +434,19 @@ impl TaskSpecContainerSpec {
         self.dns_config = None;
     }
 
-    pub fn set_secrets(&mut self, secrets: Vec<::models::TaskSpecContainerSpecSecrets>) {
+    pub fn set_secrets(&mut self, secrets: Vec<crate::models::TaskSpecContainerSpecSecrets>) {
         self.secrets = Some(secrets);
     }
 
-    pub fn with_secrets(mut self, secrets: Vec<::models::TaskSpecContainerSpecSecrets>) -> Self {
+    pub fn with_secrets(
+        mut self,
+        secrets: Vec<crate::models::TaskSpecContainerSpecSecrets>,
+    ) -> Self {
         self.secrets = Some(secrets);
         self
     }
 
-    pub fn secrets(&self) -> Option<&[::models::TaskSpecContainerSpecSecrets]> {
+    pub fn secrets(&self) -> Option<&[crate::models::TaskSpecContainerSpecSecrets]> {
         self.secrets.as_ref().map(AsRef::as_ref)
     }
 
@@ -448,16 +454,19 @@ impl TaskSpecContainerSpec {
         self.secrets = None;
     }
 
-    pub fn set_configs(&mut self, configs: Vec<::models::TaskSpecContainerSpecConfigs>) {
+    pub fn set_configs(&mut self, configs: Vec<crate::models::TaskSpecContainerSpecConfigs>) {
         self.configs = Some(configs);
     }
 
-    pub fn with_configs(mut self, configs: Vec<::models::TaskSpecContainerSpecConfigs>) -> Self {
+    pub fn with_configs(
+        mut self,
+        configs: Vec<crate::models::TaskSpecContainerSpecConfigs>,
+    ) -> Self {
         self.configs = Some(configs);
         self
     }
 
-    pub fn configs(&self) -> Option<&[::models::TaskSpecContainerSpecConfigs]> {
+    pub fn configs(&self) -> Option<&[crate::models::TaskSpecContainerSpecConfigs]> {
         self.configs.as_ref().map(AsRef::as_ref)
     }
 

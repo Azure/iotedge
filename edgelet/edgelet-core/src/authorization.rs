@@ -3,10 +3,11 @@
 use failure::Fail;
 use futures::future::Either;
 use futures::{future, Future};
+use log::info;
 
-use error::{Error, ErrorKind};
-use module::{ModuleRuntime, ModuleRuntimeErrorReason};
-use pid::Pid;
+use crate::error::{Error, ErrorKind};
+use crate::module::{ModuleRuntime, ModuleRuntimeErrorReason};
+use crate::pid::Pid;
 
 #[derive(Debug)]
 pub enum Policy {
@@ -105,14 +106,14 @@ where
 
 #[cfg(test)]
 mod tests {
+    use futures::future::FutureResult;
+    use futures::stream::Empty;
+    use futures::{future, stream, IntoFuture, Stream};
     use std::error::Error;
     use std::time::Duration;
 
     use super::*;
-    use futures::future::FutureResult;
-    use futures::stream::Empty;
-    use futures::{future, stream, IntoFuture, Stream};
-    use module::{
+    use crate::module::{
         LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec, ModuleTop,
         SystemInfo as CoreSystemInfo,
     };
@@ -251,7 +252,7 @@ mod tests {
     }
 
     impl std::fmt::Display for TestError {
-        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "TestError")
         }
     }
@@ -383,7 +384,7 @@ mod tests {
         type InitFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
         type ListWithDetailsStream =
-            Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
+            Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
         type LogsFuture = FutureResult<Self::Logs, Self::Error>;
         type RemoveFuture = FutureResult<(), Self::Error>;
         type RestartFuture = FutureResult<(), Self::Error>;

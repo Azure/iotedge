@@ -9,7 +9,7 @@
  */
 
 /// InlineResponse20020Descriptor : A descriptor struct containing digest, media type, and size
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

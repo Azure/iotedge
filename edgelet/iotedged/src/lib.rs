@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
@@ -8,44 +8,6 @@
     clippy::shadow_unrelated,
     clippy::use_self,
 )]
-
-extern crate base64;
-#[macro_use]
-extern crate clap;
-extern crate docker;
-extern crate dps;
-extern crate edgelet_config;
-extern crate edgelet_core;
-extern crate edgelet_docker;
-extern crate edgelet_hsm;
-extern crate edgelet_http;
-extern crate edgelet_http_mgmt;
-extern crate edgelet_http_workload;
-extern crate edgelet_iothub;
-#[cfg(test)]
-extern crate edgelet_test_utils;
-extern crate edgelet_utils;
-extern crate env_logger;
-extern crate failure;
-extern crate futures;
-extern crate hsm;
-extern crate hyper;
-extern crate iothubservice;
-#[macro_use]
-extern crate log;
-extern crate provisioning;
-extern crate serde_json;
-extern crate sha2;
-#[cfg(test)]
-extern crate tempdir;
-extern crate tokio;
-extern crate tokio_signal;
-extern crate url;
-#[cfg(target_os = "windows")]
-#[macro_use]
-extern crate windows_service;
-#[cfg(target_os = "windows")]
-extern crate win_logger;
 
 pub mod app;
 mod error;
@@ -72,6 +34,7 @@ use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future};
 use hyper::server::conn::Http;
 use hyper::Uri;
+use log::{debug, info};
 use sha2::{Digest, Sha256};
 use url::Url;
 
@@ -104,7 +67,7 @@ use provisioning::provisioning::{
     Provision, ProvisioningResult,
 };
 
-use workload::WorkloadData;
+use crate::workload::WorkloadData;
 
 pub use self::error::{Error, ErrorKind, InitializeErrorReason};
 
@@ -1015,7 +978,7 @@ mod tests {
     pub struct Error;
 
     impl fmt::Display for Error {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             write!(f, "Error")
         }
     }

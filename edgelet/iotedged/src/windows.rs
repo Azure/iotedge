@@ -5,21 +5,23 @@ use std::env;
 use std::ffi::OsString;
 use std::time::Duration;
 
+use clap::crate_name;
 use failure::ResultExt;
 use futures::prelude::*;
 use futures::sync::oneshot;
+use log::{error, info};
 use windows_service::service::{
     ServiceControl, ServiceControlAccept, ServiceExitCode, ServiceState, ServiceStatus, ServiceType,
 };
 use windows_service::service_control_handler::{
     register, ServiceControlHandlerResult, ServiceStatusHandle,
 };
-use windows_service::service_dispatcher;
+use windows_service::{define_windows_service, service_dispatcher};
 
-use app;
-use error::{Error, ErrorKind, InitializeErrorReason, ServiceError};
-use logging;
-use signal;
+use crate::app;
+use crate::error::{Error, ErrorKind, InitializeErrorReason, ServiceError};
+use crate::logging;
+use crate::signal;
 
 const RUN_AS_CONSOLE_KEY: &str = "IOTEDGE_RUN_AS_CONSOLE";
 const IOTEDGED_SERVICE_NAME: &str = crate_name!();

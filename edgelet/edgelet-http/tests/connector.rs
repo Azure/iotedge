@@ -1,24 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-
-extern crate edgelet_http;
-extern crate edgelet_test_utils;
-extern crate futures;
-extern crate hyper;
-#[cfg(windows)]
-extern crate hyper_named_pipe;
-#[cfg(unix)]
-extern crate hyperlocal;
-#[cfg(windows)]
-extern crate hyperlocal_windows;
-#[cfg(windows)]
-extern crate rand;
-extern crate tempdir;
-extern crate tokio;
-extern crate typed_headers;
-extern crate url;
 
 use std::io;
 
@@ -168,7 +151,7 @@ const POST_BODY: &str = r#"{"donuts":"yes"}"#;
 
 fn post_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     // verify that the request body is what we expect
     Box::new(
         req.into_body()

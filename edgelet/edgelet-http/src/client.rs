@@ -7,6 +7,7 @@ use chrono::{DateTime, Duration, Utc};
 use failure::{Fail, ResultExt};
 use futures::{Future, IntoFuture, Stream};
 use hyper::{self, Body, Method, Request, Response};
+use log::debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;
@@ -16,7 +17,7 @@ use url::Url;
 
 use edgelet_utils::ensure_not_empty_with_context;
 
-use error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind};
 
 pub trait TokenSource {
     type Error;
@@ -261,7 +262,7 @@ mod tests {
     use typed_headers::{mime, ContentType};
     use url::form_urlencoded::parse as parse_query;
 
-    use error::ErrorKind;
+    use crate::error::ErrorKind;
 
     struct StaticTokenSource {
         token: String,
@@ -524,7 +525,7 @@ mod tests {
                         })
                         .map_err(|e| panic!("Error: {:?}", e))
                 })
-                .and_then(|_| Ok(Response::new(response.into())))
+                .and_then(move |_| Ok(Response::new(response.into())))
         };
         let client = Client::new(handler, token_source, api_version, host_name).unwrap();
 
