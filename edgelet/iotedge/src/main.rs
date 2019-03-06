@@ -124,6 +124,14 @@ fn run() -> Result<(), Error> {
                         .default_value("all"),
                 )
                 .arg(
+                    Arg::with_name("since")
+                        .help("Only return logs since this time, as a UNIX timestamp")
+                        .long("since")
+                        .takes_value(true)
+                        .value_name("NUM")
+                        .default_value("0"),
+                )
+                .arg(
                     Arg::with_name("follow")
                         .help("Follow output log")
                         .short("f")
@@ -184,6 +192,7 @@ fn run() -> Result<(), Error> {
                 .value_of("since")
                 .and_then(|a| a.parse::<i32>().ok())
                 .unwrap_or_default(); 
+            println!("Since = {}", since);
             let options = LogOptions::new().with_follow(follow).with_tail(tail).with_since(since);
             tokio_runtime.block_on(Logs::new(id, options, runtime).execute())
         }
