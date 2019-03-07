@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var methodResult = objectResult.Value as MethodResult;
             Assert.NotNull(methodResult);
             Assert.Equal(200, methodResult.Status);
-            Assert.Equal(null, methodResult.Payload);
+            Assert.Null(methodResult.Payload);
             Assert.Equal(objectResult.StatusCode, (int)HttpStatusCode.OK);
         }
 
@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var methodResult = objectResult.Value as MethodResult;
             Assert.NotNull(methodResult);
             Assert.Equal(200, methodResult.Status);
-            Assert.Equal(null, methodResult.Payload);
+            Assert.Null(methodResult.Payload);
             Assert.Equal(objectResult.StatusCode, (int)HttpStatusCode.OK);
         }
 
@@ -194,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var methodResult = objectResult.Value as MethodErrorResult;
             Assert.NotNull(methodResult);
             Assert.Equal(0, methodResult.Status);
-            Assert.Equal(null, methodResult.Payload);
+            Assert.Null(methodResult.Payload);
             Assert.Equal(timeoutException.Message, methodResult.Message);
             Assert.Equal(objectResult.StatusCode, (int)HttpStatusCode.GatewayTimeout);
         }
@@ -211,7 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             Assert.Equal(expectedOutput, output);
         }
 
-        static IEnumerable<object[]> GetRawJsonData()
+        public static IEnumerable<object[]> GetRawJsonData()
         {
             yield return new object[] { null, null };
 
