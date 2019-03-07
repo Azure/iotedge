@@ -466,6 +466,46 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 }
 ");
 
+        public static IEnumerable<object[]> GetValidJsonInputs()
+        {
+            return GetJsonTestCases("validJson").Select(s => new object[] { s });
+        }
+
+        public static IEnumerable<object[]> GetValidStatusInputs()
+        {
+            return GetJsonTestCases("validStatus").Select(s => new object[] { s });
+        }
+
+        public static IEnumerable<object[]> GetInvalidExitCodes()
+        {
+            return GetJsonTestCases("invalidExitCodeJson").Select(s => new object[] { s });
+        }
+
+        public static IEnumerable<object[]> GetInvalidStatusDescription()
+        {
+            return GetJsonTestCases("invalidStatusDescription").Select(s => new object[] { s });
+        }
+
+        public static IEnumerable<object[]> GetInvalidLastStartTimes()
+        {
+            return GetJsonTestCases("invalidLastStartTime").Select(s => new object[] { s });
+        }
+
+        public static IEnumerable<object[]> GetInvalidLastExitTimes()
+        {
+            return GetJsonTestCases("invalidLastExitTime").Select(s => new object[] { s });
+        }
+
+        public static IEnumerable<object[]> GetInvalidRestartCounts()
+        {
+            return GetJsonTestCases("invalidRestartCount").Select(s => new object[] { s });
+        }
+
+        public static IEnumerable<object[]> GetInvalidLastRestartTimes()
+        {
+            return GetJsonTestCases("invalidLastRestartTime").Select(s => new object[] { s });
+        }
+
         [Fact]
         public void TestConstructor()
         {
@@ -634,7 +674,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(m1, newM1);
             Assert.NotEqual(m2, newM2);
             Assert.NotNull(newM2);
-            Assert.Equal(newM2.RuntimeStatus, ModuleStatus.Stopped);
+            Assert.Equal(ModuleStatus.Stopped, newM2.RuntimeStatus);
             Assert.Equal(m2.Config, newM2.Config);
             Assert.Equal(m2.ConfigurationInfo, newM2.ConfigurationInfo);
             Assert.Equal(m2.DesiredStatus, newM2.DesiredStatus);
@@ -654,46 +694,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         {
             var val = (JArray)TestJsonInputs.GetValue(subset);
             return val.Children().Select(token => token.ToString());
-        }
-
-        static IEnumerable<object[]> GetValidJsonInputs()
-        {
-            return GetJsonTestCases("validJson").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetValidStatusInputs()
-        {
-            return GetJsonTestCases("validStatus").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetInvalidExitCodes()
-        {
-            return GetJsonTestCases("invalidExitCodeJson").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetInvalidStatusDescription()
-        {
-            return GetJsonTestCases("invalidStatusDescription").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetInvalidLastStartTimes()
-        {
-            return GetJsonTestCases("invalidLastStartTime").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetInvalidLastExitTimes()
-        {
-            return GetJsonTestCases("invalidLastExitTime").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetInvalidRestartCounts()
-        {
-            return GetJsonTestCases("invalidRestartCount").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetInvalidLastRestartTimes()
-        {
-            return GetJsonTestCases("invalidLastRestartTime").Select(s => new object[] { s });
         }
     }
 }

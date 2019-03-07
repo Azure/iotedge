@@ -101,8 +101,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             await Task.Delay(TimeSpan.FromSeconds(7));
 
             cloudSync.Verify(c => c.UpdateReportedProperties(id, It.IsAny<TwinCollection>()), Times.Once);
-            Assert.Equal(1, receivedReportedProperties.Count);
-            Assert.Equal(receivedReportedProperties[0].ToJson(), "{\"p1\":\"v14\",\"p2\":\"v2\",\"p3\":\"v32\",\"p4\":\"v4\"}");
+            Assert.Single(receivedReportedProperties);
+            Assert.Equal("{\"p1\":\"v14\",\"p2\":\"v2\",\"p3\":\"v32\",\"p4\":\"v4\"}", receivedReportedProperties[0].ToJson());
         }
 
         static IEntityStore<string, TwinStoreEntity> GetReportedPropertiesEntityStore()

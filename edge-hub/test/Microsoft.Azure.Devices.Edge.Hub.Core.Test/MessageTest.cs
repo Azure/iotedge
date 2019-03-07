@@ -26,9 +26,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Unit]
         public void TestConstructor()
         {
-            Assert.Throws(typeof(ArgumentNullException), () => new Message(new byte[0], new Dictionary<string, string>(), null));
-            Assert.Throws(typeof(ArgumentNullException), () => new Message(new byte[0], null, new Dictionary<string, string>()));
-            Assert.Throws(typeof(ArgumentNullException), () => new Message(null, new Dictionary<string, string>(), new Dictionary<string, string>()));
+            Assert.Throws<ArgumentNullException>(() => new Message(new byte[0], new Dictionary<string, string>(), null));
+            Assert.Throws<ArgumentNullException>(() => new Message(new byte[0], null, new Dictionary<string, string>()));
+            Assert.Throws<ArgumentNullException>(() => new Message(null, new Dictionary<string, string>(), new Dictionary<string, string>()));
         }
 
         [Fact]

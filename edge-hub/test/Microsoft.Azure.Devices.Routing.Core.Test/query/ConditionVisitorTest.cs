@@ -22,7 +22,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("0100", 100D)]
         [InlineData("(((3)))", 3D)]
         [InlineData("12.34", 12.34D)]
-        [InlineData("12.34", 12.34D)]
         [InlineData("1.234e1", 12.34D)]
         [InlineData("1.234e+1", 12.34D)]
         [InlineData("1.234e-1", 0.1234D)]

@@ -152,7 +152,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(Bool.Undefined, expression51());
             Assert.Equal(Bool.Undefined, expression52());
             Assert.Equal(Bool.False, expression53());
-            Assert.Equal(false, expression54());
+            Assert.False(expression54());
 
             // Greater Than
             Func<Bool> expression61 = Expression.Lambda<Func<Bool>>(Expression.GreaterThan(Expression.Constant(3.0D), Expression.Constant(Null.Instance))).Compile();
@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(Undefined.Instance, expression61());
             Assert.Equal(Undefined.Instance, expression62());
             Assert.Equal(Bool.False, expression63());
-            Assert.Equal(false, expression64());
+            Assert.False(expression64());
 
             // Less Than Or Equal
             Func<Bool> expression71 = Expression.Lambda<Func<Bool>>(Expression.LessThanOrEqual(Expression.Constant(3.0D), Expression.Constant(Null.Instance))).Compile();
@@ -172,7 +172,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(Bool.Undefined, expression71());
             Assert.Equal(Bool.Undefined, expression72());
             Assert.Equal(Bool.True, expression73());
-            Assert.Equal(true, expression74());
+            Assert.True(expression74());
 
             // Greater Than Or Equal
             Func<Bool> expression81 = Expression.Lambda<Func<Bool>>(Expression.GreaterThanOrEqual(Expression.Constant(3.0D), Expression.Constant(Null.Instance))).Compile();
@@ -182,7 +182,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(Bool.Undefined, expression81());
             Assert.Equal(Bool.Undefined, expression82());
             Assert.Equal(Bool.True, expression83());
-            Assert.Equal(true, expression84());
+            Assert.True(expression84());
 
             // Equal
             Func<Bool> expression91 = Expression.Lambda<Func<Bool>>(Expression.Equal(Expression.Constant(3.0D), Expression.Constant(Null.Instance))).Compile();
@@ -192,7 +192,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(Bool.Undefined, expression91());
             Assert.Equal(Bool.Undefined, expression92());
             Assert.Equal(Bool.True, expression93());
-            Assert.Equal(true, expression99());
+            Assert.True(expression99());
 
             // NotEqual
             Func<Bool> expression101 = Expression.Lambda<Func<Bool>>(Expression.NotEqual(Expression.Constant(3.0D), Expression.Constant(Null.Instance))).Compile();
@@ -202,7 +202,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.Equal(Bool.Undefined, expression101());
             Assert.Equal(Bool.Undefined, expression102());
             Assert.Equal(Bool.False, expression103());
-            Assert.Equal(false, expression104());
+            Assert.False(expression104());
 
             // Modulo
             Func<double> expression111 = Expression.Lambda<Func<double>>(Expression.Modulo(Expression.Constant(3.0D), Expression.Constant(Null.Instance))).Compile();
