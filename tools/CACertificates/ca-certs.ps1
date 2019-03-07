@@ -89,9 +89,9 @@ function Invoke-External()
 
     process {
         $output = $null
-        Write-Verbose "Executing: $Command"
-        Invoke-Expression $Command | Tee-Object -Variable "output" | Write-Verbose
-        Write-Verbose "Exit code: $LASTEXITCODE"
+        #Write-Verbose "Executing: $Command"
+        Invoke-Expression $Command | Tee-Object -Variable "output"
+        #Write-Verbose "Exit code: $LASTEXITCODE"
 
         if ($LASTEXITCODE) {
             throw $output
