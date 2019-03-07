@@ -9,22 +9,22 @@
  */
 
 /// TaskSpec : User modifiable task configuration.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpec {
     #[serde(rename = "PluginSpec", skip_serializing_if = "Option::is_none")]
-    plugin_spec: Option<::models::TaskSpecPluginSpec>,
+    plugin_spec: Option<crate::models::TaskSpecPluginSpec>,
     #[serde(rename = "ContainerSpec", skip_serializing_if = "Option::is_none")]
-    container_spec: Option<::models::TaskSpecContainerSpec>,
+    container_spec: Option<crate::models::TaskSpecContainerSpec>,
     #[serde(rename = "Resources", skip_serializing_if = "Option::is_none")]
-    resources: Option<::models::TaskSpecResources>,
+    resources: Option<crate::models::TaskSpecResources>,
     #[serde(rename = "RestartPolicy", skip_serializing_if = "Option::is_none")]
-    restart_policy: Option<::models::TaskSpecRestartPolicy>,
+    restart_policy: Option<crate::models::TaskSpecRestartPolicy>,
     #[serde(rename = "Placement", skip_serializing_if = "Option::is_none")]
-    placement: Option<::models::TaskSpecPlacement>,
+    placement: Option<crate::models::TaskSpecPlacement>,
     /// A counter that triggers an update even if no relevant parameters have been changed.
     #[serde(rename = "ForceUpdate", skip_serializing_if = "Option::is_none")]
     force_update: Option<i32>,
@@ -32,9 +32,9 @@ pub struct TaskSpec {
     #[serde(rename = "Runtime", skip_serializing_if = "Option::is_none")]
     runtime: Option<String>,
     #[serde(rename = "Networks", skip_serializing_if = "Option::is_none")]
-    networks: Option<Vec<::models::TaskSpecNetworks>>,
+    networks: Option<Vec<crate::models::TaskSpecNetworks>>,
     #[serde(rename = "LogDriver", skip_serializing_if = "Option::is_none")]
-    log_driver: Option<::models::TaskSpecLogDriver>,
+    log_driver: Option<crate::models::TaskSpecLogDriver>,
 }
 
 impl TaskSpec {
@@ -53,16 +53,16 @@ impl TaskSpec {
         }
     }
 
-    pub fn set_plugin_spec(&mut self, plugin_spec: ::models::TaskSpecPluginSpec) {
+    pub fn set_plugin_spec(&mut self, plugin_spec: crate::models::TaskSpecPluginSpec) {
         self.plugin_spec = Some(plugin_spec);
     }
 
-    pub fn with_plugin_spec(mut self, plugin_spec: ::models::TaskSpecPluginSpec) -> Self {
+    pub fn with_plugin_spec(mut self, plugin_spec: crate::models::TaskSpecPluginSpec) -> Self {
         self.plugin_spec = Some(plugin_spec);
         self
     }
 
-    pub fn plugin_spec(&self) -> Option<&::models::TaskSpecPluginSpec> {
+    pub fn plugin_spec(&self) -> Option<&crate::models::TaskSpecPluginSpec> {
         self.plugin_spec.as_ref()
     }
 
@@ -70,16 +70,19 @@ impl TaskSpec {
         self.plugin_spec = None;
     }
 
-    pub fn set_container_spec(&mut self, container_spec: ::models::TaskSpecContainerSpec) {
+    pub fn set_container_spec(&mut self, container_spec: crate::models::TaskSpecContainerSpec) {
         self.container_spec = Some(container_spec);
     }
 
-    pub fn with_container_spec(mut self, container_spec: ::models::TaskSpecContainerSpec) -> Self {
+    pub fn with_container_spec(
+        mut self,
+        container_spec: crate::models::TaskSpecContainerSpec,
+    ) -> Self {
         self.container_spec = Some(container_spec);
         self
     }
 
-    pub fn container_spec(&self) -> Option<&::models::TaskSpecContainerSpec> {
+    pub fn container_spec(&self) -> Option<&crate::models::TaskSpecContainerSpec> {
         self.container_spec.as_ref()
     }
 
@@ -87,16 +90,16 @@ impl TaskSpec {
         self.container_spec = None;
     }
 
-    pub fn set_resources(&mut self, resources: ::models::TaskSpecResources) {
+    pub fn set_resources(&mut self, resources: crate::models::TaskSpecResources) {
         self.resources = Some(resources);
     }
 
-    pub fn with_resources(mut self, resources: ::models::TaskSpecResources) -> Self {
+    pub fn with_resources(mut self, resources: crate::models::TaskSpecResources) -> Self {
         self.resources = Some(resources);
         self
     }
 
-    pub fn resources(&self) -> Option<&::models::TaskSpecResources> {
+    pub fn resources(&self) -> Option<&crate::models::TaskSpecResources> {
         self.resources.as_ref()
     }
 
@@ -104,16 +107,19 @@ impl TaskSpec {
         self.resources = None;
     }
 
-    pub fn set_restart_policy(&mut self, restart_policy: ::models::TaskSpecRestartPolicy) {
+    pub fn set_restart_policy(&mut self, restart_policy: crate::models::TaskSpecRestartPolicy) {
         self.restart_policy = Some(restart_policy);
     }
 
-    pub fn with_restart_policy(mut self, restart_policy: ::models::TaskSpecRestartPolicy) -> Self {
+    pub fn with_restart_policy(
+        mut self,
+        restart_policy: crate::models::TaskSpecRestartPolicy,
+    ) -> Self {
         self.restart_policy = Some(restart_policy);
         self
     }
 
-    pub fn restart_policy(&self) -> Option<&::models::TaskSpecRestartPolicy> {
+    pub fn restart_policy(&self) -> Option<&crate::models::TaskSpecRestartPolicy> {
         self.restart_policy.as_ref()
     }
 
@@ -121,16 +127,16 @@ impl TaskSpec {
         self.restart_policy = None;
     }
 
-    pub fn set_placement(&mut self, placement: ::models::TaskSpecPlacement) {
+    pub fn set_placement(&mut self, placement: crate::models::TaskSpecPlacement) {
         self.placement = Some(placement);
     }
 
-    pub fn with_placement(mut self, placement: ::models::TaskSpecPlacement) -> Self {
+    pub fn with_placement(mut self, placement: crate::models::TaskSpecPlacement) -> Self {
         self.placement = Some(placement);
         self
     }
 
-    pub fn placement(&self) -> Option<&::models::TaskSpecPlacement> {
+    pub fn placement(&self) -> Option<&crate::models::TaskSpecPlacement> {
         self.placement.as_ref()
     }
 
@@ -172,16 +178,16 @@ impl TaskSpec {
         self.runtime = None;
     }
 
-    pub fn set_networks(&mut self, networks: Vec<::models::TaskSpecNetworks>) {
+    pub fn set_networks(&mut self, networks: Vec<crate::models::TaskSpecNetworks>) {
         self.networks = Some(networks);
     }
 
-    pub fn with_networks(mut self, networks: Vec<::models::TaskSpecNetworks>) -> Self {
+    pub fn with_networks(mut self, networks: Vec<crate::models::TaskSpecNetworks>) -> Self {
         self.networks = Some(networks);
         self
     }
 
-    pub fn networks(&self) -> Option<&[::models::TaskSpecNetworks]> {
+    pub fn networks(&self) -> Option<&[crate::models::TaskSpecNetworks]> {
         self.networks.as_ref().map(AsRef::as_ref)
     }
 
@@ -189,16 +195,16 @@ impl TaskSpec {
         self.networks = None;
     }
 
-    pub fn set_log_driver(&mut self, log_driver: ::models::TaskSpecLogDriver) {
+    pub fn set_log_driver(&mut self, log_driver: crate::models::TaskSpecLogDriver) {
         self.log_driver = Some(log_driver);
     }
 
-    pub fn with_log_driver(mut self, log_driver: ::models::TaskSpecLogDriver) -> Self {
+    pub fn with_log_driver(mut self, log_driver: crate::models::TaskSpecLogDriver) -> Self {
         self.log_driver = Some(log_driver);
         self
     }
 
-    pub fn log_driver(&self) -> Option<&::models::TaskSpecLogDriver> {
+    pub fn log_driver(&self) -> Option<&crate::models::TaskSpecLogDriver> {
         self.log_driver.as_ref()
     }
 

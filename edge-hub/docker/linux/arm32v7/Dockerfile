@@ -14,5 +14,6 @@ EXPOSE 443/tcp
 
 USER edgehubuser
 ENV OptimizeForPerformance false
+ENV MqttEventsProcessorThreadCount 1
 CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Edge Hub" && \
     exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll

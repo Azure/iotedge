@@ -14,8 +14,8 @@ use edgelet_http::Error as HttpError;
 use edgelet_utils::{ensure_not_empty_with_context, prepare_cert_uri_module};
 use workload::models::IdentityCertificateRequest;
 
-use error::{CertOperation, Error, ErrorKind};
-use IntoResponse;
+use crate::error::{CertOperation, Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct IdentityCertHandler<T: CreateCertificate, W: WorkloadConfig> {
     hsm: T,
@@ -38,7 +38,7 @@ where
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let hsm = self.hsm.clone();
         let cfg = self.config.clone();
         let max_duration = cfg.get_cert_max_duration(CertificateType::Client);
@@ -68,7 +68,7 @@ where
                     || Ok(max_duration),
                     |exp| compute_validity(exp, max_duration, ErrorKind::MalformedRequestBody),
                 )?;
-                #[cfg_attr(feature = "cargo-clippy", allow(cast_sign_loss))]
+                #[allow(clippy::cast_sign_loss)]
                 let expiration = match expiration {
                     expiration if expiration < 0 || expiration > max_duration => {
                         return Err(Error::from(ErrorKind::MalformedRequestBody));
@@ -124,7 +124,9 @@ mod tests {
     #[derive(Clone, Default)]
     struct TestHsm {
         on_create: Option<
-            Arc<Box<Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + Send + Sync>>,
+            Arc<
+                Box<dyn Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + Send + Sync>,
+            >,
         >,
     }
 
@@ -161,7 +163,7 @@ mod tests {
     }
 
     impl Default for TestWorkloadConfig {
-        #[cfg_attr(feature = "cargo-clippy", allow(cast_possible_wrap, cast_sign_loss))]
+        #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
         fn default() -> Self {
             assert!(MAX_DURATION_SEC < (i64::max_value() as u64));
 

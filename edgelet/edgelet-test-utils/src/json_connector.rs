@@ -77,7 +77,7 @@ impl JsonConnector {
 impl Connect for JsonConnector {
     type Transport = StaticStream;
     type Error = io::Error;
-    type Future = Box<Future<Item = (Self::Transport, Connected), Error = Self::Error> + Send>;
+    type Future = Box<dyn Future<Item = (Self::Transport, Connected), Error = Self::Error> + Send>;
 
     fn connect(&self, _dst: Destination) -> Self::Future {
         Box::new(future::ok((

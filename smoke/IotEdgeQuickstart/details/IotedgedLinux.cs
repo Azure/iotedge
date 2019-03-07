@@ -2,6 +2,7 @@
 namespace IotEdgeQuickstart.Details
 {
     using System;
+    using System.ComponentModel;
     using System.IO;
     using System.Linq;
     using System.Net;
@@ -106,24 +107,31 @@ namespace IotEdgeQuickstart.Details
 
                         string options = this.httpUris.Match(uris => $"-H {uris.ConnectManagement} ", () => string.Empty);
 
-                        string[] result = await Process.RunAsync(
-                            "iotedge",
-                            $"{options}list",
-                            cts.Token);
-
-                        string status = result
-                            .Where(ln => ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries).First() == name)
-                            .DefaultIfEmpty("name status")
-                            .Single()
-                            .Split(null as char[], StringSplitOptions.RemoveEmptyEntries)
-                            .ElementAt(1); // second column is STATUS
-
-                        if (status == "running")
+                        try
                         {
-                            break;
-                        }
+                            string[] result = await Process.RunAsync(
+                                "iotedge",
+                                $"{options}list",
+                                cts.Token);
 
-                        errorMessage = "Not found";
+                            string status = result
+                                .Where(ln => ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries).First() == name)
+                                .DefaultIfEmpty("name status")
+                                .Single()
+                                .Split(null as char[], StringSplitOptions.RemoveEmptyEntries)
+                                .ElementAt(1); // second column is STATUS
+
+                            if (status == "running")
+                            {
+                                break;
+                            }
+
+                            errorMessage = "Not found";
+                        }
+                        catch (Win32Exception e)
+                        {
+                            Console.WriteLine($"Error searching for {name} module: {e.Message}. Retrying.");
+                        }
                     }
                 }
                 catch (OperationCanceledException e)

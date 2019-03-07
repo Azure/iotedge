@@ -161,7 +161,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.NotNull(moduleDetails);
             Assert.Equal("Module1", moduleDetails.Name);
             Assert.Equal("Docker", moduleDetails.Type);
-            Assert.NotNull(moduleDetails.ModuleStatus);
             Assert.Equal(ModuleStatus.Unknown, moduleDetails.ModuleStatus);
 
             // Act

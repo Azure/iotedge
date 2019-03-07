@@ -44,23 +44,19 @@ namespace MessagesAnalyzer
 
                         if (sequence != null && batchId != null)
                         {
-                            DateTime enqueuedtime = DateTime.MinValue.ToUniversalTime();
-                            if (eventData.SystemProperties.TryGetValue(EnqueuedTimePropertyName, out object enqueued))
-                            {
-                                if (DateTime.TryParse(enqueued.ToString(), out enqueuedtime))
-                                {
-                                    enqueuedtime = DateTime.SpecifyKind(enqueuedtime, DateTimeKind.Utc);
-                                }
-                            }
-
                             if (long.TryParse(sequence.ToString(), out long sequenceNumber))
                             {
+                                DateTime enqueuedtime = GetEnqueuedTime(devId.ToString(), modId.ToString(), eventData);
                                 MessagesCache.Instance.AddMessage(modId.ToString(), batchId.ToString(), new MessageDetails(sequenceNumber, enqueuedtime));
+                            }
+                            else
+                            {
+                                Log.LogError($"Message for module [{modId}] and device [{this.deviceId}] contains invalid sequence number [{sequence}].");
                             }
                         }
                         else
                         {
-                            Log.LogDebug($"Message for moduleId: {modId} doesn't contain required properties");
+                            Log.LogDebug($"Message for module [{modId}] and device [{this.deviceId}] doesn't contain batch id and sequence number.");
                         }
                     }
                 }
@@ -69,9 +65,32 @@ namespace MessagesAnalyzer
             return Task.CompletedTask;
         }
 
+        static DateTime GetEnqueuedTime(string deviceId, string moduleId, EventData eventData)
+        {
+            DateTime enqueuedtime = DateTime.MinValue.ToUniversalTime();
+
+            if (eventData.SystemProperties.TryGetValue(EnqueuedTimePropertyName, out object enqueued))
+            {
+                if (DateTime.TryParse(enqueued.ToString(), out enqueuedtime))
+                {
+                    enqueuedtime = DateTime.SpecifyKind(enqueuedtime, DateTimeKind.Utc);
+                }
+                else
+                {
+                    Log.LogError($"Message for module [{moduleId}] and device [{deviceId}] enqueued time [{enqueued}] cannot be parsed.");
+                }
+            }
+            else
+            {
+                Log.LogError($"Message for module [{moduleId}] and device [{deviceId}] doesn't contain {EnqueuedTimePropertyName} property.");
+            }
+
+            return enqueuedtime;
+        }
+
         public Task ProcessErrorAsync(Exception error)
         {
-            Log.LogError(error.StackTrace);
+            Log.LogError(error.ToString());
             return Task.CompletedTask;
         }
     }

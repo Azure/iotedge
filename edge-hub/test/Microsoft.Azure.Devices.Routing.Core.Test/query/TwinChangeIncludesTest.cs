@@ -41,7 +41,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("TWIN_CHANGE_INCLUDES(properties.reported.WeatherTwin)")] // upper case
         [InlineData("Twin_Change_Includes(properties.reported.WeatherTwin)")] // Mixed case
         [InlineData("twin_CHANGE_includes(properties.reported.WeatherTwin)")] // Mixed case # 2
-        [InlineData("twin_change_includes(properties.reported.WeatherTwin)")]
         [InlineData("twin_change_includes(properties.reported.WeatherTwin.Temperature)")]
         [InlineData("twin_change_includes(properties.reported.WeatherTwin.Location)")]
         [InlineData("twin_change_includes(properties.reported.WeatherTwin.Location.Street)")]
@@ -86,7 +85,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("twin_change_includes(123123)")]
         [InlineData("twin_change_includes(properties.abcd123)")]
         [InlineData("twin_change_includes(123abc)")]
-        [InlineData("twin_change_includes(properties.)")]
         [InlineData("twin_change_includes(properties.desired.twin,,,,,)")]
         [InlineData("twin_change_includes(properties[0])")]
         [InlineData("twin_change_includes(properties.desired.twin[0].test1)")]

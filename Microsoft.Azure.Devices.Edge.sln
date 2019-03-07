@@ -167,6 +167,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodSender", "edge-
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodReceiver", "edge-modules\DirectMethodReceiver\DirectMethodReceiver.csproj", "{013D53C7-3AB5-41A4-9A8D-0F2C47238773}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.ModuleUtil", "edge-modules\ModuleLib\Microsoft.Azure.Devices.Edge.ModuleUtil.csproj", "{A58633ED-5302-41DF-A0F6-FDC48E5C6B04}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodCloudSender", "edge-modules\DirectMethodCloudSender\DirectMethodCloudSender.csproj", "{A68ABCD4-5926-4005-9525-559DD74991C9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CheckInBuild|Any CPU = CheckInBuild|Any CPU
@@ -527,6 +531,22 @@ Global
 		{013D53C7-3AB5-41A4-9A8D-0F2C47238773}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{013D53C7-3AB5-41A4-9A8D-0F2C47238773}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{013D53C7-3AB5-41A4-9A8D-0F2C47238773}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A58633ED-5302-41DF-A0F6-FDC48E5C6B04}.CheckInBuild|Any CPU.ActiveCfg = Debug|Any CPU
+		{A58633ED-5302-41DF-A0F6-FDC48E5C6B04}.CheckInBuild|Any CPU.Build.0 = Debug|Any CPU
+		{A58633ED-5302-41DF-A0F6-FDC48E5C6B04}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{A58633ED-5302-41DF-A0F6-FDC48E5C6B04}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{A58633ED-5302-41DF-A0F6-FDC48E5C6B04}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A58633ED-5302-41DF-A0F6-FDC48E5C6B04}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A58633ED-5302-41DF-A0F6-FDC48E5C6B04}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A58633ED-5302-41DF-A0F6-FDC48E5C6B04}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A68ABCD4-5926-4005-9525-559DD74991C9}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{A68ABCD4-5926-4005-9525-559DD74991C9}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{A68ABCD4-5926-4005-9525-559DD74991C9}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
+		{A68ABCD4-5926-4005-9525-559DD74991C9}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
+		{A68ABCD4-5926-4005-9525-559DD74991C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A68ABCD4-5926-4005-9525-559DD74991C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A68ABCD4-5926-4005-9525-559DD74991C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A68ABCD4-5926-4005-9525-559DD74991C9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -593,6 +613,8 @@ Global
 		{9BED8F14-63E9-4B4B-88F7-659D5E522CBD} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
 		{029174D7-588D-4D29-BF3D-4A414B070C39} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
 		{013D53C7-3AB5-41A4-9A8D-0F2C47238773} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
+		{A58633ED-5302-41DF-A0F6-FDC48E5C6B04} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
+		{A68ABCD4-5926-4005-9525-559DD74991C9} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}

@@ -1,24 +1,27 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-mod identity;
-mod module;
-mod system_info;
-
-use edgelet_core::{IdentityManager, Module, ModuleRuntime, Policy};
-use edgelet_http::authorization::Authorization;
-use edgelet_http::route::*;
 use failure::{Compat, ResultExt};
 use futures::{future, Future};
 use hyper::service::{NewService, Service};
 use hyper::{Body, Request};
+use lazy_static::lazy_static;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+
+use edgelet_core::{IdentityManager, Module, ModuleRuntime, ModuleRuntimeErrorReason, Policy};
+use edgelet_http::authorization::Authorization;
+use edgelet_http::route::*;
+use edgelet_http::router;
+
+mod identity;
+mod module;
+mod system_info;
 
 use self::identity::*;
 pub use self::module::*;
 use self::system_info::*;
+use crate::error::{Error, ErrorKind};
 use edgelet_http::Version;
-use error::{Error, ErrorKind};
 
 lazy_static! {
     static ref AGENT_NAME: String = "edgeAgent".to_string();
@@ -30,11 +33,10 @@ pub struct ManagementService {
 }
 
 impl ManagementService {
-    // clippy bug: https://github.com/rust-lang-nursery/rust-clippy/issues/3220
-    #[cfg_attr(feature = "cargo-clippy", allow(new_ret_no_self))]
     pub fn new<M, I>(runtime: &M, identity: &I) -> impl Future<Item = Self, Error = Error>
     where
         M: 'static + ModuleRuntime + Clone + Send + Sync,
+        for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
         <M::Module as Module>::Config: DeserializeOwned + Serialize,
         M::Logs: Into<Body>,
         I: 'static + IdentityManager + Clone + Send + Sync,

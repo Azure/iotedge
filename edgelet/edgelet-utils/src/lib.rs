@@ -1,34 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
-#![cfg_attr(feature = "cargo-clippy", allow(stutter, use_self))]
-
-extern crate failure;
-#[cfg(test)]
-extern crate futures;
-#[macro_use]
-extern crate log;
-extern crate serde;
-
-// Need serde_derive only for unit tests.
-#[cfg(test)]
-#[macro_use]
-extern crate serde_derive;
-
-// Need macros from serde_json for unit tests.
-#[cfg(test)]
-#[macro_use]
-extern crate serde_json;
-
-// Need stuff other than macros from serde_json for non-test code.
-#[cfg(not(test))]
-extern crate serde_json;
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::module_name_repetitions, clippy::use_self)]
 
 mod error;
 mod logging;
@@ -37,10 +11,10 @@ mod ser_de;
 
 use std::collections::HashMap;
 
-pub use error::{Error, ErrorKind};
-pub use logging::log_failure;
-pub use macros::ensure_not_empty_with_context;
-pub use ser_de::{serde_clone, serialize_ordered, string_or_struct};
+pub use crate::error::{Error, ErrorKind};
+pub use crate::logging::log_failure;
+pub use crate::macros::ensure_not_empty_with_context;
+pub use crate::ser_de::{serde_clone, serialize_ordered, string_or_struct};
 
 pub fn parse_query(query: &str) -> HashMap<&str, &str> {
     query
@@ -100,6 +74,23 @@ pub fn prepare_dns_san_entries(names: &[&str]) -> String {
         })
         .collect::<Vec<String>>()
         .join(", ")
+}
+
+pub fn append_dns_san_entries(sans: &str, names: &[&str]) -> String {
+    let mut dns_sans = names
+        .iter()
+        .filter_map(|name| {
+            if name.trim().is_empty() {
+                None
+            } else {
+                Some(format!("DNS:{}", name.to_lowercase()))
+            }
+        })
+        .collect::<Vec<String>>()
+        .join(", ");
+    dns_sans.push_str(", ");
+    dns_sans.push_str(sans);
+    dns_sans
 }
 
 #[cfg(test)]
@@ -234,6 +225,13 @@ mod tests {
         assert_eq!(
             "DNS:edgehub, DNS:moo",
             prepare_dns_san_entries(&[" -edgehub -", "-----", "- moo- "])
+        );
+
+        // test appending host name to sanitized label
+        let sanitized_labels = prepare_dns_san_entries(&["1edgehub", "2edgy"]);
+        assert_eq!(
+            "DNS:2019host, DNS:2020host, DNS:edgehub, DNS:edgy",
+            append_dns_san_entries(&sanitized_labels, &["2019host", "   ", "2020host"])
         );
     }
 }

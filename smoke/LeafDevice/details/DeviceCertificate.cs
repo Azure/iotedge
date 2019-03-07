@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace LeafDevice.Details
+namespace LeafDeviceTest
 {
     public class DeviceCertificate
     {

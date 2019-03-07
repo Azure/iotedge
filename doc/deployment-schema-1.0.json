@@ -1,0 +1,11 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "title": "JSON schema for Azure IoT Edge Deployment version 1.0",
+    "required": [
+        "modulesContent"
+    ],
+    "properties": {
+        "modulesContent": { "$ref": "http://json.schemastore.org/azure-iot-edge-deployment-1.0#/properties/modulesContent"}
+    }
+}

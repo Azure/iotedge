@@ -33,6 +33,8 @@ check_arch()
         ARCH="amd64"
     elif [ "$ARCH" == "armv7l" ]; then
         ARCH="arm32v7"
+    elif [ "$ARCH" == "aarch64" ]; then
+        ARCH="arm64v8"
     else
         echo "Unsupported architecture"
         exit 1

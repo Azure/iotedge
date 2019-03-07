@@ -3,28 +3,24 @@ namespace TemperatureFilter
 {
     using System;
     using System.Collections.Generic;
-    using System.Globalization;
     using System.IO;
-    using System.Runtime.Loader;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Newtonsoft.Json;
-    using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
 
     class Program
     {
-        const int RetryCount = 5;
         const string TemperatureThresholdKey = "TemperatureThreshold";
         const int DefaultTemperatureThreshold = 25;
-        static readonly ITransientErrorDetectionStrategy TimeoutErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.HasTimeoutException());
-        static readonly RetryStrategy TransientRetryStrategy = new ExponentialBackoff(RetryCount, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
+
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("TemperatureFilter");
         static int counter;
 
         public static int Main() => MainAsync().Result;
@@ -41,7 +37,7 @@ namespace TemperatureFilter
 
         static async Task<int> MainAsync()
         {
-            Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt", CultureInfo.InvariantCulture)}] Main()");
+            Logger.LogInformation("TemperatureFilter Main() started.");
 
             IConfiguration configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
@@ -50,57 +46,26 @@ namespace TemperatureFilter
                 .Build();
 
             TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
-            Console.WriteLine($"Using transport {transportType.ToString()}");
 
-            var retryPolicy = new RetryPolicy(TimeoutErrorDetectionStrategy, TransientRetryStrategy);
-            retryPolicy.Retrying += (_, args) =>
-            {
-                Console.WriteLine($"Creating ModuleClient failed with exception {args.LastException}");
-                if (args.CurrentRetryCount < RetryCount)
-                {
-                    Console.WriteLine("Retrying...");
-                }
-            };
-            Tuple<ModuleClient, ModuleConfig> moduleclientAndConfig = await retryPolicy.ExecuteAsync(() => InitModuleClient(transportType));
+            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                transportType,
+                ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                ModuleUtil.DefaultTransientRetryStrategy,
+                Logger);
 
-            Tuple<ModuleClient, ModuleConfig> userContext = moduleclientAndConfig;
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
 
-            await moduleclientAndConfig.Item1.SetInputMessageHandlerAsync("input1", PrintAndFilterMessages, userContext);
+            ModuleConfig moduleConfig = await GetConfigurationAsync(moduleClient);
+            Logger.LogInformation($"Using TemperatureThreshold value of {moduleConfig.TemperatureThreshold}");
 
-            // Wait until the app unloads or is cancelled
-            var cts = new CancellationTokenSource();
-            AssemblyLoadContext.Default.Unloading += (ctx) => cts.Cancel();
-            Console.CancelKeyPress += (sender, cpe) => cts.Cancel();
-            await WhenCancelled(cts.Token);
+            var userContext = Tuple.Create(moduleClient, moduleConfig);
+            await moduleClient.SetInputMessageHandlerAsync("input1", PrintAndFilterMessages, userContext);
+
+            await cts.Token.WhenCanceled();
+            completed.Set();
+            handler.ForEach(h => GC.KeepAlive(h));
+            Logger.LogInformation("TemperatureFilter Main() finished.");
             return 0;
-        }
-
-        static async Task<Tuple<ModuleClient, ModuleConfig>> InitModuleClient(TransportType transportType)
-        {
-            ITransportSettings[] GetTransportSettings()
-            {
-                switch (transportType)
-                {
-                    case TransportType.Mqtt:
-                    case TransportType.Mqtt_Tcp_Only:
-                    case TransportType.Mqtt_WebSocket_Only:
-                        return new ITransportSettings[] { new MqttTransportSettings(transportType) };
-                    default:
-                        return new ITransportSettings[] { new AmqpTransportSettings(transportType) };
-                }
-            }
-
-            ITransportSettings[] settings = GetTransportSettings();
-
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
-            await moduleClient.OpenAsync();
-            Console.WriteLine("TemperatureFilter - Opened module client connection");
-
-            ModuleConfig moduleConfig = await GetConfiguration(moduleClient);
-            Console.WriteLine($"Using TemperatureThreshold value of {moduleConfig.TemperatureThreshold}");
-
-            Console.WriteLine("Successfully initialized module client.");
-            return new Tuple<ModuleClient, ModuleConfig>(moduleClient, moduleConfig);
         }
 
         /// <summary>
@@ -118,27 +83,23 @@ namespace TemperatureFilter
                 var userContextValues = userContext as Tuple<ModuleClient, ModuleConfig>;
                 if (userContextValues == null)
                 {
-                    throw new InvalidOperationException(
-                        "UserContext doesn't contain " +
-                        "expected values");
+                    throw new InvalidOperationException("UserContext doesn't contain expected values");
                 }
 
                 ModuleClient moduleClient = userContextValues.Item1;
-                ModuleConfig moduleModuleConfig = userContextValues.Item2;
+                ModuleConfig moduleConfig = userContextValues.Item2;
 
                 byte[] messageBytes = message.GetBytes();
                 string messageString = Encoding.UTF8.GetString(messageBytes);
-                Console.WriteLine($"Received message: {counterValue}, Body: [{messageString}]");
+                Logger.LogInformation($"Received message: {counterValue}, Body: [{messageString}]");
 
                 // Get message body, containing the Temperature data
                 var messageBody = JsonConvert.DeserializeObject<MessageBody>(messageString);
 
                 if (messageBody != null
-                    && messageBody.Machine.Temperature > moduleModuleConfig.TemperatureThreshold)
+                    && messageBody.Machine.Temperature > moduleConfig.TemperatureThreshold)
                 {
-                    Console.WriteLine(
-                        $"Temperature {messageBody.Machine.Temperature} " +
-                        $"exceeds threshold {moduleModuleConfig.TemperatureThreshold}");
+                    Logger.LogInformation($"Temperature {messageBody.Machine.Temperature} exceeds threshold {moduleConfig.TemperatureThreshold}");
                     var filteredMessage = new Message(messageBytes);
                     foreach (KeyValuePair<string, string> prop in message.Properties)
                     {
@@ -151,7 +112,7 @@ namespace TemperatureFilter
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Error in PrintAndFilterMessages - {e}");
+                Logger.LogError($"Error in PrintAndFilterMessages: {e}");
             }
 
             return MessageResponse.Completed;
@@ -160,7 +121,7 @@ namespace TemperatureFilter
         /// <summary>
         /// Get the configuration for the module (in this case the threshold temperature)s.
         /// </summary>
-        static async Task<ModuleConfig> GetConfiguration(ModuleClient moduleClient)
+        static async Task<ModuleConfig> GetConfigurationAsync(ModuleClient moduleClient)
         {
             // First try to get the config from the Module twin
             Twin twin = await moduleClient.GetTwinAsync();

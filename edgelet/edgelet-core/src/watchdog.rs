@@ -5,15 +5,15 @@ use std::time::{Duration, Instant};
 use failure::Fail;
 use futures::future::{self, Either, FutureResult};
 use futures::Future;
-use log::Level;
+use log::{info, warn, Level};
 use tokio::prelude::*;
 use tokio::timer::Interval;
 
 use edgelet_utils::log_failure;
 
-use error::{Error, ErrorKind};
-use identity::{Identity, IdentityManager, IdentitySpec};
-use module::{
+use crate::error::{Error, ErrorKind};
+use crate::identity::{Identity, IdentityManager, IdentitySpec};
+use crate::module::{
     Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ModuleStatus,
 };
 
@@ -183,11 +183,7 @@ where
 {
     runtime
         .list()
-        .map(move |m| {
-            m.into_iter()
-                .filter_map(move |m| if m.name() == name { Some(m) } else { None })
-                .next()
-        })
+        .map(move |m| m.into_iter().find(move |m| m.name() == name))
         .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
 }
 
@@ -263,7 +259,8 @@ mod tests {
 
     use futures::future::{self, FutureResult};
 
-    use identity::{AuthType, Identity, IdentityManager, IdentitySpec};
+    use crate::identity::{AuthType, Identity, IdentityManager, IdentitySpec};
+    use serde_derive::{Deserialize, Serialize};
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub enum Error {

@@ -10,7 +10,8 @@ use failure::{Fail, ResultExt};
 use futures::future::Either;
 use futures::{future, Future};
 use hyper::{Method, StatusCode};
-use percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};
+use log::{debug, info};
+use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
 use serde_json;
 use tokio::prelude::*;
 use tokio::timer::Interval;
@@ -19,8 +20,9 @@ use url::form_urlencoded::Serializer as UrlSerializer;
 use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};
 use edgelet_http::client::{Client, ClientImpl, TokenSource};
 use edgelet_http::ErrorKind as HttpErrorKind;
-use error::{Error, ErrorKind};
-use model::{
+
+use crate::error::{Error, ErrorKind};
+use crate::model::{
     DeviceRegistration, DeviceRegistrationResult, RegistrationOperationStatus, TpmAttestation,
     TpmRegistrationResult,
 };
@@ -87,6 +89,11 @@ where
     }
 }
 
+pub enum DpsAuthKind {
+    Tpm { ek: Bytes, srk: Bytes },
+    SymmetricKey,
+}
+
 pub struct DpsClient<C, K, A>
 where
     C: ClientImpl,
@@ -96,8 +103,7 @@ where
     client: Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
     scope_id: String,
     registration_id: String,
-    tpm_ek: Bytes,
-    tpm_srk: Bytes,
+    auth: DpsAuthKind,
     key_store: A,
 }
 
@@ -111,16 +117,14 @@ where
         client: Client<C, DpsTokenSource<K>>,
         scope_id: String,
         registration_id: String,
-        tpm_ek: Bytes,
-        tpm_srk: Bytes,
+        auth: DpsAuthKind,
         key_store: A,
     ) -> Result<Self, Error> {
         Ok(DpsClient {
             client: Arc::new(RwLock::new(client)),
             scope_id,
             registration_id,
-            tpm_ek,
-            tpm_srk,
+            auth,
             key_store,
         })
     }
@@ -144,13 +148,20 @@ where
             .context(ErrorKind::GetTpmChallengeKey)?)
     }
 
+    fn get_symmetric_challenge_key(key_store: &A) -> Result<K, Error> {
+        debug!("Obtaining symmetric authentication key");
+        Ok(key_store
+            .get(&KeyIdentity::Device, "primary")
+            .context(ErrorKind::GetSymmetricChallengeKey)?)
+    }
+
     fn get_operation_id(
         client: &Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
         scope_id: &str,
         registration_id: &str,
         registration: &DeviceRegistration,
         key: K,
-    ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
         let token_source =
             DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), key);
         debug!(
@@ -179,7 +190,7 @@ where
         registration_id: &str,
         operation_id: &str,
         key: K,
-    ) -> Box<Future<Item = Option<DeviceRegistrationResult>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Option<DeviceRegistrationResult>, Error = Error> + Send> {
         let token_source =
             DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), key);
         let request = client.read().expect("RwLock read failure")
@@ -219,12 +230,13 @@ where
     ) -> Result<bool, Error> {
         if let Some(r) = registration_result.as_ref() {
             debug!(
-                "Device Registration Result: device {:?}, hub {:?}, status {}",
+                "Device Registration Result: device {:?}, hub {:?}, status {:?}",
                 r.device_id(),
                 r.assigned_hub(),
                 r.status()
             );
-            Ok(r.status().eq_ignore_ascii_case("assigning"))
+            Ok(r.status()
+                .map_or_else(|| false, |status| status.eq_ignore_ascii_case("assigning")))
         } else {
             debug!("Not a device registration response");
             Ok(true)
@@ -246,7 +258,7 @@ where
         operation_id: String,
         key: K,
         retry_count: u64,
-    ) -> Box<Future<Item = Option<DeviceRegistrationResult>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Option<DeviceRegistrationResult>, Error = Error> + Send> {
         debug!(
             "DPS registration result will retry {} times every {} seconds",
             retry_count, DPS_ASSIGNMENT_RETRY_INTERVAL_SECS
@@ -273,20 +285,60 @@ where
             None,
             |_final_result: Option<DeviceRegistrationResult>,
              result_from_service: Option<DeviceRegistrationResult>| {
+                debug!("{:?}", result_from_service);
                 future::ok::<Option<DeviceRegistrationResult>, Error>(result_from_service)
             },
         );
         Box::new(chain)
     }
 
-    fn register_with_auth(
+    fn register_with_symmetric_key_auth(
+        client: &Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
+        scope_id: String,
+        registration_id: String,
+        key_store: &A,
+    ) -> Box<dyn Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
+        let cli = client.clone();
+        let registration = DeviceRegistration::new().with_registration_id(registration_id.clone());
+        let f = Self::get_symmetric_challenge_key(key_store)
+            .map_err(|err| Error::from(err.context(ErrorKind::GetOperationStatusForSymmetricKey)))
+            .into_future()
+            .and_then(move |symmetric_key| {
+                let token_source = DpsTokenSource::new(
+                    scope_id.to_string(),
+                    registration_id.to_string(),
+                    symmetric_key,
+                );
+                let cli = cli.read().expect("RwLock read failure").clone();
+                cli.with_token_source(token_source)
+                    .request::<DeviceRegistration, RegistrationOperationStatus>(
+                        Method::PUT,
+                        &format!("{}/registrations/{}/register", scope_id, registration_id),
+                        None,
+                        Some(registration.clone()),
+                        false,
+                    )
+                    .map_err(|err| {
+                        Error::from(err.context(ErrorKind::RegisterWithSymmetricChallengeKey))
+                    })
+                    .map(
+                        move |operation_status: Option<RegistrationOperationStatus>| {
+                            debug!("{:?}", operation_status);
+                            operation_status
+                        },
+                    )
+            });
+        Box::new(f)
+    }
+
+    fn register_with_tpm_auth(
         client: &Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
         scope_id: String,
         registration_id: String,
         tpm_ek: &Bytes,
         tpm_srk: &Bytes,
         key_store: &A,
-    ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
         let tpm_attestation = TpmAttestation::new(base64::encode(&tpm_ek))
             .with_storage_root_key(base64::encode(&tpm_srk));
         let registration = DeviceRegistration::new()
@@ -357,7 +409,7 @@ where
         Box::new(r)
     }
 
-    pub fn register(&self) -> Box<Future<Item = (String, String), Error = Error> + Send> {
+    pub fn register(&self) -> Box<dyn Future<Item = (String, String), Error = Error> + Send> {
         let key_store = self.key_store.clone();
         let mut key_store_status = self.key_store.clone();
         let client_with_token_status = self.client.clone();
@@ -365,20 +417,31 @@ where
         let scope_id_status = self.scope_id.clone();
         let registration_id = self.registration_id.clone();
         let registration_id_status = self.registration_id.clone();
-        let tpm_ek = self.tpm_ek.clone();
-        let tpm_srk = self.tpm_srk.clone();
         info!(
             "Starting DPS registration with scope_id \"{}\", registration_id \"{}\"",
             scope_id, registration_id,
         );
-        let r = Self::register_with_auth(
-            &self.client,
-            scope_id,
-            registration_id,
-            &tpm_ek,
-            &tpm_srk,
-            &self.key_store,
-        )
+
+        let mut use_tpm_auth = false;
+        let r = match &self.auth {
+            DpsAuthKind::Tpm { ek, srk } => {
+                use_tpm_auth = true;
+                Self::register_with_tpm_auth(
+                    &self.client,
+                    scope_id,
+                    registration_id,
+                    &ek,
+                    &srk,
+                    &self.key_store,
+                )
+            }
+            DpsAuthKind::SymmetricKey => Self::register_with_symmetric_key_auth(
+                &self.client,
+                scope_id,
+                registration_id,
+                &self.key_store,
+            ),
+        }
         .and_then(
             move |operation_status: Option<RegistrationOperationStatus>| match key_store
                 .get(&KeyIdentity::Device, "primary")
@@ -411,19 +474,21 @@ where
             let s = operation_status.ok_or_else(|| {
                 Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
             })?;
-            let tpm_result_inner = s.clone();
-            let tpm_result = s.tpm();
-            let r = tpm_result.ok_or_else(|| {
-                Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
-            })?;
-            let ks = r.authentication_key().ok_or_else(|| {
-                Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
-            })?;
-            let kb = base64::decode(ks).context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)?;
-            key_store_status
-                .activate_identity_key(KeyIdentity::Device, "primary".to_string(), kb)
-                .context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)?;
-            get_device_info(&tpm_result_inner)
+            if use_tpm_auth {
+                let tpm_result = s.tpm();
+                let r = tpm_result.ok_or_else(|| {
+                    Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
+                })?;
+                let ks = r.authentication_key().ok_or_else(|| {
+                    Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
+                })?;
+                let kb =
+                    base64::decode(ks).context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)?;
+                key_store_status
+                    .activate_identity_key(KeyIdentity::Device, "primary".to_string(), kb)
+                    .context(ErrorKind::RegisterWithAuthUnexpectedlyFailed)?;
+            }
+            get_device_info(&s)
         });
         Box::new(r)
     }
@@ -450,21 +515,88 @@ fn get_device_info(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use std::sync::Mutex;
 
+    use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
     use http;
     use hyper::{self, Body, Request, Response, StatusCode};
     use serde_json;
     use tokio;
     use url::Url;
 
-    use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
+    use super::*;
+    use crate::DPS_API_VERSION;
 
     #[test]
-    fn server_register_with_auth_success() {
-        let expected_uri = "https://global.azure-devices-provisioning.net/scope/registrations/reg/register?api-version=2017-11-15";
+    fn server_register_with_tpm_auth_success() {
+        let expected_uri = format!("https://global.azure-devices-provisioning.net/scope/registrations/reg/register?api-version={}", DPS_API_VERSION);
+        let handler = move |req: Request<Body>| {
+            let (
+                http::request::Parts {
+                    method,
+                    uri,
+                    headers,
+                    ..
+                },
+                _body,
+            ) = req.into_parts();
+            assert_eq!(uri, expected_uri.as_str());
+            assert_eq!(method, Method::PUT);
+            // If authorization header does not have the shared access signature, request one
+            let auth = headers.get(hyper::header::AUTHORIZATION);
+            match auth {
+                None => {
+                    let mut result = TpmRegistrationResult::new();
+                    result.set_authentication_key(base64::encode("key"));
+                    let response = Response::builder()
+                        .status(StatusCode::UNAUTHORIZED)
+                        .body(serde_json::to_string(&result).unwrap().into())
+                        .expect("could not build hyper::Response");
+                    future::ok(response)
+                }
+                Some(_) => {
+                    let result = RegistrationOperationStatus::new("something".to_string())
+                        .with_status("assigning".to_string());
+                    future::ok(Response::new(
+                        serde_json::to_string(&result).unwrap().into(),
+                    ))
+                }
+            }
+        };
+        let client = Arc::new(RwLock::new(
+            Client::new(
+                handler,
+                None,
+                DPS_API_VERSION.to_string(),
+                Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
+            )
+            .unwrap(),
+        ));
+
+        let task = DpsClient::register_with_tpm_auth(
+            &client,
+            "scope".to_string(),
+            "reg".to_string(),
+            &Bytes::from("ek".to_string().into_bytes()),
+            &Bytes::from("srk".to_string().into_bytes()),
+            &MemoryKeyStore::new(),
+        )
+        .map(|result| match result {
+            Some(op) => {
+                assert_eq!(op.operation_id(), "something");
+                assert_eq!(op.status().unwrap(), "assigning");
+            }
+            None => panic!("Unexpected"),
+        });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn server_register_with_sym_key_auth_success() {
+        let expected_uri = "https://global.azure-devices-provisioning.net/scope/registrations/reg/register?api-version=2018-11-01";
         let handler = move |req: Request<Body>| {
             let (
                 http::request::Parts {
@@ -481,16 +613,10 @@ mod tests {
             let auth = headers.get(hyper::header::AUTHORIZATION);
             match auth {
                 None => {
-                    let mut result = TpmRegistrationResult::new();
-                    result.set_authentication_key(base64::encode("key"));
-                    let response = Response::builder()
-                        .status(StatusCode::UNAUTHORIZED)
-                        .body(serde_json::to_string(&result).unwrap().into())
-                        .expect("could not build hyper::Response");
-                    future::ok(response)
+                    panic!("Expected header");
                 }
                 Some(_) => {
-                    let mut result = RegistrationOperationStatus::new("something".to_string())
+                    let result = RegistrationOperationStatus::new("something".to_string())
                         .with_status("assigning".to_string());
                     future::ok(Response::new(
                         serde_json::to_string(&result).unwrap().into(),
@@ -502,24 +628,27 @@ mod tests {
             Client::new(
                 handler,
                 None,
-                "2017-11-15".to_string(),
+                DPS_API_VERSION.to_string(),
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
             )
             .unwrap(),
         ));
-        let task = DpsClient::register_with_auth(
+
+        let mut key_store = MemoryKeyStore::new();
+        key_store
+            .activate_identity_key(KeyIdentity::Device, "primary".to_string(), "some key")
+            .unwrap();
+
+        let task = DpsClient::register_with_symmetric_key_auth(
             &client,
             "scope".to_string(),
             "reg".to_string(),
-            &Bytes::from("ek".to_string().into_bytes()),
-            &Bytes::from("srk".to_string().into_bytes()),
-            &MemoryKeyStore::new(),
+            &key_store,
         )
         .map(|result| match result {
             Some(op) => {
                 assert_eq!(op.operation_id(), "something");
                 assert_eq!(op.status().unwrap(), "assigning");
-                ()
             }
             None => panic!("Unexpected"),
         });
@@ -530,7 +659,7 @@ mod tests {
     }
 
     #[test]
-    fn server_register_gets_404_fails() {
+    fn server_register_tpm_auth_gets_404_fails() {
         let handler = |_req: Request<Body>| {
             let response = Response::builder()
                 .status(StatusCode::NOT_FOUND)
@@ -541,16 +670,19 @@ mod tests {
         let client = Client::new(
             handler,
             None,
-            "2017-11-15".to_string(),
+            DPS_API_VERSION.to_string(),
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         )
         .unwrap();
+
+        let ek = Bytes::from("ek".to_string().into_bytes());
+        let srk = Bytes::from("srk".to_string().into_bytes());
+        let auth = DpsAuthKind::Tpm { ek, srk };
         let dps = DpsClient::new(
             client,
             "scope".to_string(),
             "test".to_string(),
-            Bytes::from("ek".to_string().into_bytes()),
-            Bytes::from("srk".to_string().into_bytes()),
+            auth,
             MemoryKeyStore::new(),
         )
         .unwrap();
@@ -571,7 +703,53 @@ mod tests {
     }
 
     #[test]
-    fn server_register_with_auth_gets_404_fails() {
+    fn server_register_sym_key_auth_gets_404_fails() {
+        let handler = |_req: Request<Body>| {
+            let response = Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(Body::empty())
+                .expect("could not build hyper::Response");
+            future::ok(response)
+        };
+        let client = Client::new(
+            handler,
+            None,
+            DPS_API_VERSION.to_string(),
+            Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
+        )
+        .unwrap();
+
+        let mut key_store = MemoryKeyStore::new();
+        key_store
+            .activate_identity_key(KeyIdentity::Device, "primary".to_string(), "some key")
+            .unwrap();
+        let auth = DpsAuthKind::SymmetricKey;
+        let dps = DpsClient::new(
+            client,
+            "scope".to_string(),
+            "test".to_string(),
+            auth,
+            key_store,
+        )
+        .unwrap();
+        let task = dps.register().then(|result| match result {
+            Ok(_) => panic!("Excepted err got success"),
+            Err(err) => match err.kind() {
+                ErrorKind::RegisterWithSymmetricChallengeKey => Ok::<_, Error>(()),
+                _ => panic!(
+                    "Wrong error kind. Expected `RegisterWithSymmetricChallengeKey` found {:?}",
+                    err
+                ),
+            },
+        });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn server_register_with_tpm_auth_gets_404_fails() {
         let handler = |req: Request<Body>| {
             // If authorization header does not have the shared access signature, request one
             let auth = req.headers().get(hyper::header::AUTHORIZATION);
@@ -597,16 +775,19 @@ mod tests {
         let client = Client::new(
             handler,
             None,
-            "2017-11-15".to_string(),
+            DPS_API_VERSION.to_string(),
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         )
         .unwrap();
+
+        let ek = Bytes::from("ek".to_string().into_bytes());
+        let srk = Bytes::from("srk".to_string().into_bytes());
+        let auth = DpsAuthKind::Tpm { ek, srk };
         let dps = DpsClient::new(
             client,
             "scope".to_string(),
             "test".to_string(),
-            Bytes::from("ek".to_string().into_bytes()),
-            Bytes::from("srk".to_string().into_bytes()),
+            auth,
             MemoryKeyStore::new(),
         )
         .unwrap();
@@ -616,6 +797,61 @@ mod tests {
                 ErrorKind::GetOperationId => Ok::<_, Error>(()),
                 _ => panic!(
                     "Wrong error kind. Expected `GetOperationId` found {:?}",
+                    err
+                ),
+            },
+        });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn server_register_with_sym_key_auth_gets_401_fails() {
+        let handler = |req: Request<Body>| {
+            // If authorization header does not have the shared access signature, request one
+            let auth = req.headers().get(hyper::header::AUTHORIZATION);
+            match auth {
+                None => {
+                    panic!("Expected a SAS token in the auth header");
+                }
+                Some(_) => {
+                    let response = Response::builder()
+                        .status(StatusCode::UNAUTHORIZED)
+                        .body(Body::empty())
+                        .expect("could not build hyper::Response");
+                    future::ok(response)
+                }
+            }
+        };
+        let client = Client::new(
+            handler,
+            None,
+            DPS_API_VERSION.to_string(),
+            Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
+        )
+        .unwrap();
+
+        let mut key_store = MemoryKeyStore::new();
+        key_store
+            .activate_identity_key(KeyIdentity::Device, "primary".to_string(), "some key")
+            .unwrap();
+        let auth = DpsAuthKind::SymmetricKey;
+        let dps = DpsClient::new(
+            client,
+            "scope".to_string(),
+            "test".to_string(),
+            auth,
+            key_store,
+        )
+        .unwrap();
+        let task = dps.register().then(|result| match result {
+            Ok(_) => panic!("Excepted err got success"),
+            Err(err) => match err.kind() {
+                ErrorKind::RegisterWithSymmetricChallengeKey => Ok::<_, Error>(()),
+                _ => panic!(
+                    "Wrong error kind. Expected `RegisterWithSymmetricChallengeKey` found {:?}",
                     err
                 ),
             },
@@ -637,7 +873,9 @@ mod tests {
         let reg_op_status_final = Response::new(
             serde_json::to_string(
                 &RegistrationOperationStatus::new("operation".to_string()).with_registration_state(
-                    DeviceRegistrationResult::new("reg".to_string(), "doesn't matter".to_string()),
+                    DeviceRegistrationResult::new()
+                        .with_registration_id("reg".to_string())
+                        .with_status("doesn't matter".to_string()),
                 ),
             )
             .unwrap()
@@ -663,7 +901,7 @@ mod tests {
             Client::new(
                 handler,
                 None,
-                "2017-11-15".to_string(),
+                DPS_API_VERSION.to_string(),
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
             )
             .unwrap()
@@ -682,12 +920,9 @@ mod tests {
             key,
             3,
         );
-        let task = dps_operation.map(|result| {
-            match result {
-                Some(r) => assert_eq!(*r.registration_id(), "reg".to_string()),
-                None => panic!("Expected registration id"),
-            }
-            ()
+        let task = dps_operation.map(|result| match result {
+            Some(r) => assert_eq!(*r.registration_id().unwrap(), "reg".to_string()),
+            None => panic!("Expected registration id"),
         });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -709,7 +944,7 @@ mod tests {
             Client::new(
                 handler,
                 None,
-                "2017-11-15".to_string(),
+                DPS_API_VERSION.to_string(),
                 Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
             )
             .unwrap()
@@ -728,12 +963,9 @@ mod tests {
             key,
             3,
         );
-        let task = dps_operation.map(|result| {
-            match result {
-                Some(_) => panic!("Shouldn't have passed because every attempt failed"),
-                None => assert_eq!(true, true),
-            }
-            ()
+        let task = dps_operation.map(|result| match result {
+            Some(_) => panic!("Shouldn't have passed because every attempt failed"),
+            None => assert_eq!(true, true),
         });
 
         tokio::runtime::current_thread::Runtime::new()
@@ -744,7 +976,7 @@ mod tests {
 
     #[test]
     fn get_operation_status_success() {
-        let expected_uri = "https://global.azure-devices-provisioning.net/scope_id/registrations/reg/operations/operation?api-version=2017-11-15";
+        let expected_uri = "https://global.azure-devices-provisioning.net/scope_id/registrations/reg/operations/operation?api-version=2018-11-01";
         let handler = move |req: Request<Body>| {
             let (http::request::Parts { method, uri, .. }, _body) = req.into_parts();
             assert_eq!(uri, expected_uri);
@@ -753,7 +985,9 @@ mod tests {
             let operation_status: RegistrationOperationStatus =
                 RegistrationOperationStatus::new("operation".to_string());
             let serializable = operation_status.with_registration_state(
-                DeviceRegistrationResult::new("reg".to_string(), "doesn't matter".to_string()),
+                DeviceRegistrationResult::new()
+                    .with_registration_id("reg".to_string())
+                    .with_status("doesn't matter".to_string()),
             );
             future::ok(Response::new(
                 serde_json::to_string(&serializable).unwrap().into(),
@@ -762,7 +996,7 @@ mod tests {
         let client = Client::new(
             handler,
             None,
-            "2017-11-15".to_string(),
+            DPS_API_VERSION.to_string(),
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         )
         .unwrap();
@@ -775,8 +1009,7 @@ mod tests {
         );
         let task = dps_operation.map(|result| match result {
             Some(op) => {
-                assert_eq!(*op.registration_id(), "reg".to_string());
-                ()
+                assert_eq!(*op.registration_id().unwrap(), "reg".to_string());
             }
             None => panic!("Unexpected"),
         });
@@ -799,7 +1032,7 @@ mod tests {
         let client = Client::new(
             handler,
             None,
-            "2017-11-15".to_string(),
+            DPS_API_VERSION.to_string(),
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         )
         .unwrap();
@@ -830,7 +1063,9 @@ mod tests {
     fn get_device_info_success() {
         assert_eq!(
             get_device_info(
-                &DeviceRegistrationResult::new("reg".to_string(), "assigned".to_string())
+                &DeviceRegistrationResult::new()
+                    .with_registration_id("reg".to_string())
+                    .with_status("assigned".to_string())
                     .with_device_id("device".to_string())
                     .with_assigned_hub("hub".to_string())
             )

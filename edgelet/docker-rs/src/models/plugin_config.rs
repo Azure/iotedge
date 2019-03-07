@@ -9,7 +9,7 @@
  */
 
 /// PluginConfig : The config of a plugin.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -23,17 +23,17 @@ pub struct PluginConfig {
     #[serde(rename = "Documentation")]
     documentation: String,
     #[serde(rename = "Interface")]
-    interface: ::models::PluginConfigInterface,
+    interface: crate::models::PluginConfigInterface,
     #[serde(rename = "Entrypoint")]
     entrypoint: Vec<String>,
     #[serde(rename = "WorkDir")]
     work_dir: String,
     #[serde(rename = "User", skip_serializing_if = "Option::is_none")]
-    user: Option<::models::PluginConfigUser>,
+    user: Option<crate::models::PluginConfigUser>,
     #[serde(rename = "Network")]
-    network: ::models::PluginConfigNetwork,
+    network: crate::models::PluginConfigNetwork,
     #[serde(rename = "Linux")]
-    linux: ::models::PluginConfigLinux,
+    linux: crate::models::PluginConfigLinux,
     #[serde(rename = "PropagatedMount")]
     propagated_mount: String,
     #[serde(rename = "IpcHost")]
@@ -41,13 +41,13 @@ pub struct PluginConfig {
     #[serde(rename = "PidHost")]
     pid_host: bool,
     #[serde(rename = "Mounts")]
-    mounts: Vec<::models::PluginMount>,
+    mounts: Vec<crate::models::PluginMount>,
     #[serde(rename = "Env")]
-    env: Vec<::models::PluginEnv>,
+    env: Vec<crate::models::PluginEnv>,
     #[serde(rename = "Args")]
-    args: ::models::PluginConfigArgs,
+    args: crate::models::PluginConfigArgs,
     #[serde(rename = "rootfs", skip_serializing_if = "Option::is_none")]
-    rootfs: Option<::models::PluginConfigRootfs>,
+    rootfs: Option<crate::models::PluginConfigRootfs>,
 }
 
 impl PluginConfig {
@@ -55,17 +55,17 @@ impl PluginConfig {
     pub fn new(
         description: String,
         documentation: String,
-        interface: ::models::PluginConfigInterface,
+        interface: crate::models::PluginConfigInterface,
         entrypoint: Vec<String>,
         work_dir: String,
-        network: ::models::PluginConfigNetwork,
-        linux: ::models::PluginConfigLinux,
+        network: crate::models::PluginConfigNetwork,
+        linux: crate::models::PluginConfigLinux,
         propagated_mount: String,
         ipc_host: bool,
         pid_host: bool,
-        mounts: Vec<::models::PluginMount>,
-        env: Vec<::models::PluginEnv>,
-        args: ::models::PluginConfigArgs,
+        mounts: Vec<crate::models::PluginMount>,
+        env: Vec<crate::models::PluginEnv>,
+        args: crate::models::PluginConfigArgs,
     ) -> Self {
         PluginConfig {
             docker_version: None,
@@ -130,16 +130,16 @@ impl PluginConfig {
         &self.documentation
     }
 
-    pub fn set_interface(&mut self, interface: ::models::PluginConfigInterface) {
+    pub fn set_interface(&mut self, interface: crate::models::PluginConfigInterface) {
         self.interface = interface;
     }
 
-    pub fn with_interface(mut self, interface: ::models::PluginConfigInterface) -> Self {
+    pub fn with_interface(mut self, interface: crate::models::PluginConfigInterface) -> Self {
         self.interface = interface;
         self
     }
 
-    pub fn interface(&self) -> &::models::PluginConfigInterface {
+    pub fn interface(&self) -> &crate::models::PluginConfigInterface {
         &self.interface
     }
 
@@ -169,16 +169,16 @@ impl PluginConfig {
         &self.work_dir
     }
 
-    pub fn set_user(&mut self, user: ::models::PluginConfigUser) {
+    pub fn set_user(&mut self, user: crate::models::PluginConfigUser) {
         self.user = Some(user);
     }
 
-    pub fn with_user(mut self, user: ::models::PluginConfigUser) -> Self {
+    pub fn with_user(mut self, user: crate::models::PluginConfigUser) -> Self {
         self.user = Some(user);
         self
     }
 
-    pub fn user(&self) -> Option<&::models::PluginConfigUser> {
+    pub fn user(&self) -> Option<&crate::models::PluginConfigUser> {
         self.user.as_ref()
     }
 
@@ -186,29 +186,29 @@ impl PluginConfig {
         self.user = None;
     }
 
-    pub fn set_network(&mut self, network: ::models::PluginConfigNetwork) {
+    pub fn set_network(&mut self, network: crate::models::PluginConfigNetwork) {
         self.network = network;
     }
 
-    pub fn with_network(mut self, network: ::models::PluginConfigNetwork) -> Self {
+    pub fn with_network(mut self, network: crate::models::PluginConfigNetwork) -> Self {
         self.network = network;
         self
     }
 
-    pub fn network(&self) -> &::models::PluginConfigNetwork {
+    pub fn network(&self) -> &crate::models::PluginConfigNetwork {
         &self.network
     }
 
-    pub fn set_linux(&mut self, linux: ::models::PluginConfigLinux) {
+    pub fn set_linux(&mut self, linux: crate::models::PluginConfigLinux) {
         self.linux = linux;
     }
 
-    pub fn with_linux(mut self, linux: ::models::PluginConfigLinux) -> Self {
+    pub fn with_linux(mut self, linux: crate::models::PluginConfigLinux) -> Self {
         self.linux = linux;
         self
     }
 
-    pub fn linux(&self) -> &::models::PluginConfigLinux {
+    pub fn linux(&self) -> &crate::models::PluginConfigLinux {
         &self.linux
     }
 
@@ -251,55 +251,55 @@ impl PluginConfig {
         &self.pid_host
     }
 
-    pub fn set_mounts(&mut self, mounts: Vec<::models::PluginMount>) {
+    pub fn set_mounts(&mut self, mounts: Vec<crate::models::PluginMount>) {
         self.mounts = mounts;
     }
 
-    pub fn with_mounts(mut self, mounts: Vec<::models::PluginMount>) -> Self {
+    pub fn with_mounts(mut self, mounts: Vec<crate::models::PluginMount>) -> Self {
         self.mounts = mounts;
         self
     }
 
-    pub fn mounts(&self) -> &[::models::PluginMount] {
+    pub fn mounts(&self) -> &[crate::models::PluginMount] {
         &self.mounts
     }
 
-    pub fn set_env(&mut self, env: Vec<::models::PluginEnv>) {
+    pub fn set_env(&mut self, env: Vec<crate::models::PluginEnv>) {
         self.env = env;
     }
 
-    pub fn with_env(mut self, env: Vec<::models::PluginEnv>) -> Self {
+    pub fn with_env(mut self, env: Vec<crate::models::PluginEnv>) -> Self {
         self.env = env;
         self
     }
 
-    pub fn env(&self) -> &[::models::PluginEnv] {
+    pub fn env(&self) -> &[crate::models::PluginEnv] {
         &self.env
     }
 
-    pub fn set_args(&mut self, args: ::models::PluginConfigArgs) {
+    pub fn set_args(&mut self, args: crate::models::PluginConfigArgs) {
         self.args = args;
     }
 
-    pub fn with_args(mut self, args: ::models::PluginConfigArgs) -> Self {
+    pub fn with_args(mut self, args: crate::models::PluginConfigArgs) -> Self {
         self.args = args;
         self
     }
 
-    pub fn args(&self) -> &::models::PluginConfigArgs {
+    pub fn args(&self) -> &crate::models::PluginConfigArgs {
         &self.args
     }
 
-    pub fn set_rootfs(&mut self, rootfs: ::models::PluginConfigRootfs) {
+    pub fn set_rootfs(&mut self, rootfs: crate::models::PluginConfigRootfs) {
         self.rootfs = Some(rootfs);
     }
 
-    pub fn with_rootfs(mut self, rootfs: ::models::PluginConfigRootfs) -> Self {
+    pub fn with_rootfs(mut self, rootfs: crate::models::PluginConfigRootfs) -> Self {
         self.rootfs = Some(rootfs);
         self
     }
 
-    pub fn rootfs(&self) -> Option<&::models::PluginConfigRootfs> {
+    pub fn rootfs(&self) -> Option<&crate::models::PluginConfigRootfs> {
         self.rootfs.as_ref()
     }
 

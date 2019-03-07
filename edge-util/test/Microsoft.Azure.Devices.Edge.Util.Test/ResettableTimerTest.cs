@@ -22,12 +22,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 return Task.CompletedTask;
             }
 
-            TimeSpan period = TimeSpan.FromSeconds(3);
+            TimeSpan period = TimeSpan.FromSeconds(15);
             var resettableTimer = new ResettableTimer(Callback, period, null);
 
             // Act
             resettableTimer.Start();
-            await Task.Delay(TimeSpan.FromSeconds(7));
+            await Task.Delay(TimeSpan.FromSeconds(35));
 
             // Assert
             Assert.Equal(2, callbackCalledCount);
@@ -45,20 +45,22 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 return Task.CompletedTask;
             }
 
-            TimeSpan period = TimeSpan.FromSeconds(3);
+            TimeSpan period = TimeSpan.FromSeconds(15);
             var resettableTimer = new ResettableTimer(Callback, period, null);
 
             // Act
             resettableTimer.Start();
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 3; i++)
             {
-                await Task.Delay(TimeSpan.FromSeconds(2));
+                await Task.Delay(TimeSpan.FromSeconds(5));
                 resettableTimer.Reset();
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(4));
-
             // Assert
+            Assert.Equal(0, callbackCalledCount);
+
+            await Task.Delay(TimeSpan.FromSeconds(20));
+
             Assert.Equal(1, callbackCalledCount);
         }
 
@@ -74,19 +76,19 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 return Task.CompletedTask;
             }
 
-            TimeSpan period = TimeSpan.FromSeconds(3);
+            TimeSpan period = TimeSpan.FromSeconds(15);
             var resettableTimer = new ResettableTimer(Callback, period, null);
 
             // Act
             resettableTimer.Start();
-            await Task.Delay(TimeSpan.FromSeconds(4));
+            await Task.Delay(TimeSpan.FromSeconds(20));
 
             // Assert
             Assert.Equal(1, callbackCalledCount);
 
             // Act
             resettableTimer.Disable();
-            await Task.Delay(TimeSpan.FromSeconds(4));
+            await Task.Delay(TimeSpan.FromSeconds(20));
 
             // Assert
             Assert.Equal(1, callbackCalledCount);
@@ -94,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             // Act
             resettableTimer.Enable();
             resettableTimer.Start();
-            await Task.Delay(TimeSpan.FromSeconds(4));
+            await Task.Delay(TimeSpan.FromSeconds(20));
 
             // Assert
             Assert.Equal(2, callbackCalledCount);

@@ -135,6 +135,9 @@ Defaults:
         [Option("--upstream-protocol <value>", CommandOptionType.SingleValue, Description = "Upstream protocol for IoT Hub connections.")]
         public (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) UpstreamProtocol { get; } = (false, UpstreamProtocolType.Amqp);
 
+        [Option("--offline-installation-path <path>", Description = "Packages folder for offline installation")]
+        public string OfflineInstallationPath { get; } = string.Empty;
+
         // ReSharper disable once UnusedMember.Local
         static int Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args).Result;
 
@@ -167,7 +170,8 @@ Defaults:
 
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
-                            bootstrapper = new IotedgedWindows(this.BootstrapperArchivePath, credentials, proxy);
+                            string offlineInstallationPath = string.IsNullOrEmpty(this.OfflineInstallationPath) ? this.BootstrapperArchivePath : this.OfflineInstallationPath;
+                            bootstrapper = new IotedgedWindows(offlineInstallationPath, credentials, proxy);
                         }
                         else
                         {

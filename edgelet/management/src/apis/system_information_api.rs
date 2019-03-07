@@ -32,7 +32,7 @@ pub trait SystemInformationApi: Send + Sync {
     fn get_system_info(
         &self,
         api_version: &str,
-    ) -> Box<Future<Item = ::models::SystemInfo, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::SystemInfo, Error = Error<serde_json::Value>>>;
 }
 
 impl<C> SystemInformationApi for SystemInformationApiClient<C>
@@ -44,7 +44,7 @@ where
     fn get_system_info(
         &self,
         api_version: &str,
-    ) -> Box<Future<Item = ::models::SystemInfo, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::SystemInfo, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -88,7 +88,8 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::SystemInfo, _> = serde_json::from_slice(&body);
+                    let parsed: Result<crate::models::SystemInfo, _> =
+                        serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
         )

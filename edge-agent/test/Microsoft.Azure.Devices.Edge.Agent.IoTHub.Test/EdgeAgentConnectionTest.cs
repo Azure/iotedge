@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -28,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     {
         const string DockerType = "docker";
 
-        public static async Task SetAgentDesiredProperties(RegistryManager rm, string deviceId)
+        static async Task SetAgentDesiredProperties(RegistryManager rm, string deviceId)
         {
             var dp = new
             {
@@ -160,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             return await registryMananger.AddConfigurationAsync(configuration);
         }
 
-        public static async Task DeleteConfigurationAsync(RegistryManager registryManager, string configurationId)
+        static async Task DeleteConfigurationAsync(RegistryManager registryManager, string configurationId)
         {
             await registryManager.RemoveConfigurationAsync(configurationId);
         }
@@ -253,7 +254,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             };
         }
 
-        public static async Task UpdateAgentDesiredProperties(RegistryManager rm, string deviceId)
+        static async Task UpdateAgentDesiredProperties(RegistryManager rm, string deviceId)
         {
             var dp = new
             {
@@ -416,7 +417,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 };
 
                 ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
-                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde);
+                IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers));
                 await Task.Delay(TimeSpan.FromSeconds(10));
 
                 Option<DeploymentConfigInfo> deploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
@@ -428,8 +430,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(deploymentConfig.Runtime);
                 Assert.NotNull(deploymentConfig.SystemModules);
                 Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion.ToString(), deploymentConfig.SchemaVersion);
-                Assert.NotNull(deploymentConfig.SystemModules.EdgeAgent);
-                Assert.NotNull(deploymentConfig.SystemModules.EdgeHub);
                 Assert.Equal(1, deploymentConfig.Modules.Count);
                 Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
                 ValidateRuntimeConfig(deploymentConfig.Runtime);
@@ -447,8 +447,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(deploymentConfig.Runtime);
                 Assert.NotNull(deploymentConfig.SystemModules);
                 Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion.ToString(), deploymentConfig.SchemaVersion);
-                Assert.NotNull(deploymentConfig.SystemModules.EdgeAgent);
-                Assert.NotNull(deploymentConfig.SystemModules.EdgeHub);
                 Assert.Equal(2, deploymentConfig.Modules.Count);
                 Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
                 Assert.NotNull(deploymentConfig.Modules["mlModule"]);
@@ -533,7 +531,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 };
 
                 ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
-                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde);
+                IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers));
                 await Task.Delay(TimeSpan.FromSeconds(20));
 
                 Option<DeploymentConfigInfo> deploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
@@ -545,8 +544,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(deploymentConfig.Runtime);
                 Assert.NotNull(deploymentConfig.SystemModules);
                 Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion.ToString(), deploymentConfig.SchemaVersion);
-                Assert.NotNull(deploymentConfig.SystemModules.EdgeAgent);
-                Assert.NotNull(deploymentConfig.SystemModules.EdgeHub);
                 Assert.Equal(2, deploymentConfig.Modules.Count);
                 Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
                 Assert.NotNull(deploymentConfig.Modules["asa"]);
@@ -630,14 +627,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             serde.Setup(s => s.Deserialize(It.IsAny<string>()))
                 .Returns(deploymentConfig);
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
 
             // Act
-            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object);
+            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(requestHandlers));
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
-            Assert.Equal(deploymentConfigInfo.OrDefault().Version, 10);
+            Assert.Equal(10, deploymentConfigInfo.OrDefault().Version);
             Assert.Equal(deploymentConfigInfo.OrDefault().DeploymentConfig, deploymentConfig);
             Assert.NotNull(connectionStatusChangesHandler);
         }
@@ -678,8 +676,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serde.Setup(s => s.Deserialize(It.IsAny<string>()))
                 .Throws<FormatException>();
 
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+
             // Act
-            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object);
+            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(requestHandlers));
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
 
@@ -688,7 +688,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
             Assert.True(deploymentConfigInfo.OrDefault().Exception.HasValue);
-            Assert.IsType(typeof(ConfigFormatException), deploymentConfigInfo.OrDefault().Exception.OrDefault());
+            Assert.IsType<ConfigFormatException>(deploymentConfigInfo.OrDefault().Exception.OrDefault());
         }
 
         [Fact]
@@ -722,8 +722,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             deviceClient.Setup(d => d.GetTwinAsync())
                 .ReturnsAsync(twin);
 
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+
             // Act
-            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object);
+            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(requestHandlers));
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
 
@@ -732,7 +734,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
             Assert.True(deploymentConfigInfo.OrDefault().Exception.HasValue);
-            Assert.IsType(typeof(ConfigEmptyException), deploymentConfigInfo.OrDefault().Exception.OrDefault());
+            Assert.IsType<ConfigEmptyException>(deploymentConfigInfo.OrDefault().Exception.OrDefault());
         }
 
         [Fact]
@@ -783,8 +785,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serde.Setup(s => s.Deserialize(It.IsAny<string>()))
                 .Returns(deploymentConfig);
 
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+
             // Act
-            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object);
+            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(requestHandlers));
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
@@ -792,7 +796,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
             Assert.True(deploymentConfigInfo.OrDefault().Exception.HasValue);
-            Assert.IsType(typeof(InvalidSchemaVersionException), deploymentConfigInfo.OrDefault().Exception.OrDefault());
+            Assert.IsType<InvalidSchemaVersionException>(deploymentConfigInfo.OrDefault().Exception.OrDefault());
         }
 
         [Fact]
@@ -837,8 +841,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         return false;
                     });
 
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, retryStrategy.Object, TimeSpan.FromHours(1));
+            IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(requestHandlers), retryStrategy.Object, TimeSpan.FromHours(1));
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(
                 ConnectionStatus.Connected,
@@ -848,7 +854,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
             Assert.True(deploymentConfigInfo.OrDefault().Exception.HasValue);
-            Assert.IsType(typeof(InvalidOperationException), deploymentConfigInfo.OrDefault().Exception.OrDefault());
+            Assert.IsType<InvalidOperationException>(deploymentConfigInfo.OrDefault().Exception.OrDefault());
         }
 
         [Fact]
@@ -910,14 +916,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             deviceClient.Setup(d => d.SetMethodHandlerAsync(It.IsAny<string>(), It.IsAny<MethodCallback>()))
                 .Returns(Task.CompletedTask);
 
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, retryStrategy.Object, TimeSpan.FromHours(1));
+            IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(requestHandlers), retryStrategy.Object, TimeSpan.FromHours(1));
             Assert.NotNull(connectionStatusChangesHandler);
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
-            Assert.Equal(deploymentConfigInfo.OrDefault().Version, 10);
+            Assert.Equal(10, deploymentConfigInfo.OrDefault().Version);
             Assert.Equal(deploymentConfigInfo.OrDefault().DeploymentConfig, deploymentConfig);
         }
 
@@ -977,7 +985,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serde.Setup(s => s.Deserialize(It.IsAny<string>()))
                 .Returns(deploymentConfig);
 
-            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object);
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(requestHandlers));
 
             await Task.Delay(TimeSpan.FromSeconds(5));
 
@@ -1002,7 +1011,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
-            Assert.Equal(deploymentConfigInfo.OrDefault().Version, 11);
+            Assert.Equal(11, deploymentConfigInfo.OrDefault().Version);
             Assert.Equal(deploymentConfigInfo.OrDefault().DeploymentConfig, deploymentConfig);
         }
 
@@ -1062,13 +1071,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 };
 
                 ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
+                IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
 
                 // Assert
                 Module edgeAgentModule = await registryManager.GetModuleAsync(edgeDevice.Id, Constants.EdgeAgentModuleIdentityName);
                 Assert.NotNull(edgeAgentModule);
                 Assert.True(edgeAgentModule.ConnectionState == DeviceConnectionState.Disconnected);
 
-                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde);
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers));
                 await Task.Delay(TimeSpan.FromSeconds(5));
 
                 edgeAgentModule = await registryManager.GetModuleAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName);
@@ -1152,11 +1162,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
                 ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+                IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
 
                 // Assert
                 await Assert.ThrowsAsync<DeviceNotFoundException>(() => serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("ping")));
 
-                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde);
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers));
                 await Task.Delay(TimeSpan.FromSeconds(10));
 
                 CloudToDeviceMethodResult methodResult = await serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("ping"));
@@ -1245,104 +1256,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             moduleClientProvider.Setup(m => m.Create(It.IsAny<ConnectionStatusChangesHandler>(), It.IsAny<Func<IModuleClient, Task>>()))
                 .ReturnsAsync(moduleClient.Object);
 
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+
             // Act
-            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, TimeSpan.FromSeconds(3)))
+            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers), TimeSpan.FromSeconds(3)))
             {
                 await Task.Delay(TimeSpan.FromSeconds(8));
 
                 // Assert
                 moduleClient.Verify(m => m.GetTwinAsync(), Times.Exactly(3));
-            }
-        }
-
-        [Fact]
-        [Unit]
-        public async Task EdgeAgentConnectionRefreshTest_NoRefresh()
-        {
-            // Arrange
-            var moduleDeserializerTypes = new Dictionary<string, Type>
-            {
-                { DockerType, typeof(DockerDesiredModule) }
-            };
-
-            var edgeAgentDeserializerTypes = new Dictionary<string, Type>
-            {
-                { DockerType, typeof(EdgeAgentDockerModule) }
-            };
-
-            var edgeHubDeserializerTypes = new Dictionary<string, Type>
-            {
-                { DockerType, typeof(EdgeHubDockerModule) }
-            };
-
-            var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
-            {
-                { DockerType, typeof(DockerRuntimeInfo) }
-            };
-
-            var deserializerTypes = new Dictionary<Type, IDictionary<string, Type>>
-            {
-                [typeof(IModule)] = moduleDeserializerTypes,
-                [typeof(IEdgeAgentModule)] = edgeAgentDeserializerTypes,
-                [typeof(IEdgeHubModule)] = edgeHubDeserializerTypes,
-                [typeof(IRuntimeInfo)] = runtimeInfoDeserializerTypes,
-            };
-
-            ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
-
-            var runtimeInfo = new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.0", null));
-            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", string.Empty), null, null);
-            var edgeHubDockerModule = new EdgeHubDockerModule(
-                "docker",
-                ModuleStatus.Running,
-                RestartPolicy.Always,
-                new DockerConfig("image", string.Empty),
-                null,
-                null);
-            var deploymentConfig = new DeploymentConfig(
-                "1.0",
-                runtimeInfo,
-                new SystemModules(edgeAgentDockerModule, edgeHubDockerModule),
-                new Dictionary<string, IModule>());
-            long version = 1;
-            string deploymentConfigJson = serde.Serialize(deploymentConfig);
-            JObject deploymentConfigJobject = JObject.Parse(deploymentConfigJson);
-            deploymentConfigJobject.Add("$version", JToken.Parse($"{version}"));
-            var twinCollection = new TwinCollection(deploymentConfigJobject, new JObject());
-            var twin = new Twin(new TwinProperties { Desired = new TwinCollection(deploymentConfigJson) });
-
-            DesiredPropertyUpdateCallback desiredPropertyUpdateCallback = null;
-            var moduleClient = new Mock<IModuleClient>();
-            moduleClient.Setup(m => m.GetTwinAsync())
-                .ReturnsAsync(twin);
-            moduleClient.Setup(m => m.SetDesiredPropertyUpdateCallbackAsync(It.IsAny<DesiredPropertyUpdateCallback>()))
-                .Callback<DesiredPropertyUpdateCallback>(d => desiredPropertyUpdateCallback = d)
-                .Returns(Task.CompletedTask);
-
-            var moduleClientProvider = new Mock<IModuleClientProvider>();
-            Func<IModuleClient, Task> updateModuleClient = null;
-            moduleClientProvider.Setup(m => m.Create(It.IsAny<ConnectionStatusChangesHandler>(), It.IsAny<Func<IModuleClient, Task>>()))
-                .Callback<ConnectionStatusChangesHandler, Func<IModuleClient, Task>>((c, f) => updateModuleClient = f)
-                .ReturnsAsync(moduleClient.Object);
-
-            // Act
-            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, TimeSpan.FromSeconds(5)))
-            {
-                await Task.Delay(TimeSpan.FromSeconds(0.5));
-                Assert.NotNull(updateModuleClient);
-
-                await updateModuleClient(moduleClient.Object);
-                Assert.NotNull(desiredPropertyUpdateCallback);
-
-                await Task.Delay(TimeSpan.FromSeconds(3));
-                JObject patchConfigJobject = JObject.Parse(deploymentConfigJson);
-                patchConfigJobject.Add("$version", JToken.Parse($"{version + 1}"));
-                var patchTwinCollection = new TwinCollection(deploymentConfigJobject, new JObject());
-                await desiredPropertyUpdateCallback(patchTwinCollection, null);
-                await Task.Delay(TimeSpan.FromSeconds(4));
-
-                // Assert
-                moduleClient.Verify(m => m.GetTwinAsync(), Times.Once);
             }
         }
 
@@ -1377,18 +1299,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             var edgeAgent = deploymentConfig.SystemModules.EdgeAgent.OrDefault() as EdgeAgentDockerModule;
             Assert.NotNull(edgeAgent);
-            Assert.Equal(edgeAgent.Env["e1"].Value, "e1val");
-            Assert.Equal(edgeAgent.Env["e2"].Value, "e2val");
+            Assert.Equal("e1val", edgeAgent.Env["e1"].Value);
+            Assert.Equal("e2val", edgeAgent.Env["e2"].Value);
 
             var edgeHub = deploymentConfig.SystemModules.EdgeHub.OrDefault() as EdgeHubDockerModule;
             Assert.NotNull(edgeHub);
-            Assert.Equal(edgeHub.Env["e3"].Value, "e3val");
-            Assert.Equal(edgeHub.Env["e4"].Value, "e4val");
+            Assert.Equal("e3val", edgeHub.Env["e3"].Value);
+            Assert.Equal("e4val", edgeHub.Env["e4"].Value);
 
             var module1 = deploymentConfig.Modules["mongoserver"] as DockerDesiredModule;
             Assert.NotNull(module1);
-            Assert.Equal(module1.Env["e5"].Value, "e5val");
-            Assert.Equal(module1.Env["e6"].Value, "e6val");
+            Assert.Equal("e5val", module1.Env["e5"].Value);
+            Assert.Equal("e6val", module1.Env["e6"].Value);
         }
 
         static void ValidateRuntimeConfig(IRuntimeInfo deploymentConfigRuntime)

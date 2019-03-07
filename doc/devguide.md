@@ -42,7 +42,7 @@ scripts/linux/runTests.sh
 scripts\windows\runTests.bat
 ```
 
-## Run integration tests & BVTs
+## Run integration tests
 
 To run integration tests and/or BVTs, make sure the following dependencies are installed in your environment:
 
@@ -83,12 +83,12 @@ Then run the tests either with Test Explorer in Visual Studio IDE, or with:
 
 ### Linux
 ```sh
-scripts/linux/runTests.sh "--filter Category=Integration|Category=Bvt"
+scripts/linux/runTests.sh "--filter Category=Integration"
 ```
 
 ### Windows
 ```powershell
-scripts\windows\runTests.bat "--filter Category=Integration|Category=Bvt"
+scripts\windows\runTests.bat "--filter Category=Integration"
 ```
 
 The syntax of the "filter" argument is described [here](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test#filter-option-details). All IoT Edge tests are categorized as one of `Unit`, `Integration`, or `Bvt`.

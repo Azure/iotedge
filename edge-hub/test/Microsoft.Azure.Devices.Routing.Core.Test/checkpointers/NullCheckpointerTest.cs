@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
         [Theory]
         [Unit]
         [MemberData(nameof(TestAdmitDataSource.TestData), MemberType = typeof(TestAdmitDataSource))]
-        public void TestAdmit(IMessage message, long offset, bool expected)
+        public void TestAdmit(IMessage message, bool expected)
         {
             using (var checkpointer = new NullCheckpointer())
             {
@@ -45,17 +45,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
         {
             static readonly IList<object[]> Data = new List<object[]>
             {
-                new object[] { MessageWithOffset(long.MinValue), 37L, true },
-                new object[] { MessageWithOffset(0L), 37L, true },
-                new object[] { MessageWithOffset(37L), 37L, true },
-                new object[] { MessageWithOffset(38L), 37L, true },
-                new object[] { MessageWithOffset(long.MaxValue), 37L, true },
+                new object[] { MessageWithOffset(long.MinValue), true },
+                new object[] { MessageWithOffset(0L), true },
+                new object[] { MessageWithOffset(37L), true },
+                new object[] { MessageWithOffset(38L), true },
+                new object[] { MessageWithOffset(long.MaxValue), true },
 
-                new object[] { MessageWithOffset(long.MinValue), 0L, true },
-                new object[] { MessageWithOffset(0L), 0L, true },
-                new object[] { MessageWithOffset(37L), 0L, true },
-                new object[] { MessageWithOffset(38L), 0L, true },
-                new object[] { MessageWithOffset(long.MaxValue), 0L, true },
+                new object[] { MessageWithOffset(long.MinValue), true },
+                new object[] { MessageWithOffset(0L), true },
+                new object[] { MessageWithOffset(37L), true },
+                new object[] { MessageWithOffset(38L), true },
+                new object[] { MessageWithOffset(long.MaxValue), true },
             };
 
             public static IEnumerable<object[]> TestData => Data;

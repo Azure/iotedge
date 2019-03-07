@@ -9,7 +9,6 @@
  */
 
 use std::borrow::Borrow;
-use std::borrow::Cow;
 use std::sync::Arc;
 
 use futures;
@@ -18,7 +17,6 @@ use hyper;
 use serde_json;
 use typed_headers::{self, http, mime, HeaderMapExt};
 
-use super::super::utils::UserAgent;
 use super::{configuration, Error};
 
 pub struct ContainerApiClient<C: hyper::client::connect::Connect> {
@@ -38,12 +36,12 @@ pub trait ContainerApi: Send + Sync {
         &self,
         id: &str,
         path: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn container_archive_info(
         &self,
         id: &str,
         path: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn container_attach(
         &self,
         id: &str,
@@ -53,7 +51,7 @@ pub trait ContainerApi: Send + Sync {
         stdin: bool,
         stdout: bool,
         stderr: bool,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn container_attach_websocket(
         &self,
         id: &str,
@@ -63,44 +61,55 @@ pub trait ContainerApi: Send + Sync {
         stdin: bool,
         stdout: bool,
         stderr: bool,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn container_changes(
         &self,
         id: &str,
-    ) -> Box<Future<Item = Vec<::models::InlineResponse2002>, Error = Error<serde_json::Value>>>;
+    ) -> Box<
+        dyn Future<Item = Vec<crate::models::InlineResponse2002>, Error = Error<serde_json::Value>>,
+    >;
     fn container_create(
         &self,
-        body: ::models::ContainerCreateBody,
+        body: crate::models::ContainerCreateBody,
         name: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse201, Error = Error<serde_json::Value>> + Send>;
+    ) -> Box<
+        dyn Future<Item = crate::models::InlineResponse201, Error = Error<serde_json::Value>>
+            + Send,
+    >;
     fn container_delete(
         &self,
         id: &str,
         v: bool,
         force: bool,
         link: bool,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn container_export(
         &self,
         id: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn container_inspect(
         &self,
         id: &str,
         size: bool,
-    ) -> Box<Future<Item = ::models::InlineResponse200, Error = Error<serde_json::Value>> + Send>;
+    ) -> Box<
+        dyn Future<Item = crate::models::InlineResponse200, Error = Error<serde_json::Value>>
+            + Send,
+    >;
     fn container_kill(
         &self,
         id: &str,
         signal: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn container_list(
         &self,
         all: bool,
         limit: i32,
         size: bool,
         filters: &str,
-    ) -> Box<Future<Item = Vec<::models::ContainerSummary>, Error = Error<serde_json::Value>> + Send>;
+    ) -> Box<
+        dyn Future<Item = Vec<crate::models::ContainerSummary>, Error = Error<serde_json::Value>>
+            + Send,
+    >;
     fn container_logs(
         &self,
         id: &str,
@@ -110,70 +119,75 @@ pub trait ContainerApi: Send + Sync {
         since: i32,
         timestamps: bool,
         tail: &str,
-    ) -> Box<Future<Item = hyper::Body, Error = Error<serde_json::Value>> + Send>;
-    fn container_pause(&self, id: &str)
-        -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = hyper::Body, Error = Error<serde_json::Value>> + Send>;
+    fn container_pause(
+        &self,
+        id: &str,
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn container_prune(
         &self,
         filters: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse2005, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse2005, Error = Error<serde_json::Value>>>;
     fn container_rename(
         &self,
         id: &str,
         name: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn container_resize(
         &self,
         id: &str,
         h: i32,
         w: i32,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn container_restart(
         &self,
         id: &str,
         t: i32,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn container_start(
         &self,
         id: &str,
         detach_keys: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn container_stats(
         &self,
         id: &str,
         stream: bool,
-    ) -> Box<Future<Item = serde_json::Value, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = serde_json::Value, Error = Error<serde_json::Value>>>;
     fn container_stop(
         &self,
         id: &str,
         t: i32,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn container_top(
         &self,
         id: &str,
         ps_args: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse2001, Error = Error<serde_json::Value>>>;
+    ) -> Box<
+        dyn Future<Item = crate::models::InlineResponse2001, Error = Error<serde_json::Value>>
+            + Send,
+    >;
     fn container_unpause(
         &self,
         id: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn container_update(
         &self,
         id: &str,
-        update: ::models::ContainerUpdateUpdate,
-    ) -> Box<Future<Item = ::models::InlineResponse2003, Error = Error<serde_json::Value>>>;
+        update: crate::models::ContainerUpdateUpdate,
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse2003, Error = Error<serde_json::Value>>>;
     fn container_wait(
         &self,
         id: &str,
         condition: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse2004, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse2004, Error = Error<serde_json::Value>>>;
     fn put_container_archive(
         &self,
         id: &str,
         path: &str,
         input_stream: &str,
         no_overwrite_dir_non_dir: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
 }
 
 impl<C> ContainerApi for ContainerApiClient<C>
@@ -186,7 +200,7 @@ where
         &self,
         id: &str,
         path: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -237,7 +251,7 @@ where
         &self,
         id: &str,
         path: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::HEAD;
@@ -293,7 +307,7 @@ where
         stdin: bool,
         stdout: bool,
         stderr: bool,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -354,7 +368,7 @@ where
         stdin: bool,
         stdout: bool,
         stderr: bool,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -409,8 +423,9 @@ where
     fn container_changes(
         &self,
         id: &str,
-    ) -> Box<Future<Item = Vec<::models::InlineResponse2002>, Error = Error<serde_json::Value>>>
-    {
+    ) -> Box<
+        dyn Future<Item = Vec<crate::models::InlineResponse2002>, Error = Error<serde_json::Value>>,
+    > {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -451,7 +466,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<Vec<::models::InlineResponse2002>, _> =
+                    let parsed: Result<Vec<crate::models::InlineResponse2002>, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -460,10 +475,12 @@ where
 
     fn container_create(
         &self,
-        body: ::models::ContainerCreateBody,
+        body: crate::models::ContainerCreateBody,
         name: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse201, Error = Error<serde_json::Value>> + Send>
-    {
+    ) -> Box<
+        dyn Future<Item = crate::models::InlineResponse201, Error = Error<serde_json::Value>>
+            + Send,
+    > {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -514,7 +531,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::InlineResponse201, _> =
+                    let parsed: Result<crate::models::InlineResponse201, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -527,7 +544,7 @@ where
         v: bool,
         force: bool,
         link: bool,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::DELETE;
@@ -579,7 +596,7 @@ where
     fn container_export(
         &self,
         id: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -627,8 +644,10 @@ where
         &self,
         id: &str,
         size: bool,
-    ) -> Box<Future<Item = ::models::InlineResponse200, Error = Error<serde_json::Value>> + Send>
-    {
+    ) -> Box<
+        dyn Future<Item = crate::models::InlineResponse200, Error = Error<serde_json::Value>>
+            + Send,
+    > {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -672,7 +691,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::InlineResponse200, _> =
+                    let parsed: Result<crate::models::InlineResponse200, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -683,7 +702,7 @@ where
         &self,
         id: &str,
         signal: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -736,8 +755,10 @@ where
         limit: i32,
         size: bool,
         filters: &str,
-    ) -> Box<Future<Item = Vec<::models::ContainerSummary>, Error = Error<serde_json::Value>> + Send>
-    {
+    ) -> Box<
+        dyn Future<Item = Vec<crate::models::ContainerSummary>, Error = Error<serde_json::Value>>
+            + Send,
+    > {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -784,7 +805,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<Vec<::models::ContainerSummary>, _> =
+                    let parsed: Result<Vec<crate::models::ContainerSummary>, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -800,7 +821,7 @@ where
         since: i32,
         timestamps: bool,
         tail: &str,
-    ) -> Box<Future<Item = hyper::Body, Error = Error<serde_json::Value>> + Send> {
+    ) -> Box<dyn Future<Item = hyper::Body, Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -850,7 +871,7 @@ where
     fn container_pause(
         &self,
         id: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -897,7 +918,8 @@ where
     fn container_prune(
         &self,
         filters: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse2005, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse2005, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -941,7 +963,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::InlineResponse2005, _> =
+                    let parsed: Result<crate::models::InlineResponse2005, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -952,7 +974,7 @@ where
         &self,
         id: &str,
         name: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -1004,7 +1026,7 @@ where
         id: &str,
         h: i32,
         w: i32,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -1056,7 +1078,7 @@ where
         &self,
         id: &str,
         t: i32,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -1107,7 +1129,7 @@ where
         &self,
         id: &str,
         detach_keys: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -1158,7 +1180,7 @@ where
         &self,
         id: &str,
         stream: bool,
-    ) -> Box<Future<Item = serde_json::Value, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = serde_json::Value, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -1212,7 +1234,7 @@ where
         &self,
         id: &str,
         t: i32,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -1263,7 +1285,10 @@ where
         &self,
         id: &str,
         ps_args: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse2001, Error = Error<serde_json::Value>>> {
+    ) -> Box<
+        dyn Future<Item = crate::models::InlineResponse2001, Error = Error<serde_json::Value>>
+            + Send,
+    > {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -1307,7 +1332,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::InlineResponse2001, _> =
+                    let parsed: Result<crate::models::InlineResponse2001, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -1317,7 +1342,7 @@ where
     fn container_unpause(
         &self,
         id: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -1364,8 +1389,9 @@ where
     fn container_update(
         &self,
         id: &str,
-        update: ::models::ContainerUpdateUpdate,
-    ) -> Box<Future<Item = ::models::InlineResponse2003, Error = Error<serde_json::Value>>> {
+        update: crate::models::ContainerUpdateUpdate,
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse2003, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -1413,7 +1439,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::InlineResponse2003, _> =
+                    let parsed: Result<crate::models::InlineResponse2003, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -1424,7 +1450,8 @@ where
         &self,
         id: &str,
         condition: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse2004, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse2004, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -1468,7 +1495,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::InlineResponse2004, _> =
+                    let parsed: Result<crate::models::InlineResponse2004, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -1481,7 +1508,7 @@ where
         path: &str,
         input_stream: &str,
         no_overwrite_dir_non_dir: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::PUT;

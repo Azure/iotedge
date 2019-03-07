@@ -1,17 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#[cfg(test)]
 use crate::error::{ErrorKind, Result};
-#[cfg(test)]
 use edgelet_utils::sanitize_dns_label;
 
 mod to_docker;
 mod to_k8s;
 
 pub use self::to_docker::pod_to_module;
-pub use self::to_k8s::spec_to_deployment;
+pub use self::to_k8s::{auth_to_image_pull_secret, spec_to_deployment};
 
-#[cfg(test)]
 pub fn sanitize_dns_value(name: &str) -> Result<String> {
     let name_string = sanitize_dns_label(name);
     if name_string.is_empty() {

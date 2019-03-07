@@ -7,10 +7,11 @@ use std::str;
 use failure::{Backtrace, Compat, Context, Fail};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode, Uri};
+use serde_json::json;
 use systemd::Fd;
 use url::Url;
 
-use IntoResponse;
+use crate::IntoResponse;
 
 #[derive(Debug)]
 pub struct Error {
@@ -76,7 +77,7 @@ pub enum ErrorKind {
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -86,7 +87,7 @@ impl Fail for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }
@@ -125,7 +126,7 @@ impl From<Context<ErrorKind>> for Error {
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response<Body> {
-        let mut fail: &Fail = &self;
+        let mut fail: &dyn Fail = &self;
         let mut message = self.to_string();
         while let Some(cause) = fail.cause() {
             message.push_str(&format!("\n\tcaused by: {}", cause.to_string()));
@@ -165,7 +166,7 @@ pub enum BindListenerType {
 }
 
 impl Display for BindListenerType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             BindListenerType::Address(addr) => write!(f, "address {}", addr),
             BindListenerType::Fd(fd) => write!(f, "fd {}", fd),
@@ -185,7 +186,7 @@ pub enum InvalidUrlReason {
 }
 
 impl Display for InvalidUrlReason {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             InvalidUrlReason::FdNeitherNumberNorName => {
                 write!(f, "URL could not be parsed as fd number nor fd name")

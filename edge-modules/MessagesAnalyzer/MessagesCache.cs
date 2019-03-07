@@ -82,10 +82,14 @@ namespace MessagesAnalyzer
             public int Compare(MessageDetails msg1, MessageDetails msg2)
             {
                 if (msg1 == null)
+                {
                     return -1;
+                }
 
                 if (msg2 == null)
-                    return -1;
+                {
+                    return 1;
+                }
 
                 return msg1.SequenceNumber.CompareTo(msg2.SequenceNumber);
             }

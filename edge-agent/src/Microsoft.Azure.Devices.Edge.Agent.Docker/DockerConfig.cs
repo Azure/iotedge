@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using static System.FormattableString;
 
     [JsonConverter(typeof(DockerConfigJsonConverter))]
     public class DockerConfig : IEquatable<DockerConfig>
@@ -19,16 +20,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         }
 
         public DockerConfig(string image, string createOptions)
+            : this(ValidateAndGetImage(image), GetCreateOptions(createOptions))
         {
-            this.Image = image?.Trim() ?? string.Empty;
-            this.createOptions = string.IsNullOrWhiteSpace(createOptions)
-                ? new CreateContainerParameters()
-                : JsonConvert.DeserializeObject<CreateContainerParameters>(createOptions);
         }
 
         public DockerConfig(string image, CreateContainerParameters createOptions)
         {
-            this.Image = image?.Trim() ?? string.Empty;
+            this.Image = image;
             this.createOptions = Preconditions.CheckNotNull(createOptions, nameof(createOptions));
         }
 
@@ -66,7 +64,39 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                    CompareCreateOptions(this.CreateOptions, other.CreateOptions);
         }
 
-        static bool CompareCreateOptions(CreateContainerParameters a, CreateContainerParameters b)
+        internal static CreateContainerParameters GetCreateOptions(string createOptions)
+        {
+            CreateContainerParameters createContainerParameters = null;
+            if (!string.IsNullOrWhiteSpace(createOptions) && !createOptions.Equals("null", StringComparison.OrdinalIgnoreCase))
+            {
+                createContainerParameters = JsonConvert.DeserializeObject<CreateContainerParameters>(createOptions);
+            }
+
+            return createContainerParameters ?? new CreateContainerParameters();
+        }
+
+        internal static string ValidateAndGetImage(string image)
+        {
+            image = Preconditions.CheckNonWhiteSpace(image, nameof(image)).Trim();
+            string[] parts = image.Split(':');
+            string imageWithTag;
+            if (parts.Length == 2)
+            {
+                imageWithTag = image;
+            }
+            else if (parts.Length == 1)
+            {
+                imageWithTag = Invariant($"{image}:{Constants.DefaultTag}");
+            }
+            else
+            {
+                throw new ArgumentException($"Image {image} is not in the right format");
+            }
+
+            return imageWithTag;
+        }
+
+        internal static bool CompareCreateOptions(CreateContainerParameters a, CreateContainerParameters b)
         {
             bool result;
 

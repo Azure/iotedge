@@ -74,10 +74,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             Assert.NotNull(dictionary);
             Assert.Equal(4, dictionary.Count);
-            Assert.Equal(dictionary["k1"], "v1");
-            Assert.Equal(dictionary["k2"], "v2");
-            Assert.Equal(dictionary["key 3  "], "  this is a value");
-            Assert.Equal(dictionary["connstring"], "hostname=foo");
+            Assert.Equal("v1", dictionary["k1"]);
+            Assert.Equal("v2", dictionary["k2"]);
+            Assert.Equal("  this is a value", dictionary["key 3  "]);
+            Assert.Equal("hostname=foo", dictionary["connstring"]);
         }
 
         [Fact]

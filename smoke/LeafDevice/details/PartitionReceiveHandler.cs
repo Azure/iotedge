@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace LeafDevice.Details
+namespace LeafDeviceTest
 {
     using System;
     using System.Collections.Generic;

@@ -3,6 +3,7 @@ name = "iotedged-eventlog-messages"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 publish = false
+edition = "2018"
 
 [lib]
 crate-type = ["cdylib"]

@@ -40,6 +40,9 @@
               "OptimizeForPerformance": {
                 "value": "<OptimizeForPerformance>"
               },
+              "MqttEventsProcessorThreadCount": {
+                "value": "<MqttEventsProcessorThreadCount>"
+              },
               "UpstreamProtocol" : {
                 "value": "<UpstreamProtocol>"
               }

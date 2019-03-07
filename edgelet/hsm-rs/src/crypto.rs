@@ -9,7 +9,7 @@ use std::slice;
 use std::str;
 
 use super::*;
-use error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind};
 
 /// Enumerator for [`CERTIFICATE_TYPE`]
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -1137,7 +1137,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(feature = "cargo-clippy", allow(let_unit_value))]
+    #[allow(clippy::let_unit_value)]
     fn hsm_success() {
         let hsm_crypto = fake_good_hsm_crypto();
 

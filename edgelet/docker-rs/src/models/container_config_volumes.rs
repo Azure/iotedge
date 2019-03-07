@@ -9,7 +9,7 @@
  */
 
 /// ContainerConfigVolumes : An object mapping mount point paths inside the container to empty objects.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

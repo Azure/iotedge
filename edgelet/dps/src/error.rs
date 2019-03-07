@@ -23,6 +23,12 @@ pub enum ErrorKind {
     #[fail(display = "Could not get operation status")]
     GetOperationStatus,
 
+    #[fail(display = "Could not get symmetric key attestation operation status")]
+    GetOperationStatusForSymmetricKey,
+
+    #[fail(display = "Could not get symmetric challenge key")]
+    GetSymmetricChallengeKey,
+
     #[fail(display = "Could not get token")]
     GetToken,
 
@@ -32,18 +38,21 @@ pub enum ErrorKind {
     #[fail(display = "Could not get TPM challenge key because the TPM token is invalid")]
     InvalidTpmToken,
 
-    #[fail(display = "DPS registration succeeded but returned an empty response")]
-    RegisterWithAuthUnexpectedlySucceeded,
-
     #[fail(display = "DPS registration failed")]
     RegisterWithAuthUnexpectedlyFailed,
 
     #[fail(display = "DPS registration failed because the DPS operation is not assigned")]
     RegisterWithAuthUnexpectedlyFailedOperationNotAssigned,
+
+    #[fail(display = "DPS registration succeeded but returned an empty response")]
+    RegisterWithAuthUnexpectedlySucceeded,
+
+    #[fail(display = "Symmetric key registration failed")]
+    RegisterWithSymmetricChallengeKey,
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -53,7 +62,7 @@ impl Fail for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }

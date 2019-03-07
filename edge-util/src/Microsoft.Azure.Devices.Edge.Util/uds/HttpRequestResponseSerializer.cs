@@ -62,8 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
         {
             var httpResponse = new HttpResponseMessage();
 
-            await this.SetResponseStatusLine(httpResponse, bufferedStream, cancellationToken).ConfigureAwait(false);
-            await this.SetHeadersAndContent(httpResponse, bufferedStream, cancellationToken).ConfigureAwait(false);
+            await this.SetResponseStatusLine(httpResponse, bufferedStream, cancellationToken);
+            await this.SetHeadersAndContent(httpResponse, bufferedStream, cancellationToken);
 
             return httpResponse;
         }
@@ -71,11 +71,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
         async Task SetHeadersAndContent(HttpResponseMessage httpResponse, HttpBufferedStream bufferedStream, CancellationToken cancellationToken)
         {
             IList<string> headers = new List<string>();
-            string line = await bufferedStream.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+            string line = await bufferedStream.ReadLineAsync(cancellationToken);
             while (!string.IsNullOrWhiteSpace(line))
             {
                 headers.Add(line);
-                line = await bufferedStream.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                line = await bufferedStream.ReadLineAsync(cancellationToken);
             }
 
             httpResponse.Content = new StreamContent(bufferedStream);
@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
                             throw new HttpRequestException($"Header value is invalid for {headerName}.");
                         }
 
-                        await httpResponse.Content.LoadIntoBufferAsync(contentLength).ConfigureAwait(false);
+                        await httpResponse.Content.LoadIntoBufferAsync(contentLength);
                     }
 
                     httpResponse.Content.Headers.TryAddWithoutValidation(headerName, headerValue);
@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
 
         async Task SetResponseStatusLine(HttpResponseMessage httpResponse, HttpBufferedStream bufferedStream, CancellationToken cancellationToken)
         {
-            string statusLine = await bufferedStream.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+            string statusLine = await bufferedStream.ReadLineAsync(cancellationToken);
             if (string.IsNullOrWhiteSpace(statusLine))
             {
                 throw new HttpRequestException("Response is empty.");
