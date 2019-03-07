@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
     using System;
@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
-    class DockerLoggingConfigTest
+    public class DockerLoggingConfigTest
     {
         static readonly Dictionary<string, string> LoggingConfig1 = new Dictionary<string, string> { { "k1", "v1" }, { "k2", "v2" } };
         static readonly DockerLoggingConfig Config1 = new DockerLoggingConfig("json-file");
@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Unit]
         public void TestConstruction()
         {
-            Assert.Throws<ArgumentNullException>(() => new DockerLoggingConfig(null, ImmutableDictionary<string, string>.Empty));
+            Assert.Throws<ArgumentException>(() => new DockerLoggingConfig(null, ImmutableDictionary<string, string>.Empty));
             Assert.Throws<ArgumentNullException>(() => new DockerLoggingConfig("not null", null));
             Assert.Throws<ArgumentException>(() => new DockerLoggingConfig(" "));
         }

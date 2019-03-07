@@ -81,6 +81,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             'createOptions02': ""3'}], '42/tcp': [{'HostPort': '42'}]}}}""
         }";
 
+        public static IEnumerable<object[]> GetTestGetCreateOptionsData()
+        {
+            yield return new object[] { null, new CreateContainerParameters() };
+
+            yield return new object[] { " ", new CreateContainerParameters() };
+
+            yield return new object[] { "null", new CreateContainerParameters() };
+
+            string createOptions = @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}";
+            yield return new object[] { createOptions, JsonConvert.DeserializeObject<CreateContainerParameters>(createOptions) };
+        }
+
         [Fact]
         public void TestEquality()
         {
@@ -171,18 +183,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             Assert.NotNull(createContainerParameters);
             Assert.True(DockerConfig.CompareCreateOptions(expectedCreateOptions, createContainerParameters));
-        }
-
-        static IEnumerable<object[]> GetTestGetCreateOptionsData()
-        {
-            yield return new object[] { null, new CreateContainerParameters() };
-
-            yield return new object[] { " ", new CreateContainerParameters() };
-
-            yield return new object[] { "null", new CreateContainerParameters() };
-
-            string createOptions = @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}";
-            yield return new object[] { createOptions, JsonConvert.DeserializeObject<CreateContainerParameters>(createOptions) };
         }
     }
 }

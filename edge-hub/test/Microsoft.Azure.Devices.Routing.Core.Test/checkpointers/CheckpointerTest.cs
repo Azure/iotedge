@@ -122,7 +122,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
                 Assert.Equal(20, checkpointer1.Offset);
 
                 bool result = checkpointer1.Admit(MessageWithOffset(30));
-                Assert.Equal(false, result);
+                Assert.False(result);
             }
         }
 
