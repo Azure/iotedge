@@ -31,18 +31,18 @@ $_privateKeyPassword         = "1234"
 $_keyBitsLength              = "4096"
 if (-not (Test-Path env:DEFAULT_VALIDITY_DAYS)) { $env:DEFAULT_VALIDITY_DAYS = 30 }
 $_days_until_expiration      = $env:DEFAULT_VALIDITY_DAYS
-$_opensslRootConfigFile      = "$_basePath/openssl_root_ca.cnf"
+$_opensslRootConfigFile      = Join-Path $_basePath "openssl_root_ca.cnf"
 $_keySuffix                  = "key.pem"
 $_certSuffix                 = "cert.pem"
 $_certPfxSuffix              = "cert.pfx"
 $_csrSuffix                  = "csr.pem"
 # Whether to use ECC or RSA is stored in a file.  If it doesn't exist, we default to ECC.
-$algorithmUsedFile           = "$_basePath/algorithmUsed.txt"
+$algorithmUsedFile           = Join-Path $_basePath "algorithmUsed.txt"
 # avoid pesky conf file not found warnings when running certain openssl
 # commands that do not accept a config file argument
-$env:OPENSSL_CONF            = "$_opensslRootConfigFile"
+$env:OPENSSL_CONF            = $_opensslRootConfigFile
 # despite being specified in openssl conf file, on windows hosts this is required
-$env:RANDFILE                = "$_basePath/.rnd"
+$env:RANDFILE                = Join-Path $_basePath ".rnd"
 $FORCE_NO_PROD_WARNING       = if (-not (Test-Path env:FORCE_NO_PROD_WARNING)) { $False } else { $True }
 
 <#
@@ -110,7 +110,8 @@ function Invoke-External()
 #>
 function Get-CertPathForPrefix([string]$prefix)
 {
-    return "$_basePath/certs/$prefix.$_certSuffix"
+    $certsDir = Join-Path $_basePath "certs"
+    return Join-Path $certsDir "$prefix.$_certSuffix"
 }
 
 <#
@@ -122,7 +123,8 @@ function Get-CertPathForPrefix([string]$prefix)
 #>
 function Get-PfxCertPathForPrefix([string]$prefix)
 {
-    return "$_basePath/certs/$prefix.$_certPfxSuffix"
+    $certsDir = Join-Path $_basePath "certs"
+    return Join-Path $certsDir "$prefix.$_certPfxSuffix"
 }
 
 <#
@@ -134,7 +136,8 @@ function Get-PfxCertPathForPrefix([string]$prefix)
 #>
 function Get-KeyPathForPrefix([string]$prefix)
 {
-    return "$_basePath/private/$prefix.$_keySuffix"
+    $privDir = Join-Path $_basePath "private"
+    return Join-Path $privDir "$prefix.$_keySuffix"
 }
 
 <#
@@ -147,7 +150,8 @@ function Get-KeyPathForPrefix([string]$prefix)
 #>
 function Get-CSRPathForPrefix([string]$prefix)
 {
-    return "$_basePath/csr/$prefix.$_csrSuffix"
+    $csrDir = Join-Path $_basePath "csr"
+    return Join-Path $csrDir "$prefix.$_csrSuffix"
 }
 
 <#
