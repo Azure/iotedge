@@ -66,14 +66,15 @@ jobs:
            filePath: scripts/linux/buildImage.sh
            arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-hub -n azureiotedge -P Microsoft.Azure.Devices.Edge.Hub.Service --target-arch aarch64
 
-        # Simulated Temperature Sensor - Not Using Template for ARM64 because we have 2 different .NET Core.
-#      - template: templates/image-linux.yaml
-#        parameters:
-#          name: Temperature Sensor
-#          imageName: azureiotedge-simulated-temperature-sensor
-#          project: SimulatedTemperatureSensor
+     # Simulated Temperature Sensor - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image Temperature Sensor - arm64
+        inputs: 
+           filePath: scripts/linux/buildImage.sh
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-simulated-temperature-sensor -n azureiotedge -P SimulatedTemperatureSensor --target-arch aarch64     
 
       # Temperature Filter - Not Using Template for ARM64 because we have 2 different .NET Core.
+
 #      - template: templates/image-linux.yaml
 #        parameters:
 #          name: Temperature Filter
