@@ -102,10 +102,11 @@ mod tests {
 
     #[test]
     fn correct_logoptions() {
-        let query = "follow=true&tail=6";
+        let query = "follow=true&tail=6&since=1551885923";
         let options = parse_options(&query).unwrap();
         assert_eq!(LogTail::Num(6), *options.tail());
         assert_eq!(true, options.follow());
+        assert_eq!(1551885923, options.since());
     }
 
     #[test]
@@ -114,6 +115,7 @@ mod tests {
         let options = parse_options(&query).unwrap();
         assert_eq!(LogTail::default(), *options.tail());
         assert_eq!(false, options.follow());
+        assert_eq!(0, options.since());
     }
 
     #[test]
@@ -134,6 +136,17 @@ mod tests {
         assert!(options.is_err());
         assert_eq!(
             "The request parameter `tail` is malformed",
+            options.err().unwrap().to_string()
+        );
+    }
+
+    #[test]
+    fn logoption_since_error() {
+        let query = "follow=true&tail=6&since=15abc";
+        let options = parse_options(&query);
+        assert!(options.is_err());
+        assert_eq!(
+            "The request parameter `since` is malformed",
             options.err().unwrap().to_string()
         );
     }
