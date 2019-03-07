@@ -862,8 +862,16 @@ fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResul
             Context::new("could not resolve Azure IoT Hub hostname: no addresses found")
         })?;
 
-    let _ = TcpStream::connect_timeout(&iothub_host, std::time::Duration::from_secs(10))
+    let stream = TcpStream::connect_timeout(&iothub_host, std::time::Duration::from_secs(10))
         .context("could not connect to IoT Hub")?;
+
+    let tls_connector = openssl::ssl::SslConnector::builder(openssl::ssl::SslMethod::tls())
+        .context("could not create TLS connector")?
+        .build();
+
+    let _ = tls_connector
+        .connect(iothub_hostname, stream)
+        .context("could not complete TLS handshake with Azure IoT Hub")?;
 
     Ok(CheckResult::Ok)
 }
