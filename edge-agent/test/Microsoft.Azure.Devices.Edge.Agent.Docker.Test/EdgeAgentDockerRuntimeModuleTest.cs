@@ -143,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             Assert.Equal(module, updatedModule1);
             Assert.NotEqual(module, updatedModule2);
-            Assert.Equal(updatedModule2.RuntimeStatus, ModuleStatus.Unknown);
+            Assert.Equal(ModuleStatus.Unknown, updatedModule2.RuntimeStatus);
         }
     }
 }

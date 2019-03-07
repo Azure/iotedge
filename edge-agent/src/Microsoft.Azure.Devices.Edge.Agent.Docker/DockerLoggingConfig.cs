@@ -49,8 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         {
             unchecked
             {
-                int hashCode = this.Config.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Type.GetHashCode();
+                int hashCode = this.Type.GetHashCode();
+                hashCode = (hashCode * 397) ^ string.Join(";", this.Config.OrderBy(kvp => kvp.Key).Select(kvp => $"{kvp.Key}:{kvp.Value}")).GetHashCode();
                 return hashCode;
             }
         }

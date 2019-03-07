@@ -299,6 +299,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 ["mod2"] = TestModule2
             });
 
+        public static IEnumerable<object[]> EqualityTestData()
+        {
+            yield return new object[] { Config1, Config1_1, true };
+            yield return new object[] { Config1, Config2, false };
+            yield return new object[] { Config1, Config3, false };
+            yield return new object[] { Config1, Config4, false };
+            yield return new object[] { Config1, Config5, false };
+            yield return new object[] { Config1, Config6, false };
+            yield return new object[] { Config1, Config7, false };
+            yield return new object[] { Config1, Config8, false };
+            yield return new object[] { Config1, Config9, false };
+            yield return new object[] { Config1, Config10, false };
+            yield return new object[] { Config1, Config11, false };
+            yield return new object[] { Config1, Config12, false };
+            yield return new object[] { Config1, Config13, false };
+            yield return new object[] { Config1, Config14, false };
+            yield return new object[] { Config1, Config15, false };
+        }
+
         [Fact]
         public void BasicTest()
         {
@@ -338,25 +357,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
             // Assert
             Assert.Equal(areEqual, result);
-        }
-
-        static IEnumerable<object[]> EqualityTestData()
-        {
-            yield return new object[] { Config1, Config1_1, true };
-            yield return new object[] { Config1, Config2, false };
-            yield return new object[] { Config1, Config3, false };
-            yield return new object[] { Config1, Config4, false };
-            yield return new object[] { Config1, Config5, false };
-            yield return new object[] { Config1, Config6, false };
-            yield return new object[] { Config1, Config7, false };
-            yield return new object[] { Config1, Config8, false };
-            yield return new object[] { Config1, Config9, false };
-            yield return new object[] { Config1, Config10, false };
-            yield return new object[] { Config1, Config11, false };
-            yield return new object[] { Config1, Config12, false };
-            yield return new object[] { Config1, Config13, false };
-            yield return new object[] { Config1, Config14, false };
-            yield return new object[] { Config1, Config15, false };
         }
     }
 }
