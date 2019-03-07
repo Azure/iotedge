@@ -9,16 +9,16 @@
  */
 
 /// TaskSpecContainerSpecPrivileges : Security options for the container
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecContainerSpecPrivileges {
     #[serde(rename = "CredentialSpec", skip_serializing_if = "Option::is_none")]
-    credential_spec: Option<::models::TaskSpecContainerSpecPrivilegesCredentialSpec>,
+    credential_spec: Option<crate::models::TaskSpecContainerSpecPrivilegesCredentialSpec>,
     #[serde(rename = "SELinuxContext", skip_serializing_if = "Option::is_none")]
-    se_linux_context: Option<::models::TaskSpecContainerSpecPrivilegesSeLinuxContext>,
+    se_linux_context: Option<crate::models::TaskSpecContainerSpecPrivilegesSeLinuxContext>,
 }
 
 impl TaskSpecContainerSpecPrivileges {
@@ -32,14 +32,14 @@ impl TaskSpecContainerSpecPrivileges {
 
     pub fn set_credential_spec(
         &mut self,
-        credential_spec: ::models::TaskSpecContainerSpecPrivilegesCredentialSpec,
+        credential_spec: crate::models::TaskSpecContainerSpecPrivilegesCredentialSpec,
     ) {
         self.credential_spec = Some(credential_spec);
     }
 
     pub fn with_credential_spec(
         mut self,
-        credential_spec: ::models::TaskSpecContainerSpecPrivilegesCredentialSpec,
+        credential_spec: crate::models::TaskSpecContainerSpecPrivilegesCredentialSpec,
     ) -> Self {
         self.credential_spec = Some(credential_spec);
         self
@@ -47,7 +47,7 @@ impl TaskSpecContainerSpecPrivileges {
 
     pub fn credential_spec(
         &self,
-    ) -> Option<&::models::TaskSpecContainerSpecPrivilegesCredentialSpec> {
+    ) -> Option<&crate::models::TaskSpecContainerSpecPrivilegesCredentialSpec> {
         self.credential_spec.as_ref()
     }
 
@@ -57,14 +57,14 @@ impl TaskSpecContainerSpecPrivileges {
 
     pub fn set_se_linux_context(
         &mut self,
-        se_linux_context: ::models::TaskSpecContainerSpecPrivilegesSeLinuxContext,
+        se_linux_context: crate::models::TaskSpecContainerSpecPrivilegesSeLinuxContext,
     ) {
         self.se_linux_context = Some(se_linux_context);
     }
 
     pub fn with_se_linux_context(
         mut self,
-        se_linux_context: ::models::TaskSpecContainerSpecPrivilegesSeLinuxContext,
+        se_linux_context: crate::models::TaskSpecContainerSpecPrivilegesSeLinuxContext,
     ) -> Self {
         self.se_linux_context = Some(se_linux_context);
         self
@@ -72,7 +72,7 @@ impl TaskSpecContainerSpecPrivileges {
 
     pub fn se_linux_context(
         &self,
-    ) -> Option<&::models::TaskSpecContainerSpecPrivilegesSeLinuxContext> {
+    ) -> Option<&crate::models::TaskSpecContainerSpecPrivilegesSeLinuxContext> {
         self.se_linux_context.as_ref()
     }
 

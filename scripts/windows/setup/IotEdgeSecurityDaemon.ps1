@@ -1498,24 +1498,21 @@ function Remove-IotEdgeContainers {
 }
 
 function Get-DockerCommandPrefix {
-    $prefix = ""
-    # in case the installation has not been completed
-    if (-not (Get-Command "docker.exe" -ErrorAction SilentlyContinue)) {
-        $prefix = "$MobyInstallDirectory\"
-    }
-
     switch ($ContainerOs) {
         'Linux' {
-            return ('"{0}docker"' -f $prefix)
+            return '"docker"'
         }
 
         'Windows' {
             # docker needs two more slashes after the scheme
             $namedPipeUrl = $MobyNamedPipeUrl -replace 'npipe://\./pipe/', 'npipe:////./pipe/'
+            $prefix = ""
+            # in case the installation has not been completed
+            if (-not (Get-Command "docker.exe" -ErrorAction SilentlyContinue)) {
+                $prefix = "$MobyInstallDirectory\"
+            }
             return ('"{0}docker" -H "{1}"' -f $prefix, $namedPipeUrl)
         }
-
-        
     }
 }
 

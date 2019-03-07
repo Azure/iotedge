@@ -9,14 +9,14 @@
  */
 
 /// EndpointSettings : Configuration for a network endpoint.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EndpointSettings {
     #[serde(rename = "IPAMConfig", skip_serializing_if = "Option::is_none")]
-    ipam_config: Option<::models::EndpointIpamConfig>,
+    ipam_config: Option<crate::models::EndpointIpamConfig>,
     #[serde(rename = "Links", skip_serializing_if = "Option::is_none")]
     links: Option<Vec<String>>,
     #[serde(rename = "Aliases", skip_serializing_if = "Option::is_none")]
@@ -76,16 +76,16 @@ impl EndpointSettings {
         }
     }
 
-    pub fn set_ipam_config(&mut self, ipam_config: ::models::EndpointIpamConfig) {
+    pub fn set_ipam_config(&mut self, ipam_config: crate::models::EndpointIpamConfig) {
         self.ipam_config = Some(ipam_config);
     }
 
-    pub fn with_ipam_config(mut self, ipam_config: ::models::EndpointIpamConfig) -> Self {
+    pub fn with_ipam_config(mut self, ipam_config: crate::models::EndpointIpamConfig) -> Self {
         self.ipam_config = Some(ipam_config);
         self
     }
 
-    pub fn ipam_config(&self) -> Option<&::models::EndpointIpamConfig> {
+    pub fn ipam_config(&self) -> Option<&crate::models::EndpointIpamConfig> {
         self.ipam_config.as_ref()
     }
 

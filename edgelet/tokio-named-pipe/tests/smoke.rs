@@ -1,16 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![cfg(windows)]
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-
-extern crate futures;
-extern crate mio;
-extern crate mio_named_pipes;
-extern crate rand;
-extern crate tokio;
-
-extern crate tokio_named_pipe;
 
 use std::io::{Read, Write};
 use std::str;

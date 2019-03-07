@@ -9,7 +9,7 @@
  */
 
 /// PortBinding : PortBinding represents a binding between a host IP address and a host port.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

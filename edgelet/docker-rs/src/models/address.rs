@@ -9,7 +9,7 @@
  */
 
 /// Address : Address represents an IPv4 or IPv6 IP address.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
