@@ -23,6 +23,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     {
         static readonly Option<AuthConfig> NoAuth = Option.None<AuthConfig>();
 
+        public static IEnumerable<object[]> CreateTestData()
+        {
+            (string testFullImage, string image, string tag)[] testInputRecords =
+            {
+                ("localhost:5000/edge-hub:latest", "localhost:5000/edge-hub", "latest"),
+                ("edgebuilds.azurecr.io/azedge-edge-agent-x64:latest", "edgebuilds.azurecr.io/azedge-edge-agent-x64", "latest"),
+                ("mongo:3.4.4", "mongo", "3.4.4"),
+                ("edgebuilds.azurecr.io/azedge-simulated-temperature-sensor-x64", "edgebuilds.azurecr.io/azedge-simulated-temperature-sensor-x64", string.Empty)
+            };
+            return testInputRecords.Select(r => new object[] { r.testFullImage, r.image, r.tag }).AsEnumerable();
+        }
+
         [Theory]
         [Unit]
         [MemberData(nameof(CreateTestData))]
@@ -167,18 +179,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                 await Assert.ThrowsAsync<DockerApiException>(() => pullCommand.ExecuteAsync(cts.Token));
             }
-        }
-
-        static IEnumerable<object[]> CreateTestData()
-        {
-            (string testFullImage, string image, string tag)[] testInputRecords =
-            {
-                ("localhost:5000/edge-hub:latest", "localhost:5000/edge-hub", "latest"),
-                ("edgebuilds.azurecr.io/azedge-edge-agent-x64:latest", "edgebuilds.azurecr.io/azedge-edge-agent-x64", "latest"),
-                ("mongo:3.4.4", "mongo", "3.4.4"),
-                ("edgebuilds.azurecr.io/azedge-simulated-temperature-sensor-x64", "edgebuilds.azurecr.io/azedge-simulated-temperature-sensor-x64", string.Empty)
-            };
-            return testInputRecords.Select(r => new object[] { r.testFullImage, r.image, r.tag }).AsEnumerable();
         }
     }
 }

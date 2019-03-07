@@ -30,9 +30,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         [Unit]
         public void TestConstructor()
         {
-            Assert.Throws(typeof(ArgumentNullException), () => new SyncEndpointExecutor(null, null));
-            Assert.Throws(typeof(ArgumentNullException), () => new SyncEndpointExecutor(null, new NullCheckpointer()));
-            Assert.Throws(typeof(ArgumentNullException), () => new SyncEndpointExecutor(new TestEndpoint("id"), null));
+            Assert.Throws<ArgumentNullException>(() => new SyncEndpointExecutor(null, null));
+            Assert.Throws<ArgumentNullException>(() => new SyncEndpointExecutor(null, new NullCheckpointer()));
+            Assert.Throws<ArgumentNullException>(() => new SyncEndpointExecutor(new TestEndpoint("id"), null));
         }
 
         [Fact]

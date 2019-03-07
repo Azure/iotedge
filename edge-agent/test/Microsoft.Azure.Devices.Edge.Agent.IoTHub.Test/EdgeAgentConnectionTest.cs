@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     {
         const string DockerType = "docker";
 
-        public static async Task SetAgentDesiredProperties(RegistryManager rm, string deviceId)
+        static async Task SetAgentDesiredProperties(RegistryManager rm, string deviceId)
         {
             var dp = new
             {
@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             return await registryMananger.AddConfigurationAsync(configuration);
         }
 
-        public static async Task DeleteConfigurationAsync(RegistryManager registryManager, string configurationId)
+        static async Task DeleteConfigurationAsync(RegistryManager registryManager, string configurationId)
         {
             await registryManager.RemoveConfigurationAsync(configurationId);
         }
@@ -254,7 +254,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             };
         }
 
-        public static async Task UpdateAgentDesiredProperties(RegistryManager rm, string deviceId)
+        static async Task UpdateAgentDesiredProperties(RegistryManager rm, string deviceId)
         {
             var dp = new
             {
@@ -430,8 +430,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(deploymentConfig.Runtime);
                 Assert.NotNull(deploymentConfig.SystemModules);
                 Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion.ToString(), deploymentConfig.SchemaVersion);
-                Assert.NotNull(deploymentConfig.SystemModules.EdgeAgent);
-                Assert.NotNull(deploymentConfig.SystemModules.EdgeHub);
                 Assert.Equal(1, deploymentConfig.Modules.Count);
                 Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
                 ValidateRuntimeConfig(deploymentConfig.Runtime);
@@ -449,8 +447,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(deploymentConfig.Runtime);
                 Assert.NotNull(deploymentConfig.SystemModules);
                 Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion.ToString(), deploymentConfig.SchemaVersion);
-                Assert.NotNull(deploymentConfig.SystemModules.EdgeAgent);
-                Assert.NotNull(deploymentConfig.SystemModules.EdgeHub);
                 Assert.Equal(2, deploymentConfig.Modules.Count);
                 Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
                 Assert.NotNull(deploymentConfig.Modules["mlModule"]);
@@ -548,8 +544,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(deploymentConfig.Runtime);
                 Assert.NotNull(deploymentConfig.SystemModules);
                 Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion.ToString(), deploymentConfig.SchemaVersion);
-                Assert.NotNull(deploymentConfig.SystemModules.EdgeAgent);
-                Assert.NotNull(deploymentConfig.SystemModules.EdgeHub);
                 Assert.Equal(2, deploymentConfig.Modules.Count);
                 Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
                 Assert.NotNull(deploymentConfig.Modules["asa"]);
@@ -641,7 +635,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
-            Assert.Equal(deploymentConfigInfo.OrDefault().Version, 10);
+            Assert.Equal(10, deploymentConfigInfo.OrDefault().Version);
             Assert.Equal(deploymentConfigInfo.OrDefault().DeploymentConfig, deploymentConfig);
             Assert.NotNull(connectionStatusChangesHandler);
         }
@@ -694,7 +688,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
             Assert.True(deploymentConfigInfo.OrDefault().Exception.HasValue);
-            Assert.IsType(typeof(ConfigFormatException), deploymentConfigInfo.OrDefault().Exception.OrDefault());
+            Assert.IsType<ConfigFormatException>(deploymentConfigInfo.OrDefault().Exception.OrDefault());
         }
 
         [Fact]
@@ -740,7 +734,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
             Assert.True(deploymentConfigInfo.OrDefault().Exception.HasValue);
-            Assert.IsType(typeof(ConfigEmptyException), deploymentConfigInfo.OrDefault().Exception.OrDefault());
+            Assert.IsType<ConfigEmptyException>(deploymentConfigInfo.OrDefault().Exception.OrDefault());
         }
 
         [Fact]
@@ -802,7 +796,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
             Assert.True(deploymentConfigInfo.OrDefault().Exception.HasValue);
-            Assert.IsType(typeof(InvalidSchemaVersionException), deploymentConfigInfo.OrDefault().Exception.OrDefault());
+            Assert.IsType<InvalidSchemaVersionException>(deploymentConfigInfo.OrDefault().Exception.OrDefault());
         }
 
         [Fact]
@@ -860,7 +854,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
             Assert.True(deploymentConfigInfo.OrDefault().Exception.HasValue);
-            Assert.IsType(typeof(InvalidOperationException), deploymentConfigInfo.OrDefault().Exception.OrDefault());
+            Assert.IsType<InvalidOperationException>(deploymentConfigInfo.OrDefault().Exception.OrDefault());
         }
 
         [Fact]
@@ -931,7 +925,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
-            Assert.Equal(deploymentConfigInfo.OrDefault().Version, 10);
+            Assert.Equal(10, deploymentConfigInfo.OrDefault().Version);
             Assert.Equal(deploymentConfigInfo.OrDefault().DeploymentConfig, deploymentConfig);
         }
 
@@ -1017,7 +1011,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
-            Assert.Equal(deploymentConfigInfo.OrDefault().Version, 11);
+            Assert.Equal(11, deploymentConfigInfo.OrDefault().Version);
             Assert.Equal(deploymentConfigInfo.OrDefault().DeploymentConfig, deploymentConfig);
         }
 
@@ -1305,18 +1299,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             var edgeAgent = deploymentConfig.SystemModules.EdgeAgent.OrDefault() as EdgeAgentDockerModule;
             Assert.NotNull(edgeAgent);
-            Assert.Equal(edgeAgent.Env["e1"].Value, "e1val");
-            Assert.Equal(edgeAgent.Env["e2"].Value, "e2val");
+            Assert.Equal("e1val", edgeAgent.Env["e1"].Value);
+            Assert.Equal("e2val", edgeAgent.Env["e2"].Value);
 
             var edgeHub = deploymentConfig.SystemModules.EdgeHub.OrDefault() as EdgeHubDockerModule;
             Assert.NotNull(edgeHub);
-            Assert.Equal(edgeHub.Env["e3"].Value, "e3val");
-            Assert.Equal(edgeHub.Env["e4"].Value, "e4val");
+            Assert.Equal("e3val", edgeHub.Env["e3"].Value);
+            Assert.Equal("e4val", edgeHub.Env["e4"].Value);
 
             var module1 = deploymentConfig.Modules["mongoserver"] as DockerDesiredModule;
             Assert.NotNull(module1);
-            Assert.Equal(module1.Env["e5"].Value, "e5val");
-            Assert.Equal(module1.Env["e6"].Value, "e6val");
+            Assert.Equal("e5val", module1.Env["e5"].Value);
+            Assert.Equal("e6val", module1.Env["e6"].Value);
         }
 
         static void ValidateRuntimeConfig(IRuntimeInfo deploymentConfigRuntime)

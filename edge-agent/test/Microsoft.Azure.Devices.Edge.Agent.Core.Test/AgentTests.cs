@@ -18,6 +18,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class AgentTests
     {
+        public static IEnumerable<object[]> GetExceptionsToTest() => new List<object[]>
+        {
+            new object[]
+            {
+                new ConfigEmptyException("Empty config"),
+                DeploymentStatusCode.ConfigEmptyError
+            },
+            new object[]
+            {
+                new InvalidSchemaVersionException("Bad schema"),
+                DeploymentStatusCode.InvalidSchemaVersion
+            },
+            new object[]
+            {
+                new ConfigFormatException("Bad config"),
+                DeploymentStatusCode.ConfigFormatError
+            }
+        };
+
         [Fact]
         [Unit]
         public void AgentConstructorInvalidArgs()
@@ -554,24 +573,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockPlanRunner.Verify(r => r.ExecuteAsync(It.IsAny<long>(), It.IsAny<Plan>(), It.IsAny<CancellationToken>()), Times.Once);
             mockPlanner.Verify(r => r.CreateShutdownPlanAsync(It.IsAny<ModuleSet>()), Times.Once);
         }
-
-        static IEnumerable<object[]> GetExceptionsToTest() => new List<object[]>
-        {
-            new object[]
-            {
-                new ConfigEmptyException("Empty config"),
-                DeploymentStatusCode.ConfigEmptyError
-            },
-            new object[]
-            {
-                new InvalidSchemaVersionException("Bad schema"),
-                DeploymentStatusCode.InvalidSchemaVersion
-            },
-            new object[]
-            {
-                new ConfigFormatException("Bad config"),
-                DeploymentStatusCode.ConfigFormatError
-            }
-        };
     }
 }

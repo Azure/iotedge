@@ -167,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 r =>
                 {
                     Assert.Equal(removeExecutionList, r.ExecutionList);
-                    Assert.Equal(1, r.WrappedCommmandList.Count);
+                    Assert.Single(r.WrappedCommmandList);
                 });
         }
 
@@ -193,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             factory.Recorder.ForEach(
                 r =>
                 {
-                    Assert.Equal(0, expectedExecutionList.Except(r.ExecutionList).Count());
+                    Assert.Empty(expectedExecutionList.Except(r.ExecutionList));
                     Assert.Equal(removedModules.Count(), r.WrappedCommmandList.Count);
                 });
         }
@@ -231,7 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             factory.Recorder.ForEach(
                 r =>
                 {
-                    Assert.Equal(0, expectedExecutionList.Except(r.ExecutionList).Count());
+                    Assert.Empty(expectedExecutionList.Except(r.ExecutionList));
                     Assert.Equal(data.Length * 2, r.WrappedCommmandList.Count);
                 });
         }
@@ -297,7 +297,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             await planRunner.ExecuteAsync(1, plan, CancellationToken.None);
 
             // Assert
-            factory.Recorder.ForEach(r => Assert.Equal(0, expectedExecutionList.Except(r.ExecutionList).Count()));
+            factory.Recorder.ForEach(r => Assert.Empty(expectedExecutionList.Except(r.ExecutionList)));
         }
 
         [Fact]
@@ -354,7 +354,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             await planRunner.ExecuteAsync(1, plan, CancellationToken.None);
 
             // Assert
-            factory.Recorder.ForEach(r => Assert.Equal(0, expectedExecutionList.Except(r.ExecutionList).Count()));
+            factory.Recorder.ForEach(r => Assert.Empty(expectedExecutionList.Except(r.ExecutionList)));
         }
 
         [Fact]

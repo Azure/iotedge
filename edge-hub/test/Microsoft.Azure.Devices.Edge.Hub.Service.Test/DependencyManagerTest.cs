@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test
             Assert.Equal(expectedValue.OrDefault(), upstreamProtocol.OrDefault());
         }
 
-        static IEnumerable<object[]> GetUpstreamProtocolData()
+        public static IEnumerable<object[]> GetUpstreamProtocolData()
         {
             yield return new object[] { "Mqtt", Option.Some(UpstreamProtocol.Mqtt) };
             yield return new object[] { "MQTT", Option.Some(UpstreamProtocol.Mqtt) };

@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             IEnumerable<IRuntimeModule> result = manager.ApplyRestartPolicy(new[] { module.Object });
 
             // Assert
-            Assert.Equal(1, result.Count());
+            Assert.Single(result);
         }
 
         [Fact]
@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.Equal(expectedCoolOffPeriodSecs, coolOffPeriod.TotalSeconds);
         }
 
-        static IEnumerable<object[]> GetTestDataForComputeModuleStatusFromRestartPolicy()
+        public static IEnumerable<object[]> GetTestDataForComputeModuleStatusFromRestartPolicy()
         {
             (
                 ModuleStatus status,
@@ -282,7 +282,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 });
         }
 
-        static IEnumerable<object[]> GetTestDataForApplyRestartPolicy()
+        public static IEnumerable<object[]> GetTestDataForApplyRestartPolicy()
         {
             (
                 RestartPolicy restartPolicy,
