@@ -506,14 +506,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             Assert.NotNull(createContainerParameters.HostConfig);
             Assert.NotNull(createContainerParameters.HostConfig.PortBindings);
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("8883/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostPort, "8883");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostIP, null);
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["8883/tcp"].Count);
+            Assert.Equal("8883", createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostPort);
+            Assert.Null(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostIP);
 
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("443/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort, "443");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP, null);
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["443/tcp"].Count);
+            Assert.Equal("443", createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort);
+            Assert.Null(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP);
 
             // If EdgeHub port mappings are already in the create options, then they are not injected twice
             // Arrange
@@ -551,14 +551,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             Assert.NotNull(createContainerParameters.HostConfig);
             Assert.NotNull(createContainerParameters.HostConfig.PortBindings);
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("8883/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostPort, "8883");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostIP, null);
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["8883/tcp"].Count);
+            Assert.Equal("8883", createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostPort);
+            Assert.Null(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostIP);
 
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("443/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort, "443");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP, null);
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["443/tcp"].Count);
+            Assert.Equal("443", createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort);
+            Assert.Null(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP);
 
             // If EdgeHub port mappings are already in the create options, then they are not injected twice
             // Arrange
@@ -597,14 +597,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             Assert.NotNull(createContainerParameters.HostConfig);
             Assert.NotNull(createContainerParameters.HostConfig.PortBindings);
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("8883/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostPort, "8883");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostIP, "1.2.3.4");
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["8883/tcp"].Count);
+            Assert.Equal("8883", createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostPort);
+            Assert.Equal("1.2.3.4", createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostIP);
 
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("443/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort, "443");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP, null);
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["443/tcp"].Count);
+            Assert.Equal("443", createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort);
+            Assert.Null(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP);
 
             // If EdgeHub port mappings are already in the create options, then they are not injected twice
             // Arrange
@@ -633,17 +633,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             Assert.NotNull(createContainerParameters.HostConfig);
             Assert.NotNull(createContainerParameters.HostConfig.PortBindings);
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("8883/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostPort, "8883");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostIP, null);
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["8883/tcp"].Count);
+            Assert.Equal("8883", createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostPort);
+            Assert.Null(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostIP);
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("443/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort, "443");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP, null);
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["443/tcp"].Count);
+            Assert.Equal("443", createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort);
+            Assert.Null(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP);
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("1234/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["1234/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["1234/tcp"].First().HostPort, "1234");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["1234/tcp"].First().HostIP, null);
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["1234/tcp"].Count);
+            Assert.Equal("1234", createContainerParameters.HostConfig.PortBindings["1234/tcp"].First().HostPort);
+            Assert.Null(createContainerParameters.HostConfig.PortBindings["1234/tcp"].First().HostIP);
         }
 
         [Fact]

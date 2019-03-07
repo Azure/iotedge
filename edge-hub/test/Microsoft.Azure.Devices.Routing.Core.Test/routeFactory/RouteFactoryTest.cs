@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
 {
     using System;
@@ -81,10 +81,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
             mockEndpointFactory.Setup(s => s.CreateFunctionEndpoint(It.IsAny<string>(), It.IsAny<string>())).Returns(new TestEndpoint("FunctionEndpoint"));
             var routeFactory = new TestRouteFactory(mockEndpointFactory.Object);
 
-            Assert.Throws(typeof(RouteCompilationException), () => routeFactory.Create(routeString));
+            Assert.Throws<RouteCompilationException>(() => routeFactory.Create(routeString));
         }
 
-        static IEnumerable<object[]> GetFunctionEndpointParserData()
+        public static IEnumerable<object[]> GetFunctionEndpointParserData()
         {
             var testData = new List<object[]>();
             testData.Add(
@@ -180,7 +180,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
             return testData;
         }
 
-        static IEnumerable<object[]> GetSystemEndpointParserData()
+        public static IEnumerable<object[]> GetSystemEndpointParserData()
         {
             var testData = new List<object[]>();
 

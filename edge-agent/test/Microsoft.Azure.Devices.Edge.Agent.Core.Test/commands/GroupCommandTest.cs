@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
 
             foreach (ICommand command in commandList)
             {
-                Assert.True(showString.Contains(command.Show()));
+                Assert.Contains(command.Show(), showString);
             }
         }
 
@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             commands[2].Verify(m => m.ExecuteAsync(cts.Token), Times.Never());
         }
 
-        static IEnumerable<object[]> CreateTestData()
+        public static IEnumerable<object[]> CreateTestData()
         {
             var defaultConfigurationInfo = new ConfigurationInfo();
             IDictionary<string, EnvVal> envVars = new Dictionary<string, EnvVal>();

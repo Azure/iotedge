@@ -102,11 +102,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
 
                 module1Iterator = messageStore.GetMessageIterator("module1");
                 batch = await module1Iterator.GetNext(100);
-                Assert.Equal(0, batch.Count());
+                Assert.Empty(batch);
 
                 module2Iterator = messageStore.GetMessageIterator("module2");
                 batch = await module2Iterator.GetNext(100);
-                Assert.Equal(0, batch.Count());
+                Assert.Empty(batch);
             }
         }
 
@@ -199,11 +199,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
 
                 module2Iterator = messageStore.GetMessageIterator("module2");
                 batch = await module2Iterator.GetNext(100);
-                Assert.Equal(0, batch.Count());
+                Assert.Empty(batch);
 
                 module1Iterator = messageStore.GetMessageIterator("module1");
                 batch = await module1Iterator.GetNext(100);
-                Assert.Equal(0, batch.Count());
+                Assert.Empty(batch);
             }
         }
 

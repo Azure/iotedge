@@ -579,8 +579,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(subscriptionsOption.HasValue);
             subscriptions = subscriptionsOption.OrDefault();
             Assert.Equal(2, subscriptions.Count);
-            Assert.Equal(true, subscriptions[DeviceSubscription.Methods]);
-            Assert.Equal(true, subscriptions[DeviceSubscription.C2D]);
+            Assert.True(subscriptions[DeviceSubscription.Methods]);
+            Assert.True(subscriptions[DeviceSubscription.C2D]);
 
             // Act
             connectionManager.RemoveSubscription(deviceId, DeviceSubscription.Methods);
@@ -591,9 +591,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(subscriptionsOption.HasValue);
             subscriptions = subscriptionsOption.OrDefault();
             Assert.Equal(3, subscriptions.Count);
-            Assert.Equal(false, subscriptions[DeviceSubscription.Methods]);
-            Assert.Equal(true, subscriptions[DeviceSubscription.C2D]);
-            Assert.Equal(false, subscriptions[DeviceSubscription.DesiredPropertyUpdates]);
+            Assert.False(subscriptions[DeviceSubscription.Methods]);
+            Assert.True(subscriptions[DeviceSubscription.C2D]);
+            Assert.False(subscriptions[DeviceSubscription.DesiredPropertyUpdates]);
         }
 
         [Fact]
@@ -641,8 +641,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(subscriptionsOption.HasValue);
             subscriptions = subscriptionsOption.OrDefault();
             Assert.Equal(2, subscriptions.Count);
-            Assert.Equal(true, subscriptions[DeviceSubscription.Methods]);
-            Assert.Equal(true, subscriptions[DeviceSubscription.C2D]);
+            Assert.True(subscriptions[DeviceSubscription.Methods]);
+            Assert.True(subscriptions[DeviceSubscription.C2D]);
 
             // Act
             await connectionManager.RemoveDeviceConnection(deviceId);
@@ -659,8 +659,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(subscriptionsOption.HasValue);
             subscriptions = subscriptionsOption.OrDefault();
             Assert.Equal(2, subscriptions.Count);
-            Assert.Equal(true, subscriptions[DeviceSubscription.Methods]);
-            Assert.Equal(true, subscriptions[DeviceSubscription.C2D]);
+            Assert.True(subscriptions[DeviceSubscription.Methods]);
+            Assert.True(subscriptions[DeviceSubscription.C2D]);
 
             // Act
             connectionManager.AddSubscription(deviceId, DeviceSubscription.DesiredPropertyUpdates);
@@ -671,10 +671,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(subscriptionsOption.HasValue);
             subscriptions = subscriptionsOption.OrDefault();
             Assert.Equal(4, subscriptions.Count);
-            Assert.Equal(true, subscriptions[DeviceSubscription.Methods]);
-            Assert.Equal(true, subscriptions[DeviceSubscription.C2D]);
-            Assert.Equal(true, subscriptions[DeviceSubscription.DesiredPropertyUpdates]);
-            Assert.Equal(true, subscriptions[DeviceSubscription.ModuleMessages]);
+            Assert.True(subscriptions[DeviceSubscription.Methods]);
+            Assert.True(subscriptions[DeviceSubscription.C2D]);
+            Assert.True(subscriptions[DeviceSubscription.DesiredPropertyUpdates]);
+            Assert.True(subscriptions[DeviceSubscription.ModuleMessages]);
         }
 
         [Fact]
@@ -710,12 +710,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.NotNull(connectedClients);
             List<IIdentity> connectedClientsList = connectedClients.ToList();
             Assert.Equal(11, connectedClientsList.Count);
-            Assert.True(connectedClientsList.Any(c => c.Id.Equals($"{EdgeDeviceId}/{EdgeModuleId}")));
+            Assert.Contains(connectedClientsList, c => c.Id.Equals($"{EdgeDeviceId}/{EdgeModuleId}"));
 
             for (int i = 0; i < 10; i++)
             {
                 string deviceId = $"device{i}";
-                Assert.True(connectedClientsList.Any(c => c.Id.Equals(deviceId)));
+                Assert.Contains(connectedClientsList, c => c.Id.Equals(deviceId));
             }
 
             // Act
@@ -730,12 +730,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.NotNull(connectedClients);
             connectedClientsList = connectedClients.ToList();
             Assert.Equal(6, connectedClientsList.Count);
-            Assert.True(connectedClientsList.Any(c => c.Id.Equals($"{EdgeDeviceId}/{EdgeModuleId}")));
+            Assert.Contains(connectedClientsList, c => c.Id.Equals($"{EdgeDeviceId}/{EdgeModuleId}"));
 
             for (int i = 5; i < 10; i++)
             {
                 string deviceId = $"device{i}";
-                Assert.True(connectedClientsList.Any(c => c.Id.Equals(deviceId)));
+                Assert.Contains(connectedClientsList, c => c.Id.Equals(deviceId));
             }
         }
 

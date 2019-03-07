@@ -128,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         {
             string trustBundle = "  ";
             IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustedBundleCerts(trustBundle);
-            Assert.Equal(certs.Count(), 0);
+            Assert.Empty(certs);
         }
 
         [Fact]
@@ -136,7 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         {
             string trustBundle = "somewhere over the rainbow";
             IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustedBundleCerts(trustBundle);
-            Assert.Equal(certs.Count(), 0);
+            Assert.Empty(certs);
         }
 
         [Fact]
@@ -144,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         {
             string trustBundle = $"{TestCertificateHelper.CertificatePem}\n";
             IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustedBundleCerts(trustBundle);
-            Assert.Equal(certs.Count(), 1);
+            Assert.Single(certs);
         }
 
         [Fact]
@@ -152,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         {
             string trustBundle = $"{TestCertificateHelper.CertificatePem}\n{TestCertificateHelper.CertificatePem}";
             IEnumerable<X509Certificate2> certs = CertificateHelper.ParseTrustedBundleCerts(trustBundle);
-            Assert.Equal(certs.Count(), 2);
+            Assert.Equal(2, certs.Count());
         }
 
         [Fact]
@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             IList<string> pemCerts = CertificateHelper.ParsePemCerts(TestCertificateHelper.CertificatePem);
             IEnumerable<X509Certificate2> certs = CertificateHelper.GetCertificatesFromPem(pemCerts);
 
-            Assert.Equal(certs.Count(), 1);
+            Assert.Single(certs);
         }
 
         [Fact]
@@ -170,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             IList<string> pemCerts = CertificateHelper.ParsePemCerts(TestCertificateHelper.CertificatePem + TestCertificateHelper.CertificatePem);
             IEnumerable<X509Certificate2> certs = CertificateHelper.GetCertificatesFromPem(pemCerts);
 
-            Assert.Equal(certs.Count(), 2);
+            Assert.Equal(2, certs.Count());
         }
 
         [Fact]
@@ -179,7 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             IList<string> pemCerts = CertificateHelper.ParsePemCerts(TestCertificateHelper.CertificatePem + TestCertificateHelper.CertificatePem + "test");
             IEnumerable<X509Certificate2> certs = CertificateHelper.GetCertificatesFromPem(pemCerts);
 
-            Assert.Equal(certs.Count(), 2);
+            Assert.Equal(2, certs.Count());
         }
 
         [Fact]
@@ -188,7 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             IList<string> pemCerts = CertificateHelper.ParsePemCerts("test");
             IEnumerable<X509Certificate2> certs = CertificateHelper.GetCertificatesFromPem(pemCerts);
 
-            Assert.Equal(certs.Count(), 0);
+            Assert.Empty(certs);
         }
 
         [Fact]
@@ -224,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             var expected = new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
             Assert.Equal(expected, cert);
             Assert.True(cert.HasPrivateKey);
-            Assert.Equal(chain.Count(), 1);
+            Assert.Single(chain);
             Assert.Equal(expected, chain.First());
         }
 
@@ -237,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             var expected = new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
             Assert.Equal(expected, cert);
             Assert.True(cert.HasPrivateKey);
-            Assert.Equal(chain.Count(), 0);
+            Assert.Empty(chain);
         }
 
         [Fact]
@@ -250,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             var expected = new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
             Assert.Equal(expected, cert);
             Assert.True(cert.HasPrivateKey);
-            Assert.Equal(chain.Count(), 1);
+            Assert.Single(chain);
             Assert.Equal(expected, chain.First());
         }
 
