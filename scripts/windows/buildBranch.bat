@@ -1,2 +1,2 @@
 @echo off
-powershell -command ".\build\Publish-Branch.ps1"
+powershell -command "%~dp0build\Publish-Branch.ps1"
