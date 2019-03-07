@@ -215,6 +215,10 @@ impl Check {
                         "DNS server is set in container runtime configuration",
                         container_runtime_dns,
                     ),
+                    (
+                        "Container log rotation is configured in container runtime configuration",
+                        container_runtime_logrotate,
+                    ),
                 ],
             ),
             (
@@ -864,19 +868,96 @@ fn container_runtime_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
         "/etc/docker/daemon.json"
     };
 
-    let daemon_config_file = File::open(daemon_config_path)
-        .with_context(|_| format!("could not open {}", daemon_config_path))?;
+    let daemon_config_file = match File::open(daemon_config_path) {
+        Ok(daemon_config_file) => daemon_config_file,
+        Err(err) => {
+            return Ok(CheckResult::Warning(format!(
+                "could not open {}: {}",
+                daemon_config_path, err
+            )));
+        }
+    };
+
     let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)
         .with_context(|_| format!("could not parse {}", daemon_config_path))?;
+
     if let Some(&[]) | None = daemon_config.dns.as_ref().map(std::ops::Deref::deref) {
-        Err(Context::new(format!(
+        return Ok(CheckResult::Warning(format!(
             "No DNS servers are defined in {}",
             daemon_config_path
-        ))
-        .into())
-    } else {
-        Ok(CheckResult::Ok)
+        )));
     }
+
+    Ok(CheckResult::Ok)
+}
+
+fn container_runtime_logrotate(_: &mut Check) -> Result<CheckResult, failure::Error> {
+    #[derive(serde_derive::Deserialize)]
+    struct DaemonConfig {
+        #[serde(rename = "log-driver")]
+        log_driver: Option<String>,
+
+        #[serde(rename = "log-opts")]
+        log_opts: Option<DaemonConfigLogOpts>,
+    }
+
+    #[derive(serde_derive::Deserialize)]
+    struct DaemonConfigLogOpts {
+        #[serde(rename = "max-file")]
+        max_file: Option<String>,
+
+        #[serde(rename = "max-size")]
+        max_size: Option<String>,
+    }
+
+    let daemon_config_path = if cfg!(windows) {
+        r"C:\ProgramData\iotedge-moby\config\daemon.json"
+    } else {
+        "/etc/docker/daemon.json"
+    };
+
+    let daemon_config_file = match File::open(daemon_config_path) {
+        Ok(daemon_config_file) => daemon_config_file,
+        Err(err) => {
+            return Ok(CheckResult::Warning(format!(
+                "could not open {}: {}",
+                daemon_config_path, err
+            )));
+        }
+    };
+
+    let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)
+        .with_context(|_| format!("could not parse {}", daemon_config_path))?;
+
+    if daemon_config.log_driver.is_none() {
+        return Ok(CheckResult::Warning(format!(
+            "log-driver is not set in {}",
+            daemon_config_path
+        )));
+    }
+
+    if let Some(log_opts) = &daemon_config.log_opts {
+        if log_opts.max_file.is_none() {
+            return Ok(CheckResult::Warning(format!(
+                "log-opts.max-file is not set in {}",
+                daemon_config_path
+            )));
+        }
+
+        if log_opts.max_size.is_none() {
+            return Ok(CheckResult::Warning(format!(
+                "log-opts.max-size is not set in {}",
+                daemon_config_path
+            )));
+        }
+    } else {
+        return Ok(CheckResult::Warning(format!(
+            "log-opts is not set in {}",
+            daemon_config_path
+        )));
+    }
+
+    Ok(CheckResult::Ok)
 }
 
 fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResult, failure::Error> {
