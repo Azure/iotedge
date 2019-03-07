@@ -9,7 +9,7 @@
  */
 
 /// Plugin : A plugin for the Engine API
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -23,12 +23,12 @@ pub struct Plugin {
     #[serde(rename = "Enabled")]
     enabled: bool,
     #[serde(rename = "Settings")]
-    settings: ::models::PluginSettings,
+    settings: crate::models::PluginSettings,
     /// plugin remote reference used to push/pull the plugin
     #[serde(rename = "PluginReference", skip_serializing_if = "Option::is_none")]
     plugin_reference: Option<String>,
     #[serde(rename = "Config")]
-    config: ::models::PluginConfig,
+    config: crate::models::PluginConfig,
 }
 
 impl Plugin {
@@ -36,8 +36,8 @@ impl Plugin {
     pub fn new(
         name: String,
         enabled: bool,
-        settings: ::models::PluginSettings,
-        config: ::models::PluginConfig,
+        settings: crate::models::PluginSettings,
+        config: crate::models::PluginConfig,
     ) -> Self {
         Plugin {
             id: None,
@@ -92,16 +92,16 @@ impl Plugin {
         &self.enabled
     }
 
-    pub fn set_settings(&mut self, settings: ::models::PluginSettings) {
+    pub fn set_settings(&mut self, settings: crate::models::PluginSettings) {
         self.settings = settings;
     }
 
-    pub fn with_settings(mut self, settings: ::models::PluginSettings) -> Self {
+    pub fn with_settings(mut self, settings: crate::models::PluginSettings) -> Self {
         self.settings = settings;
         self
     }
 
-    pub fn settings(&self) -> &::models::PluginSettings {
+    pub fn settings(&self) -> &crate::models::PluginSettings {
         &self.settings
     }
 
@@ -122,16 +122,16 @@ impl Plugin {
         self.plugin_reference = None;
     }
 
-    pub fn set_config(&mut self, config: ::models::PluginConfig) {
+    pub fn set_config(&mut self, config: crate::models::PluginConfig) {
         self.config = config;
     }
 
-    pub fn with_config(mut self, config: ::models::PluginConfig) -> Self {
+    pub fn with_config(mut self, config: crate::models::PluginConfig) -> Self {
         self.config = config;
         self
     }
 
-    pub fn config(&self) -> &::models::PluginConfig {
+    pub fn config(&self) -> &crate::models::PluginConfig {
         &self.config
     }
 }

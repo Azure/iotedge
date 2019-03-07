@@ -9,7 +9,7 @@
  */
 
 /// RegistryServiceConfig : RegistryServiceConfig stores daemon registry services configuration.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -34,7 +34,7 @@ pub struct RegistryServiceConfig {
     )]
     insecure_registry_cid_rs: Option<Vec<String>>,
     #[serde(rename = "IndexConfigs", skip_serializing_if = "Option::is_none")]
-    index_configs: Option<::std::collections::HashMap<String, ::models::IndexInfo>>,
+    index_configs: Option<::std::collections::HashMap<String, crate::models::IndexInfo>>,
     /// List of registry URLs that act as a mirror for the official (`docker.io`) registry.
     #[serde(rename = "Mirrors", skip_serializing_if = "Option::is_none")]
     mirrors: Option<Vec<String>>,
@@ -125,14 +125,14 @@ impl RegistryServiceConfig {
 
     pub fn set_index_configs(
         &mut self,
-        index_configs: ::std::collections::HashMap<String, ::models::IndexInfo>,
+        index_configs: ::std::collections::HashMap<String, crate::models::IndexInfo>,
     ) {
         self.index_configs = Some(index_configs);
     }
 
     pub fn with_index_configs(
         mut self,
-        index_configs: ::std::collections::HashMap<String, ::models::IndexInfo>,
+        index_configs: ::std::collections::HashMap<String, crate::models::IndexInfo>,
     ) -> Self {
         self.index_configs = Some(index_configs);
         self
@@ -140,7 +140,7 @@ impl RegistryServiceConfig {
 
     pub fn index_configs(
         &self,
-    ) -> Option<&::std::collections::HashMap<String, ::models::IndexInfo>> {
+    ) -> Option<&::std::collections::HashMap<String, crate::models::IndexInfo>> {
         self.index_configs.as_ref()
     }
 

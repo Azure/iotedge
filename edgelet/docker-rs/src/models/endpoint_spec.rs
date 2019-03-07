@@ -9,7 +9,7 @@
  */
 
 /// EndpointSpec : Properties that can be configured to access and load balance a service.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -20,7 +20,7 @@ pub struct EndpointSpec {
     mode: Option<String>,
     /// List of exposed ports that this service is accessible on from the outside. Ports can only be provided if `vip` resolution mode is used.
     #[serde(rename = "Ports", skip_serializing_if = "Option::is_none")]
-    ports: Option<Vec<::models::EndpointPortConfig>>,
+    ports: Option<Vec<crate::models::EndpointPortConfig>>,
 }
 
 impl EndpointSpec {
@@ -49,16 +49,16 @@ impl EndpointSpec {
         self.mode = None;
     }
 
-    pub fn set_ports(&mut self, ports: Vec<::models::EndpointPortConfig>) {
+    pub fn set_ports(&mut self, ports: Vec<crate::models::EndpointPortConfig>) {
         self.ports = Some(ports);
     }
 
-    pub fn with_ports(mut self, ports: Vec<::models::EndpointPortConfig>) -> Self {
+    pub fn with_ports(mut self, ports: Vec<crate::models::EndpointPortConfig>) -> Self {
         self.ports = Some(ports);
         self
     }
 
-    pub fn ports(&self) -> Option<&[::models::EndpointPortConfig]> {
+    pub fn ports(&self) -> Option<&[crate::models::EndpointPortConfig]> {
         self.ports.as_ref().map(AsRef::as_ref)
     }
 

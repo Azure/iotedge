@@ -9,7 +9,7 @@
  */
 
 /// MountBindOptions : Optional configuration for the `bind` type.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

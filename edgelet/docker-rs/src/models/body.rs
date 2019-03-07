@@ -9,7 +9,7 @@
  */
 
 /// Body : Describes a permission accepted by the user upon installing the plugin.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

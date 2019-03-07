@@ -94,7 +94,7 @@ namespace DirectMethodCloudSender
                             eventMessage.Properties.Add("sequenceNumber", count.ToString());
                             eventMessage.Properties.Add("batchId", batchId.ToString());
                             Logger.LogInformation($"Calling Direct Method from cloud with count {count} succeeded.");
-                            await moduleClient.SendEventAsync(RouteOutputName, new Message(Encoding.UTF8.GetBytes("Direct Method Call succeeded.")));
+                            await moduleClient.SendEventAsync(RouteOutputName, eventMessage);
                         }
                         else
                         {
