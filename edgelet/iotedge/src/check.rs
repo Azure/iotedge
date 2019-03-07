@@ -4,7 +4,7 @@ use std;
 use std::borrow::Cow;
 use std::ffi::{CStr, OsStr, OsString};
 use std::fs::File;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::PathBuf;
 use std::process::Command;
@@ -195,8 +195,12 @@ impl Check {
                     ),
                     ("config.yaml has correct hostname", settings_hostname),
                     (
-                        "config.yaml has gateway certificates",
+                        "config.yaml has transparent gateway certificates",
                         settings_certificates,
+                    ),
+                    (
+                        "transparent gateway certificates are not expired",
+                        settings_certificates_expiry,
                     ),
                     (
                         "config.yaml has well-formed moby runtime URI",
@@ -557,6 +561,72 @@ fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Erro
     } else {
         Ok(CheckResult::Ok)
     }
+}
+
+fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn parse_openssl_time(
+        time: &openssl::asn1::Asn1TimeRef,
+    ) -> chrono::ParseResult<chrono::DateTime<chrono::Utc>> {
+        // openssl::asn1::Asn1TimeRef does not expose any way to convert the ASN1_TIME to a Rust-friendly type
+        //
+        // Its Display impl uses ASN1_TIME_print, so we convert it into a String and parse it back
+        // into a chrono::DateTime<chrono::Utc>
+        let time = time.to_string();
+        let time = chrono::NaiveDateTime::parse_from_str(&time, "%b %e %H:%M:%S %Y GMT")?;
+        Ok(chrono::DateTime::<chrono::Utc>::from_utc(time, chrono::Utc))
+    }
+
+    let settings = if let Some(settings) = &check.settings {
+        settings
+    } else {
+        return Ok(CheckResult::Skipped);
+    };
+
+    let certificates = if let Some(certificates) = settings.certificates() {
+        certificates
+    } else {
+        return Ok(CheckResult::Skipped);
+    };
+
+    let device_ca_cert_path = certificates.device_ca_cert();
+    let mut device_ca_cert_file = std::fs::File::open(device_ca_cert_path)
+        .context("could not parse certificates.device_ca_cert")?;
+    let mut device_ca_cert = vec![];
+    device_ca_cert_file
+        .read_to_end(&mut device_ca_cert)
+        .context("could not parse certificates.device_ca_cert")?;
+
+    let device_ca_cert = openssl::x509::X509::stack_from_pem(&device_ca_cert)
+        .context("could not parse certificates.device_ca_cert")?;
+    let device_ca_cert = &device_ca_cert[0];
+
+    let not_after = parse_openssl_time(device_ca_cert.not_after())
+        .context("could not parse not-after time of certificates.device_ca_cert")?;
+    let not_before = parse_openssl_time(device_ca_cert.not_before())
+        .context("could not parse not-before time of certificates.device_ca_cert")?;
+
+    let now = chrono::Utc::now();
+
+    if not_before > now {
+        return Err(Context::new(format!("certificate specified by certificates.device_ca_cert has not-before time {} which is in the future", not_before)).into());
+    }
+
+    if not_after < now {
+        return Err(Context::new(format!(
+            "certificate specified by certificates.device_ca_cert expired at {}",
+            not_after
+        ))
+        .into());
+    }
+
+    if not_after < now + chrono::Duration::days(7) {
+        return Ok(CheckResult::Warning(format!(
+            "certificate specified by certificates.device_ca_cert will expire soon ({})",
+            not_after
+        )));
+    }
+
+    Ok(CheckResult::Ok)
 }
 
 fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::Error> {
