@@ -2,8 +2,10 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     /// <summary>
@@ -14,6 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     public interface IRuntimeInfoProvider
     {
         Task<IEnumerable<ModuleRuntimeInfo>> GetModules(CancellationToken ctsToken);
+
+        Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, CancellationToken cancellationToken);
 
         Task<SystemInfo> GetSystemInfo();
     }

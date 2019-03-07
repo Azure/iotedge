@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using System;
     using System.Collections.Generic;
     using System.Globalization;
+    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -63,6 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             List<ModuleRuntimeInfo> modules = containerInspectResponses.Select(c => InspectResponseToModule(c)).ToList();
             return modules;
         }
+
+        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, CancellationToken cancellationToken) => throw new NotImplementedException();
 
         public Task<SystemInfo> GetSystemInfo() => Task.FromResult(new SystemInfo(this.operatingSystemType, this.architecture, this.version));
 
