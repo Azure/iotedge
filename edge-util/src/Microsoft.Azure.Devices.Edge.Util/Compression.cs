@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             using (var decompressedStream = new MemoryStream())
             {
-                using(var compressedStream = new MemoryStream(input))
+                using (var compressedStream = new MemoryStream(input))
                 using (var gzipStream = new GZipStream(compressedStream, CompressionMode.Decompress))
                 {
                     gzipStream.CopyTo(decompressedStream);

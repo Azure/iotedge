@@ -1,11 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.logs
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 {
     using System;
-    using System.Collections;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -193,6 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.logs
             {
                 Array.Reverse(intBytes);
             }
+
             byte[] result = intBytes;
             return result;
         }

@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.logs
-{    
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
+{
     using System;
     using Akka.IO;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.logs
             string expectedText = "[2019-02-08 02:23:22 : Starting Edge Agent";
             string expectedStream = "stdout";
             int expectedLogLevel = 6;
-            
+
             // Act
             ModuleLogMessage moduleLogMessage = LogMessageParser.GetLogMessage(byteString, iotHub, deviceId, moduleId);
 

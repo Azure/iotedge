@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.logs
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 {
     using System;
     using System.Collections.Generic;
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.logs
             IEnumerable<string> textLines = await logsProcessor.GetText(stream);
 
             // Assert
-            Assert.NotNull(textLines);            
+            Assert.NotNull(textLines);
             Assert.Equal(TestLogLines.Select(l => l.rawText), textLines);
         }
 

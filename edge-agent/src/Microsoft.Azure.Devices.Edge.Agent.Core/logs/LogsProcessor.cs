@@ -25,7 +25,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
     //    └stdout │        │
     //            │        └─ 0x0000001f = 31 bytes (including the \n at the end)
     //         unused
-    //
     public class LogsProcessor : ILogsProcessor, IDisposable
     {
         static readonly Flow<ByteString, ByteString, NotUsed> FramingFlow
