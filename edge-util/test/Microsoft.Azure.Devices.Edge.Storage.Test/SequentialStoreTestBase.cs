@@ -158,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             // Try to get the batch, should return empty batch.
             List<(long, Item)> batch = (await sequentialStore.GetBatch(startOffset, 10)).ToList();
             Assert.NotNull(batch);
-            Assert.Equal(0, batch.Count);
+            Assert.Empty(batch);
 
             // Add 10 elements and remove 4, so that the range of elements is 4 - 9
             for (int i = 0; i < 10; i++)
@@ -195,13 +195,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             {
                 batch = (await sequentialStore.GetBatch(i + startOffset, 10)).ToList();
                 Assert.NotNull(batch);
-                Assert.Equal(0, batch.Count);
+                Assert.Empty(batch);
             }
         }
 
         protected abstract IEntityStore<byte[], TV> GetEntityStore<TV>(string entityName);
 
-        static IEnumerable<object[]> GetDefaultHeadOffset()
+        public static IEnumerable<object[]> GetDefaultHeadOffset()
         {
             yield return new object[] { Option.None<long>() };
             yield return new object[] { Option.Some(1500L) };

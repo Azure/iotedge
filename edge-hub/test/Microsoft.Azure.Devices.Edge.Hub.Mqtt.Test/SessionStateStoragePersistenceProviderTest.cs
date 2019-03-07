@@ -153,9 +153,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             await sessionProvider.SetAsync(identity, sessionState);
 
             Assert.NotNull(receivedSubscriptions);
-            Assert.Equal(1, receivedSubscriptions.Count);
+            Assert.Single(receivedSubscriptions);
             Assert.True(receivedSubscriptions[0].Item2);
-            Assert.Equal(receivedSubscriptions[0].Item1, DeviceSubscription.Methods);
+            Assert.Equal(DeviceSubscription.Methods, receivedSubscriptions[0].Item1);
 
             sessionState.RemoveSubscription(MethodPostTopicPrefix);
             await sessionProvider.SetAsync(identity, sessionState);
@@ -164,9 +164,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.NotNull(storedSession);
             Assert.Null(storedSession.Subscriptions.SingleOrDefault(p => p.TopicFilter == MethodPostTopicPrefix));
             Assert.NotNull(receivedSubscriptions);
-            Assert.Equal(1, receivedSubscriptions.Count);
+            Assert.Single(receivedSubscriptions);
             Assert.False(receivedSubscriptions[0].Item2);
-            Assert.Equal(receivedSubscriptions[0].Item1, DeviceSubscription.Methods);
+            Assert.Equal(DeviceSubscription.Methods, receivedSubscriptions[0].Item1);
 
             // clean up
             await sessionProvider.DeleteAsync(identity, sessionState);
