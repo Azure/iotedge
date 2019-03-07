@@ -211,6 +211,10 @@ impl Check {
                     ("latest security daemon", iotedged_version),
                     ("host time is close to real time", host_local_time),
                     ("container time is close to host time", container_local_time),
+                    (
+                        "DNS server is set in container runtime configuration",
+                        container_runtime_dns,
+                    ),
                 ],
             ),
             (
@@ -587,8 +591,8 @@ fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failur
     };
 
     let device_ca_cert_path = certificates.device_ca_cert();
-    let mut device_ca_cert_file = std::fs::File::open(device_ca_cert_path)
-        .context("could not parse certificates.device_ca_cert")?;
+    let mut device_ca_cert_file =
+        File::open(device_ca_cert_path).context("could not parse certificates.device_ca_cert")?;
     let mut device_ca_cert = vec![];
     device_ca_cert_file
         .read_to_end(&mut device_ca_cert)
@@ -846,6 +850,33 @@ fn container_local_time(check: &mut Check) -> Result<CheckResult, failure::Error
     }
 
     Ok(CheckResult::Ok)
+}
+
+fn container_runtime_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
+    #[derive(serde_derive::Deserialize)]
+    struct DaemonConfig {
+        dns: Option<Vec<String>>,
+    }
+
+    let daemon_config_path = if cfg!(windows) {
+        r"C:\ProgramData\iotedge-moby\config\daemon.json"
+    } else {
+        "/etc/docker/daemon.json"
+    };
+
+    let daemon_config_file = File::open(daemon_config_path)
+        .with_context(|_| format!("could not open {}", daemon_config_path))?;
+    let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)
+        .with_context(|_| format!("could not parse {}", daemon_config_path))?;
+    if let Some(&[]) | None = daemon_config.dns.as_ref().map(std::ops::Deref::deref) {
+        Err(Context::new(format!(
+            "No DNS servers are defined in {}",
+            daemon_config_path
+        ))
+        .into())
+    } else {
+        Ok(CheckResult::Ok)
+    }
 }
 
 fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResult, failure::Error> {
