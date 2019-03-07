@@ -95,13 +95,11 @@ impl Check {
             future::Either::B(
                 hyper_client
                     .and_then(|hyper_client| {
-                        hyper_client.call(request).then(|response| match response {
-                            Ok(response) => Ok((response, hyper_client)),
-                            Err(err) => Err(err
-                                .context(ErrorKind::FetchLatestVersions(
-                                    FetchLatestVersionsReason::GetResponse,
-                                ))
-                                .into()),
+                        hyper_client.call(request).then(|response| {
+                            let response = response.context(ErrorKind::FetchLatestVersions(
+                                FetchLatestVersionsReason::GetResponse,
+                            ))?;
+                            Ok((response, hyper_client))
                         })
                     })
                     .and_then(move |(response, hyper_client)| match response.status() {
@@ -889,7 +887,7 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
 
     let (inspect_result,): (docker::models::InlineResponse200,) =
         serde_json::from_slice(&output.stdout)
-            .map_err(|err| err.context("could not parse result of docker inspect"))?;
+            .context("could not parse result of docker inspect")?;
 
     let is_running = inspect_result
         .state()
