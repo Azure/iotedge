@@ -1227,7 +1227,7 @@ mod tests {
 
         match super::parse_settings(&mut check) {
             Ok(super::CheckResult::Ok) => (),
-            check_result => panic!("parsing {} returned {}", filename, check_result),
+            check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
 
         match super::settings_moby_runtime_uri(&mut check) {
