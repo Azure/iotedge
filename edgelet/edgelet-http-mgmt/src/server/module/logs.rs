@@ -84,7 +84,10 @@ fn parse_options(query: &str) -> Result<LogOptions, Error> {
         .find(|&(ref key, _)| key == "since")
         .map_or_else(|| Ok(0), |(_, val)| val.parse::<i32>())
         .context(ErrorKind::MalformedRequestParameter("since"))?;
-    let options = LogOptions::new().with_follow(follow).with_tail(tail).with_since(since);
+    let options = LogOptions::new()
+        .with_follow(follow)
+        .with_tail(tail)
+        .with_since(since);
     Ok(options)
 }
 
