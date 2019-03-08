@@ -1,9 +1,9 @@
-ARG base_tag=1.0.0-preview010-linux-arm64v8
+ARG base_tag=1.0.0-preview009-linux-arm64v8
 FROM azureiotedge/azureiotedge-module-base:${base_tag}
 
 ARG EXE_DIR=.
 
-ENV MODULE_NAME "SimulatedTemperatureSensor.dll"
+ENV MODULE_NAME "DirectMethodReceiver.dll"
 
 WORKDIR /app
 
@@ -12,4 +12,4 @@ COPY $EXE_DIR/ ./
 USER moduleuser
 
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Module" && \
-    exec /usr/bin/dotnet SimulatedTemperatureSensor.dll
+    exec /usr/bin/dotnet DirectMethodReceiver.dll
