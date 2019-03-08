@@ -31,10 +31,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Unit]
         public void TestConstructor()
         {
-            Assert.Throws(typeof(ArgumentNullException), () => new Route(null, "condition", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>()));
-            Assert.Throws(typeof(ArgumentNullException), () => new Route("id", null, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>()));
-            Assert.Throws(typeof(ArgumentNullException), () => new Route("id", "condition", null, TelemetryMessageSource.Instance, new HashSet<Endpoint>()));
-            Assert.Throws(typeof(ArgumentNullException), () => new Route("id", "condition", "hub", TelemetryMessageSource.Instance, null));
+            Assert.Throws<ArgumentNullException>(() => new Route(null, "condition", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>()));
+            Assert.Throws<ArgumentNullException>(() => new Route("id", null, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>()));
+            Assert.Throws<ArgumentNullException>(() => new Route("id", "condition", null, TelemetryMessageSource.Instance, new HashSet<Endpoint>()));
+            Assert.Throws<ArgumentNullException>(() => new Route("id", "condition", "hub", TelemetryMessageSource.Instance, null));
         }
 
         [Fact]
