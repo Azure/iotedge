@@ -32,7 +32,7 @@ pub struct Check {
     config_file: PathBuf,
     diagnostics_image_name: String,
     iotedged: PathBuf,
-    latest_versions: super::LatestVersions,
+    latest_versions: Result<super::LatestVersions, Error>,
     ntp_server: String,
     verbose: bool,
 
@@ -59,7 +59,7 @@ impl Check {
         verbose: bool,
     ) -> impl Future<Item = Self, Error = Error> + Send {
         let latest_versions = if let Some(expected_iotedged_version) = expected_iotedged_version {
-            future::Either::A(future::ok(LatestVersions {
+            future::Either::A(future::ok::<_, Error>(LatestVersions {
                 iotedged: expected_iotedged_version,
             }))
         } else {
@@ -157,17 +157,19 @@ impl Check {
             )
         };
 
-        latest_versions.map(move |latest_versions| Check {
-            config_file,
-            diagnostics_image_name,
-            iotedged,
-            ntp_server,
-            latest_versions,
-            verbose,
+        latest_versions.then(move |latest_versions| {
+            Ok(Check {
+                config_file,
+                diagnostics_image_name,
+                iotedged,
+                ntp_server,
+                latest_versions,
+                verbose,
 
-            settings: None,
-            docker_host_arg: None,
-            iothub_hostname: None,
+                settings: None,
+                docker_host_arg: None,
+                iothub_hostname: None,
+            })
         })
     }
 
@@ -736,6 +738,11 @@ fn daemon_mgmt_endpoint_uri(check: &mut Check) -> Result<CheckResult, failure::E
 }
 
 fn iotedged_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    let latest_versions = match &check.latest_versions {
+        Ok(latest_versions) => latest_versions,
+        Err(err) => return Ok(CheckResult::Warning(err.to_string())),
+    };
+
     let mut process = Command::new(&check.iotedged);
     process.arg("--version");
 
@@ -767,10 +774,10 @@ fn iotedged_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
         .expect("unreachable: regex defines one capturing group")
         .as_str();
 
-    if version != check.latest_versions.iotedged {
+    if version != latest_versions.iotedged {
         return Ok(CheckResult::Warning(format!(
             "expected iotedged to have version {} but it has version {}",
-            check.latest_versions.iotedged, version
+            latest_versions.iotedged, version
         )));
     }
 
