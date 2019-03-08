@@ -18,6 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<int> since, CancellationToken cancellationToken);
 
+        Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, CancellationToken cancellationToken);
+
         Task<SystemInfo> GetSystemInfo();
     }
 }
