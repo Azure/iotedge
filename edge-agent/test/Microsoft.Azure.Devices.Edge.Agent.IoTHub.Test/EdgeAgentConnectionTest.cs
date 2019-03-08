@@ -1176,7 +1176,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 CloudToDeviceMethodResult invalidMethodResult = await serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("poke"));
                 Assert.NotNull(invalidMethodResult);
-                Assert.Equal(501, invalidMethodResult.Status);
+                Assert.Equal(400, invalidMethodResult.Status);
 
                 edgeAgentConnection.Dispose();
                 await Task.Delay(TimeSpan.FromSeconds(5));
