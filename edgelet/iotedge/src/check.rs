@@ -418,8 +418,13 @@ fn parse_settings(check: &mut Check) -> Result<CheckResult, failure::Error> {
     // even if the real error was a permissions issue.
     //
     // So we first try to open the file for reading ourselves.
-    let _ = File::open(config_file)
-        .with_context(|_| format!("could not open {}", config_file.display()))?;
+    let _ = File::open(config_file).with_context(|err| match err.kind() {
+        std::io::ErrorKind::PermissionDenied => format!(
+            "Could not open {}. You might need to run this command as root.",
+            config_file.display()
+        ),
+        _ => format!("could not open {}", config_file.display()),
+    })?;
 
     let settings = Settings::new(Some(config_file))
         .with_context(|_| format!("could not parse {}", config_file.display()))?;
@@ -473,12 +478,17 @@ fn container_runtime(check: &mut Check) -> Result<CheckResult, failure::Error> {
 
     let output = docker(&docker_host_arg, &["version"])?;
     if !output.status.success() {
-        return Err(Context::new(format!(
+        let mut err = format!(
             "docker returned {}, stderr = {}",
             output.status,
             String::from_utf8_lossy(&*output.stderr)
-        ))
-        .into());
+        );
+
+        if err.contains("Got permission denied") {
+            err += "\nYou might need to run this command as root.";
+        }
+
+        return Err(Context::new(err).into());
     }
 
     check.docker_host_arg = Some(docker_host_arg);
