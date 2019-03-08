@@ -166,6 +166,7 @@ publish_quickstart()
     $DOTNET_ROOT_PATH/dotnet publish \
         -c $CONFIGURATION \
         -f $DOTNET_RUNTIME \
+        -p:DotNet_Runtime=$DOTNET_RUNTIME \
         -r $rid \
         $ROOT_FOLDER/smoke/IotEdgeQuickstart
     if [ $? -gt 0 ]; then
@@ -185,6 +186,7 @@ publish_leafdevice()
     $DOTNET_ROOT_PATH/dotnet publish \
         -c $CONFIGURATION \
         -f $DOTNET_RUNTIME \
+        -p:DotNet_Runtime=$DOTNET_RUNTIME \
         -r $rid \
         $ROOT_FOLDER/smoke/LeafDevice
     if [ $? -gt 0 ]; then
@@ -259,7 +261,9 @@ publish_files $SRC_CERT_TOOLS_DIR $PUBLISH_FOLDER
 
 publish_quickstart linux-arm
 publish_quickstart linux-x64
+publish_quickstart linux-arm64
 publish_leafdevice linux-arm
 publish_leafdevice linux-x64
+publish_leafdevice linux-arm64
 
 exit $RES
