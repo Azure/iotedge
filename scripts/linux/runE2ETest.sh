@@ -31,7 +31,8 @@ Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/iotedge.service.d/o
 }
 
 function get_image_architecture_label() {
-    local arch="$(uname -p)"
+    local arch
+    arch="$(uname -p)"
     local label
 
     case "$arch" in
@@ -40,7 +41,7 @@ function get_image_architecture_label() {
         *) print_error "Unsupported OS architecture: $arch"; exit 1;;
     esac
 
-    echo $label
+    echo "$label"
 }
 
 function get_iotedge_quickstart_artifact_file() {
@@ -51,7 +52,7 @@ function get_iotedge_quickstart_artifact_file() {
         path="$E2E_TEST_DIR/artifacts/core-linux/IotEdgeQuickstart.linux-arm.tar.gz"
     fi
 
-    echo $path
+    echo "$path"
 }
 
 function get_iotedged_artifact_folder() {
@@ -62,7 +63,7 @@ function get_iotedged_artifact_folder() {
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu-armhf"
     fi
 
-    echo $path
+    echo "$path"
 }
 
 function get_leafdevice_artifact_file() {
@@ -73,7 +74,7 @@ function get_leafdevice_artifact_file() {
         path="$E2E_TEST_DIR/artifacts/core-linux/LeafDevice.linux-arm.tar.gz"
     fi
 
-    echo $path
+    echo "$path"
 }
 
 function prepare_test_from_artifacts() {
@@ -84,7 +85,7 @@ function prepare_test_from_artifacts() {
     mkdir -p "$working_folder"
 
     declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
-    iotedge_package="${pkg_list[@]:0}"
+    iotedge_package="${pkg_list[*]:0}"
     
     echo 'Extract quickstart to working folder'
     mkdir -p "$quickstart_working_folder"
@@ -539,8 +540,8 @@ function validate_test_parameters() {
     local required_files=()
     local required_folders=()
 
-    required_files+="$iotedge_quickstart_artifact_file"
-    required_folders+="$iotedged_artifact_folder"
+    required_files+=("$iotedge_quickstart_artifact_file")
+    required_folders+=("$iotedged_artifact_folder")
 
     case "${TEST_NAME,,}" in
         'tempsensor')
