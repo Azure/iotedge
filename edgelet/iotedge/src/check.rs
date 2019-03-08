@@ -39,6 +39,7 @@ pub struct Check {
     // These optional fields are populated by the pre-checks
     settings: Option<Settings<DockerConfig>>,
     docker_host_arg: Option<String>,
+    docker_server_version: Option<String>,
     iothub_hostname: Option<String>,
 }
 
@@ -168,6 +169,7 @@ impl Check {
 
                 settings: None,
                 docker_host_arg: None,
+                docker_server_version: None,
                 iothub_hostname: None,
             })
         })
@@ -195,32 +197,26 @@ impl Check {
                     ),
                     ("config.yaml has correct hostname", settings_hostname),
                     (
-                        "config.yaml has transparent gateway certificates",
-                        settings_certificates,
-                    ),
-                    (
-                        "transparent gateway certificates are not expired",
-                        settings_certificates_expiry,
-                    ),
-                    (
-                        "config.yaml has well-formed moby runtime URI",
-                        settings_moby_runtime_uri,
-                    ),
-                    (
                         "config.yaml has correct URIs for daemon mgmt endpoint",
                         daemon_mgmt_endpoint_uri,
                     ),
                     ("latest security daemon", iotedged_version),
                     ("host time is close to real time", host_local_time),
                     ("container time is close to host time", container_local_time),
+                    ("production readiness: certificates", settings_certificates),
                     (
-                        "DNS server is set in container runtime configuration",
-                        container_runtime_dns,
+                        "production readiness: certificates expiry",
+                        settings_certificates_expiry,
                     ),
                     (
-                        "Container log rotation is configured in container runtime configuration",
+                        "production readiness: container engine",
+                        settings_moby_runtime_uri,
+                    ),
+                    (
+                        "production readiness: logs policy",
                         container_runtime_logrotate,
                     ),
+                    ("production readiness: DNS server", container_runtime_dns),
                 ],
             ),
             (
@@ -476,7 +472,10 @@ fn container_runtime(check: &mut Check) -> Result<CheckResult, failure::Error> {
         }
     };
 
-    let output = docker(&docker_host_arg, &["version"])?;
+    let output = docker(
+        &docker_host_arg,
+        &["version", "--format", "{{.Server.Version}}"],
+    )?;
     if !output.status.success() {
         let mut err = format!(
             "docker returned {}, stderr = {}",
@@ -492,6 +491,8 @@ fn container_runtime(check: &mut Check) -> Result<CheckResult, failure::Error> {
     }
 
     check.docker_host_arg = Some(docker_host_arg);
+
+    check.docker_server_version = Some(String::from_utf8_lossy(&output.stdout).into_owned());
 
     Ok(CheckResult::Ok)
 }
@@ -564,114 +565,6 @@ fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
             machine_hostname, config_hostname
         ))
         .into());
-    }
-
-    Ok(CheckResult::Ok)
-}
-
-fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Error> {
-    let settings = if let Some(settings) = &check.settings {
-        settings
-    } else {
-        return Ok(CheckResult::Skipped);
-    };
-
-    if settings.certificates().is_none() {
-        Ok(CheckResult::Warning(
-            "Transparent gateway certificates have not been set, \
-             so device will operate in quick start mode which is not supported in production"
-                .to_string(),
-        ))
-    } else {
-        Ok(CheckResult::Ok)
-    }
-}
-
-fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failure::Error> {
-    fn parse_openssl_time(
-        time: &openssl::asn1::Asn1TimeRef,
-    ) -> chrono::ParseResult<chrono::DateTime<chrono::Utc>> {
-        // openssl::asn1::Asn1TimeRef does not expose any way to convert the ASN1_TIME to a Rust-friendly type
-        //
-        // Its Display impl uses ASN1_TIME_print, so we convert it into a String and parse it back
-        // into a chrono::DateTime<chrono::Utc>
-        let time = time.to_string();
-        let time = chrono::NaiveDateTime::parse_from_str(&time, "%b %e %H:%M:%S %Y GMT")?;
-        Ok(chrono::DateTime::<chrono::Utc>::from_utc(time, chrono::Utc))
-    }
-
-    let settings = if let Some(settings) = &check.settings {
-        settings
-    } else {
-        return Ok(CheckResult::Skipped);
-    };
-
-    let certificates = if let Some(certificates) = settings.certificates() {
-        certificates
-    } else {
-        return Ok(CheckResult::Skipped);
-    };
-
-    let device_ca_cert_path = certificates.device_ca_cert();
-    let mut device_ca_cert_file =
-        File::open(device_ca_cert_path).context("could not parse certificates.device_ca_cert")?;
-    let mut device_ca_cert = vec![];
-    device_ca_cert_file
-        .read_to_end(&mut device_ca_cert)
-        .context("could not parse certificates.device_ca_cert")?;
-
-    let device_ca_cert = openssl::x509::X509::stack_from_pem(&device_ca_cert)
-        .context("could not parse certificates.device_ca_cert")?;
-    let device_ca_cert = &device_ca_cert[0];
-
-    let not_after = parse_openssl_time(device_ca_cert.not_after())
-        .context("could not parse not-after time of certificates.device_ca_cert")?;
-    let not_before = parse_openssl_time(device_ca_cert.not_before())
-        .context("could not parse not-before time of certificates.device_ca_cert")?;
-
-    let now = chrono::Utc::now();
-
-    if not_before > now {
-        return Err(Context::new(format!("certificate specified by certificates.device_ca_cert has not-before time {} which is in the future", not_before)).into());
-    }
-
-    if not_after < now {
-        return Err(Context::new(format!(
-            "certificate specified by certificates.device_ca_cert expired at {}",
-            not_after
-        ))
-        .into());
-    }
-
-    if not_after < now + chrono::Duration::days(7) {
-        return Ok(CheckResult::Warning(format!(
-            "certificate specified by certificates.device_ca_cert will expire soon ({})",
-            not_after
-        )));
-    }
-
-    Ok(CheckResult::Ok)
-}
-
-fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::Error> {
-    let settings = if let Some(settings) = &check.settings {
-        settings
-    } else {
-        return Ok(CheckResult::Skipped);
-    };
-
-    if !cfg!(windows) {
-        return Ok(CheckResult::Ok);
-    }
-
-    let moby_runtime_uri = settings.moby_runtime().uri().to_string();
-
-    if moby_runtime_uri != "npipe://./pipe/iotedge_moby_engine" {
-        return Ok(CheckResult::Warning(format!(
-            "moby_runtime.uri {:?} is not supported for production. \
-            It must be set to \"npipe://./pipe/iotedge_moby_engine\" to use the supported Moby engine.",
-            moby_runtime_uri
-        )));
     }
 
     Ok(CheckResult::Ok)
@@ -879,36 +772,135 @@ fn container_local_time(check: &mut Check) -> Result<CheckResult, failure::Error
     Ok(CheckResult::Ok)
 }
 
-fn container_runtime_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
-    #[derive(serde_derive::Deserialize)]
-    struct DaemonConfig {
-        dns: Option<Vec<String>>,
+fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    let settings = if let Some(settings) = &check.settings {
+        settings
+    } else {
+        return Ok(CheckResult::Skipped);
+    };
+
+    if settings.certificates().is_none() {
+        Ok(CheckResult::Warning(
+            "Certificates have not been set, so device will operate in quick start mode which is not supported in production"
+                .to_string(),
+        ))
+    } else {
+        Ok(CheckResult::Ok)
+    }
+}
+
+fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn parse_openssl_time(
+        time: &openssl::asn1::Asn1TimeRef,
+    ) -> chrono::ParseResult<chrono::DateTime<chrono::Utc>> {
+        // openssl::asn1::Asn1TimeRef does not expose any way to convert the ASN1_TIME to a Rust-friendly type
+        //
+        // Its Display impl uses ASN1_TIME_print, so we convert it into a String and parse it back
+        // into a chrono::DateTime<chrono::Utc>
+        let time = time.to_string();
+        let time = chrono::NaiveDateTime::parse_from_str(&time, "%b %e %H:%M:%S %Y GMT")?;
+        Ok(chrono::DateTime::<chrono::Utc>::from_utc(time, chrono::Utc))
     }
 
-    let daemon_config_path = if cfg!(windows) {
-        r"C:\ProgramData\iotedge-moby\config\daemon.json"
+    let settings = if let Some(settings) = &check.settings {
+        settings
     } else {
-        "/etc/docker/daemon.json"
+        return Ok(CheckResult::Skipped);
     };
 
-    let daemon_config_file = match File::open(daemon_config_path) {
-        Ok(daemon_config_file) => daemon_config_file,
-        Err(err) => {
+    let certificates = if let Some(certificates) = settings.certificates() {
+        certificates
+    } else {
+        return Ok(CheckResult::Skipped);
+    };
+
+    let device_ca_cert_path = certificates.device_ca_cert();
+    let mut device_ca_cert_file =
+        File::open(device_ca_cert_path).context("could not parse certificates.device_ca_cert")?;
+    let mut device_ca_cert = vec![];
+    device_ca_cert_file
+        .read_to_end(&mut device_ca_cert)
+        .context("could not parse certificates.device_ca_cert")?;
+
+    let device_ca_cert = openssl::x509::X509::stack_from_pem(&device_ca_cert)
+        .context("could not parse certificates.device_ca_cert")?;
+    let device_ca_cert = &device_ca_cert[0];
+
+    let not_after = parse_openssl_time(device_ca_cert.not_after())
+        .context("could not parse not-after time of certificates.device_ca_cert")?;
+    let not_before = parse_openssl_time(device_ca_cert.not_before())
+        .context("could not parse not-before time of certificates.device_ca_cert")?;
+
+    let now = chrono::Utc::now();
+
+    if not_before > now {
+        return Err(Context::new(format!("certificate specified by certificates.device_ca_cert has not-before time {} which is in the future", not_before)).into());
+    }
+
+    if not_after < now {
+        return Err(Context::new(format!(
+            "certificate specified by certificates.device_ca_cert expired at {}",
+            not_after
+        ))
+        .into());
+    }
+
+    if not_after < now + chrono::Duration::days(7) {
+        return Ok(CheckResult::Warning(format!(
+            "certificate specified by certificates.device_ca_cert will expire soon ({})",
+            not_after
+        )));
+    }
+
+    Ok(CheckResult::Ok)
+}
+
+fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    let settings = if let Some(settings) = &check.settings {
+        settings
+    } else {
+        return Ok(CheckResult::Skipped);
+    };
+
+    let docker_server_version = if let Some(docker_server_version) = &check.docker_server_version {
+        docker_server_version
+    } else {
+        return Ok(CheckResult::Skipped);
+    };
+
+    if cfg!(windows) {
+        let moby_runtime_uri = settings.moby_runtime().uri().to_string();
+
+        if moby_runtime_uri != "npipe://./pipe/iotedge_moby_engine" {
             return Ok(CheckResult::Warning(format!(
-                "could not open {}: {}",
-                daemon_config_path, err
+                "moby_runtime.uri {:?} is not supported for production. \
+                It must be set to \"npipe://./pipe/iotedge_moby_engine\" to use the supported Moby engine.",
+                moby_runtime_uri
             )));
         }
-    };
+    }
 
-    let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)
-        .with_context(|_| format!("could not parse {}", daemon_config_path))?;
+    let docker_server_major_version = docker_server_version
+        .split('.')
+        .next()
+        .ok_or_else(|| {
+            Context::new(format!(
+                "container runtime returned malformed version string {:?}",
+                docker_server_version
+            ))
+        })?
+        .parse::<u32>()
+        .with_context(|_| {
+            format!(
+                "container runtime returned malformed version string {:?}",
+                docker_server_version
+            )
+        })?;
 
-    if let Some(&[]) | None = daemon_config.dns.as_ref().map(std::ops::Deref::deref) {
-        return Ok(CheckResult::Warning(format!(
-            "No DNS servers are defined in {}",
-            daemon_config_path
-        )));
+    // Moby does not identify itself in any unique way. Moby devs recommend assuming that anything less than version 10 is Moby,
+    // since it's currently 3.x and regular Docker is in the high 10s.
+    if docker_server_major_version >= 10 {
+        return Ok(CheckResult::Warning("Container engine does not appear to be the Moby engine. Only the Moby engine is supported for production.".to_owned()));
     }
 
     Ok(CheckResult::Ok)
@@ -976,6 +968,41 @@ fn container_runtime_logrotate(_: &mut Check) -> Result<CheckResult, failure::Er
     } else {
         return Ok(CheckResult::Warning(format!(
             "log-opts is not set in {}",
+            daemon_config_path
+        )));
+    }
+
+    Ok(CheckResult::Ok)
+}
+
+fn container_runtime_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
+    #[derive(serde_derive::Deserialize)]
+    struct DaemonConfig {
+        dns: Option<Vec<String>>,
+    }
+
+    let daemon_config_path = if cfg!(windows) {
+        r"C:\ProgramData\iotedge-moby\config\daemon.json"
+    } else {
+        "/etc/docker/daemon.json"
+    };
+
+    let daemon_config_file = match File::open(daemon_config_path) {
+        Ok(daemon_config_file) => daemon_config_file,
+        Err(err) => {
+            return Ok(CheckResult::Warning(format!(
+                "could not open {}: {}",
+                daemon_config_path, err
+            )));
+        }
+    };
+
+    let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)
+        .with_context(|_| format!("could not parse {}", daemon_config_path))?;
+
+    if let Some(&[]) | None = daemon_config.dns.as_ref().map(std::ops::Deref::deref) {
+        return Ok(CheckResult::Warning(format!(
+            "No DNS servers are defined in {}",
             daemon_config_path
         )));
     }
@@ -1285,6 +1312,9 @@ mod tests {
                 ),
             }
 
+            // Pretend it's Moby
+            check.docker_server_version = Some("3.0.3".to_string());
+
             match super::settings_moby_runtime_uri(&mut check) {
                 Ok(super::CheckResult::Ok) => (),
                 check_result => panic!(
@@ -1338,7 +1368,7 @@ mod tests {
 
     #[test]
     #[cfg(windows)]
-    fn moby_runtime_uri_windows_wants_moby() {
+    fn moby_runtime_uri_windows_wants_moby_based_on_runtime_uri() {
         let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
 
         let filename = "sample_settings_notmoby.yaml";
@@ -1365,9 +1395,58 @@ mod tests {
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
 
+        // Pretend it's Moby
+        check.docker_server_version = Some("3.0.3".to_string());
+
         match super::settings_moby_runtime_uri(&mut check) {
             Ok(super::CheckResult::Warning(warning)) => assert!(
-                warning.contains("is not supported for production"),
+                warning.contains(r#"It must be set to "npipe://./pipe/iotedge_moby_engine" to use the supported Moby engine"#),
+                "checking moby_runtime.uri in {} failed with an unexpected warning: {}",
+                filename,
+                warning
+            ),
+
+            check_result => panic!(
+                "checking moby_runtime.uri in {} returned {:?}",
+                filename, check_result
+            ),
+        }
+    }
+
+    #[test]
+    fn moby_runtime_uri_wants_moby_based_on_server_version() {
+        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+        let filename = "sample_settings.yaml";
+        let config_file = format!(
+            "{}/../edgelet-config/test/{}/{}",
+            env!("CARGO_MANIFEST_DIR"),
+            if cfg!(windows) { "windows" } else { "linux" },
+            filename
+        );
+
+        let mut check = runtime
+            .block_on(super::Check::new(
+                config_file.into(),
+                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Some("1.0.0".to_owned()),      // unused for this test
+                "iotedged".into(),             // unused for this test
+                "pool.ntp.org:123".to_owned(), // unused for this test
+                false,
+            ))
+            .unwrap();
+
+        match super::parse_settings(&mut check) {
+            Ok(super::CheckResult::Ok) => (),
+            check_result => panic!("parsing {} returned {:?}", filename, check_result),
+        }
+
+        // Pretend it's Docker
+        check.docker_server_version = Some("18.09.1".to_string());
+
+        match super::settings_moby_runtime_uri(&mut check) {
+            Ok(super::CheckResult::Warning(warning)) => assert!(
+                warning.contains("Container engine does not appear to be the Moby engine."),
                 "checking moby_runtime.uri in {} failed with an unexpected warning: {}",
                 filename,
                 warning
