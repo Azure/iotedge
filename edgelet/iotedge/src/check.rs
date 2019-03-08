@@ -224,17 +224,23 @@ impl Check {
             (
                 "Connectivity checks",
                 &[
+                    ("host can connect to IoT Hub AMQP port", |check| {
+                        connection_to_iot_hub_host(check, 5671)
+                    }),
                     ("host can connect to IoT Hub HTTPS port", |check| {
                         connection_to_iot_hub_host(check, 443)
+                    }),
+                    ("host can connect to IoT Hub MQTT port", |check| {
+                        connection_to_iot_hub_host(check, 8883)
                     }),
                     ("container can connect to IoT Hub AMQP port", |check| {
                         connection_to_iot_hub_container(check, 5671)
                     }),
-                    ("container can connect to IoT Hub MQTT port", |check| {
-                        connection_to_iot_hub_container(check, 8883)
-                    }),
                     ("container can connect to IoT Hub HTTPS port", |check| {
                         connection_to_iot_hub_container(check, 443)
+                    }),
+                    ("container can connect to IoT Hub MQTT port", |check| {
+                        connection_to_iot_hub_container(check, 8883)
                     }),
                     ("edge hub can bind to ports on host", edge_hub_ports_on_host),
                     (
