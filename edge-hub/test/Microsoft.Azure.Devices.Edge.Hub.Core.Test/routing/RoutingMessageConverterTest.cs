@@ -208,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             }
 
             Assert.Equal(DateTime.MinValue, routingMessage.EnqueuedTime);
-            Assert.Equal(routingMessage.Offset, 0);
+            Assert.Equal(0, routingMessage.Offset);
             Assert.True(routingMessage.MessageSource.IsTelemetry());
         }
 

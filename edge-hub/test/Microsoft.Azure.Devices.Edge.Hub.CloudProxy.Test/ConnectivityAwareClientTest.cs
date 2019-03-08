@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await connectivityAwareClient.SendEventAsync(new Message());
 
             // Assert
-            Assert.Equal(1, receivedConnectionStatuses.Count);
+            Assert.Single(receivedConnectionStatuses);
             Assert.Equal(ConnectionStatus.Connected, receivedConnectionStatuses[0]);
             Assert.Equal(ConnectionStatusChangeReason.Connection_Ok, receivedChangeReasons[0]);
 
@@ -129,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await Assert.ThrowsAsync<TimeoutException>(async () => await connectivityAwareClient.SendEventAsync(new Message()));
 
             // Assert
-            Assert.Equal(1, receivedConnectionStatuses.Count);
+            Assert.Single(receivedConnectionStatuses);
             Assert.Equal(ConnectionStatus.Connected, receivedConnectionStatuses[0]);
             Assert.Equal(ConnectionStatusChangeReason.Connection_Ok, receivedChangeReasons[0]);
 
@@ -137,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceConnectivityManager.InvokeDeviceConnected();
 
             // Assert
-            Assert.Equal(1, receivedConnectionStatuses.Count);
+            Assert.Single(receivedConnectionStatuses);
             Assert.Equal(ConnectionStatus.Connected, receivedConnectionStatuses[0]);
             Assert.Equal(ConnectionStatusChangeReason.Connection_Ok, receivedChangeReasons[0]);
 

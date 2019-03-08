@@ -35,7 +35,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.18.1" />
-    <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.0" />
+    <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.4" />
   </ItemGroup>
 
   <ItemGroup>

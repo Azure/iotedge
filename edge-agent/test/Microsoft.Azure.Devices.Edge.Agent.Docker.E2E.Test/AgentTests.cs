@@ -189,7 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     ++attempts;
                 }
 
-                Assert.Equal(true, validated);
+                Assert.True(validated);
             }
             finally
             {

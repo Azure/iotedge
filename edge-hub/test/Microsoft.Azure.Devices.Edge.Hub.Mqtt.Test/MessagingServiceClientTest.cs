@@ -37,14 +37,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
         static readonly Lazy<IMessageConverter<IProtocolGatewayMessage>> ProtocolGatewayMessageConverter = new Lazy<IMessageConverter<IProtocolGatewayMessage>>(MakeProtocolGatewayMessageConverter, true);
 
+        public static IEnumerable<object[]> GenerateInvalidMessageIdData() => new[]
+        {
+            new object[] { null },
+            new object[] { "r" }
+        };
+
         [Fact]
         public void ConstructorRequiresADeviceListener()
         {
             var converter = Mock.Of<IMessageConverter<IProtocolGatewayMessage>>();
 
-            Assert.Throws(
-                typeof(ArgumentNullException),
-                () => new MessagingServiceClient(null, converter, ByteBufferConverter));
+            Assert.Throws<ArgumentNullException>(() => new MessagingServiceClient(null, converter, ByteBufferConverter));
         }
 
         [Fact]
@@ -52,9 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             var listener = Mock.Of<IDeviceListener>();
 
-            Assert.Throws(
-                typeof(ArgumentNullException),
-                () => new MessagingServiceClient(listener, null, ByteBufferConverter));
+            Assert.Throws<ArgumentNullException>(() => new MessagingServiceClient(listener, null, ByteBufferConverter));
         }
 
         [Fact]
@@ -67,9 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             IMessagingServiceClient client = new MessagingServiceClient(listener, converter, ByteBufferConverter);
 
-            await Assert.ThrowsAsync(
-                typeof(ArgumentException),
-                () => client.SendAsync(message));
+            await Assert.ThrowsAsync<ArgumentException>(() => client.SendAsync(message));
         }
 
         [Fact]
@@ -203,9 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             var client = new MessagingServiceClient(listener.Object, ProtocolGatewayMessageConverter.Value, ByteBufferConverter);
 
-            await Assert.ThrowsAsync(
-                typeof(InvalidOperationException),
-                () => client.SendAsync(message));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => client.SendAsync(message));
         }
 
         [Fact]
@@ -217,9 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             var client = new MessagingServiceClient(listener.Object, ProtocolGatewayMessageConverter.Value, ByteBufferConverter);
 
-            await Assert.ThrowsAsync(
-                typeof(InvalidOperationException),
-                () => client.SendAsync(message));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => client.SendAsync(message));
         }
 
         [Fact]
@@ -231,9 +227,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             var client = new MessagingServiceClient(listener.Object, ProtocolGatewayMessageConverter.Value, ByteBufferConverter);
 
-            await Assert.ThrowsAsync(
-                typeof(InvalidOperationException),
-                () => client.SendAsync(message));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => client.SendAsync(message));
         }
 
         [Fact]
@@ -523,15 +517,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var config = new MessageAddressConversionConfiguration(Input, Output);
             var converter = new MessageAddressConverter(config);
             return new ProtocolGatewayMessageConverter(converter, ByteBufferConverter);
-        }
-
-        static IEnumerable<object> GenerateInvalidMessageIdData()
-        {
-            return new object[]
-            {
-                new object[] { null },
-                new object[] { "r" }
-            };
         }
 
         struct Messages
