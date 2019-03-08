@@ -11,5 +11,5 @@ COPY $EXE_DIR/ ./
 
 USER moduleuser
 
-CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
+CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Module" && \
     exec /usr/bin/dotnet SimulatedTemperatureSensor.dll

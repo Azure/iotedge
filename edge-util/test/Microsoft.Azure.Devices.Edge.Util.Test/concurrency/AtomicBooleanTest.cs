@@ -12,12 +12,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
         public void TestDefault()
         {
             var b = new AtomicBoolean();
-            Assert.Equal(false, b.Get());
-            Assert.Equal(false, b);
+            Assert.False(b.Get());
+            Assert.False(b);
 
             var b2 = new AtomicBoolean(true);
-            Assert.Equal(true, b2.Get());
-            Assert.Equal(true, b2);
+            Assert.True(b2.Get());
+            Assert.True(b2);
         }
 
         [Fact]
@@ -26,10 +26,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
         {
             var b = new AtomicBoolean(true);
             b.Set(false);
-            Assert.Equal(false, b.Get());
+            Assert.False(b.Get());
 
             b.Set(true);
-            Assert.Equal(true, b.Get());
+            Assert.True(b.Get());
         }
 
         [Fact]
@@ -38,8 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
         {
             var b1 = new AtomicBoolean(true);
             bool result = b1.GetAndSet(false);
-            Assert.Equal(true, result);
-            Assert.Equal(false, b1.Get());
+            Assert.True(result);
+            Assert.False(b1.Get());
         }
 
         [Fact]
@@ -48,16 +48,16 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
         {
             var b1 = new AtomicBoolean(true);
             bool result = b1.CompareAndSet(true, false);
-            Assert.Equal(true, result);
-            Assert.Equal(false, b1.Get());
+            Assert.True(result);
+            Assert.False(b1.Get());
 
             result = b1.CompareAndSet(true, true);
-            Assert.Equal(false, result);
-            Assert.Equal(false, b1.Get());
+            Assert.False(result);
+            Assert.False(b1.Get());
 
             result = b1.CompareAndSet(false, true);
-            Assert.Equal(true, result);
-            Assert.Equal(true, b1.Get());
+            Assert.True(result);
+            Assert.True(b1.Get());
         }
     }
 }

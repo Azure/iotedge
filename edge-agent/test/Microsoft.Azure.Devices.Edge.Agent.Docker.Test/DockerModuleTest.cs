@@ -31,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly IModule Module10 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, DefaultConfigurationInfo, new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("Val2") });
         static readonly IModule ModuleWithConfig = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.Always, Config1, new ConfigurationInfo("c1"), DefaultEnvVals);
         static readonly DockerModule ValidJsonModule = new DockerModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, DefaultConfigurationInfo, DefaultEnvVals);
+
         static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(
             @"
 {
@@ -288,6 +289,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 }
 ");
 
+        public static IEnumerable<object[]> GetInvalidEnvJsonInputs()
+        {
+            return GetJsonTestCases("invalidEnvJson").Select(s => new object[] { s });
+        }
+
+        public static IEnumerable<object[]> GetValidJsonInputs()
+        {
+            return GetJsonTestCases("validJson").Select(s => new object[] { s });
+        }
+
+        public static IEnumerable<object[]> GetExceptionJsonInputs()
+        {
+            return GetJsonTestCases("throwsException").Select(s => new object[] { s });
+        }
+
         [Fact]
         [Unit]
         public void TestConstructor()
@@ -401,8 +417,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             // Assert
             var mod2 = ModuleSerde.Instance.Deserialize<DockerModule>(json);
-            Assert.True(JsonConvert.SerializeObject(mod2.Config.CreateOptions).Contains(@"""k1=v1"""));
-            Assert.True(JsonConvert.SerializeObject(mod2.Config.CreateOptions).Contains(@"""k2=v2"""));
+            Assert.Contains(@"""k1=v1""", JsonConvert.SerializeObject(mod2.Config.CreateOptions));
+            Assert.Contains(@"""k2=v2""", JsonConvert.SerializeObject(mod2.Config.CreateOptions));
         }
 
         [Theory]
@@ -418,21 +434,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         {
             var val = (JArray)TestJsonInputs.GetValue(subset);
             return val.Children().Select(token => token.ToString());
-        }
-
-        static IEnumerable<object[]> GetValidJsonInputs()
-        {
-            return GetJsonTestCases("validJson").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetExceptionJsonInputs()
-        {
-            return GetJsonTestCases("throwsException").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetInvalidEnvJsonInputs()
-        {
-            return GetJsonTestCases("invalidEnvJson").Select(s => new object[] { s });
         }
     }
 }

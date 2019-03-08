@@ -14,6 +14,131 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     [Unit]
     public class LinkHandlerProviderTest
     {
+        public static IEnumerable<object[]> GetLinkTypeTestData()
+        {
+            yield return new object[] { "amqps://foo.bar/$cbs", true, LinkType.Cbs, new Dictionary<string, string>() };
+            yield return new object[] { "amqps://foo.bar/$cbs", false, LinkType.Cbs, new Dictionary<string, string>() };
+            yield return new object[] { "amqps://foo.bar//devices/device1/messages/events", true, LinkType.Events, new Dictionary<string, string> { { "deviceid", "device1" } } };
+            yield return new object[]
+            {
+                "amqps://foo.bar/devices/device1/modules/module1/messages/events", true, LinkType.Events, new Dictionary<string, string>
+                {
+                    { "deviceid", "device1" },
+                    { "moduleid", "module1" }
+                }
+            };
+            yield return new object[]
+            {
+                "amqps://foo.bar/devices/device1/modules/module1/messages/events", false, LinkType.ModuleMessages, new Dictionary<string, string>
+                {
+                    { "deviceid", "device1" },
+                    { "moduleid", "module1" }
+                }
+            };
+            yield return new object[] { "amqps://foo.bar/devices/device1/messages/deviceBound", false, LinkType.C2D, new Dictionary<string, string> { { "deviceid", "device1" } } };
+            yield return new object[] { "amqps://foo.bar/devices/device1/methods/deviceBound", false, LinkType.MethodSending, new Dictionary<string, string> { { "deviceid", "device1" } } };
+            yield return new object[]
+            {
+                "amqps://foo.bar/devices/device1/modules/module1/methods/deviceBound", false, LinkType.MethodSending, new Dictionary<string, string>
+                {
+                    { "deviceid", "device1" },
+                    { "moduleid", "module1" }
+                }
+            };
+            yield return new object[] { "amqps://foo.bar/devices/device1/methods/deviceBound", true, LinkType.MethodReceiving, new Dictionary<string, string> { { "deviceid", "device1" } } };
+            yield return new object[]
+            {
+                "amqps://foo.bar/devices/device1/modules/module1/methods/deviceBound", true, LinkType.MethodReceiving, new Dictionary<string, string>
+                {
+                    { "deviceid", "device1" },
+                    { "moduleid", "module1" }
+                }
+            };
+            yield return new object[] { "amqps://foo.bar/devices/device1/twin", false, LinkType.TwinSending, new Dictionary<string, string> { { "deviceid", "device1" } } };
+            yield return new object[]
+            {
+                "amqps://foo.bar/devices/device1/modules/module1/twin", false, LinkType.TwinSending, new Dictionary<string, string>
+                {
+                    { "deviceid", "device1" },
+                    { "moduleid", "module1" }
+                }
+            };
+            yield return new object[] { "amqps://foo.bar/devices/device1/twin", true, LinkType.TwinReceiving, new Dictionary<string, string> { { "deviceid", "device1" } } };
+            yield return new object[]
+            {
+                "amqps://foo.bar/devices/device1/modules/module1/twin", true, LinkType.TwinReceiving, new Dictionary<string, string>
+                {
+                    { "deviceid", "device1" },
+                    { "moduleid", "module1" }
+                }
+            };
+        }
+
+        public static IEnumerable<object[]> GetInvalidLinkTypeTestData()
+        {
+            yield return new object[] { "amqps://foo.bar/$cbs2", true };
+            yield return new object[] { "amqps://foo.bar/cbs", false };
+            yield return new object[] { "amqps://foo.bar//devices/device1/messages/events", false };
+            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/messages", true };
+            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/messages/foo", false };
+            yield return new object[] { "amqps://foo.bar/devices/device1/messages/deviceBound", true };
+            yield return new object[] { "amqps://foo.bar/devices/device1/twin2", false };
+            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/twin/method", true };
+        }
+
+        public static IEnumerable<object[]> GetLinkHandlerTestData()
+        {
+            yield return new object[] { "amqps://foo.bar/$cbs", true, typeof(CbsLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/$cbs", false, typeof(CbsLinkHandler) };
+            yield return new object[] { "amqps://foo.bar//devices/device1/messages/events", true, typeof(EventsLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/messages/events", true, typeof(EventsLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/messages/events", false, typeof(ModuleMessageLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/messages/deviceBound", false, typeof(DeviceBoundLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/methods/deviceBound", false, typeof(MethodSendingLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/methods/deviceBound", false, typeof(MethodSendingLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/methods/deviceBound", true, typeof(MethodReceivingLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/methods/deviceBound", true, typeof(MethodReceivingLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/twin", false, typeof(TwinSendingLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/twin", false, typeof(TwinSendingLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/twin", true, typeof(TwinReceivingLinkHandler) };
+            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/twin", true, typeof(TwinReceivingLinkHandler) };
+        }
+
+        public static IEnumerable<object[]> GetIdentityFromBoundVariablesTestData()
+        {
+            yield return new object[]
+            {
+                new Dictionary<string, string>
+                {
+                    ["deviceid"] = "d1"
+                },
+                "d1",
+                string.Empty
+            };
+
+            yield return new object[]
+            {
+                new Dictionary<string, string>
+                {
+                    ["deviceid"] = "d1",
+                    ["moduleid"] = "m1"
+                },
+                "d1",
+                "m1"
+            };
+
+            yield return new object[]
+            {
+                new Dictionary<string, string>
+                {
+                    ["deviceid"] = "d%40n.f",
+                    ["moduleid"] = "m%40n.p"
+                },
+                "d@n.f",
+                "m@n.p"
+            };
+        }
+
         [Theory]
         [MemberData(nameof(GetLinkTypeTestData))]
         public void GetLinkTypeTest(string linkUri, bool isReceiver, LinkType expectedLinkType, IDictionary<string, string> expectedBoundVariables)
@@ -111,131 +236,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 Assert.Equal(expectedDeviceId, ((ModuleIdentity)identity).DeviceId);
                 Assert.Equal(expectedModuleId, ((ModuleIdentity)identity).ModuleId);
             }
-        }
-
-        static IEnumerable<object[]> GetLinkTypeTestData()
-        {
-            yield return new object[] { "amqps://foo.bar/$cbs", true, LinkType.Cbs, new Dictionary<string, string>() };
-            yield return new object[] { "amqps://foo.bar/$cbs", false, LinkType.Cbs, new Dictionary<string, string>() };
-            yield return new object[] { "amqps://foo.bar//devices/device1/messages/events", true, LinkType.Events, new Dictionary<string, string> { { "deviceid", "device1" } } };
-            yield return new object[]
-            {
-                "amqps://foo.bar/devices/device1/modules/module1/messages/events", true, LinkType.Events, new Dictionary<string, string>
-                {
-                    { "deviceid", "device1" },
-                    { "moduleid", "module1" }
-                }
-            };
-            yield return new object[]
-            {
-                "amqps://foo.bar/devices/device1/modules/module1/messages/events", false, LinkType.ModuleMessages, new Dictionary<string, string>
-                {
-                    { "deviceid", "device1" },
-                    { "moduleid", "module1" }
-                }
-            };
-            yield return new object[] { "amqps://foo.bar/devices/device1/messages/deviceBound", false, LinkType.C2D, new Dictionary<string, string> { { "deviceid", "device1" } } };
-            yield return new object[] { "amqps://foo.bar/devices/device1/methods/deviceBound", false, LinkType.MethodSending, new Dictionary<string, string> { { "deviceid", "device1" } } };
-            yield return new object[]
-            {
-                "amqps://foo.bar/devices/device1/modules/module1/methods/deviceBound", false, LinkType.MethodSending, new Dictionary<string, string>
-                {
-                    { "deviceid", "device1" },
-                    { "moduleid", "module1" }
-                }
-            };
-            yield return new object[] { "amqps://foo.bar/devices/device1/methods/deviceBound", true, LinkType.MethodReceiving, new Dictionary<string, string> { { "deviceid", "device1" } } };
-            yield return new object[]
-            {
-                "amqps://foo.bar/devices/device1/modules/module1/methods/deviceBound", true, LinkType.MethodReceiving, new Dictionary<string, string>
-                {
-                    { "deviceid", "device1" },
-                    { "moduleid", "module1" }
-                }
-            };
-            yield return new object[] { "amqps://foo.bar/devices/device1/twin", false, LinkType.TwinSending, new Dictionary<string, string> { { "deviceid", "device1" } } };
-            yield return new object[]
-            {
-                "amqps://foo.bar/devices/device1/modules/module1/twin", false, LinkType.TwinSending, new Dictionary<string, string>
-                {
-                    { "deviceid", "device1" },
-                    { "moduleid", "module1" }
-                }
-            };
-            yield return new object[] { "amqps://foo.bar/devices/device1/twin", true, LinkType.TwinReceiving, new Dictionary<string, string> { { "deviceid", "device1" } } };
-            yield return new object[]
-            {
-                "amqps://foo.bar/devices/device1/modules/module1/twin", true, LinkType.TwinReceiving, new Dictionary<string, string>
-                {
-                    { "deviceid", "device1" },
-                    { "moduleid", "module1" }
-                }
-            };
-        }
-
-        static IEnumerable<object[]> GetInvalidLinkTypeTestData()
-        {
-            yield return new object[] { "amqps://foo.bar/$cbs2", true };
-            yield return new object[] { "amqps://foo.bar/cbs", false };
-            yield return new object[] { "amqps://foo.bar//devices/device1/messages/events", false };
-            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/messages", true };
-            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/messages/foo", false };
-            yield return new object[] { "amqps://foo.bar/devices/device1/messages/deviceBound", true };
-            yield return new object[] { "amqps://foo.bar/devices/device1/twin2", false };
-            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/twin/method", true };
-        }
-
-        static IEnumerable<object[]> GetLinkHandlerTestData()
-        {
-            yield return new object[] { "amqps://foo.bar/$cbs", true, typeof(CbsLinkHandler) };
-            yield return new object[] { "amqps://foo.bar/$cbs", false, typeof(CbsLinkHandler) };
-            yield return new object[] { "amqps://foo.bar//devices/device1/messages/events", true, typeof(EventsLinkHandler) };
-            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/messages/events", true, typeof(EventsLinkHandler) };
-            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/messages/events", false, typeof(ModuleMessageLinkHandler) };
-            yield return new object[] { "amqps://foo.bar/devices/device1/messages/deviceBound", false, typeof(DeviceBoundLinkHandler) };
-            yield return new object[] { "amqps://foo.bar/devices/device1/methods/deviceBound", false, typeof(MethodSendingLinkHandler) };
-            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/methods/deviceBound", false, typeof(MethodSendingLinkHandler) };
-            yield return new object[] { "amqps://foo.bar/devices/device1/methods/deviceBound", true, typeof(MethodReceivingLinkHandler) };
-            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/methods/deviceBound", true, typeof(MethodReceivingLinkHandler) };
-            yield return new object[] { "amqps://foo.bar/devices/device1/twin", false, typeof(TwinSendingLinkHandler) };
-            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/twin", false, typeof(TwinSendingLinkHandler) };
-            yield return new object[] { "amqps://foo.bar/devices/device1/twin", true, typeof(TwinReceivingLinkHandler) };
-            yield return new object[] { "amqps://foo.bar/devices/device1/modules/module1/twin", true, typeof(TwinReceivingLinkHandler) };
-        }
-
-        static IEnumerable<object[]> GetIdentityFromBoundVariablesTestData()
-        {
-            yield return new object[]
-            {
-                new Dictionary<string, string>
-                {
-                    ["deviceid"] = "d1"
-                },
-                "d1",
-                string.Empty
-            };
-
-            yield return new object[]
-            {
-                new Dictionary<string, string>
-                {
-                    ["deviceid"] = "d1",
-                    ["moduleid"] = "m1"
-                },
-                "d1",
-                "m1"
-            };
-
-            yield return new object[]
-            {
-                new Dictionary<string, string>
-                {
-                    ["deviceid"] = "d%40n.f",
-                    ["moduleid"] = "m%40n.p"
-                },
-                "d@n.f",
-                "m@n.p"
-            };
         }
     }
 }
