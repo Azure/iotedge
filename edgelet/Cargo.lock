@@ -413,6 +413,7 @@ dependencies = [
  "bytes 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "edgelet-core 0.1.0",
+ "edgelet-hsm 0.1.0",
  "edgelet-test-utils 0.1.0",
  "edgelet-utils 0.1.0",
  "failure 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",

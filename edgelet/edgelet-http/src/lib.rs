@@ -34,6 +34,7 @@ use native_tls::{Identity, TlsAcceptor};
 use edgelet_utils::log_failure;
 
 pub mod authorization;
+pub mod certificate_manager;
 pub mod client;
 pub mod error;
 pub mod logging;

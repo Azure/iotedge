@@ -25,6 +25,7 @@ native-tls = "0.2"
 tokio-tls = "0.2"
 
 edgelet-core = { path = "../edgelet-core" }
+edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-utils = { path = "../edgelet-utils" }
 systemd = { path = "../systemd" }
 

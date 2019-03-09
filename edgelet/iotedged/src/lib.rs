@@ -53,6 +53,7 @@ use edgelet_core::{
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
+use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
 use edgelet_http::{HyperExt, MaybeProxyClient, API_VERSION};
@@ -549,6 +550,8 @@ where
     let (work_tx, work_rx) = oneshot::channel();
 
     let server_cert = prepare_tls_server_cert(crypto).unwrap();
+
+    // let c = CertificateManager::new(server_cert);
 
     let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, &server_cert);
 
