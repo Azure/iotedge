@@ -959,7 +959,7 @@ fn container_logs_succeeds() {
     let options = LogOptions::new()
         .with_follow(true)
         .with_tail(LogTail::All)
-        .with_since(100000);
+        .with_since(100_000);
     let task = mri.logs("mod1", &options);
 
     let expected_body = [

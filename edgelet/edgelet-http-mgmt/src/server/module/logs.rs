@@ -109,7 +109,7 @@ mod tests {
         let options = parse_options(&query).unwrap();
         assert_eq!(LogTail::Num(6), *options.tail());
         assert_eq!(true, options.follow());
-        assert_eq!(1551885923, options.since());
+        assert_eq!(1_551_885_923, options.since());
     }
 
     #[test]
