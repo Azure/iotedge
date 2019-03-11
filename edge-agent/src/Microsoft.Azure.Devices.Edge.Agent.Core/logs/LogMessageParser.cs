@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
     //         unused
     //
     // The payload itself is expected to be in this format -
-    // <logLevel> [TimeStamp] log text
+    // <logLevel> TimeStamp log text
     // For example, this log line will be parsed as follows -
     // <6> 2019-02-14 16:15:35.243 -08:00 [INF] [EdgeHub] - Version - 1.0.7-dev.BUILDNUMBER (COMMITID)
     // LogLevel = 6

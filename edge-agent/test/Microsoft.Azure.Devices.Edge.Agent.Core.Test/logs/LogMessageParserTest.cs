@@ -27,7 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         [InlineData("<6> 2019-02-14 16:15:35.243 -08:00 ", 6, "2019-02-14 16:15:35.243 -08:00", "<6> 2019-02-14 16:15:35.243 -08:00 ")]
         [InlineData("[INF] [EdgeHub] - LogLine", 6, "", "[INF] [EdgeHub] - LogLine")]
         [InlineData("2 2019-02-14 16:15:35 [INF] [EdgeHub] - LogLine", 6, "", "2 2019-02-14 16:15:35 [INF] [EdgeHub] - LogLine")]
-        [InlineData("[INF] [EdgeHub] - LogLine", 6, "", "[INF] [EdgeHub] - LogLine")]
         public void TestParseLogText(string value, int expectedLogLevel, string expectedDateTime, string expectedText)
         {
             // Act
