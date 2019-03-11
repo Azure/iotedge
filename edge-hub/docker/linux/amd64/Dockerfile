@@ -30,5 +30,5 @@ EXPOSE 443/tcp
 
 USER edgehubuser
 
-CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Edge Hub" && \
+CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
     exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll
