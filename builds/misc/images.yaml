@@ -5,7 +5,124 @@ trigger:
       - master
 pr: none
 jobs:
+         
+################################################################################
+  - job: linuxARM64
+################################################################################
+    displayName: LinuxARM64
+    pool:
+      name: Hosted Ubuntu 1604
+      vmImage: 'ubuntu-16.04'
+    variables:
+      NetCorePackageUri: https://download.visualstudio.microsoft.com/download/pr/efa6dde9-a5ee-4322-b13c-a2a02d3980f0/dad445eba341c1d806bae5c8afb47015/dotnet-sdk-3.0.100-preview-010184-linux-x64.tar.gz
+    steps:
+      - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUri)
+        name: install
+        displayName: Install dependencies
 
+      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
+        displayName: 'Docker Login'
+
+      - script: edgelet/build/linux/install.sh --package-arm
+        displayName: Install Rust
+
+      - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
+        displayName: Modify path
+
+      - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
+        displayName: 'Install cross (fork with docker fix)'
+
+      - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin --os Unix --dotnet_runtime netcoreapp3.0
+        name: build
+        displayName: Build (release)
+
+      - script: scripts/linux/buildDiagnostics.sh
+        displayName: Build iotedge-diagnostics
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts'
+        inputs:
+          PathtoPublish: '$(Build.BinariesDirectory)/publish'
+          ArtifactName: 'core-linux'
+
+     # azureiotedge-diagnostics - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image azureiotedge-diagnostics - aarch64
+        inputs: 
+           filePath: scripts/linux/buildImage.sh
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-diagnostics -n microsoft -P azureiotedge-diagnostics --target-arch aarch64
+
+    # Edge Agent - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Edge Agent Image - aarch64
+        inputs: 
+           filePath: scripts/linux/buildImage.sh
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-agent -n microsoft -P Microsoft.Azure.Devices.Edge.Agent.Service --target-arch aarch64
+
+     # Edge Hub - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Edge Hub Image - aarch64
+        inputs: 
+           filePath: scripts/linux/buildImage.sh
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-hub -n microsoft -P Microsoft.Azure.Devices.Edge.Hub.Service --target-arch aarch64
+
+     # Simulated Temperature Sensor - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image Temperature Sensor - aarch64
+        inputs: 
+           filePath: scripts/linux/buildImage.sh
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-simulated-temperature-sensor -n microsoft -P SimulatedTemperatureSensor --target-arch aarch64     
+
+      # Temperature Filter - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image Temperature Filter - aarch64
+        inputs: 
+           filePath: scripts/linux/buildImage.sh
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-temperature-filter -n microsoft -P TemperatureFilter --target-arch aarch64     
+           
+      # Load Gen - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image Load Gen - aarch64
+        inputs: 
+           filePath: scripts/linux/buildImage.sh
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-load-gen -n microsoft -P load-gen --target-arch aarch64     
+           
+      # Messages Analyzer - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image Messages Analyzer - aarch64
+        inputs: 
+           filePath: scripts/linux/buildImage.sh
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-analyzer -n microsoft -P MessagesAnalyzer --target-arch aarch64     
+
+      # Functions Sample - Not Using Template for ARM64 because we have 2 different .NET Core.//TODO: Enable this once Functions supports arm64v8. Right now they are not ready. 
+      #- task: Bash@3
+      #  displayName: Build Image Functions Sample - aarch64
+      #  inputs: 
+      #     filePath: scripts/linux/buildImage.sh
+      #     arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-functions-filter -n azureiotedge -P EdgeHubTriggerCSharp --target-arch aarch64     
+
+      # Direct Method Sender - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image Direct Method Sender - aarch64
+        inputs: 
+           filePath: scripts/linux/buildImage.sh
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-direct-method-sender -n microsoft -P DirectMethodSender --target-arch aarch64           
+
+      # Direct Method Receiver - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image Direct Method Receiver - aarch64
+        inputs: 
+           filePath: scripts/linux/buildImage.sh
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-direct-method-receiver -n microsoft -P DirectMethodReceiver --target-arch aarch64           
+
+      # Direct Method Cloud Sender - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image Direct Method Cloud Sender - aarch64
+        inputs: 
+           filePath: scripts/linux/buildImage.sh
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-direct-method-cloud-sender -n microsoft -P DirectMethodCloudSender --target-arch aarch64           
+           
+          
 ################################################################################
   - job: linux
 ################################################################################
@@ -245,6 +362,7 @@ jobs:
     dependsOn:
       - linux
       - windows
+      - linuxARM64
     variables:
       tags: "['latest']"
     steps:
