@@ -38,6 +38,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     throw new EdgeHubConnectionException("Identity does not contain device ID.");
                 }
 
+                // iotHubName can be a segment of the full iotHubHostName.
+                // For example, if iotHubHostName = testhub1.azure-devices.net,
+                // then iotHubName = testhub1 is valid.
                 if (!this.iotHubHostName.StartsWith(iotHubName, StringComparison.OrdinalIgnoreCase) ||
                     this.iotHubHostName[iotHubName.Length] != '.')
                 {
