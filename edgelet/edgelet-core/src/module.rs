@@ -267,6 +267,7 @@ impl ToString for LogTail {
 pub struct LogOptions {
     follow: bool,
     tail: LogTail,
+    since: i32,
 }
 
 impl LogOptions {
@@ -274,6 +275,7 @@ impl LogOptions {
         LogOptions {
             follow: false,
             tail: LogTail::All,
+            since: 0,
         }
     }
 
@@ -287,12 +289,21 @@ impl LogOptions {
         self
     }
 
+    pub fn with_since(mut self, since: i32) -> Self {
+        self.since = since;
+        self
+    }
+
     pub fn follow(&self) -> bool {
         self.follow
     }
 
     pub fn tail(&self) -> &LogTail {
         &self.tail
+    }
+
+    pub fn since(&self) -> i32 {
+        self.since
     }
 }
 

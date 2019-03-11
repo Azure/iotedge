@@ -935,6 +935,7 @@ fn container_logs_handler(
     assert!(query_map.contains_key("tail"));
     assert_eq!("true", query_map["follow"]);
     assert_eq!("all", query_map["tail"]);
+    assert_eq!("100000", query_map["since"]);
 
     let body = vec![
         0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, 0x52, 0x6f, 0x73, 0x65, 0x73, 0x20, 0x61,
@@ -955,7 +956,10 @@ fn container_logs_succeeds() {
         DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
             .unwrap();
 
-    let options = LogOptions::new().with_follow(true).with_tail(LogTail::All);
+    let options = LogOptions::new()
+        .with_follow(true)
+        .with_tail(LogTail::All)
+        .with_since(100_000);
     let task = mri.logs("mod1", &options);
 
     let expected_body = [
