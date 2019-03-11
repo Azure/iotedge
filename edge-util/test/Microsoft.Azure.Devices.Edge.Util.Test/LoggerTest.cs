@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 Console.SetOut(sw);
                 logger.LogInformation("Test message");
                 string output = sw.ToString();
-                Assert.True(output.StartsWith("<6>"));
+                Assert.StartsWith("<6>", output);
             }
 
             using (StringWriter sw = new StringWriter())
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 Console.SetOut(sw);
                 logger.LogDebug("Test message");
                 string output = sw.ToString();
-                Assert.True(output.StartsWith("<7>"));
+                Assert.StartsWith("<7>", output);
             }
 
             using (StringWriter sw = new StringWriter())
@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 Console.SetOut(sw);
                 logger.LogWarning("Test message");
                 string output = sw.ToString();
-                Assert.True(output.StartsWith("<4>"));
+                Assert.StartsWith("<4>", output);
             }
 
             using (StringWriter sw = new StringWriter())
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 Console.SetOut(sw);
                 logger.LogError("Test message");
                 string output = sw.ToString();
-                Assert.True(output.StartsWith("<3>"));
+                Assert.StartsWith("<3>", output);
             }
         }
     }

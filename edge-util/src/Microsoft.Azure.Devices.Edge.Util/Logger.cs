@@ -64,12 +64,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return factory;
         }
 
-        /// <summary>
-        /// This maps the Edge log level to the severity level based on Syslog severity levels.
-        /// https://en.wikipedia.org/wiki/Syslog#Severity_level
-        /// This allows tools to parse the severity level from the log text and use it to enhance the log
-        /// For example errors can show up as red.
-        /// </summary>
+        // This maps the Edge log level to the severity level based on Syslog severity levels.
+        // https://en.wikipedia.org/wiki/Syslog#Severity_level
+        // This allows tools to parse the severity level from the log text and use it to enhance the log
+        // For example errors can show up as red
         class SeverityEnricher : ILogEventEnricher
         {
             static readonly IDictionary<LogEventLevel, int> LogLevelSeverityMap = new Dictionary<LogEventLevel, int>
