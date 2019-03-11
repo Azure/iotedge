@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public static int Main()
         {
-            Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt", CultureInfo.InvariantCulture)}] Edge Hub Main()");
+            Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Edge Hub Main()");
             IConfigurationRoot configuration = new ConfigurationBuilder()
                 .AddJsonFile(Constants.ConfigFileName)
                 .AddEnvironmentVariables()
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IContainer container = hosting.Container;
 
             ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
-            logger.LogInformation("Starting Edge Hub");
+            logger.LogInformation("Initializing Edge Hub");
             LogLogo(logger);
             LogVersionInfo(logger);
 
