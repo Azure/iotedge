@@ -85,7 +85,8 @@ function prepare_test_from_artifacts() {
     mkdir -p "$working_folder"
 
     declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
-    iotedge_package="${pkg_list[*]:0}"
+    iotedge_package="${pkg_list[*]}"
+    echo "iotedge_package=$iotedge_package"
     
     echo 'Extract quickstart to working folder'
     mkdir -p "$quickstart_working_folder"
