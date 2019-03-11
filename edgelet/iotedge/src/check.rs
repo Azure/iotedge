@@ -222,13 +222,13 @@ impl Check {
             (
                 "Connectivity checks",
                 &[
-                    ("host can connect to IoT Hub AMQP port", |check| {
+                    ("host can connect to and perform TLS handshake with IoT Hub AMQP port", |check| {
                         connection_to_iot_hub_host(check, 5671)
                     }),
-                    ("host can connect to IoT Hub HTTPS port", |check| {
+                    ("host can connect to and perform TLS handshake with IoT Hub HTTPS port", |check| {
                         connection_to_iot_hub_host(check, 443)
                     }),
-                    ("host can connect to IoT Hub MQTT port", |check| {
+                    ("host can connect to and perform TLS handshake with IoT Hub MQTT port", |check| {
                         connection_to_iot_hub_host(check, 8883)
                     }),
                     ("container can connect to IoT Hub AMQP port", |check| {
