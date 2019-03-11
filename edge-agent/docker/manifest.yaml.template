@@ -9,7 +9,7 @@ manifests:
   -
     image: __REGISTRY__/__NAMESPACE__/azureiotedge-agent:__VERSION__-linux-arm64v8
     platform:
-      architecture: aarch64
+      architecture: arm64
       os: linux
   -
     image: __REGISTRY__/__NAMESPACE__/azureiotedge-agent:__VERSION__-linux-arm32v7
