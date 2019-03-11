@@ -250,7 +250,7 @@ impl Check {
                     }),
                     ("edge hub can bind to ports on host", edge_hub_ports_on_host),
                     (
-                        "container runtime network allows name resolution",
+                        "modules on the container runtime network can resolve each other by name",
                         container_runtime_network,
                     ),
                 ],
