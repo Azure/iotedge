@@ -79,7 +79,15 @@ fn parse_options(query: &str) -> Result<LogOptions, Error> {
         .find(|&(ref key, _)| key == "follow")
         .map_or_else(|| Ok(false), |(_, val)| val.parse::<bool>())
         .context(ErrorKind::MalformedRequestParameter("follow"))?;
-    let options = LogOptions::new().with_follow(follow).with_tail(tail);
+    let since = parse
+        .iter()
+        .find(|&(ref key, _)| key == "since")
+        .map_or_else(|| Ok(0), |(_, val)| val.parse::<i32>())
+        .context(ErrorKind::MalformedRequestParameter("since"))?;
+    let options = LogOptions::new()
+        .with_follow(follow)
+        .with_tail(tail)
+        .with_since(since);
     Ok(options)
 }
 
@@ -97,10 +105,11 @@ mod tests {
 
     #[test]
     fn correct_logoptions() {
-        let query = "follow=true&tail=6";
+        let query = "follow=true&tail=6&since=1551885923";
         let options = parse_options(&query).unwrap();
         assert_eq!(LogTail::Num(6), *options.tail());
         assert_eq!(true, options.follow());
+        assert_eq!(1_551_885_923, options.since());
     }
 
     #[test]
@@ -109,6 +118,7 @@ mod tests {
         let options = parse_options(&query).unwrap();
         assert_eq!(LogTail::default(), *options.tail());
         assert_eq!(false, options.follow());
+        assert_eq!(0, options.since());
     }
 
     #[test]
@@ -129,6 +139,17 @@ mod tests {
         assert!(options.is_err());
         assert_eq!(
             "The request parameter `tail` is malformed",
+            options.err().unwrap().to_string()
+        );
+    }
+
+    #[test]
+    fn logoption_since_error() {
+        let query = "follow=true&tail=6&since=15abc";
+        let options = parse_options(&query);
+        assert!(options.is_err());
+        assert_eq!(
+            "The request parameter `since` is malformed",
             options.err().unwrap().to_string()
         );
     }
