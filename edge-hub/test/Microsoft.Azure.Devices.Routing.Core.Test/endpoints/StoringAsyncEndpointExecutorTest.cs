@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             var endpoint = new TestEndpoint(EndpointId);
             ICheckpointer checkpointer = await Checkpointer.CreateAsync(EndpointId, new CheckpointStore());
             var endpointExecutorConfig = new EndpointExecutorConfig(TimeSpan.FromHours(1), RetryStrategy.NoRetry, TimeSpan.FromHours(1));
-            var asyncEndpointExecutorOptions = new AsyncEndpointExecutorOptions(RoutingPumpBatchSize);
+            var asyncEndpointExecutorOptions = new AsyncEndpointExecutorOptions(RoutingPumpBatchSize, TimeSpan.FromMilliseconds(1));
             var messageStore = new TestMessageStore();
             var storingAsyncEndpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointer, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore);
             IEnumerable<IMessage> messages = GetNewMessages(MessagesCount, 0);
