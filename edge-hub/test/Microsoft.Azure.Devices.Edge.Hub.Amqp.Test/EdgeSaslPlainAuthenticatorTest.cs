@@ -85,11 +85,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
         [Fact]
         [Unit]
-        public async void TestAuthSucceeds()
+        public async void TestAuthSucceeds_Module()
         {
             var authenticator = Mock.Of<IAuthenticator>();
             var clientCredentialsFactory = Mock.Of<IClientCredentialsFactory>();
-            var saslAuthenticator = new EdgeSaslPlainAuthenticator(authenticator, clientCredentialsFactory, "hub1");
+            var saslAuthenticator = new EdgeSaslPlainAuthenticator(authenticator, clientCredentialsFactory, "hub1.azure-devices.net");
             var identity = new ModuleIdentity("hub1", "dev1", "mod1");
             var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == identity);
             const string UserId = "dev1/modules/mod1@sas.hub1";
@@ -107,6 +107,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             Assert.NotNull(amqpAuthenticator);
 
             bool isAuthenticated = await amqpAuthenticator.AuthenticateAsync("dev1/mod1");
+            Assert.True(isAuthenticated);
+        }
+
+        [Fact]
+        [Unit]
+        public async void TestAuthSucceeds_Device()
+        {
+            var authenticator = Mock.Of<IAuthenticator>();
+            var clientCredentialsFactory = Mock.Of<IClientCredentialsFactory>();
+            var saslAuthenticator = new EdgeSaslPlainAuthenticator(authenticator, clientCredentialsFactory, "hub1.azure-devices.net");
+            var identity = new DeviceIdentity("hub1", "dev1");
+            var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == identity);
+            const string UserId = "dev1@sas.hub1";
+            const string Password = "pwd";
+
+            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", string.Empty, string.Empty, Password, false))
+                .Returns(clientCredentials);
+            Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(clientCredentials))
+                .ReturnsAsync(true);
+
+            IPrincipal principal = await saslAuthenticator.AuthenticateAsync(UserId, Password);
+            Assert.NotNull(principal);
+
+            var amqpAuthenticator = principal as IAmqpAuthenticator;
+            Assert.NotNull(amqpAuthenticator);
+
+            bool isAuthenticated = await amqpAuthenticator.AuthenticateAsync("dev1");
             Assert.True(isAuthenticated);
         }
     }
