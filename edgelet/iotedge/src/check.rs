@@ -28,6 +28,11 @@ use edgelet_http::MaybeProxyClient;
 use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
 use crate::LatestVersions;
 
+#[cfg(windows)]
+const CONTAINER_RUNTIME_CONFIG_PATH: &str = r"C:\ProgramData\iotedge-moby\config\daemon.json";
+#[cfg(unix)]
+const CONTAINER_RUNTIME_CONFIG_PATH: &str = "/etc/docker/daemon.json";
+
 pub struct Check {
     config_file: PathBuf,
     diagnostics_image_name: String,
@@ -928,29 +933,23 @@ fn container_runtime_logrotate(_: &mut Check) -> Result<CheckResult, failure::Er
         max_size: Option<String>,
     }
 
-    let daemon_config_path = if cfg!(windows) {
-        r"C:\ProgramData\iotedge-moby\config\daemon.json"
-    } else {
-        "/etc/docker/daemon.json"
-    };
-
-    let daemon_config_file = match File::open(daemon_config_path) {
+    let daemon_config_file = match File::open(CONTAINER_RUNTIME_CONFIG_PATH) {
         Ok(daemon_config_file) => daemon_config_file,
         Err(err) => {
             return Ok(CheckResult::Warning(format!(
                 "could not open {}: {}",
-                daemon_config_path, err
+                CONTAINER_RUNTIME_CONFIG_PATH, err
             )));
         }
     };
 
     let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)
-        .with_context(|_| format!("could not parse {}", daemon_config_path))?;
+        .with_context(|_| format!("could not parse {}", CONTAINER_RUNTIME_CONFIG_PATH))?;
 
     if daemon_config.log_driver.is_none() {
         return Ok(CheckResult::Warning(format!(
             "log-driver is not set in {}",
-            daemon_config_path
+            CONTAINER_RUNTIME_CONFIG_PATH
         )));
     }
 
@@ -958,20 +957,20 @@ fn container_runtime_logrotate(_: &mut Check) -> Result<CheckResult, failure::Er
         if log_opts.max_file.is_none() {
             return Ok(CheckResult::Warning(format!(
                 "log-opts.max-file is not set in {}",
-                daemon_config_path
+                CONTAINER_RUNTIME_CONFIG_PATH
             )));
         }
 
         if log_opts.max_size.is_none() {
             return Ok(CheckResult::Warning(format!(
                 "log-opts.max-size is not set in {}",
-                daemon_config_path
+                CONTAINER_RUNTIME_CONFIG_PATH
             )));
         }
     } else {
         return Ok(CheckResult::Warning(format!(
             "log-opts is not set in {}",
-            daemon_config_path
+            CONTAINER_RUNTIME_CONFIG_PATH
         )));
     }
 
@@ -984,29 +983,23 @@ fn container_runtime_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
         dns: Option<Vec<String>>,
     }
 
-    let daemon_config_path = if cfg!(windows) {
-        r"C:\ProgramData\iotedge-moby\config\daemon.json"
-    } else {
-        "/etc/docker/daemon.json"
-    };
-
-    let daemon_config_file = match File::open(daemon_config_path) {
+    let daemon_config_file = match File::open(CONTAINER_RUNTIME_CONFIG_PATH) {
         Ok(daemon_config_file) => daemon_config_file,
         Err(err) => {
             return Ok(CheckResult::Warning(format!(
                 "could not open {}: {}",
-                daemon_config_path, err
+                CONTAINER_RUNTIME_CONFIG_PATH, err
             )));
         }
     };
 
     let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)
-        .with_context(|_| format!("could not parse {}", daemon_config_path))?;
+        .with_context(|_| format!("could not parse {}", CONTAINER_RUNTIME_CONFIG_PATH))?;
 
     if let Some(&[]) | None = daemon_config.dns.as_ref().map(std::ops::Deref::deref) {
         return Ok(CheckResult::Warning(format!(
             "No DNS servers are defined in {}",
-            daemon_config_path
+            CONTAINER_RUNTIME_CONFIG_PATH
         )));
     }
 
@@ -1036,6 +1029,50 @@ fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResul
     let _ = tls_connector
         .connect(iothub_hostname, stream)
         .context("could not complete TLS handshake with Azure IoT Hub")?;
+
+    Ok(CheckResult::Ok)
+}
+
+fn connection_to_iot_hub_container(
+    check: &mut Check,
+    port: u16,
+) -> Result<CheckResult, failure::Error> {
+    let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
+        docker_host_arg
+    } else {
+        return Ok(CheckResult::Skipped);
+    };
+
+    let iothub_hostname = if let Some(iothub_hostname) = &check.iothub_hostname {
+        iothub_hostname
+    } else {
+        return Ok(CheckResult::Skipped);
+    };
+
+    let port = port.to_string();
+
+    let output = docker(
+        docker_host_arg,
+        vec![
+            "run",
+            "--rm",
+            &check.diagnostics_image_name,
+            "/iotedge-diagnostics",
+            "iothub",
+            "--hostname",
+            iothub_hostname,
+            "--port",
+            &port,
+        ],
+    )?;
+    if !output.status.success() {
+        return Err(Context::new(format!(
+            "docker returned {}, stderr = {}",
+            output.status,
+            String::from_utf8_lossy(&*output.stderr)
+        ))
+        .into());
+    }
 
     Ok(CheckResult::Ok)
 }
@@ -1105,50 +1142,6 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
                     .into());
             }
         }
-    }
-
-    Ok(CheckResult::Ok)
-}
-
-fn connection_to_iot_hub_container(
-    check: &mut Check,
-    port: u16,
-) -> Result<CheckResult, failure::Error> {
-    let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
-        docker_host_arg
-    } else {
-        return Ok(CheckResult::Skipped);
-    };
-
-    let iothub_hostname = if let Some(iothub_hostname) = &check.iothub_hostname {
-        iothub_hostname
-    } else {
-        return Ok(CheckResult::Skipped);
-    };
-
-    let port = port.to_string();
-
-    let output = docker(
-        docker_host_arg,
-        vec![
-            "run",
-            "--rm",
-            &check.diagnostics_image_name,
-            "/iotedge-diagnostics",
-            "iothub",
-            "--hostname",
-            iothub_hostname,
-            "--port",
-            &port,
-        ],
-    )?;
-    if !output.status.success() {
-        return Err(Context::new(format!(
-            "docker returned {}, stderr = {}",
-            output.status,
-            String::from_utf8_lossy(&*output.stderr)
-        ))
-        .into());
     }
 
     Ok(CheckResult::Ok)
