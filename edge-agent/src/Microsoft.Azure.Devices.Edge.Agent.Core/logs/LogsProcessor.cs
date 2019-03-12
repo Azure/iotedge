@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             this.materializer = this.system.Materializer();
         }
 
-        public async Task<IEnumerable<ModuleLogMessage>> GetMessages(Stream stream, string moduleId)
+        public async Task<IReadOnlyList<ModuleLogMessage>> GetMessages(Stream stream, string moduleId)
         {
             Preconditions.CheckNotNull(stream, nameof(stream));
             Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             return result;
         }
 
-        public async Task<IEnumerable<string>> GetText(Stream stream)
+        public async Task<IReadOnlyList<string>> GetText(Stream stream)
         {
             Preconditions.CheckNotNull(stream, nameof(stream));
             var source = StreamConverters.FromInputStream(() => stream);
