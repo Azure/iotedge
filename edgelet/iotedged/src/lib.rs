@@ -898,7 +898,7 @@ where
             let service = LoggingService::new(label, service);
             info!("Listening on {} with 1 thread for management API.", url);
             let run = Http::new()
-                .bind_url(url.clone(), service, &cert_manager)
+                .bind_url(url.clone(), service, Some(&cert_manager))
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,
@@ -948,7 +948,7 @@ where
             ))?;
             let service = LoggingService::new(label, service);
             let run = Http::new()
-                .bind_url(url.clone(), service, &cert_manager)
+                .bind_url(url.clone(), service, Some(&cert_manager))
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::WorkloadService,

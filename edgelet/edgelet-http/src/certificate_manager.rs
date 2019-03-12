@@ -24,6 +24,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
 
     pub fn new(crypto_struct: C) -> Result<Self, Error>
     { 
+
         let edgelet_cert_props = CertificateProperties::new(
             IOTEDGED_VALIDITY,
             IOTEDGED_TLS_COMMONNAME.to_string(),

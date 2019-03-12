@@ -164,14 +164,14 @@ where
 }
 
 pub trait HyperExt {
-    fn bind_url<C, S>(&self, url: Url, new_service: S, cert_manager: &CertificateManager<C>) -> Result<Server<S>, Error>
+    fn bind_url<C, S>(&self, url: Url, new_service: S, cert_manager: Option<&CertificateManager<C>>) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
         S: NewService<ReqBody = Body>;
 }
 
 impl HyperExt for Http {
-    fn bind_url<C, S>(&self, url: Url, new_service: S, cert_manager: &CertificateManager<C>) -> Result<Server<S>, Error>
+    fn bind_url<C, S>(&self, url: Url, new_service: S, cert_manager: Option<&CertificateManager<C>>) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
         S: NewService<ReqBody = Body>,
@@ -205,7 +205,13 @@ impl HyperExt for Http {
                         )
                     })?;
 
-                let cert = cert_manager.get_certificate();
+                let cert = match cert_manager {
+                    Some(cert_manager) => cert_manager.get_certificate(),
+                    None => {
+                        return Err(Error::from(ErrorKind::CertificateCreationError))
+                    }
+                };
+
                 let cert_identity = Identity::from_pkcs12(cert.as_ref(), "").unwrap();
 
                 let tls_acceptor = TlsAcceptor::builder(cert_identity).build().unwrap();
