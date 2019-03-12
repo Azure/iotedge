@@ -204,7 +204,7 @@ build_solution()
     echo "Building IoT Edge solution"
     dotnet --version
     
-    build_command="$DOTNET_ROOT_PATH/dotnet build -c $CONFIGURATION"
+    build_command="$DOTNET_ROOT_PATH/dotnet build -c $CONFIGURATION -o \"$BUILD_BINARIESDIRECTORY\""
     
     if [ -n "$DOTNETBUILD_OS" ]; then
         build_command="$build_command -p:OS=$DOTNETBUILD_OS"
