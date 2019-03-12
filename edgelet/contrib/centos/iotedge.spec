@@ -36,7 +36,7 @@ make release
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make install DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir}
+make install DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir} docdir=%{_docdir}/%{name}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
