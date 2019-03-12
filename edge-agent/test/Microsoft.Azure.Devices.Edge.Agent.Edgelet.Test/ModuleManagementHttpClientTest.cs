@@ -4,12 +4,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json.Linq;
     using Xunit;
@@ -18,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     public class ModuleManagementHttpClientTest : IClassFixture<EdgeletFixture>
     {
         readonly Uri serverUrl;
-        EdgeletFixture edgeletFixture;
+        readonly EdgeletFixture edgeletFixture;
 
         public ModuleManagementHttpClientTest(EdgeletFixture edgeletFixture)
         {
@@ -31,32 +33,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             string serverApiVersion = "2018-06-28";
             string clientApiVersion = "2018-06-28";
-            var client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            var versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            var versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
 
             serverApiVersion = "2018-06-28";
             clientApiVersion = "2019-01-30";
-            client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-01-30";
             clientApiVersion = "2018-06-28";
-            client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-01-30";
             clientApiVersion = "2019-01-30";
-            client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-02-30";
             clientApiVersion = "2019-01-30";
-            client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-01-30";
@@ -236,6 +233,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
                 new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
             IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
             await client.PrepareUpdateAsync(moduleSpec);
+        }
+
+        [Theory]
+        [InlineData("2018-06-28", "2018-06-28")]
+        [InlineData("2018-06-28", "2019-01-30")]
+        [InlineData("2019-01-30", "2018-06-28")]
+        [InlineData("2019-01-30", "2019-01-30")]
+        public async Task ModuleLogsTest(string serverApiVersion, string clientApiVersion)
+        {
+            // Arrange
+            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
+
+            // Act
+            Stream logsStream = await client.GetModuleLogs("edgeHub", false, Option.None<int>(), CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(logsStream);
+            byte[] buffer = new byte[1024];
+            int bytesRead = await logsStream.ReadAsync(buffer, 0, buffer.Length);
+            Assert.Equal(buffer.Length, bytesRead);
         }
     }
 }

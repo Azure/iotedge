@@ -61,11 +61,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             Option<ContainerInspectResponse> edgeAgentReponse = await this.GetEdgeAgentContainerAsync();
             edgeAgentReponse.ForEach(e => containerInspectResponses.Add(e));
 
-            List<ModuleRuntimeInfo> modules = containerInspectResponses.Select(c => InspectResponseToModule(c)).ToList();
+            List<ModuleRuntimeInfo> modules = containerInspectResponses.Select(InspectResponseToModule).ToList();
             return modules;
         }
 
-        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, CancellationToken cancellationToken)
+        {
+            var containerLogsParameters = new ContainerLogsParameters
+            {
+                Follow = follow,
+                ShowStderr = true,
+                ShowStdout = true
+            };
+            tail.ForEach(t => containerLogsParameters.Tail = t.ToString());
+            return this.client.Containers.GetContainerLogsAsync(module, containerLogsParameters, cancellationToken);
+        }
 
         public Task<SystemInfo> GetSystemInfo() => Task.FromResult(new SystemInfo(this.operatingSystemType, this.architecture, this.version));
 
