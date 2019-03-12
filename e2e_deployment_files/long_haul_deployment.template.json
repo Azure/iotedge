@@ -21,14 +21,14 @@
           "edgeAgent": {
             "type": "docker",
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
           "edgeHub": {
             "type": "docker",
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
@@ -61,7 +61,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -71,7 +71,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             },
             "env": {
@@ -97,7 +97,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-temperature-filter:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-temperature-filter:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -107,7 +107,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             },
             "env": {
@@ -133,7 +133,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-temperature-filter:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-temperature-filter:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -175,7 +175,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/snitcher:<Snitch.BuildNumber>",
+              "image": "edgebuilds.azurecr.io/microsoft/snitcher:<Snitch.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]}}"
             }
           },
@@ -192,7 +192,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
           },
@@ -223,7 +223,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-cloud-sender:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-cloud-sender:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -238,7 +238,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -259,7 +259,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-cloud-sender:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-cloud-sender:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -274,7 +274,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           }
