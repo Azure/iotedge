@@ -30,6 +30,7 @@ use tokio_uds::UnixListener;
 use url::Url;
 
 use edgelet_core::{UrlExt, UNIX_SCHEME};
+use edgelet_core::crypto::CreateCertificate;
 use native_tls::{Identity, TlsAcceptor};
 use edgelet_utils::log_failure;
 
@@ -44,6 +45,7 @@ mod unix;
 mod util;
 mod version;
 
+pub use self::certificate_manager::CertificateManager;
 pub use self::error::{BindListenerType, Error, ErrorKind, InvalidUrlReason};
 pub use self::util::proxy::MaybeProxyClient;
 pub use self::util::UrlConnector;
@@ -162,17 +164,16 @@ where
 }
 
 pub trait HyperExt {
-    fn bind_url<S>(&self, url: Url, new_service: S) -> Result<Server<S>, Error>
+    fn bind_url<C, S>(&self, url: Url, new_service: S, cert_manager: &CertificateManager<C>) -> Result<Server<S>, Error>
     where
-        S: NewService<ReqBody = Body>;
-    fn bind_tls_url<S>(&self, url: Url, cert: Identity, new_service: S) -> Result<Server<S>, Error>
-    where
+        C: CreateCertificate + Clone,
         S: NewService<ReqBody = Body>;
 }
 
 impl HyperExt for Http {
-    fn bind_url<S>(&self, url: Url, new_service: S) -> Result<Server<S>, Error>
+    fn bind_url<C, S>(&self, url: Url, new_service: S, cert_manager: &CertificateManager<C>) -> Result<Server<S>, Error>
     where
+        C: CreateCertificate + Clone,
         S: NewService<ReqBody = Body>,
     {
         let incoming = match url.scheme() {
@@ -191,6 +192,28 @@ impl HyperExt for Http {
                 let listener = TcpListener::bind(&addr)
                     .with_context(|_| ErrorKind::BindListener(BindListenerType::Address(addr)))?;
                 Incoming::Tcp(listener)
+            }
+            HTTPS_SCHEME => {
+                let addr = url
+                    .to_socket_addrs()
+                    .context(ErrorKind::InvalidUrl(url.to_string()))?
+                    .next()
+                    .ok_or_else(|| {
+                        ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::NoAddress,
+                        )
+                    })?;
+
+                let cert = cert_manager.get_certificate();
+                let cert_identity = Identity::from_pkcs12(cert.as_ref(), "").unwrap();
+
+                let tls_acceptor = TlsAcceptor::builder(cert_identity).build().unwrap();
+                let tls_acceptor = tokio_tls::TlsAcceptor::from(tls_acceptor);
+
+                let listener = TcpListener::bind(&addr)
+                    .with_context(|_| ErrorKind::BindListener(BindListenerType::Address(addr)))?;
+                Incoming::Tls(listener, tls_acceptor)
             }
             UNIX_SCHEME => {
                 let path = url
@@ -252,42 +275,4 @@ impl HyperExt for Http {
             incoming,
         })
     }
-
-    fn bind_tls_url<S>(&self, url: Url, cert: Identity, new_service: S) -> Result<Server<S>, Error>
-    where
-        S: NewService<ReqBody = Body>,
-    {
-        let incoming = match url.scheme() {
-            HTTPS_SCHEME => {
-                let addr = url
-                    .to_socket_addrs()
-                    .context(ErrorKind::InvalidUrl(url.to_string()))?
-                    .next()
-                    .ok_or_else(|| {
-                        ErrorKind::InvalidUrlWithReason(
-                            url.to_string(),
-                            InvalidUrlReason::NoAddress,
-                        )
-                    })?;
-
-                let tls_acceptor = TlsAcceptor::builder(cert).build().unwrap();
-                let tls_acceptor = tokio_tls::TlsAcceptor::from(tls_acceptor);
-
-                let listener = TcpListener::bind(&addr)
-                    .with_context(|_| ErrorKind::BindListener(BindListenerType::Address(addr)))?;
-                Incoming::Tls(listener, tls_acceptor)
-            }
-            _ => Err(Error::from(ErrorKind::InvalidUrlWithReason(
-                url.to_string(),
-                InvalidUrlReason::InvalidScheme,
-            )))?,
-        };
-
-        Ok(Server {
-            protocol: self.clone(),
-            new_service,
-            incoming,
-        })
-    }
-
 }

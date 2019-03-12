@@ -47,7 +47,7 @@ use edgelet_core::crypto::{
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
-    Certificate, CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime, ModuleSpec, Signature, UrlExt,
+    CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime, ModuleSpec, UrlExt,
     WorkloadConfig, UNIX_SCHEME,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
@@ -67,7 +67,6 @@ use provisioning::provisioning::{
     BackupProvisioning, DpsProvisioning, DpsSymmetricKeyProvisioning, ManualProvisioning,
     Provision, ProvisioningResult,
 };
-use native_tls::{Identity};
 
 use crate::workload::WorkloadData;
 
@@ -145,9 +144,6 @@ const EDGE_SETTINGS_SUBDIR: &str = "cache";
 /// These are the properties of the workload CA certificate
 const IOTEDGED_VALIDITY: u64 = 7_776_000; // 90 days
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
-
-// These are the properties of the TLS server certificate.
-const IOTEDGED_TLS_COMMONNAME: &str = "iotedged tls certificate";
 
 const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200; // 2 hours
 const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 7_776_000; // 90 days
@@ -344,35 +340,6 @@ pub fn get_proxy_uri(https_proxy: Option<String>) -> Result<Option<Uri>, Error> 
     Ok(proxy_uri)
 }
 
-fn prepare_tls_server_cert<C>(crypto: &C) -> Result<native_tls::Certificate, Error>
-where
-    C: CreateCertificate,
-{
-    // TODO: Kevin
-    let edgelet_cert_props = CertificateProperties::new(
-        IOTEDGED_VALIDITY,
-        IOTEDGED_TLS_COMMONNAME.to_string(),
-        CertificateType::Server,
-        "iotedge-tls".to_string(),
-    )
-    .with_issuer(CertificateIssuer::DeviceCa);
-
-    let cert = crypto
-        .create_certificate(&edgelet_cert_props)
-        .context(ErrorKind::Initialize(
-            InitializeErrorReason::CreateTLSCertificate,
-        ))?;
-
-    let cert_pem = cert.pem().context(ErrorKind::Initialize(
-        InitializeErrorReason::CreateTLSCertificate,
-    ))?;
-
-    native_tls::Certificate::from_pem(cert_pem.as_bytes())
-        .map_err(|err|
-            Error::from(err.context(ErrorKind::Initialize(InitializeErrorReason::CreateTLSCertificate))))
-
-}
-
 fn prepare_workload_ca<C>(crypto: &C) -> Result<(), Error>
 where
     C: CreateCertificate,
@@ -549,11 +516,9 @@ where
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
     let (work_tx, work_rx) = oneshot::channel();
 
-    let server_cert = prepare_tls_server_cert(crypto).unwrap();
+    let cert_manager = CertificateManager::new(crypto.clone());
 
-    // let c = CertificateManager::new(server_cert);
-
-    let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, &server_cert);
+    let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, &cert_manager);
 
     let workload = start_workload(
         &settings,
@@ -561,8 +526,8 @@ where
         &runtime,
         work_rx,
         crypto,
+        &cert_manager,
         workload_config,
-        &server_cert,
     );
 
     let (runt_tx, runt_rx) = oneshot::channel();
@@ -905,14 +870,15 @@ fn build_env(
     env
 }
 
-fn start_management<K, HC>(
+fn start_management<C, K, HC>(
     settings: &Settings<DockerConfig>,
     mgmt: &DockerModuleRuntime,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
-    cert: &native_tls::Certificate,
+    cert_manager: &CertificateManager<C>,
 ) -> impl Future<Item = (), Error = Error>
 where
+    C: CreateCertificate + Clone,
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl + Send + Sync,
 {
@@ -921,7 +887,7 @@ where
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
 
-    let parsed_cert = Identity::from_pkcs12(&cert.to_der().unwrap(), "").unwrap();
+    let cert_manager = cert_manager.clone();
 
     ManagementService::new(mgmt, id_man)
         .then(move |service| -> Result<_, Error> {
@@ -931,8 +897,7 @@ where
             let service = LoggingService::new(label, service);
             info!("Listening on {} with 1 thread for management API.", url);
             let run = Http::new()
-                // .bind_url(url.clone(), service)
-                .bind_tls_url(url.clone(), parsed_cert, service)
+                .bind_url(url.clone(), service, &cert_manager)
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,
@@ -945,14 +910,14 @@ where
         .flatten()
 }
 
-fn start_workload<K, C, W>(
+fn start_workload<K, C, CE, W>(
     settings: &Settings<DockerConfig>,
     key_store: &K,
     runtime: &DockerModuleRuntime,
     shutdown: Receiver<()>,
     crypto: &C,
+    cert_manager: &CertificateManager<CE>,
     config: W,
-    cert: &native_tls::Certificate,
 ) -> impl Future<Item = (), Error = Error>
 where
     K: KeyStore + Clone + Send + Sync + 'static,
@@ -965,6 +930,7 @@ where
         + Send
         + Sync
         + 'static,
+    CE: CreateCertificate + Clone,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
 {
     info!("Starting workload API...");
@@ -972,7 +938,7 @@ where
     let label = "work".to_string();
     let url = settings.listen().workload_uri().clone();
 
-    let parsed_cert = Identity::from_pkcs12(&cert.to_der().unwrap(), "foobar").unwrap();
+    let cert_manager = cert_manager.clone();
 
     WorkloadService::new(key_store, crypto.clone(), runtime, config)
         .then(move |service| -> Result<_, Error> {
@@ -981,8 +947,7 @@ where
             ))?;
             let service = LoggingService::new(label, service);
             let run = Http::new()
-                // .bind_url(url.clone(), service)
-                .bind_tls_url(url.clone(), parsed_cert, service)
+                .bind_url(url.clone(), service, &cert_manager)
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::WorkloadService,
