@@ -330,7 +330,7 @@ function run_directmethodamqp_test() {
     print_highlighted_message "Run DirectMethod Amqp test on $image_architecture_label"
     test_setup
 
-    local device_id="e2e-$RELEASE_LABEL-Linux-DMAmqp"
+    device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-DMAmqp"
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run DirectMethod Amqp test with -d '$device_id' started at $test_start_time"
 
@@ -343,7 +343,7 @@ function run_directmethodamqpws_test() {
     print_highlighted_message "Run DirectMethod Amqpws test on $image_architecture_label"
     test_setup
 
-    local device_id="e2e-$RELEASE_LABEL-Linux-DMAmqpws"
+    device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-DMAmqpws"
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run DirectMethod Amqpws test with -d '$device_id' started at $test_start_time"
 
@@ -356,7 +356,7 @@ function run_directmethodmqtt_test() {
     print_highlighted_message "Run DirectMethod Mqtt test on $image_architecture_label"
     test_setup
 
-    local device_id="e2e-$RELEASE_LABEL-Linux-DMMqtt"
+    device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-DMMqtt"
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run DirectMethod Mqtt test with -d '$device_id' started at $test_start_time"
 
@@ -369,7 +369,7 @@ function run_directmethodmqttws_test() {
     print_highlighted_message "Run DirectMethod Mqttws test on $image_architecture_label"
     test_setup
 
-    local device_id="e2e-$RELEASE_LABEL-Linux-DMMqttws"
+    device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-DMMqttws"
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run DirectMethod Mqttws test with -d '$device_id' started at $test_start_time"
 
@@ -382,7 +382,7 @@ function run_quickstartcerts_test() {
     print_highlighted_message "Run Quickstart Certs test on $image_architecture_label"
     test_setup
 
-    local device_id="e2e-$RELEASE_LABEL-Linux-QuickstartCert"
+    local device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-QuickstartCert"
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Quickstart Certs test with -d '$device_id' started at $test_start_time"
 
@@ -425,7 +425,7 @@ function run_tempfilter_test() {
     print_highlighted_message "Run TempFilter test on $image_architecture_label"
     test_setup
 
-    local device_id="e2e-$RELEASE_LABEL-Linux-tempFilter"
+    local device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-tempFilter"
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run TempFilter test with -d '$device_id' started at $test_start_time"
 
@@ -454,7 +454,7 @@ function run_tempfilterfunctions_test() {
     print_highlighted_message "Run TempFilterFunctions test on $image_architecture_label"
     test_setup
 
-    local device_id="e2e-$RELEASE_LABEL-Linux-tempFilterFunc"
+    local device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-tempFilterFunc"
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run TempFilterFunctions test with -d '$device_id' started at $test_start_time"
 
@@ -483,7 +483,7 @@ function run_tempsensor_test() {
     print_highlighted_message "Run TempSensor test on $image_architecture_label"
     test_setup
 
-    local device_id="e2e-$RELEASE_LABEL-Linux-tempSensor"
+    local device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-tempSensor"
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run TempSensor test with -d '$device_id' started at $test_start_time"
 
