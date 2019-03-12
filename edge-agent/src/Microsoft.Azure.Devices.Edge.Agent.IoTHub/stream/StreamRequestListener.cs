@@ -36,22 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             // Don't dispose the cts here as it can cause an ObjectDisposedException.
         }
 
-        static async Task<ClientWebSocket> GetStreamingClientAsync(DeviceStreamRequest streamRequest, CancellationToken cancellationToken)
-        {
-            var clientWebSocket = new ClientWebSocket();
-            clientWebSocket.Options.SetRequestHeader("Authorization", $"Bearer {streamRequest.AuthorizationToken}");
-            await clientWebSocket.ConnectAsync(streamRequest.Url, cancellationToken);
-            return clientWebSocket;
-        }
-
-        async Task<(string requestName, ClientWebSocket clientWebSocket)> WaitForStreamRequest(IModuleClient moduleClient, CancellationToken cancellationToken)
-        {
-            DeviceStreamRequest deviceStreamRequest = await moduleClient.WaitForDeviceStreamRequestAsync(cancellationToken);
-            await moduleClient.AcceptDeviceStreamingRequest(deviceStreamRequest, cancellationToken);
-            ClientWebSocket clientWebSocket = await GetStreamingClientAsync(deviceStreamRequest, cancellationToken);
-            return (deviceStreamRequest.Name, clientWebSocket);
-        }
-
         async Task Pump(IModuleClient moduleClient)
         {
             while (!this.cts.IsCancellationRequested)
@@ -70,20 +54,45 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
 
         async Task ProcessStreamRequest(IModuleClient moduleClient)
         {
-            string requestName;
-            ClientWebSocket clientWebSocket;
-            try
-            {
-                (requestName, clientWebSocket) = await this.WaitForStreamRequest(moduleClient, this.cts.Token);
-            }
-            catch (Exception)
+            Option<(string requestName, ClientWebSocket clientWebSocket)> result = await this.WaitForStreamRequest(moduleClient);
+            // If we don't get a valid stream, release the lock.
+            if (!result.HasValue)
             {
                 this.streamLock.Release();
-                throw;
+            }
+            else
+            {
+                // We got a WebSocket stream. Pass it to a handler on a background thread. This thread is
+                // responsible for releasing the lock after it completes.
+                result.ForEach(r =>
+                {
+                    Events.NewStreamRequest(r.requestName, this.streamLock.CurrentCount);
+                    this.HandleRequest(r.requestName, r.clientWebSocket);
+                });
+            }
+        }
+
+        async Task<Option<(string requestName, ClientWebSocket clientWebSocket)>> WaitForStreamRequest(IModuleClient moduleClient)
+        {
+            var result = Option.None<(string, ClientWebSocket)>();
+            try
+            {
+                DeviceStreamRequest deviceStreamRequest = await moduleClient.WaitForDeviceStreamRequestAsync(this.cts.Token);
+                if (deviceStreamRequest != null)
+                {
+                    await moduleClient.AcceptDeviceStreamingRequest(deviceStreamRequest, this.cts.Token);
+                    var clientWebSocket = new ClientWebSocket();
+                    clientWebSocket.Options.SetRequestHeader("Authorization", $"Bearer {deviceStreamRequest.AuthorizationToken}");
+                    await clientWebSocket.ConnectAsync(deviceStreamRequest.Url, this.cts.Token);
+                    result = Option.Some((deviceStreamRequest.Name, clientWebSocket));
+                }
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorGettingStream(ex);
             }
 
-            Events.NewStreamRequest(requestName, this.streamLock.CurrentCount);
-            this.HandleRequest(requestName, clientWebSocket);
+            return result;
         }
 
         async void HandleRequest(string requestName, ClientWebSocket clientWebSocket)
@@ -94,12 +103,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
                 {
                     Events.HandlerFound(requestName);
                     await handler.Handle(clientWebSocket, this.cts.Token);
-                    await clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, this.cts.Token);
+                    await this.CloseWebSocketConnection(requestName, clientWebSocket, WebSocketCloseStatus.NormalClosure, string.Empty);
                 }
                 else
                 {
                     Events.NoHandlerFound(requestName);
-                    await clientWebSocket.CloseAsync(WebSocketCloseStatus.InvalidPayloadData, $"Unknown request name - {requestName}", this.cts.Token);
+                    await this.CloseWebSocketConnection(requestName, clientWebSocket, WebSocketCloseStatus.InvalidPayloadData, $"Unknown request name - {requestName}");
                 }
 
                 Events.RequestCompleted(requestName);
@@ -111,6 +120,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             finally
             {
                 this.streamLock.Release();
+            }
+        }
+
+        async Task CloseWebSocketConnection(string requestName, ClientWebSocket clientWebSocket, WebSocketCloseStatus webSocketCloseStatus, string message)
+        {
+            try
+            {
+                await clientWebSocket.CloseAsync(webSocketCloseStatus, message, this.cts.Token);
+            }
+            catch(Exception ex)
+            {
+                Events.ErrorClosingWebSocket(requestName, ex);
             }
         }
 
@@ -128,7 +149,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
                 NoHandlerFound,
                 HandlerFound,
                 NewStreamRequest,
-                RequestCompleted
+                RequestCompleted,
+                ErrorGettingStream,
+                ErrorClosingWebSocket
             }
 
             public static void ErrorHandlingRequest(string requestName, Exception e)
@@ -169,6 +192,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             public static void StoppingPump()
             {
                 Log.LogInformation((int)EventIds.StoppingPump, "Stopping stream request listener pump");
+            }
+
+            public static void ErrorGettingStream(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorGettingStream, "Stream request was not processed successfully.");
+                Log.LogDebug((int)EventIds.ErrorGettingStream, ex, "Error accepting stream request");
+            }
+
+            internal static void ErrorClosingWebSocket(string requestName, Exception ex)
+            {
+                Log.LogInformation((int)EventIds.ErrorClosingWebSocket, $"Error closing WebSocketClient for request {requestName} - {ex.Message}.");
             }
         }
     }
