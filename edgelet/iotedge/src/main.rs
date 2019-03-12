@@ -40,6 +40,10 @@ fn main() {
 
 fn run() -> Result<(), Error> {
     let default_uri = option_env!("IOTEDGE_HOST").unwrap_or(MGMT_URI);
+    let default_diagnostics_image_name = format!(
+        "mcr.microsoft.com/azureiotedge-diagnostics:{}",
+        edgelet_core::version()
+    );
 
     let matches = App::new(crate_name!())
         .version(edgelet_core::version())
@@ -71,6 +75,21 @@ fn run() -> Result<(), Error> {
                         ),
                 )
                 .arg(
+                    Arg::with_name("diagnostics-image-name")
+                        .long("diagnostics-image-name")
+                        .value_name("IMAGE_NAME")
+                        .help("Sets the name of the azureiotedge-diagnostics image.")
+                        .takes_value(true)
+                        .default_value(&default_diagnostics_image_name),
+                )
+                .arg(
+                    Arg::with_name("expected-iotedged-version")
+                        .long("expected-iotedged-version")
+                        .value_name("VERSION")
+                        .help("Sets the expected version of the iotedged binary. Defaults to the value contained in <http://aka.ms/latest-iotedge-stable>")
+                        .takes_value(true),
+                )
+                .arg(
                     Arg::with_name("iotedged")
                         .long("iotedged")
                         .value_name("PATH_TO_IOTEDGED")
@@ -89,10 +108,11 @@ fn run() -> Result<(), Error> {
                         .default_value("pool.ntp.org:123"),
                 )
                 .arg(
-                    Arg::with_name("steps")
-                        .help("Run specific steps instead of all steps. One or more of `config`, `deps`, `conn`")
-                        .multiple(true)
-                        .takes_value(true),
+                    Arg::with_name("verbose")
+                        .long("verbose")
+                        .value_name("VERBOSE")
+                        .help("Increases verbosity of output.")
+                        .takes_value(false),
                 ),
         )
         .subcommand(SubCommand::with_name("list").about("List modules"))
@@ -160,6 +180,11 @@ fn run() -> Result<(), Error> {
                     .expect("arg has a default value")
                     .to_os_string()
                     .into(),
+                args.value_of("diagnostics-image-name")
+                    .expect("arg has a default value")
+                    .to_string(),
+                args.value_of("expected-iotedged-version")
+                    .map(ToOwned::to_owned),
                 args.value_of_os("iotedged")
                     .expect("arg has a default value")
                     .to_os_string()
@@ -167,8 +192,7 @@ fn run() -> Result<(), Error> {
                 args.value_of("ntp-server")
                     .expect("arg has a default value")
                     .to_string(),
-                args.values_of("steps")
-                    .map(|values| values.map(ToOwned::to_owned).collect()),
+                args.occurrences_of("verbose") > 0,
             )
             .and_then(|mut check| check.execute()),
         ),

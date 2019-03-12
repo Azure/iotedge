@@ -36,10 +36,4 @@ pub trait Command {
 #[derive(Debug, Deserialize)]
 pub struct LatestVersions {
     pub iotedged: String,
-
-    #[serde(rename = "azureiotedge-agent")]
-    pub edge_agent: String,
-
-    #[serde(rename = "azureiotedge-hub")]
-    pub edge_hub: String,
 }
