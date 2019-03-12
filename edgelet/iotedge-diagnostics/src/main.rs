@@ -7,6 +7,8 @@
 #[macro_use]
 extern crate clap;
 
+use std::net::{TcpStream, ToSocketAddrs};
+
 use futures::{Future, Stream};
 
 use edgelet_core::UrlExt;
@@ -24,11 +26,29 @@ fn main() -> Result<(), Error> {
             clap::SubCommand::with_name("edge-agent")
                 .about("edge-agent diagnostics")
                 .arg(
-                    clap::Arg::with_name("MANAGEMENT_URI")
-                        .long("--management-uri")
+                    clap::Arg::with_name("management-uri")
+                        .long("management-uri")
                         .required(true)
                         .takes_value(true)
                         .help("URI of management endpoint"),
+                ),
+        )
+        .subcommand(
+            clap::SubCommand::with_name("iothub")
+                .about("connect to Azure IoT Hub")
+                .arg(
+                    clap::Arg::with_name("hostname")
+                        .long("hostname")
+                        .required(true)
+                        .takes_value(true)
+                        .help("Hostname of Azure IoT Hub"),
+                )
+                .arg(
+                    clap::Arg::with_name("port")
+                        .long("port")
+                        .required(true)
+                        .takes_value(true)
+                        .help("Port to connect to"),
                 ),
         )
         .subcommand(clap::SubCommand::with_name("local-time").about("print local time"))
@@ -36,8 +56,8 @@ fn main() -> Result<(), Error> {
             clap::SubCommand::with_name("idle-module")
                 .about("idle for some time, then exit")
                 .arg(
-                    clap::Arg::with_name("DURATION")
-                        .long("--duration")
+                    clap::Arg::with_name("duration")
+                        .long("duration")
                         .required(true)
                         .takes_value(true)
                         .help("How long to idle for, in seconds"),
@@ -47,8 +67,8 @@ fn main() -> Result<(), Error> {
             clap::SubCommand::with_name("resolve-module")
                 .about("tries to resolve the specified module")
                 .arg(
-                    clap::Arg::with_name("HOSTNAME")
-                        .long("--hostname")
+                    clap::Arg::with_name("hostname")
+                        .long("hostname")
                         .required(true)
                         .takes_value(true)
                         .help("The hostname to resolve"),
@@ -63,7 +83,7 @@ fn main() -> Result<(), Error> {
     match matches.subcommand() {
         ("edge-agent", Some(matches)) => {
             let management_uri = matches
-                .value_of("MANAGEMENT_URI")
+                .value_of("management-uri")
                 .expect("parameter is required");
             let management_uri = url::Url::parse(management_uri)
                 .map_err(|err| format!("could not parse management URI: {}", err))?;
@@ -126,6 +146,27 @@ fn main() -> Result<(), Error> {
             runtime.block_on(f)?;
         }
 
+        ("iothub", Some(matches)) => {
+            let iothub_hostname = matches.value_of("hostname").expect("parameter is required");
+
+            let port = matches.value_of("port").expect("parameter is required");
+
+            let port = port
+                .parse()
+                .map_err(|err| format!("could not parse port: {}", err))?;
+
+            let iothub_host = (iothub_hostname, port)
+                .to_socket_addrs()
+                .map_err(|err| format!("could not resolve Azure IoT Hub hostname: {}", err))?
+                .next()
+                .ok_or_else(|| {
+                    "could not resolve Azure IoT Hub hostname: no addresses found".to_owned()
+                })?;
+
+            let _ = TcpStream::connect_timeout(&iothub_host, std::time::Duration::from_secs(10))
+                .map_err(|err| format!("could not connect to IoT Hub: {}", err))?;
+        }
+
         ("local-time", _) => {
             println!(
                 "{}",
@@ -137,7 +178,7 @@ fn main() -> Result<(), Error> {
         }
 
         ("idle-module", Some(matches)) => {
-            let duration = matches.value_of("DURATION").expect("parameter is required");
+            let duration = matches.value_of("duration").expect("parameter is required");
             let duration: u64 = duration
                 .parse()
                 .map_err(|err| format!("could not parse duration: {}", err))?;
@@ -146,7 +187,7 @@ fn main() -> Result<(), Error> {
         }
 
         ("resolve-module", Some(matches)) => {
-            let hostname = matches.value_of("HOSTNAME").expect("parameter is required");
+            let hostname = matches.value_of("hostname").expect("parameter is required");
 
             let _ = std::net::ToSocketAddrs::to_socket_addrs(&(hostname, 80))
                 .map_err(|err| format!("could not resolve {}: {}", hostname, err))?
