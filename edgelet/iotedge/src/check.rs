@@ -239,18 +239,27 @@ impl Check {
                         "host can connect to and perform TLS handshake with IoT Hub MQTT port",
                         |check| connection_to_iot_hub_host(check, 8883),
                     ),
-                    ("container can connect to IoT Hub AMQP port", |check| {
-                        connection_to_iot_hub_container(check, 5671)
+                    ("container on the default network can connect to IoT Hub AMQP port", |check| {
+                        connection_to_iot_hub_container(check, 5671, false)
                     }),
-                    ("container can connect to IoT Hub HTTPS port", |check| {
-                        connection_to_iot_hub_container(check, 443)
+                    ("container on the default network can connect to IoT Hub HTTPS port", |check| {
+                        connection_to_iot_hub_container(check, 443, false)
                     }),
-                    ("container can connect to IoT Hub MQTT port", |check| {
-                        connection_to_iot_hub_container(check, 8883)
+                    ("container on the default network can connect to IoT Hub MQTT port", |check| {
+                        connection_to_iot_hub_container(check, 8883, false)
+                    }),
+                    ("container on the IoT Edge module network can connect to IoT Hub AMQP port", |check| {
+                        connection_to_iot_hub_container(check, 5671, true)
+                    }),
+                    ("container on the IoT Edge module network can connect to IoT Hub HTTPS port", |check| {
+                        connection_to_iot_hub_container(check, 443, true)
+                    }),
+                    ("container on the IoT Edge module network can connect to IoT Hub MQTT port", |check| {
+                        connection_to_iot_hub_container(check, 8883, true)
                     }),
                     ("edge hub can bind to ports on host", edge_hub_ports_on_host),
                     (
-                        "modules on the container runtime network can resolve each other by name",
+                        "modules on the IoT Edge module network can resolve each other by name",
                         container_runtime_network,
                     ),
                 ],
@@ -1036,7 +1045,14 @@ fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResul
 fn connection_to_iot_hub_container(
     check: &mut Check,
     port: u16,
+    use_container_runtime_network: bool,
 ) -> Result<CheckResult, failure::Error> {
+    let settings = if let Some(settings) = &check.settings {
+        settings
+    } else {
+        return Ok(CheckResult::Skipped);
+    };
+
     let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
         docker_host_arg
     } else {
@@ -1049,25 +1065,36 @@ fn connection_to_iot_hub_container(
         return Ok(CheckResult::Skipped);
     };
 
+    let network_name = settings.moby_runtime().network();
+
     let port = port.to_string();
 
-    let output = docker(
-        docker_host_arg,
-        vec![
-            "run",
-            "--rm",
-            &check.diagnostics_image_name,
-            "/iotedge-diagnostics",
-            "iothub",
-            "--hostname",
-            iothub_hostname,
-            "--port",
-            &port,
-        ],
-    )?;
+    let mut args = vec!["run", "--rm"];
+
+    if use_container_runtime_network {
+        args.extend(&["--network", network_name]);
+    }
+
+    args.extend(&[
+        &check.diagnostics_image_name,
+        "/iotedge-diagnostics",
+        "iothub",
+        "--hostname",
+        iothub_hostname,
+        "--port",
+        &port,
+    ]);
+
+    let output = docker(docker_host_arg, args)?;
     if !output.status.success() {
         return Err(Context::new(format!(
-            "docker returned {}, stderr = {}",
+            "container on the {} network could not connect to Azure IoT Hub\n\
+             docker returned {}, stderr = {}",
+            if use_container_runtime_network {
+                network_name
+            } else {
+                "default"
+            },
             output.status,
             String::from_utf8_lossy(&*output.stderr)
         ))
