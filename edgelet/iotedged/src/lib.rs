@@ -516,7 +516,8 @@ where
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
     let (work_tx, work_rx) = oneshot::channel();
 
-    let cert_manager = CertificateManager::new(crypto.clone());
+    let cert_manager = CertificateManager::new(crypto.clone())
+        .context(ErrorKind::Initialize(InitializeErrorReason::CreateTLSCertificate))?;
 
     let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, &cert_manager);
 

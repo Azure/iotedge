@@ -12,7 +12,8 @@
 use std::sync::{Mutex, MutexGuard};
 use std::{env, io};
 
-use edgelet_http::HyperExt;
+use edgelet_hsm::Crypto;
+use edgelet_http::{CertificateManager, HyperExt};
 use futures::{future, Future};
 use hyper::server::conn::Http;
 use hyper::service::Service;
@@ -95,6 +96,10 @@ fn test_fd_ok() {
     // set the env var so that it contains the created fd
     env::set_var(ENV_FDS, format!("{}", fd - LISTEN_FDS_START + 1));
 
+
+    let crypto = Crypto::new().unwrap();
+    let cert_manager = CertificateManager::new(crypto.clone()).unwrap();
+
     let url = Url::parse(&format!("fd://{}", fd - LISTEN_FDS_START)).unwrap();
     let run = Http::new().bind_url(url, move || {
         let service = TestService {
@@ -102,7 +107,7 @@ fn test_fd_ok() {
             error: false,
         };
         Ok::<_, io::Error>(service)
-    });
+    }, &cert_manager);
     if let Err(err) = run {
         unistd::close(fd).unwrap();
         panic!("{:?}", err);
@@ -124,6 +129,9 @@ fn test_fd_err() {
     // set the env var so that it contains the created fd
     env::set_var(ENV_FDS, format!("{}", fd - listen_fds_start + 1));
 
+    let crypto = Crypto::new().unwrap();
+    let cert_manager = CertificateManager::new(crypto.clone()).unwrap();
+
     let url = Url::parse("fd://100").unwrap();
     let run = Http::new().bind_url(url, move || {
         let service = TestService {
@@ -131,7 +139,7 @@ fn test_fd_err() {
             error: false,
         };
         Ok::<_, io::Error>(service)
-    });
+    }, &cert_manager);
 
     unistd::close(fd).unwrap();
     assert!(run.is_err());

@@ -3,6 +3,9 @@ use std::str;
 
 use edgelet_core::crypto::{Certificate, CreateCertificate};
 use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType};
+use failure::{ResultExt};
+
+pub use crate::error::{Error, ErrorKind};
 
 const IOTEDGED_VALIDITY: u64 = 7_776_000; // 90 days
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedge tls";
@@ -19,7 +22,7 @@ pub struct CertificateManager<C: CreateCertificate + Clone> {
 #[allow(dead_code)]
 impl<C: CreateCertificate + Clone> CertificateManager<C> {
 
-    pub fn new(crypto_struct: C) -> Self
+    pub fn new(crypto_struct: C) -> Result<Self, Error>
     { 
         let edgelet_cert_props = CertificateProperties::new(
             IOTEDGED_VALIDITY,
@@ -31,16 +34,24 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
 
         let cert = crypto_struct
             .create_certificate(&edgelet_cert_props)
-            .unwrap();
+            .with_context(|_| {
+                ErrorKind::CertificateCreationError
+            })?;
 
-        let cert_pem = cert.pem().unwrap();
+        let cert_pem = cert.pem()
+            .with_context(|_| {
+                ErrorKind::CertificateCreationError
+            })?;
 
-        let cert_str = String::from_utf8(cert_pem.as_ref().to_vec()).unwrap().to_string();
+        let cert_str = String::from_utf8(cert_pem.as_ref().to_vec())
+            .with_context(|_| {
+                ErrorKind::CertificateCreationError
+            })?;
 
-        CertificateManager {
-            certificate: cert_str,
+        Ok(CertificateManager {
+            certificate: cert_str.to_string(),
             crypto: crypto_struct,
-        }
+        })
     }
 
     pub fn get_certificate(&self) -> String {
