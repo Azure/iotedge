@@ -6,7 +6,7 @@ FROM arm32v7/buildpack-deps:bionic as builder
 RUN apt-get update && \
     apt-get install -y libsnappy-dev
 
-RUN git clone -b v5.4.6 --depth 1 https://github.com/facebook/rocksdb.git && \
+RUN git clone -b v5.17.2 --depth 1 https://github.com/facebook/rocksdb.git && \
     cd rocksdb && \
     CFLAGS="-static-libstdc++ -Wno-psabi -DSNAPPY" PORTABLE=1 make -j ${num_procs} shared_lib && \
     strip librocksdb.so && \
