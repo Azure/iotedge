@@ -16,7 +16,8 @@ RUN git clone -b v5.17.2 --depth 1 https://github.com/facebook/rocksdb.git && \
 FROM microsoft/dotnet:${base_tag}
 
 # Add an unprivileged user account for running Edge Hub
-RUN useradd -ms /bin/bash edgehubuser
+ARG EDGEHUBUSER_ID=1000
+RUN useradd -ms /bin/bash -u ${EDGEHUBUSER_ID} edgehubuser
 ENV EdgeHubUser=edgehubuser
 
 RUN apt-get update && apt-get install -y libcap2-bin libsnappy1v5 && \
