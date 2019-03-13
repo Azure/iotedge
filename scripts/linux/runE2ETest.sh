@@ -32,12 +32,12 @@ Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/iotedge.service.d/o
 
 function get_image_architecture_label() {
     local arch
-    arch="$(uname -p)"
+    arch="$(uname -m)"
     local label
 
     case "$arch" in
         'x86_64' ) label='amd64';;
-        'armhf' ) label='arm32v7';;
+        'armv71' ) label='arm32v7';;
         *) print_error "Unsupported OS architecture: $arch"; exit 1;;
     esac
 
