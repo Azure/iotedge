@@ -1,5 +1,6 @@
 
 use std::str;
+use std::sync::{Arc, RwLock};
 
 use edgelet_core::crypto::{Certificate, CreateCertificate};
 use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType};
@@ -10,10 +11,9 @@ pub use crate::error::{Error, ErrorKind};
 const IOTEDGED_VALIDITY: u64 = 7_776_000; // 90 days
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedge tls";
 
-#[allow(dead_code)]
 #[derive(Clone)]
 pub struct CertificateManager<C: CreateCertificate + Clone> { 
-    certificate: String,
+    certificate: Arc<RwLock<String>>,
     crypto: C,
 }
 
@@ -49,17 +49,23 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
             })?;
 
         Ok(CertificateManager {
-            certificate: cert_str.to_string(),
+            certificate: Arc::new(RwLock::new(cert_str.to_string())),
             crypto: crypto_struct,
         })
     }
 
     pub fn get_certificate(&self) -> String {
-        self.certificate.clone()
+        self.certificate
+                .read()
+                .expect("Locking the certificate failed.")
+                .to_string()
     }
 
     pub fn has_cert(&self) -> bool {
-        self.certificate.len() > 0
+        self.certificate
+                .read()
+                .expect("Locking the certificate failed.")
+                .len() > 0
     }
 }
 
