@@ -13,7 +13,6 @@ const IOTEDGED_TLS_COMMONNAME: &str = "iotedge tls";
 #[allow(dead_code)]
 #[derive(Clone)]
 pub struct CertificateManager<C: CreateCertificate + Clone> { 
-    // Add Arc?
     certificate: String,
     crypto: C,
 }
@@ -66,10 +65,82 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
 
 #[cfg(test)]
 mod tests {
-    //use edgelet_test_utils::cert::TestCert;
+    use super::*;
+
+    use chrono::{DateTime, Utc};
+
+    use edgelet_core::{
+        Certificate as CoreCertificate, CertificateProperties as CoreCertificateProperties,
+        CreateCertificate as CoreCreateCertificate,
+        Error as CoreError, 
+        PrivateKey as CorePrivateKey,
+    };
+
 
     #[test]
-    pub fn test_fake() {
-        assert_eq!(true, true);
+    pub fn test_manager_has_cert() {
+        let crypto = TestCrypto::new().unwrap();
+
+        let manager = CertificateManager::new(crypto.clone()).unwrap();
+
+        assert_eq!(manager.has_cert(), true);
+    }
+
+    #[test]
+    pub fn test_manager_cert_pem() {
+        let crypto = TestCrypto::new().unwrap();
+
+        let manager = CertificateManager::new(crypto.clone()).unwrap();
+
+        assert_eq!(manager.get_certificate(), "test".to_string());
+    }
+
+    #[derive(Clone)]
+    struct TestCrypto {
+        created: bool,
+    }
+
+    impl TestCrypto
+    {
+        pub fn new() -> Result<Self, CoreError> {
+            Ok(TestCrypto{
+                created: true
+            })
+        }
+    }
+
+    impl CoreCreateCertificate for TestCrypto {
+        type Certificate = TestCertificate;
+
+        fn create_certificate(
+            &self,
+            _properties: &CoreCertificateProperties,
+        ) -> Result<Self::Certificate, CoreError> {
+
+            Ok(TestCertificate{})
+        }
+
+        fn destroy_certificate(&self, _alias: String) -> Result<(), CoreError> {
+            Ok(())
+        }
+    }
+
+    struct TestCertificate {}
+
+    impl CoreCertificate for TestCertificate {
+        type Buffer = String;
+        type KeyBuffer = Vec<u8>;
+
+        fn pem(&self) -> Result<Self::Buffer, CoreError> {
+           Ok("test".to_string())
+        }
+
+        fn get_private_key(&self) -> Result<Option<CorePrivateKey<Self::KeyBuffer>>, CoreError> {
+            Ok(None)
+        }
+
+        fn get_valid_to(&self) -> Result<DateTime<Utc>, CoreError> {
+            Ok(DateTime::parse_from_rfc3339("2025-12-19T16:39:57-08:00").unwrap().with_timezone(&Utc))
+        }
     }
 }
