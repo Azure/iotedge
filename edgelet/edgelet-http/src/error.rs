@@ -69,6 +69,12 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred in the service")]
     ServiceError,
 
+    #[fail(display = "An error occured configuring the TLS stack")]
+    TlsBootstrapError,
+
+    #[fail(display = "An error occured during creation of the TLS identity from cert")]
+    TlsIdentityCreationError,
+
     #[fail(display = "Token source error")]
     TokenSource,
 

@@ -220,9 +220,14 @@ impl HyperExt for Http {
                     None => return Err(Error::from(ErrorKind::CertificateCreationError)),
                 };
 
-                let cert_identity = Identity::from_pkcs12(cert.as_ref(), "").unwrap();
+                let cert = cert.with_context(|_| ErrorKind::TlsBootstrapError)?;
 
-                let tls_acceptor = TlsAcceptor::builder(cert_identity).build().unwrap();
+                let cert_identity = Identity::from_pkcs12(cert.as_ref(), "")
+                    .with_context(|_| ErrorKind::TlsIdentityCreationError)?;
+
+                let tls_acceptor = TlsAcceptor::builder(cert_identity)
+                    .build()
+                    .with_context(|_| ErrorKind::TlsBootstrapError)?;
                 let tls_acceptor = tokio_tls::TlsAcceptor::from(tls_acceptor);
 
                 let listener = TcpListener::bind(&addr)
