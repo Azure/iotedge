@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 {
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
 
     public class LogsUploadRequest
     {
@@ -14,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             this.SasUrl = sasUrl;
         }
 
+        [JsonConstructor]
         LogsUploadRequest(string id, LogsContentEncoding? encoding, LogsContentType? contentType, string sasUrl)
             : this(id, encoding.HasValue ? encoding.Value : LogsContentEncoding.None, contentType.HasValue ? contentType.Value : LogsContentType.Json, sasUrl)
         {
