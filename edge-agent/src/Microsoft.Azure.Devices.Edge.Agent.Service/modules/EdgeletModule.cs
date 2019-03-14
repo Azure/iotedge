@@ -101,9 +101,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<Task<ICommandFactory>>()
                 .SingleInstance();
 
-            // IModuleRuntimeInfoProvider
-            builder.Register(c => new RuntimeInfoProvider<DockerReportedConfig>(c.Resolve<IModuleManager>()))
-                .As<IRuntimeInfoProvider>()
+            // Task<IRuntimeInfoProvider>
+            builder.Register(c => Task.FromResult(new RuntimeInfoProvider<DockerReportedConfig>(c.Resolve<IModuleManager>()) as IRuntimeInfoProvider))
+                .As<Task<IRuntimeInfoProvider>>()
                 .SingleInstance();
 
             // Task<IEnvironmentProvider>

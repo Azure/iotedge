@@ -245,7 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var environmentProvider = c.Resolve<Task<IEnvironmentProvider>>();
                         var planner = c.Resolve<Task<IPlanner>>();
                         var planRunner = c.Resolve<IPlanRunner>();
-                        var reporter = c.Resolve<IReporter>();
+                        var reporter = c.Resolve<Task<IReporter>>();
                         var moduleIdentityLifecycleManager = c.Resolve<IModuleIdentityLifecycleManager>();
                         var deploymentConfigInfoSerde = c.Resolve<ISerde<DeploymentConfigInfo>>();
                         var deploymentConfigInfoStore = c.Resolve<IEntityStore<string, string>>();
@@ -254,7 +254,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             await configSource,
                             await planner,
                             planRunner,
-                            reporter,
+                            await reporter,
                             moduleIdentityLifecycleManager,
                             await environmentProvider,
                             deploymentConfigInfoStore,
