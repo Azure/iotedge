@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt;
-use std::io::{self, Read, Write, ErrorKind};
+use std::io::{self, ErrorKind, Read, Write};
 use std::net::SocketAddr;
 #[cfg(unix)]
 use std::os::unix::net::SocketAddr as UnixSocketAddr;
@@ -9,18 +9,18 @@ use std::path::Path;
 
 use bytes::{Buf, BufMut};
 use edgelet_core::pid::Pid;
-use futures::{Async, Poll, Future};
+use futures::{Async, Future, Poll};
 #[cfg(windows)]
 use mio_uds_windows::net::SocketAddr as UnixSocketAddr;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpStream;
 #[cfg(windows)]
 use tokio_named_pipe::PipeStream;
+use tokio_tls::{Accept, TlsStream};
 #[cfg(unix)]
 use tokio_uds::UnixStream;
 #[cfg(windows)]
 use tokio_uds_windows::UnixStream;
-use tokio_tls::{TlsStream, Accept};
 
 use crate::pid::UnixStreamExt;
 
@@ -62,10 +62,10 @@ impl Read for StreamSelector {
             StreamSelector::TlsConnecting(stream) => match stream.poll() {
                 Ok(Async::Ready(stream)) => {
                     *self = StreamSelector::TlsConnected(stream);
-                    return self.read(buf)
-                },
+                    return self.read(buf);
+                }
                 Ok(Async::NotReady) => return Err(ErrorKind::WouldBlock.into()),
-                Err(e) => return Err(io::Error::new(ErrorKind::Other, e))
+                Err(e) => return Err(io::Error::new(ErrorKind::Other, e)),
             },
             StreamSelector::TlsConnected(stream) => return stream.read(buf),
             #[cfg(windows)]
@@ -82,10 +82,10 @@ impl Write for StreamSelector {
             StreamSelector::TlsConnecting(stream) => match stream.poll() {
                 Ok(Async::Ready(stream)) => {
                     *self = StreamSelector::TlsConnected(stream);
-                    return self.write(buf)
-                },
+                    return self.write(buf);
+                }
                 Ok(Async::NotReady) => return Err(ErrorKind::WouldBlock.into()),
-                Err(e) => return Err(io::Error::new(ErrorKind::Other, e))
+                Err(e) => return Err(io::Error::new(ErrorKind::Other, e)),
             },
             StreamSelector::TlsConnected(stream) => return stream.write(buf),
             #[cfg(windows)]
@@ -100,10 +100,10 @@ impl Write for StreamSelector {
             StreamSelector::TlsConnecting(stream) => match stream.poll() {
                 Ok(Async::Ready(stream)) => {
                     *self = StreamSelector::TlsConnected(stream);
-                    return self.flush()
-                },
+                    return self.flush();
+                }
                 Ok(Async::NotReady) => return Err(ErrorKind::WouldBlock.into()),
-                Err(e) => return Err(io::Error::new(ErrorKind::Other, e))
+                Err(e) => return Err(io::Error::new(ErrorKind::Other, e)),
             },
             StreamSelector::TlsConnected(stream) => return stream.flush(),
             #[cfg(windows)]
@@ -139,10 +139,10 @@ impl AsyncRead for StreamSelector {
             StreamSelector::TlsConnecting(stream) => match stream.poll() {
                 Ok(Async::Ready(stream)) => {
                     *self = StreamSelector::TlsConnected(stream);
-                    return self.read_buf(buf)
-                },
+                    return self.read_buf(buf);
+                }
                 Ok(Async::NotReady) => return Ok(Async::NotReady),
-                Err(e) => return Err(io::Error::new(ErrorKind::Other, e))
+                Err(e) => return Err(io::Error::new(ErrorKind::Other, e)),
             },
             StreamSelector::TlsConnected(stream) => return stream.read_buf(buf),
             #[cfg(windows)]
@@ -171,10 +171,10 @@ impl AsyncWrite for StreamSelector {
             StreamSelector::TlsConnecting(stream) => match stream.poll() {
                 Ok(Async::Ready(stream)) => {
                     *self = StreamSelector::TlsConnected(stream);
-                    return self.write_buf(buf)
-                },
+                    return self.write_buf(buf);
+                }
                 Ok(Async::NotReady) => return Ok(Async::NotReady),
-                Err(e) => return Err(io::Error::new(ErrorKind::Other, e))
+                Err(e) => return Err(io::Error::new(ErrorKind::Other, e)),
             },
             StreamSelector::TlsConnected(stream) => return stream.write_buf(buf),
             #[cfg(windows)]

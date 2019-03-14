@@ -48,7 +48,10 @@ impl Stream for Incoming {
 
                 accept.map(|(stream, addr)| {
                     let accepted_stream = acceptor.accept(stream);
-                    Some((StreamSelector::TlsConnecting(accepted_stream), IncomingSocketAddr::Tcp(addr)))
+                    Some((
+                        StreamSelector::TlsConnecting(accepted_stream),
+                        IncomingSocketAddr::Tcp(addr),
+                    ))
                 })
             }
             Incoming::Unix(ref mut listener) => {

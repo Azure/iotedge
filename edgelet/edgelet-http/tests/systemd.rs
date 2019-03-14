@@ -97,13 +97,17 @@ fn test_fd_ok() {
     env::set_var(ENV_FDS, format!("{}", fd - LISTEN_FDS_START + 1));
 
     let url = Url::parse(&format!("fd://{}", fd - LISTEN_FDS_START)).unwrap();
-    let run = Http::new().bind_url(url, move || {
-        let service = TestService {
-            status_code: StatusCode::OK,
-            error: false,
-        };
-        Ok::<_, io::Error>(service)
-    }, None::<&CertificateManager<Crypto>>);
+    let run = Http::new().bind_url(
+        url,
+        move || {
+            let service = TestService {
+                status_code: StatusCode::OK,
+                error: false,
+            };
+            Ok::<_, io::Error>(service)
+        },
+        None::<&CertificateManager<Crypto>>,
+    );
     if let Err(err) = run {
         unistd::close(fd).unwrap();
         panic!("{:?}", err);
@@ -126,13 +130,17 @@ fn test_fd_err() {
     env::set_var(ENV_FDS, format!("{}", fd - listen_fds_start + 1));
 
     let url = Url::parse("fd://100").unwrap();
-    let run = Http::new().bind_url(url, move || {
-        let service = TestService {
-            status_code: StatusCode::OK,
-            error: false,
-        };
-        Ok::<_, io::Error>(service)
-    }, None::<&CertificateManager<Crypto>>);
+    let run = Http::new().bind_url(
+        url,
+        move || {
+            let service = TestService {
+                status_code: StatusCode::OK,
+                error: false,
+            };
+            Ok::<_, io::Error>(service)
+        },
+        None::<&CertificateManager<Crypto>>,
+    );
 
     unistd::close(fd).unwrap();
     assert!(run.is_err());

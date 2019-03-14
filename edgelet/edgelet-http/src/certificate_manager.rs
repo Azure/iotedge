@@ -1,10 +1,9 @@
-
 use std::str;
 use std::sync::{Arc, RwLock};
 
 use edgelet_core::crypto::{Certificate, CreateCertificate};
 use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType};
-use failure::{ResultExt};
+use failure::ResultExt;
 
 pub use crate::error::{Error, ErrorKind};
 
@@ -12,18 +11,14 @@ const IOTEDGED_VALIDITY: u64 = 7_776_000; // 90 days
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedge tls";
 
 #[derive(Clone)]
-pub struct CertificateManager<C: CreateCertificate + Clone> { 
+pub struct CertificateManager<C: CreateCertificate + Clone> {
     certificate: Arc<RwLock<String>>,
     crypto: C,
 }
 
-
 #[allow(dead_code)]
 impl<C: CreateCertificate + Clone> CertificateManager<C> {
-
-    pub fn new(crypto_struct: C) -> Result<Self, Error>
-    { 
-
+    pub fn new(crypto_struct: C) -> Result<Self, Error> {
         let edgelet_cert_props = CertificateProperties::new(
             IOTEDGED_VALIDITY,
             IOTEDGED_TLS_COMMONNAME.to_string(),
@@ -34,19 +29,14 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
 
         let cert = crypto_struct
             .create_certificate(&edgelet_cert_props)
-            .with_context(|_| {
-                ErrorKind::CertificateCreationError
-            })?;
+            .with_context(|_| ErrorKind::CertificateCreationError)?;
 
-        let cert_pem = cert.pem()
-            .with_context(|_| {
-                ErrorKind::CertificateCreationError
-            })?;
+        let cert_pem = cert
+            .pem()
+            .with_context(|_| ErrorKind::CertificateCreationError)?;
 
         let cert_str = String::from_utf8(cert_pem.as_ref().to_vec())
-            .with_context(|_| {
-                ErrorKind::CertificateCreationError
-            })?;
+            .with_context(|_| ErrorKind::CertificateCreationError)?;
 
         Ok(CertificateManager {
             certificate: Arc::new(RwLock::new(cert_str.to_string())),
@@ -56,16 +46,17 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
 
     pub fn get_certificate(&self) -> String {
         self.certificate
-                .read()
-                .expect("Locking the certificate failed.")
-                .to_string()
+            .read()
+            .expect("Locking the certificate failed.")
+            .to_string()
     }
 
     pub fn has_cert(&self) -> bool {
         self.certificate
-                .read()
-                .expect("Locking the certificate failed.")
-                .len() > 0
+            .read()
+            .expect("Locking the certificate failed.")
+            .len()
+            > 0
     }
 }
 
@@ -77,11 +68,9 @@ mod tests {
 
     use edgelet_core::{
         Certificate as CoreCertificate, CertificateProperties as CoreCertificateProperties,
-        CreateCertificate as CoreCreateCertificate,
-        Error as CoreError, 
+        CreateCertificate as CoreCreateCertificate, Error as CoreError,
         PrivateKey as CorePrivateKey,
     };
-
 
     #[test]
     pub fn test_manager_has_cert() {
@@ -106,12 +95,9 @@ mod tests {
         created: bool,
     }
 
-    impl TestCrypto
-    {
+    impl TestCrypto {
         pub fn new() -> Result<Self, CoreError> {
-            Ok(TestCrypto{
-                created: true
-            })
+            Ok(TestCrypto { created: true })
         }
     }
 
@@ -122,8 +108,7 @@ mod tests {
             &self,
             _properties: &CoreCertificateProperties,
         ) -> Result<Self::Certificate, CoreError> {
-
-            Ok(TestCertificate{})
+            Ok(TestCertificate {})
         }
 
         fn destroy_certificate(&self, _alias: String) -> Result<(), CoreError> {
@@ -138,7 +123,7 @@ mod tests {
         type KeyBuffer = Vec<u8>;
 
         fn pem(&self) -> Result<Self::Buffer, CoreError> {
-           Ok("test".to_string())
+            Ok("test".to_string())
         }
 
         fn get_private_key(&self) -> Result<Option<CorePrivateKey<Self::KeyBuffer>>, CoreError> {
@@ -146,7 +131,9 @@ mod tests {
         }
 
         fn get_valid_to(&self) -> Result<DateTime<Utc>, CoreError> {
-            Ok(DateTime::parse_from_rfc3339("2025-12-19T16:39:57-08:00").unwrap().with_timezone(&Utc))
+            Ok(DateTime::parse_from_rfc3339("2025-12-19T16:39:57-08:00")
+                .unwrap()
+                .with_timezone(&Utc))
         }
     }
 }

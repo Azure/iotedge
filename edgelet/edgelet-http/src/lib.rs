@@ -29,10 +29,10 @@ use tokio::net::TcpListener;
 use tokio_uds::UnixListener;
 use url::Url;
 
-use edgelet_core::{UrlExt, UNIX_SCHEME};
 use edgelet_core::crypto::CreateCertificate;
-use native_tls::{Identity, TlsAcceptor};
+use edgelet_core::{UrlExt, UNIX_SCHEME};
 use edgelet_utils::log_failure;
+use native_tls::{Identity, TlsAcceptor};
 
 pub mod authorization;
 pub mod certificate_manager;
@@ -164,14 +164,24 @@ where
 }
 
 pub trait HyperExt {
-    fn bind_url<C, S>(&self, url: Url, new_service: S, cert_manager: Option<&CertificateManager<C>>) -> Result<Server<S>, Error>
+    fn bind_url<C, S>(
+        &self,
+        url: Url,
+        new_service: S,
+        cert_manager: Option<&CertificateManager<C>>,
+    ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
         S: NewService<ReqBody = Body>;
 }
 
 impl HyperExt for Http {
-    fn bind_url<C, S>(&self, url: Url, new_service: S, cert_manager: Option<&CertificateManager<C>>) -> Result<Server<S>, Error>
+    fn bind_url<C, S>(
+        &self,
+        url: Url,
+        new_service: S,
+        cert_manager: Option<&CertificateManager<C>>,
+    ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
         S: NewService<ReqBody = Body>,
@@ -207,9 +217,7 @@ impl HyperExt for Http {
 
                 let cert = match cert_manager {
                     Some(cert_manager) => cert_manager.get_certificate(),
-                    None => {
-                        return Err(Error::from(ErrorKind::CertificateCreationError))
-                    }
+                    None => return Err(Error::from(ErrorKind::CertificateCreationError)),
                 };
 
                 let cert_identity = Identity::from_pkcs12(cert.as_ref(), "").unwrap();

@@ -10,7 +10,7 @@ use hyper::{Body, Request, Response, StatusCode};
 
 use edgelet_hsm::Crypto;
 use edgelet_http::route::{Builder, Parameters, Router};
-use edgelet_http::{CertificateManager, router};
+use edgelet_http::{router, CertificateManager};
 use edgelet_http::{Error as HttpError, HyperExt, Version};
 
 #[allow(clippy::needless_pass_by_value)]
@@ -84,7 +84,10 @@ fn main() {
     let addr = "tcp://0.0.0.0:8080".parse().unwrap();
 
     println!("Starting server on {}", addr);
-    let run = Http::new().bind_url(addr, router, None::<&CertificateManager<Crypto>>).unwrap().run();
+    let run = Http::new()
+        .bind_url(addr, router, None::<&CertificateManager<Crypto>>)
+        .unwrap()
+        .run();
 
     tokio::runtime::current_thread::Runtime::new()
         .unwrap()
