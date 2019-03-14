@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             }
 
             Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(logOptions.Id, true, Option.None<int>(), cancellationToken);
-            Events.ReceivedStream(streamingRequest.Id);
+            Events.ReceivedStream(logOptions.Id);
 
             await this.WriteLogsStreamToOutput(logOptions.Id, callback, logsStream, cancellationToken);
         }
@@ -125,7 +125,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             {
                 Log.LogInformation((int)EventIds.ReceivedStream, $"Initiating streaming logs for {id}");
             }
-
         }
     }
 }

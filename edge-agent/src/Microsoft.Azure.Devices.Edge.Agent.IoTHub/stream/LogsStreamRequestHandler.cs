@@ -30,61 +30,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
                 Events.RequestData(streamingRequest);
 
                 var logOptions = new ModuleLogOptions(streamingRequest.Id, LogsContentEncoding.None, LogsContentType.Text);
-                var socketCancellationTokenSource = new CancellationTokenSource();
-                Task ProcessLogsFrame(ArraySegment<byte> bytes)
+                using (var socketCancellationTokenSource = new CancellationTokenSource())
                 {
-                    if (clientWebSocket.State != WebSocketState.Open)
+                    Task ProcessLogsFrame(ArraySegment<byte> bytes)
                     {
-                        Events.WebSocketNotOpen(streamingRequest.Id, clientWebSocket.State);
-                        socketCancellationTokenSource.Cancel();
-                        return Task.CompletedTask;
+                        if (clientWebSocket.State != WebSocketState.Open)
+                        {
+                            Events.WebSocketNotOpen(streamingRequest.Id, clientWebSocket.State);
+                            socketCancellationTokenSource.Cancel();
+                            return Task.CompletedTask;
+                        }
+                        else
+                        {
+                            return clientWebSocket.SendAsync(bytes, WebSocketMessageType.Binary, true, cancellationToken);
+                        }
                     }
-                    else
-                    {
-                        return clientWebSocket.SendAsync(bytes, WebSocketMessageType.Binary, true, cancellationToken);
-                    }
-                }
-                using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, socketCancellationTokenSource.Token))
-                {
-                    await this.logsProvider.GetLogsStream(logOptions, ProcessLogsFrame, linkedCts.Token);
-                }
 
-                await this.WriteLogsStreamToOutput(streamingRequest.Id, clientWebSocket, stream, cancellationToken);
+                    using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, socketCancellationTokenSource.Token))
+                    {
+                        await this.logsProvider.GetLogsStream(logOptions, ProcessLogsFrame, linkedCts.Token);
+                    }
+                }
                 Events.StreamingCompleted(streamingRequest.Id);
             }
             catch (Exception e)
             {
                 Events.ErrorHandlingRequest(e);
-            }
-        }
-
-        async Task WriteLogsStreamToOutput(string id, IClientWebSocket clientWebSocket, Stream stream, CancellationToken cancellationToken)
-        {
-            var buf = new byte[1024];
-            try
-            {
-                while (true)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        Events.StreamingCancelled(id);
-                        break;
-                    }
-
-                    if (clientWebSocket.State != WebSocketState.Open)
-                    {
-                        Events.WebSocketNotOpen(id, clientWebSocket.State);
-                        break;
-                    }
-
-                    int count = await stream.ReadAsync(buf, 0, buf.Length, cancellationToken);
-                    var arrSeg = new ArraySegment<byte>(buf, 0, count);
-                    await clientWebSocket.SendAsync(arrSeg, WebSocketMessageType.Binary, true, cancellationToken);
-                }
-            }
-            catch(Exception ex)
-            {
-                Events.ErrorWhileStreaming(id, ex);
             }
         }
 
@@ -111,11 +82,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             {
                 ErrorHandlingRequest = IdStart,
                 RequestData,
-                ReceivedStream,
                 StreamingCompleted,
-                StreamingCancelled,
-                WebSocketNotOpen,
-                ErrorWhileStreaming
+                WebSocketNotOpen
             }
 
             public static void ErrorHandlingRequest(Exception e)
@@ -133,20 +101,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
                 Log.LogInformation((int)EventIds.StreamingCompleted, $"Completed streaming logs for {id}");
             }
 
-            public static void StreamingCancelled(string id)
-            {
-                Log.LogInformation((int)EventIds.StreamingCancelled, $"Streaming logs for {id} cancelled.");
-            }
-
             public static void WebSocketNotOpen(string id, WebSocketState state)
             {
                 Log.LogInformation((int)EventIds.WebSocketNotOpen, $"Terminating streaming logs for {id} because WebSocket state is {state}");
-            }
-
-            public static void ErrorWhileStreaming(string id, Exception ex)
-            {
-                Log.LogInformation((int)EventIds.ErrorWhileStreaming, $"Error streaming logs for {id}, terminating streaming operation.");
-                Log.LogDebug((int)EventIds.ErrorWhileStreaming, ex, $"Error streaming logs for {id}, terminating streaming operation.");
             }
         }
     }
