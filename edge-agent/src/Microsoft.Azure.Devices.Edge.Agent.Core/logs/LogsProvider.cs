@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         {
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
             Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(logOptions.Id, false, Option.None<int>(), Option.None<int>(), cancellationToken);
-            Events.ReceivedStream(streamingRequest.Id);
+            Events.ReceivedStream(logOptions.Id);
 
             byte[] logBytes = await this.GetProcessedLogs(logsStream, logOptions);
             return logBytes;

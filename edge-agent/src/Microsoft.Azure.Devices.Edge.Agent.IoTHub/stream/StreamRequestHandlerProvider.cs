@@ -3,23 +3,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
 {
     using System;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class StreamRequestHandlerProvider : IStreamRequestHandlerProvider
     {
         const string LogsStreamName = "Logs";
-        readonly IRuntimeInfoProvider runtimeInfoProvider;
+        readonly ILogsProvider logsProvider;
 
-        public StreamRequestHandlerProvider(IRuntimeInfoProvider runtimeInfoProvider)
+        public StreamRequestHandlerProvider(ILogsProvider logsProvider)
         {
-            this.runtimeInfoProvider = Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider));
+            this.logsProvider = Preconditions.CheckNotNull(logsProvider, nameof(logsProvider));
         }
 
         public bool TryGetHandler(string requestName, out IStreamRequestHandler handler)
         {
             if (requestName.Equals(LogsStreamName, StringComparison.OrdinalIgnoreCase))
             {
-                handler = new LogsStreamRequestHandler(this.runtimeInfoProvider);
+                handler = new LogsStreamRequestHandler(this.logsProvider);
                 return true;
             }
 
