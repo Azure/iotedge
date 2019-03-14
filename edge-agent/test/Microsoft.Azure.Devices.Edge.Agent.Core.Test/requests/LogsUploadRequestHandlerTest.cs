@@ -39,16 +39,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         public static IEnumerable<object[]> GetLogsUploadRequestHandlerData()
         {
             string sasUrl = $"https://test1.blob.core.windows.net/cont2?st={Guid.NewGuid()}";
-            yield return new object[] { @"{""id"": ""edgeAgent"",  ""sasUrl"": """"}", "edgeAgent", sasUrl, LogsContentEncoding.None, LogsContentType.Json };
+            yield return new object[] { @"{""id"": ""edgeAgent"",  ""sasUrl"": ""<sasurl>""}".Replace("<sasurl>", sasUrl), "edgeAgent", sasUrl, LogsContentEncoding.None, LogsContentType.Json };
 
             sasUrl = $"https://test1.blob.core.windows.net/cont2?st={Guid.NewGuid()}";
-            yield return new object[] { @"{""id"": ""edgeAgent"",  ""sasUrl"": """", ""encoding"": ""gzip""}", "edgeAgent", sasUrl, LogsContentEncoding.Gzip, LogsContentType.Json };
+            yield return new object[] { @"{""id"": ""edgeAgent"",  ""sasUrl"": ""<sasurl>"", ""encoding"": ""gzip""}".Replace("<sasurl>", sasUrl), "edgeAgent", sasUrl, LogsContentEncoding.Gzip, LogsContentType.Json };
 
             sasUrl = $"https://test1.blob.core.windows.net/cont2?st={Guid.NewGuid()}";
-            yield return new object[] { @"{""id"": ""edgeAgent"",  ""sasUrl"": """", ""encoding"": ""gzip"", ""contentType"": ""text""}", sasUrl, LogsContentEncoding.Gzip, LogsContentType.Text };
+            yield return new object[] { @"{""id"": ""edgeAgent"",  ""sasUrl"": ""<sasurl>"", ""encoding"": ""gzip"", ""contentType"": ""text""}".Replace("<sasurl>", sasUrl), "mod1", sasUrl, LogsContentEncoding.Gzip, LogsContentType.Text };
 
             sasUrl = $"https://test1.blob.core.windows.net/cont2?st={Guid.NewGuid()}";
-            yield return new object[] { @"{""id"": ""edgeAgent"",  ""sasUrl"": """", ""encoding"": ""none"", ""contentType"": ""json""}", sasUrl, LogsContentEncoding.None, LogsContentType.Json };
+            yield return new object[] { @"{""id"": ""edgeAgent"",  ""sasUrl"": ""<sasurl>"", ""encoding"": ""none"", ""contentType"": ""json""}".Replace("<sasurl>", sasUrl), "edgeHub", sasUrl, LogsContentEncoding.None, LogsContentType.Json };
         }
     }
 }
