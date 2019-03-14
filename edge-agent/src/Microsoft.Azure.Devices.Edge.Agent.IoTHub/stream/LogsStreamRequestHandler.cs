@@ -8,27 +8,47 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
     public class LogsStreamRequestHandler : IStreamRequestHandler
     {
-        readonly IRuntimeInfoProvider runtimeInfoProvider;
+        readonly ILogsProvider logsProvider;
 
-        public LogsStreamRequestHandler(IRuntimeInfoProvider runtimeInfoProvider)
+        public LogsStreamRequestHandler(ILogsProvider logsProvider)
         {
-            this.runtimeInfoProvider = Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider));
+            this.logsProvider = Preconditions.CheckNotNull(logsProvider, nameof(logsProvider));
         }
 
-        public async Task Handle(ClientWebSocket clientWebSocket, CancellationToken cancellationToken)
+        public async Task Handle(IClientWebSocket clientWebSocket, CancellationToken cancellationToken)
         {
             try
             {
                 LogsStreamingRequest streamingRequest = await this.ReadLogsStreamingRequest(clientWebSocket, cancellationToken);
                 Events.RequestData(streamingRequest);
-                Stream stream = await this.runtimeInfoProvider.GetModuleLogs(streamingRequest.Id, true, Option.None<int>(), cancellationToken);
-                Events.ReceivedStream(streamingRequest.Id);
+
+                var logOptions = new ModuleLogOptions(streamingRequest.Id, LogsContentEncoding.None, LogsContentType.Text);
+                var socketCancellationTokenSource = new CancellationTokenSource();
+                Task ProcessLogsFrame(ArraySegment<byte> bytes)
+                {
+                    if (clientWebSocket.State != WebSocketState.Open)
+                    {
+                        Events.WebSocketNotOpen(streamingRequest.Id, clientWebSocket.State);
+                        socketCancellationTokenSource.Cancel();
+                        return Task.CompletedTask;
+                    }
+                    else
+                    {
+                        return clientWebSocket.SendAsync(bytes, WebSocketMessageType.Binary, true, cancellationToken);
+                    }
+                }
+                using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, socketCancellationTokenSource.Token))
+                {
+                    await this.logsProvider.GetLogsStream(logOptions, ProcessLogsFrame, linkedCts.Token);
+                }
+
                 await this.WriteLogsStreamToOutput(streamingRequest.Id, clientWebSocket, stream, cancellationToken);
                 Events.StreamingCompleted(streamingRequest.Id);
             }
@@ -38,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             }
         }
 
-        async Task WriteLogsStreamToOutput(string id, ClientWebSocket clientWebSocket, Stream stream, CancellationToken cancellationToken)
+        async Task WriteLogsStreamToOutput(string id, IClientWebSocket clientWebSocket, Stream stream, CancellationToken cancellationToken)
         {
             var buf = new byte[1024];
             try
@@ -68,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             }
         }
 
-        async Task<LogsStreamingRequest> ReadLogsStreamingRequest(ClientWebSocket clientWebSocket, CancellationToken cancellationToken)
+        async Task<LogsStreamingRequest> ReadLogsStreamingRequest(IClientWebSocket clientWebSocket, CancellationToken cancellationToken)
         {
             var buf = new byte[1024];
             var arrSeg = new ArraySegment<byte>(buf);
@@ -108,27 +128,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
                 Log.LogInformation((int)EventIds.RequestData, $"Logs streaming request data - {streamingRequest.ToJson()}");
             }
 
-            public static void ReceivedStream(string id)
-            {
-                Log.LogInformation((int)EventIds.ReceivedStream, $"Initiating streaming logs for {id}");
-            }
-
             public static void StreamingCompleted(string id)
             {
                 Log.LogInformation((int)EventIds.StreamingCompleted, $"Completed streaming logs for {id}");
             }
 
-            internal static void StreamingCancelled(string id)
+            public static void StreamingCancelled(string id)
             {
                 Log.LogInformation((int)EventIds.StreamingCancelled, $"Streaming logs for {id} cancelled.");
             }
 
-            internal static void WebSocketNotOpen(string id, WebSocketState state)
+            public static void WebSocketNotOpen(string id, WebSocketState state)
             {
                 Log.LogInformation((int)EventIds.WebSocketNotOpen, $"Terminating streaming logs for {id} because WebSocket state is {state}");
             }
 
-            internal static void ErrorWhileStreaming(string id, Exception ex)
+            public static void ErrorWhileStreaming(string id, Exception ex)
             {
                 Log.LogInformation((int)EventIds.ErrorWhileStreaming, $"Error streaming logs for {id}, terminating streaming operation.");
                 Log.LogDebug((int)EventIds.ErrorWhileStreaming, ex, $"Error streaming logs for {id}, terminating streaming operation.");

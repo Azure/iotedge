@@ -21,6 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         Task<DeviceStreamRequest> WaitForDeviceStreamRequestAsync(CancellationToken cancellationToken);
 
-        Task AcceptDeviceStreamingRequest(DeviceStreamRequest deviceStreamRequest, CancellationToken cancellationToken);
+        Task<IClientWebSocket> AcceptDeviceStreamingRequestAndConnect(DeviceStreamRequest deviceStreamRequest, CancellationToken cancellationToken);
     }
 }

@@ -7,6 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
 
     public interface IStreamRequestHandler
     {
-        Task Handle(ClientWebSocket clientWebSocket, CancellationToken cancellationToken);
+        Task Handle(IClientWebSocket clientWebSocket, CancellationToken cancellationToken);
     }
 }

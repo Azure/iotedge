@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
 
         async Task ProcessStreamRequest(IModuleClient moduleClient)
         {
-            Option<(string requestName, ClientWebSocket clientWebSocket)> result = await this.WaitForStreamRequest(moduleClient);
+            Option<(string requestName, IClientWebSocket clientWebSocket)> result = await this.WaitForStreamRequest(moduleClient);
             // If we don't get a valid stream, release the lock.
             if (!result.HasValue)
             {
@@ -72,18 +72,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             }
         }
 
-        async Task<Option<(string requestName, ClientWebSocket clientWebSocket)>> WaitForStreamRequest(IModuleClient moduleClient)
+        async Task<Option<(string requestName, IClientWebSocket clientWebSocket)>> WaitForStreamRequest(IModuleClient moduleClient)
         {
-            var result = Option.None<(string, ClientWebSocket)>();
+            var result = Option.None<(string, IClientWebSocket)>();
             try
             {
                 DeviceStreamRequest deviceStreamRequest = await moduleClient.WaitForDeviceStreamRequestAsync(this.cts.Token);
                 if (deviceStreamRequest != null)
                 {
-                    await moduleClient.AcceptDeviceStreamingRequest(deviceStreamRequest, this.cts.Token);
-                    var clientWebSocket = new ClientWebSocket();
-                    clientWebSocket.Options.SetRequestHeader("Authorization", $"Bearer {deviceStreamRequest.AuthorizationToken}");
-                    await clientWebSocket.ConnectAsync(deviceStreamRequest.Url, this.cts.Token);
+                    IClientWebSocket clientWebSocket = await moduleClient.AcceptDeviceStreamingRequestAndConnect(deviceStreamRequest, this.cts.Token);
                     result = Option.Some((deviceStreamRequest.Name, clientWebSocket));
                 }
             }
@@ -95,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             return result;
         }
 
-        async void HandleRequest(string requestName, ClientWebSocket clientWebSocket)
+        async void HandleRequest(string requestName, IClientWebSocket clientWebSocket)
         {
             try
             {
@@ -123,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             }
         }
 
-        async Task CloseWebSocketConnection(string requestName, ClientWebSocket clientWebSocket, WebSocketCloseStatus webSocketCloseStatus, string message)
+        async Task CloseWebSocketConnection(string requestName, IClientWebSocket clientWebSocket, WebSocketCloseStatus webSocketCloseStatus, string message)
         {
             try
             {

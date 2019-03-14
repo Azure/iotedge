@@ -1,12 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     public class LogsProvider : ILogsProvider
     {
@@ -14,16 +16,59 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         readonly ILogsProcessor logsProcessor;
 
         public LogsProvider(IRuntimeInfoProvider runtimeInfoProvider, ILogsProcessor logsProcessor)
-        {
+        {            
             this.runtimeInfoProvider = Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider));
             this.logsProcessor = Preconditions.CheckNotNull(logsProcessor, nameof(logsProcessor));
         }
 
         public async Task<byte[]> GetLogs(ModuleLogOptions logOptions, CancellationToken cancellationToken)
         {
+            Preconditions.CheckNotNull(logOptions, nameof(logOptions));
             Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(logOptions.Id, false, Option.None<int>(), Option.None<int>(), cancellationToken);
+            Events.ReceivedStream(streamingRequest.Id);
+
             byte[] logBytes = await this.GetProcessedLogs(logsStream, logOptions);
             return logBytes;
+        }
+
+        public async Task GetLogsStream(ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
+        {
+            Preconditions.CheckNotNull(logOptions, nameof(logOptions));
+            Preconditions.CheckNotNull(callback, nameof(callback));
+
+            if (logOptions.ContentEncoding != LogsContentEncoding.None || logOptions.ContentType != LogsContentType.Text)
+            {
+                throw new NotImplementedException();
+            }
+
+            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(logOptions.Id, true, Option.None<int>(), cancellationToken);
+            Events.ReceivedStream(streamingRequest.Id);
+
+            await this.WriteLogsStreamToOutput(logOptions.Id, callback, logsStream, cancellationToken);
+        }
+
+        async Task WriteLogsStreamToOutput(string id, Func<ArraySegment<byte>, Task> callback, Stream stream, CancellationToken cancellationToken)
+        {
+            var buf = new byte[1024];
+            try
+            {
+                while (true)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        Events.StreamingCancelled(id);
+                        break;
+                    }
+
+                    int count = await stream.ReadAsync(buf, 0, buf.Length, cancellationToken);
+                    var arrSeg = new ArraySegment<byte>(buf, 0, count);
+                    await callback(arrSeg);
+                }
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorWhileProcessingStream(id, ex);
+            }
         }
 
         static byte[] ProcessByContentEncoding(byte[] bytes, LogsContentEncoding contentEncoding) =>
@@ -51,6 +96,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                     string logTextString = logTexts.Join(string.Empty);
                     return logTextString.ToBytes();
             }
+        }
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<LogsProvider>();
+            const int IdStart = AgentEventIds.LogsProvider;
+
+            enum EventIds
+            {
+                StreamingCancelled = IdStart,
+                ErrorWhileStreaming,
+                ReceivedStream
+            }
+
+            public static void ErrorWhileProcessingStream(string id, Exception ex)
+            {
+                Log.LogInformation((int)EventIds.ErrorWhileStreaming, $"Error streaming logs for {id}, terminating streaming operation.");
+                Log.LogDebug((int)EventIds.ErrorWhileStreaming, ex, $"Error streaming logs for {id}, terminating streaming operation.");
+            }
+
+            public static void StreamingCancelled(string id)
+            {
+                Log.LogInformation((int)EventIds.StreamingCancelled, $"Streaming logs for {id} cancelled.");
+            }
+
+            public static void ReceivedStream(string id)
+            {
+                Log.LogInformation((int)EventIds.ReceivedStream, $"Initiating streaming logs for {id}");
+            }
+
         }
     }
 }
