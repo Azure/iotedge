@@ -10,7 +10,8 @@ RUN apk update && \
     apk add --no-cache snappy libcap
 
 # Add an unprivileged user account for running Edge Hub
-RUN adduser -Ds /bin/sh edgehubuser 
+ARG EDGEHUBUSER_ID=1000
+RUN adduser -Ds /bin/sh -u ${EDGEHUBUSER_ID} edgehubuser 
 
 # Add the CAP_NET_BIND_SERVICE capability to the dotnet binary because
 # we are starting Edge Hub as a non-root user
