@@ -4,11 +4,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
-    using DeviceStreamRequest = Microsoft.Azure.Devices.Client.DeviceStreamRequest;
 
     [Unit]
     public class StreamRequestListenerTest
@@ -34,9 +34,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
             moduleClient.Setup(m => m.AcceptDeviceStreamingRequestAndConnect(deviceStreamRequest1, It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(clientWebSocket1.Object));
             moduleClient.Setup(m => m.AcceptDeviceStreamingRequestAndConnect(deviceStreamRequest2, It.IsAny<CancellationToken>()))
-               .Returns(Task.FromResult(clientWebSocket2.Object));
+                .Returns(Task.FromResult(clientWebSocket2.Object));
             moduleClient.Setup(m => m.AcceptDeviceStreamingRequestAndConnect(deviceStreamRequest3, It.IsAny<CancellationToken>()))
-               .Returns(Task.FromResult(clientWebSocket3.Object));
+                .Returns(Task.FromResult(clientWebSocket3.Object));
 
             var requestHandler1TaskCompletionSource = new TaskCompletionSource<bool>();
             var streamRequestHandlerType1Mock = new Mock<IStreamRequestHandler>();
@@ -53,9 +53,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
             streamRequestHandlerType3Mock.Setup(s => s.Handle(clientWebSocket3.Object, It.IsAny<CancellationToken>()))
                 .Returns(requestHandler3TaskCompletionSource.Task);
 
-            var streamRequestHandlerType1 = streamRequestHandlerType1Mock.Object;
-            var streamRequestHandlerType2 = streamRequestHandlerType2Mock.Object;
-            var streamRequestHandlerType3 = streamRequestHandlerType3Mock.Object;
+            IStreamRequestHandler streamRequestHandlerType1 = streamRequestHandlerType1Mock.Object;
+            IStreamRequestHandler streamRequestHandlerType2 = streamRequestHandlerType2Mock.Object;
+            IStreamRequestHandler streamRequestHandlerType3 = streamRequestHandlerType3Mock.Object;
 
             var streamRequestHandlerProvider = new Mock<IStreamRequestHandlerProvider>();
             streamRequestHandlerProvider.Setup(s => s.TryGetHandler("Type1", out streamRequestHandlerType1)).Returns(true);

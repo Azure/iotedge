@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         readonly ILogsProcessor logsProcessor;
 
         public LogsProvider(IRuntimeInfoProvider runtimeInfoProvider, ILogsProcessor logsProcessor)
-        {            
+        {
             this.runtimeInfoProvider = Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider));
             this.logsProcessor = Preconditions.CheckNotNull(logsProcessor, nameof(logsProcessor));
         }
@@ -47,6 +47,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             await this.WriteLogsStreamToOutput(logOptions.Id, callback, logsStream, cancellationToken);
         }
 
+        static byte[] ProcessByContentEncoding(byte[] bytes, LogsContentEncoding contentEncoding) =>
+            contentEncoding == LogsContentEncoding.Gzip
+                ? Compression.CompressToGzip(bytes)
+                : bytes;
+
         async Task WriteLogsStreamToOutput(string id, Func<ArraySegment<byte>, Task> callback, Stream stream, CancellationToken cancellationToken)
         {
             var buf = new byte[1024];
@@ -76,11 +81,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                 Events.ErrorWhileProcessingStream(id, ex);
             }
         }
-
-        static byte[] ProcessByContentEncoding(byte[] bytes, LogsContentEncoding contentEncoding) =>
-            contentEncoding == LogsContentEncoding.Gzip
-                ? Compression.CompressToGzip(bytes)
-                : bytes;
 
         async Task<byte[]> GetProcessedLogs(Stream logsStream, ModuleLogOptions logOptions)
         {

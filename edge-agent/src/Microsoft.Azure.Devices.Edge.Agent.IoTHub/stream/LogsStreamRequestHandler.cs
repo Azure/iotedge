@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
 {
     using System;
-    using System.IO;
     using System.Net.WebSockets;
     using System.Text;
     using System.Threading;
@@ -51,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
                         await this.logsProvider.GetLogsStream(logOptions, ProcessLogsFrame, linkedCts.Token);
                     }
                 }
+
                 Events.StreamingCompleted(streamRequest.Id);
             }
             catch (Exception e)

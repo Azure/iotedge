@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
 {
     using System;
-    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Util;
 

@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Net.WebSockets;
     using System.Threading;
     using System.Threading.Tasks;
@@ -41,11 +40,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
             var clientWebSocket = new Mock<IClientWebSocket>();
             clientWebSocket.Setup(c => c.ReceiveAsync(It.IsAny<ArraySegment<byte>>(), It.IsAny<CancellationToken>()))
                 .Callback<ArraySegment<byte>, CancellationToken>((a, c) => logsStreamRequestArraySeg.CopyTo(a))
-                .Returns(async () =>
-                {
-                    await Task.Yield();
-                    return new WebSocketReceiveResult(logsStreamRequestBytes.Length, WebSocketMessageType.Binary, true);
-                });
+                .Returns(
+                    async () =>
+                    {
+                        await Task.Yield();
+                        return new WebSocketReceiveResult(logsStreamRequestBytes.Length, WebSocketMessageType.Binary, true);
+                    });
             var receivedBytes = new List<byte>();
             clientWebSocket.Setup(c => c.SendAsync(It.IsAny<ArraySegment<byte>>(), WebSocketMessageType.Binary, true, It.IsAny<CancellationToken>()))
                 .Callback<ArraySegment<byte>, WebSocketMessageType, bool, CancellationToken>((a, w, f, c) => receivedBytes.AddRange(a.Array))
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
             var logsStreamRequestArraySeg = new ArraySegment<byte>(logsStreamRequestBytes);
             var clientWebSocket = new Mock<IClientWebSocket>();
             clientWebSocket.Setup(c => c.ReceiveAsync(It.IsAny<ArraySegment<byte>>(), It.IsAny<CancellationToken>()))
-                .Callback<ArraySegment<byte>, CancellationToken>((a, c) => logsStreamRequestArraySeg.CopyTo(a))                
+                .Callback<ArraySegment<byte>, CancellationToken>((a, c) => logsStreamRequestArraySeg.CopyTo(a))
                 .ReturnsAsync(new WebSocketReceiveResult(logsStreamRequestBytes.Length, WebSocketMessageType.Binary, true));
 
             var receivedBytes = new List<byte>();

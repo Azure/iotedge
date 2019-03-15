@@ -64,11 +64,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             {
                 // We got a WebSocket stream. Pass it to a handler on a background thread. This thread is
                 // responsible for releasing the lock after it completes.
-                result.ForEach(r =>
-                {
-                    Events.NewStreamRequest(r.requestName, this.streamLock.CurrentCount);
-                    this.HandleRequest(r.requestName, r.clientWebSocket);
-                });
+                result.ForEach(
+                    r =>
+                    {
+                        Events.NewStreamRequest(r.requestName, this.streamLock.CurrentCount);
+                        this.HandleRequest(r.requestName, r.clientWebSocket);
+                    });
             }
         }
 
@@ -126,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             {
                 await clientWebSocket.CloseAsync(webSocketCloseStatus, message, this.cts.Token);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Events.ErrorClosingWebSocket(requestName, ex);
             }

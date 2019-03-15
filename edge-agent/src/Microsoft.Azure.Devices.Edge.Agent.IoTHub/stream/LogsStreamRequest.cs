@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
         }
 
         public string SchemaVersion { get; }
+
         public string Id { get; }
     }
 }
