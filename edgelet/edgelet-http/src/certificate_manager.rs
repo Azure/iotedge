@@ -34,7 +34,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
 
             match Option::as_ref(&cert) {
                 Some(cert) => return Ok(cert.to_string()),
-                None => ()
+                None => (),
             };
         }
 
@@ -48,7 +48,9 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
         match Option::as_ref(&cert) {
             Some(cert) => return Ok(cert.to_string()),
             None => {
-                let new_cert = self.create_cert().with_context(|_| ErrorKind::CertificateCreationError)?;
+                let new_cert = self
+                    .create_cert()
+                    .with_context(|_| ErrorKind::CertificateCreationError)?;
                 Ok(cert.get_or_insert(new_cert).to_string())
             }
         }
@@ -80,7 +82,8 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
 
     #[cfg(test)]
     fn has_certificate(&self) -> bool {
-        !self.certificate
+        !self
+            .certificate
             .read()
             .expect("Locking the certificate for read failed.")
             .is_none()

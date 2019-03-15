@@ -523,7 +523,13 @@ where
 
     let cert_manager = Arc::new(cert_manager);
 
-    let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, Arc::clone(&cert_manager));
+    let mgmt = start_management(
+        &settings,
+        &runtime,
+        &id_man,
+        mgmt_rx,
+        Arc::clone(&cert_manager),
+    );
 
     let workload = start_workload(
         &settings,

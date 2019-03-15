@@ -70,7 +70,7 @@ impl Read for StreamSelector {
             StreamSelector::TlsConnected(stream) => stream.read(buf),
             #[cfg(windows)]
             StreamSelector::Pipe(stream) => stream.read(buf),
-            StreamSelector::Unix(stream) =>stream.read(buf),
+            StreamSelector::Unix(stream) => stream.read(buf),
         }
     }
 }
@@ -82,8 +82,8 @@ impl Write for StreamSelector {
             StreamSelector::TlsConnecting(stream) => match stream.poll() {
                 Ok(Async::Ready(stream)) => {
                     *self = StreamSelector::TlsConnected(stream);
-                     self.write(buf)
-                },
+                    self.write(buf)
+                }
                 Ok(Async::NotReady) => Err(ErrorKind::WouldBlock.into()),
                 Err(e) => Err(io::Error::new(ErrorKind::Other, e)),
             },
