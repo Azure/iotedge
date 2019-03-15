@@ -93,11 +93,11 @@ function Invoke-External()
         Invoke-Expression $Command | Tee-Object -Variable "output" | Write-Host
         Write-Host "Exit code: $LASTEXITCODE"
 
-        if ($LASTEXITCODE) {
-            throw $output
-        } elseif ($Passthru) {
-            $output
-        }
+        # if ($LASTEXITCODE) {
+        #     throw $output
+        # } elseif ($Passthru) {
+        #     $output
+        # }
     }
 }
 
