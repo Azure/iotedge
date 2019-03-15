@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -20,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             Preconditions.CheckNonWhiteSpace(serverSupportedApiVersion, nameof(serverSupportedApiVersion));
             Preconditions.CheckNonWhiteSpace(clientSupportedApiVersion, nameof(clientSupportedApiVersion));
-            this.inner = this.GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion);
+            this.inner = GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion);
         }
 
         public Task<Identity> CreateIdentityAsync(string name, string managedBy) => this.inner.CreateIdentityAsync(name, managedBy);
@@ -51,9 +52,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public Task PrepareUpdateAsync(ModuleSpec moduleSpec) => this.inner.PrepareUpdateAsync(moduleSpec);
 
-        internal ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
+        public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, CancellationToken cancellationToken) =>
+            this.inner.GetModuleLogs(name, follow, tail, cancellationToken);
+
+        internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
-            ApiVersion supportedVersion = this.GetSupportedVersion(serverSupportedApiVersion, clientSupportedApiVersion);
+            ApiVersion supportedVersion = GetSupportedVersion(serverSupportedApiVersion, clientSupportedApiVersion);
             if (supportedVersion == ApiVersion.Version20180628)
             {
                 return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);
@@ -67,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);
         }
 
-        ApiVersion GetSupportedVersion(string serverSupportedApiVersion, string clientSupportedApiVersion)
+        static ApiVersion GetSupportedVersion(string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
             var serverVersion = ApiVersion.ParseVersion(serverSupportedApiVersion);
             var clientVersion = ApiVersion.ParseVersion(clientSupportedApiVersion);

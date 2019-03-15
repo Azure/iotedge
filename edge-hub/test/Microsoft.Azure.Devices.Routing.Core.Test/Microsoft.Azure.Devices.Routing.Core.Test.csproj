@@ -1,12 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup Condition="'$(Platform)' != 'ARM64'">
+  <PropertyGroup Condition="'$(DotNet_Runtime)' != 'netcoreapp3.0'">
     <TargetFramework>netcoreapp2.1</TargetFramework>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(OS)|$(Platform)' == 'Unix|ARM64'">
+  <PropertyGroup Condition="'$(OS)|$(DotNet_Runtime)' == 'Unix|netcoreapp3.0'">
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <RuntimeIdentifier>linux-arm64</RuntimeIdentifier>
   </PropertyGroup>
   
   <PropertyGroup>
@@ -32,8 +31,11 @@
     <PackageReference Include="Autofac" Version="4.9.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
     <PackageReference Include="Moq" Version="4.10.1" />
-    <PackageReference Include="xunit" Version="2.2.0" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.2.0" />
+    <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.CodeCoverage" Version="15.9.0" />
   </ItemGroup>
 

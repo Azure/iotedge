@@ -98,8 +98,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
 
             Assert.Equal(0, count);
 
-            Assert.Equal(1, some.ToEnumerable().Count());
-            Assert.Equal(0, none.ToEnumerable().Count());
+            Assert.Single(some.ToEnumerable());
+            Assert.Empty(none.ToEnumerable());
         }
 
         [Fact]
@@ -160,7 +160,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
 
             Assert.Equal(3, some.OrDefault());
             Assert.Equal(0, none.OrDefault());
-            Assert.Equal(null, none2.OrDefault());
+            Assert.Null(none2.OrDefault());
         }
 
         [Fact]

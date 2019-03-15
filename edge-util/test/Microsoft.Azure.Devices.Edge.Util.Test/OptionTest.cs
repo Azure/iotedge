@@ -102,8 +102,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             Assert.Equal(0, count);
 
-            Assert.Equal(1, some.ToEnumerable().Count());
-            Assert.Equal(0, none.ToEnumerable().Count());
+            int someCount = some.ToEnumerable().Count();
+            Assert.Equal(1, someCount);
+            int noneCount = none.ToEnumerable().Count();
+            Assert.Equal(0, noneCount);
         }
 
         [Fact]
@@ -168,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             Assert.Equal(3, some.OrDefault());
             Assert.Equal(0, none.OrDefault());
-            Assert.Equal(null, none2.OrDefault());
+            Assert.Null(none2.OrDefault());
         }
 
         [Fact]

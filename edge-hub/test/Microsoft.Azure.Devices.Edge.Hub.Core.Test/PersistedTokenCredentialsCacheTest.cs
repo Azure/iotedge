@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var storedTokenCredentials = storedCredentials.OrDefault() as ITokenCredentials;
             Assert.NotNull(storedTokenCredentials);
             Assert.Equal(sasToken, storedTokenCredentials.Token);
-            Assert.Equal(false, storedTokenCredentials.IsUpdatable);
+            Assert.False(storedTokenCredentials.IsUpdatable);
         }
 
         class TestEncryptionProvider : IEncryptionProvider

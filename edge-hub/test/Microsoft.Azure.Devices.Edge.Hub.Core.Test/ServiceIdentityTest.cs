@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(areEqual, result);
         }
 
-        static IEnumerable<object[]> GetEqualityTestData()
+        public static IEnumerable<object[]> GetEqualityTestData()
         {
             // Device identities - Equal
             yield return new object[]

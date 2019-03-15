@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.IO;
     using System.Net;
     using System.Threading;
@@ -24,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         public static int Main()
         {
-            Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt")}] Edge Agent Main()");
+            Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Edge Agent Main()");
             try
             {
                 IConfigurationRoot configuration = new ConfigurationBuilder()
@@ -46,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             // Bring up the logger before anything else so we can log errors ASAP
             ILogger logger = SetupLogger(configuration);
 
-            logger.LogInformation("Starting module management agent.");
+            logger.LogInformation("Initializing Edge Agent.");
 
             VersionInfo versionInfo = VersionInfo.Get(VersionInfoFileName);
             if (versionInfo != VersionInfo.Empty)
