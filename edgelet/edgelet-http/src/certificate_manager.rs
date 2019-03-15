@@ -46,7 +46,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
 
         // Check that another thread hasn't already created one for us
         match Option::as_ref(&cert) {
-            Some(cert) => return Ok(cert.to_string()),
+            Some(cert) => Ok(cert.to_string()),
             None => {
                 let new_cert = self
                     .create_cert()
