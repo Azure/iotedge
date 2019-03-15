@@ -79,7 +79,7 @@ impl From<Context<ErrorKind>> for Error {
 pub enum InitializeErrorReason {
     CreateMasterEncryptionKey,
     CreateSettingsDirectory,
-    CreateTLSCertificate,
+    CreateTlsCertificate,
     DestroyWorkloadCa,
     DeviceClient,
     DpsProvisioningClient,
@@ -115,7 +115,7 @@ impl fmt::Display for InitializeErrorReason {
                 write!(f, "Could not create settings directory")
             }
 
-            InitializeErrorReason::CreateTLSCertificate => {
+            InitializeErrorReason::CreateTlsCertificate => {
                 write!(f, "Could not create TLS certificate")
             }
 

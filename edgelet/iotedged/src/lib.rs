@@ -27,6 +27,7 @@ use std::fs;
 use std::fs::{DirBuilder, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use failure::{Fail, ResultExt};
 use futures::future::Either;
@@ -517,10 +518,12 @@ where
     let (work_tx, work_rx) = oneshot::channel();
 
     let cert_manager = CertificateManager::new(crypto.clone()).context(ErrorKind::Initialize(
-        InitializeErrorReason::CreateTLSCertificate,
+        InitializeErrorReason::CreateTlsCertificate,
     ))?;
 
-    let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, &cert_manager);
+    let cert_manager = Arc::new(cert_manager);
+
+    let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, Arc::clone(&cert_manager));
 
     let workload = start_workload(
         &settings,
@@ -528,7 +531,7 @@ where
         &runtime,
         work_rx,
         crypto,
-        &cert_manager,
+        Arc::clone(&cert_manager),
         workload_config,
     );
 
@@ -877,7 +880,7 @@ fn start_management<C, K, HC>(
     mgmt: &DockerModuleRuntime,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
-    cert_manager: &CertificateManager<C>,
+    cert_manager: Arc<CertificateManager<C>>,
 ) -> impl Future<Item = (), Error = Error>
 where
     C: CreateCertificate + Clone,
@@ -918,7 +921,7 @@ fn start_workload<K, C, CE, W>(
     runtime: &DockerModuleRuntime,
     shutdown: Receiver<()>,
     crypto: &C,
-    cert_manager: &CertificateManager<CE>,
+    cert_manager: Arc<CertificateManager<CE>>,
     config: W,
 ) -> impl Future<Item = (), Error = Error>
 where

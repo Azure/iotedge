@@ -12,14 +12,14 @@ const IOTEDGED_TLS_COMMONNAME: &str = "iotedge tls";
 
 #[derive(Clone)]
 pub struct CertificateManager<C: CreateCertificate + Clone> {
-    certificate: Arc<RwLock<String>>,
+    certificate: Arc<RwLock<Option<String>>>,
     crypto: C,
 }
 
 impl<C: CreateCertificate + Clone> CertificateManager<C> {
     pub fn new(crypto_struct: C) -> Result<Self, Error> {
         Ok(CertificateManager {
-            certificate: Arc::new(RwLock::new("".to_string())),
+            certificate: Arc::new(RwLock::new(None)),
             crypto: crypto_struct,
         })
     }
@@ -30,12 +30,12 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
             let cert = self
                 .certificate
                 .read()
-                .expect("Locking the certificate for read failed.")
-                .to_string();
+                .expect("Locking the certificate for read failed.");
 
-            if cert.len() > 0 {
-                return Ok(cert);
-            }
+            match Option::as_ref(&cert) {
+                Some(cert) => return Ok(cert.to_string()),
+                None => ()
+            };
         }
 
         // No valid cert so must create
@@ -45,16 +45,13 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
             .expect("Locking the certificate for write failed.");
 
         // Check that another thread hasn't already created one for us
-        if cert.to_string().len() > 0 {
-            return Ok(cert.to_string());
+        match Option::as_ref(&cert) {
+            Some(cert) => return Ok(cert.to_string()),
+            None => {
+                let new_cert = self.create_cert().with_context(|_| ErrorKind::CertificateCreationError)?;
+                Ok(cert.get_or_insert(new_cert).to_string())
+            }
         }
-
-        let new_cert = self.create_cert();
-
-        // Assign and return new cert
-        *cert = new_cert.with_context(|_| ErrorKind::CertificateCreationError)?;
-
-        Ok(cert.to_string())
     }
 
     fn create_cert(&self) -> Result<String, Error> {
@@ -81,14 +78,12 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
         Ok(cert_str)
     }
 
-    #[allow(dead_code)]
-    // Test helper
+    #[cfg(test)]
     fn has_certificate(&self) -> bool {
-        self.certificate
+        !self.certificate
             .read()
             .expect("Locking the certificate for read failed.")
-            .len()
-            > 0
+            .is_none()
     }
 }
 
