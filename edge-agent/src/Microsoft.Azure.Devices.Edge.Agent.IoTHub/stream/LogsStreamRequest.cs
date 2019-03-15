@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
 {
-    public class LogsStreamingRequest
+    public class LogsStreamRequest
     {
-        public LogsStreamingRequest(string schemaVersion, string id)
+        public LogsStreamRequest(string schemaVersion, string id)
         {
             this.SchemaVersion = schemaVersion;
             this.Id = id;

@@ -26,17 +26,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
         {
             try
             {
-                LogsStreamingRequest streamingRequest = await this.ReadLogsStreamingRequest(clientWebSocket, cancellationToken);
-                Events.RequestData(streamingRequest);
+                LogsStreamRequest streamRequest = await this.ReadLogsStreamingRequest(clientWebSocket, cancellationToken);
+                Events.RequestData(streamRequest);
 
-                var logOptions = new ModuleLogOptions(streamingRequest.Id, LogsContentEncoding.None, LogsContentType.Text);
+                var logOptions = new ModuleLogOptions(streamRequest.Id, LogsContentEncoding.None, LogsContentType.Text);
                 using (var socketCancellationTokenSource = new CancellationTokenSource())
                 {
                     Task ProcessLogsFrame(ArraySegment<byte> bytes)
                     {
                         if (clientWebSocket.State != WebSocketState.Open)
                         {
-                            Events.WebSocketNotOpen(streamingRequest.Id, clientWebSocket.State);
+                            Events.WebSocketNotOpen(streamRequest.Id, clientWebSocket.State);
                             socketCancellationTokenSource.Cancel();
                             return Task.CompletedTask;
                         }
@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
                         await this.logsProvider.GetLogsStream(logOptions, ProcessLogsFrame, linkedCts.Token);
                     }
                 }
-                Events.StreamingCompleted(streamingRequest.Id);
+                Events.StreamingCompleted(streamRequest.Id);
             }
             catch (Exception e)
             {
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             }
         }
 
-        async Task<LogsStreamingRequest> ReadLogsStreamingRequest(IClientWebSocket clientWebSocket, CancellationToken cancellationToken)
+        async Task<LogsStreamRequest> ReadLogsStreamingRequest(IClientWebSocket clientWebSocket, CancellationToken cancellationToken)
         {
             var buf = new byte[1024];
             var arrSeg = new ArraySegment<byte>(buf);
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             if (result.Count > 0)
             {
                 string jsonString = Encoding.UTF8.GetString(buf, 0, result.Count);
-                return jsonString.FromJson<LogsStreamingRequest>();
+                return jsonString.FromJson<LogsStreamRequest>();
             }
 
             throw new InvalidOperationException("Did not receive logs request from server");
@@ -91,9 +91,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
                 Log.LogWarning((int)EventIds.ErrorHandlingRequest, e, $"Error handling logs streaming request");
             }
 
-            public static void RequestData(LogsStreamingRequest streamingRequest)
+            public static void RequestData(LogsStreamRequest streamRequest)
             {
-                Log.LogInformation((int)EventIds.RequestData, $"Logs streaming request data - {streamingRequest.ToJson()}");
+                Log.LogInformation((int)EventIds.RequestData, $"Logs streaming request data - {streamRequest.ToJson()}");
             }
 
             public static void StreamingCompleted(string id)

@@ -61,6 +61,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                     }
 
                     int count = await stream.ReadAsync(buf, 0, buf.Length, cancellationToken);
+                    if (count == 0)
+                    {
+                        Events.StreamingCompleted(id);
+                        break;
+                    }
+
                     var arrSeg = new ArraySegment<byte>(buf, 0, count);
                     await callback(arrSeg);
                 }
@@ -107,7 +113,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             {
                 StreamingCancelled = IdStart,
                 ErrorWhileStreaming,
-                ReceivedStream
+                ReceivedStream,
+                StreamingCompleted
             }
 
             public static void ErrorWhileProcessingStream(string id, Exception ex)
@@ -124,6 +131,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             public static void ReceivedStream(string id)
             {
                 Log.LogInformation((int)EventIds.ReceivedStream, $"Initiating streaming logs for {id}");
+            }
+
+            public static void StreamingCompleted(string id)
+            {
+                Log.LogInformation((int)EventIds.StreamingCompleted, $"Completed streaming logs for {id}");
             }
         }
     }
