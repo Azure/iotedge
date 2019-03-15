@@ -5,15 +5,15 @@ use std::time::{Duration, Instant};
 use failure::Fail;
 use futures::future::{self, Either, FutureResult};
 use futures::Future;
-use log::Level;
+use log::{info, warn, Level};
 use tokio::prelude::*;
 use tokio::timer::Interval;
 
 use edgelet_utils::log_failure;
 
-use error::{Error, ErrorKind};
-use identity::{Identity, IdentityManager, IdentitySpec};
-use module::{
+use crate::error::{Error, ErrorKind};
+use crate::identity::{Identity, IdentityManager, IdentitySpec};
+use crate::module::{
     Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ModuleStatus,
 };
 
@@ -259,7 +259,8 @@ mod tests {
 
     use futures::future::{self, FutureResult};
 
-    use identity::{AuthType, Identity, IdentityManager, IdentitySpec};
+    use crate::identity::{AuthType, Identity, IdentityManager, IdentitySpec};
+    use serde_derive::{Deserialize, Serialize};
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub enum Error {

@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
@@ -37,13 +38,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
+            // IRequestManager
+            builder.Register(
+                    c =>
+                    {
+                        var requestHandlers = new List<IRequestHandler>
+                        {
+                            new PingRequestHandler()
+                        };
+                        return new RequestManager(requestHandlers);
+                    })
+                .As<IRequestManager>()
+                .SingleInstance();
+
             // IEdgeAgentConnection
             builder.Register(
                     c =>
                     {
+                        var requestManager = c.Resolve<IRequestManager>();
                         var serde = c.Resolve<ISerde<DeploymentConfig>>();
                         var deviceClientprovider = c.Resolve<IModuleClientProvider>();
-                        IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, this.configRefreshFrequency);
+                        IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, this.configRefreshFrequency);
                         return edgeAgentConnection;
                     })
                 .As<IEdgeAgentConnection>()

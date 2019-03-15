@@ -3,13 +3,16 @@
 use std::env;
 use std::io::Write;
 
+#[cfg(target_os = "windows")]
+use clap::crate_name;
+
 use edgelet_utils::log_failure;
 use env_logger;
 use log::{Level, LevelFilter};
 #[cfg(target_os = "windows")]
 use win_logger::EventLogger;
 
-use error::Error;
+use crate::error::Error;
 
 #[cfg(target_os = "windows")]
 const IOTEDGED_SERVICE_NAME: &str = crate_name!();

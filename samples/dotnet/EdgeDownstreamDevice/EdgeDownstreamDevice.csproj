@@ -1,8 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup Condition="'$(Platform)' != 'ARM64'">
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(OS)|$(Platform)' == 'Unix|ARM64'">
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <RuntimeIdentifier>linux-arm64</RuntimeIdentifier>
+  </PropertyGroup>
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
     <RootNamespace>Microsoft.Azure.Devices.Edge.Samples.EdgeDownstreamDevice</RootNamespace>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
   </PropertyGroup>

@@ -9,7 +9,7 @@
  */
 
 /// SwarmSpecCaConfig : CA configuration.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -20,7 +20,7 @@ pub struct SwarmSpecCaConfig {
     node_cert_expiry: Option<i64>,
     /// Configuration for forwarding signing requests to an external certificate authority.
     #[serde(rename = "ExternalCAs", skip_serializing_if = "Option::is_none")]
-    external_c_as: Option<Vec<::models::SwarmSpecCaConfigExternalCAs>>,
+    external_c_as: Option<Vec<crate::models::SwarmSpecCaConfigExternalCAs>>,
     /// The desired signing CA certificate for all swarm node TLS leaf certificates, in PEM format.
     #[serde(rename = "SigningCACert", skip_serializing_if = "Option::is_none")]
     signing_ca_cert: Option<String>,
@@ -63,20 +63,20 @@ impl SwarmSpecCaConfig {
 
     pub fn set_external_c_as(
         &mut self,
-        external_c_as: Vec<::models::SwarmSpecCaConfigExternalCAs>,
+        external_c_as: Vec<crate::models::SwarmSpecCaConfigExternalCAs>,
     ) {
         self.external_c_as = Some(external_c_as);
     }
 
     pub fn with_external_c_as(
         mut self,
-        external_c_as: Vec<::models::SwarmSpecCaConfigExternalCAs>,
+        external_c_as: Vec<crate::models::SwarmSpecCaConfigExternalCAs>,
     ) -> Self {
         self.external_c_as = Some(external_c_as);
         self
     }
 
-    pub fn external_c_as(&self) -> Option<&[::models::SwarmSpecCaConfigExternalCAs]> {
+    pub fn external_c_as(&self) -> Option<&[crate::models::SwarmSpecCaConfigExternalCAs]> {
         self.external_c_as.as_ref().map(AsRef::as_ref)
     }
 

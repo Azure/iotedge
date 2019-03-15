@@ -34,25 +34,25 @@ impl<C: hyper::client::connect::Connect> VolumeApiClient<C> {
 pub trait VolumeApi: Send + Sync {
     fn volume_create(
         &self,
-        volume_config: ::models::VolumeConfig,
-    ) -> Box<Future<Item = ::models::Volume, Error = Error<serde_json::Value>>>;
+        volume_config: crate::models::VolumeConfig,
+    ) -> Box<dyn Future<Item = crate::models::Volume, Error = Error<serde_json::Value>>>;
     fn volume_delete(
         &self,
         name: &str,
         force: bool,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn volume_inspect(
         &self,
         name: &str,
-    ) -> Box<Future<Item = ::models::Volume, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::Volume, Error = Error<serde_json::Value>>>;
     fn volume_list(
         &self,
         filters: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse20015, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse20015, Error = Error<serde_json::Value>>>;
     fn volume_prune(
         &self,
         filters: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse20016, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse20016, Error = Error<serde_json::Value>>>;
 }
 
 impl<C> VolumeApi for VolumeApiClient<C>
@@ -63,8 +63,8 @@ where
 {
     fn volume_create(
         &self,
-        volume_config: ::models::VolumeConfig,
-    ) -> Box<Future<Item = ::models::Volume, Error = Error<serde_json::Value>>> {
+        volume_config: crate::models::VolumeConfig,
+    ) -> Box<dyn Future<Item = crate::models::Volume, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -112,7 +112,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::Volume, _> = serde_json::from_slice(&body);
+                    let parsed: Result<crate::models::Volume, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
         )
@@ -122,7 +122,7 @@ where
         &self,
         name: &str,
         force: bool,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::DELETE;
@@ -172,7 +172,7 @@ where
     fn volume_inspect(
         &self,
         name: &str,
-    ) -> Box<Future<Item = ::models::Volume, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::Volume, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -213,7 +213,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::Volume, _> = serde_json::from_slice(&body);
+                    let parsed: Result<crate::models::Volume, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
         )
@@ -222,7 +222,8 @@ where
     fn volume_list(
         &self,
         filters: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse20015, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse20015, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -266,7 +267,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::InlineResponse20015, _> =
+                    let parsed: Result<crate::models::InlineResponse20015, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
@@ -276,7 +277,8 @@ where
     fn volume_prune(
         &self,
         filters: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse20016, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse20016, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -320,7 +322,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::InlineResponse20016, _> =
+                    let parsed: Result<crate::models::InlineResponse20016, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),

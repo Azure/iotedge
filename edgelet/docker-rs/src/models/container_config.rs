@@ -9,7 +9,7 @@
  */
 
 /// ContainerConfig : Configuration for a container that is portable between hosts
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -49,7 +49,7 @@ pub struct ContainerConfig {
     #[serde(rename = "Env", skip_serializing_if = "Option::is_none")]
     env: Option<Vec<String>>,
     #[serde(rename = "Healthcheck", skip_serializing_if = "Option::is_none")]
-    healthcheck: Option<::models::HealthConfig>,
+    healthcheck: Option<crate::models::HealthConfig>,
     /// Command is already escaped (Windows only)
     #[serde(rename = "ArgsEscaped", skip_serializing_if = "Option::is_none")]
     args_escaped: Option<bool>,
@@ -57,7 +57,7 @@ pub struct ContainerConfig {
     #[serde(rename = "Image", skip_serializing_if = "Option::is_none")]
     image: Option<String>,
     #[serde(rename = "Volumes", skip_serializing_if = "Option::is_none")]
-    volumes: Option<::models::ContainerConfigVolumes>,
+    volumes: Option<crate::models::ContainerConfigVolumes>,
     /// The working directory for commands to run in.
     #[serde(rename = "WorkingDir", skip_serializing_if = "Option::is_none")]
     working_dir: Option<String>,
@@ -304,16 +304,16 @@ impl ContainerConfig {
         self.env = None;
     }
 
-    pub fn set_healthcheck(&mut self, healthcheck: ::models::HealthConfig) {
+    pub fn set_healthcheck(&mut self, healthcheck: crate::models::HealthConfig) {
         self.healthcheck = Some(healthcheck);
     }
 
-    pub fn with_healthcheck(mut self, healthcheck: ::models::HealthConfig) -> Self {
+    pub fn with_healthcheck(mut self, healthcheck: crate::models::HealthConfig) -> Self {
         self.healthcheck = Some(healthcheck);
         self
     }
 
-    pub fn healthcheck(&self) -> Option<&::models::HealthConfig> {
+    pub fn healthcheck(&self) -> Option<&crate::models::HealthConfig> {
         self.healthcheck.as_ref()
     }
 
@@ -355,16 +355,16 @@ impl ContainerConfig {
         self.image = None;
     }
 
-    pub fn set_volumes(&mut self, volumes: ::models::ContainerConfigVolumes) {
+    pub fn set_volumes(&mut self, volumes: crate::models::ContainerConfigVolumes) {
         self.volumes = Some(volumes);
     }
 
-    pub fn with_volumes(mut self, volumes: ::models::ContainerConfigVolumes) -> Self {
+    pub fn with_volumes(mut self, volumes: crate::models::ContainerConfigVolumes) -> Self {
         self.volumes = Some(volumes);
         self
     }
 
-    pub fn volumes(&self) -> Option<&::models::ContainerConfigVolumes> {
+    pub fn volumes(&self) -> Option<&crate::models::ContainerConfigVolumes> {
         self.volumes.as_ref()
     }
 

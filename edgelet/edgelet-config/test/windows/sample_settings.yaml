@@ -2,20 +2,15 @@
 # Configures the provisioning mode
 provisioning:
   source: "manual"
-  device_connection_string: "HostName=something.something.com;DeviceId=something;SharedAccessKey=something"
-
-certificates:
-  device_ca_cert: "device_ca_cert.pem"
-  device_ca_pk: "device_ca_pk.pem"
-  trusted_ca_certs: "trusted_ca_certs.pem"
-
+  device_connection_string: "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
 agent:
   name: "edgeAgent"
   type: "docker"
-  env: {}
+  env:
+    abc: "value1"
+    acd: "value2"
   config:
-    image: "microsoft/azureiotedge-agent:1.0-preview"
-    create_options: {}
+    image: "microsoft/azureiotedge-agent:1.0"
     auth: {}
 hostname: "localhost"
 
@@ -30,6 +25,7 @@ connect:
 listen:
   workload_uri: "http://0.0.0.0:8081"
   management_uri: "http://0.0.0.0:8080"
-docker_uri: "http://localhost:2375"
-homedir: "/tmp"
-network: "azure-iot-edge"
+homedir: "C:\\Temp"
+moby_runtime:
+  uri: "npipe://./pipe/iotedge_moby_engine"
+  network: "azure-iot-edge"

@@ -1,24 +1,31 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::fs::{File as FsFile, OpenOptions};
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
+    clippy::module_name_repetitions,
+    clippy::shadow_unrelated,
+    clippy::use_self,
+)]
+
+use std::fs::OpenOptions;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-use base64;
 use config::{Config, Environment, File, FileFormat};
-use failure::{Fail, ResultExt};
-use log::Level;
+use failure::{Context, Fail};
+use log::{debug, Level};
+use regex::Regex;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json;
+use serde_derive::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use url::Url;
-use url_serde;
 
+use edgelet_core::crypto::MemoryKey;
 use edgelet_core::ModuleSpec;
 use edgelet_utils::log_failure;
-
-use error::{Error, ErrorKind, InitializeErrorReason};
 
 /// This is the name of the network created by the iotedged
 const DEFAULT_NETWORKID: &str = "azure-iot-edge";
@@ -27,10 +34,17 @@ const DEFAULT_NETWORKID: &str = "azure-iot-edge";
 pub const DEFAULT_CONNECTION_STRING: &str = "<ADD DEVICE CONNECTION STRING HERE>";
 
 #[cfg(unix)]
-static DEFAULTS: &str = include_str!("config/unix/default.yaml");
+const DEFAULTS: &str = include_str!("../config/unix/default.yaml");
 
 #[cfg(windows)]
-static DEFAULTS: &str = include_str!("config/windows/default.yaml");
+const DEFAULTS: &str = include_str!("../config/windows/default.yaml");
+
+const DEVICEID_KEY: &str = "DeviceId";
+const HOSTNAME_KEY: &str = "HostName";
+const SHAREDACCESSKEY_KEY: &str = "SharedAccessKey";
+
+const DEVICEID_REGEX: &str = r"^[A-Za-z0-9\-:.+%_#*?!(),=@;$']{1,128}$";
+const HOSTNAME_REGEX: &str = r"^[a-zA-Z0-9_\-\.]+$";
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -39,8 +53,73 @@ pub struct Manual {
 }
 
 impl Manual {
+    pub fn new(device_connection_string: String) -> Self {
+        Manual {
+            device_connection_string,
+        }
+    }
+
     pub fn device_connection_string(&self) -> &str {
         &self.device_connection_string
+    }
+
+    pub fn parse_device_connection_string(
+        &self,
+    ) -> Result<(MemoryKey, String, String), ParseManualDeviceConnectionStringError> {
+        if self.device_connection_string.is_empty() {
+            return Err(ParseManualDeviceConnectionStringError::Empty);
+        }
+
+        let mut key = None;
+        let mut device_id = None;
+        let mut hub = None;
+
+        let parts: Vec<&str> = self.device_connection_string.split(';').collect();
+        for p in parts {
+            let s: Vec<&str> = p.split('=').collect();
+            match s[0] {
+                SHAREDACCESSKEY_KEY => key = Some(s[1].to_string()),
+                DEVICEID_KEY => device_id = Some(s[1].to_string()),
+                HOSTNAME_KEY => hub = Some(s[1].to_string()),
+                _ => (), // Ignore extraneous component in the connection string
+            }
+        }
+
+        let key = key.ok_or(
+            ParseManualDeviceConnectionStringError::MissingRequiredParameter(SHAREDACCESSKEY_KEY),
+        )?;
+        if key.is_empty() {
+            return Err(ParseManualDeviceConnectionStringError::MalformedParameter(
+                SHAREDACCESSKEY_KEY,
+            ));
+        }
+        let key = MemoryKey::new(base64::decode(&key).map_err(|_| {
+            ParseManualDeviceConnectionStringError::MalformedParameter(SHAREDACCESSKEY_KEY)
+        })?);
+
+        let device_id = device_id.ok_or(
+            ParseManualDeviceConnectionStringError::MissingRequiredParameter(DEVICEID_KEY),
+        )?;
+        let device_id_regex =
+            Regex::new(DEVICEID_REGEX).expect("This hard-coded regex is expected to be valid.");
+        if !device_id_regex.is_match(&device_id) {
+            return Err(ParseManualDeviceConnectionStringError::MalformedParameter(
+                DEVICEID_KEY,
+            ));
+        }
+
+        let hub = hub.ok_or(
+            ParseManualDeviceConnectionStringError::MissingRequiredParameter(HOSTNAME_KEY),
+        )?;
+        let hub_regex =
+            Regex::new(HOSTNAME_REGEX).expect("This hard-coded regex is expected to be valid.");
+        if !hub_regex.is_match(&hub) {
+            return Err(ParseManualDeviceConnectionStringError::MalformedParameter(
+                HOSTNAME_KEY,
+            ));
+        }
+
+        Ok((key, device_id.to_owned(), hub.to_owned()))
     }
 }
 
@@ -175,24 +254,24 @@ impl<T> Settings<T>
 where
     T: DeserializeOwned + Serialize,
 {
-    pub fn new(filename: Option<&str>) -> Result<Self, Error> {
+    pub fn new(filename: Option<&Path>) -> Result<Self, LoadSettingsError> {
+        let filename = filename.map(|filename| {
+            filename.to_str().unwrap_or_else(|| {
+                panic!(
+                    "cannot load config from {} because it is not a utf-8 path",
+                    filename.display()
+                )
+            })
+        });
         let mut config = Config::default();
-        config
-            .merge(File::from_str(DEFAULTS, FileFormat::Yaml))
-            .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+        config.merge(File::from_str(DEFAULTS, FileFormat::Yaml))?;
         if let Some(file) = filename {
-            config
-                .merge(File::with_name(file).required(true))
-                .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+            config.merge(File::with_name(file).required(true))?;
         }
 
-        config
-            .merge(Environment::with_prefix("iotedge"))
-            .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+        config.merge(Environment::with_prefix("iotedge"))?;
 
-        let settings: Self = config
-            .try_into()
-            .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+        let settings: Self = config.try_into()?;
 
         Ok(settings)
     }
@@ -233,32 +312,77 @@ where
         self.certificates.as_ref()
     }
 
-    pub fn diff_with_cached(&self, path: PathBuf) -> Result<bool, Error> {
-        OpenOptions::new()
-            .read(true)
-            .open(path)
-            .map_err(|err| err.context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings)))
-            .and_then(|mut file: FsFile| {
-                let mut buffer = String::new();
-                file.read_to_string(&mut buffer)
-                    .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
-                let s = serde_json::to_string(self)
-                    .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
-                let s = Sha256::digest_str(&s);
-                let encoded = base64::encode(&s);
-                if encoded == buffer {
-                    debug!("Config state matches supplied config.");
-                    Ok(false)
-                } else {
-                    Ok(true)
-                }
-            })
-            .or_else(|err| {
+    pub fn diff_with_cached(&self, path: &Path) -> bool {
+        fn diff_with_cached_inner<T>(
+            cached_settings: &Settings<T>,
+            path: &Path,
+        ) -> Result<bool, LoadSettingsError>
+        where
+            T: DeserializeOwned + Serialize,
+        {
+            let mut file = OpenOptions::new().read(true).open(path)?;
+            let mut buffer = String::new();
+            file.read_to_string(&mut buffer)?;
+            let s = serde_json::to_string(cached_settings)?;
+            let s = Sha256::digest_str(&s);
+            let encoded = base64::encode(&s);
+            if encoded == buffer {
+                debug!("Config state matches supplied config.");
+                Ok(false)
+            } else {
+                Ok(true)
+            }
+        }
+
+        match diff_with_cached_inner(self, path) {
+            Ok(result) => result,
+
+            Err(err) => {
                 log_failure(Level::Debug, &err);
                 debug!("Error reading config backup.");
-                Ok(true)
-            })
+                true
+            }
+        }
     }
+}
+
+#[derive(Debug, Fail)]
+#[fail(display = "Could not load settings")]
+pub struct LoadSettingsError(#[cause] Context<Box<dyn std::fmt::Display + Send + Sync>>);
+
+impl From<std::io::Error> for LoadSettingsError {
+    fn from(err: std::io::Error) -> Self {
+        LoadSettingsError(Context::new(Box::new(err)))
+    }
+}
+
+impl From<config::ConfigError> for LoadSettingsError {
+    fn from(err: config::ConfigError) -> Self {
+        LoadSettingsError(Context::new(Box::new(err)))
+    }
+}
+
+impl From<serde_json::Error> for LoadSettingsError {
+    fn from(err: serde_json::Error) -> Self {
+        LoadSettingsError(Context::new(Box::new(err)))
+    }
+}
+
+#[derive(Clone, Copy, Debug, Fail)]
+pub enum ParseManualDeviceConnectionStringError {
+    #[fail(
+        display = "The Connection String is empty. Please update the config.yaml and provide the IoTHub connection information."
+    )]
+    Empty,
+
+    #[fail(display = "The Connection String is missing required parameter {}", _0)]
+    MissingRequiredParameter(&'static str),
+
+    #[fail(
+        display = "The Connection String has a malformed value for parameter {}.",
+        _0
+    )]
+    MalformedParameter(&'static str),
 }
 
 #[cfg(test)]
@@ -266,6 +390,7 @@ mod tests {
     use super::*;
     use config::{Config, File, FileFormat};
     use edgelet_docker::DockerConfig;
+    use std::fs::File as FsFile;
     use std::io::Write;
     use tempdir::TempDir;
 
@@ -320,19 +445,19 @@ mod tests {
 
     #[test]
     fn no_file_gets_error() {
-        let settings = Settings::<DockerConfig>::new(Some("garbage"));
+        let settings = Settings::<DockerConfig>::new(Some(Path::new("garbage")));
         assert!(settings.is_err());
     }
 
     #[test]
     fn bad_file_gets_error() {
-        let settings = Settings::<DockerConfig>::new(Some(BAD_SETTINGS));
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(BAD_SETTINGS)));
         assert!(settings.is_err());
     }
 
     #[test]
     fn manual_file_gets_sample_connection_string() {
-        let settings = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS));
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS)));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
@@ -340,13 +465,13 @@ mod tests {
         let connection_string = unwrap_manual_provisioning(p);
         assert_eq!(
             connection_string,
-            "HostName=something.something.com;DeviceId=something;SharedAccessKey=something"
+            "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
         );
     }
 
     #[test]
     fn manual_file_gets_sample_tg_paths() {
-        let settings = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS_TG));
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_TG)));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
@@ -365,7 +490,7 @@ mod tests {
 
     #[test]
     fn dps_prov_symmetric_key_get_settings() {
-        let settings = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS_DPS_SYM_KEY));
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_DPS_SYM_KEY)));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
@@ -385,58 +510,53 @@ mod tests {
     fn diff_with_same_cached_returns_false() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
-        let settings = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS)).unwrap();
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
         let settings_to_write = serde_json::to_string(&settings).unwrap();
         let sha_to_write = Sha256::digest_str(&settings_to_write);
         let base64_to_write = base64::encode(&sha_to_write);
-        FsFile::create(path.clone())
+        FsFile::create(&path)
             .unwrap()
             .write_all(base64_to_write.as_bytes())
             .unwrap();
-        assert_eq!(settings.diff_with_cached(path).unwrap(), false);
+        assert_eq!(settings.diff_with_cached(&path), false);
     }
 
     #[test]
     fn diff_with_same_cached_env_var_unordered_returns_false() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
-        let settings1 = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS2)).unwrap();
+        let settings1 = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS2))).unwrap();
         let settings_to_write = serde_json::to_string(&settings1).unwrap();
         let sha_to_write = Sha256::digest_str(&settings_to_write);
         let base64_to_write = base64::encode(&sha_to_write);
-        FsFile::create(path.clone())
+        FsFile::create(&path)
             .unwrap()
             .write_all(base64_to_write.as_bytes())
             .unwrap();
-        let settings = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS)).unwrap();
-        assert_eq!(settings.diff_with_cached(path).unwrap(), false);
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        assert_eq!(settings.diff_with_cached(&path), false);
     }
 
     #[test]
     fn diff_with_different_cached_returns_true() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
-        let settings1 = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS1)).unwrap();
+        let settings1 = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
         let settings_to_write = serde_json::to_string(&settings1).unwrap();
         let sha_to_write = Sha256::digest_str(&settings_to_write);
         let base64_to_write = base64::encode(&sha_to_write);
-        FsFile::create(path.clone())
+        FsFile::create(&path)
             .unwrap()
             .write_all(base64_to_write.as_bytes())
             .unwrap();
-        let settings = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS)).unwrap();
-        assert_eq!(settings.diff_with_cached(path).unwrap(), true);
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        assert_eq!(settings.diff_with_cached(&path), true);
     }
 
     #[test]
     fn diff_with_no_file_returns_true() {
-        let settings = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS)).unwrap();
-        assert_eq!(
-            settings
-                .diff_with_cached(PathBuf::from("i dont exist"))
-                .unwrap(),
-            true
-        );
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        assert_eq!(settings.diff_with_cached(Path::new("i dont exist")), true);
     }
 
     #[test]

@@ -1,23 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::stutter, clippy::use_self)]
-
-extern crate bytes;
-extern crate chrono;
-extern crate chrono_humanize;
-#[macro_use]
-extern crate clap;
-extern crate edgelet_core;
-extern crate failure;
-#[macro_use]
-extern crate futures;
-extern crate tabwriter;
-extern crate tokio;
+#![allow(
+    clippy::module_name_repetitions,
+    clippy::type_complexity,
+    clippy::use_self
+)]
 
 use futures::Future;
+use serde_derive::Deserialize;
 
+mod check;
 mod error;
 mod list;
 mod logs;
@@ -25,15 +19,27 @@ mod restart;
 mod unknown;
 mod version;
 
-pub use error::{Error, ErrorKind};
-pub use list::List;
-pub use logs::Logs;
-pub use restart::Restart;
-pub use unknown::Unknown;
-pub use version::Version;
+pub use crate::check::Check;
+pub use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
+pub use crate::list::List;
+pub use crate::logs::Logs;
+pub use crate::restart::Restart;
+pub use crate::unknown::Unknown;
+pub use crate::version::Version;
 
 pub trait Command {
-    type Future: Future<Item = (), Error = Error> + Send;
+    type Future: Future<Item = ()> + Send;
 
     fn execute(&mut self) -> Self::Future;
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LatestVersions {
+    pub iotedged: String,
+
+    #[serde(rename = "azureiotedge-agent")]
+    pub edge_agent: String,
+
+    #[serde(rename = "azureiotedge-hub")]
+    pub edge_hub: String,
 }

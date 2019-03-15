@@ -9,7 +9,7 @@
  */
 
 /// NodeDescription : NodeDescription encapsulates the properties of the Node as reported by the agent.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -18,13 +18,13 @@ pub struct NodeDescription {
     #[serde(rename = "Hostname", skip_serializing_if = "Option::is_none")]
     hostname: Option<String>,
     #[serde(rename = "Platform", skip_serializing_if = "Option::is_none")]
-    platform: Option<::models::Platform>,
+    platform: Option<crate::models::Platform>,
     #[serde(rename = "Resources", skip_serializing_if = "Option::is_none")]
-    resources: Option<::models::ResourceObject>,
+    resources: Option<crate::models::ResourceObject>,
     #[serde(rename = "Engine", skip_serializing_if = "Option::is_none")]
-    engine: Option<::models::EngineDescription>,
+    engine: Option<crate::models::EngineDescription>,
     #[serde(rename = "TLSInfo", skip_serializing_if = "Option::is_none")]
-    tls_info: Option<::models::TlsInfo>,
+    tls_info: Option<crate::models::TlsInfo>,
 }
 
 impl NodeDescription {
@@ -56,16 +56,16 @@ impl NodeDescription {
         self.hostname = None;
     }
 
-    pub fn set_platform(&mut self, platform: ::models::Platform) {
+    pub fn set_platform(&mut self, platform: crate::models::Platform) {
         self.platform = Some(platform);
     }
 
-    pub fn with_platform(mut self, platform: ::models::Platform) -> Self {
+    pub fn with_platform(mut self, platform: crate::models::Platform) -> Self {
         self.platform = Some(platform);
         self
     }
 
-    pub fn platform(&self) -> Option<&::models::Platform> {
+    pub fn platform(&self) -> Option<&crate::models::Platform> {
         self.platform.as_ref()
     }
 
@@ -73,16 +73,16 @@ impl NodeDescription {
         self.platform = None;
     }
 
-    pub fn set_resources(&mut self, resources: ::models::ResourceObject) {
+    pub fn set_resources(&mut self, resources: crate::models::ResourceObject) {
         self.resources = Some(resources);
     }
 
-    pub fn with_resources(mut self, resources: ::models::ResourceObject) -> Self {
+    pub fn with_resources(mut self, resources: crate::models::ResourceObject) -> Self {
         self.resources = Some(resources);
         self
     }
 
-    pub fn resources(&self) -> Option<&::models::ResourceObject> {
+    pub fn resources(&self) -> Option<&crate::models::ResourceObject> {
         self.resources.as_ref()
     }
 
@@ -90,16 +90,16 @@ impl NodeDescription {
         self.resources = None;
     }
 
-    pub fn set_engine(&mut self, engine: ::models::EngineDescription) {
+    pub fn set_engine(&mut self, engine: crate::models::EngineDescription) {
         self.engine = Some(engine);
     }
 
-    pub fn with_engine(mut self, engine: ::models::EngineDescription) -> Self {
+    pub fn with_engine(mut self, engine: crate::models::EngineDescription) -> Self {
         self.engine = Some(engine);
         self
     }
 
-    pub fn engine(&self) -> Option<&::models::EngineDescription> {
+    pub fn engine(&self) -> Option<&crate::models::EngineDescription> {
         self.engine.as_ref()
     }
 
@@ -107,16 +107,16 @@ impl NodeDescription {
         self.engine = None;
     }
 
-    pub fn set_tls_info(&mut self, tls_info: ::models::TlsInfo) {
+    pub fn set_tls_info(&mut self, tls_info: crate::models::TlsInfo) {
         self.tls_info = Some(tls_info);
     }
 
-    pub fn with_tls_info(mut self, tls_info: ::models::TlsInfo) -> Self {
+    pub fn with_tls_info(mut self, tls_info: crate::models::TlsInfo) -> Self {
         self.tls_info = Some(tls_info);
         self
     }
 
-    pub fn tls_info(&self) -> Option<&::models::TlsInfo> {
+    pub fn tls_info(&self) -> Option<&crate::models::TlsInfo> {
         self.tls_info.as_ref()
     }
 

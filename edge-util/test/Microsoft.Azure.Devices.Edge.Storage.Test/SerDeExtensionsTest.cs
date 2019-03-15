@@ -61,11 +61,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         {
             byte[] bytes = SerDeExtensions.ToBytes(null);
             Assert.NotNull(bytes);
-            Assert.Equal(0, bytes.Length);
+            Assert.Empty(bytes);
 
             bytes = SerDeExtensions.ToBytes("  ");
             Assert.NotNull(bytes);
-            Assert.Equal(0, bytes.Length);
+            Assert.Empty(bytes);
         }
 
         [Fact]

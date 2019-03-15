@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 links = "iothsm"
 build = "build.rs"
+edition = "2018"
 
 [dependencies]
 

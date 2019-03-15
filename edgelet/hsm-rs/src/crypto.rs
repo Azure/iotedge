@@ -9,7 +9,7 @@ use std::slice;
 use std::str;
 
 use super::*;
-use error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind};
 
 /// Enumerator for [`CERTIFICATE_TYPE`]
 #[derive(Clone, Copy, Debug, PartialEq)]

@@ -3,31 +3,14 @@
 // We disable this test on Windows in order to avoid having to add a dependency
 // on OpenSSL.
 #![cfg(not(windows))]
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-
-extern crate chrono;
-extern crate edgelet_core;
-extern crate edgelet_hsm;
-extern crate edgelet_http_workload;
-extern crate edgelet_test_utils;
-#[macro_use]
-extern crate failure;
-extern crate futures;
-extern crate hyper;
-extern crate native_tls;
-extern crate openssl;
-extern crate serde;
-extern crate serde_json;
-extern crate tempfile;
-extern crate tokio;
-extern crate tokio_tls;
-extern crate workload;
 
 use std::env;
 use std::str;
 
 use chrono::{Duration, Utc};
+use failure::Fail;
 use futures::{Future, Stream};
 use hyper::service::Service;
 use hyper::{Body, Request};

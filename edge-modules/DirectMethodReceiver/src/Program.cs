@@ -38,7 +38,7 @@ namespace DirectMethodReceiver
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
 
             await moduleClient.OpenAsync();
-            await moduleClient.SetMethodHandlerAsync("HelloWorldMethod", HelloWorldMethodAsync, null, cts.Token);
+            await moduleClient.SetMethodHandlerAsync("HelloWorldMethod", HelloWorldMethodAsync, null);
             await cts.Token.WhenCanceled();
 
             completed.Set();

@@ -81,8 +81,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
         [MemberData(nameof(GenerateStartTestData))]
         public async Task AgentStartsUpModules(TestConfig testConfig)
         {
-            ILoggerFactory loggerFactory = Mock.Of<ILoggerFactory>();
-
             // Build the docker host URL.
             string dockerHostUrl = ConfigHelper.TestConfig["dockerHostUrl"];
             DockerClient client = new DockerClientConfiguration(new Uri(dockerHostUrl)).CreateClient();
@@ -145,7 +143,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object, new CombinedDockerConfigProvider(Enumerable.Empty<AuthConfig>()));
                 IRuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(client);
                 IEnvironmentProvider environmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, restartStateStore, restartManager);
-                var commandFactory = new LoggingCommandFactory(dockerCommandFactory, loggerFactory);
+
+                var logFactoryMock = new Mock<ILoggerFactory>();
+                var logMock = new Mock<ILogger<LoggingCommandFactory>>();
+                logFactoryMock.Setup(l => l.CreateLogger(It.IsAny<string>()))
+                    .Returns(logMock.Object);
+                var commandFactory = new LoggingCommandFactory(dockerCommandFactory, logFactoryMock.Object);
 
                 var credential = new ConnectionStringCredentials("fake");
                 var identity = new Mock<IModuleIdentity>();
@@ -186,7 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     ++attempts;
                 }
 
-                Assert.Equal(true, validated);
+                Assert.True(validated);
             }
             finally
             {

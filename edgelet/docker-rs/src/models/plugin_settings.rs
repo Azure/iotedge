@@ -9,29 +9,29 @@
  */
 
 /// PluginSettings : Settings that can be modified by users.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginSettings {
     #[serde(rename = "Mounts")]
-    mounts: Vec<::models::PluginMount>,
+    mounts: Vec<crate::models::PluginMount>,
     #[serde(rename = "Env")]
     env: Vec<String>,
     #[serde(rename = "Args")]
     args: Vec<String>,
     #[serde(rename = "Devices")]
-    devices: Vec<::models::PluginDevice>,
+    devices: Vec<crate::models::PluginDevice>,
 }
 
 impl PluginSettings {
     /// Settings that can be modified by users.
     pub fn new(
-        mounts: Vec<::models::PluginMount>,
+        mounts: Vec<crate::models::PluginMount>,
         env: Vec<String>,
         args: Vec<String>,
-        devices: Vec<::models::PluginDevice>,
+        devices: Vec<crate::models::PluginDevice>,
     ) -> Self {
         PluginSettings {
             mounts: mounts,
@@ -41,16 +41,16 @@ impl PluginSettings {
         }
     }
 
-    pub fn set_mounts(&mut self, mounts: Vec<::models::PluginMount>) {
+    pub fn set_mounts(&mut self, mounts: Vec<crate::models::PluginMount>) {
         self.mounts = mounts;
     }
 
-    pub fn with_mounts(mut self, mounts: Vec<::models::PluginMount>) -> Self {
+    pub fn with_mounts(mut self, mounts: Vec<crate::models::PluginMount>) -> Self {
         self.mounts = mounts;
         self
     }
 
-    pub fn mounts(&self) -> &[::models::PluginMount] {
+    pub fn mounts(&self) -> &[crate::models::PluginMount] {
         &self.mounts
     }
 
@@ -80,16 +80,16 @@ impl PluginSettings {
         &self.args
     }
 
-    pub fn set_devices(&mut self, devices: Vec<::models::PluginDevice>) {
+    pub fn set_devices(&mut self, devices: Vec<crate::models::PluginDevice>) {
         self.devices = devices;
     }
 
-    pub fn with_devices(mut self, devices: Vec<::models::PluginDevice>) -> Self {
+    pub fn with_devices(mut self, devices: Vec<crate::models::PluginDevice>) -> Self {
         self.devices = devices;
         self
     }
 
-    pub fn devices(&self) -> &[::models::PluginDevice] {
+    pub fn devices(&self) -> &[crate::models::PluginDevice] {
         &self.devices
     }
 }
