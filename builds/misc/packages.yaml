@@ -73,7 +73,7 @@ jobs:
         displayName: 'Docker Login'
       - script: edgelet/build/linux/install.sh --package-arm
         displayName: Install Rust
-      - bash: 'cargo install --git https://github.com/myagley/cross.git --branch set-path'
+      - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
         displayName: 'Install cross (fork with docker fix)'
       - bash: 'make deb CARGO=cross CARGOFLAGS="--target armv7-unknown-linux-gnueabihf" TARGET=target/armv7-unknown-linux-gnueabihf/release DPKGFLAGS="-b -us -uc -i --host-arch armhf"'
         workingDirectory: edgelet

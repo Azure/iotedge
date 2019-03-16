@@ -2,7 +2,7 @@
 
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::stutter, clippy::use_self)]
+#![allow(clippy::module_name_repetitions, clippy::use_self)]
 
 #[cfg(test)]
 extern crate chrono;
