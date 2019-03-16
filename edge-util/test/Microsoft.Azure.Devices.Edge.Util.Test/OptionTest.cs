@@ -23,6 +23,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             Option<string> maybeNotNull = Option.Maybe("boo");
             Assert.True(maybeNotNull.HasValue);
+
+            Option<int> maybeIntNull = Option.Maybe<int>(null);
+            Assert.False(maybeIntNull.HasValue);
+
+            int? nullableInt = 2;
+            Option<int> maybeIntNotNull = Option.Maybe(nullableInt);
+            Assert.True(maybeIntNotNull.HasValue);
         }
 
         [Fact]

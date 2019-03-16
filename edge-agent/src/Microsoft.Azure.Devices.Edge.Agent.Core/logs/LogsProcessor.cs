@@ -7,12 +7,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
     using System.Collections.Immutable;
     using System.IO;
     using System.Text;
+    using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using akka::Akka;
     using akka::Akka.Actor;
     using akka::Akka.IO;
     using Akka.Streams;
     using Akka.Streams.Dsl;
+    using Akka.Streams.IO;
     using Microsoft.Azure.Devices.Edge.Util;
 
     // Processes incoming logs stream and converts to the required format
@@ -41,17 +43,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             this.materializer = this.system.Materializer();
         }
 
-        public async Task<IReadOnlyList<ModuleLogMessage>> GetMessages(Stream stream, string moduleId)
+        public async Task<IReadOnlyList<ModuleLogMessage>> GetMessages(Stream stream, string moduleId, Option<int> logLevel, Option<Regex> regex)
         {
             Preconditions.CheckNotNull(stream, nameof(stream));
             Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
 
-            var source = StreamConverters.FromInputStream(() => stream);
-            var seqSink = Sink.Seq<ModuleLogMessage>();
-            IRunnableGraph<Task<IImmutableList<ModuleLogMessage>>> graph = source
-                .Via(FramingFlow)
-                .Select(b => this.logMessageParser.Parse(b, moduleId))
-                .ToMaterialized(seqSink, Keep.Right);
+            GraphBuilder<ModuleLogMessage> graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, moduleId));
+            logLevel.ForEach(l => graphBuilder.AddFilter(m => m.LogLevel == l));
+            regex.ForEach(r => graphBuilder.AddFilter(m => r.IsMatch(m.Text)));
+            IRunnableGraph<Task<IImmutableList<ModuleLogMessage>>> graph = graphBuilder.GetMaterializingGraph();
 
             IImmutableList<ModuleLogMessage> result = await graph.Run(this.materializer);
             return result;
@@ -62,11 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             Preconditions.CheckNotNull(stream, nameof(stream));
             var source = StreamConverters.FromInputStream(() => stream);
             var seqSink = Sink.Seq<string>();
-            IRunnableGraph<Task<IImmutableList<string>>> graph = source
-                .Via(FramingFlow)
-                .Select(b => b.Slice(8))
-                .Select(b => b.ToString(Encoding.UTF8))
-                .ToMaterialized(seqSink, Keep.Right);
+            IRunnableGraph<Task<IImmutableList<string>>> graph = GraphBuilder.BuildMaterializedGraph(stream);
 
             IImmutableList<string> result = await graph.Run(this.materializer);
             return result;
@@ -76,6 +72,96 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         {
             this.system?.Dispose();
             this.materializer?.Dispose();
+        }
+
+        //static class GraphBuilder
+        //{
+        //    public static GraphBuilder<T> CreateParsingGraphBuilder<T>(Stream stream, Func<ByteString, T> parserFunc)
+        //    {
+        //        var source = StreamConverters.FromInputStream(() => stream);
+        //        var graph = source
+        //            .Via(FramingFlow)
+        //            .Select(parserFunc);
+        //        return new GraphBuilder<T>(graph);
+        //    }
+
+        //    public static IRunnableGraph<Task<IImmutableList<string>>> BuildMaterializedGraph(Stream stream)
+        //    {
+        //        var source = StreamConverters.FromInputStream(() => stream);
+        //        var seqSink = Sink.Seq<string>();
+        //        IRunnableGraph<Task<IImmutableList<string>>> graph = source
+        //            .Via(FramingFlow)
+        //            .Select(b => b.Slice(8))
+        //            .Select(b => b.ToString(Encoding.UTF8))
+        //            .ToMaterialized(seqSink, Keep.Right);
+        //        return graph;
+        //    }
+        //}
+
+        //class GraphBuilder<T>
+        //{
+        //    Source<T, Task<IOResult>> parsingGraphSource;
+
+        //    public GraphBuilder(Source<T, Task<IOResult>> parsingGraphSource)
+        //    {
+        //        this.parsingGraphSource = parsingGraphSource;
+        //    }
+
+        //    public void AddFilter(Predicate<T> predicate)
+        //    {
+        //        this.parsingGraphSource = this.parsingGraphSource.Where(predicate);
+        //    }
+
+        //    public IRunnableGraph<Task<IImmutableList<T>>> GetMaterializingGraph()
+        //    {
+        //        var seqSink = Sink.Seq<T>();
+        //        return this.parsingGraphSource.ToMaterialized(seqSink, Keep.Right);
+        //    }
+        //}
+
+        static class GraphBuilder
+        {
+            public static GraphBuilder<T> CreateParsingGraphBuilder<T>(Stream stream, Func<ByteString, T> parserFunc)
+            {
+                var source = StreamConverters.FromInputStream(() => stream);
+                var graph = source
+                    .Via(FramingFlow)
+                    .Select(parserFunc);
+                return new GraphBuilder<T>(graph);
+            }
+
+            public static IRunnableGraph<Task<IImmutableList<string>>> BuildMaterializedGraph(Stream stream)
+            {
+                var source = StreamConverters.FromInputStream(() => stream);
+                var seqSink = Sink.Seq<string>();
+                IRunnableGraph<Task<IImmutableList<string>>> graph = source
+                    .Via(FramingFlow)
+                    .Select(b => b.Slice(8))
+                    .Select(b => b.ToString(Encoding.UTF8))
+                    .ToMaterialized(seqSink, Keep.Right);
+                return graph;
+            }
+        }
+
+        class GraphBuilder<T>
+        {
+            Source<T, Task<IOResult>> parsingGraphSource;
+
+            public GraphBuilder(Source<T, Task<IOResult>> parsingGraphSource)
+            {
+                this.parsingGraphSource = parsingGraphSource;
+            }
+
+            public void AddFilter(Predicate<T> predicate)
+            {
+                this.parsingGraphSource = this.parsingGraphSource.Where(predicate);
+            }
+
+            public IRunnableGraph<Task<IImmutableList<T>>> GetMaterializingGraph()
+            {
+                var seqSink = Sink.Seq<T>();
+                return this.parsingGraphSource.ToMaterialized(seqSink, Keep.Right);
+            }
         }
     }
 }
