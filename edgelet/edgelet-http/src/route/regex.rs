@@ -150,9 +150,9 @@ fn match_route(re: &Regex, path: &str) -> Option<Parameters> {
 fn normalize_pattern(pattern: &str) -> Cow<str> {
     let pattern = pattern
         .trim()
-        .trim_left_matches('^')
-        .trim_right_matches('$')
-        .trim_right_matches('/');
+        .trim_start_matches('^')
+        .trim_end_matches('$')
+        .trim_end_matches('/');
     match pattern {
         "" => "^/$".into(),
         s => format!("^{}/?$", s).into(),
