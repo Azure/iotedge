@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             public static void ErrorWhileProcessingStream(string id, Exception ex)
             {
                 Log.LogInformation((int)EventIds.ErrorWhileStreaming, $"Error streaming logs for {id}, terminating streaming operation.");
-                Log.LogDebug((int)EventIds.ErrorWhileStreaming, ex, $"Error streaming logs for {id}, terminating streaming operation.");
+                Log.LogDebug((int)EventIds.ErrorWhileStreaming, ex, $"Streaming error details for {id}");
             }
 
             public static void StreamingCancelled(string id)
