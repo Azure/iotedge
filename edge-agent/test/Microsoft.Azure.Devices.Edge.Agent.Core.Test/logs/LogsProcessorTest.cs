@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -71,7 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             // Assert
             Assert.NotNull(logMessages);
             List<ModuleLogMessage> logMessagesList = logMessages.ToList();
-            for (int i = 0; i < logMessagesList.Count; i++)
+            Assert.Equal(TestLogLines.Count, logMessagesList.Count);
+            for (int i = 0; i < TestLogLines.Count; i++)
             {
                 ModuleLogMessage logMessage = logMessagesList[i];
                 Assert.Equal(iotHub, logMessage.IoTHub);
@@ -83,6 +85,65 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
                 if (logMessage.TimeStamp.HasValue)
                 {
                     Assert.Equal(DateTime.Parse(TestLogLines[i].timestamp), logMessage.TimeStamp.OrDefault());
+                }
+            }
+        }
+
+        [Fact]
+        public async Task GetTextWithRegexFilterTest()
+        {
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "dev1";
+            string moduleId = "mod1";
+            string regex = @"\[INF\]";
+            var logMessageParser = new LogMessageParser(iotHub, deviceId);
+            var logsProcessor = new LogsProcessor(logMessageParser);
+            var stream = new MemoryStream(TestLogBytes);
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.None<int>(), Option.Some(regex));
+
+            // Act
+            IEnumerable<string> textLines = await logsProcessor.GetText(stream, moduleId, filter);
+
+            // Assert
+            Assert.NotNull(textLines);
+            Assert.Equal(3, textLines.Count());
+            Assert.Equal(TestLogLines.Skip(2).Take(3).Select(l => l.rawText), textLines);
+        }
+
+        [Fact]
+        public async Task GetMessagesWithRegexFilterTest()
+        {
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "dev1";
+            string moduleId = "mod1";
+            string regex = @"\[INF\]";
+            var logMessageParser = new LogMessageParser(iotHub, deviceId);
+            var logsProcessor = new LogsProcessor(logMessageParser);
+            var stream = new MemoryStream(TestLogBytes);
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.None<int>(), Option.Some(regex));
+
+            // Act
+            IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(stream, moduleId, filter);
+
+            // Assert
+            Assert.NotNull(logMessages);
+            List<ModuleLogMessage> logMessagesList = logMessages.ToList();
+            Assert.Equal(3, logMessagesList.Count);
+            for (int i = 0; i < logMessagesList.Count; i++)
+            {
+                ModuleLogMessage logMessage = logMessagesList[i];
+                (string rawText, string parsedText, string timestamp) expectedData = TestLogLines[i + 2];
+                Assert.Equal(iotHub, logMessage.IoTHub);
+                Assert.Equal(deviceId, logMessage.DeviceId);
+                Assert.Equal(moduleId, logMessage.ModuleId);
+                Assert.Equal(6, logMessage.LogLevel);
+                Assert.Equal(expectedData.parsedText, logMessage.Text);
+                Assert.Equal(!string.IsNullOrEmpty(expectedData.timestamp), logMessage.TimeStamp.HasValue);
+                if (logMessage.TimeStamp.HasValue)
+                {
+                    Assert.Equal(DateTime.Parse(expectedData.timestamp), logMessage.TimeStamp.OrDefault());
                 }
             }
         }
