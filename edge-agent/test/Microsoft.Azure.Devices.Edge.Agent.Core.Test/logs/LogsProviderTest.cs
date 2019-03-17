@@ -43,8 +43,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
+            var filter = new ModuleLogFilter();
 
-            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.None, LogsContentType.Text);
+            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.None, LogsContentType.Text, filter);
 
             // Act
             byte[] bytes = await logsProvider.GetLogs(logOptions, cancellationToken);
@@ -71,8 +72,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
+            var filter = new ModuleLogFilter();
 
-            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.Gzip, LogsContentType.Text);
+            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.Gzip, LogsContentType.Text, filter);
 
             // Act
             byte[] bytes = await logsProvider.GetLogs(logOptions, cancellationToken);
@@ -92,7 +94,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string moduleId = "mod1";
             Option<int> tail = Option.None<int>();
             CancellationToken cancellationToken = CancellationToken.None;
-            string expectedLogText = TestLogTexts.Join(string.Empty);
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
             runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, cancellationToken))
@@ -100,8 +101,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
+            var filter = new ModuleLogFilter();
 
-            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.None, LogsContentType.Json);
+            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.None, LogsContentType.Json, filter);
 
             // Act
             byte[] bytes = await logsProvider.GetLogs(logOptions, cancellationToken);
@@ -132,8 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string deviceId = "dev1";
             string moduleId = "mod1";
             Option<int> tail = Option.None<int>();
-            CancellationToken cancellationToken = CancellationToken.None;
-            string expectedLogText = TestLogTexts.Join(string.Empty);
+            CancellationToken cancellationToken = CancellationToken.None;            
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
             runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, cancellationToken))
@@ -141,8 +142,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
+            var filter = new ModuleLogFilter();
 
-            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.Gzip, LogsContentType.Json);
+            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.Gzip, LogsContentType.Json, filter);
 
             // Act
             byte[] bytes = await logsProvider.GetLogs(logOptions, cancellationToken);

@@ -1,14 +1,23 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 {
+    extern alias akka;
     using System;
+    using akka::Akka.IO;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
     public class ModuleLogMessage
     {
-        public ModuleLogMessage(string iotHub, string deviceId, string moduleId, string stream, int logLevel, Option<DateTime> timeStamp, string text)
+        public ModuleLogMessage(
+            string iotHub,
+            string deviceId,
+            string moduleId,
+            string stream,
+            int logLevel,
+            Option<DateTime> timeStamp,
+            string text)
         {
             this.IoTHub = Preconditions.CheckNonWhiteSpace(iotHub, nameof(iotHub));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -21,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
         [JsonConstructor]
         ModuleLogMessage(string iotHub, string deviceId, string moduleId, string stream, int logLevel, DateTime? timeStamp, string text)
-            : this(iotHub, deviceId, moduleId, stream, logLevel, timeStamp.HasValue ? Option.Some(timeStamp.Value) : Option.None<DateTime>(), text)
+            : this(iotHub, deviceId, moduleId, stream, logLevel, Option.Maybe(timeStamp), text)
         {
         }
 
@@ -46,5 +55,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         [JsonProperty(PropertyName = "timestamp")]
         [JsonConverter(typeof(OptionConverter<DateTime>))]
         public Option<DateTime> TimeStamp { get; }
+    }
+
+
+    public class ModuleLogMessageData : ModuleLogMessage
+    {
+        public ModuleLogMessageData(
+            string iotHub,
+            string deviceId,
+            string moduleId,
+            string stream,
+            int logLevel,
+            Option<DateTime> timeStamp,
+            string text,
+            ByteString fullFrame,
+            string fullText)
+            : base(iotHub, deviceId, moduleId, stream, logLevel, timeStamp, text)
+        {
+            this.FullText = Preconditions.CheckNonWhiteSpace(fullText, fullText);
+            this.FullFrame = Preconditions.CheckNotNull(fullFrame, nameof(fullFrame));
+        }
+
+        [JsonIgnore]
+        public ByteString FullFrame { get; }
+
+        [JsonIgnore]
+        public string FullText { get; }
     }
 }
