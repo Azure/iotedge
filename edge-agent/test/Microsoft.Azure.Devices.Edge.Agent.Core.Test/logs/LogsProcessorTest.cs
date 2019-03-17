@@ -43,6 +43,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             "<3> 2019-05-08 02:23:23.137 +00:00 [ERR] - Something really bad happened.\n"
         };
 
+        public static IEnumerable<object[]> GetLogLevelFilterTestData()
+        {
+            yield return new object[] { 6, new List<int> { 0, 2 } };
+            yield return new object[] { 7, new List<int> { 1 } };
+            yield return new object[] { 4, new List<int> { 3 } };
+            yield return new object[] { 3, new List<int> { 4 } };
+        }
+
+        public static IEnumerable<object[]> GetMultipleFiltersTestData()
+        {
+            yield return new object[] { 6, "important", new List<int> { 0 } };
+            yield return new object[] { 7, "log", new List<int> { 1 } };
+            yield return new object[] { 4, "bad", new List<int> { 3 } };
+            yield return new object[] { 3, "bad", new List<int> { 4 } };
+        }
+
         [Fact]
         public async Task GetTextTest()
         {
@@ -157,7 +173,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             }
         }
 
-
         [Theory]
         [MemberData(nameof(GetLogLevelFilterTestData))]
         public async Task GetTextWithLogLevelFilterTest(int logLevel, List<int> expectedLogLineIds)
@@ -190,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             // Arrange
             string iotHub = "foo.azure-devices.net";
             string deviceId = "dev1";
-            string moduleId = "mod1";           
+            string moduleId = "mod1";
             var logMessageParser = new LogMessageParser(iotHub, deviceId);
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
@@ -210,7 +225,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
                 Assert.Contains(logMessage.Text, expectedText, StringComparison.OrdinalIgnoreCase);
             }
         }
-
 
         [Theory]
         [MemberData(nameof(GetMultipleFiltersTestData))]
@@ -263,22 +277,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
                 string expectedText = TestLogTexts[expectedLogLineIds[i]];
                 Assert.Contains(logMessage.Text, expectedText, StringComparison.OrdinalIgnoreCase);
             }
-        }
-
-        public static IEnumerable<object[]> GetLogLevelFilterTestData()
-        {
-            yield return new object[] { 6, new List<int> { 0, 2 } };
-            yield return new object[] { 7, new List<int> { 1 } };
-            yield return new object[] { 4, new List<int> { 3 } };
-            yield return new object[] { 3, new List<int> { 4 } };
-        }
-
-        public static IEnumerable<object[]> GetMultipleFiltersTestData()
-        {
-            yield return new object[] { 6, "important", new List<int> { 0 } };
-            yield return new object[] { 7, "log", new List<int> { 1 } };
-            yield return new object[] { 4, "bad", new List<int> { 3 } };
-            yield return new object[] { 3, "bad", new List<int> { 4 } };
         }
     }
 }
