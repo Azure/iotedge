@@ -7,11 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
     public class ModuleLogFilter
     {
-        public ModuleLogFilter()
-            : this(Option.None<int>(), Option.None<int>(), Option.None<int>(), Option.None<string>())
-        {
-        }
-
         public ModuleLogFilter(Option<int> tail, Option<int> since, Option<int> logLevel, Option<string> regex)
         {
             this.Tail = tail;
@@ -25,6 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             : this(Option.Maybe(tail), Option.Maybe(since), Option.Maybe(loglevel), Option.Maybe(regex))
         {
         }
+
+        public static ModuleLogFilter Empty = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.None<int>(), Option.None<string>());
 
         public Option<int> Tail { get; }
 
