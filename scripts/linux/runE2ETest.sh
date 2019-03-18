@@ -33,15 +33,12 @@ Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/iotedge.service.d/o
 function get_image_architecture_label() {
     local arch
     arch="$(uname -m)"
-    local label
 
     case "$arch" in
-        'x86_64' ) label='amd64';;
-        'armv71' ) label='arm32v7';;
+        'x86_64' ) image_architecture_label='amd64';;
+        'armv7l' ) image_architecture_label='arm32v7';;
         *) print_error "Unsupported OS architecture: $arch"; exit 1;;
     esac
-
-    echo "$label"
 }
 
 function get_iotedge_quickstart_artifact_file() {
@@ -87,7 +84,7 @@ function prepare_test_from_artifacts() {
     declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
     iotedge_package="${pkg_list[*]}"
     echo "iotedge_package=$iotedge_package"
-    
+
     echo 'Extract quickstart to working folder'
     mkdir -p "$quickstart_working_folder"
     tar -C "$quickstart_working_folder" -xzf "$iotedge_quickstart_artifact_file"
@@ -128,7 +125,7 @@ function prepare_test_from_artifacts() {
             'directmethodmqttws')
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
-                
+
                 if [[ $image_architecture_label == 'arm32v7' ]]; then
                     sed -i -e "s@<MqttEventsProcessorThreadCount>@1@g" "$deployment_working_file"
                 fi
@@ -365,11 +362,11 @@ function run_all_tests()
     TEST_NAME='DirectMethodMqttws'
     run_directmethodmqttws_test && testRet=$? || testRet=$?
     if (( funcRet = 0 )); then funcRet=$testRet; fi
-    
+
     TEST_NAME='TempFilter'
     run_tempfilter_test && testRet=$? || testRet=$?
     if (( funcRet = 0 )); then funcRet=$testRet; fi
-    
+
     TEST_NAME='TempFilterFunctions'
     run_tempfilterfunctions_test && testRet=$? || testRet=$?
     if (( funcRet = 0 )); then funcRet=$testRet; fi
@@ -736,7 +733,7 @@ function validate_test_parameters() {
         if [[ -z "$SNITCH_STORAGE_MASTER_KEY" ]]; then
             print_error "Required snitch storage master key."
             ((error++))
-        fi 
+        fi
     fi
 
     if (( error > 0 )); then
@@ -791,9 +788,8 @@ LOADGEN2_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
 LOADGEN3_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-mqtt}"
 LOADGEN4_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-mqtt}"
 
-
 working_folder="$E2E_TEST_DIR/working"
-image_architecture_label=$(get_image_architecture_label)
+get_image_architecture_label
 iotedged_artifact_folder="$(get_iotedged_artifact_folder)"
 iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file)"
 leafdevice_artifact_file="$(get_leafdevice_artifact_file)"
