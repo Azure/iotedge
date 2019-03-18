@@ -1007,11 +1007,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.Generate
         /// <param name="name">The name of the module to obtain logs for. (urlencoded)</param>
         /// <param name="follow">Return the logs as a stream.</param>
         /// <param name="tail">Only return this number of lines from the end of the logs.</param>
+        /// <param name="since">Only return logs since this time, as a UNIX timestamp.</param>
         /// <returns>Logs returned as a string in response body</returns>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public System.Threading.Tasks.Task ModuleLogsAsync(string api_version, string name, bool? follow, string tail)
+        public System.Threading.Tasks.Task ModuleLogsAsync(string api_version, string name, bool? follow, string tail, int? since)
         {
-            return ModuleLogsAsync(api_version, name, follow, tail, System.Threading.CancellationToken.None);
+            return ModuleLogsAsync(api_version, name, follow, tail, since, System.Threading.CancellationToken.None);
         }
 
         /// <summary>Get module logs.</summary>
@@ -1019,10 +1020,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.Generate
         /// <param name="name">The name of the module to obtain logs for. (urlencoded)</param>
         /// <param name="follow">Return the logs as a stream.</param>
         /// <param name="tail">Only return this number of lines from the end of the logs.</param>
+        /// <param name="since">Only return logs since this time, as a UNIX timestamp.</param>
         /// <returns>Logs returned as a string in response body</returns>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public async System.Threading.Tasks.Task ModuleLogsAsync(string api_version, string name, bool? follow, string tail, System.Threading.CancellationToken cancellationToken)
+        public async System.Threading.Tasks.Task ModuleLogsAsync(string api_version, string name, bool? follow, string tail, int? since, System.Threading.CancellationToken cancellationToken)
         {
             if (name == null)
                 throw new System.ArgumentNullException("name");
@@ -1041,6 +1043,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.Generate
             if (tail != null)
             {
                 urlBuilder_.Append("tail=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(tail, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            }
+            if (since != null)
+            {
+                urlBuilder_.Append("since=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(since, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             }
             urlBuilder_.Length--;
 
