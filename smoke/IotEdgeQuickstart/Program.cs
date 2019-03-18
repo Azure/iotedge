@@ -170,7 +170,8 @@ Defaults:
 
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
-                            bootstrapper = new IotedgedWindows(this.BootstrapperArchivePath, credentials, proxy, this.OfflineInstallationPath);
+                            string offlineInstallationPath = string.IsNullOrEmpty(this.OfflineInstallationPath) ? this.BootstrapperArchivePath : this.OfflineInstallationPath;
+                            bootstrapper = new IotedgedWindows(offlineInstallationPath, credentials, proxy);
                         }
                         else
                         {
