@@ -75,8 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<LogsStreamRequestHandler>();
             const int IdStart = AgentEventIds.LogsStreamRequestHandler;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<LogsStreamRequestHandler>();
 
             enum EventIds
             {

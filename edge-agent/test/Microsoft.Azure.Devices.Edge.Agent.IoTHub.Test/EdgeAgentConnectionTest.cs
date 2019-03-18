@@ -30,122 +30,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     {
         const string DockerType = "docker";
 
-        static async Task SetAgentDesiredProperties(RegistryManager rm, string deviceId)
-        {
-            var dp = new
-            {
-                schemaVersion = "1.0",
-                runtime = new
-                {
-                    type = "docker",
-                    settings = new
-                    {
-                        registryCredentials = new
-                        {
-                            r1 = new
-                            {
-                                address = "acr1.azure.net",
-                                username = "u1",
-                                password = "p1"
-                            },
-                            r2 = new
-                            {
-                                address = "acr2.azure.net",
-                                username = "u2",
-                                password = "p2"
-                            }
-                        }
-                    }
-                },
-                systemModules = new
-                {
-                    edgeAgent = new
-                    {
-                        configuration = new
-                        {
-                            id = "1235"
-                        },
-                        type = "docker",
-                        env = new
-                        {
-                            e1 = new
-                            {
-                                value = "e1val"
-                            },
-                            e2 = new
-                            {
-                                value = "e2val"
-                            }
-                        },
-                        settings = new
-                        {
-                            image = "edgeAgent",
-                            createOptions = string.Empty
-                        }
-                    },
-                    edgeHub = new
-                    {
-                        type = "docker",
-                        status = "running",
-                        restartPolicy = "always",
-                        env = new
-                        {
-                            e3 = new
-                            {
-                                value = "e3val"
-                            },
-                            e4 = new
-                            {
-                                value = "e4val"
-                            }
-                        },
-                        settings = new
-                        {
-                            image = "edgeHub",
-                            createOptions = string.Empty
-                        }
-                    }
-                },
-                modules = new
-                {
-                    mongoserver = new
-                    {
-                        version = "1.0",
-                        type = "docker",
-                        status = "running",
-                        restartPolicy = "on-failure",
-                        env = new
-                        {
-                            e5 = new
-                            {
-                                value = "e5val"
-                            },
-                            e6 = new
-                            {
-                                value = "e6val"
-                            }
-                        },
-                        settings = new
-                        {
-                            image = "mongo",
-                            createOptions = string.Empty
-                        }
-                    }
-                }
-            };
-            var cc = new ConfigurationContent
-            {
-                ModulesContent = new Dictionary<string, IDictionary<string, object>>
-                {
-                    ["$edgeAgent"] = new Dictionary<string, object>
-                    {
-                        ["properties.desired"] = dp
-                    }
-                }
-            };
-            await rm.ApplyConfigurationContentOnDeviceAsync(deviceId, cc);
-        }
-
         public static async Task<Configuration> CreateConfigurationAsync(RegistryManager registryMananger, string configurationId, string targetCondition, int priority)
         {
             var configuration = new Configuration(configurationId)
@@ -160,11 +44,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             };
 
             return await registryMananger.AddConfigurationAsync(configuration);
-        }
-
-        static async Task DeleteConfigurationAsync(RegistryManager registryManager, string configurationId)
-        {
-            await registryManager.RemoveConfigurationAsync(configurationId);
         }
 
         public static TwinCollection GetEdgeAgentReportedProperties(DeploymentConfigInfo deploymentConfigInfo)
@@ -253,114 +132,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     }
                 }
             };
-        }
-
-        static async Task UpdateAgentDesiredProperties(RegistryManager rm, string deviceId)
-        {
-            var dp = new
-            {
-                schemaVersion = "1.0",
-                runtime = new
-                {
-                    type = "docker",
-                    settings = new
-                    {
-                        registryCredentials = new
-                        {
-                            r1 = new
-                            {
-                                address = "acr1.azure.net",
-                                username = "u1",
-                                password = "p1"
-                            },
-                            r2 = new
-                            {
-                                address = "acr2.azure.net",
-                                username = "u2",
-                                password = "p2"
-                            }
-                        }
-                    }
-                },
-                systemModules = new
-                {
-                    edgeAgent = new
-                    {
-                        configuration = new
-                        {
-                            id = "1235"
-                        },
-                        type = "docker",
-                        settings = new
-                        {
-                            image = "edgeAgent",
-                            createOptions = string.Empty
-                        }
-                    },
-                    edgeHub = new
-                    {
-                        type = "docker",
-                        status = "running",
-                        restartPolicy = "always",
-                        settings = new
-                        {
-                            image = "edgeHub",
-                            createOptions = string.Empty
-                        }
-                    }
-                },
-                modules = new
-                {
-                    mongoserver = new
-                    {
-                        version = "1.0",
-                        type = "docker",
-                        status = "running",
-                        restartPolicy = "on-failure",
-                        env = new
-                        {
-                            e5 = new
-                            {
-                                value = "e5val"
-                            },
-                            e7 = new
-                            {
-                                value = "e7val"
-                            }
-                        },
-                        settings = new
-                        {
-                            image = "mongo",
-                            createOptions = string.Empty
-                        }
-                    },
-                    mlModule = new
-                    {
-                        version = "1.0",
-                        type = "docker",
-                        status = "running",
-                        restartPolicy = "on-unhealthy",
-                        settings = new
-                        {
-                            image = "ml:latest",
-                            createOptions = string.Empty
-                        }
-                    }
-                }
-            };
-
-            var cc = new ConfigurationContent
-            {
-                ModulesContent = new Dictionary<string, IDictionary<string, object>>
-                {
-                    ["$edgeAgent"] = new Dictionary<string, object>
-                    {
-                        ["properties.desired"] = dp
-                    }
-                }
-            };
-
-            await rm.ApplyConfigurationContentOnDeviceAsync(deviceId, cc);
         }
 
         [Integration]
@@ -1088,7 +859,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Module edgeAgentModule = await registryManager.GetModuleAsync(edgeDevice.Id, Constants.EdgeAgentModuleIdentityName);
                 Assert.NotNull(edgeAgentModule);
                 Assert.True(edgeAgentModule.ConnectionState == DeviceConnectionState.Disconnected);
-                
+
                 IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers), streamRequestListener);
                 await Task.Delay(TimeSpan.FromSeconds(5));
 
@@ -1303,6 +1074,235 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             {
                 EdgeAgentConnection.ValidateSchemaVersion(schemaVersion);
             }
+        }
+
+        static async Task SetAgentDesiredProperties(RegistryManager rm, string deviceId)
+        {
+            var dp = new
+            {
+                schemaVersion = "1.0",
+                runtime = new
+                {
+                    type = "docker",
+                    settings = new
+                    {
+                        registryCredentials = new
+                        {
+                            r1 = new
+                            {
+                                address = "acr1.azure.net",
+                                username = "u1",
+                                password = "p1"
+                            },
+                            r2 = new
+                            {
+                                address = "acr2.azure.net",
+                                username = "u2",
+                                password = "p2"
+                            }
+                        }
+                    }
+                },
+                systemModules = new
+                {
+                    edgeAgent = new
+                    {
+                        configuration = new
+                        {
+                            id = "1235"
+                        },
+                        type = "docker",
+                        env = new
+                        {
+                            e1 = new
+                            {
+                                value = "e1val"
+                            },
+                            e2 = new
+                            {
+                                value = "e2val"
+                            }
+                        },
+                        settings = new
+                        {
+                            image = "edgeAgent",
+                            createOptions = string.Empty
+                        }
+                    },
+                    edgeHub = new
+                    {
+                        type = "docker",
+                        status = "running",
+                        restartPolicy = "always",
+                        env = new
+                        {
+                            e3 = new
+                            {
+                                value = "e3val"
+                            },
+                            e4 = new
+                            {
+                                value = "e4val"
+                            }
+                        },
+                        settings = new
+                        {
+                            image = "edgeHub",
+                            createOptions = string.Empty
+                        }
+                    }
+                },
+                modules = new
+                {
+                    mongoserver = new
+                    {
+                        version = "1.0",
+                        type = "docker",
+                        status = "running",
+                        restartPolicy = "on-failure",
+                        env = new
+                        {
+                            e5 = new
+                            {
+                                value = "e5val"
+                            },
+                            e6 = new
+                            {
+                                value = "e6val"
+                            }
+                        },
+                        settings = new
+                        {
+                            image = "mongo",
+                            createOptions = string.Empty
+                        }
+                    }
+                }
+            };
+            var cc = new ConfigurationContent
+            {
+                ModulesContent = new Dictionary<string, IDictionary<string, object>>
+                {
+                    ["$edgeAgent"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = dp
+                    }
+                }
+            };
+            await rm.ApplyConfigurationContentOnDeviceAsync(deviceId, cc);
+        }
+
+        static async Task DeleteConfigurationAsync(RegistryManager registryManager, string configurationId)
+        {
+            await registryManager.RemoveConfigurationAsync(configurationId);
+        }
+
+        static async Task UpdateAgentDesiredProperties(RegistryManager rm, string deviceId)
+        {
+            var dp = new
+            {
+                schemaVersion = "1.0",
+                runtime = new
+                {
+                    type = "docker",
+                    settings = new
+                    {
+                        registryCredentials = new
+                        {
+                            r1 = new
+                            {
+                                address = "acr1.azure.net",
+                                username = "u1",
+                                password = "p1"
+                            },
+                            r2 = new
+                            {
+                                address = "acr2.azure.net",
+                                username = "u2",
+                                password = "p2"
+                            }
+                        }
+                    }
+                },
+                systemModules = new
+                {
+                    edgeAgent = new
+                    {
+                        configuration = new
+                        {
+                            id = "1235"
+                        },
+                        type = "docker",
+                        settings = new
+                        {
+                            image = "edgeAgent",
+                            createOptions = string.Empty
+                        }
+                    },
+                    edgeHub = new
+                    {
+                        type = "docker",
+                        status = "running",
+                        restartPolicy = "always",
+                        settings = new
+                        {
+                            image = "edgeHub",
+                            createOptions = string.Empty
+                        }
+                    }
+                },
+                modules = new
+                {
+                    mongoserver = new
+                    {
+                        version = "1.0",
+                        type = "docker",
+                        status = "running",
+                        restartPolicy = "on-failure",
+                        env = new
+                        {
+                            e5 = new
+                            {
+                                value = "e5val"
+                            },
+                            e7 = new
+                            {
+                                value = "e7val"
+                            }
+                        },
+                        settings = new
+                        {
+                            image = "mongo",
+                            createOptions = string.Empty
+                        }
+                    },
+                    mlModule = new
+                    {
+                        version = "1.0",
+                        type = "docker",
+                        status = "running",
+                        restartPolicy = "on-unhealthy",
+                        settings = new
+                        {
+                            image = "ml:latest",
+                            createOptions = string.Empty
+                        }
+                    }
+                }
+            };
+
+            var cc = new ConfigurationContent
+            {
+                ModulesContent = new Dictionary<string, IDictionary<string, object>>
+                {
+                    ["$edgeAgent"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = dp
+                    }
+                }
+            };
+
+            await rm.ApplyConfigurationContentOnDeviceAsync(deviceId, cc);
         }
 
         static void ValidateModules(DeploymentConfig deploymentConfig)
