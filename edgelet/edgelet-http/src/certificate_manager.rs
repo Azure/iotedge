@@ -1,27 +1,25 @@
-use std::str;
 use std::sync::{Arc, RwLock};
 
 use edgelet_core::crypto::{Certificate, CreateCertificate};
-use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType};
+use edgelet_core::CertificateProperties;
 use failure::ResultExt;
 
 pub use crate::error::{Error, ErrorKind};
-
-const IOTEDGED_VALIDITY: u64 = 7_776_000; // 90 days
-const IOTEDGED_TLS_COMMONNAME: &str = "iotedge tls";
 
 #[derive(Clone)]
 pub struct CertificateManager<C: CreateCertificate + Clone> {
     certificate: Arc<RwLock<Option<String>>>,
     crypto: C,
+    props: CertificateProperties,
 }
 
 impl<C: CreateCertificate + Clone> CertificateManager<C> {
-    pub fn new(crypto_struct: C) -> Result<Self, Error> {
-        Ok(CertificateManager {
+    pub fn new(crypto: C, props: CertificateProperties) -> Self {
+        CertificateManager {
             certificate: Arc::new(RwLock::new(None)),
-            crypto: crypto_struct,
-        })
+            crypto,
+            props,
+        }
     }
 
     pub fn get_certificate(&self) -> Result<String, Error> {
@@ -32,10 +30,9 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
                 .read()
                 .expect("Locking the certificate for read failed.");
 
-            match Option::as_ref(&cert) {
-                Some(cert) => return Ok(cert.to_string()),
-                None => (),
-            };
+            if let Some(cert) = Option::as_ref(&cert) {
+                return Ok(cert.to_string());
+            }
         }
 
         // No valid cert so must create
@@ -44,30 +41,20 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
             .write()
             .expect("Locking the certificate for write failed.");
 
-        // Check that another thread hasn't already created one for us
-        match Option::as_ref(&cert) {
-            Some(cert) => Ok(cert.to_string()),
-            None => {
-                let new_cert = self
-                    .create_cert()
-                    .with_context(|_| ErrorKind::CertificateCreationError)?;
-                Ok(cert.get_or_insert(new_cert).to_string())
-            }
+        if let Some(cert) = Option::as_ref(&cert) {
+            Ok(cert.to_string())
+        } else {
+            let new_cert = self
+                .create_cert()
+                .with_context(|_| ErrorKind::CertificateCreationError)?;
+            Ok(cert.get_or_insert(new_cert).to_string())
         }
     }
 
     fn create_cert(&self) -> Result<String, Error> {
-        let edgelet_cert_props = CertificateProperties::new(
-            IOTEDGED_VALIDITY,
-            IOTEDGED_TLS_COMMONNAME.to_string(),
-            CertificateType::Server,
-            "iotedge-tls".to_string(),
-        )
-        .with_issuer(CertificateIssuer::DeviceCa);
-
         let cert = self
             .crypto
-            .create_certificate(&edgelet_cert_props)
+            .create_certificate(&self.props)
             .with_context(|_| ErrorKind::CertificateCreationError)?;
 
         let cert_pem = cert
@@ -93,6 +80,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use edgelet_core::{CertificateProperties, CertificateType};
 
     use chrono::{DateTime, Utc};
 
@@ -106,7 +94,14 @@ mod tests {
     pub fn test_new_manager_has_no_cert() {
         let crypto = TestCrypto::new().unwrap();
 
-        let manager = CertificateManager::new(crypto.clone()).unwrap();
+        let edgelet_cert_props = CertificateProperties::new(
+            1_234_56,
+            "IOTEDGED_TLS_COMMONNAME".to_string(),
+            CertificateType::Server,
+            "iotedge-tls".to_string(),
+        );
+
+        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props);
 
         assert_eq!(manager.has_certificate(), false);
     }
@@ -115,7 +110,14 @@ mod tests {
     pub fn test_manager_cert_pem_has_cert() {
         let crypto = TestCrypto::new().unwrap();
 
-        let manager = CertificateManager::new(crypto.clone()).unwrap();
+        let edgelet_cert_props = CertificateProperties::new(
+            1_234_56,
+            "IOTEDGED_TLS_COMMONNAME".to_string(),
+            CertificateType::Server,
+            "iotedge-tls".to_string(),
+        );
+
+        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props);
 
         let cert = manager.get_certificate().unwrap();
 

@@ -145,6 +145,7 @@ const EDGE_SETTINGS_SUBDIR: &str = "cache";
 /// These are the properties of the workload CA certificate
 const IOTEDGED_VALIDITY: u64 = 7_776_000; // 90 days
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
+const IOTEDGED_TLS_COMMONNAME: &str = "iotedge tls";
 
 const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200; // 2 hours
 const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 7_776_000; // 90 days
@@ -517,19 +518,17 @@ where
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
     let (work_tx, work_rx) = oneshot::channel();
 
-    let cert_manager = CertificateManager::new(crypto.clone()).context(ErrorKind::Initialize(
-        InitializeErrorReason::CreateTlsCertificate,
-    ))?;
+    let edgelet_cert_props = CertificateProperties::new(
+        IOTEDGED_VALIDITY,
+        IOTEDGED_TLS_COMMONNAME.to_string(),
+        CertificateType::Server,
+        "iotedge-tls".to_string(),
+    )
+    .with_issuer(CertificateIssuer::DeviceCa);
 
-    let cert_manager = Arc::new(cert_manager);
+    let cert_manager = Arc::new(CertificateManager::new(crypto.clone(), edgelet_cert_props));
 
-    let mgmt = start_management(
-        &settings,
-        &runtime,
-        &id_man,
-        mgmt_rx,
-        Arc::clone(&cert_manager),
-    );
+    let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, cert_manager.clone());
 
     let workload = start_workload(
         &settings,
@@ -537,7 +536,7 @@ where
         &runtime,
         work_rx,
         crypto,
-        Arc::clone(&cert_manager),
+        cert_manager,
         workload_config,
     );
 
@@ -898,8 +897,6 @@ where
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
 
-    let cert_manager = cert_manager.clone();
-
     ManagementService::new(mgmt, id_man)
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
@@ -948,8 +945,6 @@ where
 
     let label = "work".to_string();
     let url = settings.listen().workload_uri().clone();
-
-    let cert_manager = cert_manager.clone();
 
     WorkloadService::new(key_store, crypto.clone(), runtime, config)
         .then(move |service| -> Result<_, Error> {
