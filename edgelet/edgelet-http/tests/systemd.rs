@@ -74,7 +74,7 @@ fn create_fd(family: AddressFamily, type_: SockType) -> Fd {
 fn test_fd_ok() {
     let _l = lock_env();
     set_current_pid();
-    let fd = create_fd(AddressFamily::Unix, SockType::Stream);;
+    let fd = create_fd(AddressFamily::Unix, SockType::Stream);
 
     if fd != LISTEN_FDS_START {
         // In CI, fd 3 seems to be bound to something else already. The reason is unknown.
