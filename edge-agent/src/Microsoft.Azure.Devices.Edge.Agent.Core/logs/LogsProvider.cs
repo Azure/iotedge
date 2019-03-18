@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
         public async Task<byte[]> GetLogs(ModuleLogOptions logOptions, CancellationToken cancellationToken)
         {
-            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(logOptions.Id, false, Option.None<int>(), cancellationToken);
+            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(logOptions.Id, false, Option.None<int>(), Option.None<int>(), cancellationToken);
             byte[] logBytes = await this.GetProcessedLogs(logsStream, logOptions);
             return logBytes;
         }

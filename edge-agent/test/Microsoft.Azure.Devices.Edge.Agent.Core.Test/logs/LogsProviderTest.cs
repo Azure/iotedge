@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string moduleId = "mod1";
             Option<int> tail = Option.None<int>();
             Option<int> since = Option.None<int>();
-            CancellationToken cancellationToken = CancellationToken.None;            
+            CancellationToken cancellationToken = CancellationToken.None;
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
             runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, cancellationToken))
@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string moduleId = "mod1";
             Option<int> tail = Option.None<int>();
             Option<int> since = Option.None<int>();
-            CancellationToken cancellationToken = CancellationToken.None;            
+            CancellationToken cancellationToken = CancellationToken.None;
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
             runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, cancellationToken))
