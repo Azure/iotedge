@@ -33,15 +33,12 @@ Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/iotedge.service.d/o
 function get_image_architecture_label() {
     local arch
     arch="$(uname -m)"
-    local label
 
     case "$arch" in
-        'x86_64' ) label='amd64';;
-        'armv71' ) label='arm32v7';;
+        'x86_64' ) image_architecture_label='amd64';;
+        'armv7l' ) image_architecture_label='arm32v7';;
         *) print_error "Unsupported OS architecture: $arch"; exit 1;;
     esac
-
-    echo "$label"
 }
 
 function get_iotedge_quickstart_artifact_file() {
@@ -87,7 +84,7 @@ function prepare_test_from_artifacts() {
     declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
     iotedge_package="${pkg_list[*]}"
     echo "iotedge_package=$iotedge_package"
-    
+
     echo 'Extract quickstart to working folder'
     mkdir -p "$quickstart_working_folder"
     tar -C "$quickstart_working_folder" -xzf "$iotedge_quickstart_artifact_file"
@@ -98,16 +95,12 @@ function prepare_test_from_artifacts() {
         tar -C "$leafdevice_working_folder" -xzf "$leafdevice_artifact_file"
     fi
 
-    if [[ "${TEST_NAME,,}" == 'tempfilter' ]] ||
-       [[ "${TEST_NAME,,}" == 'tempfilterfunctions' ]] ||
-       [[ "${TEST_NAME,,}" == directmethod* ]]; then
+    if [[ "${TEST_NAME,,}" == directmethod* ]] ||
+       [[ "${TEST_NAME,,}" == 'longhaul' ]] ||
+       [[ "${TEST_NAME,,}" == 'stress' ]] ||
+       [[ "${TEST_NAME,,}" == 'tempfilter' ]] ||
+       [[ "${TEST_NAME,,}" == 'tempfilterfunctions' ]]; then
         case "${TEST_NAME,,}" in
-            'tempfilter')
-                echo "Copy deployment file from $module_to_module_deployment_artifact_file"
-                cp "$module_to_module_deployment_artifact_file" "$deployment_working_file";;
-            'tempfilterfunctions')
-                echo "Copy deployment file from $module_to_functions_deployment_artifact_file"
-                cp "$module_to_functions_deployment_artifact_file" "$deployment_working_file";;
             'directmethodamqp')
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
@@ -132,14 +125,48 @@ function prepare_test_from_artifacts() {
             'directmethodmqttws')
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
-                
+
                 if [[ $image_architecture_label == 'arm32v7' ]]; then
                     sed -i -e "s@<MqttEventsProcessorThreadCount>@1@g" "$deployment_working_file"
                 fi
                 sed -i -e "s@<UpstreamProtocol>@Mqttws@g" "$deployment_working_file"
                 sed -i -e "s@<ClientTransportType>@Mqtt_WebSocket_Only@g" "$deployment_working_file";;
+            'longhaul' | 'stress')
+                if [[ "${TEST_NAME,,}" == 'longhaul' ]]; then
+                    echo "Copy deployment file from $long_haul_deployment_artifact_file"
+                    cp "$long_haul_deployment_artifact_file" "$deployment_working_file"
+                    sed -i -e "s@<LoadGen.TransportType>@$LOADGEN_TRANSPORT_TYPE@g" "$deployment_working_file"
+                    sed -i -e "s@<ServiceClientConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
+                else
+                    echo "Copy deployment file from $stress_deployment_artifact_file"
+                    cp "$stress_deployment_artifact_file" "$deployment_working_file"
+                    sed -i -e "s@<LoadGen1.TransportType>@$LOADGEN1_TRANSPORT_TYPE@g" "$deployment_working_file"
+                    sed -i -e "s@<LoadGen2.TransportType>@$LOADGEN2_TRANSPORT_TYPE@g" "$deployment_working_file"
+                    sed -i -e "s@<LoadGen3.TransportType>@$LOADGEN3_TRANSPORT_TYPE@g" "$deployment_working_file"
+                    sed -i -e "s@<LoadGen4.TransportType>@$LOADGEN4_TRANSPORT_TYPE@g" "$deployment_working_file"
+                fi
+
+                local escapedSnitchAlertUrl
+                local escapedSnitchBuildId
+                sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
+                sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
+                escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
+                escapedSnitchBuildId="${SNITCH_BUILD_NUMBER//./}"
+                sed -i -e "s@<Snitch.AlertUrl>@$escapedSnitchAlertUrl@g" "$deployment_working_file"
+                sed -i -e "s@<Snitch.BuildNumber>@$SNITCH_BUILD_NUMBER@g" "$deployment_working_file"
+                sed -i -e "s@<Snitch.BuildId>@$escapedSnitchBuildId@g" "$deployment_working_file"
+                sed -i -e "s@<Snitch.ReportingIntervalInSecs>@$SNITCH_REPORTING_INTERVAL_IN_SECS@g" "$deployment_working_file"
+                sed -i -e "s@<Snitch.StorageAccount>@$SNITCH_STORAGE_ACCOUNT@g" "$deployment_working_file"
+                sed -i -e "s@<Snitch.StorageMasterKey>@$SNITCH_STORAGE_MASTER_KEY@g" "$deployment_working_file"
+                sed -i -e "s@<Snitch.TestDurationInSecs>@$SNITCH_TEST_DURATION_IN_SECS@g" "$deployment_working_file";;
+            'tempfilter')
+                echo "Copy deployment file from $module_to_module_deployment_artifact_file"
+                cp "$module_to_module_deployment_artifact_file" "$deployment_working_file";;
+            'tempfilterfunctions')
+                echo "Copy deployment file from $module_to_functions_deployment_artifact_file"
+                cp "$module_to_functions_deployment_artifact_file" "$deployment_working_file";;
         esac
-        
+
         sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
         sed -i -e "s@<OptimizeForPerformance>@true@g" "$deployment_working_file"
         sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
@@ -240,6 +267,42 @@ function process_args() {
         elif [ $saveNextArg -eq 9 ]; then
             EVENTHUB_CONNECTION_STRING="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 10 ]; then
+            LOADGEN_TRANSPORT_TYPE="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 11 ]; then
+            LOADGEN_MESSAGE_FREQUENCY="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 12 ]; then
+            SNITCH_ALERT_URL="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 13 ]; then
+            SNITCH_BUILD_NUMBER="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 14 ]; then
+            SNITCH_REPORTING_INTERVAL_IN_SECS="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 15 ]; then
+            SNITCH_STORAGE_ACCOUNT="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 16 ]; then
+            SNITCH_STORAGE_MASTER_KEY="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 17 ]; then
+            SNITCH_TEST_DURATION_IN_SECS="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 18 ]; then
+            LOADGEN1_TRANSPORT_TYPE="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 19 ]; then
+            LOADGEN2_TRANSPORT_TYPE="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 20 ]; then
+            LOADGEN3_TRANSPORT_TYPE="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 21 ]; then
+            LOADGEN4_TRANSPORT_TYPE="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -252,6 +315,18 @@ function process_args() {
                 '-containerRegistryPassword' ) saveNextArg=7;;
                 '-iotHubConnectionString' ) saveNextArg=8;;
                 '-eventHubConnectionString' ) saveNextArg=9;;
+                '-loadGenTransportType' ) saveNextArg=10;;
+                '-loadGenMessageFrequency' ) saveNextArg=11;;
+                '-snitchAlertUrl' ) saveNextArg=12;;
+                '-snitchBuildNumber' ) saveNextArg=13;;
+                '-snitchReportingIntervalInSecs' ) saveNextArg=14;;
+                '-snitchStorageAccount' ) saveNextArg=15;;
+                '-snitchStorageMasterKey' ) saveNextArg=16;;
+                '-snitchTestDurationInSecs' ) saveNextArg=17;;
+                '-loadGen1TransportType' ) saveNextArg=18;;
+                '-loadGen2TransportType' ) saveNextArg=19;;
+                '-loadGen3TransportType' ) saveNextArg=20;;
+                '-loadGen4TransportType' ) saveNextArg=21;;
                 * ) usage;;
             esac
         fi
@@ -287,11 +362,11 @@ function run_all_tests()
     TEST_NAME='DirectMethodMqttws'
     run_directmethodmqttws_test && testRet=$? || testRet=$?
     if (( funcRet = 0 )); then funcRet=$testRet; fi
-    
+
     TEST_NAME='TempFilter'
     run_tempfilter_test && testRet=$? || testRet=$?
     if (( funcRet = 0 )); then funcRet=$testRet; fi
-    
+
     TEST_NAME='TempFilterFunctions'
     run_tempfilterfunctions_test && testRet=$? || testRet=$?
     if (( funcRet = 0 )); then funcRet=$testRet; fi
@@ -378,6 +453,39 @@ function run_directmethodmqttws_test() {
     return $ret
 }
 
+function run_longhaul_test() {
+    print_highlighted_message "Run Long Haul test on $image_architecture_label"
+    test_setup
+
+    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul"
+
+    sed -i -e "s@<Analyzer.DeviceID>@$device_id@g" "$deployment_working_file"
+
+    test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
+    print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
+
+    SECONDS=0
+    local ret=0
+    "$quickstart_working_folder/IotEdgeQuickstart" \
+        -d "$device_id" \
+        -a "$iotedge_package" \
+        -c "$IOTHUB_CONNECTION_STRING" \
+        -e "$EVENTHUB_CONNECTION_STRING" \
+        -r "$CONTAINER_REGISTRY" \
+        -u "$CONTAINER_REGISTRY_USERNAME" \
+        -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+        --leave-running=All \
+        -l "$deployment_working_file" \
+        --no-verify && ret=$? || ret=$?
+
+    local elapsed_seconds=$SECONDS
+    test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
+    print_logs $ret "$test_end_time" $elapsed_seconds
+
+    return $ret
+}
+
 function run_quickstartcerts_test() {
     print_highlighted_message "Run Quickstart Certs test on $image_architecture_label"
     test_setup
@@ -413,6 +521,39 @@ function run_quickstartcerts_test() {
         -d "$device_id-leaf" \
         -ct "${certs[0]}" \
         -ed "$(hostname)" && ret=$? || ret=$? 
+
+    local elapsed_seconds=$SECONDS
+    test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
+    print_logs $ret "$test_end_time" $elapsed_seconds
+
+    return $ret
+}
+
+function run_stress_test() {
+    print_highlighted_message "Run Stress test on $image_architecture_label"
+    test_setup
+
+    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-stress"
+
+    sed -i -e "s@<Analyzer.DeviceID>@$device_id@g" "$deployment_working_file"
+
+    test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
+    print_highlighted_message "Run Stress test with -d '$device_id' started at $test_start_time"
+
+    SECONDS=0
+    local ret=0
+    "$quickstart_working_folder/IotEdgeQuickstart" \
+        -d "$device_id" \
+        -a "$iotedge_package" \
+        -c "$IOTHUB_CONNECTION_STRING" \
+        -e "$EVENTHUB_CONNECTION_STRING" \
+        -r "$CONTAINER_REGISTRY" \
+        -u "$CONTAINER_REGISTRY_USERNAME" \
+        -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+        --leave-running=All \
+        -l "$deployment_working_file" \
+        --no-verify && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
     test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -518,9 +659,11 @@ function run_test()
         'directmethodmqtt') run_directmethodmqtt_test && ret=$? || ret=$?;;
         'directmethodmqttws') run_directmethodmqttws_test && ret=$? || ret=$?;;
         'quickstartcerts') run_quickstartcerts_test && ret=$? || ret=$?;;
-        'tempsensor') run_tempsensor_test && ret=$? || ret=$?;;
+        'longhaul') run_longhaul_test && ret=$? || ret=$?;;
+        'stress') run_stress_test && ret=$? || ret=$?;;
         'tempfilter') run_tempfilter_test && ret=$? || ret=$?;;
         'tempfilterfunctions') run_tempfilterfunctions_test && ret=$? || ret=$?;;
+        'tempsensor') run_tempsensor_test && ret=$? || ret=$?;;
         *) print_highlighted_message "Can't find any test with name '$TEST_NAME'";;
     esac
 
@@ -551,8 +694,12 @@ function validate_test_parameters() {
             required_files+=($module_to_module_deployment_artifact_file);;
         'tempfilterfunctions')
             required_files+=($module_to_functions_deployment_artifact_file);;
+        'longhaul')
+            required_files+=($long_haul_deployment_artifact_file);;
         'quickstartcerts')
             required_files+=($leafdevice_artifact_file);;
+        'stress')
+            required_files+=($stress_deployment_artifact_file);;
     esac
 
     if [[ "${TEST_NAME,,}" == directmethod* ]]; then
@@ -576,6 +723,19 @@ function validate_test_parameters() {
         fi
     done
 
+    if [[ "${TEST_NAME,,}" == "longhaul" ]] ||
+       [[ "${TEST_NAME,,}" == "stress" ]];    then
+        if [[ -z "$SNITCH_ALERT_URL" ]]; then
+            print_error "Required snitch alert URL."
+            ((error++))
+        fi
+
+        if [[ -z "$SNITCH_STORAGE_MASTER_KEY" ]]; then
+            print_error "Required snitch storage master key."
+            ((error++))
+        fi
+    fi
+
     if (( error > 0 )); then
         exit 1
     fi
@@ -588,14 +748,27 @@ function usage() {
     echo ' -testDir                        Path of E2E test directory which contains artifacts and certs folders; defaul to current directory.'
     echo ' -releaseLabel                   Release label can be uniquely identify the build (e.g <ReleaseName>-<ReleaseAttempt>); which is used as part of Edge device name.'
     echo ' -testName                       Name of E2E test to be run.'
-    echo "                                 Values are 'All', 'DirectMethodAmqp', 'DirectMethodMqtt', 'QuickstartCerts', 'TempFilter', 'TempFilterFunctions', "
-    echo "                                 'TempSensor', 'TransparentGateway'"
+    echo "                                 Values are 'All', 'DirectMethodAmqp', 'DirectMethodAmqpWs', 'DirectMethodMqtt', 'DirectMethodMqttWs', 'LongHaul', 'QuickstartCerts', "
+    echo "                                 'Stress', 'TempFilter', 'TempFilterFunctions', 'TempSensor'"
+    echo "                                 Note: 'All' option doesn't include long hual and stress test."
     echo ' -artifactImageBuildNumber       Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
     echo " -containerRegistry              Host address of container registry, default is 'edgebuilds.azurecr.io'"
     echo " -containerRegistryUsername      Username of container registry, default is 'EdgeBuilds'"
     echo ' -containerRegistryPassword      Password of given username for container registory'
     echo ' -iotHubConnectionString         IoT hub connection string for creating edge device'
     echo ' -eventHubConnectionString       Event hub connection string for receive D2C messages'
+    echo ' -loadGenTransportType           Transport type for LoadGen for long haul test. Default is mqtt'
+    echo ' -loadGenMessageFrequency        Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01'
+    echo ' -snitchAlertUrl                 Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test'
+    echo ' -snitchBuildNumber              Build number for snitcher docker image for long haul and stress test. Default is 1.1'
+    echo ' -snitchReportingIntervalInSecs  Reporting frequency in seconds to send status email for long hual and stress test. Default is 86400 (1 day)'
+    echo ' -snitchStorageAccount           Azure blob Sstorage account for store logs used in status email for long haul and stress test. Default is snitchstore'
+    echo ' -snitchStorageMasterKey         Master key of snitch storage account for long haul and stress test'
+    echo ' -snitchTestDurationInSecs       Test duration in seconds for long haul and stress test'
+    echo ' -loadGen1TransportType           Transport type for LoadGen1 for stress test. Default is amqp'
+    echo ' -loadGen2TransportType           Transport type for LoadGen2 for stress test. Default is amqp'
+    echo ' -loadGen3TransportType           Transport type for LoadGen3 for stress test. Default is mqtt'
+    echo ' -loadGen4TransportType           Transport type for LoadGen4 for stress test. Default is mqtt'
     exit 1;
 }
 
@@ -604,9 +777,19 @@ process_args "$@"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 CONTAINER_REGISTRY_USERNAME="${CONTAINER_REGISTRY_USERNAME:-EdgeBuilds}"
+LOADGEN_TRANSPORT_TYPE="${LOADGEN_TRANSPORT_TYPE:-mqtt}"
+LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
+SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.1}"
+SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-86400}"
+SNITCH_STORAGE_ACCOUNT="${SNITCH_STORAGE_ACCOUNT:-snitchstore}"
+SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-604800}"
+LOADGEN1_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
+LOADGEN2_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
+LOADGEN3_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-mqtt}"
+LOADGEN4_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-mqtt}"
 
 working_folder="$E2E_TEST_DIR/working"
-image_architecture_label=$(get_image_architecture_label)
+get_image_architecture_label
 iotedged_artifact_folder="$(get_iotedged_artifact_folder)"
 iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file)"
 leafdevice_artifact_file="$(get_leafdevice_artifact_file)"
@@ -614,6 +797,8 @@ twin_testfile_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/t
 module_to_module_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/module_to_module_deployment.template.json"
 module_to_functions_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/module_to_functions_deployment.template.json"
 dm_module_to_module_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/dm_module_to_module_deployment.json"
+long_haul_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.json"
+stress_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/stress_deployment.template.json"
 deployment_working_file="$working_folder/deployment.json"
 quickstart_working_folder="$working_folder/quickstart"
 leafdevice_working_folder="$working_folder/leafdevice"
