@@ -690,7 +690,8 @@ function Setup-Environment([string] $ContainerOs, [switch] $SkipArchCheck) {
     }
 
     if ((-not $SkipArchCheck) -and ($env:PROCESSOR_ARCHITECTURE -eq 'ARM')) {
-        Write-HostRed 'Installing IoT Edge is currently not supported on Windows ARM32.'
+        Write-HostRed ('Installing IoT Edge is currently not supported on Windows ARM32. ' +
+            'See https://aka.ms/iotedge-platsup for more details.')
         $preRequisitesMet = $false
     }
 
