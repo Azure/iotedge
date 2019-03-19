@@ -1,19 +1,41 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+trigger: none
 
-trigger:
-- master
+jobs:
 
-pool:
-  vmImage: 'Ubuntu-16.04'
+################################################################################
+  - job: Linux AMD64 Moby
+################################################################################
+    displayName: Linux
+    pool:
+      name: Azure-IoT-Edge-Core
+      demands:
+        - run-long-haul -equals true
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+    steps:
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download iotedged artifacts'
+        inputs:
+          buildType: specific
+          project: 'b32aa71e-8ed2-41b2-9d77-5bc261222004'
+          pipeline: 55463'
+          buildVersionToDownload: 'latestFromBranch'
+          artifactName: 'edgelet'
+          itemPattern: |
+            IotEdgeQuickstart.linux-arm.tar.gz
+            e2e_deployment_files/long_haul_deployment.template.json
+            scripts/linux/runE2ETest.sh            
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download core-linux artifacts'
+        inputs:
+          buildType: specific
+          project: 'b32aa71e-8ed2-41b2-9d77-5bc261222004'
+          pipeline: 55174
+          buildVersionToDownload: 'latestFromBranch'
+          artifactName: 'core-linux"
+          itemPattern: |
+            IotEdgeQuickstart.linux-x64.tar.gz
+            e2e_deployment_files/long_haul_deployment.template.json
+            scripts/linux/runE2ETest.sh
+            
