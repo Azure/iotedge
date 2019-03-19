@@ -154,6 +154,9 @@
               },
               "BLOB_CONTAINER_NAME": {
                 "value": "loadtest1"
+              },
+              "RUST_LOG": {
+                "value": "snitcher=info"
               }
             },
             "settings": {
