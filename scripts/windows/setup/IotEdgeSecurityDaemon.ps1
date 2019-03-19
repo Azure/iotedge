@@ -241,7 +241,8 @@ function Update-IoTEdge {
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
-        -Update
+        -Update `
+        -SkipArchCheck
 }
 
 <#
