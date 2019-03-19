@@ -546,7 +546,7 @@ function run_stress_test() {
         -d "$device_id" \
         -a "$iotedge_package" \
         -c "$IOTHUB_CONNECTION_STRING" \
-        -e "$EVENTHUB_CONNECTION_STRING" \
+        -e "doesNotNeed" \
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
