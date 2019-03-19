@@ -147,14 +147,14 @@ function prepare_test_from_artifacts() {
                 fi
 
                 local escapedSnitchAlertUrl
-                local escapedSnitchBuildId
+                local escapedBuildId
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
-                escapedSnitchBuildId="${SNITCH_BUILD_NUMBER//./}"
+                escapedBuildId="${ARTIFACT_IMAGE_BUILD_NUMBER//./}"
                 sed -i -e "s@<Snitch.AlertUrl>@$escapedSnitchAlertUrl@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.BuildNumber>@$SNITCH_BUILD_NUMBER@g" "$deployment_working_file"
-                sed -i -e "s@<Snitch.BuildId>@$escapedSnitchBuildId@g" "$deployment_working_file"
+                sed -i -e "s@<Snitch.BuildId>@$image_architecture_label-linux-$escapedBuildId@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.ReportingIntervalInSecs>@$SNITCH_REPORTING_INTERVAL_IN_SECS@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.StorageAccount>@$SNITCH_STORAGE_ACCOUNT@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.StorageMasterKey>@$SNITCH_STORAGE_MASTER_KEY@g" "$deployment_working_file"
