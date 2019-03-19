@@ -30,7 +30,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
                 .read()
                 .expect("Locking the certificate for read failed.");
 
-            if let Some(cert) = Option::as_ref(&cert) {
+            if let Some(cert) = cert.as_ref() {
                 return Ok(cert.to_string());
             }
         }
@@ -41,7 +41,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
             .write()
             .expect("Locking the certificate for write failed.");
 
-        if let Some(cert) = Option::as_ref(&cert) {
+        if let Some(cert) = cert.as_ref() {
             Ok(cert.to_string())
         } else {
             let new_cert = self

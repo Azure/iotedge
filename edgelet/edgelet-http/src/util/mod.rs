@@ -119,6 +119,9 @@ impl AsyncRead for StreamSelector {
         match *self {
             StreamSelector::Tcp(ref stream) => stream.prepare_uninitialized_buffer(buf),
             StreamSelector::TlsConnecting(ref _stream) => {
+                /* We are doing this because the expectation of this function is to
+                 * prepare a buffer.
+                 */
                 for i in buf {
                     *i = 0;
                 }
@@ -155,12 +158,12 @@ impl AsyncRead for StreamSelector {
 impl AsyncWrite for StreamSelector {
     fn shutdown(&mut self) -> Poll<(), io::Error> {
         match self {
-            StreamSelector::Tcp(stream) => <&TcpStream>::shutdown(&mut &*stream),
+            StreamSelector::Tcp(stream) => AsyncWrite::shutdown(stream),
             StreamSelector::TlsConnecting(_stream) => Ok(Async::Ready(())),
             StreamSelector::TlsConnected(stream) => TlsStream::shutdown(stream),
             #[cfg(windows)]
             StreamSelector::Pipe(stream) => PipeStream::shutdown(stream),
-            StreamSelector::Unix(stream) => <&UnixStream>::shutdown(&mut &*stream),
+            StreamSelector::Unix(stream) => AsyncWrite::shutdown(stream),
         }
     }
 
