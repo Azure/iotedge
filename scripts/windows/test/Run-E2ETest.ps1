@@ -201,7 +201,7 @@ Function PrepareTestFromArtifacts
     If (($TestName -eq "DirectMethodAmqp") -Or
         ($TestName -eq "DirectMethodMqtt") -Or
         ($TestName -eq "TempFilter") -Or
-        ($TestName -eq "TempFilterFunctions") -or
+        ($TestName -eq "TempFilterFunctions") -Or
         (($ProxyUri) -and ($TestName -in "TempSensor", "QuickstartCerts", "TransparentGateway")))
     {
         Switch -Regex ($TestName)
@@ -413,8 +413,8 @@ Function RunDirectMethodAmqpTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DMAmqp-$(Get-Date -UFormat %s)"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
+    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DMAmqp"
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
     
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
@@ -444,8 +444,8 @@ Function RunDirectMethodMqttTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DMMqtt-$(Get-Date -UFormat %s)"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
+    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DMMqtt"
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
     
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
@@ -475,8 +475,8 @@ Function RunQuickstartCertsTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-QuickstartCerts-$(Get-Date -UFormat %s)"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
+    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-QuickstartCerts"
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
         -d `"$deviceId`" ``
@@ -525,8 +525,8 @@ Function RunTempFilterTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilter-$(Get-Date -UFormat %s)"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
+    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilter"
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
     
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
@@ -562,8 +562,8 @@ Function RunTempFilterFunctionsTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilterFunc-$(Get-Date -UFormat %s)"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
+    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilterFunc"
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
     
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
@@ -593,7 +593,7 @@ Function RunTempSensorTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempSensor-$(Get-Date -UFormat %s)"
+    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempSensor"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt."
 
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
@@ -626,7 +626,7 @@ Function RunTransparentGatewayTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-TransGW-$(Get-Date -UFormat %s)"
+    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-TransGW"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt."
 
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
