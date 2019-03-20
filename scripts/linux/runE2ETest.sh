@@ -316,6 +316,12 @@ function process_args() {
         elif [ $saveNextArg -eq 21 ]; then
             LOADGEN4_TRANSPORT_TYPE="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 22 ]; then
+            AMQP_SETTINGS_ENABLED="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 23 ]; then
+            MQTT_SETTINGS_ENABLED="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -340,8 +346,8 @@ function process_args() {
                 '-loadGen2TransportType' ) saveNextArg=19;;
                 '-loadGen3TransportType' ) saveNextArg=20;;
                 '-loadGen4TransportType' ) saveNextArg=21;;
-                '-amqpSettingsEnabled' ) AMQP_SETTINGS_ENABLED=true;;
-                '-mqttSettingsEnabled' ) MQTT_SETTINGS_ENABLED=true;;
+                '-amqpSettingsEnabled' ) saveNextArg=22;;
+                '-mqttSettingsEnabled' ) saveNextArg=23;;
                 * ) usage;;
             esac
         fi
@@ -804,8 +810,12 @@ LOADGEN1_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
 LOADGEN2_TRANSPORT_TYPE="${LOADGEN2_TRANSPORT_TYPE:-amqp}"
 LOADGEN3_TRANSPORT_TYPE="${LOADGEN3_TRANSPORT_TYPE:-mqtt}"
 LOADGEN4_TRANSPORT_TYPE="${LOADGEN4_TRANSPORT_TYPE:-mqtt}"
-AMQP_SETTINGS_ENABLED="${AMQP_SETTINGS_ENABLED:-true}"
-MQTT_SETTINGS_ENABLED="${MQTT_SETTINGS_ENABLED:-true}"
+if [ "$AMQP_SETTINGS_ENABLED" != "false" ]; then
+    AMQP_SETTINGS_ENABLED="true"
+fi
+if [ "$MQTT_SETTINGS_ENABLED" != "false" ]; then
+    MQTT_SETTINGS_ENABLED="true"
+fi
 
 working_folder="$E2E_TEST_DIR/working"
 get_image_architecture_label
