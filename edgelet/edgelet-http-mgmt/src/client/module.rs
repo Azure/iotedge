@@ -313,7 +313,13 @@ impl ModuleRuntime for ModuleClient {
         let result = self
             .client
             .module_api()
-            .module_logs(&API_VERSION.to_string(), &id, options.follow(), tail)
+            .module_logs(
+                &API_VERSION.to_string(),
+                &id,
+                options.follow(),
+                tail,
+                options.since(),
+            )
             .then(|logs| match logs {
                 Ok(logs) => Ok(Logs(id, logs)),
                 Err(err) => Err(Error::from_mgmt_error(

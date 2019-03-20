@@ -1,13 +1,14 @@
-ARG base_tag=3.0-runtime-bionic-arm64v8
-
-FROM microsoft/dotnet:${base_tag}
+ARG base_tag=3.0-bionic-arm64v8
+FROM mcr.microsoft.com/dotnet/core/runtime:${base_tag}
 
 # Add an unprivileged user account for running Edge Hub
-RUN useradd -ms /bin/bash edgehubuser
+ARG EDGEHUBUSER_ID=1000
+RUN useradd -ms /bin/bash -u ${EDGEHUBUSER_ID} edgehubuser
 ENV EdgeHubUser=edgehubuser
 
 RUN apt-get update && \
     apt-get install -y libsnappy1v5 && \
+    apt-get install -y libcap2-bin && \
     rm -rf /var/lib/apt/lists/* && \
     ln -s /lib/aarch64-linux-gnu/libdl.so.2 /usr/lib/aarch64-linux-gnu/libdl.so.2 && \
     ln -s /lib/aarch64-linux-gnu/libdl.so.2 /lib/aarch64-linux-gnu/libdl.so && \

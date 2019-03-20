@@ -12,3 +12,8 @@ image = "azureiotedge/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabihf:0.2"
 # Built from rust-embedded/cross#718a19cd68fb09428532d1317515fe7303692b47 with `./build-docker-image.sh armv7-unknown-linux-musleabihf`
 # because the image in Docker hub is outdated and broken
 image = "azureiotedge/armv7-unknown-linux-musleabihf:0.1"
+
+[target.aarch64-unknown-linux-musl]
+# Built from rust-embedded/cross#718a19cd68fb09428532d1317515fe7303692b47 with `./build-docker-image.sh aarch64-unknown-linux-musl`
+# because the image in Docker hub is outdated and broken
+image = "azureiotedge/aarch64-unknown-linux-musl:0.1"

@@ -8,6 +8,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-ENV IPInterfaceName vEthernet (Ethernet)
-
 CMD ["dotnet", "Microsoft.Azure.Devices.Edge.Agent.Service.dll"]
