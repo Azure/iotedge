@@ -137,7 +137,7 @@ function Initialize-IoTEdge {
         return
     }
 
-    if (-not (Setup-Environment $ContainerOs)) {
+    if (-not (Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck)) {
         return
     }
 
@@ -241,7 +241,8 @@ function Update-IoTEdge {
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
-        -Update
+        -Update `
+        -SkipArchCheck
 }
 
 <#
@@ -297,7 +298,10 @@ function Deploy-IoTEdge {
         [HashTable] $InvokeWebRequestParameters,
 
         # Restart if needed without prompting.
-        [Switch] $RestartIfNeeded
+        [Switch] $RestartIfNeeded,
+
+        # Skip processor architecture check.
+        [Switch] $SkipArchCheck
     )
 
     Install-Packages `
@@ -305,7 +309,8 @@ function Deploy-IoTEdge {
         -Proxy $Proxy `
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
-        -RestartIfNeeded:$RestartIfNeeded
+        -RestartIfNeeded:$RestartIfNeeded `
+        -SkipArchCheck:$SkipArchCheck
 }
 
 <#
@@ -396,11 +401,14 @@ function Install-IoTEdge {
         [HashTable] $InvokeWebRequestParameters,
 
         # Restart if needed without prompting.
-        [Switch] $RestartIfNeeded
+        [Switch] $RestartIfNeeded,
+
+        # Skip processor architecture check.
+        [Switch] $SkipArchCheck
     )
 
     # Used to indicate success of Deploy-IoTEdge so we can abort early in case of failure
-    $script:installPackagesSucceeded = $false
+    $script:installPackagesCompleted = $false
 
     # Used to suppress some messages from Deploy-IoTEdge since we are automatically running Initialize-IoTEdge
     $calledFromInstall = $true
@@ -410,9 +418,10 @@ function Install-IoTEdge {
         -Proxy $Proxy `
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
-        -RestartIfNeeded:$RestartIfNeeded
+        -RestartIfNeeded:$RestartIfNeeded `
+        -SkipArchCheck:$SkipArchCheck
 
-    if (-not $script:installPackagesSucceeded) {
+    if (-not $script:installPackagesCompleted) {
         return
     }
 
@@ -536,7 +545,8 @@ function Install-Packages(
         [String] $OfflineInstallationPath,
         [HashTable] $InvokeWebRequestParameters,
         [Switch] $RestartIfNeeded,
-        [Switch] $Update
+        [Switch] $Update,
+        [Switch] $SkipArchCheck
     )
 {
     $ErrorActionPreference = 'Stop'
@@ -596,7 +606,7 @@ function Install-Packages(
         }
     }
 
-    if (-not (Setup-Environment $ContainerOs)) {
+    if (-not (Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck:$SkipArchCheck)) {
         return
     }
 
@@ -634,14 +644,15 @@ function Install-Packages(
     }
 
     if ($restartNeeded) {
-        Write-HostRed 'Reboot required.'
+        Write-HostRed 'Reboot required. To complete the installation after the reboot, run "Initialize-IoTEdge".'
         Restart-Computer -Confirm:(-not $RestartIfNeeded) -Force:$RestartIfNeeded
     }
-
-    $script:installPackagesSucceeded = $true
+    else {
+        $script:installPackagesCompleted = $true
+    }
 }
 
-function Setup-Environment([string] $ContainerOs) {
+function Setup-Environment([string] $ContainerOs, [switch] $SkipArchCheck) {
     $currentWindowsBuild = Get-WindowsBuild
     $preRequisitesMet = switch ($ContainerOs) {
         'Linux' {
@@ -678,6 +689,13 @@ function Setup-Environment([string] $ContainerOs) {
             }
         }
     }
+
+    if ((-not $SkipArchCheck) -and ($env:PROCESSOR_ARCHITECTURE -eq 'ARM')) {
+        Write-HostRed ('IoT Edge is currently not supported on Windows ARM32. ' +
+            'See https://aka.ms/iotedge-platsup for more details.')
+        $preRequisitesMet = $false
+    }
+
     if ($preRequisitesMet) {
         Write-HostGreen "The container host is on supported build version $currentWindowsBuild."
         Set-ContainerOs
@@ -986,7 +1004,7 @@ function Delete-Directory([string] $Path) {
     # Deleting them is a three-step process:
     #
     # 1. Take ownership of all files
-    Invoke-Native "takeown /r /skipsl /f /d y ""$Path"""
+    Invoke-Native "takeown /r /skipsl /d y /f ""$Path"""
 
     # 2. Reset their ACLs so that they inherit from their container
     Invoke-Native "icacls ""$Path"" /reset /t /l /q /c"
@@ -1180,7 +1198,7 @@ function Get-VcRuntime {
         Write-HostGreen 'Installed VC Runtime.'
     }
     catch {
-        if ($LASTEXITCODE -eq 1638) {
+        if ((Test-Path Variable:\LASTEXITCODE) -and ($LASTEXITCODE -eq 1638)) {
             Write-HostGreen 'Skipping VC Runtime installation because a newer version is already installed.'
         }
         else {
@@ -1505,7 +1523,12 @@ function Get-DockerCommandPrefix {
         'Windows' {
             # docker needs two more slashes after the scheme
             $namedPipeUrl = $MobyNamedPipeUrl -replace 'npipe://\./pipe/', 'npipe:////./pipe/'
-            return """docker"" -H ""$namedPipeUrl"""
+            $prefix = ""
+            # in case the installation has not been completed
+            if (-not (Get-Command "docker.exe" -ErrorAction SilentlyContinue)) {
+                $prefix = "$MobyInstallDirectory\"
+            }
+            return ('"{0}docker" -H "{1}"' -f $prefix, $namedPipeUrl)
         }
     }
 }
