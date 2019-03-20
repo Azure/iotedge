@@ -155,6 +155,8 @@ function prepare_test_from_artifacts() {
                     sed -i -e "s@<LoadGen2.TransportType>@$LOADGEN2_TRANSPORT_TYPE@g" "$deployment_working_file"
                     sed -i -e "s@<LoadGen3.TransportType>@$LOADGEN3_TRANSPORT_TYPE@g" "$deployment_working_file"
                     sed -i -e "s@<LoadGen4.TransportType>@$LOADGEN4_TRANSPORT_TYPE@g" "$deployment_working_file"
+                    sed -i -e "s@<amqpSettings__enabled>@$AMQP_SETTINGS_ENABLED@g" "$deployment_working_file"
+                    sed -i -e "s@<mqttSettings__enabled>@$MQTT_SETTINGS_ENABLED@g" "$deployment_working_file"
                 fi
 
                 local escapedSnitchAlertUrl
@@ -338,6 +340,8 @@ function process_args() {
                 '-loadGen2TransportType' ) saveNextArg=19;;
                 '-loadGen3TransportType' ) saveNextArg=20;;
                 '-loadGen4TransportType' ) saveNextArg=21;;
+                '-amqpSettingsEnabled' ) AMQP_SETTINGS_ENABLED=true;;
+                '-mqttSettingsEnabled' ) MQTT_SETTINGS_ENABLED=true;;
                 * ) usage;;
             esac
         fi
@@ -776,10 +780,12 @@ function usage() {
     echo ' -snitchStorageAccount           Azure blob Sstorage account for store logs used in status email for long haul and stress test. Default is snitchstore'
     echo ' -snitchStorageMasterKey         Master key of snitch storage account for long haul and stress test'
     echo ' -snitchTestDurationInSecs       Test duration in seconds for long haul and stress test'
-    echo ' -loadGen1TransportType           Transport type for LoadGen1 for stress test. Default is amqp'
-    echo ' -loadGen2TransportType           Transport type for LoadGen2 for stress test. Default is amqp'
-    echo ' -loadGen3TransportType           Transport type for LoadGen3 for stress test. Default is mqtt'
-    echo ' -loadGen4TransportType           Transport type for LoadGen4 for stress test. Default is mqtt'
+    echo ' -loadGen1TransportType          Transport type for LoadGen1 for stress test. Default is amqp'
+    echo ' -loadGen2TransportType          Transport type for LoadGen2 for stress test. Default is amqp'
+    echo ' -loadGen3TransportType          Transport type for LoadGen3 for stress test. Default is mqtt'
+    echo ' -loadGen4TransportType          Transport type for LoadGen4 for stress test. Default is mqtt'
+    echo ' -amqpSettingsEnabled            Enable amqp protocol head in Edge Hub'
+    echo ' -mqttSettingsEnabled            Enable mqtt protocol head in Edge Hub'
     exit 1;
 }
 
@@ -795,9 +801,11 @@ SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-86400}"
 SNITCH_STORAGE_ACCOUNT="${SNITCH_STORAGE_ACCOUNT:-snitchstore}"
 SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-604800}"
 LOADGEN1_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
-LOADGEN2_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
-LOADGEN3_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-mqtt}"
-LOADGEN4_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-mqtt}"
+LOADGEN2_TRANSPORT_TYPE="${LOADGEN2_TRANSPORT_TYPE:-amqp}"
+LOADGEN3_TRANSPORT_TYPE="${LOADGEN3_TRANSPORT_TYPE:-mqtt}"
+LOADGEN4_TRANSPORT_TYPE="${LOADGEN4_TRANSPORT_TYPE:-mqtt}"
+AMQP_SETTINGS_ENABLED="${AMQP_SETTINGS_ENABLED:-true}"
+MQTT_SETTINGS_ENABLED="${MQTT_SETTINGS_ENABLED:-true}"
 
 working_folder="$E2E_TEST_DIR/working"
 get_image_architecture_label

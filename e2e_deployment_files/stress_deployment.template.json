@@ -40,6 +40,12 @@
               },
               "InfluxDbUrl": {
                 "value": "http://influxdb:8086"
+              },
+              "amqpSettings__enabled": {
+                "value": "<amqpSettings__enabled>"
+              },
+              "mqttSettings__enabled": {
+                "value": "<mqttSettings__enabled>"
               }
             },
             "status": "running",
