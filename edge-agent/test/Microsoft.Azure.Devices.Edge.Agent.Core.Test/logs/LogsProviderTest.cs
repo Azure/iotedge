@@ -176,11 +176,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string deviceId = "dev1";
             string moduleId = "mod1";
             Option<int> tail = Option.None<int>();
+            Option<int> since = Option.None<int>();
             CancellationToken cancellationToken = CancellationToken.None;
 
             byte[] dockerLogsStreamBytes = GetDockerLogsStream(TestLogTexts);
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, true, tail, cancellationToken))
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, true, tail, since, cancellationToken))
                 .ReturnsAsync(new MemoryStream(dockerLogsStreamBytes));
 
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));

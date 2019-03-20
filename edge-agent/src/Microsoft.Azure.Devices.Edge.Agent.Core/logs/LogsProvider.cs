@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                 throw new NotImplementedException();
             }
 
-            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(logOptions.Id, true, Option.None<int>(), cancellationToken);
+            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(logOptions.Id, true, Option.None<int>(), Option.None<int>(), cancellationToken);
             Events.ReceivedStream(logOptions.Id);
 
             await this.WriteLogsStreamToOutput(logOptions.Id, callback, logsStream, cancellationToken);

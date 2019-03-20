@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
 
             string id = "m1";
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(id, true, Option.None<int>(), It.IsAny<CancellationToken>()))
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(id, true, Option.None<int>(), Option.None<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new MemoryStream(buffer));
 
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, Mock.Of<ILogsProcessor>());
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
 
             string id = "m1";
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(id, true, Option.None<int>(), It.IsAny<CancellationToken>()))
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(id, true, Option.None<int>(), Option.None<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new MemoryStream(buffer));
 
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, Mock.Of<ILogsProcessor>());
