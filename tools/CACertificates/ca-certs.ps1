@@ -90,14 +90,25 @@ function Invoke-External()
     process {
         $output = $null
         Write-Host "Executing: $Command"
-        Invoke-Expression $Command | Tee-Object -Variable "output" | Write-Host
+        # this store - restore of errorActionPreference is needed so that
+        # test automation failures are not observed since an Invoke-Expression
+        # might cause output on stderr but still have a zero exit code.
+        # An example of this is openssl commands
+        $oldErrorActionPreference = $errorActionPreference
+        try {
+            $errorActionPreference = 'Continue'
+            Invoke-Expression $Command | Tee-Object -Variable "output" | Write-Verbose
+        }
+        finally {
+            $errorActionPreference = $oldErrorActionPreference
+        }
         Write-Host "Exit code: $LASTEXITCODE"
 
-        # if ($LASTEXITCODE) {
-        #     throw $output
-        # } elseif ($Passthru) {
-        #     $output
-        # }
+        if ($LASTEXITCODE) {
+            throw $output
+        } elseif ($Passthru) {
+            $output
+        }
     }
 }
 
