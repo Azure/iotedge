@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
@@ -62,6 +63,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<Task<ILogsProvider>>()
                 .SingleInstance();
 
+            // Task<IStreamRequestListener>
+            builder.Register(
+                    async c =>
+                    {
+                        ILogsProvider logsProvider = await c.Resolve<Task<ILogsProvider>>();
+                        var streamRequestHandlerProvider = new StreamRequestHandlerProvider(logsProvider);
+                        return new StreamRequestListener(streamRequestHandlerProvider) as IStreamRequestListener;
+                    })
+                .As<Task<IStreamRequestListener>>()
+                .SingleInstance();
+
             // Task<IRequestManager>
             builder.Register(
                 async c =>
@@ -84,8 +96,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 {
                     var serde = c.Resolve<ISerde<DeploymentConfig>>();
                     var deviceClientprovider = c.Resolve<IModuleClientProvider>();
-                    IRequestManager requestManager = await c.Resolve<Task<IRequestManager>>();
-                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, this.configRefreshFrequency);
+                    var streamRequestListenerTask = c.Resolve<Task<IStreamRequestListener>>();
+                    var requestManagerTask = c.Resolve<Task<IRequestManager>>();
+                    IStreamRequestListener streamRequestListener = await streamRequestListenerTask;
+                    IRequestManager requestManager = await requestManagerTask;
+                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, streamRequestListener, this.configRefreshFrequency);
                     return edgeAgentConnection;
                 })
                 .As<Task<IEdgeAgentConnection>>()
