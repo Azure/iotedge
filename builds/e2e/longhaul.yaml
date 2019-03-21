@@ -1,9 +1,15 @@
 trigger: none
 
 jobs:
-
+variables:
+  azure.keyVault: 'edgebuildkv'
+  azure.subscription: 'azureiotedge-arm'
+  mszure.one.project: 'b32aa71e-8ed2-41b2-9d77-5bc261222004'
+  edgelet.package.build: 55463
+  images.build: 55174
+  images.artifact.name: 'core-linux'
 ################################################################################
-  - job: LinuxAMD64Moby
+  - job: linux_amd64_moby
 ################################################################################
     displayName: Linux AMD64 Moby
     pool:
@@ -12,48 +18,50 @@ jobs:
         - run-long-haul -equals true
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
+    variables:
+      edgelet.artifact.name: 'iotedged-ubuntu-amd64'
     steps:
       - task: DownloadBuildArtifacts@0
-        displayName: 'Download Iotedged Artifacts'
+        displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
-          project: 'b32aa71e-8ed2-41b2-9d77-5bc261222004'
-          pipeline: 55463
+          project: $(mszure.one.project)
+          pipeline: $(edgelet.package.build)
           buildVersionToDownload: latestFromBranch
-          artifactName: 'iotedged-ubuntu-amd64'
+          artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
-        displayName: 'Download Core-Linux Artifacts'
+        displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
-          project: 'b32aa71e-8ed2-41b2-9d77-5bc261222004'
-          pipeline: 55174
+          project: $(mszure.one.project)
+          pipeline: $(images.build)
           buildVersionToDownload: latestFromBranch
-          artifactName: 'core-linux'
+          artifactName: $(images.artifact.name)
           itemPattern: |
-           core-linux/IotEdgeQuickstart.linux-x64.tar.gz
-           core-linux/e2e_deployment_files/long_haul_deployment.template.json
-           core-linux/scripts/linux/runE2ETest.sh
-           core-linux/artifactInfo.txt
+            $(images.artifact.name)/IotEdgeQuickstart.linux-x64.tar.gz
+            $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.json
+            $(images.artifact.name)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name)/artifactInfo.txt
       - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault: edgebuildkv'
+        displayName: 'Azure Key Vault'
         inputs:
-          azureSubscription: 'azureiotedge-arm'
-          KeyVaultName: edgebuildkv
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
       - task: CopyFiles@2
-        displayName: 'Copy iotedged artifact'
+        displayName: 'Copy Edgelet Artifact'
         inputs:
-          SourceFolder: '$(System.ArtifactsDirectory)/iotedged-ubuntu-amd64'
+          SourceFolder: '$(System.ArtifactsDirectory)/$(edgelet.artifact.name)'
           TargetFolder: '$(Agent.HomeDirectory)/../artifacts/iotedged-ubuntu-amd64'
           CleanTargetFolder: true
       - task: CopyFiles@2
-        displayName: 'Copy core-linux artifact'
+        displayName: 'Copy Images artifact'
         inputs:
-          SourceFolder: '$(System.ArtifactsDirectory)/core-linux'
+          SourceFolder: '$(System.ArtifactsDirectory)/$(images.artifact.name)'
           TargetFolder: '$(Agent.HomeDirectory)/../artifacts/core-linux'
           CleanTargetFolder: true
       - task: Bash@3
-        displayName: 'Run long haul deployment'
+        displayName: 'Run Long Haul Deployment'
         inputs:
           targetType: inline
           script: |
@@ -61,10 +69,9 @@ jobs:
             testName="LongHaul"
             . $(Agent.HomeDirectory)/../artifacts/core-linux/artifactInfo.txt
             sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)"
-          displayName: 'Run long haul deployment'
 
 ################################################################################
-  - job: LinuxARM32Moby
+  - job: linux_arm32_moby
 ################################################################################
     displayName: Linux ARM32 Moby
     pool:
@@ -73,48 +80,50 @@ jobs:
         - run-long-haul -equals true
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
+    variables:
+      edgelet.artifact.name: 'iotedged-ubuntu-armhf'
     steps:
       - task: DownloadBuildArtifacts@0
-        displayName: 'Download Iotedged Artifacts'
+        displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
-          project: 'b32aa71e-8ed2-41b2-9d77-5bc261222004'
-          pipeline: 55463
+          project: $(mszure.one.project)
+          pipeline: $(edgelet.package.build)
           buildVersionToDownload: latestFromBranch
-          artifactName: 'iotedged-ubuntu-armhf'
+          artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
-        displayName: 'Download Core-Linux Artifacts'
+        displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
-          project: 'b32aa71e-8ed2-41b2-9d77-5bc261222004'
-          pipeline: 55174
+          project: $(mszure.one.project)
+          pipeline: $(images.build)
           buildVersionToDownload: latestFromBranch
-          artifactName: 'core-linux'
+          artifactName: $(images.artifact.name)
           itemPattern: |
-           core-linux/IotEdgeQuickstart.linux-arm.tar.gz
-           core-linux/e2e_deployment_files/long_haul_deployment.template.json
-           core-linux/scripts/linux/runE2ETest.sh
-           core-linux/artifactInfo.txt
+            $(images.artifact.name)/IotEdgeQuickstart.linux-arm.tar.gz
+            $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.json
+            $(images.artifact.name)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name)/artifactInfo.txt
       - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault: edgebuildkv'
+        displayName: 'Azure Key Vault'
         inputs:
-          azureSubscription: 'azureiotedge-arm'
-          KeyVaultName: edgebuildkv
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
       - task: CopyFiles@2
-        displayName: 'Copy iotedged artifact'
+        displayName: 'Copy Edgelet Artifact'
         inputs:
-          SourceFolder: '$(System.ArtifactsDirectory)/iotedged-ubuntu-armhf'
+          SourceFolder: '$(System.ArtifactsDirectory)/$(edgelet.artifact.name)'
           TargetFolder: '$(Agent.HomeDirectory)/../artifacts/iotedged-ubuntu-armhf'
           CleanTargetFolder: true
       - task: CopyFiles@2
-        displayName: 'Copy core-linux artifact'
+        displayName: 'Copy Images Artifact'
         inputs:
-          SourceFolder: '$(System.ArtifactsDirectory)/core-linux'
+          SourceFolder: '$(System.ArtifactsDirectory)/$(images.artifact.name)'
           TargetFolder: '$(Agent.HomeDirectory)/../artifacts/core-linux'
           CleanTargetFolder: true
       - task: Bash@3
-        displayName: 'Run long haul deployment'
+        displayName: 'Run Long Haul Deployment'
         inputs:
           targetType: inline
           script: |
@@ -122,4 +131,3 @@ jobs:
             testName="LongHaul"
             . $(Agent.HomeDirectory)/../artifacts/core-linux/artifactInfo.txt
             sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)"
-          displayName: 'Run long haul deployment'

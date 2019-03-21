@@ -156,7 +156,7 @@ jobs:
       - script: scripts/linux/buildDiagnostics.sh
         displayName: Build iotedge-diagnostics
 
-      - script: scripts/linux/createArtifactInfo.sh -outputFolder '$(Build.BinariesDirectory)/publish' -buildNumber $(Build.BuildNumber)
+      - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
         displayName: 'Create Artifact Info File'
 
       - task: PublishBuildArtifacts@1

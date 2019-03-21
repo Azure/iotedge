@@ -7,8 +7,8 @@ usage()
     echo "$SCRIPT_NAME [options]"
     echo ""
     echo "options"
-    echo " -outputFolder        output folder for artifact info file"
-    echo " -buildNumber         build number of artifact"
+    echo " --output-folder        output folder for artifact info file"
+    echo " --build-number         build number of artifact"
     exit 1;
 }
 
@@ -25,8 +25,8 @@ process_args() {
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
-                "-outputFolder" ) save_next_arg=1;;
-                "-buildNumber" ) save_next_arg=2;;
+                "--output-folder" ) save_next_arg=1;;
+                "--build-number" ) save_next_arg=2;;
                 * ) usage;;
             esac
         fi
