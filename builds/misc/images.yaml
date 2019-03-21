@@ -153,6 +153,9 @@ jobs:
         name: build
         displayName: Build (release)
 
+      - script: scripts/linux/publishArtifactInfo.sh -outputFolder '$(Build.BinariesDirectory)/publish' -buildNumber $(Build.BuildNumber)
+        displayName: 'Publish Artifact Info'
+        
       - script: scripts/linux/buildDiagnostics.sh
         displayName: Build iotedge-diagnostics
 
