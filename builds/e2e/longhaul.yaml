@@ -26,7 +26,7 @@ jobs:
         inputs:
           buildType: specific
           project: 'b32aa71e-8ed2-41b2-9d77-5bc261222004'
-          pipeline: 55463
+          pipeline: 55174
           buildVersionToDownload: latestFromBranch
           artifactName: 'core-linux'
           itemPattern: |
