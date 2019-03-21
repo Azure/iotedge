@@ -22,6 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const int ModuleIdentityLifecycleManager = EventIdStart + 1600;
         public const int RequestManager = EventIdStart + 1700;
         public const int AzureBlobLogsUploader = EventIdStart + 1800;
+        public const int StreamRequestListener = EventIdStart + 1900;
+        public const int LogsStreamRequestHandler = EventIdStart + 2000;
+        public const int LogsProvider = EventIdStart + 2100;
         const int EventIdStart = 100000;
     }
 }
