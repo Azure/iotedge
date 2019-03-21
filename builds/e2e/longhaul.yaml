@@ -101,7 +101,7 @@ variables:
           artifactName: $(images.artifact.name)
           itemPattern: |
             $(images.artifact.name)/IotEdgeQuickstart.linux-arm.tar.gz
-            $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.json
+            $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.arm.json
             $(images.artifact.name)/scripts/linux/runE2ETest.sh
             $(images.artifact.name)/artifactInfo.txt
       - task: AzureKeyVault@1
