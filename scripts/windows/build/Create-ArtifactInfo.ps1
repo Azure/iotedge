@@ -15,5 +15,5 @@ Set-StrictMode -Version "Latest"
 $ErrorActionPreference = "Stop"
 
 $artifactInfoFilePath = (Join-Path $OutputFolder "artifactInfo.txt")
-"BuildNumber=$BuildNumber" | Tee-Object -FilePath (Join-Path $path "artifactInfo.txt") -Append
+"BuildNumber=$BuildNumber" | Tee-Object -FilePath $artifactInfoFilePath -Append
 Write-Host "Created artifact info file in $artifactInfoFilePath"

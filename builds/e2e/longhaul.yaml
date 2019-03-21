@@ -20,7 +20,6 @@ jobs:
           project: 'b32aa71e-8ed2-41b2-9d77-5bc261222004'
           pipeline: 55463
           buildVersionToDownload: latestFromBranch
-          branchName: phlin/LongHaulYaml
           artifactName: 'iotedged-ubuntu-amd64'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Core-Linux Artifacts'
