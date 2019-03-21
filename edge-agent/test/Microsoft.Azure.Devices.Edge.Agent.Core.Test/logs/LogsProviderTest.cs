@@ -168,6 +168,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             }
         }
 
+        [Fact]
+        public async Task GetLogsStreamTest()
+        {
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "dev1";
+            string moduleId = "mod1";
+            Option<int> tail = Option.None<int>();
+            Option<int> since = Option.None<int>();
+            CancellationToken cancellationToken = CancellationToken.None;
+
+            byte[] dockerLogsStreamBytes = GetDockerLogsStream(TestLogTexts);
+            var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, true, tail, since, cancellationToken))
+                .ReturnsAsync(new MemoryStream(dockerLogsStreamBytes));
+
+            var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
+            var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
+
+            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.None, LogsContentType.Text);
+
+            var receivedBytes = new List<byte>();
+
+            Task Callback(ArraySegment<byte> bytes)
+            {
+                receivedBytes.AddRange(bytes.ToArray());
+                return Task.CompletedTask;
+            }
+
+            // Act
+            await logsProvider.GetLogsStream(logOptions, Callback, cancellationToken);
+
+            // Assert
+            Assert.NotEmpty(receivedBytes);
+            Assert.Equal(dockerLogsStreamBytes, receivedBytes);
+        }
+
         static byte[] GetDockerLogsStream(IEnumerable<string> logTexts)
         {
             byte streamByte = 01;
