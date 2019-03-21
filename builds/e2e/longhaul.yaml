@@ -4,10 +4,10 @@ jobs:
 variables:
   azure.keyVault: 'edgebuildkv'
   azure.subscription: 'azureiotedge-arm'
-  mszure.one.project: 'b32aa71e-8ed2-41b2-9d77-5bc261222004'
   edgelet.package.build: 55463
-  images.build: 55174
   images.artifact.name: 'core-linux'
+  images.build: 55174
+  mszure.one.project: 'b32aa71e-8ed2-41b2-9d77-5bc261222004'
 ################################################################################
   - job: linux_amd64_moby
 ################################################################################
