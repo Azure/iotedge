@@ -324,6 +324,26 @@ Function PrepareTestFromArtifacts
     }
 }
 
+Function PrepareCertificateChain
+{
+    # setup environment before invoking cert gen script
+    $OpenSSLExeName="openssl.exe"
+    if ($NULL -eq (Get-Command $OpenSSLExeName -ErrorAction SilentlyContinue))
+    {
+        # if openssl is not in path add default openssl install path and try again
+        $env:PATH += ";$DefaultOpensslInstallPath"
+        if ($NULL -eq (Get-Command $OpenSSLExeName -ErrorAction SilentlyContinue))
+        {
+            throw ("$OpenSSLExeName is unavailable. Please install $OpenSSLExeName and set it in the PATH before proceeding.")
+        }
+    }
+    $env:FORCE_NO_PROD_WARNING="True"
+    # dot source the certificate script
+    . "$EdgeCertGenScript"
+    # install the provided root CA to seed the certificate chain
+    Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
+}
+
 Function PrintLogs
 {
     Param (
@@ -749,26 +769,6 @@ Function RunLeafDeviceTest
     PrintLogs $testStartAt $testExitCode
 
     Return $testExitCode
-}
-
-Function PrepareCertificateChain
-{
-    # setup environment before invoking cert gen script
-    $OpenSSLExeName="openssl.exe"
-    if ($NULL -eq (Get-Command $OpenSSLExeName -ErrorAction SilentlyContinue))
-    {
-        # if openssl is not in path add default openssl install path and try again
-        $env:PATH += ";$DefaultOpensslInstallPath"
-        if ($NULL -eq (Get-Command $OpenSSLExeName -ErrorAction SilentlyContinue))
-        {
-            throw ("$OpenSSLExeName is unavailable. Please install $OpenSSLExeName and set it in the PATH before proceeding.")
-        }
-    }
-    $env:FORCE_NO_PROD_WARNING="True"
-    # dot source the certificate script
-    . "$EdgeCertGenScript"
-    # install the provided root CA to seed the certificate chain
-    Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
 }
 
 Function RunTransparentGatewayTest
