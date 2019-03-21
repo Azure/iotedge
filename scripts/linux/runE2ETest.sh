@@ -81,6 +81,18 @@ function get_leafdevice_artifact_file() {
     echo "$path"
 }
 
+function get_long_haul_deployment_artifact_file() {
+    local path
+    if [ "$image_architecture_label" = 'amd64' ] ||
+       [ "$image_architecture_label" = 'arm64v8' ]; then
+        path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.json"
+    else
+        path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.arm.json"
+    fi
+
+    echo "$path"
+}
+
 function prepare_test_from_artifacts() {
     print_highlighted_message 'Prepare test from artifacts'
 
@@ -826,7 +838,7 @@ twin_testfile_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/t
 module_to_module_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/module_to_module_deployment.template.json"
 module_to_functions_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/module_to_functions_deployment.template.json"
 dm_module_to_module_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/dm_module_to_module_deployment.json"
-long_haul_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.json"
+long_haul_deployment_artifact_file="$(get_long_haul_deployment_artifact_file)"
 stress_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/stress_deployment.template.json"
 deployment_working_file="$working_folder/deployment.json"
 quickstart_working_folder="$working_folder/quickstart"
