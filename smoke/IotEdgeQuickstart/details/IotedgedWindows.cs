@@ -19,13 +19,15 @@ namespace IotEdgeQuickstart.Details
         readonly Option<RegistryCredentials> credentials;
         readonly TimeSpan iotEdgeServiceOperationWaitTime = TimeSpan.FromMinutes(5);
         readonly Option<string> proxy;
+        readonly Option<UpstreamProtocolType> upstreamProtocol;
         string scriptDir;
 
-        public IotedgedWindows(string offlineInstallationPath, Option<RegistryCredentials> credentials, Option<string> proxy)
+        public IotedgedWindows(string offlineInstallationPath, Option<RegistryCredentials> credentials, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol)
         {
             this.offlineInstallationPath = offlineInstallationPath;
             this.credentials = credentials;
             this.proxy = proxy;
+            this.upstreamProtocol = upstreamProtocol;
         }
 
         public async Task VerifyNotActive()
@@ -154,7 +156,7 @@ namespace IotEdgeQuickstart.Details
                 await Task.Delay(TimeSpan.FromSeconds(5));
                 await this.Stop();
 
-                UpdateConfigYamlFile(deviceCaCert, deviceCaPk, deviceCaCerts, runtimeLogLevel);
+                this.UpdateConfigYamlFile(deviceCaCert, deviceCaPk, deviceCaCerts, runtimeLogLevel);
 
                 // Explicitly set IOTEDGE_HOST environment variable to current process
                 SetEnvironmentVariable();
@@ -242,7 +244,7 @@ namespace IotEdgeQuickstart.Details
 
         public Task Reset() => Task.CompletedTask;
 
-        static void UpdateConfigYamlFile(string deviceCaCert, string deviceCaPk, string trustBundleCerts, LogLevel runtimeLogLevel)
+        void UpdateConfigYamlFile(string deviceCaCert, string deviceCaPk, string trustBundleCerts, LogLevel runtimeLogLevel)
         {
             string config = File.ReadAllText(ConfigYamlFile);
             var doc = new YamlDocument(config);
@@ -254,6 +256,10 @@ namespace IotEdgeQuickstart.Details
                 doc.ReplaceOrAdd("certificates.device_ca_pk", deviceCaPk);
                 doc.ReplaceOrAdd("certificates.trusted_ca_certs", trustBundleCerts);
             }
+
+            this.proxy.ForEach(proxy => doc.ReplaceOrAdd("agent.env.https_proxy", proxy));
+
+            this.upstreamProtocol.ForEach(upstreamProtocol => doc.ReplaceOrAdd("agent.env.UpstreamProtocol", upstreamProtocol.ToString()));
 
             FileAttributes attr = 0;
             attr = File.GetAttributes(ConfigYamlFile);

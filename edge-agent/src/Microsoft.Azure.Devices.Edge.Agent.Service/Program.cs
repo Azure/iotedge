@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
     using System;
     using System.Collections.Generic;
-    using System.Globalization;
     using System.IO;
     using System.Net;
     using System.Threading;
@@ -102,8 +101,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 Option<string> productInfo = versionInfo != VersionInfo.Empty ? Option.Some(versionInfo.ToString()) : Option.None<string>();
                 Option<UpstreamProtocol> upstreamProtocol = configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol();
                 Option<IWebProxy> proxy = Proxy.Parse(configuration.GetValue<string>("https_proxy"), logger);
-                string iothubHostname = null;
-                string deviceId = null;
+                string iothubHostname;
+                string deviceId;
                 switch (mode.ToLowerInvariant())
                 {
                     case Constants.DockerMode:
