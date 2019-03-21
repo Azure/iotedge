@@ -5,6 +5,7 @@ namespace LeafDeviceTest
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using McMaster.Extensions.CommandLineUtils;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
 
     [Command(
@@ -19,6 +20,7 @@ Environment Variables:
   Option                    Environment variable
   --connection-string       iothubConnectionString
   --eventhub-endpoint       eventhubCompatibleEndpointWithEntityPath
+  --proxy                   https_proxy
 
 Defaults:
   All options to this command have defaults. If an option is not specified and
@@ -29,8 +31,9 @@ Defaults:
   --connection-string       get the value from Key Vault
   --eventhub-endpoint       get the value from Key Vault
   --device-id               an auto-generated unique identifier
-  --certificate             Empty String.
-  --edge-hostname           Empty String.
+  --certificate             empty string
+  --edge-hostname           empty string
+  --proxy                   no proxy is used
 ")]
     [HelpOption]
     class Program
@@ -58,6 +61,9 @@ Defaults:
                                                     Choices are Mqtt, MqttWs, Amqp, AmqpWs.
                                                     If protocol is unspecified, default is Mqtt.")]
         public DeviceProtocol Protocol { get; } = DeviceProtocol.Mqtt;
+
+        [Option("--proxy <value>", CommandOptionType.SingleValue, Description = "Proxy for IoT Hub connections.")]
+        public (bool useProxy, string proxyUrl) Proxy { get; } = (false, string.Empty);
 
         [Option("-cac|--x509-ca-cert-path", Description = "Path to a X.509 leaf certificate file in PEM format to be used for X.509 CA authentication.")]
         public string X509CACertPath { get; } = string.Empty;
@@ -91,6 +97,11 @@ Defaults:
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
                                   await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
 
+                (bool useProxy, string proxyUrl) = this.Proxy;
+                Option<string> proxy = useProxy
+                    ? Option.Some(proxyUrl)
+                    : Option.Maybe(Environment.GetEnvironmentVariable("https_proxy"));
+
                 var builder = new LeafDevice.LeafDeviceBuilder(
                     connectionString,
                     endpoint,
@@ -98,7 +109,8 @@ Defaults:
                     this.TrustedCACertificateFileName,
                     this.EdgeHostName,
                     this.EdgeGatewayDeviceId,
-                    this.Protocol);
+                    this.Protocol,
+                    proxy);
 
                 if (!string.IsNullOrWhiteSpace(this.X509PrimaryCertPath) &&
                     !string.IsNullOrWhiteSpace(this.X509PrimaryKeyPath) &&

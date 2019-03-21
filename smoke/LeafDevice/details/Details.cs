@@ -49,6 +49,7 @@ namespace LeafDeviceTest
         readonly Option<IEnumerable<X509Certificate2>> clientCertificateChain;
         readonly Option<List<string>> thumbprints;
         DeviceContext context;
+        Option<IWebProxy> proxy;
 
         protected Details(
             string iothubConnectionString,
@@ -58,6 +59,7 @@ namespace LeafDeviceTest
             string edgeHostName,
             string edgeDeviceId,
             DeviceProtocol protocol,
+            Option<string> proxy,
             Option<DeviceCertificate> clientCertificatePaths,
             Option<IList<string>> thumbprintCertificatePaths)
         {
@@ -65,6 +67,7 @@ namespace LeafDeviceTest
             this.eventhubCompatibleEndpointWithEntityPath = eventhubCompatibleEndpointWithEntityPath;
             this.deviceId = deviceId;
             this.trustedCACertificateFileName = trustedCACertificateFileName;
+            this.proxy = proxy.Map(p => new WebProxy(p) as IWebProxy);
             this.edgeHostName = edgeHostName;
             if (!edgeDeviceId.IsNullOrWhiteSpace())
             {
@@ -92,7 +95,7 @@ namespace LeafDeviceTest
             else
             {
                 this.serviceClientTransportType = ServiceClientTransportType.Amqp;
-                this.eventHubClientTransportType = EventHubClientTransportType.Amqp;
+                this.eventHubClientTransportType = this.proxy.HasValue ? EventHubClientTransportType.AmqpWebSockets : EventHubClientTransportType.Amqp;
                 if (protocol == DeviceProtocol.Mqtt)
                 {
                     this.deviceTransportSettings = new ITransportSettings[] { new MqttTransportSettings(DeviceClientTransportType.Mqtt_Tcp_Only) };
@@ -167,8 +170,10 @@ namespace LeafDeviceTest
 
         protected async Task GetOrCreateDeviceIdentityAsync()
         {
+            var settings = new HttpTransportSettings();
+            this.proxy.ForEach(p => settings.Proxy = p);
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
 
             Option<string> edgeScope = await this.edgeDeviceId
                 .Map(id => GetScopeIfExitsAsync(rm, id))
@@ -220,6 +225,8 @@ namespace LeafDeviceTest
             EventHubClient eventHubClient =
                 EventHubClient.CreateFromConnectionString(builder.ToString());
 
+            this.proxy.ForEach(p => eventHubClient.WebProxy = p);
+
             PartitionReceiver eventHubReceiver = eventHubClient.CreateReceiver(
                 "$Default",
                 EventHubPartitionKeyResolver.ResolveToPartition(
@@ -259,8 +266,10 @@ namespace LeafDeviceTest
         protected async Task VerifyDirectMethodAsync()
         {
             // User Service SDK to invoke Direct Method on the device.
+            var settings = new ServiceClientTransportSettings();
+            this.proxy.ForEach(p => settings.HttpProxy = p);
             ServiceClient serviceClient =
-                ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType);
+                ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType, settings);
 
             // Call a direct method
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
