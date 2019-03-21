@@ -152,12 +152,12 @@ jobs:
       - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin
         name: build
         displayName: Build (release)
-
-      - script: scripts/linux/publishArtifactInfo.sh -outputFolder '$(Build.BinariesDirectory)/publish' -buildNumber $(Build.BuildNumber)
-        displayName: 'Publish Artifact Info'
         
       - script: scripts/linux/buildDiagnostics.sh
         displayName: Build iotedge-diagnostics
+
+      - script: scripts/linux/publishArtifactInfo.sh -outputFolder '$(Build.BinariesDirectory)/publish' -buildNumber $(Build.BuildNumber)
+        displayName: 'Publish Artifact Info'
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
@@ -267,6 +267,9 @@ jobs:
 
       - powershell: edgelet/build/windows/build-diagnostics.ps1
         displayName: Build iotedge-diagnostics
+
+      - powershell: scripts/windows/build/Publish-ArtifactInfo.ps1
+        displayName: 'Publish Artifact Info'
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'

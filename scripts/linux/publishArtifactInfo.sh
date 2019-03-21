@@ -46,7 +46,7 @@ process_args() {
 function publish_artifact_Info() {
     artifactInfoFilePath="$OUTPUT_FOLDER/artifactInfo.txt"
     echo "BuildNumber=$BUILD_NUMBER" | tee -a "$artifactInfoFilePath"
-    echo "Published artifact info file to $artifactInfoFilePath";
+    echo "Published artifact info file to $artifactInfoFilePath"
 }
 
 process_args "$@"
