@@ -40,12 +40,6 @@
               },
               "InfluxDbUrl": {
                 "value": "http://influxdb:8086"
-              },
-              "amqpSettings__enabled": {
-                "value": "<amqpSettings__enabled>"
-              },
-              "mqttSettings__enabled": {
-                "value": "<mqttSettings__enabled>"
               }
             },
             "status": "running",
@@ -63,7 +57,7 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen1.TransportType>"
+                "value": "<LoadGen.TransportType>"
               }
             },
             "settings": {
@@ -71,57 +65,75 @@
               "createOptions": ""
             }
           },
-          "loadGen2": {
+          "tempSensor": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            },
+            "env": {
+              "MessageCount": {
+                "value": "-1"
+              },
+              "ClientTransportType": {
+                "value": "Mqtt_Tcp_Only"
+              }
+            }
+          },
+          "tempFilter": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "messageFrequency": {
-                "value": "<LoadGen.MessageFrequency>"
+              "TemperatureThreshold": {
+                "value": "19"
               },
-              "transportType": {
-                "value": "<LoadGen2.TransportType>"
+              "ClientTransportType": {
+                "value": "Mqtt_Tcp_Only"
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-temperature-filter:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
-          "loadGen3": {
+          "tempSensor2": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
-            "env": {
-              "messageFrequency": {
-                "value": "<LoadGen.MessageFrequency>"
-              },
-              "transportType": {
-                "value": "<LoadGen3.TransportType>"
-              }
-            },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
+            },
+            "env": {
+              "MessageCount": {
+                "value": "-1"
+              },
+              "ClientTransportType": {
+                "value": "Amqp_Tcp_Only"
+              }
             }
           },
-          "loadGen4": {
+          "tempFilter2": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "messageFrequency": {
-                "value": "<LoadGen.MessageFrequency>"
+              "TemperatureThreshold": {
+                "value": "19"
               },
-              "transportType": {
-                "value": "<LoadGen4.TransportType>"
+              "ClientTransportType": {
+                "value": "Amqp_Tcp_Only"
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-temperature-filter:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -193,7 +205,7 @@
             "status": "running",
             "restartPolicy": "on-unhealthy",
             "settings": {
-              "image": "influxdb:1.5",
+              "image": "influxdb:1.7",
               "createOptions": "{\"ExposedPorts\":{\"8086/tcp\":{}},\"HostConfig\":{\"PortBindings\":{\"8086/tcp\":[{\"HostPort\":\"8086\"}]}}}"
             }
           }
@@ -205,9 +217,12 @@
         "schemaVersion": "1.0",
         "routes": {
           "upstreamLoadGen1": "FROM /messages/modules/loadGen1/outputs/output1 INTO $upstream",
-          "upstreamLoadGen2": "FROM /messages/modules/loadGen2/outputs/output1 INTO $upstream",
-          "upstreamLoadGen3": "FROM /messages/modules/loadGen3/outputs/output1 INTO $upstream",
-          "upstreamLoadGen4": "FROM /messages/modules/loadGen4/outputs/output1 INTO $upstream"
+          "TempFilterToCloud": "FROM /messages/modules/tempFilter/outputs/* INTO $upstream",
+          "TempSensorToTempFilter": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/tempFilter/inputs/input1\")",
+          "TempFilterToCloud2": "FROM /messages/modules/tempFilter2/outputs/* INTO $upstream",
+          "TempSensorToTempFilter2": "FROM /messages/modules/tempSensor2/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/tempFilter2/inputs/input1\")",
+          "upstreamDirectMethodCloudSender1": "FROM /messages/modules/DirectMethodCloudSender/outputs/output1 INTO $upstream",
+          "upstreamDirectMethodCloudSender2": "FROM /messages/modules/DirectMethodCloudSender2/outputs/output1 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
