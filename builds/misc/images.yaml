@@ -39,9 +39,6 @@ jobs:
       - script: scripts/linux/buildDiagnostics.sh
         displayName: Build iotedge-diagnostics
 
-      - script: scripts/linux/publishArtifactInfo.sh -outputFolder '$(Build.BinariesDirectory)/publish' -buildNumber $(Build.BuildNumber)
-        displayName: 'Publish Artifact Info'        
-
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
         inputs:
