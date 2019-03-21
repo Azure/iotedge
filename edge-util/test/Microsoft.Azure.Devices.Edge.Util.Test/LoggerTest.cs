@@ -14,38 +14,50 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         public void SeverityTest()
         {
             Logger.SetLogLevel("debug");
-            ILogger logger = Logger.Factory.CreateLogger("Test");
+            TextWriter currentConsoleOut = Console.Out;
 
-            using (StringWriter sw = new StringWriter())
+            try
             {
-                Console.SetOut(sw);
-                logger.LogInformation("Test message");
-                string output = sw.ToString();
-                Assert.StartsWith("<6>", output);
+                ILogger logger = Logger.Factory.CreateLogger("Test");
+                Assert.NotNull(logger);
+
+                using (StringWriter sw = new StringWriter())
+                {
+                    Console.SetOut(sw);
+                    logger.LogInformation("Test message");
+                    string output = sw.ToString();
+                    Assert.StartsWith("<6>", output);
+                }
+
+                using (StringWriter sw = new StringWriter())
+                {
+                    Console.SetOut(sw);
+                    logger.LogDebug("Test message");
+                    string output = sw.ToString();
+                    Assert.StartsWith("<7>", output);
+                }
+
+                using (StringWriter sw = new StringWriter())
+                {
+                    Console.SetOut(sw);
+                    logger.LogWarning("Test message");
+                    string output = sw.ToString();
+                    Assert.StartsWith("<4>", output);
+                }
+
+                using (StringWriter sw = new StringWriter())
+                {
+                    Console.SetOut(sw);
+                    logger.LogError("Test message");
+                    string output = sw.ToString();
+                    Assert.StartsWith("<3>", output);
+                }
             }
-
-            using (StringWriter sw = new StringWriter())
+            finally
             {
-                Console.SetOut(sw);
-                logger.LogDebug("Test message");
-                string output = sw.ToString();
-                Assert.StartsWith("<7>", output);
-            }
-
-            using (StringWriter sw = new StringWriter())
-            {
-                Console.SetOut(sw);
-                logger.LogWarning("Test message");
-                string output = sw.ToString();
-                Assert.StartsWith("<4>", output);
-            }
-
-            using (StringWriter sw = new StringWriter())
-            {
-                Console.SetOut(sw);
-                logger.LogError("Test message");
-                string output = sw.ToString();
-                Assert.StartsWith("<3>", output);
+                // Revert all changes
+                Console.SetOut(currentConsoleOut);
+                Logger.SetLogLevel("info");
             }
         }
     }
