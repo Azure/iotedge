@@ -42,17 +42,13 @@ jobs:
       - task: CopyFiles@2
         displayName: 'Copy iotedged artifact'
         inputs:
-          SourceFolder: '$(System.DefaultWorkingDirectory)/iotedged-ubuntu-amd64'
+          SourceFolder: '$(System.ArtifactsDirectory)/iotedged-ubuntu-amd64'
           TargetFolder: '$(Agent.HomeDirectory)/../artifacts/iotedged-ubuntu-amd64'
           CleanTargetFolder: true
       - task: CopyFiles@2
         displayName: 'Copy core-linux artifact'
         inputs:
-          SourceFolder: '$(System.DefaultWorkingDirectory)/core-linux'
-          Contents: |
-           IotEdgeQuickstart.linux-x64.tar.gz
-           e2e_deployment_files/long_haul_deployment.template.json
-           scripts/linux/runE2ETest.sh
+          SourceFolder: '$(System.ArtifactsDirectory)/core-linux'
           TargetFolder: '$(Agent.HomeDirectory)/../artifacts/core-linux'
           CleanTargetFolder: true
       - task: Bash@3
