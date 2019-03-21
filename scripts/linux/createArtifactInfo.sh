@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script is used to publish artifact information, e.g. build number.
+# This script is used to create artifact info file.
 
 usage()
 {
@@ -43,12 +43,12 @@ process_args() {
     fi
 }
 
-function publish_artifact_Info() {
+function create_artifact_Info() {
     artifactInfoFilePath="$OUTPUT_FOLDER/artifactInfo.txt"
     echo "BuildNumber=$BUILD_NUMBER" | tee -a "$artifactInfoFilePath"
-    echo "Published artifact info file to $artifactInfoFilePath"
+    echo "Created artifact info file in $artifactInfoFilePath"
 }
 
 process_args "$@"
 
-publish_artifact_Info
+create_artifact_Info
