@@ -44,6 +44,9 @@
     .PARAMETER EventHubConnectionString
         Event hub connection string for receive D2C messages
 
+    .PARAMETER ProxyUri
+        (Optional) The URI of an HTTPS proxy server; if specified, all communications to IoT Hub will go through this proxy.
+
     .EXAMPLE
         .\Run-E2ETest.ps1
             -E2ETestFolder "C:\Data\e2etests"
@@ -55,8 +58,9 @@
             -ContainerRegistryPassword "xxxx"
             -IoTHubConnectionString "xxxx"
             -EventHubConnectionString "xxxx"
+            -ProxyUri "http://proxyserver:3128"
 
-        Transparent Gateway Test Command:
+        Transparent gateway test command with custom Edge device certificates:
         .\Run-E2ETest.ps1
             -E2ETestFolder "C:\Data\e2etests"
             -ReleaseLabel "Release-ARM-1"
@@ -67,8 +71,9 @@
             -ContainerRegistryPassword "xxxx"
             -IoTHubConnectionString "xxxx"
             -EventHubConnectionString "xxxx"
-            -EdgeE2ERootCACertRSAFile "file path"
-            -EdgeE2ERootCAKeyRSAFile "file path"
+            -ProxyUri "http://proxyserver:3128"
+            -EdgeE2ERootCACertRSAFile "file path"  #if not provided, a default path will be checked
+            -EdgeE2ERootCAKeyRSAFile "file path"   #if not provided, a default path will be checked
             -EdgeE2ETestRootCAPassword "xxxx"
 
     .NOTES
@@ -115,6 +120,9 @@ Param (
 
     [ValidateNotNullOrEmpty()]
     [string] $EdgeE2ETestRootCAPassword = $NULL
+
+    [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
+    [string] $ProxyUri = $null
 )
 
 Set-StrictMode -Version "Latest"
@@ -227,9 +235,10 @@ Function PrepareTestFromArtifacts
     If (($TestName -eq "DirectMethodAmqp") -Or
         ($TestName -eq "DirectMethodMqtt") -Or
         ($TestName -eq "TempFilter") -Or
-        ($TestName -eq "TempFilterFunctions"))
+        ($TestName -eq "TempFilterFunctions") -Or
+        (($ProxyUri) -and ($TestName -in "TempSensor", "QuickstartCerts", "TransparentGateway")))
     {
-        Switch ($TestName)
+        Switch -Regex ($TestName)
         {
             "DirectMethodAmqp"
             {
@@ -260,6 +269,16 @@ Function PrepareTestFromArtifacts
                 Write-Host "Copy deployment file from $ModuleToFunctionDeploymentArtifactFilePath"
                 Copy-Item $ModuleToFunctionDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
             }
+            "TempSensor" # Only when $ProxyUri is specified
+            {
+                Write-Host "Copy deployment file from $QuickstartDeploymentArtifactFilePath"
+                Copy-Item $QuickstartDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
+            }
+            "QuickstartCerts|TransparentGateway" # Only when $ProxyUri is specified
+            {
+                Write-Host "Copy deployment file from $RuntimeOnlyDeploymentArtifactFilePath"
+                Copy-Item $RuntimeOnlyDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
+            }
         }
 
         $ImageArchitectureLabel = $(GetImageArchitectureLabel)
@@ -269,6 +288,39 @@ Function PrepareTestFromArtifacts
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Username>', $ContainerRegistryUsername) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Password>', $ContainerRegistryPassword) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('-linux-', '-windows-') | Set-Content $DeploymentWorkingFilePath
+
+        If ($ProxyUri)
+        {
+            # Add/remove/edit JSON values *after* replacing all the '<>' placeholders because
+            # ConvertTo-Json will encode angle brackets.
+            $httpsProxy = "{ `"value`": `"$ProxyUri`" }" | ConvertFrom-Json
+            $json = Get-Content $DeploymentWorkingFilePath | ConvertFrom-Json
+            $edgeAgentDesired = $json.modulesContent.'$edgeAgent'.'properties.desired'
+            $upstreamProtocol = $edgeAgentDesired.systemModules.edgeHub.env.PSObject.Properties['UpstreamProtocol']
+            If (($upstreamProtocol -ne $null) -and ($upstreamProtocol.Value.value -eq 'Mqtt')) {
+                $upstreamProtocol = '{ "value": "MqttWs" }' | ConvertFrom-Json
+            } else {
+                $upstreamProtocol = '{ "value": "AmqpWs" }' | ConvertFrom-Json
+            }
+
+            # Add edgeAgent env with 'https_proxy' and 'UpstreamProtocol'
+            if ($edgeAgentDesired.systemModules.edgeAgent.PSObject.Properties['env'] -eq $null) {
+                $edgeAgentDesired.systemModules.edgeAgent | `
+                    Add-Member -Name 'env' -Value ([pscustomobject]@{}) -MemberType NoteProperty
+            }
+            $edgeAgentDesired.systemModules.edgeAgent.env | `
+                Add-Member -Name 'https_proxy' -Value $httpsProxy -MemberType NoteProperty
+            $edgeAgentDesired.systemModules.edgeAgent.env | `
+                Add-Member -Name 'UpstreamProtocol' -Value $upstreamProtocol -MemberType NoteProperty -Force
+
+            # Add 'https_proxy' and 'UpstreamProtocol' to edgeHub env
+            $edgeAgentDesired.systemModules.edgeHub.env | `
+                Add-Member -Name 'https_proxy' -Value $httpsProxy -MemberType NoteProperty
+            $edgeAgentDesired.systemModules.edgeHub.env | `
+                Add-Member -Name 'UpstreamProtocol' -Value $upstreamProtocol -MemberType NoteProperty -Force
+
+            $json | ConvertTo-Json -Depth 20 | Set-Content $DeploymentWorkingFilePath
+        }
     }
 }
 
@@ -300,7 +352,7 @@ Function PrintLogs
     Try
     {
         Write-Host "EDGE AGENT LOGS"
-        Invoke-Expression "$dockerCmd logs edgeAgent"
+        Invoke-Expression "$dockerCmd logs edgeAgent" | Out-Host
     }
     Catch
     {
@@ -310,7 +362,7 @@ Function PrintLogs
     Try
     {
         Write-Host "EDGE HUB LOGS"
-        Invoke-Expression "$dockerCmd logs edgeHub"
+        Invoke-Expression "$dockerCmd logs edgeHub" | Out-Host
     }
     Catch
     {
@@ -324,7 +376,7 @@ Function PrintLogs
         Try
         {
             Write-Host "TEMP SENSOR LOGS"
-            Invoke-Expression "$dockerCmd logs tempSensor"
+            Invoke-Expression "$dockerCmd logs tempSensor" | Out-Host
         }
         Catch
         {
@@ -336,7 +388,7 @@ Function PrintLogs
     {
         Try {
             Write-Host "TEMP FILTER LOGS"
-            Invoke-Expression "$dockerCmd logs tempFilter"
+            Invoke-Expression "$dockerCmd logs tempFilter" | Out-Host
         }
         Catch
         {
@@ -348,7 +400,7 @@ Function PrintLogs
     {
         Try {
             Write-Host "TEMP FILTER FUNCTIONS LOGS"
-            Invoke-Expression "$dockerCmd logs tempFilterFunctions"
+            Invoke-Expression "$dockerCmd logs tempFilterFunctions" | Out-Host
         }
         Catch
         {
@@ -396,7 +448,7 @@ Function RunDirectMethodAmqpTest
 
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DMAmqp"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
@@ -407,6 +459,11 @@ Function RunDirectMethodAmqpTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`""
+    If ($ProxyUri) {
+        $testCommand = "$testCommand ``
+            --upstream-protocol 'AmqpWs' ``
+            --proxy `"$ProxyUri`""
+    }
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
     $testExitCode = $LastExitCode
@@ -422,7 +479,7 @@ Function RunDirectMethodMqttTest
 
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DMMqtt"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
@@ -433,6 +490,11 @@ Function RunDirectMethodMqttTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`""
+    If ($ProxyUri) {
+        $testCommand = "$testCommand ``
+            --upstream-protocol 'MqttWs' ``
+            --proxy `"$ProxyUri`""
+    }
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
     $testExitCode = $LastExitCode
@@ -458,10 +520,16 @@ Function RunQuickstartCertsTest
         -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" ``
-        --optimize_for_performance true ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-        --leave-running=Core ``
+        --optimize_for_performance true ``
+        --leave-running=All ``
         --no-verify"
+    If ($ProxyUri) {
+        $testCommand = "$testCommand ``
+            -l `"$DeploymentWorkingFilePath`" ``
+            --upstream-protocol 'AmqpWs' ``
+            --proxy `"$ProxyUri`""
+    }
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
 
@@ -469,12 +537,16 @@ Function RunQuickstartCertsTest
     Write-Host "CA certificate path=$caCertPath"
 
     Write-Host "Run LeafDevice"
-    &$LeafDeviceExeTestPath `
-        -d "${deviceId}-leaf" `
-        -c "$IoTHubConnectionString" `
-        -e "$EventHubConnectionString" `
-        -ct "$caCertPath" `
-        -ed "$env:computername" | Out-Host
+    $testCommand = "&$LeafDeviceExeTestPath ``
+        -d `"${deviceId}-leaf`" ``
+        -c `"$IoTHubConnectionString`" ``
+        -e `"$EventHubConnectionString`" ``
+        -ct `"$caCertPath`" ``
+        -ed `"$env:computername`""
+    If ($ProxyUri) {
+        $testCommand = "$testCommand --proxy `"$ProxyUri`""
+    }
+    Invoke-Expression $testCommand | Out-Host
     $testExitCode = $LastExitCode
 
     PrintLogs $testStartAt $testExitCode
@@ -488,7 +560,7 @@ Function RunTempFilterTest
 
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilter"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
@@ -499,6 +571,11 @@ Function RunTempFilterTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilter`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`""
+    If ($ProxyUri) {
+        $testCommand = "$testCommand ``
+            --upstream-protocol 'AmqpWs' ``
+            --proxy `"$ProxyUri`""
+    }
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
     $testExitCode = $LastExitCode
@@ -520,7 +597,7 @@ Function RunTempFilterFunctionsTest
 
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilterFunc"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
@@ -531,6 +608,11 @@ Function RunTempFilterFunctionsTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilterFunctions`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`""
+    If ($ProxyUri) {
+        $testCommand = "$testCommand ``
+            --upstream-protocol 'AmqpWs' ``
+            --proxy `"$ProxyUri`""
+    }
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
     $testExitCode = $LastExitCode
@@ -555,9 +637,15 @@ Function RunTempSensorTest
         -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" ``
-        --optimize_for_performance true ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-        -tw `"$TwinTestFileArtifactFilePath`""
+        -tw `"$TwinTestFileArtifactFilePath`" ``
+        --optimize_for_performance true"
+    If ($ProxyUri) {
+        $testCommand = "$testCommand ``
+            -l `"$DeploymentWorkingFilePath`" ``
+            --upstream-protocol 'AmqpWs' ``
+            --proxy `"$ProxyUri`""
+    }
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
     $testExitCode = $LastExitCode
@@ -709,15 +797,32 @@ Function RunTransparentGatewayTest
         -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" ``
-        --optimize_for_performance true ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-        --leave-running=Core ``
-        --no-verify ``
         --device_ca_cert `"$EdgeCertGenScriptDir\certs\iot-edge-device-$edgeDeviceId-full-chain.cert.pem`" ``
         --device_ca_pk `"$EdgeCertGenScriptDir\private\iot-edge-device-$edgeDeviceId.key.pem`" ``
-        --trusted_ca_certs `"$TrustedCACertificatePath`""
-
+        --trusted_ca_certs `"$TrustedCACertificatePath`" ``
+        --optimize_for_performance true ``
+        --leave-running=All ``
+        --no-verify"
+    If ($ProxyUri) {
+        $testCommand = "$testCommand ``
+            -l `"$DeploymentWorkingFilePath`" ``
+            --upstream-protocol 'AmqpWs' ``
+            --proxy `"$ProxyUri`""
+    }
     $testCommand = AppendInstallationOption($testCommand)
+    Invoke-Expression $testCommand | Out-Host
+
+    Write-Host "Run LeafDevice"
+    $testCommand = "&$LeafDeviceExeTestPath ``
+        -d `"${deviceId}-leaf`" ``
+        -c `"$IoTHubConnectionString`" ``
+        -e `"$EventHubConnectionString`" ``
+        -ct `"$TrustedCACertificatePath`" ``
+        -ed `"$env:computername`""
+    If ($ProxyUri) {
+        $testCommand = "$testCommand --proxy `"$ProxyUri`""
+    }
     Invoke-Expression $testCommand | Out-Host
     $testExitCode = $LastExitCode
     PrintLogs $testStartAt $testExitCode
@@ -786,6 +891,10 @@ Function ValidateTestParameters
 
     If (($TestName -eq "QuickstartCerts") -Or ($TestName -eq "TransparentGateway"))
     {
+        if ($ProxyUri)
+        {
+            $validatingItems += $RuntimeOnlyDeploymentArtifactFilePath
+        }
         $validatingItems += (Join-Path $LeafDeviceArtifactFolder "*")
     }
 
@@ -801,6 +910,10 @@ Function ValidateTestParameters
 
     If ($TestName -eq "TempSensor")
     {
+        if ($ProxyUri)
+        {
+            $validatingItems += $QuickstartDeploymentArtifactFilePath
+        }
         $validatingItems += $TwinTestFileArtifactFilePath
     }
 
@@ -838,6 +951,8 @@ $TrustedCACertificatePath= Join-Path $EdgeCertGenScriptDir "\certs\azure-iot-tes
 $ModuleToModuleDeploymentFilename = "module_to_module_deployment.template.json"
 $ModuleToFunctionsDeploymentFilename = "module_to_functions_deployment.template.json"
 $DirectMethodModuleToModuleDeploymentFilename = "dm_module_to_module_deployment.json"
+$RuntimeOnlyDeploymentFilename = 'runtime_only_deployment.template.json'
+$QuickstartDeploymentFilename = 'quickstart_deployment.template.json'
 $TwinTestFilename = "twin_test_tempSensor.json"
 
 $IoTEdgeQuickstartArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\IoTEdgeQuickstart\$Architecture"
@@ -848,6 +963,8 @@ $DeploymentFilesFolder = Join-Path $E2ETestFolder "artifacts\core-windows\e2e_de
 $TestFileFolder = Join-Path $E2ETestFolder "artifacts\core-windows\e2e_test_files"
 $ModuleToModuleDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $ModuleToModuleDeploymentFilename
 $ModuleToFunctionDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $ModuleToFunctionsDeploymentFilename
+$RuntimeOnlyDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $RuntimeOnlyDeploymentFilename
+$QuickstartDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $QuickstartDeploymentFilename
 $TwinTestFileArtifactFilePath = Join-Path $TestFileFolder $TwinTestFilename
 $DirectMethodModuleToModuleDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $DirectMethodModuleToModuleDeploymentFilename
 
