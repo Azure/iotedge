@@ -81,6 +81,18 @@ function get_leafdevice_artifact_file() {
     echo "$path"
 }
 
+function get_long_haul_deployment_artifact_file() {
+    local path
+    if [ "$image_architecture_label" = 'amd64' ] ||
+       [ "$image_architecture_label" = 'arm64v8' ]; then
+        path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.json"
+    else
+        path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.arm.json"
+    fi
+
+    echo "$path"
+}
+
 function prepare_test_from_artifacts() {
     print_highlighted_message 'Prepare test from artifacts'
 
@@ -155,6 +167,8 @@ function prepare_test_from_artifacts() {
                     sed -i -e "s@<LoadGen2.TransportType>@$LOADGEN2_TRANSPORT_TYPE@g" "$deployment_working_file"
                     sed -i -e "s@<LoadGen3.TransportType>@$LOADGEN3_TRANSPORT_TYPE@g" "$deployment_working_file"
                     sed -i -e "s@<LoadGen4.TransportType>@$LOADGEN4_TRANSPORT_TYPE@g" "$deployment_working_file"
+                    sed -i -e "s@<amqpSettings__enabled>@$AMQP_SETTINGS_ENABLED@g" "$deployment_working_file"
+                    sed -i -e "s@<mqttSettings__enabled>@$MQTT_SETTINGS_ENABLED@g" "$deployment_working_file"
                 fi
 
                 local escapedSnitchAlertUrl
@@ -314,6 +328,12 @@ function process_args() {
         elif [ $saveNextArg -eq 21 ]; then
             LOADGEN4_TRANSPORT_TYPE="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 22 ]; then
+            AMQP_SETTINGS_ENABLED="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 23 ]; then
+            MQTT_SETTINGS_ENABLED="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -338,6 +358,8 @@ function process_args() {
                 '-loadGen2TransportType' ) saveNextArg=19;;
                 '-loadGen3TransportType' ) saveNextArg=20;;
                 '-loadGen4TransportType' ) saveNextArg=21;;
+                '-amqpSettingsEnabled' ) saveNextArg=22;;
+                '-mqttSettingsEnabled' ) saveNextArg=23;;
                 * ) usage;;
             esac
         fi
@@ -776,10 +798,12 @@ function usage() {
     echo ' -snitchStorageAccount           Azure blob Sstorage account for store logs used in status email for long haul and stress test. Default is snitchstore'
     echo ' -snitchStorageMasterKey         Master key of snitch storage account for long haul and stress test'
     echo ' -snitchTestDurationInSecs       Test duration in seconds for long haul and stress test'
-    echo ' -loadGen1TransportType           Transport type for LoadGen1 for stress test. Default is amqp'
-    echo ' -loadGen2TransportType           Transport type for LoadGen2 for stress test. Default is amqp'
-    echo ' -loadGen3TransportType           Transport type for LoadGen3 for stress test. Default is mqtt'
-    echo ' -loadGen4TransportType           Transport type for LoadGen4 for stress test. Default is mqtt'
+    echo ' -loadGen1TransportType          Transport type for LoadGen1 for stress test. Default is amqp'
+    echo ' -loadGen2TransportType          Transport type for LoadGen2 for stress test. Default is amqp'
+    echo ' -loadGen3TransportType          Transport type for LoadGen3 for stress test. Default is mqtt'
+    echo ' -loadGen4TransportType          Transport type for LoadGen4 for stress test. Default is mqtt'
+    echo ' -amqpSettingsEnabled            Enable amqp protocol head in Edge Hub'
+    echo ' -mqttSettingsEnabled            Enable mqtt protocol head in Edge Hub'
     exit 1;
 }
 
@@ -795,9 +819,15 @@ SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-86400}"
 SNITCH_STORAGE_ACCOUNT="${SNITCH_STORAGE_ACCOUNT:-snitchstore}"
 SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-604800}"
 LOADGEN1_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
-LOADGEN2_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
-LOADGEN3_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-mqtt}"
-LOADGEN4_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-mqtt}"
+LOADGEN2_TRANSPORT_TYPE="${LOADGEN2_TRANSPORT_TYPE:-amqp}"
+LOADGEN3_TRANSPORT_TYPE="${LOADGEN3_TRANSPORT_TYPE:-mqtt}"
+LOADGEN4_TRANSPORT_TYPE="${LOADGEN4_TRANSPORT_TYPE:-mqtt}"
+if [ "$AMQP_SETTINGS_ENABLED" != "false" ]; then
+    AMQP_SETTINGS_ENABLED="true"
+fi
+if [ "$MQTT_SETTINGS_ENABLED" != "false" ]; then
+    MQTT_SETTINGS_ENABLED="true"
+fi
 
 working_folder="$E2E_TEST_DIR/working"
 get_image_architecture_label
@@ -808,7 +838,7 @@ twin_testfile_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/t
 module_to_module_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/module_to_module_deployment.template.json"
 module_to_functions_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/module_to_functions_deployment.template.json"
 dm_module_to_module_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/dm_module_to_module_deployment.json"
-long_haul_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.json"
+long_haul_deployment_artifact_file="$(get_long_haul_deployment_artifact_file)"
 stress_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/stress_deployment.template.json"
 deployment_working_file="$working_folder/deployment.json"
 quickstart_working_folder="$working_folder/quickstart"
