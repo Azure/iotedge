@@ -1,5 +1,5 @@
 <#
- # Create artifact info file
+ # This script is used to create artifact info file.
  #>
  
 param (
