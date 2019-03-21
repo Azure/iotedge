@@ -30,9 +30,9 @@ jobs:
           buildVersionToDownload: latestFromBranch
           artifactName: 'core-linux'
           itemPattern: |
-           IotEdgeQuickstart.linux-x64.tar.gz
-           e2e_deployment_files/long_haul_deployment.template.json
-           scripts/linux/runE2ETest.sh
+           core-linux/IotEdgeQuickstart.linux-x64.tar.gz
+           core-linux/e2e_deployment_files/long_haul_deployment.template.json
+           core-linux/scripts/linux/runE2ETest.sh
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault: edgebuildkv'
         inputs:
@@ -48,7 +48,7 @@ jobs:
       - task: CopyFiles@2
         displayName: 'Copy core-linux artifact'
         inputs:
-          SourceFolder: '$(System.DefaultWorkingDirectory)/images/core-linux'
+          SourceFolder: '$(System.DefaultWorkingDirectory)/core-linux'
           Contents: |
            IotEdgeQuickstart.linux-x64.tar.gz
            e2e_deployment_files/long_haul_deployment.template.json
