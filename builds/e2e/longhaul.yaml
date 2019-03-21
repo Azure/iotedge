@@ -52,11 +52,13 @@ jobs:
           TargetFolder: '$(Agent.HomeDirectory)/../artifacts/core-linux'
           CleanTargetFolder: true
       - task: Bash@3
+        displayName: 'Run long haul deployment'
         inputs:
           targetType: inline
           script: |
             declare -a cnreg=( $(edgebuilds-azurecr-io) )
             sudo chmod +x $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh
             testName="LongHaul"
-            sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$(Release.Artifacts.images.BuildNumber)" -testName "$testName" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)"
+            Write-Host "artificate build number=$(Release.Artifacts.core-linux.BuildNumber)"
+            sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$(Release.Artifacts.core-linux.BuildNumber)" -testName "$testName" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)"
           displayName: 'Run long haul deployment'
