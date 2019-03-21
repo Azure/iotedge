@@ -37,6 +37,7 @@ function get_image_architecture_label() {
     case "$arch" in
         'x86_64' ) image_architecture_label='amd64';;
         'armv7l' ) image_architecture_label='arm32v7';;
+        'aarch64' ) image_architecture_label='arm64v8';;
         *) print_error "Unsupported OS architecture: $arch"; exit 1;;
     esac
 }
@@ -45,7 +46,9 @@ function get_iotedge_quickstart_artifact_file() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
         path="$E2E_TEST_DIR/artifacts/core-linux/IotEdgeQuickstart.linux-x64.tar.gz"
-    else
+    elif [ "$image_architecture_label" = 'arm64v8' ]; then
+        path="$E2E_TEST_DIR/artifacts/core-linux/IotEdgeQuickstart.linux-arm64.tar.gz"
+    else 
         path="$E2E_TEST_DIR/artifacts/core-linux/IotEdgeQuickstart.linux-arm.tar.gz"
     fi
 
@@ -56,6 +59,8 @@ function get_iotedged_artifact_folder() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu-amd64"
+    elif [ "$image_architecture_label" = 'arm64v8' ]; then
+        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu-aarch64"
     else
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu-armhf"
     fi
@@ -67,6 +72,8 @@ function get_leafdevice_artifact_file() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
         path="$E2E_TEST_DIR/artifacts/core-linux/LeafDevice.linux-x64.tar.gz"
+    elif [ "$image_architecture_label" = 'arm64v8' ]; then
+        path="$E2E_TEST_DIR/artifacts/core-linux/LeafDevice.linux-arm64.tar.gz"
     else
         path="$E2E_TEST_DIR/artifacts/core-linux/LeafDevice.linux-arm.tar.gz"
     fi
@@ -117,18 +124,22 @@ function prepare_test_from_artifacts() {
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
 
-                if [[ $image_architecture_label == 'arm32v7' ]]; then
+                if [[ $image_architecture_label == 'arm32v7' ]] ||
+                   [[ $image_architecture_label == 'arm64v8' ]]; then
                     sed -i -e "s@<MqttEventsProcessorThreadCount>@1@g" "$deployment_working_file"
                 fi
+                
                 sed -i -e "s@<UpstreamProtocol>@Mqtt@g" "$deployment_working_file"
                 sed -i -e "s@<ClientTransportType>@Mqtt_Tcp_Only@g" "$deployment_working_file";;
             'directmethodmqttws')
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
 
-                if [[ $image_architecture_label == 'arm32v7' ]]; then
+                if [[ $image_architecture_label == 'arm32v7' ]] ||
+                   [[ $image_architecture_label == 'arm64v8' ]]; then
                     sed -i -e "s@<MqttEventsProcessorThreadCount>@1@g" "$deployment_working_file"
                 fi
+                
                 sed -i -e "s@<UpstreamProtocol>@Mqttws@g" "$deployment_working_file"
                 sed -i -e "s@<ClientTransportType>@Mqtt_WebSocket_Only@g" "$deployment_working_file";;
             'longhaul' | 'stress')
