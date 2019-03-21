@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Net;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Exceptions;
@@ -53,7 +54,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public Task<Twin> GetTwinAsync() => this.moduleClient.GetTwinAsync();
 
-        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) => this.moduleClient.UpdateReportedPropertiesAsync(reportedProperties);
+        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties)
+            => this.moduleClient.UpdateReportedPropertiesAsync(reportedProperties);
+
+        public Task<DeviceStreamRequest> WaitForDeviceStreamRequestAsync(CancellationToken cancellationToken)
+            => this.moduleClient.WaitForDeviceStreamRequestAsync(cancellationToken);
+
+        public async Task<IClientWebSocket> AcceptDeviceStreamingRequestAndConnect(DeviceStreamRequest deviceStreamRequest, CancellationToken cancellationToken)
+        {
+            await this.moduleClient.AcceptDeviceStreamRequestAsync(deviceStreamRequest, cancellationToken);
+            return await EdgeClientWebSocket.Connect(deviceStreamRequest.Url, deviceStreamRequest.AuthorizationToken, cancellationToken);
+        }
 
         internal static Task<Client.ModuleClient> CreateDeviceClientForUpstreamProtocol(
             Option<UpstreamProtocol> upstreamProtocol,
