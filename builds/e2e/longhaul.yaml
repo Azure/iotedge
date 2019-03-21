@@ -59,6 +59,6 @@ jobs:
             declare -a cnreg=( $(edgebuilds-azurecr-io) )
             sudo chmod +x $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh
             testName="LongHaul"
-            curl "https://dev.azure.com/msazure/One/_apis/build/builds?definitions=55174&$top=1&statusFilter=completed&resultFilter=succeeded"
-            sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$(Release.Artifacts.core-linux.BuildNumber)" -testName "$testName" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)"
+            echo "$artifact build number=(Release.Artifacts.core-linux.BuildNumber)"
+            sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "20190321.1" -testName "$testName" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)"
           displayName: 'Run long haul deployment'
