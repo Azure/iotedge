@@ -7,13 +7,14 @@ variables:
   edgelet.package.build: 55463
   images.artifact.name: 'core-linux'
   images.build: 55174
-  mszure.one.project: 'b32aa71e-8ed2-41b2-9d77-5bc261222004'
+  pool.name: 'Azure-IoT-Edge-Core'
+  vsts.project: $(System.TeamProjectId)
 ################################################################################
   - job: linux_amd64_moby
 ################################################################################
     displayName: Linux AMD64 Moby
     pool:
-      name: Azure-IoT-Edge-Core
+      name: $(pool.name)
       demands:
         - run-long-haul -equals true
         - Agent.OS -equals Linux
@@ -25,7 +26,7 @@ variables:
         displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
-          project: $(mszure.one.project)
+          project: $(vsts.project)
           pipeline: $(edgelet.package.build)
           buildVersionToDownload: latestFromBranch
           artifactName: $(edgelet.artifact.name)
@@ -33,7 +34,7 @@ variables:
         displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
-          project: $(mszure.one.project)
+          project: $(vsts.project)
           pipeline: $(images.build)
           buildVersionToDownload: latestFromBranch
           artifactName: $(images.artifact.name)
@@ -75,7 +76,7 @@ variables:
 ################################################################################
     displayName: Linux ARM32 Moby
     pool:
-      name: Azure-IoT-Edge-Core
+      name: $(pool.name)
       demands:
         - run-long-haul -equals true
         - Agent.OS -equals Linux
@@ -87,7 +88,7 @@ variables:
         displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
-          project: $(mszure.one.project)
+          project: $(vsts.project)
           pipeline: $(edgelet.package.build)
           buildVersionToDownload: latestFromBranch
           artifactName: $(edgelet.artifact.name)
@@ -95,7 +96,7 @@ variables:
         displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
-          project: $(mszure.one.project)
+          project: $(vsts.project)
           pipeline: $(images.build)
           buildVersionToDownload: latestFromBranch
           artifactName: $(images.artifact.name)
