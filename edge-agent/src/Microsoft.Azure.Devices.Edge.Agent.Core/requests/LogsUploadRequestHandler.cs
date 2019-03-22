@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         protected override async Task<Option<object>> HandleRequestInternal(Option<LogsUploadRequest> payloadOption)
         {
             LogsUploadRequest payload = payloadOption.Expect(() => new ArgumentException("Request payload not found"));
-            var moduleLogOptions = new ModuleLogOptions(payload.Id, payload.Encoding, payload.ContentType);
+            var moduleLogOptions = new ModuleLogOptions(payload.Id, payload.Encoding, payload.ContentType, ModuleLogFilter.Empty);
             byte[] logBytes = await this.logsProvider.GetLogs(moduleLogOptions, CancellationToken.None);
             await this.logsUploader.Upload(payload.SasUrl, payload.Id, logBytes, payload.Encoding, payload.ContentType);
             return Option.None<object>();
