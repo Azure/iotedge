@@ -7,13 +7,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     [Unit]
     public class LogsProcessorTest
     {
-        static readonly byte[] TestLogBytes = new byte[]
+        static readonly byte[] TestLogBytes =
         {
             1, 0, 0, 0, 0, 0, 0, 43, 91, 50, 48, 49, 57, 45, 48, 50, 45, 48, 56, 32, 48, 50, 58, 50, 51, 58, 50, 50, 32, 58, 32, 83, 116, 97, 114, 116, 105, 110, 103, 32, 69, 100, 103, 101, 32, 65, 103, 101, 110, 116, 10,
             1, 0, 0, 0, 0, 0, 0, 47, 91, 48, 50, 47, 48, 56, 47, 50, 48, 49, 57, 32, 48, 50, 58, 50, 51, 58, 50, 50, 46, 57, 48, 55, 32, 65, 77, 93, 32, 69, 100, 103, 101, 32, 65, 103, 101, 110, 116, 32, 77, 97, 105, 110, 40, 41, 10,
@@ -33,18 +34,45 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             ("        █████╗ ███████╗██╗   ██╗██████╗ ███████╗\n", "█████╗ ███████╗██╗   ██╗██████╗ ███████╗", string.Empty)
         };
 
+        static readonly string[] TestLogTexts =
+        {
+            "<6> 2019-02-08 02:23:23.137 +00:00 [INF] - Starting an important module.\n",
+            "<7> 2019-02-09 02:23:23.137 +00:00 [DBG] - Some debug log entry.\n",
+            "<6> 2019-02-10 02:23:23.137 +00:00 [INF] - Routine log line.\n",
+            "<4> 2019-03-08 02:23:23.137 +00:00 [WRN] - Warning, something bad happened.\n",
+            "<3> 2019-05-08 02:23:23.137 +00:00 [ERR] - Something really bad happened.\n"
+        };
+
+        public static IEnumerable<object[]> GetLogLevelFilterTestData()
+        {
+            yield return new object[] { 6, new List<int> { 0, 2 } };
+            yield return new object[] { 7, new List<int> { 1 } };
+            yield return new object[] { 4, new List<int> { 3 } };
+            yield return new object[] { 3, new List<int> { 4 } };
+        }
+
+        public static IEnumerable<object[]> GetMultipleFiltersTestData()
+        {
+            yield return new object[] { 6, "important", new List<int> { 0 } };
+            yield return new object[] { 7, "log", new List<int> { 1 } };
+            yield return new object[] { 4, "bad", new List<int> { 3 } };
+            yield return new object[] { 3, "bad", new List<int> { 4 } };
+        }
+
         [Fact]
         public async Task GetTextTest()
         {
             // Arrange
             string iotHub = "foo.azure-devices.net";
             string deviceId = "dev1";
+            string moduleId = "mod1";
             var logMessageParser = new LogMessageParser(iotHub, deviceId);
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(TestLogBytes);
+            var filter = ModuleLogFilter.Empty;
 
             // Act
-            IEnumerable<string> textLines = await logsProcessor.GetText(stream);
+            IEnumerable<string> textLines = await logsProcessor.GetText(stream, moduleId, filter);
 
             // Assert
             Assert.NotNull(textLines);
@@ -61,14 +89,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logMessageParser = new LogMessageParser(iotHub, deviceId);
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(TestLogBytes);
+            var filter = ModuleLogFilter.Empty;
 
             // Act
-            IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(stream, moduleId);
+            IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(stream, moduleId, filter);
 
             // Assert
             Assert.NotNull(logMessages);
             List<ModuleLogMessage> logMessagesList = logMessages.ToList();
-            for (int i = 0; i < logMessagesList.Count; i++)
+            Assert.Equal(TestLogLines.Count, logMessagesList.Count);
+            for (int i = 0; i < TestLogLines.Count; i++)
             {
                 ModuleLogMessage logMessage = logMessagesList[i];
                 Assert.Equal(iotHub, logMessage.IoTHub);
@@ -81,6 +111,171 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
                 {
                     Assert.Equal(DateTime.Parse(TestLogLines[i].timestamp), logMessage.TimeStamp.OrDefault());
                 }
+            }
+        }
+
+        [Fact]
+        public async Task GetTextWithRegexFilterTest()
+        {
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "dev1";
+            string moduleId = "mod1";
+            string regex = @"\[INF\]";
+            var logMessageParser = new LogMessageParser(iotHub, deviceId);
+            var logsProcessor = new LogsProcessor(logMessageParser);
+            var stream = new MemoryStream(TestLogBytes);
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.None<int>(), Option.Some(regex));
+
+            // Act
+            IEnumerable<string> textLines = await logsProcessor.GetText(stream, moduleId, filter);
+
+            // Assert
+            Assert.NotNull(textLines);
+            Assert.Equal(3, textLines.Count());
+            Assert.Equal(TestLogLines.Skip(2).Take(3).Select(l => l.rawText), textLines);
+        }
+
+        [Fact]
+        public async Task GetMessagesWithRegexFilterTest()
+        {
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "dev1";
+            string moduleId = "mod1";
+            string regex = @"\[INF\]";
+            var logMessageParser = new LogMessageParser(iotHub, deviceId);
+            var logsProcessor = new LogsProcessor(logMessageParser);
+            var stream = new MemoryStream(TestLogBytes);
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.None<int>(), Option.Some(regex));
+
+            // Act
+            IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(stream, moduleId, filter);
+
+            // Assert
+            Assert.NotNull(logMessages);
+            List<ModuleLogMessage> logMessagesList = logMessages.ToList();
+            Assert.Equal(3, logMessagesList.Count);
+            for (int i = 0; i < logMessagesList.Count; i++)
+            {
+                ModuleLogMessage logMessage = logMessagesList[i];
+                (string rawText, string parsedText, string timestamp) expectedData = TestLogLines[i + 2];
+                Assert.Equal(iotHub, logMessage.IoTHub);
+                Assert.Equal(deviceId, logMessage.DeviceId);
+                Assert.Equal(moduleId, logMessage.ModuleId);
+                Assert.Equal(6, logMessage.LogLevel);
+                Assert.Equal(expectedData.parsedText, logMessage.Text);
+                Assert.Equal(!string.IsNullOrEmpty(expectedData.timestamp), logMessage.TimeStamp.HasValue);
+                if (logMessage.TimeStamp.HasValue)
+                {
+                    Assert.Equal(DateTime.Parse(expectedData.timestamp), logMessage.TimeStamp.OrDefault());
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetLogLevelFilterTestData))]
+        public async Task GetTextWithLogLevelFilterTest(int logLevel, List<int> expectedLogLineIds)
+        {
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "dev1";
+            string moduleId = "mod1";
+            var logMessageParser = new LogMessageParser(iotHub, deviceId);
+            var logsProcessor = new LogsProcessor(logMessageParser);
+            var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.None<string>());
+
+            // Act
+            List<string> textLines = (await logsProcessor.GetText(stream, moduleId, filter)).ToList();
+
+            // Assert
+            Assert.NotNull(textLines);
+            Assert.Equal(expectedLogLineIds.Count, textLines.Count);
+            for (int i = 0; i < expectedLogLineIds.Count; i++)
+            {
+                Assert.Equal(TestLogTexts[expectedLogLineIds[i]], textLines[i]);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetLogLevelFilterTestData))]
+        public async Task GetMessagesWithLogLevelFilterTest(int logLevel, List<int> expectedLogLineIds)
+        {
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "dev1";
+            string moduleId = "mod1";
+            var logMessageParser = new LogMessageParser(iotHub, deviceId);
+            var logsProcessor = new LogsProcessor(logMessageParser);
+            var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.None<string>());
+
+            // Act
+            IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(stream, moduleId, filter);
+
+            // Assert
+            Assert.NotNull(logMessages);
+            List<ModuleLogMessage> logMessagesList = logMessages.ToList();
+            Assert.Equal(expectedLogLineIds.Count, logMessagesList.Count);
+            for (int i = 0; i < logMessagesList.Count; i++)
+            {
+                ModuleLogMessage logMessage = logMessagesList[i];
+                string expectedText = TestLogTexts[expectedLogLineIds[i]];
+                Assert.Contains(logMessage.Text, expectedText, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetMultipleFiltersTestData))]
+        public async Task GetTextWithMultipleFiltersTest(int logLevel, string regex, List<int> expectedLogLineIds)
+        {
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "dev1";
+            string moduleId = "mod1";
+            var logMessageParser = new LogMessageParser(iotHub, deviceId);
+            var logsProcessor = new LogsProcessor(logMessageParser);
+            var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
+
+            // Act
+            List<string> textLines = (await logsProcessor.GetText(stream, moduleId, filter)).ToList();
+
+            // Assert
+            Assert.NotNull(textLines);
+            Assert.Equal(expectedLogLineIds.Count, textLines.Count);
+            for (int i = 0; i < expectedLogLineIds.Count; i++)
+            {
+                Assert.Equal(TestLogTexts[expectedLogLineIds[i]], textLines[i]);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetMultipleFiltersTestData))]
+        public async Task GetMessagesWithMultipleFiltersTest(int logLevel, string regex, List<int> expectedLogLineIds)
+        {
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "dev1";
+            string moduleId = "mod1";
+            var logMessageParser = new LogMessageParser(iotHub, deviceId);
+            var logsProcessor = new LogsProcessor(logMessageParser);
+            var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
+
+            // Act
+            IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(stream, moduleId, filter);
+
+            // Assert
+            Assert.NotNull(logMessages);
+            List<ModuleLogMessage> logMessagesList = logMessages.ToList();
+            Assert.Equal(expectedLogLineIds.Count, logMessagesList.Count);
+            for (int i = 0; i < logMessagesList.Count; i++)
+            {
+                ModuleLogMessage logMessage = logMessagesList[i];
+                string expectedText = TestLogTexts[expectedLogLineIds[i]];
+                Assert.Contains(logMessage.Text, expectedText, StringComparison.OrdinalIgnoreCase);
             }
         }
     }

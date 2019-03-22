@@ -40,16 +40,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
         }
 
-        public ModuleLogMessage Parse(ByteString byteString, string moduleId) =>
+        public ModuleLogMessageData Parse(ByteString byteString, string moduleId) =>
             GetLogMessage(byteString, this.iotHubName, this.deviceId, moduleId);
 
-        internal static ModuleLogMessage GetLogMessage(ByteString arg, string iotHubName, string deviceId, string moduleId)
+        internal static ModuleLogMessageData GetLogMessage(ByteString arg, string iotHubName, string deviceId, string moduleId)
         {
             string stream = GetStream(arg[0]);
             ByteString payload = arg.Slice(8);
             string payloadString = payload.ToString(Encoding.UTF8);
             (int logLevel, Option<DateTime> timeStamp, string logText) = ParseLogText(payloadString);
-            var moduleLogMessage = new ModuleLogMessage(iotHubName, deviceId, moduleId, stream, logLevel, timeStamp, logText);
+            var moduleLogMessage = new ModuleLogMessageData(iotHubName, deviceId, moduleId, stream, logLevel, timeStamp, logText, arg, payloadString);
             return moduleLogMessage;
         }
 
