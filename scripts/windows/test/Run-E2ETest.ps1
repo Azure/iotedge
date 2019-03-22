@@ -324,7 +324,7 @@ Function PrepareTestFromArtifacts
     }
 }
 
-Function PrepareCertificateChain
+Function PrepareCertificateTools
 {
     # setup environment before invoking cert gen script
     $OpenSSLExeName="openssl.exe"
@@ -338,10 +338,6 @@ Function PrepareCertificateChain
         }
     }
     $env:FORCE_NO_PROD_WARNING="True"
-    # dot source the certificate script
-    . "$EdgeCertGenScript"
-    # install the provided root CA to seed the certificate chain
-    Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
 }
 
 Function PrintLogs
@@ -763,6 +759,10 @@ Function RunLeafDeviceTest
         }
      }
 
+    If ($ProxyUri) {
+        $testCommand = "$testCommand --proxy `"$ProxyUri`""
+    }
+
     $testStartAt = Get-Date
     Invoke-Expression $testCommand | Out-Host
     $testExitCode = $LastExitCode
@@ -786,11 +786,15 @@ Function RunTransparentGatewayTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-TransGW"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt."
+    $edgeDeviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-TransGW"
+    PrintHighlightedMessage "Run quickstart test with -d ""$edgeDeviceId"" started at $testStartAt."
 
-    # setup certificate chain to create the Edge device and leaf device certificates
-    PrepareCertificateChain
+    # setup certificate generation tools to create the Edge device and leaf device certificates
+    PrepareCertificateTools
+    # dot source the certificate generation script
+    . "$EdgeCertGenScript"
+    # install the provided root CA to seed the certificate chain
+    Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
 
     # generate the edge gateway certs
     New-CACertsEdgeDevice $edgeDeviceId
@@ -821,21 +825,8 @@ Function RunTransparentGatewayTest
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
 
-    Write-Host "Run LeafDevice"
-    $testCommand = "&$LeafDeviceExeTestPath ``
-        -d `"${deviceId}-leaf`" ``
-        -c `"$IoTHubConnectionString`" ``
-        -e `"$EventHubConnectionString`" ``
-        -ct `"$TrustedCACertificatePath`" ``
-        -ed `"$env:computername`""
-    If ($ProxyUri) {
-        $testCommand = "$testCommand --proxy `"$ProxyUri`""
-    }
-    Invoke-Expression $testCommand | Out-Host
-    $testExitCode = $LastExitCode
-    PrintLogs $testStartAt $testExitCode
-
     # run the various leaf device tests
+    $deviceId = "e2e-${ReleaseLabel}-Win-${Architecture}"
     RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-noscope-leaf" $NULL
     RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-noscope-leaf" $NULL
 
