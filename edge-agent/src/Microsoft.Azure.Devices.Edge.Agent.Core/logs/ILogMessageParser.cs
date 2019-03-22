@@ -6,6 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
     public interface ILogMessageParser
     {
-        ModuleLogMessage Parse(ByteString byteString, string moduleId);
+        ModuleLogMessageData Parse(ByteString byteString, string moduleId);
     }
 }
