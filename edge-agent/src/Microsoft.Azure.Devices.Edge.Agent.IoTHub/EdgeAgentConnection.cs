@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -33,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly RetryStrategy retryStrategy;
         readonly PeriodicTask refreshTwinTask;
         readonly IRequestManager requestManager;
+        readonly IStreamRequestListener streamRequestListener;
 
         Option<IModuleClient> moduleClient;
         TwinCollection desiredProperties;
@@ -42,8 +44,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         public EdgeAgentConnection(
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
-            IRequestManager requestManager)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, TransientRetryStrategy, DefaultConfigRefreshFrequency)
+            IRequestManager requestManager,
+            IStreamRequestListener streamRequestListener)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, streamRequestListener, TransientRetryStrategy, DefaultConfigRefreshFrequency)
         {
         }
 
@@ -51,8 +54,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
             IRequestManager requestManager,
+            IStreamRequestListener streamRequestListener,
             TimeSpan configRefreshFrequency)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, TransientRetryStrategy, configRefreshFrequency)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, streamRequestListener, TransientRetryStrategy, configRefreshFrequency)
         {
         }
 
@@ -60,6 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
             IRequestManager requestManager,
+            IStreamRequestListener streamRequestListener,
             RetryStrategy retryStrategy,
             TimeSpan refreshConfigFrequency)
         {
@@ -69,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.moduleClient = Option.None<IModuleClient>();
             this.retryStrategy = Preconditions.CheckNotNull(retryStrategy, nameof(retryStrategy));
             this.refreshTwinTask = new PeriodicTask(this.ForceRefreshTwin, refreshConfigFrequency, refreshConfigFrequency, Events.Log, "refresh twin config");
+            this.streamRequestListener = Preconditions.CheckNotNull(streamRequestListener, nameof(streamRequestListener));
             this.initTask = this.CreateAndInitDeviceClient(Preconditions.CheckNotNull(moduleClientProvider, nameof(moduleClientProvider)));
             this.requestManager = Preconditions.CheckNotNull(requestManager, nameof(requestManager));
 
@@ -127,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                         await m.SetDefaultMethodHandlerAsync(this.MethodCallback);
                     });
                 this.moduleClient = Option.Some(moduleClient);
-
+                this.streamRequestListener.InitPump(moduleClient);
                 await this.RefreshTwinAsync();
             }
         }

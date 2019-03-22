@@ -24,6 +24,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
         readonly string deviceId;
         readonly IAzureBlobUploader azureBlobUploader;
 
+        public AzureBlobLogsUploader(string iotHubName, string deviceId)
+            : this(iotHubName, deviceId, new AzureBlobUploader())
+        {
+        }
+
         public AzureBlobLogsUploader(string iotHubName, string deviceId, IAzureBlobUploader azureBlobUploader)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
