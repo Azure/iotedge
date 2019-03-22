@@ -234,9 +234,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
                 try
                 {
-                    TimeSpan cleanupTaskSleepTime = this.messageStore.timeToLive.TotalSeconds / 2 < CleanupTaskFrequency.TotalSeconds
-                        ? TimeSpan.FromSeconds(this.messageStore.timeToLive.TotalSeconds / 2)
-                        : CleanupTaskFrequency;
                     while (true)
                     {
                         foreach (KeyValuePair<string, ISequentialStore<MessageRef>> endpointSequentialStore in this.messageStore.endpointSequentialStores)
@@ -308,7 +305,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             }
                         }
 
-                        await Task.Delay(cleanupTaskSleepTime);
+                        await Task.Delay(this.GetCleanupTaskSleepTime());
                     }
                 }
                 catch (Exception ex)
@@ -317,6 +314,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                     throw;
                 }
             }
+
+            TimeSpan GetCleanupTaskSleepTime() => this.messageStore.timeToLive.TotalSeconds / 2 < CleanupTaskFrequency.TotalSeconds
+                ? TimeSpan.FromSeconds(this.messageStore.timeToLive.TotalSeconds / 2)
+                : CleanupTaskFrequency;
         }
 
         static class Events
