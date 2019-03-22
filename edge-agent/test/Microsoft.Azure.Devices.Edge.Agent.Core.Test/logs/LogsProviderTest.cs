@@ -187,7 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.None, LogsContentType.Text);
+            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty);
 
             var receivedBytes = new List<byte>();
 
