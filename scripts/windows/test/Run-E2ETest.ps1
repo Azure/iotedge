@@ -113,13 +113,13 @@ Param (
     [string] $EventHubConnectionString = $(Throw "Event hub connection string is required"),
 
     [ValidateNotNullOrEmpty()]
-    [string] $EdgeE2ERootCACertRSAFile = $NULL,
+    [string] $EdgeE2ERootCACertRSAFile = $null,
 
     [ValidateNotNullOrEmpty()]
-    [string] $EdgeE2ERootCAKeyRSAFile = $NULL,
+    [string] $EdgeE2ERootCAKeyRSAFile = $null,
 
     [ValidateNotNullOrEmpty()]
-    [string] $EdgeE2ETestRootCAPassword = $NULL,
+    [string] $EdgeE2ETestRootCAPassword = $null,
 
     [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
     [string] $ProxyUri = $null
@@ -328,11 +328,11 @@ Function PrepareCertificateTools
 {
     # setup environment before invoking cert gen script
     $OpenSSLExeName="openssl.exe"
-    if ($NULL -eq (Get-Command $OpenSSLExeName -ErrorAction SilentlyContinue))
+    if ($null -eq (Get-Command $OpenSSLExeName -ErrorAction SilentlyContinue))
     {
         # if openssl is not in path add default openssl install path and try again
         $env:PATH += ";$DefaultOpensslInstallPath"
-        if ($NULL -eq (Get-Command $OpenSSLExeName -ErrorAction SilentlyContinue))
+        if ($null -eq (Get-Command $OpenSSLExeName -ErrorAction SilentlyContinue))
         {
             throw ("$OpenSSLExeName is unavailable. Please install $OpenSSLExeName and set it in the PATH before proceeding.")
         }
@@ -675,10 +675,10 @@ Function RunLeafDeviceTest
     [ValidateSet("sas","x509CA","x509Thumprint")][string]$authType,
     [ValidateSet("Mqtt","MqttWs","Amqp", "AmqpWs")][string]$protocol,
     [ValidateNotNullOrEmpty()][string]$leafDeviceId,
-    [string]$edgeDeviceId=$NULL
+    [string]$edgeDeviceId
 )
 {
-    $testCommand = $NULL
+    $testCommand = $null
     switch ($authType) {
         "sas"
         {
@@ -827,8 +827,8 @@ Function RunTransparentGatewayTest
 
     # run the various leaf device tests
     $deviceId = "e2e-${ReleaseLabel}-Win-${Architecture}"
-    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-noscope-leaf" $NULL
-    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-noscope-leaf" $NULL
+    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-noscope-leaf" $null
+    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-noscope-leaf" $null
 
     RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-inscope-leaf" $edgeDeviceId
     RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-inscope-leaf" $edgeDeviceId
