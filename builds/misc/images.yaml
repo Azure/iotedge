@@ -156,6 +156,9 @@ jobs:
       - script: scripts/linux/buildDiagnostics.sh
         displayName: Build iotedge-diagnostics
 
+      - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
+        displayName: 'Create Artifact Info File'
+
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
         inputs:
@@ -264,6 +267,9 @@ jobs:
 
       - powershell: edgelet/build/windows/build-diagnostics.ps1
         displayName: Build iotedge-diagnostics
+
+      - powershell: scripts/windows/build/Create-ArtifactInfo.ps1 -outputFolder '$(Build.BinariesDirectory)/publish' -buildNumber $(Build.BuildNumber)
+        displayName: 'Create Artifact Info File'
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
