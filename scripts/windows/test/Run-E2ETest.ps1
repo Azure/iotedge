@@ -119,7 +119,7 @@ Param (
     [string] $EdgeE2ERootCAKeyRSAFile = $NULL,
 
     [ValidateNotNullOrEmpty()]
-    [string] $EdgeE2ETestRootCAPassword = $NULL
+    [string] $EdgeE2ETestRootCAPassword = $NULL,
 
     [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
     [string] $ProxyUri = $null
