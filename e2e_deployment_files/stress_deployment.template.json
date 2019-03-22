@@ -21,14 +21,14 @@
           "edgeAgent": {
             "type": "docker",
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
           "edgeHub": {
             "type": "docker",
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
@@ -40,6 +40,12 @@
               },
               "InfluxDbUrl": {
                 "value": "http://influxdb:8086"
+              },
+              "amqpSettings__enabled": {
+                "value": "<amqpSettings__enabled>"
+              },
+              "mqttSettings__enabled": {
+                "value": "<mqttSettings__enabled>"
               }
             },
             "status": "running",
@@ -61,7 +67,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -79,7 +85,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -97,7 +103,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -115,7 +121,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -154,10 +160,13 @@
               },
               "BLOB_CONTAINER_NAME": {
                 "value": "loadtest1"
+              },
+              "RUST_LOG": {
+                "value": "snitcher=info"
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/snitcher:<Snitch.BuildNumber>",
+              "image": "edgebuilds.azurecr.io/microsoft/snitcher:<Snitch.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]}}"
             }
           },
@@ -174,7 +183,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-linux-amd64",
+              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
           },

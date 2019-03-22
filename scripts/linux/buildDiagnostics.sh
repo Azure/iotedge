@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This script builds the iotedge-diagnostics binary that goes into the azureiotedge-diagnostics image,
-# for each supported arch (x86_64, arm32v7).
+# for each supported arch (x86_64, arm32v7, arm64v8).
 # It then publishes the binaries along with their corresponding dockerfiles to the publish directory,
 # so that buildImage.sh can build the container image.
 
@@ -21,3 +21,6 @@ cp $BUILD_REPOSITORY_LOCALPATH/edgelet/target/x86_64-unknown-linux-musl/release/
 
 cross build -p iotedge-diagnostics --release --target armv7-unknown-linux-musleabihf
 cp $BUILD_REPOSITORY_LOCALPATH/edgelet/target/armv7-unknown-linux-musleabihf/release/iotedge-diagnostics $PUBLISH_FOLDER/azureiotedge-diagnostics/docker/linux/arm32v7/
+
+cross build -p iotedge-diagnostics --release --target aarch64-unknown-linux-musl
+cp $BUILD_REPOSITORY_LOCALPATH/edgelet/target/aarch64-unknown-linux-musl/release/iotedge-diagnostics $PUBLISH_FOLDER/azureiotedge-diagnostics/docker/linux/arm64v8/

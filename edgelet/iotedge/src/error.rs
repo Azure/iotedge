@@ -15,7 +15,7 @@ pub enum ErrorKind {
     #[fail(display = "Invalid value for --host parameter")]
     BadHostParameter,
 
-    #[fail(display = "One or more diagnostics failed")]
+    #[fail(display = "")]
     Diagnostics,
 
     #[fail(

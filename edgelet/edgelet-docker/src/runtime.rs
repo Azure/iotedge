@@ -678,7 +678,15 @@ impl ModuleRuntime for DockerModuleRuntime {
         let result = self
             .client
             .container_api()
-            .container_logs(&id, options.follow(), true, true, 0, false, tail)
+            .container_logs(
+                &id,
+                options.follow(),
+                true,
+                true,
+                options.since(),
+                false,
+                tail,
+            )
             .then(|result| match result {
                 Ok(logs) => {
                     info!("Successfully got logs for module {}", id);

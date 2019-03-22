@@ -2,9 +2,10 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
-    using Newtonsoft.Json;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
     /// This interface provides the module runtime information.
@@ -13,27 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     /// </summary>
     public interface IRuntimeInfoProvider
     {
-        Task<IEnumerable<ModuleRuntimeInfo>> GetModules(CancellationToken ctsToken);
+        Task<IEnumerable<ModuleRuntimeInfo>> GetModules(CancellationToken cancellationToken);
+
+        Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<int> since, CancellationToken cancellationToken);
 
         Task<SystemInfo> GetSystemInfo();
-    }
-
-    public class SystemInfo
-    {
-        [JsonConstructor]
-        public SystemInfo(string operatingSystemType, string architecture, string version)
-        {
-            this.OperatingSystemType = operatingSystemType;
-            this.Architecture = architecture;
-            this.Version = version;
-        }
-
-        public string OperatingSystemType { get; }
-
-        public string Architecture { get; }
-
-        public string Version { get; }
-
-        static SystemInfo Empty { get; } = new SystemInfo(string.Empty, string.Empty, string.Empty);
     }
 }
