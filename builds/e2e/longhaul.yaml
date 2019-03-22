@@ -1,6 +1,6 @@
 trigger: none
+pr: none
 
-jobs:
 variables:
   azure.keyVault: 'edgebuildkv'
   azure.subscription: 'azureiotedge-arm'
@@ -9,6 +9,8 @@ variables:
   images.build: 55174
   pool.name: 'Azure-IoT-Edge-Core'
   vsts.project: $(System.TeamProjectId)
+
+jobs:
 ################################################################################
   - job: linux_amd64_moby
 ################################################################################
