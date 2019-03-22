@@ -137,7 +137,7 @@ function Initialize-IoTEdge {
         return
     }
 
-    if (-not (Setup-Environment $ContainerOs)) {
+    if (-not (Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck)) {
         return
     }
 
@@ -241,7 +241,8 @@ function Update-IoTEdge {
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
-        -Update
+        -Update `
+        -SkipArchCheck
 }
 
 <#
@@ -297,7 +298,10 @@ function Deploy-IoTEdge {
         [HashTable] $InvokeWebRequestParameters,
 
         # Restart if needed without prompting.
-        [Switch] $RestartIfNeeded
+        [Switch] $RestartIfNeeded,
+
+        # Skip processor architecture check.
+        [Switch] $SkipArchCheck
     )
 
     Install-Packages `
@@ -305,7 +309,8 @@ function Deploy-IoTEdge {
         -Proxy $Proxy `
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
-        -RestartIfNeeded:$RestartIfNeeded
+        -RestartIfNeeded:$RestartIfNeeded `
+        -SkipArchCheck:$SkipArchCheck
 }
 
 <#
@@ -396,7 +401,10 @@ function Install-IoTEdge {
         [HashTable] $InvokeWebRequestParameters,
 
         # Restart if needed without prompting.
-        [Switch] $RestartIfNeeded
+        [Switch] $RestartIfNeeded,
+
+        # Skip processor architecture check.
+        [Switch] $SkipArchCheck
     )
 
     # Used to indicate success of Deploy-IoTEdge so we can abort early in case of failure
@@ -410,7 +418,8 @@ function Install-IoTEdge {
         -Proxy $Proxy `
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
-        -RestartIfNeeded:$RestartIfNeeded
+        -RestartIfNeeded:$RestartIfNeeded `
+        -SkipArchCheck:$SkipArchCheck
 
     if (-not $script:installPackagesCompleted) {
         return
@@ -536,7 +545,8 @@ function Install-Packages(
         [String] $OfflineInstallationPath,
         [HashTable] $InvokeWebRequestParameters,
         [Switch] $RestartIfNeeded,
-        [Switch] $Update
+        [Switch] $Update,
+        [Switch] $SkipArchCheck
     )
 {
     $ErrorActionPreference = 'Stop'
@@ -596,7 +606,7 @@ function Install-Packages(
         }
     }
 
-    if (-not (Setup-Environment $ContainerOs)) {
+    if (-not (Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck:$SkipArchCheck)) {
         return
     }
 
@@ -642,7 +652,7 @@ function Install-Packages(
     }
 }
 
-function Setup-Environment([string] $ContainerOs) {
+function Setup-Environment([string] $ContainerOs, [switch] $SkipArchCheck) {
     $currentWindowsBuild = Get-WindowsBuild
     $preRequisitesMet = switch ($ContainerOs) {
         'Linux' {
@@ -679,6 +689,13 @@ function Setup-Environment([string] $ContainerOs) {
             }
         }
     }
+
+    if ((-not $SkipArchCheck) -and ($env:PROCESSOR_ARCHITECTURE -eq 'ARM')) {
+        Write-HostRed ('IoT Edge is currently not supported on Windows ARM32. ' +
+            'See https://aka.ms/iotedge-platsup for more details.')
+        $preRequisitesMet = $false
+    }
+
     if ($preRequisitesMet) {
         Write-HostGreen "The container host is on supported build version $currentWindowsBuild."
         Set-ContainerOs

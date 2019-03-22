@@ -52,8 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public Task PrepareUpdateAsync(ModuleSpec moduleSpec) => this.inner.PrepareUpdateAsync(moduleSpec);
 
-        public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, CancellationToken cancellationToken) =>
-            this.inner.GetModuleLogs(name, follow, tail, cancellationToken);
+        public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<int> since, CancellationToken cancellationToken) =>
+            this.inner.GetModuleLogs(name, follow, tail, since, cancellationToken);
 
         internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
