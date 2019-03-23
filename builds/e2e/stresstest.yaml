@@ -1,0 +1,152 @@
+trigger: none
+pr: none
+
+variables:
+  azure.keyVault: 'edgebuildkv'
+  azure.subscription: 'azureiotedge-arm'
+  Build.SyncSources: false
+  edgelet.package.build: 55463
+  images.artifact.name: 'core-linux'
+  images.build: 55174
+  pool.name: 'Azure-IoT-Edge-Core'
+  vsts.project: $(System.TeamProjectId)
+
+jobs:
+################################################################################
+  - job: linux_amd64_moby
+################################################################################
+    displayName: Linux AMD64 Moby
+    pool:
+      name: $(pool.name)
+      demands:
+        - run-long-haul -equals true
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+    variables:
+      edgelet.artifact.name: 'iotedged-ubuntu-amd64'
+    steps:
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Edgelet Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          buildVersionToDownload: latestFromBranch
+          artifactName: $(edgelet.artifact.name)
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Images Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(images.build)
+          buildVersionToDownload: latestFromBranch
+          artifactName: $(images.artifact.name)
+          itemPattern: |
+            $(images.artifact.name)/IotEdgeQuickstart.linux-x64.tar.gz
+            $(images.artifact.name)/e2e_deployment_files/stress_deployment.template.json
+            $(images.artifact.name)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name)/artifactInfo.txt
+      # Delpy stress test
+      - template: templates/stresstest-deploy.yaml
+        parameters:
+          azure.keyVault: $(azure.keyVault)
+          azure.subscription: $(azure.subscription)
+          edgelet.artifact.name: 'iotedged-ubuntu-amd64'
+          images.artifact.name: 'core-linux'
+          loadGen.message.frequency: $(loadGen.message.frequency.amd64)
+
+################################################################################
+  - job: linux_arm32v7_moby_amqp
+################################################################################
+    displayName: Linux ARM32v7 Moby AMQP
+    pool:
+      name: $(pool.name)
+      demands:
+        - run-long-haul -equals true
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals ARM
+        - test-protocol -equals amqp
+    steps:
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Edgelet Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          buildVersionToDownload: latestFromBranch
+          artifactName: ${{ edgelet.artifact.name }}
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Images Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(images.build)
+          buildVersionToDownload: latestFromBranch
+          artifactName: $(images.artifact.name)
+          itemPattern: |
+            $(images.artifact.name)/IotEdgeQuickstart.linux-arm.tar.gz
+            $(images.artifact.name)/e2e_deployment_files/stress_deployment.template.json
+            $(images.artifact.name)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name)/artifactInfo.txt
+      # Delpy stress test
+      - template: templates/stresstest-deploy.yaml
+        parameters:
+          azure.keyVault: $(azure.keyVault)
+          azure.subscription: $(azure.subscription)
+          edgelet.artifact.name: 'iotedged-ubuntu-armhf'
+          images.artifact.name: 'core-linux'
+          amqp.settings.enabled: 'true'
+          mqtt.settings.enabled: 'false'
+          loadGen.message.frequency: $(loadGen.message.frequency.arm32v7)
+          loadGen1.TransportType: 'amqp'
+          loadGen2.TransportType: 'amqp'
+          loadGen3.TransportType: 'amqp'
+          loadGen4.TransportType: 'amqp'
+
+################################################################################
+  - job: linux_arm32v7_moby_mqtt
+################################################################################
+    displayName: Linux ARM32v7 Moby MQTT
+    pool:
+      name: $(pool.name)
+      demands:
+        - run-long-haul -equals true
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals ARM
+        - test-protocol -equals mqtt
+    steps:
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Edgelet Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          buildVersionToDownload: latestFromBranch
+          artifactName: ${{ edgelet.artifact.name }}
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Images Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(images.build)
+          buildVersionToDownload: latestFromBranch
+          artifactName: $(images.artifact.name)
+          itemPattern: |
+            $(images.artifact.name)/IotEdgeQuickstart.linux-arm.tar.gz
+            $(images.artifact.name)/e2e_deployment_files/stress_deployment.template.json
+            $(images.artifact.name)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name)/artifactInfo.txt
+      # Delpy stress test
+      - template: templates/stresstest-protocol.yaml
+        parameters:
+          azure.keyVault: $(azure.keyVault)
+          azure.subscription: $(azure.subscription)
+          edgelet.artifact.name: 'iotedged-ubuntu-armhf'
+          images.artifact.name: 'core-linux'
+          amqp.settings.enabled: 'false'
+          mqtt.settings.enabled: 'true'
+          loadGen.message.frequency: $(loadGen.message.frequency.arm32v7)
+          loadGen1.TransportType: 'mqtt'
+          loadGen2.TransportType: 'mqtt'
+          loadGen3.TransportType: 'mqtt'
+          loadGen4.TransportType: 'mqtt'      
