@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             => WaitAsync(resetEvent.WaitAsync(), timeout);
 
         static async Task<bool> WaitAsync(Task waitTask, TimeSpan timeout)
-        {            
+        {
             Task timeoutTask = Task.Delay(timeout);
             Task completedTask = await Task.WhenAny(waitTask, timeoutTask);
             return completedTask == waitTask;

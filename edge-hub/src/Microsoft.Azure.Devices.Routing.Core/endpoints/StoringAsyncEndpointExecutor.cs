@@ -128,7 +128,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             {
                 Events.StartSendMessagesPump(this);
                 IMessageIterator iterator = this.messageStore.GetMessageIterator(this.Endpoint.Id, this.checkpointer.Offset + 1);
-                var storeMessagesProvider = new StoreMessagesProvider(iterator, this.options.BatchTimeout, this.options.BatchSize);
+                int batchSize = this.options.BatchSize * this.Endpoint.FanOutFactor;
+                var storeMessagesProvider = new StoreMessagesProvider(iterator, this.options.BatchTimeout, batchSize);
                 while (!this.cts.IsCancellationRequested)
                 {
                     try

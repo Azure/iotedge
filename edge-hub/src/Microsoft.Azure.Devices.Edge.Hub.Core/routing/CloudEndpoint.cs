@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             string id,
             Func<string, Task<Util.Option<ICloudProxy>>> cloudProxyGetterFunc,
             Core.IMessageConverter<IRoutingMessage> messageConverter,
-            int maxBatchSize)
+            int maxBatchSize = 10)
             : base(id)
         {
             Preconditions.CheckArgument(maxBatchSize > 0, "MaxBatchSize should be greater than 0");
@@ -47,6 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         public override string Type => this.GetType().Name;
 
         public override IProcessor CreateProcessor() => new CloudMessageProcessor(this);
+
+        public override int FanOutFactor => 10;
 
         public override void LogUserMetrics(long messageCount, long latencyInMs)
         {

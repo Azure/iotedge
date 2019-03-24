@@ -130,6 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool useV1TwinManager = this.GetConfigurationValueIfExists<string>("TwinManagerVersion")
                 .Map(v => v.Equals("v1", StringComparison.OrdinalIgnoreCase))
                 .GetOrElse(true);
+            int maxUpstreamBatchSize = this.configuration.GetValue("MaxUpstreamBatchSize", 10);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -151,7 +152,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     cloudOperationTimeout,
                     minTwinSyncPeriod,
                     reportedPropertiesSyncFrequency,
-                    useV1TwinManager));
+                    useV1TwinManager,
+                    maxUpstreamBatchSize));
         }
 
         void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)

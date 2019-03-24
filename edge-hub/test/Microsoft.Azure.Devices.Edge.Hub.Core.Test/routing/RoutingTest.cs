@@ -430,7 +430,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>(), new IdentityProvider(iotHubName));
             var routingMessageConverter = new RoutingMessageConverter();
-            RouteFactory routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId));
+            RouteFactory routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId, 10));
             IEnumerable<Route> routesList = routeFactory.Create(routes).ToList();
             IEnumerable<Endpoint> endpoints = routesList.SelectMany(r => r.Endpoints);
             var routerConfig = new RouterConfig(endpoints, routesList);
