@@ -71,6 +71,10 @@ PS> Initialize-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -
 .EXAMPLE
 
 PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
+
+
+.EXAMPLE
+
 PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -SymmetricKey $symmetricKey
 #>
 function Initialize-IoTEdge {
@@ -97,7 +101,7 @@ function Initialize-IoTEdge {
         [String] $RegistrationId,
 
         # The DPS symmetric key to provision the Edge device identity
-        [Parameter(Mandatory = $false, ParameterSetName = 'DPS')]
+        [Parameter(ParameterSetName = 'DPS')]
         [String] $SymmetricKey,
 
         # The base OS of all the containers that will be run on this device via the security daemon.
@@ -342,6 +346,10 @@ PS> Install-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -Con
 .EXAMPLE
 
 PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
+
+
+.EXAMPLE
+
 PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -SymmetricKey $symmetricKey
 #>
 function Install-IoTEdge {
@@ -368,7 +376,7 @@ function Install-IoTEdge {
         [String] $RegistrationId,
 
         # The DPS symmetric key to provision the Edge device identity
-        [Parameter(Mandatory = $false, ParameterSetName = 'DPS')]
+        [Parameter(ParameterSetName = 'DPS')]
         [String] $SymmetricKey,
 
         # The base OS of all the containers that will be run on this device via the security daemon.
@@ -1321,8 +1329,7 @@ function Set-ProvisioningMode {
                 '  global_endpoint: ''https://global.azure-devices-provisioning.net''',
                 "  scope_id: '$ScopeId'",
                 "  registration_id: '$RegistrationId'")
-            if ($NULL -ne $SymmetricKey)
-            {
+            if ($SymmetricKey) {
                 $replacementContent += "  symmetric_key: '$SymmetricKey'"
             }
             $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
