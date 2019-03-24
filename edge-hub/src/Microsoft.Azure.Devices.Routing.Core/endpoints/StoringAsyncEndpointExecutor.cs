@@ -193,6 +193,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 this.iterator = iterator;
                 this.batchSize = batchSize;
                 this.timeout = timeout;
+                this.messagesList = new List<IMessage>(this.batchSize);
                 this.populateTask = this.PopulatePump();
             }
 
