@@ -4,6 +4,7 @@ pr: none
 variables:
   azure.keyVault: 'edgebuildkv'
   azure.subscription: 'azureiotedge-arm'
+  Build.SyncSources: false
   edgelet.package.build: 55463
   images.artifact.name: 'core-linux'
   images.build: 55174
@@ -71,7 +72,9 @@ jobs:
             declare -a cnreg=( $(edgebuilds-azurecr-io) )
             testName="LongHaul"
             . $(Agent.HomeDirectory)/../artifacts/core-linux/artifactInfo.txt
+            chmod +x $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh
             sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)"
+          workingDirectory: "$(Agent.HomeDirectory)/.."
 
 ################################################################################
   - job: linux_arm32_moby
@@ -133,4 +136,6 @@ jobs:
             declare -a cnreg=( $(edgebuilds-azurecr-io) )
             testName="LongHaul"
             . $(Agent.HomeDirectory)/../artifacts/core-linux/artifactInfo.txt
+            chmod +x $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh
             sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)"
+          workingDirectory: "$(Agent.HomeDirectory)/.."
