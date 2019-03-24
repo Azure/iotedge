@@ -111,6 +111,8 @@ namespace IotEdgeQuickstart.Details
 
         public async Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
+            const string HidePowerShellProgressBar = "$ProgressPreference='SilentlyContinue'";
+
             Console.WriteLine($"Setting up iotedged with agent image '{image}'");
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
@@ -126,7 +128,7 @@ namespace IotEdgeQuickstart.Details
                     this.scriptDir = Path.GetTempPath();
                     await Process.RunAsync(
                         "powershell",
-                        $"iwr -useb -o '{this.scriptDir}\\IotEdgeSecurityDaemon.ps1' aka.ms/iotedge-win",
+                        $"{HidePowerShellProgressBar}; Invoke-WebRequest -UseBasicParsing -OutFile '{this.scriptDir}\\IotEdgeSecurityDaemon.ps1' aka.ms/iotedge-win",
                         cts.Token);
                 }
 
@@ -149,7 +151,7 @@ namespace IotEdgeQuickstart.Details
 
                 // note: ignore hostname for now
                 Console.WriteLine($"Run command to configure: {commandForDebug}");
-                string[] result = await Process.RunAsync("powershell", args, cts.Token);
+                string[] result = await Process.RunAsync("powershell", $"{HidePowerShellProgressBar}; {args}", cts.Token);
                 WriteToConsole("Output from Configure iotedge windows service", result);
 
                 // Stop service and update config file
