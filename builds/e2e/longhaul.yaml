@@ -11,9 +11,12 @@ variables:
   #edgelet.package.build: <edglet package build id>
   #images.build: <images build id>
   #pool.name: ''
+  #container.registry: ''
+  #snitch.storage.account: ''
   # Variables settable at queue time
   #loadGen.message.frequency.amd64: 'xx:xx:xx.xx'
   #loadGen.message.frequency.arm32v7: 'xx:xx:xx.xx'
+  #loadGen.transportType: ''
   #run.linux.amd64.moby: 'true/false'
   #run.linux.arm32v7.moby: 'true/false'
 
@@ -80,7 +83,7 @@ jobs:
             testName="LongHaul"
             . $(Agent.HomeDirectory)/../artifacts/core-linux/artifactInfo.txt
             chmod +x $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh
-            sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)" -loadGenMessageFrequency $(loadGen.message.frequency.amd64)
+            sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistry "$(container.registry)" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchBuildNumber "$(snitch.build.number)" -snitchStorageAccount "$(snitch.storage.account)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -loadGenTransportType "$(loadGen.transportType)" -loadGenMessageFrequency "$(loadGen.message.frequency.amd64)"
           workingDirectory: "$(Agent.HomeDirectory)/.."
 
 ################################################################################
@@ -145,5 +148,5 @@ jobs:
             testName="LongHaul"
             . $(Agent.HomeDirectory)/../artifacts/core-linux/artifactInfo.txt
             chmod +x $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh
-            sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)" -loadGenMessageFrequency $(loadGen.message.frequency.arm32v7)
+            sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistry "$(container.registry)" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchBuildNumber "$(snitch.build.number)" -snitchStorageAccount "$(snitch.storage.account)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -loadGenTransportType "$(loadGen.transportType)" -loadGenMessageFrequency "$(loadGen.message.frequency.arm32v7)"
           workingDirectory: "$(Agent.HomeDirectory)/.."
