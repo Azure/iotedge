@@ -3,12 +3,12 @@ pr: none
 
 variables:
   Build.SyncSources: false
+  images.artifact.name: 'core-linux'
   vsts.project: $(System.TeamProjectId)
   # Variable defined in VSTS
   #azure.keyVault: ''
   #azure.subscription: ''
   #edgelet.package.build: <edglet package build id>
-  #images.artifact.name: ''
   #images.build: <images build id>
   #pool.name: ''
   # Variables settable at queue time
@@ -59,8 +59,8 @@ jobs:
         parameters:
           azure.keyVault: $(azure.keyVault)
           azure.subscription: $(azure.subscription)
-          edgelet.artifact.name: 'iotedged-ubuntu-amd64'
-          images.artifact.name: 'core-linux'
+          edgelet.artifact.name: $(edgelet.artifact.name)
+          images.artifact.name: $(images.artifact.name)
           loadGen.message.frequency: $(loadGen.message.frequency.amd64)
 
 ################################################################################
@@ -75,6 +75,8 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
         - test-protocol -equals amqp
+    variables:
+      edgelet.artifact.name: 'iotedged-ubuntu-armhf'
     steps:
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
@@ -83,7 +85,7 @@ jobs:
           project: $(vsts.project)
           pipeline: $(edgelet.package.build)
           buildVersionToDownload: latestFromBranch
-          artifactName: ${{ edgelet.artifact.name }}
+          artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
         inputs:
@@ -102,8 +104,8 @@ jobs:
         parameters:
           azure.keyVault: $(azure.keyVault)
           azure.subscription: $(azure.subscription)
-          edgelet.artifact.name: 'iotedged-ubuntu-armhf'
-          images.artifact.name: 'core-linux'
+          edgelet.artifact.name: $(edgelet.artifact.name)
+          images.artifact.name: $(images.artifact.name)
           amqp.settings.enabled: 'true'
           mqtt.settings.enabled: 'false'
           loadGen.message.frequency: $(loadGen.message.frequency.arm32v7)
@@ -124,6 +126,8 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
         - test-protocol -equals mqtt
+    variables:
+      edgelet.artifact.name: 'iotedged-ubuntu-armhf'
     steps:
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
@@ -151,8 +155,8 @@ jobs:
         parameters:
           azure.keyVault: $(azure.keyVault)
           azure.subscription: $(azure.subscription)
-          edgelet.artifact.name: 'iotedged-ubuntu-armhf'
-          images.artifact.name: 'core-linux'
+          edgelet.artifact.name: $(edgelet.artifact.name)
+          images.artifact.name: $(images.artifact.name)
           amqp.settings.enabled: 'false'
           mqtt.settings.enabled: 'true'
           loadGen.message.frequency: $(loadGen.message.frequency.arm32v7)

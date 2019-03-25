@@ -3,12 +3,12 @@ pr: none
 
 variables:
   Build.SyncSources: false
+  images.artifact.name: 'core-linux'
   vsts.project: $(System.TeamProjectId)
   # Variable defined in VSTS
   #azure.keyVault: ''
   #azure.subscription: ''
   #edgelet.package.build: <edglet package build id>
-  #images.artifact.name: ''
   #images.build: <images build id>
   #pool.name: ''
   # Variables settable at queue time
@@ -53,24 +53,24 @@ jobs:
             $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.json
             $(images.artifact.name)/scripts/linux/runE2ETest.sh
             $(images.artifact.name)/artifactInfo.txt
+      - task: CopyFiles@2
+        displayName: 'Copy Edgelet Artifact'
+        inputs:
+          SourceFolder: '$(System.ArtifactsDirectory)/$(edgelet.artifact.name)'
+          TargetFolder: '$(Agent.HomeDirectory)/../artifacts/$(edgelet.artifact.name)'
+          CleanTargetFolder: true
+      - task: CopyFiles@2
+        displayName: 'Copy Images artifact'
+        inputs:
+          SourceFolder: '$(System.ArtifactsDirectory)/$(images.artifact.name)'
+          TargetFolder: '$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name)'
+          CleanTargetFolder: true
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
-      - task: CopyFiles@2
-        displayName: 'Copy Edgelet Artifact'
-        inputs:
-          SourceFolder: '$(System.ArtifactsDirectory)/$(edgelet.artifact.name)'
-          TargetFolder: '$(Agent.HomeDirectory)/../artifacts/iotedged-ubuntu-amd64'
-          CleanTargetFolder: true
-      - task: CopyFiles@2
-        displayName: 'Copy Images artifact'
-        inputs:
-          SourceFolder: '$(System.ArtifactsDirectory)/$(images.artifact.name)'
-          TargetFolder: '$(Agent.HomeDirectory)/../artifacts/core-linux'
-          CleanTargetFolder: true
       - task: Bash@3
         displayName: 'Run Long Haul Deployment'
         inputs:
@@ -128,13 +128,13 @@ jobs:
         displayName: 'Copy Edgelet Artifact'
         inputs:
           SourceFolder: '$(System.ArtifactsDirectory)/$(edgelet.artifact.name)'
-          TargetFolder: '$(Agent.HomeDirectory)/../artifacts/iotedged-ubuntu-armhf'
+          TargetFolder: '$(Agent.HomeDirectory)/../artifacts/$(edgelet.artifact.name)'
           CleanTargetFolder: true
       - task: CopyFiles@2
         displayName: 'Copy Images Artifact'
         inputs:
           SourceFolder: '$(System.ArtifactsDirectory)/$(images.artifact.name)'
-          TargetFolder: '$(Agent.HomeDirectory)/../artifacts/core-linux'
+          TargetFolder: '$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name)'
           CleanTargetFolder: true
       - task: Bash@3
         displayName: 'Run Long Haul Deployment'
