@@ -1,4 +1,4 @@
-trigger: none
+trigger: none 
 pr: none
 
 variables:
