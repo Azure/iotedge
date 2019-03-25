@@ -107,6 +107,20 @@ typedef int (*HSM_CLIENT_GET_STORAGE_ROOT_KEY)(HSM_CLIENT_HANDLE handle, unsigne
 typedef int (*HSM_CLIENT_SIGN_WITH_IDENTITY)(HSM_CLIENT_HANDLE handle, const unsigned char* data, size_t data_size, unsigned char** digest, size_t* digest_size);
 
 /**
+* @brief                    Hashes the data with the device private key stored in the HSM
+*
+* @param handle             ::HSM_CLIENT_HANDLE that was created by the ::HSM_CLIENT_CREATE call
+* @param data               Data that will need to be hashed
+* @param data_size          The size of the data parameter
+* @param[out] digest        The returned digest. This function allocates memory for a buffer
+*                           which must be freed by a call to ::HSM_CLIENT_FREE_BUFFER.
+* @param[out] digest_size   The size of the returned digest
+*
+* @return                   On success 0 on. Non-zero on failure
+*/
+typedef int (*HSM_CLIENT_X509_SIGN_WITH_PRIVATE_KEY)(HSM_CLIENT_HANDLE handle, const unsigned char* data, size_t data_size, unsigned char** digest, size_t* digest_size);
+
+/**
 * @brief    Derives the SAS key and uses it to sign the data. The key
 *           should never leave the HSM.
 *
@@ -249,6 +263,22 @@ typedef int (*HSM_CLIENT_ENCRYPT_DATA)(HSM_CLIENT_HANDLE handle, const SIZED_BUF
 */
 typedef int (*HSM_CLIENT_DECRYPT_DATA)(HSM_CLIENT_HANDLE handle, const SIZED_BUFFER* identity, const SIZED_BUFFER* ciphertext, const SIZED_BUFFER* init_vector, SIZED_BUFFER* plaintext);
 
+
+/**
+* @brief                    Hashes the data with the device private key stored in the HSM
+*
+* @param handle             ::HSM_CLIENT_HANDLE that was created by the ::HSM_CLIENT_CREATE call
+* @param alias              Private key associated with the alias used to sign the data
+* @param data               Data that will need to be hashed
+* @param data_size          The size of the data parameter
+* @param[out] digest        The returned digest. This function allocates memory for a buffer
+*                           which must be freed by a call to ::HSM_CLIENT_FREE_BUFFER.
+* @param[out] digest_size   The size of the returned digest
+*
+* @return                   On success 0 on. Non-zero on failure
+*/
+typedef int (*HSM_CLIENT_SIGN_WITH_PRIVATE_KEY)(HSM_CLIENT_HANDLE handle, const char* alias, const unsigned char* data, size_t data_size, unsigned char** digest, size_t* digest_size);
+
 /**
 * @brief    Retrieves the trusted certificate bundle used to authenticate the server.
 *
@@ -281,6 +311,7 @@ typedef struct HSM_CLIENT_X509_INTERFACE_TAG
     HSM_CLIENT_GET_CERT_KEY hsm_client_get_key;
     HSM_CLIENT_GET_COMMON_NAME hsm_client_get_common_name;
     HSM_CLIENT_FREE_BUFFER hsm_client_free_buffer;
+    HSM_CLIENT_X509_SIGN_WITH_PRIVATE_KEY hsm_client_x509_sign_with_private_key;
 } HSM_CLIENT_X509_INTERFACE;
 
 typedef struct HSM_CLIENT_CRYPTO_INTERFACE_TAG
@@ -297,6 +328,7 @@ typedef struct HSM_CLIENT_CRYPTO_INTERFACE_TAG
     HSM_CLIENT_DECRYPT_DATA hsm_client_decrypt_data;
     HSM_CLIENT_GET_TRUST_BUNDLE hsm_client_get_trust_bundle;
     HSM_CLIENT_FREE_BUFFER hsm_client_free_buffer;
+    HSM_CLIENT_SIGN_WITH_PRIVATE_KEY hsm_client_sign_with_private_key;
 } HSM_CLIENT_CRYPTO_INTERFACE;
 
 extern const HSM_CLIENT_TPM_INTERFACE* hsm_client_tpm_interface();

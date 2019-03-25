@@ -23,6 +23,7 @@ static bool g_is_crypto_initialized = false;
 int hsm_client_crypto_init(void)
 {
     int result;
+
     if (!g_is_crypto_initialized)
     {
         int status;
@@ -54,9 +55,9 @@ int hsm_client_crypto_init(void)
     }
     else
     {
-        LOG_ERROR("Re-initializing crypto interface without de-initializing");
-        result = __FAILURE__;
+        result = 0;
     }
+
     return result;
 }
 
@@ -522,6 +523,25 @@ static int edge_hsm_client_decrypt_data
     return result;
 }
 
+static int edge_hsm_client_sign_with_private_key
+(
+    HSM_CLIENT_HANDLE hsm_handle,
+    const char* alias,
+    const unsigned char* data,
+    size_t data_size,
+    unsigned char** digest,
+    size_t* digest_size
+)
+{
+    (void)hsm_handle;
+    (void)alias;
+    (void)data;
+    (void)data_size;
+    (void)digest;
+    (void)digest_size;
+    return __LINE__;
+}
+
 static const HSM_CLIENT_CRYPTO_INTERFACE edge_hsm_crypto_interface =
 {
     edge_hsm_client_crypto_create,
@@ -534,7 +554,8 @@ static const HSM_CLIENT_CRYPTO_INTERFACE edge_hsm_crypto_interface =
     edge_hsm_client_encrypt_data,
     edge_hsm_client_decrypt_data,
     edge_hsm_client_get_trust_bundle,
-    edge_hsm_crypto_free_buffer
+    edge_hsm_crypto_free_buffer,
+    edge_hsm_client_sign_with_private_key
 };
 
 const HSM_CLIENT_CRYPTO_INTERFACE* hsm_client_crypto_interface(void)
