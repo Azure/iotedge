@@ -28,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly TimeSpan configRefreshFrequency;
         readonly string deviceId;
         readonly string iotHubHostName;
+        readonly bool enableStreams;
 
         public TwinConfigSourceModule(
             string iotHubHostname,
@@ -35,7 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string backupConfigFilePath,
             IConfiguration config,
             VersionInfo versionInfo,
-            TimeSpan configRefreshFrequency)
+            TimeSpan configRefreshFrequency,
+            bool enableStreams)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -43,6 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.configuration = Preconditions.CheckNotNull(config, nameof(config));
             this.versionInfo = Preconditions.CheckNotNull(versionInfo, nameof(versionInfo));
             this.configRefreshFrequency = configRefreshFrequency;
+            this.enableStreams = enableStreams;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -67,9 +70,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        ILogsProvider logsProvider = await c.Resolve<Task<ILogsProvider>>();
-                        var streamRequestHandlerProvider = new StreamRequestHandlerProvider(logsProvider);
-                        return new StreamRequestListener(streamRequestHandlerProvider) as IStreamRequestListener;
+                        if (this.enableStreams)
+                        {
+                            ILogsProvider logsProvider = await c.Resolve<Task<ILogsProvider>>();
+                            var streamRequestHandlerProvider = new StreamRequestHandlerProvider(logsProvider);
+                            return new StreamRequestListener(streamRequestHandlerProvider) as IStreamRequestListener;
+                        }
+                        else
+                        {
+                            return new NullStreamRequestListener() as IStreamRequestListener;
+                        }
                     })
                 .As<Task<IStreamRequestListener>>()
                 .SingleInstance();

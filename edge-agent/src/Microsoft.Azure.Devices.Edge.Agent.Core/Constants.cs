@@ -79,6 +79,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeletInitializationVectorFileName = "IOTEDGE_BACKUP_IV";
 
+        public const string EnableStreams = "EnableStreams";
+
         public static class Labels
         {
             public const string Version = "net.azure-devices.edge.version";

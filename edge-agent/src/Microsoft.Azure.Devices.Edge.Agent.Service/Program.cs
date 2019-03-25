@@ -134,7 +134,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 switch (configSourceConfig.ToLowerInvariant())
                 {
                     case "twin":
-                        builder.RegisterModule(new TwinConfigSourceModule(iothubHostname, deviceId, backupConfigFilePath, configuration, versionInfo, TimeSpan.FromSeconds(configRefreshFrequencySecs)));
+                        bool enableStreams = configuration.GetValue(Constants.EnableStreams, false);
+                        builder.RegisterModule(new TwinConfigSourceModule(iothubHostname, deviceId, backupConfigFilePath, configuration, versionInfo, TimeSpan.FromSeconds(configRefreshFrequencySecs), enableStreams));
                         break;
 
                     case "local":
