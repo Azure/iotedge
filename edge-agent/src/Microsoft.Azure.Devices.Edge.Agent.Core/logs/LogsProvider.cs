@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                 : this.WriteLogsStreamToOutput(logOptions.Id, callback, logsStream, cancellationToken));
         }
 
-        static bool NeedToProcessStream(ModuleLogOptions logOptions) =>
+        internal static bool NeedToProcessStream(ModuleLogOptions logOptions) =>
             logOptions.Filter.LogLevel.HasValue
             || logOptions.Filter.Regex.HasValue
             || logOptions.ContentEncoding != LogsContentEncoding.None
