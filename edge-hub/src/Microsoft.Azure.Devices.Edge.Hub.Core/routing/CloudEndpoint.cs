@@ -90,14 +90,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 }
 
                 string id = this.GetIdentity(routingMessage);
-                ISinkResult result = await this.ProcessAsync(id, new List<IRoutingMessage> { routingMessage });
+                ISinkResult result = await this.ProcessClientMessagesBatch(id, new List<IRoutingMessage> { routingMessage });
                 return result;
             }
 
             public Task<ISinkResult> ProcessAsync(ICollection<IRoutingMessage> routingMessages, CancellationToken token)
             {
                 Events.ProcessingMessages(Preconditions.CheckNotNull(routingMessages, nameof(routingMessages)));
-                Task<ISinkResult> syncResult = this.ProcessInBatchesAsync(routingMessages, token);
+                Task<ISinkResult> syncResult = this.ProcessInBatches(routingMessages, token);
                 return syncResult;
             }
 
@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 }
             }
 
-            async Task<ISinkResult> ProcessInBatchesAsync(ICollection<IRoutingMessage> routingMessages, CancellationToken token)
+            async Task<ISinkResult> ProcessInBatches(ICollection<IRoutingMessage> routingMessages, CancellationToken token)
             {
                 if (token.IsCancellationRequested)
                 {
@@ -167,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         Option.None<SendFailureDetails>();
 
                     Events.ProcessingMessages(routingMessages);
-                    IEnumerable<Task<ISinkResult<IRoutingMessage>>> sendTasks = routingMessageGroups.Select(item => this.ProcessClientMessagesAsync(item.Id, item.RoutingMessages));
+                    IEnumerable<Task<ISinkResult<IRoutingMessage>>> sendTasks = routingMessageGroups.Select(item => this.ProcessClientMessages(item.Id, item.RoutingMessages));
                     ISinkResult<IRoutingMessage>[] sinkResults = await Task.WhenAll(sendTasks);
                     foreach (var res in sinkResults)
                     {
@@ -185,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 }
             }
 
-            async Task<ISinkResult<IRoutingMessage>> ProcessClientMessagesAsync(string id, List<IRoutingMessage> routingMessages)
+            async Task<ISinkResult<IRoutingMessage>> ProcessClientMessages(string id, List<IRoutingMessage> routingMessages)
             {
                 var succeeded = new List<IRoutingMessage>();
                 var failed = new List<IRoutingMessage>();
@@ -197,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 int batchSize = GetBatchSize(Math.Min(this.cloudEndpoint.maxBatchSize, routingMessages.Count), maxMessageSize, 256 * 1024);
                 foreach (IEnumerable<IRoutingMessage> batch in routingMessages.Batch(batchSize))
                 {
-                    ISinkResult res = await this.ProcessAsync(id, batch.ToList());
+                    ISinkResult res = await this.ProcessClientMessagesBatch(id, batch.ToList());
                     succeeded.AddRange(res.Succeeded);
                     failed.AddRange(res.Failed);
                     invalid.AddRange(res.InvalidDetailsList);
@@ -211,7 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     sendFailureDetails.GetOrElse(null));
             }
 
-            async Task<ISinkResult<IRoutingMessage>> ProcessAsync(string id, List<IRoutingMessage> routingMessages)
+            async Task<ISinkResult<IRoutingMessage>> ProcessClientMessagesBatch(string id, List<IRoutingMessage> routingMessages)
             {
                 if (string.IsNullOrEmpty(id))
                 {
