@@ -16,6 +16,7 @@ jobs:
   - job: linux_amd64_moby
 ################################################################################
     displayName: Linux AMD64 Moby
+    condition: eq(variables['run.linux.amd64.moby'], 'true')
     pool:
       name: $(pool.name)
       demands:
@@ -46,7 +47,7 @@ jobs:
             $(images.artifact.name)/e2e_deployment_files/stress_deployment.template.json
             $(images.artifact.name)/scripts/linux/runE2ETest.sh
             $(images.artifact.name)/artifactInfo.txt
-      # Delpy stress test
+      # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
           azure.keyVault: $(azure.keyVault)
@@ -59,6 +60,7 @@ jobs:
   - job: linux_arm32v7_moby_amqp
 ################################################################################
     displayName: Linux ARM32v7 Moby AMQP
+    condition: eq(variables['run.linux.arm32v7.moby.amqp'], 'true')
     pool:
       name: $(pool.name)
       demands:
@@ -88,7 +90,7 @@ jobs:
             $(images.artifact.name)/e2e_deployment_files/stress_deployment.template.json
             $(images.artifact.name)/scripts/linux/runE2ETest.sh
             $(images.artifact.name)/artifactInfo.txt
-      # Delpy stress test
+      # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
           azure.keyVault: $(azure.keyVault)
@@ -107,6 +109,7 @@ jobs:
   - job: linux_arm32v7_moby_mqtt
 ################################################################################
     displayName: Linux ARM32v7 Moby MQTT
+    condition: eq(variables['run.linux.arm32v7.moby.mqtt'], 'true')
     pool:
       name: $(pool.name)
       demands:
@@ -136,8 +139,8 @@ jobs:
             $(images.artifact.name)/e2e_deployment_files/stress_deployment.template.json
             $(images.artifact.name)/scripts/linux/runE2ETest.sh
             $(images.artifact.name)/artifactInfo.txt
-      # Delpy stress test
-      - template: templates/stresstest-protocol.yaml
+      # Deploy stress test
+      - template: templates/stresstest-deploy.yaml
         parameters:
           azure.keyVault: $(azure.keyVault)
           azure.subscription: $(azure.subscription)
