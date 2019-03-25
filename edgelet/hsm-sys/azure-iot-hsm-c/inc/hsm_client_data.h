@@ -219,6 +219,17 @@ typedef int (*HSM_CLIENT_GET_RANDOM_BYTES)(HSM_CLIENT_HANDLE handle, unsigned ch
 typedef CERT_INFO_HANDLE (*HSM_CLIENT_CREATE_CERTIFICATE)(HSM_CLIENT_HANDLE handle, CERT_PROPS_HANDLE certificate_props);
 
 /**
+* @brief    Obtains an X.509 certificate and private key pair if applicable using the
+*           alias. If the alias is invalid or does not exists a NULL is returned.
+*
+* @param handle       A valid HSM client handle
+* @param cert_props   Handle to certificate properties
+*
+* @return CERT_INFO_HANDLE -- Valid non NULL handle on success, NULL on error
+*/
+typedef CERT_INFO_HANDLE (*HSM_CLIENT_CRYPTO_GET_CERTIFICATE)(HSM_CLIENT_HANDLE handle, const char *alias);
+
+/**
 * @brief    Deletes any crypto assets associated with the handle
 *           returned by ::HSM_CLIENT_CREATE_CERTIFICATE.
 *
@@ -329,6 +340,7 @@ typedef struct HSM_CLIENT_CRYPTO_INTERFACE_TAG
     HSM_CLIENT_GET_TRUST_BUNDLE hsm_client_get_trust_bundle;
     HSM_CLIENT_FREE_BUFFER hsm_client_free_buffer;
     HSM_CLIENT_SIGN_WITH_PRIVATE_KEY hsm_client_sign_with_private_key;
+    HSM_CLIENT_CRYPTO_GET_CERTIFICATE hsm_client_crypto_get_certificate;
 } HSM_CLIENT_CRYPTO_INTERFACE;
 
 extern const HSM_CLIENT_TPM_INTERFACE* hsm_client_tpm_interface();

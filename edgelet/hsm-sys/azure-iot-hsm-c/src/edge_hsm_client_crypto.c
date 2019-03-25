@@ -542,6 +542,39 @@ static int edge_hsm_client_sign_with_private_key
     return __LINE__;
 }
 
+static CERT_INFO_HANDLE edge_hsm_client_get_certificate
+(
+    HSM_CLIENT_HANDLE handle,
+    const char *alias
+)
+{
+    CERT_INFO_HANDLE result;
+
+    if (!g_is_crypto_initialized)
+    {
+        LOG_ERROR("hsm_client_crypto_init not called");
+        result = NULL;
+    }
+    else if (handle == NULL)
+    {
+        LOG_ERROR("Invalid handle value specified");
+        result = NULL;
+    }
+    else if (alias == NULL)
+    {
+        LOG_ERROR("Invalid alias value");
+        result = NULL;
+    }
+    else
+    {
+        EDGE_CRYPTO *edge_crypto = (EDGE_CRYPTO*)handle;
+        result = g_hsm_store_if->hsm_client_store_get_pki_cert(edge_crypto->hsm_store_handle,
+                                                               alias);
+    }
+
+    return result;
+}
+
 static const HSM_CLIENT_CRYPTO_INTERFACE edge_hsm_crypto_interface =
 {
     edge_hsm_client_crypto_create,
@@ -555,7 +588,8 @@ static const HSM_CLIENT_CRYPTO_INTERFACE edge_hsm_crypto_interface =
     edge_hsm_client_decrypt_data,
     edge_hsm_client_get_trust_bundle,
     edge_hsm_crypto_free_buffer,
-    edge_hsm_client_sign_with_private_key
+    edge_hsm_client_sign_with_private_key,
+    edge_hsm_client_get_certificate
 };
 
 const HSM_CLIENT_CRYPTO_INTERFACE* hsm_client_crypto_interface(void)

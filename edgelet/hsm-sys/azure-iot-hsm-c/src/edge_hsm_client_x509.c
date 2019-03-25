@@ -58,8 +58,9 @@ void iothub_x509_hsm_destroy(HSM_CLIENT_HANDLE handle)
 
 static CERT_PROPS_HANDLE create_edge_device_properties
 (
-    const char *common_name,
-    uint64_t validity_seconds
+    const char* common_name,
+    uint64_t validity_seconds,
+    const char* issuer_alias
 )
 {
     CERT_PROPS_HANDLE certificate_props = cert_properties_create();
@@ -68,7 +69,7 @@ static CERT_PROPS_HANDLE create_edge_device_properties
         set_common_name(certificate_props, common_name);
         set_validity_seconds(certificate_props, validity_seconds);
         set_alias(certificate_props, EDGE_DEVICE_ALIAS);
-        set_issuer_alias(certificate_props, hsm_get_device_ca_alias());
+        set_issuer_alias(certificate_props, issuer_alias);
         set_certificate_type(certificate_props, CERTIFICATE_TYPE_CLIENT);
     }
     return certificate_props;
@@ -78,9 +79,11 @@ static CERT_INFO_HANDLE get_or_create_device_certificate(HSM_CLIENT_HANDLE hsm_h
 {
     const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
     CERT_PROPS_HANDLE certificate_props;
+    const char* issuer_alias = hsm_get_device_ca_alias();
     char *common_name = NULL;
     hsm_get_env(ENV_DEVICE_ID, &common_name);
-    certificate_props = create_edge_device_properties(common_name, 315360000);
+    CERT_INFO_HANDLE issuer = interface->hsm_client_crypto_get_certificate(hsm_handle, issuer_alias);
+    certificate_props = create_edge_device_properties(common_name, certificate_info_get_valid_to(issuer), issuer_alias);
     return interface->hsm_client_create_certificate(hsm_handle, certificate_props);
 }
 
