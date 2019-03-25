@@ -503,6 +503,7 @@ function Uninstall-IoTEdge {
         [Switch] $RestartIfNeeded
     )
 
+    $ProgressPreference = $PSCmdlet.GetVariableValue('ProgressPreference')
     $ErrorActionPreference = 'Stop'
     Set-StrictMode -Version 5
 
