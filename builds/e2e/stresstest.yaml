@@ -136,10 +136,10 @@ jobs:
           amqp.settings.enabled: 'true'
           mqtt.settings.enabled: 'false'
           loadGen.message.frequency: $(loadGen.message.frequency.arm32v7)
-          loadGen1.TransportType: 'amqp'
-          loadGen2.TransportType: 'amqp'
-          loadGen3.TransportType: 'amqp'
-          loadGen4.TransportType: 'amqp'
+          loadGen1.transportType: 'amqp'
+          loadGen2.transportType: 'amqp'
+          loadGen3.transportType: 'amqp'
+          loadGen4.transportType: 'amqp'
 
 ################################################################################
   - job: linux_arm32v7_moby_mqtt
@@ -199,7 +199,7 @@ jobs:
           amqp.settings.enabled: 'false'
           mqtt.settings.enabled: 'true'
           loadGen.message.frequency: $(loadGen.message.frequency.arm32v7)
-          loadGen1.TransportType: 'mqtt'
-          loadGen2.TransportType: 'mqtt'
-          loadGen3.TransportType: 'mqtt'
-          loadGen4.TransportType: 'mqtt'      
+          loadGen1.transportType: 'mqtt'
+          loadGen2.transportType: 'mqtt'
+          loadGen3.transportType: 'mqtt'
+          loadGen4.transportType: 'mqtt'      
