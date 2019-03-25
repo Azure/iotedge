@@ -136,7 +136,7 @@ jobs:
           project: $(vsts.project)
           pipeline: $(edgelet.package.build)
           buildVersionToDownload: latestFromBranch
-          artifactName: ${{ edgelet.artifact.name }}
+          artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
         inputs:
