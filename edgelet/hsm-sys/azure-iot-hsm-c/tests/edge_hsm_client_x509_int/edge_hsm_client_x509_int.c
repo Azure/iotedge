@@ -450,39 +450,24 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
     }
 
 
-    TEST_FUNCTION(hsm_client_x509_create_destroy_without_device_id_env_fails)
+    TEST_FUNCTION(hsm_client_x509_e2e_without_device_id_env_fails)
     {
         //arrange
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
         hsm_client_x509_init();
+        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
+        ASSERT_IS_NOT_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
 
         // act
-        HSM_CLIENT_CREATE result = interface->hsm_client_x509_create();
+        char* certificate = interface->hsm_client_get_cert(hsm_handle);
+        char* key = interface->hsm_client_get_key(hsm_handle);
 
         // assert
-        ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(certificate, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(key, "Line:" TOSTRING(__LINE__));
 
         //cleanup
-        interface->hsm_client_x509_destroy(result);
-        hsm_client_x509_deinit();
-    }
-
-    TEST_FUNCTION(hsm_client_x509_create_destroy_with_device_id_env_succeeds)
-    {
-        //arrange
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        hsm_client_x509_init();
-        hsm_test_util_setenv(ENV_DEVICE_ID, "TEST_DEVICE_ID");
-
-        // act
-        HSM_CLIENT_CREATE result = interface->hsm_client_x509_create();
-
-        // assert
-        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
-
-        //cleanup
-        hsm_test_util_unsetenv(ENV_DEVICE_ID);
-        interface->hsm_client_x509_destroy(result);
+        interface->hsm_client_x509_destroy(hsm_handle);
         hsm_client_x509_deinit();
     }
 

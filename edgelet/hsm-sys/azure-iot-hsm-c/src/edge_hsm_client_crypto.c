@@ -523,7 +523,7 @@ static int edge_hsm_client_decrypt_data
     return result;
 }
 
-static int edge_hsm_client_sign_with_private_key
+static int edge_hsm_client_crypto_sign_with_private_key
 (
     HSM_CLIENT_HANDLE hsm_handle,
     const char* alias,
@@ -542,7 +542,7 @@ static int edge_hsm_client_sign_with_private_key
     return __LINE__;
 }
 
-static CERT_INFO_HANDLE edge_hsm_client_get_certificate
+static CERT_INFO_HANDLE edge_hsm_client_crypto_get_certificate
 (
     HSM_CLIENT_HANDLE handle,
     const char *alias
@@ -588,8 +588,8 @@ static const HSM_CLIENT_CRYPTO_INTERFACE edge_hsm_crypto_interface =
     edge_hsm_client_decrypt_data,
     edge_hsm_client_get_trust_bundle,
     edge_hsm_crypto_free_buffer,
-    edge_hsm_client_sign_with_private_key,
-    edge_hsm_client_get_certificate
+    edge_hsm_client_crypto_sign_with_private_key,
+    edge_hsm_client_crypto_get_certificate
 };
 
 const HSM_CLIENT_CRYPTO_INTERFACE* hsm_client_crypto_interface(void)

@@ -18,7 +18,7 @@ extern "C" {
 
 /** @file */
 
-#define AZURE_IOT_HSM_VERSION "1.0.1"
+#define AZURE_IOT_HSM_VERSION "1.0.2"
 
 typedef void* HSM_CLIENT_HANDLE;
 
@@ -118,7 +118,7 @@ typedef int (*HSM_CLIENT_SIGN_WITH_IDENTITY)(HSM_CLIENT_HANDLE handle, const uns
 *
 * @return                   On success 0 on. Non-zero on failure
 */
-typedef int (*HSM_CLIENT_X509_SIGN_WITH_PRIVATE_KEY)(HSM_CLIENT_HANDLE handle, const unsigned char* data, size_t data_size, unsigned char** digest, size_t* digest_size);
+typedef int (*HSM_CLIENT_SIGN_WITH_PRIVATE_KEY)(HSM_CLIENT_HANDLE handle, const unsigned char* data, size_t data_size, unsigned char** digest, size_t* digest_size);
 
 /**
 * @brief    Derives the SAS key and uses it to sign the data. The key
@@ -223,7 +223,7 @@ typedef CERT_INFO_HANDLE (*HSM_CLIENT_CREATE_CERTIFICATE)(HSM_CLIENT_HANDLE hand
 *           alias. If the alias is invalid or does not exists a NULL is returned.
 *
 * @param handle       A valid HSM client handle
-* @param cert_props   Handle to certificate properties
+* @param alias        The alias to certificate and private key to
 *
 * @return CERT_INFO_HANDLE -- Valid non NULL handle on success, NULL on error
 */
@@ -288,7 +288,7 @@ typedef int (*HSM_CLIENT_DECRYPT_DATA)(HSM_CLIENT_HANDLE handle, const SIZED_BUF
 *
 * @return                   On success 0 on. Non-zero on failure
 */
-typedef int (*HSM_CLIENT_SIGN_WITH_PRIVATE_KEY)(HSM_CLIENT_HANDLE handle, const char* alias, const unsigned char* data, size_t data_size, unsigned char** digest, size_t* digest_size);
+typedef int (*HSM_CLIENT_CRYPTO_SIGN_WITH_PRIVATE_KEY)(HSM_CLIENT_HANDLE handle, const char* alias, const unsigned char* data, size_t data_size, unsigned char** digest, size_t* digest_size);
 
 /**
 * @brief    Retrieves the trusted certificate bundle used to authenticate the server.
@@ -322,7 +322,7 @@ typedef struct HSM_CLIENT_X509_INTERFACE_TAG
     HSM_CLIENT_GET_CERT_KEY hsm_client_get_key;
     HSM_CLIENT_GET_COMMON_NAME hsm_client_get_common_name;
     HSM_CLIENT_FREE_BUFFER hsm_client_free_buffer;
-    HSM_CLIENT_X509_SIGN_WITH_PRIVATE_KEY hsm_client_x509_sign_with_private_key;
+    HSM_CLIENT_SIGN_WITH_PRIVATE_KEY hsm_client_sign_with_private_key;
 } HSM_CLIENT_X509_INTERFACE;
 
 typedef struct HSM_CLIENT_CRYPTO_INTERFACE_TAG
@@ -339,7 +339,7 @@ typedef struct HSM_CLIENT_CRYPTO_INTERFACE_TAG
     HSM_CLIENT_DECRYPT_DATA hsm_client_decrypt_data;
     HSM_CLIENT_GET_TRUST_BUNDLE hsm_client_get_trust_bundle;
     HSM_CLIENT_FREE_BUFFER hsm_client_free_buffer;
-    HSM_CLIENT_SIGN_WITH_PRIVATE_KEY hsm_client_sign_with_private_key;
+    HSM_CLIENT_CRYPTO_SIGN_WITH_PRIVATE_KEY hsm_client_crypto_sign_with_private_key;
     HSM_CLIENT_CRYPTO_GET_CERTIFICATE hsm_client_crypto_get_certificate;
 } HSM_CLIENT_CRYPTO_INTERFACE;
 
