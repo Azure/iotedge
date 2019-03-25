@@ -1,14 +1,17 @@
 trigger: none
+pr: none
 
-jobs:
 variables:
   azure.keyVault: 'edgebuildkv'
   azure.subscription: 'azureiotedge-arm'
+  Build.SyncSources: false
   edgelet.package.build: 55463
   images.artifact.name: 'core-linux'
   images.build: 55174
   pool.name: 'Azure-IoT-Edge-Core'
   vsts.project: $(System.TeamProjectId)
+
+jobs:
 ################################################################################
   - job: linux_amd64_moby
 ################################################################################
@@ -69,7 +72,9 @@ variables:
             declare -a cnreg=( $(edgebuilds-azurecr-io) )
             testName="LongHaul"
             . $(Agent.HomeDirectory)/../artifacts/core-linux/artifactInfo.txt
+            chmod +x $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh
             sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)"
+          workingDirectory: "$(Agent.HomeDirectory)/.."
 
 ################################################################################
   - job: linux_arm32_moby
@@ -131,4 +136,6 @@ variables:
             declare -a cnreg=( $(edgebuilds-azurecr-io) )
             testName="LongHaul"
             . $(Agent.HomeDirectory)/../artifacts/core-linux/artifactInfo.txt
+            chmod +x $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh
             sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)"
+          workingDirectory: "$(Agent.HomeDirectory)/.."
