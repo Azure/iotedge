@@ -66,6 +66,7 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
+          release.label: 'ST'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name)'
           container.registry: '$(container.registry)'
@@ -123,6 +124,7 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
+          release.label: 'ST-AMQP'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name)'
           container.registry: '$(container.registry)'
@@ -186,6 +188,7 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
+          release.label: 'ST-MQTT'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name)'
           container.registry: '$(container.registry)'

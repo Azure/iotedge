@@ -1,4 +1,5 @@
 parameters:
+  release.label: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
   container.registry: ''
@@ -35,23 +36,24 @@ steps:
         testName="Stress"
         . $(Agent.HomeDirectory)/../artifacts/$IMAGES_ARTIFACT_NAME/artifactInfo.txt
         chmod +x $(Agent.HomeDirectory)/../artifacts/$IMAGES_ARTIFACT_NAME/scripts/linux/runE2ETest.sh
-        sudo $(Agent.HomeDirectory)/../artifacts/$IMAGES_ARTIFACT_NAME/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistry "$CONTAINER_REGISTRY" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$IOTHUB_CONNECTIONSTRING" -eventHubConnectionString "$EVENTHUB_CONNECTIONSTRING" -snitchBuildNumber "SNITCH_BUILD_NUMBER" -snitchStorageAccount "$SNITCH_STORAGE_ACCOUNT" -snitchStorageMasterKey "$SNITCH_STORAGE_MASTERKEY" -snitchAlertUrl "$SNITCH_ALERT_URL" -loadGen1TransportType "$LOADGEN1_TRANSPORTTYPE" -loadGen2TransportType "$LOADGEN2_TRANSPORTTYPE" -loadGen3TransportType "$LOADGEN3_TRANSPORTTYPE" -loadGen4TransportType "$LOADGEN4_TRANSPORTTYPE" -amqpSettingsEnabled "$AMQP_SETTINGS_ENABLED" -mqttSettingsEnabled "$MQTT_SETTINGS_ENABLED" -loadGenMessageFrequency "$LOADGEN_MESSAGE_FREQUENCY"
-      displayName: 'Run Stress Test Deployment'
-      workingDirectory: '$(Agent.HomeDirectory)/..'
-      env:
-        AMQP_SETTINGS_ENABLED: '${{ parameters.amqp.settings.enabled }}'
-        CONTAINER_REGISTRY: '${{ parameters.container.registry }}'
-        CONTAINER_REGISTRY_CREDENTIAL: '${{ parameters.container.registry.credential }}'
-        EVENTHUB_CONNECTIONSTRING: '${{ parameters.eventHub.connectionString }}'
-        IMAGES_ARTIFACT_NAME: '${{ parameters.images.artifact.name }}'
-        IOTHUB_CONNECTIONSTRING: '${{ parameters.iotHub.connectionString }}'
-        LOADGEN_MESSAGE_FREQUENCY: '${{ parameters.loadGen.message.frequency }}'
-        LOADGEN1_TRANSPORTTYPE: '${{ parameters.loadGen1.transportType }}'
-        LOADGEN2_TRANSPORTTYPE: '${{ parameters.loadGen2.transportType }}'
-        LOADGEN3_TRANSPORTTYPE: '${{ parameters.loadGen3.transportType }}'
-        LOADGEN4_TRANSPORTTYPE: '${{ parameters.loadGen4.transportType }}'
-        MQTT_SETTINGS_ENABLED: '${{ parameters.mqtt.settings.enabled }}'
-        SNITCH_ALERT_URL: '${{ parameters.snitch.alert.url }}'
-        SNITCH_BUILD_NUMBER: '${{ parameters.snitch.build.number }}'
-        SNITCH_STORAGE_ACCOUNT: '${{ parameters.snitch.storage.account }}'
-        SNITCH_STORAGE_MASTERKEY: '${{ parameters.snitch.storage.masterKey }}'
+        sudo $(Agent.HomeDirectory)/../artifacts/$IMAGES_ARTIFACT_NAME/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "$RELEASE_LABEL" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistry "$CONTAINER_REGISTRY" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$IOTHUB_CONNECTIONSTRING" -eventHubConnectionString "$EVENTHUB_CONNECTIONSTRING" -snitchBuildNumber "SNITCH_BUILD_NUMBER" -snitchStorageAccount "$SNITCH_STORAGE_ACCOUNT" -snitchStorageMasterKey "$SNITCH_STORAGE_MASTERKEY" -snitchAlertUrl "$SNITCH_ALERT_URL" -loadGen1TransportType "$LOADGEN1_TRANSPORTTYPE" -loadGen2TransportType "$LOADGEN2_TRANSPORTTYPE" -loadGen3TransportType "$LOADGEN3_TRANSPORTTYPE" -loadGen4TransportType "$LOADGEN4_TRANSPORTTYPE" -amqpSettingsEnabled "$AMQP_SETTINGS_ENABLED" -mqttSettingsEnabled "$MQTT_SETTINGS_ENABLED" -loadGenMessageFrequency "$LOADGEN_MESSAGE_FREQUENCY"
+    displayName: 'Run Stress Test Deployment'
+    workingDirectory: '$(Agent.HomeDirectory)/..'
+    env:
+      AMQP_SETTINGS_ENABLED: '${{ parameters.amqp.settings.enabled }}'
+      CONTAINER_REGISTRY: '${{ parameters.container.registry }}'
+      CONTAINER_REGISTRY_CREDENTIAL: '${{ parameters.container.registry.credential }}'
+      EVENTHUB_CONNECTIONSTRING: '${{ parameters.eventHub.connectionString }}'
+      IMAGES_ARTIFACT_NAME: '${{ parameters.images.artifact.name }}'
+      IOTHUB_CONNECTIONSTRING: '${{ parameters.iotHub.connectionString }}'
+      LOADGEN_MESSAGE_FREQUENCY: '${{ parameters.loadGen.message.frequency }}'
+      LOADGEN1_TRANSPORTTYPE: '${{ parameters.loadGen1.transportType }}'
+      LOADGEN2_TRANSPORTTYPE: '${{ parameters.loadGen2.transportType }}'
+      LOADGEN3_TRANSPORTTYPE: '${{ parameters.loadGen3.transportType }}'
+      LOADGEN4_TRANSPORTTYPE: '${{ parameters.loadGen4.transportType }}'
+      MQTT_SETTINGS_ENABLED: '${{ parameters.mqtt.settings.enabled }}'
+      RELEASE_LABEL: '${{ parameters.release.label }}'
+      SNITCH_ALERT_URL: '${{ parameters.snitch.alert.url }}'
+      SNITCH_BUILD_NUMBER: '${{ parameters.snitch.build.number }}'
+      SNITCH_STORAGE_ACCOUNT: '${{ parameters.snitch.storage.account }}'
+      SNITCH_STORAGE_MASTERKEY: '${{ parameters.snitch.storage.masterKey }}'
