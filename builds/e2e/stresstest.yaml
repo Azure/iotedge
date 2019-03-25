@@ -27,7 +27,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        - run-long-haul -equals true
+        - run-stress -equals true
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
     variables:
@@ -71,7 +71,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        - run-long-haul -equals true
+        - run-stress -equals true
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
         - test-protocol -equals amqp
@@ -122,7 +122,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        - run-long-haul -equals true
+        - run-stress -equals true
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
         - test-protocol -equals mqtt
