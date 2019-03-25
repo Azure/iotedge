@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
         }
 
-        class StoreMessagesProvider
+        internal class StoreMessagesProvider
         {
             readonly IMessageIterator iterator;
             readonly int batchSize;
