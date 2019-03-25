@@ -12,12 +12,6 @@ parameters:
   loadGen4.TransportType: 'mqtt'
 
 steps:
-  - task: AzureKeyVault@1
-    displayName: 'Azure Key Vault'
-    inputs:
-      azureSubscription: $(azure.subscription)
-      KeyVaultName: $(azure.keyVault)
-      SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
   - task: CopyFiles@2
     displayName: 'Copy Edgelet Artifact'
     inputs:
