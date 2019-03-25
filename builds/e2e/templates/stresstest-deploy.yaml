@@ -30,16 +30,13 @@ steps:
       SourceFolder: '$(System.ArtifactsDirectory)/${{ parameters.images.artifact.name }}'
       TargetFolder: '$(Agent.HomeDirectory)/../artifacts/${{ parameters.images.artifact.name }}'
       CleanTargetFolder: true
-  - task: Bash@3
-    displayName: 'Run Stress Test Deployment'
-    inputs:
-      targetType: inline
-      script: |
+  - bash: |
         declare -a cnreg=( $CONTAINER_REGISTRY_CREDENTIAL )
         testName="Stress"
         . $(Agent.HomeDirectory)/../artifacts/$IMAGES_ARTIFACT_NAME/artifactInfo.txt
         chmod +x $(Agent.HomeDirectory)/../artifacts/$IMAGES_ARTIFACT_NAME/scripts/linux/runE2ETest.sh
         sudo $(Agent.HomeDirectory)/../artifacts/$IMAGES_ARTIFACT_NAME/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistry "$CONTAINER_REGISTRY" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$IOTHUB_CONNECTIONSTRING" -eventHubConnectionString "$EVENTHUB_CONNECTIONSTRING" -snitchBuildNumber "SNITCH_BUILD_NUMBER" -snitchStorageAccount "$SNITCH_STORAGE_ACCOUNT" -snitchStorageMasterKey "$SNITCH_STORAGE_MASTERKEY" -snitchAlertUrl "$SNITCH_ALERT_URL" -loadGen1TransportType "$LOADGEN1_TRANSPORTTYPE" -loadGen2TransportType "$LOADGEN2_TRANSPORTTYPE" -loadGen3TransportType "$LOADGEN3_TRANSPORTTYPE" -loadGen4TransportType "$LOADGEN4_TRANSPORTTYPE" -amqpSettingsEnabled "$AMQP_SETTINGS_ENABLED" -mqttSettingsEnabled "$MQTT_SETTINGS_ENABLED" -loadGenMessageFrequency "$LOADGEN_MESSAGE_FREQUENCY"
+      displayName: 'Run Stress Test Deployment'
       workingDirectory: '$(Agent.HomeDirectory)/..'
       env:
         AMQP_SETTINGS_ENABLED: '${{ parameters.amqp.settings.enabled }}'
