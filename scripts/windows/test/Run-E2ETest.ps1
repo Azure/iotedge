@@ -127,7 +127,7 @@ Param (
 
 Set-StrictMode -Version "Latest"
 $ErrorActionPreference = "Stop"
-$ProgressPreference = "SilentlyContinue"
+$global:ProgressPreference = "SilentlyContinue"
 
 Function AppendInstallationOption([string] $testCommand)
 {
