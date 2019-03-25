@@ -15,20 +15,20 @@ steps:
   - task: CopyFiles@2
     displayName: 'Copy Edgelet Artifact'
     inputs:
-      SourceFolder: '$(System.ArtifactsDirectory)/${{ edgelet.artifact.name }}'
-      TargetFolder: '$(Agent.HomeDirectory)/../artifacts/${{ edgelet.artifact.name }}'
+      SourceFolder: '$(System.ArtifactsDirectory)/${{ parameters.edgelet.artifact.name }}'
+      TargetFolder: '$(Agent.HomeDirectory)/../artifacts/${{ parameters.edgelet.artifact.name }}'
       CleanTargetFolder: true
   - task: CopyFiles@2
     displayName: 'Copy Images Artifact'
     inputs:
-      SourceFolder: '$(System.ArtifactsDirectory)/${{ images.artifact.name }}'
-      TargetFolder: '$(Agent.HomeDirectory)/../artifacts/${{ images.artifact.name }}'
+      SourceFolder: '$(System.ArtifactsDirectory)/${{ parameters.images.artifact.name }}'
+      TargetFolder: '$(Agent.HomeDirectory)/../artifacts/${{ parameters.images.artifact.name }}'
       CleanTargetFolder: true
   - task: AzureKeyVault@1
     displayName: 'Azure Key Vault'
     inputs:
-      azureSubscription: ${{ azure.subscription }}
-      KeyVaultName: ${{ azure.keyVault }}
+      azureSubscription: ${{ parameters.azure.subscription }}
+      KeyVaultName: ${{ parameters.azure.keyVault }}
       SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
   - task: Bash@3
     displayName: 'Run Stress Test Deployment'
@@ -37,7 +37,7 @@ steps:
       script: |
         declare -a cnreg=( $(edgebuilds-azurecr-io) )
         testName="Stress"
-        . $(Agent.HomeDirectory)/../artifacts/${{ images.artifact.name }}/artifactInfo.txt
-        chmod +x $(Agent.HomeDirectory)/../artifacts/${{ images.artifact.name }}/scripts/linux/runE2ETest.sh
-        sudo $(Agent.HomeDirectory)/../artifacts/${{ images.artifact.name }}/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchAlertUrl "$(SnitchStressAlertUrl)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)" -loadGen1TransportType ${{ loadGen1.transportType }} -loadGen2TransportType ${{ loadGen2.transportType }} -loadGen3TransportType ${{ loadGen3.transportType }} -loadGen4TransportType ${{ loadGen4.transportType }} -amqpSettingsEnabled ${{ amqp.settings.enabled }} -mqttSettingsEnabled ${{ mqtt.settings.enabled }} -loadGenMessageFrequency ${{ loadGen.message.frequency }}
+        . $(Agent.HomeDirectory)/../artifacts/${{ parameters.images.artifact.name }}/artifactInfo.txt
+        chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters.images.artifact.name }}/scripts/linux/runE2ETest.sh
+        sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters.images.artifact.name }}/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchAlertUrl "$(SnitchStressAlertUrl)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)" -loadGen1TransportType ${{ parameters.loadGen1.transportType }} -loadGen2TransportType ${{ parameters.loadGen2.transportType }} -loadGen3TransportType ${{ parameters.loadGen3.transportType }} -loadGen4TransportType ${{ parameters.loadGen4.transportType }} -amqpSettingsEnabled ${{ parameters.amqp.settings.enabled }} -mqttSettingsEnabled ${{ parameters.mqtt.settings.enabled }} -loadGenMessageFrequency ${{ parameters.loadGen.message.frequency }}
       workingDirectory: '$(Agent.HomeDirectory)/..'

@@ -2,15 +2,22 @@ trigger: none
 pr: none
 
 variables:
-  azure.keyVault: 'edgebuildkv'
-  azure.subscription: 'azureiotedge-arm'
   Build.SyncSources: false
-  edgelet.package.build: 55463
-  images.artifact.name: 'core-linux'
-  images.build: 55174
-  pool.name: 'Azure-IoT-Edge-Core'
   vsts.project: $(System.TeamProjectId)
-
+  # Variable defined in VSTS
+  #azure.keyVault: ''
+  #azure.subscription: ''
+  #edgelet.package.build: <edglet package build id>
+  #images.artifact.name: ''
+  #images.build: <images build id>
+  #pool.name: ''
+  # Variables settable at queue time
+  #loadGen.message.frequency.amd64: 'xx:xx:xx.xx'
+  #loadGen.message.frequency.arm32v7: 'xx:xx:xx.xx'
+  #run.linux.amd64.moby: 'true/false'
+  #run.linux.arm32v7.moby.amqp: 'true/false'
+  #run.linux.arm32v7.moby.mqtt: 'true/false'
+  
 jobs:
 ################################################################################
   - job: linux_amd64_moby
