@@ -1,0 +1,208 @@
+trigger: none 
+pr: none
+
+variables:
+  Build.SyncSources: false
+  images.artifact.name: 'core-linux'
+  vsts.project: $(System.TeamProjectId)
+  # Variable defined in VSTS
+  #azure.keyVault: ''
+  #azure.subscription: ''
+  #edgelet.package.build: <edglet package build id>
+  #images.build: <images build id>
+  #pool.name: ''
+  #container.registry: ''
+  #snitch.storage.account: ''
+  # Variables settable at queue time
+  #loadGen.message.frequency.amd64: 'xx:xx:xx.xx'
+  #loadGen.message.frequency.arm32v7: 'xx:xx:xx.xx'
+  #run.linux.amd64.moby: 'true/false'
+  #run.linux.arm32v7.moby.amqp: 'true/false'
+  #run.linux.arm32v7.moby.mqtt: 'true/false'
+  #snitch.build.number: '1.1'
+
+jobs:
+################################################################################
+  - job: linux_amd64_moby
+################################################################################
+    displayName: Linux AMD64 Moby
+    condition: eq(variables['run.linux.amd64.moby'], 'true')
+    pool:
+      name: $(pool.name)
+      demands:
+        - run-stress -equals true
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+    variables:
+      edgelet.artifact.name: 'iotedged-ubuntu-amd64'
+    steps:
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
+          SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Edgelet Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          buildVersionToDownload: latestFromBranch
+          artifactName: $(edgelet.artifact.name)
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Images Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(images.build)
+          buildVersionToDownload: latestFromBranch
+          artifactName: $(images.artifact.name)
+          itemPattern: |
+            $(images.artifact.name)/IotEdgeQuickstart.linux-x64.tar.gz
+            $(images.artifact.name)/e2e_deployment_files/stress_deployment.template.json
+            $(images.artifact.name)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name)/artifactInfo.txt
+      # Deploy stress test
+      - template: templates/stresstest-deploy.yaml
+        parameters:
+          release.label: 'ST'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
+          images.artifact.name: '$(images.artifact.name)'
+          container.registry: '$(container.registry)'
+          container.registry.credential: '$(edgebuilds-azurecr-io)'
+          iotHub.connectionString: '$(IotHubStressConnString)'
+          eventHub.connectionString: '$(EventHubStressConnStr)'
+          snitch.build.number: '$(snitch.build.number)'
+          snitch.alert.url: '$(SnitchStressAlertUrl)'
+          snitch.storage.account: '$(snitch.storage.account)'
+          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
+          loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+
+################################################################################
+  - job: linux_arm32v7_moby_amqp
+################################################################################
+    displayName: Linux ARM32v7 Moby AMQP
+    condition: eq(variables['run.linux.arm32v7.moby.amqp'], 'true')
+    pool:
+      name: $(pool.name)
+      demands:
+        - run-stress -equals true
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals ARM
+        - test-protocol -equals amqp
+    variables:
+      edgelet.artifact.name: 'iotedged-ubuntu-armhf'
+    steps:
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
+          SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Edgelet Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          buildVersionToDownload: latestFromBranch
+          artifactName: $(edgelet.artifact.name)
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Images Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(images.build)
+          buildVersionToDownload: latestFromBranch
+          artifactName: $(images.artifact.name)
+          itemPattern: |
+            $(images.artifact.name)/IotEdgeQuickstart.linux-arm.tar.gz
+            $(images.artifact.name)/e2e_deployment_files/stress_deployment.template.json
+            $(images.artifact.name)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name)/artifactInfo.txt
+      # Deploy stress test
+      - template: templates/stresstest-deploy.yaml
+        parameters:
+          release.label: 'ST-AMQP'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
+          images.artifact.name: '$(images.artifact.name)'
+          container.registry: '$(container.registry)'
+          container.registry.credential: '$(edgebuilds-azurecr-io)'
+          iotHub.connectionString: '$(IotHubStressConnString)'
+          eventHub.connectionString: '$(EventHubStressConnStr)'
+          snitch.build.number: '$(snitch.build.number)'
+          snitch.alert.url: '$(SnitchStressAlertUrl)'
+          snitch.storage.account: '$(snitch.storage.account)'
+          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
+          amqp.settings.enabled: 'true'
+          mqtt.settings.enabled: 'false'
+          loadGen.message.frequency: $(loadGen.message.frequency.arm32v7)
+          loadGen1.transportType: 'amqp'
+          loadGen2.transportType: 'amqp'
+          loadGen3.transportType: 'amqp'
+          loadGen4.transportType: 'amqp'
+
+################################################################################
+  - job: linux_arm32v7_moby_mqtt
+################################################################################
+    displayName: Linux ARM32v7 Moby MQTT
+    condition: eq(variables['run.linux.arm32v7.moby.mqtt'], 'true')
+    pool:
+      name: $(pool.name)
+      demands:
+        - run-stress -equals true
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals ARM
+        - test-protocol -equals mqtt
+    variables:
+      edgelet.artifact.name: 'iotedged-ubuntu-armhf'
+    steps:
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
+          SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Edgelet Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          buildVersionToDownload: latestFromBranch
+          artifactName: $(edgelet.artifact.name)
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Images Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(images.build)
+          buildVersionToDownload: latestFromBranch
+          artifactName: $(images.artifact.name)
+          itemPattern: |
+            $(images.artifact.name)/IotEdgeQuickstart.linux-arm.tar.gz
+            $(images.artifact.name)/e2e_deployment_files/stress_deployment.template.json
+            $(images.artifact.name)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name)/artifactInfo.txt
+      # Deploy stress test
+      - template: templates/stresstest-deploy.yaml
+        parameters:
+          release.label: 'ST-MQTT'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
+          images.artifact.name: '$(images.artifact.name)'
+          container.registry: '$(container.registry)'
+          container.registry.credential: '$(edgebuilds-azurecr-io)'
+          iotHub.connectionString: '$(IotHubStressConnString)'
+          eventHub.connectionString: '$(EventHubStressConnStr)'
+          snitch.build.number: '$(snitch.build.number)'
+          snitch.alert.url: '$(SnitchStressAlertUrl)'
+          snitch.storage.account: '$(snitch.storage.account)'
+          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
+          amqp.settings.enabled: 'false'
+          mqtt.settings.enabled: 'true'
+          loadGen.message.frequency: $(loadGen.message.frequency.arm32v7)
+          loadGen1.transportType: 'mqtt'
+          loadGen2.transportType: 'mqtt'
+          loadGen3.transportType: 'mqtt'
+          loadGen4.transportType: 'mqtt'

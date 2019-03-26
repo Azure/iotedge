@@ -2,20 +2,30 @@ trigger: none
 pr: none
 
 variables:
-  azure.keyVault: 'edgebuildkv'
-  azure.subscription: 'azureiotedge-arm'
   Build.SyncSources: false
-  edgelet.package.build: 55463
   images.artifact.name: 'core-linux'
-  images.build: 55174
-  pool.name: 'Azure-IoT-Edge-Core'
   vsts.project: $(System.TeamProjectId)
+  # Variable defined in VSTS
+  #azure.keyVault: ''
+  #azure.subscription: ''
+  #edgelet.package.build: <edglet package build id>
+  #images.build: <images build id>
+  #pool.name: ''
+  #container.registry: ''
+  #snitch.storage.account: ''
+  # Variables settable at queue time
+  #loadGen.message.frequency.amd64: 'xx:xx:xx.xx'
+  #loadGen.message.frequency.arm32v7: 'xx:xx:xx.xx'
+  #loadGen.transportType: ''
+  #run.linux.amd64.moby: 'true/false'
+  #run.linux.arm32v7.moby: 'true/false'
 
 jobs:
 ################################################################################
   - job: linux_amd64_moby
 ################################################################################
     displayName: Linux AMD64 Moby
+    condition: eq(variables['run.linux.amd64.moby'], 'true')
     pool:
       name: $(pool.name)
       demands:
@@ -25,6 +35,12 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu-amd64'
     steps:
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
+          SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -46,23 +62,17 @@ jobs:
             $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.json
             $(images.artifact.name)/scripts/linux/runE2ETest.sh
             $(images.artifact.name)/artifactInfo.txt
-      - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
       - task: CopyFiles@2
         displayName: 'Copy Edgelet Artifact'
         inputs:
           SourceFolder: '$(System.ArtifactsDirectory)/$(edgelet.artifact.name)'
-          TargetFolder: '$(Agent.HomeDirectory)/../artifacts/iotedged-ubuntu-amd64'
+          TargetFolder: '$(Agent.HomeDirectory)/../artifacts/$(edgelet.artifact.name)'
           CleanTargetFolder: true
       - task: CopyFiles@2
         displayName: 'Copy Images artifact'
         inputs:
           SourceFolder: '$(System.ArtifactsDirectory)/$(images.artifact.name)'
-          TargetFolder: '$(Agent.HomeDirectory)/../artifacts/core-linux'
+          TargetFolder: '$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name)'
           CleanTargetFolder: true
       - task: Bash@3
         displayName: 'Run Long Haul Deployment'
@@ -73,13 +83,14 @@ jobs:
             testName="LongHaul"
             . $(Agent.HomeDirectory)/../artifacts/core-linux/artifactInfo.txt
             chmod +x $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh
-            sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)"
+            sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistry "$(container.registry)" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchBuildNumber "$(snitch.build.number)" -snitchStorageAccount "$(snitch.storage.account)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -loadGenTransportType "$(loadGen.transportType)" -loadGenMessageFrequency "$(loadGen.message.frequency.amd64)"
           workingDirectory: "$(Agent.HomeDirectory)/.."
 
 ################################################################################
-  - job: linux_arm32_moby
+  - job: linux_arm32v7_moby
 ################################################################################
-    displayName: Linux ARM32 Moby
+    displayName: Linux ARM32v7 Moby
+    condition: eq(variables['run.linux.arm32v7.moby'], 'true')
     pool:
       name: $(pool.name)
       demands:
@@ -89,6 +100,12 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu-armhf'
     steps:
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
+          SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -110,23 +127,17 @@ jobs:
             $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.arm.json
             $(images.artifact.name)/scripts/linux/runE2ETest.sh
             $(images.artifact.name)/artifactInfo.txt
-      - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
       - task: CopyFiles@2
         displayName: 'Copy Edgelet Artifact'
         inputs:
           SourceFolder: '$(System.ArtifactsDirectory)/$(edgelet.artifact.name)'
-          TargetFolder: '$(Agent.HomeDirectory)/../artifacts/iotedged-ubuntu-armhf'
+          TargetFolder: '$(Agent.HomeDirectory)/../artifacts/$(edgelet.artifact.name)'
           CleanTargetFolder: true
       - task: CopyFiles@2
         displayName: 'Copy Images Artifact'
         inputs:
           SourceFolder: '$(System.ArtifactsDirectory)/$(images.artifact.name)'
-          TargetFolder: '$(Agent.HomeDirectory)/../artifacts/core-linux'
+          TargetFolder: '$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name)'
           CleanTargetFolder: true
       - task: Bash@3
         displayName: 'Run Long Haul Deployment'
@@ -137,5 +148,5 @@ jobs:
             testName="LongHaul"
             . $(Agent.HomeDirectory)/../artifacts/core-linux/artifactInfo.txt
             chmod +x $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh
-            sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)"
+            sudo $(Agent.HomeDirectory)/../artifacts/core-linux/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "LH" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistry "$(container.registry)" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "$(IotHubStressConnString)" -eventHubConnectionString "$(EventHubStressConnStr)" -snitchBuildNumber "$(snitch.build.number)" -snitchStorageAccount "$(snitch.storage.account)" -snitchStorageMasterKey "$(StorageAccountMasterKeyStress)" -snitchAlertUrl "$(SnitchLongHaulAlertUrl)" -loadGenTransportType "$(loadGen.transportType)" -loadGenMessageFrequency "$(loadGen.message.frequency.arm32v7)"
           workingDirectory: "$(Agent.HomeDirectory)/.."
