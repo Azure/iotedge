@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             public Task<ISinkResult> ProcessAsync(ICollection<IRoutingMessage> routingMessages, CancellationToken token)
             {
                 Events.ProcessingMessages(Preconditions.CheckNotNull(routingMessages, nameof(routingMessages)));
-                Task<ISinkResult> syncResult = this.ProcessInBatches(routingMessages, token);
+                Task<ISinkResult> syncResult = this.ProcessByClients(routingMessages, token);
                 return syncResult;
             }
 
@@ -132,11 +132,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return new SinkResult<IRoutingMessage>(ImmutableList<IRoutingMessage>.Empty, ImmutableList<IRoutingMessage>.Empty, invalid, sendFailureDetails);
             }
 
-            static int GetBatchSize(int batchSize, long messageSize, long maxMessageSize)
+            internal static int GetBatchSize(int batchSize, long messageSize)
             {
                 while (true)
                 {
-                    if (batchSize == 1 || maxMessageSize > messageSize * batchSize)
+                    if (batchSize == 1 || Core.Constants.MaxMessageSize > messageSize * batchSize)
                     {
                         return batchSize;
                     }
@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 }
             }
 
-            async Task<ISinkResult> ProcessInBatches(ICollection<IRoutingMessage> routingMessages, CancellationToken token)
+            async Task<ISinkResult> ProcessByClients(ICollection<IRoutingMessage> routingMessages, CancellationToken token)
             {
                 if (token.IsCancellationRequested)
                 {
@@ -155,10 +155,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 }
                 else
                 {
-                    var routingMessageGroups = from r in routingMessages
+                    var routingMessageGroups = (from r in routingMessages
                                                group r by this.GetIdentity(r)
                                                into g
-                                               select new { Id = g.Key, RoutingMessages = g.ToList() };
+                                               select new { Id = g.Key, RoutingMessages = g.ToList() })
+                        .ToList();
 
                     var succeeded = new List<IRoutingMessage>();
                     var failed = new List<IRoutingMessage>();
@@ -166,17 +167,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     Devices.Routing.Core.Util.Option<SendFailureDetails> sendFailureDetails =
                         Option.None<SendFailureDetails>();
 
-                    Events.ProcessingMessages(routingMessages);
-                    IEnumerable<Task<ISinkResult<IRoutingMessage>>> sendTasks = routingMessageGroups.Select(item => this.ProcessClientMessages(item.Id, item.RoutingMessages));
-                    ISinkResult<IRoutingMessage>[] sinkResults = await Task.WhenAll(sendTasks);
-                    foreach (var res in sinkResults)
-                    {
-                        succeeded.AddRange(res.Succeeded);
-                        failed.AddRange(res.Failed);
-                        invalid.AddRange(res.InvalidDetailsList);
-                        sendFailureDetails = res.SendFailureDetails;
-                    }
+                    Events.ProcessingMessageGroups(routingMessages, routingMessageGroups.Count, this.cloudEndpoint.FanOutFactor);
 
+                    foreach (var groupBatch in routingMessageGroups.Batch(this.cloudEndpoint.FanOutFactor))
+                    {
+                        IEnumerable<Task<ISinkResult<IRoutingMessage>>> sendTasks = groupBatch
+                            .Select(item => this.ProcessClientMessages(item.Id, item.RoutingMessages));
+                        ISinkResult<IRoutingMessage>[] sinkResults = await Task.WhenAll(sendTasks);
+                        foreach (ISinkResult<IRoutingMessage> res in sinkResults)
+                        {
+                            succeeded.AddRange(res.Succeeded);
+                            failed.AddRange(res.Failed);
+                            invalid.AddRange(res.InvalidDetailsList);
+                            sendFailureDetails = res.SendFailureDetails;
+                        }
+                    }
+                    
                     return new SinkResult<IRoutingMessage>(
                         succeeded,
                         failed,
@@ -185,6 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 }
             }
 
+            // Process all messages for a particular client
             async Task<ISinkResult<IRoutingMessage>> ProcessClientMessages(string id, List<IRoutingMessage> routingMessages)
             {
                 var succeeded = new List<IRoutingMessage>();
@@ -193,8 +200,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 Devices.Routing.Core.Util.Option<SendFailureDetails> sendFailureDetails =
                     Option.None<SendFailureDetails>();
 
+                // Find the maximum message size, and divide messages into largest batches
+                // not exceeding max allowed IoTHub message size.
                 long maxMessageSize = routingMessages.Select(r => r.Size()).Max();
-                int batchSize = GetBatchSize(Math.Min(this.cloudEndpoint.maxBatchSize, routingMessages.Count), maxMessageSize, 256 * 1024);
+                int batchSize = GetBatchSize(Math.Min(this.cloudEndpoint.maxBatchSize, routingMessages.Count), maxMessageSize);
                 foreach (IEnumerable<IRoutingMessage> batch in routingMessages.Batch(batchSize))
                 {
                     ISinkResult res = await this.ProcessClientMessagesBatch(id, batch.ToList());
@@ -348,6 +357,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static void InvalidMessage(string id, Exception ex)
             {
                 Log.LogWarning((int)EventIds.InvalidMessage, ex, Invariant($"Non retryable exception occurred while sending message for client {id}."));
+            }
+
+            public static void ProcessingMessageGroups(ICollection<IRoutingMessage> routingMessages, int groups, int fanoutFactor)
+            {
+                Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"Sending {routingMessages.Count} message(s) upstream, divided into {groups} groups. Processing maximum {fanoutFactor} groups in parallel."));
             }
         }
 

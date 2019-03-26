@@ -22,8 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
 
     public class RoutingEdgeHub : IEdgeHub
-    {
-        const long MaxMessageSize = 256 * 1024; // matches IoTHub
+    {        
         readonly Router router;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly IConnectionManager connectionManager;
@@ -161,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         static void ValidateMessageSize(IRoutingMessage messageToBeValidated)
         {
             long messageSize = messageToBeValidated.Size();
-            if (messageSize > MaxMessageSize)
+            if (messageSize > Constants.MaxMessageSize)
             {
                 throw new EdgeHubMessageTooLargeException($"Message size is {messageSize} bytes which is greater than the max size {MaxMessageSize} bytes allowed");
             }
