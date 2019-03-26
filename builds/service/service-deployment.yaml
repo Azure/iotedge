@@ -63,7 +63,7 @@ steps:
     # Collect logs
     logdir=$(System.ArtifactsDirectory)/logs
     mkdir -p $logdir
-    echo > $logdir/$(Build.DefinitionName)-$(Build.BuildNumber)
+    echo > "$logdir/$(Build.DefinitionName)-$(Build.BuildNumber)"
     sudo journalctl > $logdir/iotedged.log
     docker logs edgeAgent > $logdir/edgeAgent.log
     docker logs edgeHub > $logdir/edgeHub.log
