@@ -153,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             {
                 if (token.IsCancellationRequested)
                 {
-                    Events.CancelledProcessingMessage(routingMessages);
+                    Events.CancelledProcessingMessages(routingMessages);
                     var sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubConnectionException($"Cancelled sending messages to IotHub for device {this.cloudEndpoint.Id}"));
                     return new SinkResult<IRoutingMessage>(ImmutableList<IRoutingMessage>.Empty, routingMessages, sendFailureDetails);
                 }
@@ -326,7 +326,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"Sending {routingMessages.Count} message(s) upstream."));
             }
 
-            public static void CancelledProcessingMessage(ICollection<IRoutingMessage> messages)
+            public static void CancelledProcessingMessages(ICollection<IRoutingMessage> messages)
             {
                 if (messages.Count > 0)
                 {
