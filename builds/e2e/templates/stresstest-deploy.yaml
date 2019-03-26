@@ -34,7 +34,10 @@ steps:
   - bash: |
         declare -a cnreg=( $CONTAINER_REGISTRY_CREDENTIAL )
         echo "amqp settings=$AMQP_SETTINGS_ENABLED"
+        echo "snitch.storage.account=$SNITCH_STORAGE_ACCOUNT"
+        echo "snitch.storage.account=${{ parameters.snitch.storage.account }}"
         echo "device label=$DEVICE_LABEL"
+        echo "device label=${{ parameters.device.label }}"
         testName="Stress"
         . $(Agent.HomeDirectory)/../artifacts/$IMAGES_ARTIFACT_NAME/artifactInfo.txt
         chmod +x $(Agent.HomeDirectory)/../artifacts/$IMAGES_ARTIFACT_NAME/scripts/linux/runE2ETest.sh
