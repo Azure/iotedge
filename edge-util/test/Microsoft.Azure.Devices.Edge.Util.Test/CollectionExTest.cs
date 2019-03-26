@@ -214,6 +214,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 {
                     Assert.Equal(list[ctr * batchSize + i], batch[i]);
                 }
+
                 ctr++;
             }
         }
