@@ -1,0 +1,41 @@
+parameters:
+  release.Label: ''
+  edgelet.artifact.name: ''
+  images.artifact.name: ''
+  container.registry: ''
+  container.registry.credential: ''
+  iotHub.connectionString: ''
+  eventHub.connectionString: ''
+  snitch.build.number: ''
+  snitch.alert.url: ''
+  snitch.storage.account: ''
+  snitch.storage.masterKey: ''
+  amqp.settings.enabled: 'true'
+  mqtt.settings.enabled: 'true'
+  loadGen.message.frequency: ''
+  loadGen1.transportType: 'amqp'
+  loadGen2.transportType: 'amqp'
+  loadGen3.transportType: 'mqtt'
+  loadGen4.transportType: 'mqtt'
+
+steps:
+  - task: CopyFiles@2
+    displayName: 'Copy Edgelet Artifact'
+    inputs:
+      SourceFolder: "$(System.ArtifactsDirectory)/${{ parameters['edgelet.artifact.name'] }}"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
+      CleanTargetFolder: true
+  - task: CopyFiles@2
+    displayName: 'Copy Images Artifact'
+    inputs:
+      SourceFolder: "$(System.ArtifactsDirectory)/${{ parameters['images.artifact.name'] }}"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
+      CleanTargetFolder: true
+  - bash: |
+        declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
+        testName="Stress"
+        . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
+        chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
+        sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "${{ parameters['release.label'] }}" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistry "${{ parameters['container.registry'] }}" -containerRegistryUsername "${cnreg[0]}" -containerRegistryPassword "${cnreg[1]}" -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" -snitchBuildNumber "${{ parameters['snitch.build.number'] }}" -snitchStorageAccount "${{ parameters['snitch.storage.account'] }}" -snitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" -snitchAlertUrl "${{ parameters['snitch.alert.url'] }}" -loadGen1TransportType "${{ parameters['loadGen1.transportType'] }}" -loadGen2TransportType "${{ parameters['loadGen2.transportType'] }}" -loadGen3TransportType "${{ parameters['loadGen3.transportType'] }}" -loadGen4TransportType "${{ parameters['loadGen4.transportType'] }}" -amqpSettingsEnabled "${{ parameters['amqp.settings.enabled'] }}" -mqttSettingsEnabled "${{ parameters['mqtt.settings.enabled'] }}" -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}"
+    displayName: 'Run Stress Test Deployment'
+    workingDirectory: '$(Agent.HomeDirectory)/..'
