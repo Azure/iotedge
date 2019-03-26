@@ -35,7 +35,7 @@ steps:
         declare -a cnreg=( $CONTAINER_REGISTRY_CREDENTIAL )
         echo "amqp settings=$AMQP_SETTINGS_ENABLED"
         echo "snitch.storage.account=$SNITCH_STORAGE_ACCOUNT"
-        echo "snitch.storage.account=${{ parameters.snitch.storage.account }}"
+        echo "snitch.storage.account=${{ parameters['snitch.storage.account'] }}"
         echo "device label=$DEVICE_LABEL"
         echo "device label=${{ parameters.deviceLabel }}"
         testName="Stress"
