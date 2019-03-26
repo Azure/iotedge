@@ -369,6 +369,8 @@ function process_args() {
     [[ -z "$RELEASE_LABEL" ]] && { print_error 'Release label is required.'; exit 1; }
     [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error 'Artifact image build number is required'; exit 1; }
     [[ -z "$TEST_NAME" ]] && { print_error 'Test name is required'; exit 1; }
+    [[ -z "$CONTAINER_REGISTRY" ]] && { print_error 'Container registry is required'; exit 1; }
+    [[ -z "$CONTAINER_REGISTRY_USERNAME" ]] && { print_error 'Container registry username is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$IOTHUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
@@ -757,9 +759,14 @@ function validate_test_parameters() {
     done
 
     if [[ "${TEST_NAME,,}" == "longhaul" ]] ||
-       [[ "${TEST_NAME,,}" == "stress" ]];    then
+       [[ "${TEST_NAME,,}" == "stress" ]]; then
         if [[ -z "$SNITCH_ALERT_URL" ]]; then
             print_error "Required snitch alert URL."
+            ((error++))
+        fi
+
+        if [[ -z "$SNITCH_STORAGE_ACCOUNT" ]]; then
+            print_error "Required snitch storage account."
             ((error++))
         fi
 
@@ -785,36 +792,33 @@ function usage() {
     echo "                                 'Stress', 'TempFilter', 'TempFilterFunctions', 'TempSensor'"
     echo "                                 Note: 'All' option doesn't include long hual and stress test."
     echo ' -artifactImageBuildNumber       Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
-    echo " -containerRegistry              Host address of container registry, default is 'edgebuilds.azurecr.io'"
-    echo " -containerRegistryUsername      Username of container registry, default is 'EdgeBuilds'"
-    echo ' -containerRegistryPassword      Password of given username for container registory'
-    echo ' -iotHubConnectionString         IoT hub connection string for creating edge device'
-    echo ' -eventHubConnectionString       Event hub connection string for receive D2C messages'
-    echo ' -loadGenTransportType           Transport type for LoadGen for long haul test. Default is mqtt'
-    echo ' -loadGenMessageFrequency        Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01'
-    echo ' -snitchAlertUrl                 Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test'
-    echo ' -snitchBuildNumber              Build number for snitcher docker image for long haul and stress test. Default is 1.1'
-    echo ' -snitchReportingIntervalInSecs  Reporting frequency in seconds to send status email for long hual and stress test. Default is 86400 (1 day)'
-    echo ' -snitchStorageAccount           Azure blob Sstorage account for store logs used in status email for long haul and stress test. Default is snitchstore'
-    echo ' -snitchStorageMasterKey         Master key of snitch storage account for long haul and stress test'
-    echo ' -snitchTestDurationInSecs       Test duration in seconds for long haul and stress test'
-    echo ' -loadGen1TransportType          Transport type for LoadGen1 for stress test. Default is amqp'
-    echo ' -loadGen2TransportType          Transport type for LoadGen2 for stress test. Default is amqp'
-    echo ' -loadGen3TransportType          Transport type for LoadGen3 for stress test. Default is mqtt'
-    echo ' -loadGen4TransportType          Transport type for LoadGen4 for stress test. Default is mqtt'
-    echo ' -amqpSettingsEnabled            Enable amqp protocol head in Edge Hub'
-    echo ' -mqttSettingsEnabled            Enable mqtt protocol head in Edge Hub'
+    echo " -containerRegistry              Host address of container registry."
+    echo " -containerRegistryUsername      Username of container registry."
+    echo ' -containerRegistryPassword      Password of given username for container registory.'
+    echo ' -iotHubConnectionString         IoT hub connection string for creating edge device.'
+    echo ' -eventHubConnectionString       Event hub connection string for receive D2C messages.'
+    echo ' -loadGenTransportType           Transport type for LoadGen for long haul test. Default is mqtt.'
+    echo ' -loadGenMessageFrequency        Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.'
+    echo ' -snitchAlertUrl                 Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.'
+    echo ' -snitchBuildNumber              Build number for snitcher docker image for long haul and stress test. Default is 1.1.'
+    echo ' -snitchReportingIntervalInSecs  Reporting frequency in seconds to send status email for long hual and stress test. Default is 86400 (1 day) for long haul and 1700000 for stress test.'
+    echo ' -snitchStorageAccount           Azure blob Sstorage account for store logs used in status email for long haul and stress test.'
+    echo ' -snitchStorageMasterKey         Master key of snitch storage account for long haul and stress test.'
+    echo ' -snitchTestDurationInSecs       Test duration in seconds for long haul and stress test.'
+    echo ' -loadGen1TransportType          Transport type for LoadGen1 for stress test. Default is amqp.'
+    echo ' -loadGen2TransportType          Transport type for LoadGen2 for stress test. Default is amqp.'
+    echo ' -loadGen3TransportType          Transport type for LoadGen3 for stress test. Default is mqtt.'
+    echo ' -loadGen4TransportType          Transport type for LoadGen4 for stress test. Default is mqtt.'
+    echo ' -amqpSettingsEnabled            Enable amqp protocol head in Edge Hub.'
+    echo ' -mqttSettingsEnabled            Enable mqtt protocol head in Edge Hub.'
     exit 1;
 }
 
 process_args "$@"
 
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
-CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
-CONTAINER_REGISTRY_USERNAME="${CONTAINER_REGISTRY_USERNAME:-EdgeBuilds}"
 LOADGEN_TRANSPORT_TYPE="${LOADGEN_TRANSPORT_TYPE:-mqtt}"
 SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.1}"
-SNITCH_STORAGE_ACCOUNT="${SNITCH_STORAGE_ACCOUNT:-snitchstore}"
 LOADGEN1_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
 LOADGEN2_TRANSPORT_TYPE="${LOADGEN2_TRANSPORT_TYPE:-amqp}"
 LOADGEN3_TRANSPORT_TYPE="${LOADGEN3_TRANSPORT_TYPE:-mqtt}"
