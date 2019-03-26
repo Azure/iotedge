@@ -1,5 +1,5 @@
 parameters:
-  device.label: ''
+  deviceLabel: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
   container.registry: ''
@@ -37,7 +37,7 @@ steps:
         echo "snitch.storage.account=$SNITCH_STORAGE_ACCOUNT"
         echo "snitch.storage.account=${{ parameters.snitch.storage.account }}"
         echo "device label=$DEVICE_LABEL"
-        echo "device label=${{ parameters.device.label }}"
+        echo "device label=${{ parameters.deviceLabel }}"
         testName="Stress"
         . $(Agent.HomeDirectory)/../artifacts/$IMAGES_ARTIFACT_NAME/artifactInfo.txt
         chmod +x $(Agent.HomeDirectory)/../artifacts/$IMAGES_ARTIFACT_NAME/scripts/linux/runE2ETest.sh
@@ -45,7 +45,7 @@ steps:
     displayName: 'Run Stress Test Deployment'
     workingDirectory: '$(Agent.HomeDirectory)/..'
     env:
-      DEVICE_LABEL: '${{ parameters.device.label }}'
+      DEVICE_LABEL: '${{ parameters.deviceLabel }}'
       AMQP_SETTINGS_ENABLED: '${{ parameters.amqp.settings.enabled }}'
       CONTAINER_REGISTRY: '${{ parameters.container.registry }}'
       CONTAINER_REGISTRY_CREDENTIAL: '${{ parameters.container.registry.credential }}'

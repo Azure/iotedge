@@ -68,7 +68,7 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
-          device.label: 'ST'
+          deviceLabel: 'ST'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name)'
           container.registry: '$(container.registry)'
