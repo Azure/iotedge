@@ -131,6 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 .Map(v => v.Equals("v1", StringComparison.OrdinalIgnoreCase))
                 .GetOrElse(true);
             int maxUpstreamBatchSize = this.configuration.GetValue("MaxUpstreamBatchSize", 10);
+            int upstreamFanOutFactor = this.configuration.GetValue("UpstreamFanOutFactor", 10);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -153,7 +154,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     minTwinSyncPeriod,
                     reportedPropertiesSyncFrequency,
                     useV1TwinManager,
-                    maxUpstreamBatchSize));
+                    maxUpstreamBatchSize,
+                    upstreamFanOutFactor));
         }
 
         void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)

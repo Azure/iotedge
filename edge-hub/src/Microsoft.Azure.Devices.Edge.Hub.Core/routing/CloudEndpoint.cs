@@ -35,27 +35,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             string id,
             Func<string, Task<Util.Option<ICloudProxy>>> cloudProxyGetterFunc,
             Core.IMessageConverter<IRoutingMessage> messageConverter,
-            int maxBatchSize = 10)
+            int maxBatchSize = 10,
+            int fanoutFactor = 10)
             : base(id)
         {
             Preconditions.CheckArgument(maxBatchSize > 0, "MaxBatchSize should be greater than 0");
             this.cloudProxyGetterFunc = Preconditions.CheckNotNull(cloudProxyGetterFunc);
             this.messageConverter = Preconditions.CheckNotNull(messageConverter);
             this.maxBatchSize = maxBatchSize;
+            this.FanOutFactor = fanoutFactor;
+            Events.Created(id, maxBatchSize, fanoutFactor);
         }
 
         public override string Type => this.GetType().Name;
 
         public override IProcessor CreateProcessor() => new CloudMessageProcessor(this);
 
-        public override int FanOutFactor => 10;
+        public override int FanOutFactor { get; }
 
         public override void LogUserMetrics(long messageCount, long latencyInMs)
         {
             // TODO - No-op for now
         }
 
-        class CloudMessageProcessor : IProcessor
+        internal class CloudMessageProcessor : IProcessor
         {
             static readonly ISet<Type> RetryableExceptions = new HashSet<Type>
             {
@@ -305,7 +308,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 InvalidMessage,
                 ProcessingMessages,
                 InvalidMessageNoIdentity,
-                CancelledProcessing
+                CancelledProcessing,
+                Created
             }
 
             public static void DeviceIdNotFound(IRoutingMessage routingMessage)
@@ -362,6 +366,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             public static void ProcessingMessageGroups(ICollection<IRoutingMessage> routingMessages, int groups, int fanoutFactor)
             {
                 Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"Sending {routingMessages.Count} message(s) upstream, divided into {groups} groups. Processing maximum {fanoutFactor} groups in parallel."));
+            }
+
+            public static void Created(string id, int maxbatchSize, int fanoutFactor)
+            {
+                Log.LogInformation((int)EventIds.Created, Invariant($"Created cloud endpoint {id} with max batch size {maxbatchSize} and fan-out factor of {fanoutFactor}."));
             }
         }
 

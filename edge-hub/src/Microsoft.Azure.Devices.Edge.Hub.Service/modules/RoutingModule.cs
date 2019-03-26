@@ -47,6 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly Option<TimeSpan> reportedPropertiesSyncFrequency;
         readonly bool useV1TwinManager;
         readonly int maxUpstreamBatchSize;
+        readonly int upstreamFanOutFactor;
 
         public RoutingModule(
             string iotHubName,
@@ -68,7 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             Option<TimeSpan> minTwinSyncPeriod,
             Option<TimeSpan> reportedPropertiesSyncFrequency,
             bool useV1TwinManager,
-            int maxUpstreamBatchSize)
+            int maxUpstreamBatchSize,
+            int upstreamFanOutFactor)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -90,6 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.reportedPropertiesSyncFrequency = reportedPropertiesSyncFrequency;
             this.useV1TwinManager = useV1TwinManager;
             this.maxUpstreamBatchSize = maxUpstreamBatchSize;
+            this.upstreamFanOutFactor = upstreamFanOutFactor;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -242,7 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         var messageConverter = c.Resolve<Core.IMessageConverter<IRoutingMessage>>();
                         IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                        return new EndpointFactory(connectionManager, messageConverter, this.edgeDeviceId, this.maxUpstreamBatchSize) as IEndpointFactory;
+                        return new EndpointFactory(connectionManager, messageConverter, this.edgeDeviceId, this.maxUpstreamBatchSize, this.upstreamFanOutFactor) as IEndpointFactory;
                     })
                 .As<Task<IEndpointFactory>>()
                 .SingleInstance();

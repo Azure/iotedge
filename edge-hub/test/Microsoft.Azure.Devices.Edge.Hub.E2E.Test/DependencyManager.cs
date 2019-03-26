@@ -138,6 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Option.None<TimeSpan>(),
                     Option.None<TimeSpan>(),
                     false,
+                    10,
                     10));
 
             builder.RegisterModule(new HttpModule());

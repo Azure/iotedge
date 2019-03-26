@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             long messageSize = messageToBeValidated.Size();
             if (messageSize > Constants.MaxMessageSize)
             {
-                throw new EdgeHubMessageTooLargeException($"Message size is {messageSize} bytes which is greater than the max size {MaxMessageSize} bytes allowed");
+                throw new EdgeHubMessageTooLargeException($"Message size is {messageSize} bytes which is greater than the max size {Constants.MaxMessageSize} bytes allowed");
             }
         }
 
