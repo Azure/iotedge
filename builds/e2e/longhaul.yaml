@@ -35,6 +35,12 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu-amd64'
     steps:
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
+          SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -68,12 +74,6 @@ jobs:
           SourceFolder: '$(System.ArtifactsDirectory)/$(images.artifact.name)'
           TargetFolder: '$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name)'
           CleanTargetFolder: true
-      - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
       - task: Bash@3
         displayName: 'Run Long Haul Deployment'
         inputs:
@@ -100,6 +100,12 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu-armhf'
     steps:
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
+          SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -121,12 +127,6 @@ jobs:
             $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.arm.json
             $(images.artifact.name)/scripts/linux/runE2ETest.sh
             $(images.artifact.name)/artifactInfo.txt
-      - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
       - task: CopyFiles@2
         displayName: 'Copy Edgelet Artifact'
         inputs:
