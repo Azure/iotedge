@@ -12,7 +12,6 @@ jobs:
     displayName: Linux
     timeoutInMinutes: 120
     pool:
-      name: Hosted Ubuntu 1604
       vmImage: ubuntu-16.04
     variables:
       TestEnvironment: linux
