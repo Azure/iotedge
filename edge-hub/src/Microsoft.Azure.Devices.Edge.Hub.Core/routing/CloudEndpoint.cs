@@ -19,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
+    using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using ISinkResult = Microsoft.Azure.Devices.Routing.Core.ISinkResult<Devices.Routing.Core.IMessage>;
@@ -49,9 +50,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         public override string Type => this.GetType().Name;
 
-        public override IProcessor CreateProcessor() => new CloudMessageProcessor(this);
-
         public override int FanOutFactor { get; }
+
+        public override IProcessor CreateProcessor() => new CloudMessageProcessor(this);
 
         public override void LogUserMetrics(long messageCount, long latencyInMs)
         {
@@ -106,6 +107,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public Task CloseAsync(CancellationToken token) => Task.CompletedTask;
 
+            internal static int GetBatchSize(int batchSize, long messageSize)
+            {
+                while (true)
+                {
+                    if (batchSize == 1 || Constants.MaxMessageSize > messageSize * batchSize)
+                    {
+                        return batchSize;
+                    }
+
+                    batchSize = batchSize - 1;
+                }
+            }
+
             static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Contains(ex.GetType());
 
             static ISinkResult HandleNoIdentity(List<IRoutingMessage> routingMessages)
@@ -135,19 +149,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return new SinkResult<IRoutingMessage>(ImmutableList<IRoutingMessage>.Empty, ImmutableList<IRoutingMessage>.Empty, invalid, sendFailureDetails);
             }
 
-            internal static int GetBatchSize(int batchSize, long messageSize)
-            {
-                while (true)
-                {
-                    if (batchSize == 1 || Core.Constants.MaxMessageSize > messageSize * batchSize)
-                    {
-                        return batchSize;
-                    }
-
-                    batchSize = batchSize - 1;
-                }
-            }
-
             async Task<ISinkResult> ProcessByClients(ICollection<IRoutingMessage> routingMessages, CancellationToken token)
             {
                 if (token.IsCancellationRequested)
@@ -159,9 +160,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 else
                 {
                     var routingMessageGroups = (from r in routingMessages
-                                               group r by this.GetIdentity(r)
-                                               into g
-                                               select new { Id = g.Key, RoutingMessages = g.ToList() })
+                                                group r by this.GetIdentity(r)
+                                                into g
+                                                select new { Id = g.Key, RoutingMessages = g.ToList() })
                         .ToList();
 
                     var succeeded = new List<IRoutingMessage>();
@@ -185,7 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                             sendFailureDetails = res.SendFailureDetails;
                         }
                     }
-                    
+
                     return new SinkResult<IRoutingMessage>(
                         succeeded,
                         failed,
@@ -348,6 +349,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 Log.LogWarning((int)EventIds.InvalidMessageNoIdentity, "Cannot process message with no identity, discarding it.");
             }
 
+            public static void ProcessingMessageGroups(ICollection<IRoutingMessage> routingMessages, int groups, int fanoutFactor)
+            {
+                Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"Sending {routingMessages.Count} message(s) upstream, divided into {groups} groups. Processing maximum {fanoutFactor} groups in parallel."));
+            }
+
+            public static void Created(string id, int maxbatchSize, int fanoutFactor)
+            {
+                Log.LogInformation((int)EventIds.Created, Invariant($"Created cloud endpoint {id} with max batch size {maxbatchSize} and fan-out factor of {fanoutFactor}."));
+            }
+
             internal static void IoTHubNotConnected(string id)
             {
                 Log.LogWarning((int)EventIds.IoTHubNotConnected, Invariant($"Could not get an active Iot Hub connection for client {id}"));
@@ -361,16 +372,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static void InvalidMessage(string id, Exception ex)
             {
                 Log.LogWarning((int)EventIds.InvalidMessage, ex, Invariant($"Non retryable exception occurred while sending message for client {id}."));
-            }
-
-            public static void ProcessingMessageGroups(ICollection<IRoutingMessage> routingMessages, int groups, int fanoutFactor)
-            {
-                Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"Sending {routingMessages.Count} message(s) upstream, divided into {groups} groups. Processing maximum {fanoutFactor} groups in parallel."));
-            }
-
-            public static void Created(string id, int maxbatchSize, int fanoutFactor)
-            {
-                Log.LogInformation((int)EventIds.Created, Invariant($"Created cloud endpoint {id} with max batch size {maxbatchSize} and fan-out factor of {fanoutFactor}."));
             }
         }
 

@@ -169,13 +169,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             int batchSize = 100;
             List<IMessage> messages = GetNewMessages(batchSize, 0).ToList();
             var iterator = new Mock<IMessageIterator>();
-            iterator.SetupSequence(i => i.GetNext(It.IsAny<int>()))                
+            iterator.SetupSequence(i => i.GetNext(It.IsAny<int>()))
                 .ReturnsAsync(messages.Take(15))
                 .ReturnsAsync(messages.Skip(15).Take(15))
                 .ReturnsAsync(messages.Skip(30).Take(70));
 
             // Act
-            var messagesProvider = new StoringAsyncEndpointExecutor.StoreMessagesProvider(iterator.Object, TimeSpan.FromSeconds(5), 100);            
+            var messagesProvider = new StoringAsyncEndpointExecutor.StoreMessagesProvider(iterator.Object, TimeSpan.FromSeconds(5), 100);
 
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(1));

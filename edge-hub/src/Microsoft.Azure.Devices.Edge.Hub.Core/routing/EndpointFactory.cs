@@ -31,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.cache = new ConcurrentDictionary<string, Endpoint>();
             this.maxBatchSize = maxBatchSize;
+            this.upstreamFanOutFactor = upstreamFanOutFactor;
         }
 
         public Endpoint CreateSystemEndpoint(string endpoint)
