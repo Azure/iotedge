@@ -581,7 +581,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
          * Test function for API
          *   hsm_client_crypto_init
         */
-        TEST_FUNCTION(hsm_client_crypto_init_multiple_times_fails)
+        TEST_FUNCTION(hsm_client_crypto_init_multiple_times_succeeds)
         {
             //arrange
             int status;
@@ -592,7 +592,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             status = hsm_client_crypto_init();
 
             // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
             //cleanup

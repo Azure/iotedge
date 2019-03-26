@@ -52,14 +52,43 @@ static CERT_PROPS_HANDLE create_edge_device_properties
 )
 {
     CERT_PROPS_HANDLE certificate_props = cert_properties_create();
-    if (certificate_props)
+    const char* alias = EDGE_DEVICE_ALIAS;
+
+    if (certificate_props == NULL)
     {
-        set_common_name(certificate_props, common_name);
-        set_validity_seconds(certificate_props, validity_seconds);
-        set_alias(certificate_props, EDGE_DEVICE_ALIAS);
-        set_issuer_alias(certificate_props, issuer_alias);
-        set_certificate_type(certificate_props, CERTIFICATE_TYPE_CLIENT);
+        LOG_ERROR("Could not create certificate props for %s", alias);
     }
+    else if (set_common_name(certificate_props, common_name) != 0)
+    {
+        LOG_ERROR("Could not set common name for %s", alias);
+        cert_properties_destroy(certificate_props);
+        certificate_props = NULL;
+    }
+    else if (set_validity_seconds(certificate_props, validity_seconds) != 0)
+    {
+        LOG_ERROR("Could not set validity for %s", alias);
+        cert_properties_destroy(certificate_props);
+        certificate_props = NULL;
+    }
+    else if (set_alias(certificate_props, alias) != 0)
+    {
+        LOG_ERROR("Could not set alias for %s", alias);
+        cert_properties_destroy(certificate_props);
+        certificate_props = NULL;
+    }
+    else if (set_issuer_alias(certificate_props, issuer_alias) != 0)
+    {
+        LOG_ERROR("Could not set issuer alias for %s", alias);
+        cert_properties_destroy(certificate_props);
+        certificate_props = NULL;
+    }
+    else if (set_certificate_type(certificate_props, CERTIFICATE_TYPE_CLIENT) != 0)
+    {
+        LOG_ERROR("Could not set certificate type for %s", alias);
+        cert_properties_destroy(certificate_props);
+        certificate_props = NULL;
+    }
+
     return certificate_props;
 }
 
@@ -95,6 +124,11 @@ static CERT_INFO_HANDLE get_or_create_device_certificate(HSM_CLIENT_HANDLE hsm_h
         else
         {
             result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
+            if (result == NULL)
+            {
+                LOG_ERROR("Error observed when creating device certificate with CN %s", common_name);
+            }
+            cert_properties_destroy(certificate_props);
         }
         certificate_info_destroy(issuer);
     }
@@ -104,30 +138,87 @@ static CERT_INFO_HANDLE get_or_create_device_certificate(HSM_CLIENT_HANDLE hsm_h
 
 char* iothub_x509_hsm_get_certificate(HSM_CLIENT_HANDLE hsm_handle)
 {
+    char* result;
+
     CERT_INFO_HANDLE handle = get_or_create_device_certificate(hsm_handle);
-    const char * cert = certificate_info_get_certificate(handle);
-    char* result = NULL;
-    mallocAndStrcpy_s(&result, cert);
+    if (handle == NULL)
+    {
+        LOG_ERROR("Could not obtain device certificate");
+        result = NULL;
+    }
+    else
+    {
+        const char * certificate;
+        if ((certificate = certificate_info_get_certificate(handle)) == NULL)
+        {
+            LOG_ERROR("Could retrieve device certificate buffer");
+            result = NULL;
+        }
+        else
+        {
+            result = NULL;
+            if (mallocAndStrcpy_s(&result, certificate) != 0)
+            {
+                LOG_ERROR("Could not allocate memory to store device certificate");
+            }
+        }
+    }
+
     return result;
 }
 
 char* iothub_x509_hsm_get_certificate_key(HSM_CLIENT_HANDLE hsm_handle)
 {
-    CERT_INFO_HANDLE handle = get_or_create_device_certificate(hsm_handle);
+    char* result;
     size_t priv_key_len = 0;
-    const char* key = certificate_info_get_private_key(handle, &priv_key_len);
-    char* result = NULL;
-    mallocAndStrcpy_s(&result, key);
+
+    CERT_INFO_HANDLE handle = get_or_create_device_certificate(hsm_handle);
+    if (handle == NULL)
+    {
+        LOG_ERROR("Could not obtain device private key");
+        result = NULL;
+    }
+    else
+    {
+        const char* private_key;
+        if ((private_key = certificate_info_get_private_key(handle, &priv_key_len)) == NULL)
+        {
+            LOG_ERROR("Could retrieve device private key buffer");
+            result = NULL;
+        }
+        else
+        {
+            result = NULL;
+            if (mallocAndStrcpy_s(&result, private_key) != 0)
+            {
+                LOG_ERROR("Could not allocate memory to store device certificate");
+            }
+        }
+    }
+
     return result;
 }
 
-char* iothub_x509_hsm_get_common_name(HSM_CLIENT_HANDLE handle)
+char* iothub_x509_hsm_get_common_name(HSM_CLIENT_HANDLE hsm_handle)
 {
-    (void)handle;
+    (void)hsm_handle;
+    char *result;
     char *common_name = NULL;
-    hsm_get_env(ENV_DEVICE_ID, &common_name);
-    char* result = NULL;
-    mallocAndStrcpy_s(&result, common_name);
+
+    if ((hsm_get_env(ENV_DEVICE_ID, &common_name) != 0) || (common_name == NULL))
+    {
+        LOG_ERROR("Environment variable %s is not set or empty", ENV_DEVICE_ID);
+        result = NULL;
+    }
+    else
+    {
+        result = NULL;
+        if (mallocAndStrcpy_s(&result, common_name) != 0)
+        {
+            LOG_ERROR("Could not allocate memory to store device certificate common name");
+        }
+    }
+
     return result;
 }
 
