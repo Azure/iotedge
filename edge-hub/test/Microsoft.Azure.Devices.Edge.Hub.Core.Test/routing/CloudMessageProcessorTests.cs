@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                         : Option.None<ICloudProxy>());
             }
 
-            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter);
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter, maxBatchSize: 1);
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
 
             ISinkResult<IRoutingMessage> result1 = await cloudMessageProcessor.ProcessAsync(message1, CancellationToken.None);

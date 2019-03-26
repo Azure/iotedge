@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
     using System;
     using System.Collections.Generic;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
@@ -11,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
-    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Moq;
     using Xunit;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
@@ -64,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             IProcessor moduleMessageProcessor = cloudEndpoint.CreateProcessor();
             Task result = moduleMessageProcessor.CloseAsync(CancellationToken.None);
-            Assert.Equal(TaskEx.Done, result);
+            Assert.Equal(Task.CompletedTask, result);
         }
 
         [Fact]
