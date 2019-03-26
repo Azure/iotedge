@@ -170,6 +170,14 @@ fn main() {
         println!("cargo:rustc-link-lib=ssleay32");
     }
 
+    #[cfg(target_os = "macos")]
+    {
+        println!(
+            "cargo:rustc-link-search=native={}/lib",
+            env::var("OPENSSL_ROOT_DIR").unwrap()
+        );
+    }
+
     #[cfg(unix)]
     println!("cargo:rustc-link-lib=crypto");
 }
