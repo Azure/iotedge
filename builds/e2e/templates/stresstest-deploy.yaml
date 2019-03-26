@@ -33,6 +33,7 @@ steps:
       CleanTargetFolder: true
   - bash: |
         declare -a cnreg=( $CONTAINER_REGISTRY_CREDENTIAL )
+        echo "snitch number=$SNITCH_BUILD_NUMBER"
         testName="Stress"
         . $(Agent.HomeDirectory)/../artifacts/$IMAGES_ARTIFACT_NAME/artifactInfo.txt
         chmod +x $(Agent.HomeDirectory)/../artifacts/$IMAGES_ARTIFACT_NAME/scripts/linux/runE2ETest.sh
@@ -40,6 +41,7 @@ steps:
     displayName: 'Run Stress Test Deployment'
     workingDirectory: '$(Agent.HomeDirectory)/..'
     env:
+      RELEASE_LABEL: '${{ parameters.release.label }}'
       AMQP_SETTINGS_ENABLED: '${{ parameters.amqp.settings.enabled }}'
       CONTAINER_REGISTRY: '${{ parameters.container.registry }}'
       CONTAINER_REGISTRY_CREDENTIAL: '${{ parameters.container.registry.credential }}'
@@ -52,7 +54,6 @@ steps:
       LOADGEN3_TRANSPORTTYPE: '${{ parameters.loadGen3.transportType }}'
       LOADGEN4_TRANSPORTTYPE: '${{ parameters.loadGen4.transportType }}'
       MQTT_SETTINGS_ENABLED: '${{ parameters.mqtt.settings.enabled }}'
-      RELEASE_LABEL: '${{ parameters.release.label }}'
       SNITCH_ALERT_URL: '${{ parameters.snitch.alert.url }}'
       SNITCH_BUILD_NUMBER: '${{ parameters.snitch.build.number }}'
       SNITCH_STORAGE_ACCOUNT: '${{ parameters.snitch.storage.account }}'
