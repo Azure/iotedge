@@ -43,7 +43,6 @@ jobs:
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
       - task: DownloadBuildArtifacts@0
-        condition: false
         displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
@@ -52,7 +51,6 @@ jobs:
           buildVersionToDownload: latestFromBranch
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
-        condition: false
         displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
