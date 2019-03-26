@@ -179,7 +179,7 @@ function prepare_test_from_artifacts() {
                 escapedBuildId="${ARTIFACT_IMAGE_BUILD_NUMBER//./}"
                 sed -i -e "s@<Snitch.AlertUrl>@$escapedSnitchAlertUrl@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.BuildNumber>@$SNITCH_BUILD_NUMBER@g" "$deployment_working_file"
-                sed -i -e "s@<Snitch.BuildId>@$image_architecture_label-linux-$escapedBuildId@g" "$deployment_working_file"
+                sed -i -e "s@<Snitch.BuildId>@$RELEASE_LABEL-$image_architecture_label-linux-$escapedBuildId@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.ReportingIntervalInSecs>@$SNITCH_REPORTING_INTERVAL_IN_SECS@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.StorageAccount>@$SNITCH_STORAGE_ACCOUNT@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.StorageMasterKey>@$SNITCH_STORAGE_MASTER_KEY@g" "$deployment_working_file"
