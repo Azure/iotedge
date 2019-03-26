@@ -33,7 +33,7 @@ steps:
       CleanTargetFolder: true
   - bash: |
         declare -a cnreg=( $CONTAINER_REGISTRY_CREDENTIAL )
-        echo "snitch number=$SNITCH_BUILD_NUMBER"
+        echo "amqp settings=$AMQP_SETTINGS_ENABLED"
         echo "device label=$DEVICE_LABEL"
         testName="Stress"
         . $(Agent.HomeDirectory)/../artifacts/$IMAGES_ARTIFACT_NAME/artifactInfo.txt
