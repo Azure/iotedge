@@ -51,18 +51,15 @@ impl UnixStreamExt for UnixStream {
     }
 }
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
+#[cfg(target_os = "linux")]
 use self::impl_unix::get_pid;
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
+#[cfg(target_os = "linux")]
 mod impl_unix {
     use libc::{c_void, getsockopt, ucred, SOL_SOCKET, SO_PEERCRED};
     use std::os::unix::io::AsRawFd;
     use std::{io, mem};
-    #[cfg(unix)]
     use tokio_uds::UnixStream;
-    #[cfg(windows)]
-    use tokio_uds_windows::UnixStream;
 
     use super::*;
 
@@ -99,34 +96,31 @@ mod impl_unix {
     }
 }
 
-#[cfg(any(target_os = "dragonfly", target_os = "macos", target_os = "ios", target_os = "freebsd", target_os = "openbsd"))]
+#[cfg(target_os = "macos")]
 pub use self::impl_macos::get_pid;
 
-#[cfg(any(target_os = "dragonfly", target_os = "macos", target_os = "ios", target_os = "freebsd", target_os = "openbsd"))]
+#[cfg(target_os = "macos")]
 pub mod impl_macos {
-    // TODO implement properly
-    //    use libc::getpeereid;
-    use std::io;
-    //    use std::mem;
-    use tokio_uds::UnixStream;
-    //    use std::os::unix::io::AsRawFd;
+    use libc::getpeereid;
+    use std::os::unix::io::AsRawFd;
+    use std::{io, mem};
+    use tokio_uds::{UnixStream, UCred};
     use edgelet_core::pid::Pid;
 
-    pub fn get_pid(_sock: &UnixStream) -> io::Result<Pid> {
-        Ok(Pid::Value(-1))
-//        unsafe {
-//            let raw_fd = sock.as_raw_fd();
-//
-//            let mut cred: super::UCred = mem::uninitialized();
-//
-//            let ret = getpeereid(raw_fd, &mut cred.uid, &mut cred.gid);
-//
-//            if ret == 0 {
-//                Ok(cred)
-//            } else {
-//                Err(io::Error::last_os_error())
-//            }
-//        }
+    pub fn get_pid(sock: &UnixStream) -> io::Result<Pid> {
+        unsafe {
+            let raw_fd = sock.as_raw_fd();
+
+            let mut ucred: UCred = mem::uninitialized();
+
+            let ret = getpeereid(raw_fd, &mut ucred.uid, &mut ucred.gid);
+
+            if ret == 0 {
+                Ok(Pid::Value(ucred.uid as _))
+            } else {
+                Err(io::Error::last_os_error())
+            }
+        }
     }
 }
 
