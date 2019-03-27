@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -28,14 +29,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var requestHandler = new Mock<IRequestHandler>();
-            requestHandler.Setup(r => r.HandleRequest(It.IsAny<Option<string>>()))
+            requestHandler.Setup(r => r.HandleRequest(It.IsAny<Option<string>>(), CancellationToken.None))
                 .ReturnsAsync(Option.Some("{\"prop3\":\"foo\",\"prop4\":100}"));
             requestHandler.SetupGet(r => r.RequestName).Returns("req1");
             var requestHandlers = new List<IRequestHandler>
             {
                 requestHandler.Object
             };
-            var requestManager = new RequestManager(requestHandlers);
+            var requestManager = new RequestManager(requestHandlers, TimeSpan.FromSeconds(60));
             string payload = "{\"prop2\":\"foo\",\"prop1\":100}";
 
             // Act
@@ -86,13 +87,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var requestHandler = new Mock<IRequestHandler>();
-            requestHandler.Setup(r => r.HandleRequest(Option.Some(payload))).ThrowsAsync(handlerException);
+            requestHandler.Setup(r => r.HandleRequest(Option.Some(payload), CancellationToken.None)).ThrowsAsync(handlerException);
             requestHandler.SetupGet(r => r.RequestName).Returns("req1");
             var requestHandlers = new List<IRequestHandler>
             {
                 requestHandler.Object
             };
-            var requestManager = new RequestManager(requestHandlers);
+            var requestManager = new RequestManager(requestHandlers, TimeSpan.FromSeconds(60));
 
             // Act
             (int responseStatus, Option<string> responsePayload) = await requestManager.ProcessRequest("req1", payload);
