@@ -14,7 +14,7 @@ parameters:
   loadGen.transportType: 'mqtt'
   longHaul.protocolHead: ''
 
--steps:
+steps:
   - task: CopyFiles@2
     displayName: 'Copy Edgelet Artifact'
     inputs:
