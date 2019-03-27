@@ -71,6 +71,11 @@ PS> Initialize-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -
 .EXAMPLE
 
 PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -SymmetricKey $symmetricKey
 #>
 function Initialize-IoTEdge {
     [CmdletBinding(DefaultParameterSetName = 'Manual')]
@@ -94,6 +99,10 @@ function Initialize-IoTEdge {
         # The DPS registration ID.
         [Parameter(Mandatory = $true, ParameterSetName = 'DPS')]
         [String] $RegistrationId,
+
+        # The DPS symmetric key to provision the Edge device identity
+        [Parameter(ParameterSetName = 'DPS')]
+        [String] $SymmetricKey,
 
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
@@ -337,6 +346,11 @@ PS> Install-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -Con
 .EXAMPLE
 
 PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -SymmetricKey $symmetricKey
 #>
 function Install-IoTEdge {
     [CmdletBinding(DefaultParameterSetName = 'Manual')]
@@ -360,6 +374,10 @@ function Install-IoTEdge {
         # The DPS registration ID.
         [Parameter(Mandatory = $true, ParameterSetName = 'DPS')]
         [String] $RegistrationId,
+
+        # The DPS symmetric key to provision the Edge device identity
+        [Parameter(ParameterSetName = 'DPS')]
+        [String] $SymmetricKey,
 
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
@@ -434,6 +452,7 @@ function Install-IoTEdge {
     if ($DeviceConnectionString) { $Params["-DeviceConnectionString"] = $DeviceConnectionString }
     if ($ScopeId) { $Params["-ScopeId"] = $ScopeId }
     if ($RegistrationId) { $Params["-RegistrationId"] = $RegistrationId }
+    if ($SymmetricKey) { $Params["-SymmetricKey"] = $SymmetricKey }
     if ($AgentImage) { $Params["-AgentImage"] = $AgentImage }
     if ($Username) { $Params["-Username"] = $Username }
     if ($Password) { $Params["-Password"] = $Password }
@@ -1303,13 +1322,16 @@ function Set-ProvisioningMode {
             return $configurationYaml
         }
         else {
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*registration_id:\s".*"'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*registration_id:\s*".*"\s*#?\s*symmetric_key:\s".*"'
             $replacementContent = @(
                 'provisioning:',
                 '  source: ''dps''',
                 '  global_endpoint: ''https://global.azure-devices-provisioning.net''',
                 "  scope_id: '$ScopeId'",
                 "  registration_id: '$RegistrationId'")
+            if ($SymmetricKey) {
+                $replacementContent += "  symmetric_key: '$SymmetricKey'"
+            }
             $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
 
             $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'

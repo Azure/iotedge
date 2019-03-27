@@ -30,10 +30,10 @@
             "All", "DirectMethodAmqp", "DirectMethodMqtt", "QuickstartCerts", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway"
 
     .PARAMETER ContainerRegistry
-        Host address of container registry; Default is "edgebuilds.azurecr.io".
+        Host address of container registry. It could be azure container registry, docker hub, or your own hosted container registry.
 
     .PARAMETER ContainerRegistryUsername
-        Username of container registry; Default is "EdgeBuilds".
+        Username of container registry.
 
     .PARAMETER ContainerRegistryPassword
         Password of given username for container registory
@@ -53,8 +53,8 @@
             -ReleaseLabel "Release-ARM-1"
             -ArtifactImageBuildNumber "20190101.1"
             -TestName "TempSensor"
-            -ContainerRegistry "edgebuilds.azurecr.io"
-            -ContainerRegistryUsername "EdgeBuilds"
+            -ContainerRegistry "yourpipeline.azurecr.io"
+            -ContainerRegistryUsername "xxxx"
             -ContainerRegistryPassword "xxxx"
             -IoTHubConnectionString "xxxx"
             -EventHubConnectionString "xxxx"
@@ -66,8 +66,8 @@
             -ReleaseLabel "Release-ARM-1"
             -ArtifactImageBuildNumber "20190101.1"
             -TestName "TransparentGateway"
-            -ContainerRegistry "edgebuilds.azurecr.io"
-            -ContainerRegistryUsername "EdgeBuilds"
+            -ContainerRegistry "yourpipeline.azurecr.io"
+            -ContainerRegistryUsername "xxxx"
             -ContainerRegistryPassword "xxxx"
             -IoTHubConnectionString "xxxx"
             -EventHubConnectionString "xxxx"
@@ -98,10 +98,10 @@ Param (
     [string] $TestName = "All",
 
     [ValidateNotNullOrEmpty()]
-    [string] $ContainerRegistry = "edgebuilds.azurecr.io",
+    [string] $ContainerRegistry = $(Throw "Container registry is required"),
 
     [ValidateNotNullOrEmpty()]
-    [string] $ContainerRegistryUsername = "EdgeBuilds",
+    [string] $ContainerRegistryUsername = $(Throw "Container registry username is required"),
 
     [ValidateNotNullOrEmpty()]
     [string] $ContainerRegistryPassword = $(Throw "Container registry password is required"),
@@ -127,7 +127,7 @@ Param (
 
 Set-StrictMode -Version "Latest"
 $ErrorActionPreference = "Stop"
-$ProgressPreference = "SilentlyContinue"
+$global:ProgressPreference = "SilentlyContinue"
 
 Function AppendInstallationOption([string] $testCommand)
 {
@@ -282,9 +282,17 @@ Function PrepareTestFromArtifacts
             }
         }
 
+        If ($Architecture -eq "arm32v7") 
+        {
+            (Get-Content $DeploymentWorkingFilePath).replace('<OptimizeForPerformance>', 'false') | Set-Content $DeploymentWorkingFilePath
+        }
+        else
+        {
+            (Get-Content $DeploymentWorkingFilePath).replace('<OptimizeForPerformance>', 'true') | Set-Content $DeploymentWorkingFilePath
+        }
+        
         $ImageArchitectureLabel = $(GetImageArchitectureLabel)
         (Get-Content $DeploymentWorkingFilePath).replace('<Architecture>', $ImageArchitectureLabel) | Set-Content $DeploymentWorkingFilePath
-        (Get-Content $DeploymentWorkingFilePath).replace('<OptimizeForPerformance>', 'true') | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<Build.BuildNumber>', $ArtifactImageBuildNumber) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Username>', $ContainerRegistryUsername) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Password>', $ContainerRegistryPassword) | Set-Content $DeploymentWorkingFilePath
@@ -863,12 +871,21 @@ Function RunTest
     Return $testExitCode
 }
 
+Function SetEnvironmentVariable
+{
+    # IoTEdgeQuickstart runs different processes to call iotedge list right after running installation script.
+    # E2E test failed randomly when running iotedge list command throws Win32Exception as Path environment variable may not be in place yet.
+    # Therefore set it explicitly before running each test.
+    $env:Path="$env:Path;C:\Program Files\iotedge-moby;C:\Program Files\iotedge"
+}
+
 Function TestSetup
 {
     ValidateTestParameters
     CleanUp | Out-Host
     InitializeWorkingFolder
     PrepareTestFromArtifacts
+    SetEnvironmentVariable
 }
 
 Function ValidateTestParameters
