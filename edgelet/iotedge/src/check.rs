@@ -586,10 +586,10 @@ fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
             match winapi::um::winsock2::WSAStartup(0x202, &mut wsa_data) {
                 0 => (),
                 result => {
-                    return Err(format!(
+                    return Err(Context::new(format!(
                         "Could not get hostname: WSAStartup failed with {}",
                         result,
-                    )
+                    ))
                     .into());
                 }
             }
@@ -598,10 +598,10 @@ fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
                 // Can't use std::io::Error::last_os_error() because that calls GetLastError, not WSAGetLastError
                 let winsock_err = winapi::um::winsock2::WSAGetLastError();
 
-                return Err(format!(
+                return Err(Context::new(format!(
                     "Could not get hostname: gethostname failed with {}",
                     winsock_err,
-                )
+                ))
                 .into());
             }
         }
