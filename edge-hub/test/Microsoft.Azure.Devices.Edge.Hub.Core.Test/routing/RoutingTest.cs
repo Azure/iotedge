@@ -421,6 +421,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>())).Callback<IMessage>(m => iotHub.ReceivedMessages.Add(m)).Returns(Task.CompletedTask);
+            cloudProxy.Setup(c => c.SendMessageBatchAsync(It.IsAny<IEnumerable<IMessage>>())).Callback<IEnumerable<IMessage>>(m => iotHub.ReceivedMessages.AddRange(m)).Returns(Task.CompletedTask);
             cloudProxy.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<IMessage>())).Callback<IMessage>(m => iotHub.ReceivedMessages.Add(m)).Returns(Task.CompletedTask);
             cloudProxy.SetupGet(c => c.IsActive).Returns(true);
             var cloudConnection = Mock.Of<ICloudConnection>(c => c.IsActive && c.CloudProxy == Option.Some(cloudProxy.Object));
