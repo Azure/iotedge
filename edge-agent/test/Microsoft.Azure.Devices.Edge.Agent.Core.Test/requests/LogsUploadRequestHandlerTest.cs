@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                 .Returns(Task.CompletedTask);
 
             // Act
-            var logsUploadRequestHandler = new LogsUploadRequestHandler(logsUploader.Object, logsProvider.Object);
+            var logsUploadRequestHandler = new LogsUploadRequestHandler(logsUploader.Object, logsProvider.Object, Mock.Of<IRuntimeInfoProvider>());
             Option<string> response = await logsUploadRequestHandler.HandleRequest(Option.Maybe(payload), CancellationToken.None);
 
             // Assert
