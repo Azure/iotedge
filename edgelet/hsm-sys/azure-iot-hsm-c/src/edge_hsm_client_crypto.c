@@ -18,13 +18,13 @@ typedef struct EDGE_CRYPTO_TAG EDGE_CRYPTO;
 
 static const HSM_CLIENT_STORE_INTERFACE* g_hsm_store_if = NULL;
 static const HSM_CLIENT_KEY_INTERFACE* g_hsm_key_if = NULL;
-static bool g_is_crypto_initialized = false;
+static unsigned int g_crypto_ref = 0;
 
 int hsm_client_crypto_init(void)
 {
     int result;
 
-    if (!g_is_crypto_initialized)
+    if (g_crypto_ref == 0)
     {
         int status;
         const HSM_CLIENT_STORE_INTERFACE* store_if;
@@ -46,7 +46,7 @@ int hsm_client_crypto_init(void)
         }
         else
         {
-            g_is_crypto_initialized = true;
+            g_crypto_ref = 1;
             g_hsm_store_if = store_if;
             g_hsm_key_if = key_if;
 			srand((unsigned int)time(NULL));
@@ -55,6 +55,7 @@ int hsm_client_crypto_init(void)
     }
     else
     {
+        g_crypto_ref++;
         result = 0;
     }
 
@@ -63,20 +64,23 @@ int hsm_client_crypto_init(void)
 
 void hsm_client_crypto_deinit(void)
 {
-    if (!g_is_crypto_initialized)
+    if (g_crypto_ref == 0)
     {
         LOG_ERROR("hsm_client_tpm_init not called");
     }
     else
     {
-        int status;
-        if ((status = g_hsm_store_if->hsm_client_store_destroy(EDGE_STORE_NAME)) != 0)
+        g_crypto_ref--;
+        if (g_crypto_ref == 0)
         {
-            LOG_ERROR("Could not destroy store. Error code %d", status);
+            int status;
+            if ((status = g_hsm_store_if->hsm_client_store_destroy(EDGE_STORE_NAME)) != 0)
+            {
+                LOG_ERROR("Could not destroy store. Error code %d", status);
+            }
+            g_hsm_store_if = NULL;
+            g_hsm_key_if = NULL;
         }
-        g_hsm_store_if = NULL;
-        g_hsm_key_if = NULL;
-        g_is_crypto_initialized = false;
     }
 }
 
@@ -93,7 +97,7 @@ static HSM_CLIENT_HANDLE edge_hsm_client_crypto_create(void)
     HSM_CLIENT_HANDLE result;
     EDGE_CRYPTO* edge_crypto;
 
-    if (!g_is_crypto_initialized)
+    if (g_crypto_ref == 0)
     {
         LOG_ERROR("hsm_client_crypto_init not called");
         result = NULL;
@@ -118,7 +122,7 @@ static HSM_CLIENT_HANDLE edge_hsm_client_crypto_create(void)
 
 static void edge_hsm_client_crypto_destroy(HSM_CLIENT_HANDLE handle)
 {
-    if (!g_is_crypto_initialized)
+    if (g_crypto_ref == 0)
     {
         LOG_ERROR("hsm_client_crypto_init not called");
     }
@@ -137,7 +141,8 @@ static void edge_hsm_client_crypto_destroy(HSM_CLIENT_HANDLE handle)
 static int edge_hsm_client_get_random_bytes(HSM_CLIENT_HANDLE handle, unsigned char* rand_buffer, size_t num_bytes)
 {
     int result;
-    if (!g_is_crypto_initialized)
+
+    if (g_crypto_ref == 0)
     {
         LOG_ERROR("hsm_client_crypto_init not called");
         result = __FAILURE__;
@@ -174,7 +179,7 @@ static int edge_hsm_client_create_master_encryption_key(HSM_CLIENT_HANDLE handle
 {
     int result;
 
-    if (!g_is_crypto_initialized)
+    if (g_crypto_ref == 0)
     {
         LOG_ERROR("hsm_client_crypto_init not called");
         result = __FAILURE__;
@@ -206,7 +211,7 @@ static int edge_hsm_client_destroy_master_encryption_key(HSM_CLIENT_HANDLE handl
 {
     int result;
 
-    if (!g_is_crypto_initialized)
+    if (g_crypto_ref == 0)
     {
         LOG_ERROR("hsm_client_crypto_init not called");
         result = __FAILURE__;
@@ -241,7 +246,7 @@ static CERT_INFO_HANDLE edge_hsm_client_create_certificate(HSM_CLIENT_HANDLE han
     const char* alias;
     const char* issuer_alias;
 
-    if (!g_is_crypto_initialized)
+    if (g_crypto_ref == 0)
     {
         LOG_ERROR("hsm_client_crypto_init not called");
         result = NULL;
@@ -289,7 +294,7 @@ static CERT_INFO_HANDLE edge_hsm_client_get_trust_bundle(HSM_CLIENT_HANDLE handl
 {
     CERT_INFO_HANDLE result;
 
-    if (!g_is_crypto_initialized)
+    if (g_crypto_ref == 0)
     {
         LOG_ERROR("hsm_client_crypto_init not called");
         result = NULL;
@@ -310,7 +315,7 @@ static CERT_INFO_HANDLE edge_hsm_client_get_trust_bundle(HSM_CLIENT_HANDLE handl
 
 static void edge_hsm_client_destroy_certificate(HSM_CLIENT_HANDLE handle, const char* alias)
 {
-    if (!g_is_crypto_initialized)
+    if (g_crypto_ref == 0)
     {
         LOG_ERROR("hsm_client_crypto_init not called");
     }
@@ -444,7 +449,7 @@ static int edge_hsm_client_encrypt_data
 {
     int result;
 
-    if (!g_is_crypto_initialized)
+    if (g_crypto_ref == 0)
     {
         LOG_ERROR("hsm_client_crypto_init not called");
         result = __FAILURE__;
@@ -489,7 +494,7 @@ static int edge_hsm_client_decrypt_data
 {
     int result;
 
-    if (!g_is_crypto_initialized)
+    if (g_crypto_ref == 0)
     {
         LOG_ERROR("hsm_client_crypto_init not called");
         result = __FAILURE__;
@@ -550,7 +555,7 @@ static CERT_INFO_HANDLE edge_hsm_client_crypto_get_certificate
 {
     CERT_INFO_HANDLE result;
 
-    if (!g_is_crypto_initialized)
+    if (g_crypto_ref == 0)
     {
         LOG_ERROR("hsm_client_crypto_init not called");
         result = NULL;

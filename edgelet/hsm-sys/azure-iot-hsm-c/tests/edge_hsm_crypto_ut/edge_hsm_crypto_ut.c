@@ -548,6 +548,30 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
          * Test function for API
          *   hsm_client_crypto_init
         */
+        TEST_FUNCTION(hsm_client_crypto_multi_init_success)
+        {
+            //arrange
+            int status;
+            status = hsm_client_crypto_init();
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+            umock_c_reset_all_calls();
+
+            // act
+            status = hsm_client_crypto_init();
+
+            // assert
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+
+            //cleanup
+            hsm_client_crypto_deinit();
+            hsm_client_crypto_deinit();
+        }
+
+        /**
+         * Test function for API
+         *   hsm_client_crypto_init
+        */
         TEST_FUNCTION(hsm_client_crypto_init_negative)
         {
             //arrange
@@ -575,28 +599,6 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
 
             //cleanup
             umock_c_negative_tests_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_crypto_init
-        */
-        TEST_FUNCTION(hsm_client_crypto_init_multiple_times_succeeds)
-        {
-            //arrange
-            int status;
-            (void)hsm_client_crypto_init();
-            umock_c_reset_all_calls();
-
-            // act
-            status = hsm_client_crypto_init();
-
-            // assert
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_deinit();
         }
 
         /**
