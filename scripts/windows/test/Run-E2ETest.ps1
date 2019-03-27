@@ -863,12 +863,21 @@ Function RunTest
     Return $testExitCode
 }
 
+Function SetEnvironmentVariable
+{
+    # IoTEdgeQuickstart runs different processes to call iotedge list right after running installation script.
+    # E2E test failed randomly when running iotedge list command throws Win32Exception as Path environment variable may not be in place yet.
+    # Therefore set it explicitly before running each test.
+    $env:Path="$env:Path;C:\Program Files\iotedge-moby;C:\Program Files\iotedge"
+}
+
 Function TestSetup
 {
     ValidateTestParameters
     CleanUp | Out-Host
     InitializeWorkingFolder
     PrepareTestFromArtifacts
+    SetEnvironmentVariable
 }
 
 Function ValidateTestParameters
