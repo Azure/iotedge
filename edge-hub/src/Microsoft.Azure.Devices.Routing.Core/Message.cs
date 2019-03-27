@@ -120,8 +120,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 hash = hash * 31 + (int)(this.Offset ^ (this.Offset >> 32));
                 hash = hash * 31 + this.MessageSource.GetHashCode();
                 hash = this.Body.Aggregate(hash, (acc, b) => acc * 31 + b);
-                hash = this.Properties.Aggregate(hash, (acc, pair) => (acc * 31 + pair.Key.GetHashCode()) * 31 + pair.Value.GetHashCode());
-                hash = this.SystemProperties.Aggregate(hash, (acc, pair) => (acc * 31 + pair.Key.GetHashCode()) * 31 + pair.Value.GetHashCode());
+                hash = this.Properties.Aggregate(hash, (acc, pair) => (acc * 31 + pair.Key.GetHashCode()) * 31 + pair.Value?.GetHashCode() ?? 0);
+                hash = this.SystemProperties.Aggregate(hash, (acc, pair) => (acc * 31 + pair.Key.GetHashCode()) * 31 + pair.Value?.GetHashCode() ?? 0);
                 return hash;
             }
         }
@@ -135,8 +135,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
         public long Size()
         {
             long size = 0L;
-            size += this.Properties.Aggregate(0, (acc, pair) => (acc + pair.Key.Length + pair.Value.Length));
-            size += this.SystemProperties.Aggregate(0, (acc, pair) => (acc + pair.Key.Length + pair.Value.Length));
+            size += this.Properties.Aggregate(0, (acc, pair) => (acc + pair.Key.Length + pair.Value?.Length ?? 0));
+            size += this.SystemProperties.Aggregate(0, (acc, pair) => (acc + pair.Key.Length + pair.Value?.Length ?? 0));
             size += this.Body.Length;
             return size;
         }
