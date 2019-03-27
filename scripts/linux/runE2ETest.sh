@@ -93,6 +93,18 @@ function get_long_haul_deployment_artifact_file() {
     echo "$path"
 }
 
+function get_optimize_for_performance_flag() {
+    local flag
+    if [[ $image_architecture_label == 'arm32v7' ]] ||
+       [[ $image_architecture_label == 'arm64v8' ]]; then
+       flag="false"
+    else
+       flag="true"
+    fi
+    
+    echo $flag
+}
+
 function prepare_test_from_artifacts() {
     print_highlighted_message 'Prepare test from artifacts'
 
@@ -192,13 +204,7 @@ function prepare_test_from_artifacts() {
                 cp "$module_to_functions_deployment_artifact_file" "$deployment_working_file";;
         esac
 
-        if [[ $image_architecture_label == 'arm32v7' ]] ||
-           [[ $image_architecture_label == 'arm64v8' ]]; then
-            sed -i -e "s@<OptimizeForPerformance>@false@g" "$deployment_working_file"
-        else
-            sed -i -e "s@<OptimizeForPerformance>@true@g" "$deployment_working_file"
-        fi
-
+        sed -i -e "s@<OptimizeForPerformance>@$(get_optimize_for_performance_flag)@g" "$deployment_working_file"
         sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
         sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
         sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
@@ -548,7 +554,7 @@ function run_quickstartcerts_test() {
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=Core \
-        --optimize_for_performance=true \
+        --optimize_for_performance="$(get_optimize_for_performance_flag)" \
         --no-verify && ret=$? || ret=$?
 
     declare -a certs=( /var/lib/iotedge/hsm/certs/edge_owner_ca*.pem )
@@ -680,7 +686,7 @@ function run_tempsensor_test() {
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
-        --optimize_for_performance=true \
+        --optimize_for_performance="$(get_optimize_for_performance_flag)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS

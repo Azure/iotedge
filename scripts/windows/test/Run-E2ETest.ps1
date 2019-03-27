@@ -193,6 +193,16 @@ Function GetImageArchitectureLabel
     Throw "Can't find image architecture label for $Architecture"
 }
 
+Function GetOptimizeForPerformanceFlag
+{
+    If ($Architecture -eq "arm32v7") 
+    {
+        return "false";
+    }
+
+    return "true";
+}
+
 Function InitializeWorkingFolder
 {
     PrintHighlightedMessage "Prepare $TestWorkingFolder for test run"
@@ -282,17 +292,9 @@ Function PrepareTestFromArtifacts
             }
         }
 
-        If ($Architecture -eq "arm32v7") 
-        {
-            (Get-Content $DeploymentWorkingFilePath).replace('<OptimizeForPerformance>', 'false') | Set-Content $DeploymentWorkingFilePath
-        }
-        else
-        {
-            (Get-Content $DeploymentWorkingFilePath).replace('<OptimizeForPerformance>', 'true') | Set-Content $DeploymentWorkingFilePath
-        }
-        
         $ImageArchitectureLabel = $(GetImageArchitectureLabel)
         (Get-Content $DeploymentWorkingFilePath).replace('<Architecture>', $ImageArchitectureLabel) | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('<OptimizeForPerformance>', $(GetOptimizeForPerformanceFlag)) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<Build.BuildNumber>', $ArtifactImageBuildNumber) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Username>', $ContainerRegistryUsername) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Password>', $ContainerRegistryPassword) | Set-Content $DeploymentWorkingFilePath
@@ -546,7 +548,7 @@ Function RunQuickstartCertsTest
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-        --optimize_for_performance true ``
+        --optimize_for_performance $(GetOptimizeForPerformanceFlag) ``
         --leave-running=All ``
         --no-verify"
     If ($ProxyUri) {
@@ -664,7 +666,7 @@ Function RunTempSensorTest
         -p `"$ContainerRegistryPassword`" ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         -tw `"$TwinTestFileArtifactFilePath`" ``
-        --optimize_for_performance true"
+        --optimize_for_performance $(GetOptimizeForPerformanceFlag)"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             -l `"$DeploymentWorkingFilePath`" ``
@@ -821,7 +823,7 @@ Function RunTransparentGatewayTest
         --device_ca_cert `"$EdgeCertGenScriptDir\certs\iot-edge-device-$edgeDeviceId-full-chain.cert.pem`" ``
         --device_ca_pk `"$EdgeCertGenScriptDir\private\iot-edge-device-$edgeDeviceId.key.pem`" ``
         --trusted_ca_certs `"$TrustedCACertificatePath`" ``
-        --optimize_for_performance true ``
+        --optimize_for_performance $(GetOptimizeForPerformanceFlag) ``
         --leave-running=All ``
         --no-verify"
 
