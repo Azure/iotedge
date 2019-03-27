@@ -30,10 +30,10 @@
             "All", "DirectMethodAmqp", "DirectMethodMqtt", "QuickstartCerts", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway"
 
     .PARAMETER ContainerRegistry
-        Host address of container registry; Default is "edgebuilds.azurecr.io".
+        Host address of container registry. It could be azure container registry, docker hub, or your own hosted container registry.
 
     .PARAMETER ContainerRegistryUsername
-        Username of container registry; Default is "EdgeBuilds".
+        Username of container registry.
 
     .PARAMETER ContainerRegistryPassword
         Password of given username for container registory
@@ -53,8 +53,8 @@
             -ReleaseLabel "Release-ARM-1"
             -ArtifactImageBuildNumber "20190101.1"
             -TestName "TempSensor"
-            -ContainerRegistry "edgebuilds.azurecr.io"
-            -ContainerRegistryUsername "EdgeBuilds"
+            -ContainerRegistry "yourpipeline.azurecr.io"
+            -ContainerRegistryUsername "xxxx"
             -ContainerRegistryPassword "xxxx"
             -IoTHubConnectionString "xxxx"
             -EventHubConnectionString "xxxx"
@@ -66,8 +66,8 @@
             -ReleaseLabel "Release-ARM-1"
             -ArtifactImageBuildNumber "20190101.1"
             -TestName "TransparentGateway"
-            -ContainerRegistry "edgebuilds.azurecr.io"
-            -ContainerRegistryUsername "EdgeBuilds"
+            -ContainerRegistry "yourpipeline.azurecr.io"
+            -ContainerRegistryUsername "xxxx"
             -ContainerRegistryPassword "xxxx"
             -IoTHubConnectionString "xxxx"
             -EventHubConnectionString "xxxx"
@@ -98,10 +98,10 @@ Param (
     [string] $TestName = "All",
 
     [ValidateNotNullOrEmpty()]
-    [string] $ContainerRegistry = "edgebuilds.azurecr.io",
+    [string] $ContainerRegistry = $(Throw "Container registry is required"),
 
     [ValidateNotNullOrEmpty()]
-    [string] $ContainerRegistryUsername = "EdgeBuilds",
+    [string] $ContainerRegistryUsername = $(Throw "Container registry username is required"),
 
     [ValidateNotNullOrEmpty()]
     [string] $ContainerRegistryPassword = $(Throw "Container registry password is required"),
