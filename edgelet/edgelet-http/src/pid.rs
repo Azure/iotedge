@@ -101,11 +101,11 @@ pub use self::impl_macos::get_pid;
 
 #[cfg(target_os = "macos")]
 pub mod impl_macos {
+    use edgelet_core::pid::Pid;
     use libc::getpeereid;
     use std::os::unix::io::AsRawFd;
     use std::{io, mem};
-    use tokio_uds::{UnixStream, UCred};
-    use edgelet_core::pid::Pid;
+    use tokio_uds::{UCred, UnixStream};
 
     pub fn get_pid(sock: &UnixStream) -> io::Result<Pid> {
         unsafe {
