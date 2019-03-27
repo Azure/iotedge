@@ -816,7 +816,7 @@ function usage() {
     echo ' -loadGen4TransportType          Transport type for LoadGen4 for stress test. Default is mqtt.'
     echo ' -amqpSettingsEnabled            Enable amqp protocol head in Edge Hub.'
     echo ' -mqttSettingsEnabled            Enable mqtt protocol head in Edge Hub.'
-    echo ' -longHaulProtocolHead           Specify which protocol head is used to run long haul test for ARM32v7 device. Valid values are amqp and mqtt.'
+    echo ' -longHaulProtocolHead           Specify which protocol head is used to run long haul test for ARM32v7 device. Valid values are amqp (default) and mqtt.'
     exit 1;
 }
 
