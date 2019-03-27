@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             this.machine.Configure(State.Connected)
                 .Permit(Trigger.CallTimedOut, State.Trying)
-                .InternalTransition(Trigger.CallSucceeded, () => this.ResetConnectedTimer())
+                .InternalTransition(Trigger.CallSucceeded, this.ResetConnectedTimer)
                 .OnEntry(this.OnConnected)
                 .OnExit(this.OnConnectedExit);
 
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             this.machine.Configure(State.Disconnected)
                 .Permit(Trigger.CallSucceeded, State.Connected)
-                .InternalTransition(Trigger.CallTimedOut, () => this.ResetDisconnectedTimer())
+                .InternalTransition(Trigger.CallTimedOut, this.ResetDisconnectedTimer)
                 .OnEntry(this.OnDisconnected)
                 .OnExit(this.OnDisconnectedExit);
 
