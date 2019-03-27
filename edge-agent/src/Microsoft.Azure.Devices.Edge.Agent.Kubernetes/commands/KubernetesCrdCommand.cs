@@ -15,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
@@ -68,12 +67,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
             {
                 var secretData = new Dictionary<string, byte[]>();
                 secretData[Constants.k8sPullSecretData] = Encoding.UTF8.GetBytes(imagePullSecret.Value.GenerateSecret());
-                var secretMeta = new V1ObjectMeta(name: imagePullSecret.Key, namespaceProperty: Constants.k8sNamespace);
+                var secretMeta = new V1ObjectMeta(name: imagePullSecret.Key, namespaceProperty: KubeUtils.K8sNamespace);
                 var newSecret = new V1Secret("v1", secretData, type: Constants.k8sPullSecretType, kind: "Secret", metadata: secretMeta);
                 Option<V1Secret> currentSecret;
                 try
                 {
-                    currentSecret = Option.Maybe(await this.client.ReadNamespacedSecretAsync(imagePullSecret.Key, Constants.k8sNamespace, cancellationToken: token));
+                    currentSecret = Option.Maybe(await this.client.ReadNamespacedSecretAsync(imagePullSecret.Key, KubeUtils.K8sNamespace, cancellationToken: token));
                 }
                 catch (Exception ex) when (!ex.IsFatal())
                 {
@@ -91,13 +90,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                                 return await this.client.ReplaceNamespacedSecretAsync(
                                     newSecret,
                                     imagePullSecret.Key,
-                                    Constants.k8sNamespace,
+                                    KubeUtils.K8sNamespace,
                                     cancellationToken: token);
                             }
 
                             return s;
                         },
-                        async () => await this.client.CreateNamespacedSecretAsync(newSecret, Constants.k8sNamespace, cancellationToken: token));
+                        async () => await this.client.CreateNamespacedSecretAsync(newSecret, KubeUtils.K8sNamespace, cancellationToken: token));
                 }
                 catch (Exception ex) when (!ex.IsFatal())
                 {
@@ -147,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                 HttpOperationResponse<object> currentDeployment = await this.client.GetNamespacedCustomObjectWithHttpMessagesAsync(
                     Constants.k8sCrdGroup,
                     Constants.k8sApiVersion,
-                    Constants.k8sNamespace,
+                    KubeUtils.K8sNamespace,
                     Constants.k8sCrdPlural,
                     resourceName,
                     cancellationToken: token);
@@ -168,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
 
             await this.UpdateImagePullSecrets(secrets, token);
 
-            var metadata = new V1ObjectMeta(name: resourceName, namespaceProperty: Constants.k8sNamespace);
+            var metadata = new V1ObjectMeta(name: resourceName, namespaceProperty: KubeUtils.K8sNamespace);
             // need resourceVersion for Replace.
             activeDeployment.ForEach(deployment => metadata.ResourceVersion = deployment.Metadata.ResourceVersion);
             var customObjectDefinition = new EdgeDeploymentDefinition(metaApiVersion, Constants.k8sCrdKind, metadata, modulesList);
@@ -185,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                     crdObject,
                     Constants.k8sCrdGroup,
                     Constants.k8sApiVersion,
-                    Constants.k8sNamespace,
+                    KubeUtils.K8sNamespace,
                     Constants.k8sCrdPlural,
                     cancellationToken: token);
 
@@ -197,7 +196,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                     crdObject,
                     Constants.k8sCrdGroup,
                     Constants.k8sApiVersion,
-                    Constants.k8sNamespace,
+                    KubeUtils.K8sNamespace,
                     Constants.k8sCrdPlural,
                     resourceName,
                     cancellationToken: token);

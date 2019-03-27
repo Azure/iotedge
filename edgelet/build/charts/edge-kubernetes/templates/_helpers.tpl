@@ -85,3 +85,18 @@ Parse the host name from connection string.
 {{- define "edge-kubernetes.hostname" -}}
 {{- regexFind "HostName=[^;]+" .Values.deviceConnectionString | regexFind "=.+" | substr 1 -1 | lower -}}
 {{- end -}}
+
+{{/*
+Parse the hub name from connection string.
+*/}}
+{{- define "edge-kubernetes.hubname" -}}
+{{- include "edge-kubernetes.hostname" . | splitList "." | first | lower -}}
+{{- end -}}
+
+{{/*
+Generate namespace name from connection string
+*/}}
+{{- define "edge-kubernetes.namespace" -}}
+{{ .Values.namespace }}-{{ include "edge-kubernetes.hubname" .}}-{{ include "edge-kubernetes.deviceid" . }}
+{{- end -}}
+

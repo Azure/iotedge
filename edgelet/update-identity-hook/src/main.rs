@@ -15,14 +15,15 @@ use edgelet_core::crypto::{DerivedKeyStore, KeyIdentity, KeyStore, MemoryKey, Me
 use edgelet_core::{Identity, IdentityManager, IdentitySpec};
 use edgelet_http::client::Client as HttpClient;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
-use futures::future::Future;
+use futures::future::{self, Either, Future};
 use hyper::client::HttpConnector;
 use hyper::Client as HyperClient;
 use hyper_tls::HttpsConnector;
 use iothubservice::DeviceClient;
 use kube_client::k8s_openapi::v1_10::api::core::v1 as api_core;
+use kube_client::k8s_openapi::v1_10::apiextensions_apiserver::pkg::apis::apiextensions::v1beta1;
 use kube_client::k8s_openapi::v1_10::apimachinery::pkg::apis::meta::v1 as api_meta;
-use kube_client::{get_config, Client as KubeClient};
+use kube_client::{get_config, Client as KubeClient, ValueToken};
 use provisioning::provisioning::{ManualProvisioning, Provision, ProvisioningResult};
 use url::Url;
 
@@ -47,54 +48,123 @@ fn main() {
 
 fn create(device_cs: &str, kube_ns: &str, release_name: &str) {
     let mut runtime = tokio::runtime::Runtime::new().unwrap();
-    let (mut id_man, prov_result) = get_identity_manager(device_cs.to_string());
+    let (id_man, prov_result) = get_identity_manager(device_cs.to_string());
 
-    // get the current edge agent identity to fetch the generation id
-    let edge_agent = runtime
-        .block_on(id_man.get(IdentitySpec::new(EDGE_AGENT_MODULE_ID.to_string())))
-        .unwrap()
-        .unwrap();
-
-    // update the credentials
-    let edge_agent = runtime
-        .block_on(
-            id_man.update(
-                IdentitySpec::new(EDGE_AGENT_MODULE_ID.to_string())
-                    .with_generation_id(edge_agent.generation_id().to_string()),
-            ),
-        )
-        .unwrap();
-
-    // create a config map with the edge agent's generation ID
     let kube_config = get_config().unwrap();
     let kube_client = KubeClient::new(kube_config);
 
-    let mut data = BTreeMap::new();
-    data.insert(
-        "generationId".to_string(),
-        edge_agent.generation_id().to_string(),
-    );
-    data.insert("deviceId".to_string(), prov_result.device_id().to_string());
-    data.insert(
-        "iotHubHostName".to_string(),
-        prov_result.hub_name().to_string(),
-    );
+    // create the crd
+    runtime.block_on(create_crd(kube_client.clone())).unwrap();
+    println!("Created CRD.");
 
-    let mut meta: api_meta::ObjectMeta = Default::default();
-    meta.name = Some(format!("{}-ea-config", release_name));
-
-    let config_map = api_core::ConfigMap {
-        api_version: Some("v1".to_string()),
-        binary_data: None,
-        data: Some(data),
-        kind: Some("ConfigMap".to_string()),
-        metadata: Some(meta),
-    };
-
-    let config_map = runtime
-        .block_on(kube_client.create_config_map(&kube_ns, &config_map))
+    // create a config map with the edge agent's generation ID
+    let ea_config_map = runtime
+        .block_on(create_ea_config_map(
+            kube_ns.to_string(),
+            release_name.to_string(),
+            id_man,
+            prov_result,
+            kube_client,
+        ))
         .unwrap();
-    println!("{}", serde_yaml::to_string(&config_map).unwrap());
+    println!("{}", serde_yaml::to_string(&ea_config_map).unwrap());
+}
+
+fn create_crd(kube_client: KubeClient<ValueToken>) -> impl Future<Item = (), Error = String> {
+    // check if this CRD already exists and create if it doesn't
+    let kube_client_copy = kube_client.clone();
+    kube_client
+        .read_crd("edgedeployments.microsoft.azure.devices.edge")
+        .map_err(|err| format!("{:?}", err))
+        .and_then(move |crd| {
+            crd.map(|_| Either::A(future::ok(()))).unwrap_or_else(|| {
+                let crd = v1beta1::CustomResourceDefinition {
+                    api_version: Some("apiextensions.k8s.io/v1beta1".to_string()),
+                    kind: Some("CustomResourceDefinition".to_string()),
+                    metadata: Some(api_meta::ObjectMeta {
+                        name: Some("edgedeployments.microsoft.azure.devices.edge".to_string()),
+                        ..Default::default()
+                    }),
+                    spec: Some(v1beta1::CustomResourceDefinitionSpec {
+                        group: "microsoft.azure.devices.edge".to_string(),
+                        names: v1beta1::CustomResourceDefinitionNames {
+                            kind: "EdgeDeployment".to_string(),
+                            list_kind: Some("EdgeDeploymentList".to_string()),
+                            plural: "edgedeployments".to_string(),
+                            singular: Some("edgedeployment".to_string()),
+                            ..Default::default()
+                        },
+                        scope: "Namespaced".to_string(),
+                        version: "v1beta1".to_string(),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                };
+
+                Either::B(
+                    kube_client_copy
+                        .create_crd(crd)
+                        .map(|_| ())
+                        .map_err(|err| format!("{:?}", err)),
+                )
+            })
+        })
+}
+
+fn create_ea_config_map(
+    kube_ns: String,
+    release_name: String,
+    mut id_man: HubIdentityManager<
+        DerivedKeyStore<MemoryKey>,
+        HyperClient<HttpsConnector<HttpConnector>>,
+        MemoryKey,
+    >,
+    prov_result: ProvisioningResult,
+    kube_client: KubeClient<ValueToken>,
+) -> impl Future<Item = api_core::ConfigMap, Error = String> {
+    // get the current edge agent identity to fetch the generation id
+    id_man
+        .get(IdentitySpec::new(EDGE_AGENT_MODULE_ID.to_string()))
+        .map_err(|err| format!("{:?}", err))
+        .and_then(move |edge_agent| {
+            let edge_agent = edge_agent.unwrap();
+
+            // update the credentials
+            id_man
+                .update(
+                    IdentitySpec::new(EDGE_AGENT_MODULE_ID.to_string())
+                        .with_generation_id(edge_agent.generation_id().to_string()),
+                )
+                .map(|_| edge_agent)
+                .map_err(|err| format!("{:?}", err))
+        })
+        .and_then(move |edge_agent| {
+            let mut data = BTreeMap::new();
+            data.insert(
+                "generationId".to_string(),
+                edge_agent.generation_id().to_string(),
+            );
+            data.insert("deviceId".to_string(), prov_result.device_id().to_string());
+            data.insert(
+                "iotHubHostName".to_string(),
+                prov_result.hub_name().to_string(),
+            );
+
+            let mut meta: api_meta::ObjectMeta = Default::default();
+            meta.name = Some(format!("{}-ea-config", release_name));
+
+            let config_map = api_core::ConfigMap {
+                api_version: Some("v1".to_string()),
+                binary_data: None,
+                data: Some(data),
+                kind: Some("ConfigMap".to_string()),
+                metadata: Some(meta),
+            };
+
+            kube_client
+                .create_config_map(&kube_ns, &config_map)
+                .map_err(|err| format!("{:?}", err))
+        })
 }
 
 fn delete(kube_ns: &str, release_name: &str) {
@@ -103,6 +173,7 @@ fn delete(kube_ns: &str, release_name: &str) {
     let kube_client = KubeClient::new(kube_config);
     let config_map_name = format!("{}-ea-config", release_name);
 
+    // delete EA config map
     runtime
         .block_on(kube_client.delete_config_map(&kube_ns, &config_map_name))
         .unwrap();

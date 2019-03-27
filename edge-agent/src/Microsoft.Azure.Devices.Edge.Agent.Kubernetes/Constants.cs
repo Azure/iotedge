@@ -16,6 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string k8sNamespace = "microsoft-azure-devices-edge";
 
+        public const string k8sNamespaceBaseName = "K8sNamespaceBaseName";
+
         public const string k8sEdgeModuleLabel = "net.azure-devices.edge.module";
 
         public const string k8sEdgeOriginalModuleId = "net.azure-devices.edge.original-moduleid";

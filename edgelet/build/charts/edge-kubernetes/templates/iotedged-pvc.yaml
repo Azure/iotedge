@@ -3,7 +3,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: {{ .Values.iotedged.data.persistentVolumeClaim.name | quote }}
-  namespace: {{ .Values.namespace | quote }}
+  namespace: {{ include "edge-kubernetes.namespace" . | quote }}
 spec:
   resources:
     requests:

@@ -1,8 +1,8 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: "{{.Release.Name}}-update-ea-identity"
-  namespace: {{ .Values.namespace | quote }}
+  name: "{{.Release.Name}}-create-resources"
+  namespace: {{ include "edge-kubernetes.namespace" . | quote }}
   labels:
     app.kubernetes.io/managed-by: {{.Release.Service | quote }}
     app.kubernetes.io/instance: {{.Release.Name | quote }}
@@ -14,7 +14,7 @@ metadata:
 spec:
   template:
     metadata:
-      name: "{{.Release.Name}}-update-ea-identity"
+      name: "{{.Release.Name}}-create-resources"
       labels:
         app.kubernetes.io/managed-by: {{.Release.Service | quote }}
         app.kubernetes.io/instance: {{.Release.Name | quote }}
@@ -23,7 +23,7 @@ spec:
       serviceAccountName: "{{.Release.Name}}-service-account"
       restartPolicy: Never
       containers:
-      - name: update-ea-identity
+      - name: create-resources
         image: "{{ .Values.updateIdentityHook.image.repository }}:{{ .Values.updateIdentityHook.image.tag }}"
         imagePullPolicy: {{ .Values.updateIdentityHook.image.pullPolicy }}
         env:
@@ -34,7 +34,7 @@ spec:
         command: ["/app/update-identity-hook"]
         args: [
           "--device-connection-string", {{ .Values.deviceConnectionString | quote }},
-          "--kubernetes-namespace", {{ .Values.namespace | quote }},
+          "--kubernetes-namespace", {{ include "edge-kubernetes.namespace" . | quote }},
           "--release-name", {{ .Release.Name | quote }},
           "--run-mode", "create"
         ]

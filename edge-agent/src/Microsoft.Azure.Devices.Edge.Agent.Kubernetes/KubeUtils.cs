@@ -3,7 +3,9 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System;
+    using System.Linq;
     using System.Text;
+    using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
 
     public static class KubeUtils
     {
@@ -18,6 +20,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         static bool IsAsciiLowercase(char ch) => LOWER_ASCII.IndexOf(ch) != -1;
 
         static bool IsAlphaNumeric(char ch) => IsAsciiLowercase(ch) || Char.IsDigit(ch);
+
+        public static readonly string K8sNamespace = Constants.k8sNamespaceBaseName;
+
+        static KubeUtils()
+        {
+            // build the k8s namespace to which all things belong
+            string nsBaseName = Environment.GetEnvironmentVariable(Constants.k8sNamespaceBaseName);
+            string deviceId = Environment.GetEnvironmentVariable(CoreConstants.DeviceIdVariableName);
+            string hubName = Environment.GetEnvironmentVariable(CoreConstants.IotHubHostnameVariableName);
+            hubName = hubName.Split('.').FirstOrDefault() ?? hubName;
+
+            K8sNamespace = $"{nsBaseName}-{hubName.ToLower()}-{deviceId.ToLower()}";
+        }
 
         public static string SanitizeK8sValue(string name)
         {

@@ -8,6 +8,8 @@ use hyper::{Body, Error as HyperError};
 use hyper_tls::HttpsConnector;
 use k8s_openapi::v1_10::api::apps::v1 as apps;
 use k8s_openapi::v1_10::api::core::v1 as api_core;
+use k8s_openapi::v1_10::apiextensions_apiserver::pkg::apis::apiextensions::v1beta1;
+use k8s_openapi::v1_10::apimachinery::pkg::apis::meta::v1 as meta;
 use k8s_openapi::{http, Response as K8sResponse};
 use log::debug;
 
@@ -31,6 +33,113 @@ impl<T: TokenSource + Clone> Client<T> {
             config,
             client: HyperClient::builder().build::<_, Body>(connector),
         }
+    }
+
+    pub fn create_namespace(
+        &self,
+        namespace: &str,
+    ) -> impl Future<Item = api_core::Namespace, Error = Error> {
+        let ns = api_core::Namespace {
+            api_version: Some("v1".to_string()),
+            kind: Some("Namespace".to_string()),
+            metadata: Some(meta::ObjectMeta {
+                name: Some(namespace.to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        api_core::Namespace::create_core_v1_namespace(&ns, None)
+            .map_err(Error::from)
+            .map(|req| {
+                let fut = self.request(req).and_then(|response| match response {
+                    api_core::CreateCoreV1NamespaceResponse::Ok(ns)
+                    | api_core::CreateCoreV1NamespaceResponse::Created(ns)
+                    | api_core::CreateCoreV1NamespaceResponse::Accepted(ns) => Ok(ns),
+                    err => {
+                        debug!("Create namespace failed with {:#?}", err);
+                        Err(Error::from(ErrorKind::Response))
+                    }
+                });
+
+                Either::A(fut)
+            })
+            .unwrap_or_else(|err| Either::B(future::err(err)))
+    }
+
+    pub fn delete_namespace(&self, namespace: &str) -> impl Future<Item = (), Error = Error> {
+        api_core::Namespace::delete_core_v1_namespace(namespace, None, None, None, None)
+            .map_err(Error::from)
+            .map(|req| {
+                let fut = self.request(req).and_then(|response| match response {
+                    api_core::DeleteCoreV1NamespaceResponse::OkStatus(_)
+                    | api_core::DeleteCoreV1NamespaceResponse::OkValue(_) => Ok(()),
+                    err => {
+                        debug!("Delete namespace failed with {:#?}", err);
+                        Err(Error::from(ErrorKind::Response))
+                    }
+                });
+
+                Either::A(fut)
+            })
+            .unwrap_or_else(|err| Either::B(future::err(err)))
+    }
+
+    pub fn create_crd(
+        &self,
+        crd: v1beta1::CustomResourceDefinition,
+    ) -> impl Future<Item = v1beta1::CustomResourceDefinition, Error = Error> {
+        v1beta1::CustomResourceDefinition::create_apiextensions_v1beta1_custom_resource_definition(
+            &crd, None,
+        )
+        .map_err(Error::from)
+        .map(|req| {
+            let fut = self.request(req).and_then(|response| match response {
+                v1beta1::CreateApiextensionsV1beta1CustomResourceDefinitionResponse::Ok(crd)
+                | v1beta1::CreateApiextensionsV1beta1CustomResourceDefinitionResponse::Created(
+                    crd,
+                )
+                | v1beta1::CreateApiextensionsV1beta1CustomResourceDefinitionResponse::Accepted(
+                    crd,
+                ) => Ok(crd),
+                err => {
+                    debug!("Create CRD failed with {:#?}", err);
+                    Err(Error::from(ErrorKind::Response))
+                }
+            });
+
+            Either::A(fut)
+        })
+        .unwrap_or_else(|err| Either::B(future::err(err)))
+    }
+
+    pub fn read_crd(
+        &self,
+        name: &str,
+    ) -> impl Future<Item = Option<v1beta1::CustomResourceDefinition>, Error = Error> {
+        v1beta1::CustomResourceDefinition::read_apiextensions_v1beta1_custom_resource_definition(
+            name,
+            Some(true),
+            None,
+            None,
+        )
+        .map_err(Error::from)
+        .map(|req| {
+            let fut = self.request(req).and_then(|response| match response {
+                v1beta1::ReadApiextensionsV1beta1CustomResourceDefinitionResponse::Ok(crd) => {
+                    Ok(Some(crd))
+                }
+                v1beta1::ReadApiextensionsV1beta1CustomResourceDefinitionResponse::Unauthorized => {
+                    debug!("Read CRD failed with an authorization error");
+                    Err(Error::from(ErrorKind::Response))
+                }
+                v1beta1::ReadApiextensionsV1beta1CustomResourceDefinitionResponse::Other => {
+                    Ok(None)
+                }
+            });
+
+            Either::A(fut)
+        })
+        .unwrap_or_else(|err| Either::B(future::err(err)))
     }
 
     pub fn create_config_map(

@@ -67,7 +67,7 @@ edgeAgent:
 deviceConnectionString: '<ADD DEVICE CONNECTION STRING HERE>'
 
 # The K8S namespace to use for creating all resources
-namespace: microsoft-azure-devices-edge
+namespace: msiot
 
 # Deploy debug container?
 deployDebugContainer: false

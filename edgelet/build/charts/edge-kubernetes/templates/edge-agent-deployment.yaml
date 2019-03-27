@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: '{{ include "edge-kubernetes.hostname" . }}-{{ include "edge-kubernetes.deviceid" . }}-edgeagent'
-  namespace: {{ .Values.namespace | quote }}
+  namespace: {{ include "edge-kubernetes.namespace" . | quote }}
   labels:
     app.kubernetes.io/name: {{ include "edge-kubernetes.name" . }}-edge-agent
     helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
@@ -69,6 +69,8 @@ spec:
             value: "{{.Release.Name}}-service-account"
           - name: "EnableK8sServiceCallTracing"
             value: {{ .Values.edgeAgent.env.enableK8sServiceCallTracing | quote }}
+          - name: "K8sNamespaceBaseName"
+            value: {{ .Values.namespace | quote }}
         - name: proxy
           image: "{{ .Values.iotedgedProxy.image.repository }}:{{ .Values.iotedgedProxy.image.tag }}"
           imagePullPolicy: {{ .Values.iotedgedProxy.image.pullPolicy }}

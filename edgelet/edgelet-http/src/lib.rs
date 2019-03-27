@@ -252,7 +252,7 @@ impl HyperExt for Http {
                             url.to_string(),
                             InvalidUrlReason::NoHost,
                         )
-                        .into())
+                        .into());
                     }
                 };
 

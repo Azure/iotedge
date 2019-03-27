@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "edge-kubernetes.fullname" . }}-kuard
-  namespace: {{ .Values.namespace | quote }}
+  namespace: {{ include "edge-kubernetes.namespace" . | quote }}
   labels:
     app.kubernetes.io/name: {{ include "edge-kubernetes.name" . }}-kuard
     helm.sh/chart: {{ include "edge-kubernetes.chart" . }}

@@ -213,7 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                                 this.podWatch = Option.None<Watcher<V1Pod>>();
 
                                 // kick off a new watch
-                                this.client.ListNamespacedPodWithHttpMessagesAsync(Constants.k8sNamespace, watch: true).ContinueWith(this.ListPodComplete);
+                                this.client.ListNamespacedPodWithHttpMessagesAsync(KubeUtils.K8sNamespace, watch: true).ContinueWith(this.ListPodComplete);
                             },
                             onError: ex =>
                             {
@@ -243,7 +243,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // is an acceptable fate if these tasks fail.
 
             // Pod watching for module runtime status.
-            this.client.ListNamespacedPodWithHttpMessagesAsync(Constants.k8sNamespace, watch: true).ContinueWith(this.ListPodComplete);
+            this.client.ListNamespacedPodWithHttpMessagesAsync(KubeUtils.K8sNamespace, watch: true).ContinueWith(this.ListPodComplete);
 
             // CRD watch
             this.client.ListClusterCustomObjectWithHttpMessagesAsync(Constants.k8sCrdGroup, Constants.k8sApiVersion, Constants.k8sCrdPlural, watch: true).ContinueWith(this.ListCrdComplete);
@@ -381,8 +381,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 // only operate on the device that matches this operator.
                 if (String.Equals(customObject.Metadata.Name, this.resourceName, StringComparison.OrdinalIgnoreCase))
                 {
-                    V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(Constants.k8sNamespace, labelSelector: this.deploymentSelector);
-                    V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(Constants.k8sNamespace, labelSelector: this.deploymentSelector);
+                    V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(KubeUtils.K8sNamespace, labelSelector: this.deploymentSelector);
+                    V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(KubeUtils.K8sNamespace, labelSelector: this.deploymentSelector);
                     Events.DeploymentStatus(type, this.resourceName);
                     switch (type)
                     {
@@ -395,11 +395,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                             {
                                 // Delete the deployment.
                                 // Delete any services.
-                                IEnumerable<Task<V1Status>> removeServiceTasks = currentServices.Items.Select(i => this.client.DeleteNamespacedServiceAsync(new V1DeleteOptions(), i.Metadata.Name, Constants.k8sNamespace));
+                                IEnumerable<Task<V1Status>> removeServiceTasks = currentServices.Items.Select(i => this.client.DeleteNamespacedServiceAsync(new V1DeleteOptions(), i.Metadata.Name, KubeUtils.K8sNamespace));
                                 await Task.WhenAll(removeServiceTasks);
                                 IEnumerable<Task<V1Status>> removeDeploymentTasks = currentDeployments.Items.Select(
                                     d => this.client.DeleteNamespacedDeployment1Async(
-                                        new V1DeleteOptions(propagationPolicy: "Foreground"), d.Metadata.Name, Constants.k8sNamespace, propagationPolicy: "Foreground"));
+                                        new V1DeleteOptions(propagationPolicy: "Foreground"), d.Metadata.Name, KubeUtils.K8sNamespace, propagationPolicy: "Foreground"));
                                 await Task.WhenAll(removeDeploymentTasks);
                             }
                             break;
@@ -545,7 +545,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     desiredDeployments.Add(new V1Deployment(metadata: deploymentMeta, spec: deploymentSpec));
 
                     // Make the client call for the deployment
-                    // V1Deployment deploymentResult = await this.client.CreateNamespacedDeploymentAsync(deployment, Constants.k8sNamespace);
+                    // V1Deployment deploymentResult = await this.client.CreateNamespacedDeploymentAsync(deployment, KubeUtils.K8sNamespace);
                     // What does the result tell us?
                 }
                 else
@@ -657,14 +657,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IEnumerable<Task<V1Status>> removeServiceTasks = servicesRemoved.Select(i =>
             {
                 Events.DeletingService(i);
-                return this.client.DeleteNamespacedServiceAsync(new V1DeleteOptions(), i.Metadata.Name, Constants.k8sNamespace);
+                return this.client.DeleteNamespacedServiceAsync(new V1DeleteOptions(), i.Metadata.Name, KubeUtils.K8sNamespace);
             });
             await Task.WhenAll(removeServiceTasks);
 
             IEnumerable<Task<V1Status>> removeDeploymentTasks = deploymentsRemoved.Select(d =>
             {
                 Events.DeletingDeployment(d);
-                return this.client.DeleteNamespacedDeployment1Async(new V1DeleteOptions(propagationPolicy: "Foreground"), d.Metadata.Name, Constants.k8sNamespace, propagationPolicy: "Foreground");
+                return this.client.DeleteNamespacedDeployment1Async(new V1DeleteOptions(propagationPolicy: "Foreground"), d.Metadata.Name, KubeUtils.K8sNamespace, propagationPolicy: "Foreground");
             });
             await Task.WhenAll(removeDeploymentTasks);
 
@@ -672,21 +672,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IEnumerable<Task<V1Service>> createServiceTasks = newServices.Select(s =>
             {
                 Events.CreatingService(s);
-                return this.client.CreateNamespacedServiceAsync(s, Constants.k8sNamespace);
+                return this.client.CreateNamespacedServiceAsync(s, KubeUtils.K8sNamespace);
             });
             await Task.WhenAll(createServiceTasks);
 
             IEnumerable<Task<V1Deployment>> createDeploymentTasks = newDeployments.Select(deployment =>
             {
                 Events.CreatingDeployment(deployment);
-                return this.client.CreateNamespacedDeploymentAsync(deployment, Constants.k8sNamespace);
+                return this.client.CreateNamespacedDeploymentAsync(deployment, KubeUtils.K8sNamespace);
             });
             await Task.WhenAll(createDeploymentTasks);
 
             // Update the existing - should only do this when different.
-            //var updateServiceTasks = servicesUpdated.Select( s => this.client.ReplaceNamespacedServiceAsync(s, s.Metadata.Name, Constants.k8sNamespace));
+            //var updateServiceTasks = servicesUpdated.Select( s => this.client.ReplaceNamespacedServiceAsync(s, s.Metadata.Name, KubeUtils.K8sNamespace));
             //await Task.WhenAll(updateServiceTasks);
-            IEnumerable<Task<V1Deployment>> updateDeploymentTasks = deploymentsUpdated.Select(deployment => this.client.ReplaceNamespacedDeploymentAsync(deployment, deployment.Metadata.Name, Constants.k8sNamespace));
+            IEnumerable<Task<V1Deployment>> updateDeploymentTasks = deploymentsUpdated.Select(deployment => this.client.ReplaceNamespacedDeploymentAsync(deployment, deployment.Metadata.Name, KubeUtils.K8sNamespace));
             await Task.WhenAll(updateDeploymentTasks);
         }
 

@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "edge-kubernetes.fullname" . }}-iotedged
-  namespace: {{ .Values.namespace | quote }}
+  namespace: {{ include "edge-kubernetes.namespace" . | quote }}
   labels:
     app.kubernetes.io/name: {{ include "edge-kubernetes.name" . }}-iotedged
     helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
