@@ -19,12 +19,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         static readonly Message Message6 = new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, new Dictionary<string, string> { { "sys1", "value1" } });
         static readonly Message Message7 = new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, new Dictionary<string, string> { { "sys1", "value1" } });
         static readonly Message Message8 = new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, new Dictionary<string, string> { { "sys1", "value2" } });
+        static readonly Message Message9 = new Message(TelemetryMessageSource.Instance, new byte[] { 4, 5, 6 }, new Dictionary<string, string> { { "key1", null } }, new Dictionary<string, string> { { "sys1", null } });
+        static readonly Message Message10 = new Message(TelemetryMessageSource.Instance, new byte[] { 4, 5, 6 }, new Dictionary<string, string> { { "key1", null } }, new Dictionary<string, string> { { "sys1", null } });
 
         [Fact]
         [Unit]
         public void TestConstructor()
         {
             Assert.Throws<ArgumentNullException>(() => new Message(TelemetryMessageSource.Instance, new byte[0], null));
+            Assert.Throws<ArgumentNullException>(() => new Message(TelemetryMessageSource.Instance, new byte[0], new Dictionary<string, string>(), null));
         }
 
         [Fact]
@@ -39,6 +42,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Assert.NotEqual(Message1, Message6);
             Assert.Equal(Message6, Message7);
             Assert.NotEqual(Message6, Message8);
+            Assert.Equal(Message9, Message10);
 
             Assert.False(Message1.Equals(null));
 
@@ -72,15 +76,25 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 Message3,
                 Message4,
                 Message6,
-                Message7
+                Message7,
+                Message9,
             };
 
-            Assert.Equal(4, messages.Count);
+            Assert.Equal(5, messages.Count);
             Assert.Contains(Message1, messages);
             Assert.Contains(Message3, messages);
             Assert.Contains(Message4, messages);
             Assert.Contains(Message6, messages);
+            Assert.Contains(Message9, messages);
             Assert.DoesNotContain(Message5, messages);
+        }
+
+        [Fact]
+        [Unit]
+        public void MessageSizeWithNullPropertyValuesShouldNotThrow()
+        {
+            // Should not throw
+            Assert.Equal(3, Message9.Size());
         }
     }
 }
