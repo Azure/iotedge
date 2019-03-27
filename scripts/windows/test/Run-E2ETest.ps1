@@ -30,7 +30,7 @@
             "All", "DirectMethodAmqp", "DirectMethodMqtt", "QuickstartCerts", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway"
 
     .PARAMETER ContainerRegistry
-        Host address of container registry.
+        Host address of container registry. It could be azure container registry, docker hub, or your own hosted container registry.
 
     .PARAMETER ContainerRegistryUsername
         Username of container registry.
