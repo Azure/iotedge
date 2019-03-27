@@ -37,18 +37,20 @@ static void test_hook_gballoc_free(void* ptr)
 //#############################################################################
 // Declare and enable MOCK definitions
 //#############################################################################
+#include "hsm_certificate_props.h"
 #include "hsm_client_data.h"
 #include "certificate_info.h"
 
 #define ENABLE_MOCKS
 #include "azure_c_shared_utility/gballoc.h"
+#include "azure_c_shared_utility/crt_abstractions.h"
 #include "hsm_utils.h"
 
+// interface mocks
 MOCKABLE_FUNCTION(, int, hsm_client_crypto_init);
 MOCKABLE_FUNCTION(, void, hsm_client_crypto_deinit);
-
-// interface mocks
 MOCKABLE_FUNCTION(, const HSM_CLIENT_CRYPTO_INTERFACE*, hsm_client_crypto_interface);
+MOCKABLE_FUNCTION(, const char*, hsm_get_device_ca_alias);
 
 // crypto API mocks
 MOCKABLE_FUNCTION(, HSM_CLIENT_HANDLE, mocked_hsm_client_crypto_create);
@@ -65,9 +67,22 @@ MOCKABLE_FUNCTION(, int, mocked_hsm_client_crypto_sign_with_private_key, HSM_CLI
 MOCKABLE_FUNCTION(, void, mocked_hsm_client_free_buffer, void*, buffer);
 MOCKABLE_FUNCTION(, CERT_INFO_HANDLE, mocked_hsm_client_get_trust_bundle, HSM_CLIENT_HANDLE, handle);
 
+// certificate props API mocks
+MOCKABLE_FUNCTION(, CERT_PROPS_HANDLE, cert_properties_create);
+MOCKABLE_FUNCTION(, void, cert_properties_destroy, CERT_PROPS_HANDLE, handle);
+MOCKABLE_FUNCTION(, int, set_validity_seconds, CERT_PROPS_HANDLE, handle, uint64_t, validity_secs);
+MOCKABLE_FUNCTION(, int, set_common_name, CERT_PROPS_HANDLE, handle, const char*, common_name);
+MOCKABLE_FUNCTION(, int, set_issuer_alias, CERT_PROPS_HANDLE, handle, const char*, issuer_alias);
+MOCKABLE_FUNCTION(, int, set_alias, CERT_PROPS_HANDLE, handle, const char*, alias);
+MOCKABLE_FUNCTION(, int, set_certificate_type, CERT_PROPS_HANDLE, handle, CERTIFICATE_TYPE, type);
+
 MOCKABLE_FUNCTION(, CERT_INFO_HANDLE, certificate_info_create, const char*, certificate, const void*, private_key, size_t, priv_key_len, PRIVATE_KEY_TYPE, pk_type);
 MOCKABLE_FUNCTION(, const char*, get_alias, CERT_PROPS_HANDLE, handle);
 MOCKABLE_FUNCTION(, const char*, get_issuer_alias, CERT_PROPS_HANDLE, handle);
+MOCKABLE_FUNCTION(, int64_t, certificate_info_get_valid_to, CERT_INFO_HANDLE, handle);
+MOCKABLE_FUNCTION(, void, certificate_info_destroy, CERT_INFO_HANDLE, handle);
+MOCKABLE_FUNCTION(, const char*, certificate_info_get_certificate, CERT_INFO_HANDLE, handle);
+MOCKABLE_FUNCTION(, const void*, certificate_info_get_private_key, CERT_INFO_HANDLE, handle, size_t*, priv_key_len);
 
 #undef ENABLE_MOCKS
 
@@ -125,6 +140,11 @@ static void test_hook_on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 static const HSM_CLIENT_CRYPTO_INTERFACE* test_hook_hsm_client_crypto_interface(void)
 {
     return &mocked_hsm_client_crypto_interface;
+}
+
+static int test_hook_hsm_client_crypto_init()
+{
+    return 0;
 }
 
 static HSM_CLIENT_HANDLE test_hook_hsm_client_crypto_create(void)
@@ -265,6 +285,9 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
 
         REGISTER_GLOBAL_MOCK_HOOK(gballoc_free, test_hook_gballoc_free);
 
+        REGISTER_GLOBAL_MOCK_HOOK(hsm_client_crypto_init, test_hook_hsm_client_crypto_init);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(hsm_client_crypto_init, 1);
+
         REGISTER_GLOBAL_MOCK_HOOK(hsm_client_crypto_interface, test_hook_hsm_client_crypto_interface);
         REGISTER_GLOBAL_MOCK_FAIL_RETURN(hsm_client_crypto_interface, NULL);
 
@@ -363,7 +386,6 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         status = hsm_client_x509_init();
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         umock_c_reset_all_calls();
-        EXPECTED_CALL(hsm_client_crypto_init());
 
         // act
         status = hsm_client_x509_init();
@@ -407,854 +429,210 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         umock_c_negative_tests_deinit();
     }
 
-#if 0
-        /**
-         * Test function for API
-         *   hsm_client_crypto_deinit
-        */
-        TEST_FUNCTION(hsm_client_crypto_deinit_success)
+    /**
+     * Test function for API
+     *   hsm_client_x509_interface
+    */
+    TEST_FUNCTION(hsm_client_x509_interface_success)
+    {
+        //arrange
+
+        // act
+        const HSM_CLIENT_X509_INTERFACE* result = hsm_client_x509_interface();
+
+        // assert
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result->hsm_client_x509_create, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result->hsm_client_x509_destroy, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result->hsm_client_get_cert, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result->hsm_client_get_key, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result->hsm_client_get_common_name, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result->hsm_client_free_buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result->hsm_client_sign_with_private_key, "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+    }
+
+    /**
+     * Test function for API
+     *   hsm_client_x509_create
+    */
+    TEST_FUNCTION(hsm_client_x509_create_success)
+    {
+        //arrange
+        int status;
+        status = hsm_client_x509_init();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        umock_c_reset_all_calls();
+        EXPECTED_CALL(hsm_client_crypto_interface());
+        EXPECTED_CALL(mocked_hsm_client_crypto_create());
+
+        // act
+        CERT_INFO_HANDLE handle = interface->hsm_client_x509_create();
+
+        // assert
+        ASSERT_IS_NOT_NULL(handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        interface->hsm_client_x509_destroy(handle);
+        hsm_client_x509_deinit();
+    }
+
+    /**
+     * Test function for API
+     *   hsm_client_x509_create
+    */
+    TEST_FUNCTION(hsm_client_x509_create_without_init_fails)
+    {
+        //arrange
+        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+
+        // act
+        CERT_INFO_HANDLE handle = interface->hsm_client_x509_create();
+
+        // assert
+        ASSERT_IS_NULL(handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+    }
+
+    /**
+     * Test function for API
+     *   hsm_client_x509_create
+    */
+    TEST_FUNCTION(hsm_client_x509_create_negative)
+    {
+        //arrange
+        int test_result = umock_c_negative_tests_init();
+        ASSERT_ARE_EQUAL(int, 0, test_result);
+
+        int status;
+        status = hsm_client_x509_init();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        umock_c_reset_all_calls();
+        EXPECTED_CALL(hsm_client_crypto_interface());
+        EXPECTED_CALL(mocked_hsm_client_crypto_create());
+
+        umock_c_negative_tests_snapshot();
+
+        for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
         {
-            //arrange
-            (void)hsm_client_crypto_init();
-            umock_c_reset_all_calls();
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_destroy(TEST_EDGE_STORE_NAME));
-
-            // act
-            hsm_client_crypto_deinit();
-
-            // assert
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_crypto_init
-         *   hsm_client_crypto_deinit
-        */
-        TEST_FUNCTION(hsm_client_crypto_init_deinit_init_success)
-        {
-            //arrange
             int status;
-            hsm_client_crypto_init();
-            hsm_client_crypto_deinit();
-            umock_c_reset_all_calls();
-
-            EXPECTED_CALL(hsm_client_store_interface());
-            EXPECTED_CALL(hsm_client_key_interface());
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_create(TEST_EDGE_STORE_NAME));
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(i);
 
             // act
-            status = hsm_client_crypto_init();
+            CERT_INFO_HANDLE handle = interface->hsm_client_x509_create();
 
             // assert
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_deinit();
+            ASSERT_IS_NULL(handle, "Line:" TOSTRING(__LINE__));
         }
 
-        /**
-         * Test function for API
-         *   hsm_client_crypto_interface
-        */
-        TEST_FUNCTION(hsm_client_crypto_interface_success)
-        {
-            //arrange
+        //cleanup
+        hsm_client_x509_deinit();
+        umock_c_negative_tests_deinit();
+    }
+
+    /**
+     * Test function for API
+     *   hsm_client_x509_destroy
+    */
+    TEST_FUNCTION(hsm_client_x509_destroy_invalid_param_does_nothing)
+    {
+        //arrange
+        int status;
+        status = hsm_client_x509_init();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        umock_c_reset_all_calls();
+
+        // act
+        interface->hsm_client_x509_destroy(NULL);
+
+        // assert
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        hsm_client_x509_deinit();
+    }
+
+    /**
+     * Test function for API
+     *   hsm_client_x509_destroy
+    */
+    TEST_FUNCTION(hsm_client_x509_destroy_success)
+    {
+        //arrange
+        int status;
+        status = hsm_client_x509_init();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        CERT_INFO_HANDLE handle = interface->hsm_client_x509_create();
+        ASSERT_IS_NOT_NULL(handle, "Line:" TOSTRING(__LINE__));
+        umock_c_reset_all_calls();
+        EXPECTED_CALL(hsm_client_crypto_interface());
+        STRICT_EXPECTED_CALL(mocked_hsm_client_crypto_destroy(handle));
+
+        // act
+        interface->hsm_client_x509_destroy(handle);
+
+        // assert
+
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        hsm_client_x509_deinit();
+    }
+
+    /**
+     * Test function for API
+     *   hsm_client_x509_destroy
+    */
+    TEST_FUNCTION(hsm_client_x509_destroy_without_does_nothing)
+    {
+        //arrange
+        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        umock_c_reset_all_calls();
+
+        // act
+        interface->hsm_client_x509_destroy(TEST_CERT_INFO_HANDLE);
+
+        // assert
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+    }
+
+    /**
+     * Test function for API
+     *   hsm_client_get_cert
+    */
+    TEST_FUNCTION(hsm_client_get_cert_success)
+    {
+        //arrange
+        int status;
+        status = hsm_client_x509_init();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        umock_c_reset_all_calls();
+        EXPECTED_CALL(hsm_client_crypto_interface());
+        EXPECTED_CALL(mocked_hsm_client_crypto_create());
+
+        // act
+        CERT_INFO_HANDLE handle = interface->hsm_client_x509_create();
+
+        // assert
+        ASSERT_IS_NOT_NULL(handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        interface->hsm_client_x509_destroy(handle);
+        hsm_client_x509_deinit();
+    }
 
-            // act
-            const HSM_CLIENT_CRYPTO_INTERFACE* result = hsm_client_crypto_interface();
-
-            // assert
-            ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_crypto_create, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_crypto_destroy, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_get_random_bytes, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_create_master_encryption_key, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_destroy_master_encryption_key, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_create_certificate, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_destroy_certificate, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_encrypt_data, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_decrypt_data, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_get_trust_bundle, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_free_buffer, "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_crypto_create
-        */
-        TEST_FUNCTION(edge_hsm_client_crypto_create_fails_when_crypto_not_initialized)
-        {
-            //arrange
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
-            hsm_client_crypto_deinit();
-            umock_c_reset_all_calls();
-
-            // act
-            HSM_CLIENT_HANDLE hsm_handle = hsm_client_crypto_create();
-
-            // assert
-            ASSERT_IS_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_crypto_create
-        */
-        TEST_FUNCTION(edge_hsm_client_crypto_create_success)
-        {
-            //arrange
-            int status;
-            status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
-            HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
-            umock_c_reset_all_calls();
-
-            STRICT_EXPECTED_CALL(gballoc_calloc(1, IGNORED_NUM_ARG));
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_open(TEST_EDGE_STORE_NAME));
-
-            // act
-            HSM_CLIENT_HANDLE hsm_handle = hsm_client_crypto_create();
-
-            // assert
-            ASSERT_IS_NOT_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_destroy(hsm_handle);
-            hsm_client_crypto_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_crypto_create
-        */
-        TEST_FUNCTION(edge_hsm_client_crypto_create_negative)
-        {
-            //arrange
-            int status;
-            int test_result = umock_c_negative_tests_init();
-            ASSERT_ARE_EQUAL(int, 0, test_result);
-
-            status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
-            HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
-            umock_c_reset_all_calls();
-
-            STRICT_EXPECTED_CALL(gballoc_calloc(1, IGNORED_NUM_ARG));
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_open(TEST_EDGE_STORE_NAME));
-
-            umock_c_negative_tests_snapshot();
-
-            for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
-            {
-                umock_c_negative_tests_reset();
-                umock_c_negative_tests_fail_call(i);
-
-                // act
-                HSM_CLIENT_HANDLE hsm_handle = hsm_client_crypto_create();
-
-                // assert
-                ASSERT_IS_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
-            }
-
-            //cleanup
-            hsm_client_crypto_deinit();
-            umock_c_negative_tests_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_crypto_destroy
-        */
-        TEST_FUNCTION(edge_hsm_client_crypto_destroy_does_nothing_with_invalid_handle)
-        {
-            //arrange
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
-            hsm_client_crypto_deinit();
-            umock_c_reset_all_calls();
-
-            // act
-            hsm_client_crypto_destroy(NULL);
-
-            // assert
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_crypto_destroy
-        */
-        TEST_FUNCTION(edge_hsm_client_crypto_destroy_does_nothing_when_crypto_not_initialized)
-        {
-            //arrange
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
-            hsm_client_crypto_deinit();
-            umock_c_reset_all_calls();
-
-            // act
-            hsm_client_crypto_destroy(TEST_HSM_CLIENT_HANDLE);
-
-            // assert
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_crypto_destroy
-        */
-        TEST_FUNCTION(edge_hsm_client_crypto_destroy_success)
-        {
-            //arrange
-            int status;
-            status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
-            HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
-            HSM_CLIENT_HANDLE hsm_handle = hsm_client_crypto_create();
-            umock_c_reset_all_calls();
-
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_close(TEST_HSM_STORE_HANDLE));
-            STRICT_EXPECTED_CALL(gballoc_free(hsm_handle));
-
-            // act
-            hsm_client_crypto_destroy(hsm_handle);
-
-            // assert
-            ASSERT_IS_NOT_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_get_random_bytes
-        */
-        TEST_FUNCTION(edge_hsm_client_get_random_bytes_does_nothing_when_crypto_not_initialized)
-        {
-            //arrange
-            int status;
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_GET_RANDOM_BYTES hsm_client_get_random_bytes = interface->hsm_client_get_random_bytes;
-            unsigned char test_input[] = {'r', 'a', 'n' , 'd'};
-            unsigned char test_output[] = {'r', 'a', 'n' , 'd'};
-            hsm_client_crypto_deinit();
-            umock_c_reset_all_calls();
-
-            // act
-            status = hsm_client_get_random_bytes(TEST_HSM_CLIENT_HANDLE, test_output, sizeof(test_output));
-
-            // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-            for (int idx = 0; idx < (int)sizeof(test_output); idx++)
-            {
-                ASSERT_ARE_EQUAL(char, test_input[idx], test_output[idx], "Line:" TOSTRING(__LINE__));
-            }
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_get_random_bytes
-        */
-        TEST_FUNCTION(edge_hsm_client_get_random_bytes_invalid_param_validation)
-        {
-            //arrange
-            int status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
-            HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
-            HSM_CLIENT_GET_RANDOM_BYTES hsm_client_get_random_bytes = interface->hsm_client_get_random_bytes;
-            HSM_CLIENT_HANDLE hsm_handle = hsm_client_crypto_create();
-            unsigned char test_input[] = {'r', 'a', 'n' , 'd'};
-            unsigned char test_output[] = {'r', 'a', 'n' , 'd'};
-
-            // act, assert
-            status = hsm_client_get_random_bytes(NULL, test_output, sizeof(test_output));
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            for (int idx = 0; idx < (int)sizeof(test_output); idx++)
-            {
-                ASSERT_ARE_EQUAL(char, test_input[idx], test_output[idx], "Line:" TOSTRING(__LINE__));
-            }
-
-            status = hsm_client_get_random_bytes(hsm_handle, NULL, sizeof(test_output));
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-
-            status = hsm_client_get_random_bytes(hsm_handle, test_output, 0);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_destroy(hsm_handle);
-            hsm_client_crypto_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_get_random_bytes
-        */
-        TEST_FUNCTION(edge_hsm_client_get_random_bytes_success)
-        {
-            //arrange
-            int status;
-            status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
-            HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
-            HSM_CLIENT_HANDLE hsm_handle = hsm_client_crypto_create();
-            unsigned char test_input[] = {'r', 'a', 'n' , 'd'};
-            unsigned char test_output[] = {'r', 'a', 'n' , 'd'};
-            umock_c_reset_all_calls();
-
-            // act
-            status = interface->hsm_client_get_random_bytes(hsm_handle, test_output, sizeof(test_output));
-
-            // assert
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-
-            // if this test fails it implies that the call to hsm_client_get_random_bytes
-            // never updated the buffer and yet returned a success OR
-            // the statistically improbable event occured that the random bytes returned
-            // exactly what the test_input was setup with
-            // P(test failure) = P('r') * P('a') * P('n') * P('d') = ((1/256) ^ 4) == very small
-            int cmp = memcmp(test_input, test_output, sizeof(test_input));
-            ASSERT_ARE_NOT_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_destroy(hsm_handle);
-            hsm_client_crypto_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_create_master_encryption_key
-        */
-        TEST_FUNCTION(edge_hsm_client_create_master_encryption_key_does_nothing_when_crypto_not_initialized)
-        {
-            //arrange
-            int status;
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE_MASTER_ENCRYPTION_KEY hsm_client_create_master_encryption_key;
-            hsm_client_create_master_encryption_key = interface->hsm_client_create_master_encryption_key;
-            hsm_client_crypto_deinit();
-            umock_c_reset_all_calls();
-
-            // act
-            status = hsm_client_create_master_encryption_key(TEST_HSM_CLIENT_HANDLE);
-
-            // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_create_master_encryption_key
-        */
-        TEST_FUNCTION(edge_hsm_client_create_master_encryption_key_invalid_param_validation)
-        {
-            //arrange
-            int status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE_MASTER_ENCRYPTION_KEY hsm_client_create_master_encryption_key;
-            hsm_client_create_master_encryption_key = interface->hsm_client_create_master_encryption_key;
-
-            // act, assert
-            status = hsm_client_create_master_encryption_key(NULL);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_create_master_encryption_key
-        */
-        TEST_FUNCTION(edge_hsm_client_create_master_encryption_key_success)
-        {
-            //arrange
-            int status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
-            HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
-            HSM_CLIENT_HANDLE hsm_handle = hsm_client_crypto_create();
-            HSM_CLIENT_CREATE_MASTER_ENCRYPTION_KEY hsm_client_create_master_encryption_key;
-            hsm_client_create_master_encryption_key = interface->hsm_client_create_master_encryption_key;
-
-            // act, assert
-            status = hsm_client_create_master_encryption_key(hsm_handle);
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_destroy(hsm_handle);
-            hsm_client_crypto_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_destroy_master_encryption_key
-        */
-        TEST_FUNCTION(edge_hsm_client_destroy_master_encryption_key_does_nothing_when_crypto_not_initialized)
-        {
-            //arrange
-            int status;
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_DESTROY_MASTER_ENCRYPTION_KEY hsm_client_destroy_master_encryption_key;
-            hsm_client_destroy_master_encryption_key = interface->hsm_client_destroy_master_encryption_key;
-            hsm_client_crypto_deinit();
-
-            umock_c_reset_all_calls();
-
-            // act
-            status = hsm_client_destroy_master_encryption_key(TEST_HSM_CLIENT_HANDLE);
-
-            // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_destroy_master_encryption_key
-        */
-        TEST_FUNCTION(edge_hsm_client_destroy_master_encryption_key_invalid_param_validation)
-        {
-            //arrange
-            int status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_DESTROY_MASTER_ENCRYPTION_KEY hsm_client_destroy_master_encryption_key;
-            hsm_client_destroy_master_encryption_key = interface->hsm_client_destroy_master_encryption_key;
-
-            // act, assert
-            status = hsm_client_destroy_master_encryption_key(NULL);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_destroy_master_encryption_key
-        */
-        TEST_FUNCTION(edge_hsm_client_destroy_master_encryption_key_success)
-        {
-            //arrange
-            int status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
-            HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
-            HSM_CLIENT_HANDLE hsm_handle = hsm_client_crypto_create();
-            HSM_CLIENT_DESTROY_MASTER_ENCRYPTION_KEY hsm_client_destroy_master_encryption_key;
-            hsm_client_destroy_master_encryption_key = interface->hsm_client_destroy_master_encryption_key;
-
-            // act, assert
-            status = hsm_client_destroy_master_encryption_key(hsm_handle);
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_destroy(hsm_handle);
-            hsm_client_crypto_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_create_certificate
-        */
-        TEST_FUNCTION(edge_hsm_client_create_certificate_cert_does_nothing_when_crypto_not_initialized)
-        {
-            //arrange
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE_CERTIFICATE hsm_client_create_certificate = interface->hsm_client_create_certificate;
-            CERT_INFO_HANDLE cert_info_handle;
-            hsm_client_crypto_deinit();
-            umock_c_reset_all_calls();
-
-            // act
-            cert_info_handle = hsm_client_create_certificate(TEST_HSM_CLIENT_HANDLE, TEST_CERT_PROPS_HANDLE);
-
-            // assert
-            ASSERT_IS_NULL(cert_info_handle, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_create_certificate
-        */
-        TEST_FUNCTION(edge_hsm_client_create_certificate_invalid_param_validation)
-        {
-            //arrange
-            int status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE_CERTIFICATE hsm_client_create_certificate = interface->hsm_client_create_certificate;
-            CERT_INFO_HANDLE cert_info_handle;
-            umock_c_reset_all_calls();
-
-            // act, assert
-            cert_info_handle = hsm_client_create_certificate(NULL, TEST_CERT_PROPS_HANDLE);
-            ASSERT_IS_NULL(cert_info_handle, "Line:" TOSTRING(__LINE__));
-
-            // act, assert
-            cert_info_handle = hsm_client_create_certificate(TEST_HSM_CLIENT_HANDLE, NULL);
-            ASSERT_IS_NULL(cert_info_handle, "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_create_certificate
-        */
-        TEST_FUNCTION(edge_hsm_client_create_certificate_success)
-        {
-            //arrange
-            int status;
-            status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
-            HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
-            HSM_CLIENT_CREATE_CERTIFICATE hsm_client_create_certificate = interface->hsm_client_create_certificate;
-            HSM_CLIENT_HANDLE hsm_handle = hsm_client_crypto_create();
-            CERT_INFO_HANDLE cert_info_handle;
-            umock_c_reset_all_calls();
-
-            STRICT_EXPECTED_CALL(get_alias(TEST_CERT_PROPS_HANDLE));
-            STRICT_EXPECTED_CALL(get_issuer_alias(TEST_CERT_PROPS_HANDLE));
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_create_pki_cert(IGNORED_PTR_ARG, TEST_CERT_PROPS_HANDLE));
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_get_pki_cert(IGNORED_PTR_ARG, TEST_ALIAS_STRING));
-
-            // act
-            cert_info_handle = hsm_client_create_certificate(hsm_handle, TEST_CERT_PROPS_HANDLE);
-
-            // assert
-            ASSERT_ARE_EQUAL(void_ptr, TEST_CERT_INFO_HANDLE, cert_info_handle, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_destroy(hsm_handle);
-            hsm_client_crypto_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_create_certificate
-        */
-        TEST_FUNCTION(edge_hsm_client_create_certificate_negative)
-        {
-            //arrange
-            int test_result = umock_c_negative_tests_init();
-            ASSERT_ARE_EQUAL(int, 0, test_result);
-            int status;
-            status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
-            HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
-            HSM_CLIENT_CREATE_CERTIFICATE hsm_client_create_certificate = interface->hsm_client_create_certificate;
-            HSM_CLIENT_HANDLE hsm_handle = hsm_client_crypto_create();
-            CERT_INFO_HANDLE cert_info_handle;
-            umock_c_reset_all_calls();
-
-            STRICT_EXPECTED_CALL(get_alias(TEST_CERT_PROPS_HANDLE));
-            STRICT_EXPECTED_CALL(get_issuer_alias(TEST_CERT_PROPS_HANDLE));
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_create_pki_cert(IGNORED_PTR_ARG, TEST_CERT_PROPS_HANDLE));
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_get_pki_cert(IGNORED_PTR_ARG, TEST_ALIAS_STRING));
-
-            umock_c_negative_tests_snapshot();
-
-            for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
-            {
-                umock_c_negative_tests_reset();
-                umock_c_negative_tests_fail_call(i);
-
-                // act
-                cert_info_handle = hsm_client_create_certificate(hsm_handle, TEST_CERT_PROPS_HANDLE);
-
-                // assert
-                ASSERT_IS_NULL(cert_info_handle, "Line:" TOSTRING(__LINE__));
-            }
-
-            //cleanup
-            hsm_client_crypto_destroy(hsm_handle);
-            hsm_client_crypto_deinit();
-            umock_c_negative_tests_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_get_trust_bundle
-        */
-        TEST_FUNCTION(edge_hsm_client_get_trust_bundle_does_nothing_when_crypto_not_initialized)
-        {
-            //arrange
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_GET_TRUST_BUNDLE hsm_client_get_trust_bundle = interface->hsm_client_get_trust_bundle;
-            CERT_INFO_HANDLE cert_info_handle;
-            hsm_client_crypto_deinit();
-            umock_c_reset_all_calls();
-
-            // act
-            cert_info_handle = hsm_client_get_trust_bundle(TEST_HSM_CLIENT_HANDLE);
-
-            // assert
-            ASSERT_IS_NULL(cert_info_handle, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_get_trust_bundle
-        */
-        TEST_FUNCTION(edge_hsm_client_get_trust_bundle_invalid_param_validation)
-        {
-            //arrange
-            int status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_GET_TRUST_BUNDLE hsm_client_get_trust_bundle = interface->hsm_client_get_trust_bundle;
-            CERT_INFO_HANDLE cert_info_handle;
-            umock_c_reset_all_calls();
-
-            // act, assert
-            cert_info_handle = hsm_client_get_trust_bundle(NULL);
-            ASSERT_IS_NULL(cert_info_handle, "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_get_trust_bundle
-        */
-        TEST_FUNCTION(edge_hsm_client_get_trust_bundle_success)
-        {
-            //arrange
-            int status;
-            status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
-            HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
-            HSM_CLIENT_GET_TRUST_BUNDLE hsm_client_get_trust_bundle = interface->hsm_client_get_trust_bundle;
-            HSM_CLIENT_HANDLE hsm_handle = hsm_client_crypto_create();
-            CERT_INFO_HANDLE cert_info_handle;
-            umock_c_reset_all_calls();
-
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_get_pki_trusted_certs(IGNORED_PTR_ARG));
-
-            // act
-            cert_info_handle = hsm_client_get_trust_bundle(hsm_handle);
-
-            // assert
-            ASSERT_ARE_EQUAL(void_ptr, TEST_TRUST_BUNDLE_CERT_INFO_HANDLE, cert_info_handle, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_destroy(hsm_handle);
-            hsm_client_crypto_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_get_trust_bundle
-        */
-        TEST_FUNCTION(edge_hsm_client_get_trust_bundle_negative)
-        {
-            //arrange
-            int test_result = umock_c_negative_tests_init();
-            ASSERT_ARE_EQUAL(int, 0, test_result);
-            int status;
-            status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
-            HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
-            HSM_CLIENT_GET_TRUST_BUNDLE hsm_client_get_trust_bundle = interface->hsm_client_get_trust_bundle;
-            HSM_CLIENT_HANDLE hsm_handle = hsm_client_crypto_create();
-            CERT_INFO_HANDLE cert_info_handle;
-            umock_c_reset_all_calls();
-
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_get_pki_trusted_certs(IGNORED_PTR_ARG));
-
-            umock_c_negative_tests_snapshot();
-
-            for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
-            {
-                umock_c_negative_tests_reset();
-                umock_c_negative_tests_fail_call(i);
-
-                // act
-                cert_info_handle = hsm_client_get_trust_bundle(hsm_handle);
-
-                // assert
-                ASSERT_IS_NULL(cert_info_handle, "Line:" TOSTRING(__LINE__));
-            }
-
-            //cleanup
-            hsm_client_crypto_destroy(hsm_handle);
-            hsm_client_crypto_deinit();
-            umock_c_negative_tests_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_destroy_certificate
-        */
-        TEST_FUNCTION(edge_hsm_client_destroy_certificate_does_nothing_when_crypto_not_initialized)
-        {
-            //arrange
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_DESTROY_CERTIFICATE hsm_client_destroy_certificate = interface->hsm_client_destroy_certificate;
-            hsm_client_crypto_deinit();
-            umock_c_reset_all_calls();
-
-            // act
-            hsm_client_destroy_certificate(TEST_HSM_CLIENT_HANDLE, TEST_ALIAS_STRING);
-
-            // assert
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_destroy_certificate
-        */
-        TEST_FUNCTION(edge_hsm_client_destroy_certificate_invalid_param_1_validation)
-        {
-            //arrange
-            int status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_DESTROY_CERTIFICATE hsm_client_destroy_certificate = interface->hsm_client_destroy_certificate;
-            umock_c_reset_all_calls();
-
-            // act, assert
-            hsm_client_destroy_certificate(TEST_HSM_CLIENT_HANDLE, NULL);
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_destroy_certificate
-        */
-        TEST_FUNCTION(edge_hsm_client_destroy_certificate_invalid_param_2_validation)
-        {
-            //arrange
-            int status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_DESTROY_CERTIFICATE hsm_client_destroy_certificate = interface->hsm_client_destroy_certificate;
-            umock_c_reset_all_calls();
-
-            // act, assert
-            hsm_client_destroy_certificate(NULL, TEST_ALIAS_STRING);
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_destroy_certificate
-        */
-        TEST_FUNCTION(edge_hsm_client_destroy_certificate_success)
-        {
-            //arrange
-            int status;
-            status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
-            HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
-            HSM_CLIENT_DESTROY_CERTIFICATE hsm_client_destroy_certificate = interface->hsm_client_destroy_certificate;
-            HSM_CLIENT_HANDLE hsm_handle = hsm_client_crypto_create();
-            umock_c_reset_all_calls();
-
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_remove_pki_cert(IGNORED_PTR_ARG, TEST_ALIAS_STRING));
-
-            // act
-            hsm_client_destroy_certificate(hsm_handle, TEST_ALIAS_STRING);
-
-            // assert
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-
-            //cleanup
-            hsm_client_crypto_destroy(hsm_handle);
-            hsm_client_crypto_deinit();
-        }
-
-        /**
-         * Test function for API
-         *   hsm_client_destroy_certificate
-        */
-        TEST_FUNCTION(edge_hsm_client_destroy_certificate_negative)
-        {
-            //arrange
-            int test_result = umock_c_negative_tests_init();
-            ASSERT_ARE_EQUAL(int, 0, test_result);
-            int status;
-            status = hsm_client_crypto_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
-            HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
-            HSM_CLIENT_DESTROY_CERTIFICATE hsm_client_destroy_certificate = interface->hsm_client_destroy_certificate;
-            HSM_CLIENT_HANDLE hsm_handle = hsm_client_crypto_create();
-            umock_c_reset_all_calls();
-
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_remove_pki_cert(IGNORED_PTR_ARG, TEST_ALIAS_STRING));
-
-            umock_c_negative_tests_snapshot();
-
-            for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
-            {
-                umock_c_negative_tests_reset();
-                umock_c_negative_tests_fail_call(i);
-
-                // act
-                hsm_client_destroy_certificate(hsm_handle, TEST_ALIAS_STRING);
-
-                // assert
-                ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-            }
-
-            //cleanup
-            hsm_client_crypto_destroy(hsm_handle);
-            hsm_client_crypto_deinit();
-            umock_c_negative_tests_deinit();
-        }
-#endif
 END_TEST_SUITE(edge_hsm_x509_unittests)
