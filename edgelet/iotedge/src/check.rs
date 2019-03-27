@@ -29,9 +29,9 @@ use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
 use crate::LatestVersions;
 
 #[cfg(windows)]
-const CONTAINER_RUNTIME_CONFIG_PATH: &str = r"C:\ProgramData\iotedge-moby\config\daemon.json";
+const CONTAINER_ENGINE_CONFIG_PATH: &str = r"C:\ProgramData\iotedge-moby\config\daemon.json";
 #[cfg(unix)]
-const CONTAINER_RUNTIME_CONFIG_PATH: &str = "/etc/docker/daemon.json";
+const CONTAINER_ENGINE_CONFIG_PATH: &str = "/etc/docker/daemon.json";
 
 pub struct Check {
     config_file: PathBuf,
@@ -197,8 +197,8 @@ impl Check {
                         settings_connection_string,
                     ),
                     (
-                        "container runtime is installed and functional",
-                        container_runtime,
+                        "container engine is installed and functional",
+                        container_engine,
                     ),
                     ("config.yaml has correct hostname", settings_hostname),
                     (
@@ -219,9 +219,9 @@ impl Check {
                     ),
                     (
                         "production readiness: logs policy",
-                        container_runtime_logrotate,
+                        container_engine_logrotate,
                     ),
-                    ("production readiness: DNS server", container_runtime_dns),
+                    ("production readiness: DNS server", container_engine_dns),
                 ],
             ),
             (
@@ -257,11 +257,7 @@ impl Check {
                     ("container on the IoT Edge module network can connect to IoT Hub MQTT port", |check| {
                         connection_to_iot_hub_container(check, 8883, true)
                     }),
-                    ("edge hub can bind to ports on host", edge_hub_ports_on_host),
-                    (
-                        "modules on the IoT Edge module network can resolve each other by name",
-                        container_runtime_network,
-                    ),
+                    ("Edge Hub can bind to ports on host", edge_hub_ports_on_host),
                 ],
             ),
         ];
@@ -323,7 +319,7 @@ impl Check {
 
                         colored(&mut stdout, &warning_color_spec, is_a_tty, |stdout| {
                             writeln!(stdout, "\u{203c} {}", check_name)?;
-                            writeln!(stdout, "    {}", warning)?;
+                            write_lines(stdout, "    ", "    ", warning.lines())?;
                             Ok(())
                         });
                     }
@@ -346,21 +342,18 @@ impl Check {
                         colored(&mut stdout, &error_color_spec, is_a_tty, |stdout| {
                             writeln!(stdout, "\u{00d7} {}", check_name)?;
 
-                            {
-                                let err = err.to_string();
-                                let mut lines = err.split('\n');
-                                writeln!(stdout, "    {}", lines.next().unwrap())?;
-                                for line in lines {
-                                    writeln!(stdout, "    {}", line)?;
-                                }
-                            }
+                            let message = err.to_string();
 
-                            for cause in err.iter_causes() {
-                                let cause = cause.to_string();
-                                let mut lines = cause.split('\n');
-                                writeln!(stdout, "        caused by: {}", lines.next().unwrap())?;
-                                for line in lines {
-                                    writeln!(stdout, "                   {}", line)?;
+                            write_lines(stdout, "    ", "    ", message.lines())?;
+
+                            if self.verbose {
+                                for cause in err.iter_causes() {
+                                    write_lines(
+                                        stdout,
+                                        "        caused by: ",
+                                        "                   ",
+                                        cause.to_string().lines(),
+                                    )?;
                                 }
                             }
 
@@ -376,7 +369,7 @@ impl Check {
         match (have_warnings, have_skipped, have_errors) {
             (false, false, false) => {
                 colored(&mut stdout, &success_color_spec, is_a_tty, |stdout| {
-                    writeln!(stdout, "All checks succeeded")?;
+                    writeln!(stdout, "All checks succeeded.")?;
                     Ok(())
                 });
 
@@ -385,7 +378,12 @@ impl Check {
 
             (_, _, true) => {
                 colored(&mut stdout, &error_color_spec, is_a_tty, |stdout| {
-                    writeln!(stdout, "One or more checks raised errors")?;
+                    write!(stdout, "One or more checks raised errors.")?;
+                    if self.verbose {
+                        writeln!(stdout)?;
+                    } else {
+                        writeln!(stdout, " Re-run with --verbose for more details.")?;
+                    }
                     Ok(())
                 });
 
@@ -394,10 +392,15 @@ impl Check {
 
             (_, true, _) => {
                 colored(&mut stdout, &warning_color_spec, is_a_tty, |stdout| {
-                    writeln!(
+                    write!(
                         stdout,
-                        "One or more checks were skipped due to previous failures"
+                        "One or more checks were skipped due to errors from other checks."
                     )?;
+                    if self.verbose {
+                        writeln!(stdout)?;
+                    } else {
+                        writeln!(stdout, " Re-run with --verbose for more details.")?;
+                    }
                     Ok(())
                 });
 
@@ -406,7 +409,12 @@ impl Check {
 
             (true, _, _) => {
                 colored(&mut stdout, &warning_color_spec, is_a_tty, |stdout| {
-                    writeln!(stdout, "One or more checks raised warnings")?;
+                    write!(stdout, "One or more checks raised warnings.")?;
+                    if self.verbose {
+                        writeln!(stdout)?;
+                    } else {
+                        writeln!(stdout, " Re-run with --verbose for more details.")?;
+                    }
                     Ok(())
                 });
 
@@ -431,16 +439,36 @@ fn parse_settings(check: &mut Check) -> Result<CheckResult, failure::Error> {
     // even if the real error was a permissions issue.
     //
     // So we first try to open the file for reading ourselves.
-    let _ = File::open(config_file).with_context(|err| match err.kind() {
-        std::io::ErrorKind::PermissionDenied => format!(
-            "Could not open {}. You might need to run this command as root.",
-            config_file.display()
-        ),
-        _ => format!("could not open {}", config_file.display()),
-    })?;
+    if let Err(err) = File::open(config_file) {
+        let message = match err.kind() {
+            std::io::ErrorKind::PermissionDenied => format!(
+                "Could not open file {}. You might need to run this command as root.",
+                config_file.display(),
+            ),
+            _ => format!("Could not open file {}", config_file.display()),
+        };
 
-    let settings = Settings::new(Some(config_file))
-        .with_context(|_| format!("could not parse {}", config_file.display()))?;
+        return Err(err.context(message).into());
+    }
+
+    let settings = match Settings::new(Some(config_file)) {
+        Ok(settings) => settings,
+        Err(err) => {
+            let message = if check.verbose {
+                format!(
+                    "The IoT Edge daemon's configuration file {} is not well-formed.\n\
+                     Note: In case of syntax errors, the error may not be exactly at the reported line number and position.",
+                    config_file.display(),
+                )
+            } else {
+                format!(
+                    "The IoT Edge daemon's configuration file {} is not well-formed.",
+                    config_file.display(),
+                )
+            };
+            return Err(err.context(message).into());
+        }
+    };
 
     check.settings = Some(settings);
 
@@ -455,14 +483,17 @@ fn settings_connection_string(check: &mut Check) -> Result<CheckResult, failure:
     };
 
     if let Provisioning::Manual(manual) = settings.provisioning() {
-        let (_, _, hub) = manual.parse_device_connection_string()?;
-        check.iothub_hostname = Some(hub.to_string());
+        let (_, _, hub) = manual.parse_device_connection_string().context(
+            "Invalid connection string format detected. \
+             Please check the value of the provisioning.device_connection_string parameter.",
+        )?;
+        check.iothub_hostname = Some(hub.to_owned());
     }
 
     Ok(CheckResult::Ok)
 }
 
-fn container_runtime(check: &mut Check) -> Result<CheckResult, failure::Error> {
+fn container_engine(check: &mut Check) -> Result<CheckResult, failure::Error> {
     let settings = if let Some(settings) = &check.settings {
         settings
     } else {
@@ -482,8 +513,8 @@ fn container_runtime(check: &mut Check) -> Result<CheckResult, failure::Error> {
 
         scheme => {
             return Err(Context::new(format!(
-                "unrecognized URI scheme for moby_runtime.uri: {}",
-                scheme
+                "Could not communicate with container engine at {}. The scheme {} is invalid.",
+                uri, scheme,
             ))
             .into());
         }
@@ -492,24 +523,29 @@ fn container_runtime(check: &mut Check) -> Result<CheckResult, failure::Error> {
     let output = docker(
         &docker_host_arg,
         &["version", "--format", "{{.Server.Version}}"],
-    )?;
-    if !output.status.success() {
-        let mut err = format!(
-            "docker returned {}, stderr = {}",
-            output.status,
-            String::from_utf8_lossy(&*output.stderr)
-        );
+    );
+    let output = match output {
+        Ok(output) => output,
+        Err((message, err)) => {
+            let mut error_message = format!(
+                "Could not communicate with container engine at {}. \
+                 Please check your moby-engine installation and ensure the service is running.",
+                uri,
+            );
 
-        if err.contains("Got permission denied") {
-            err += "\nYou might need to run this command as root.";
+            if let Some(message) = message {
+                if message.contains("Got permission denied") {
+                    error_message += "\nYou might need to run this command as root.";
+                }
+            }
+
+            return Err(err.context(error_message).into());
         }
-
-        return Err(Context::new(err).into());
-    }
+    };
 
     check.docker_host_arg = Some(docker_host_arg);
 
-    check.docker_server_version = Some(String::from_utf8_lossy(&output.stdout).into_owned());
+    check.docker_server_version = Some(String::from_utf8_lossy(&output).into_owned());
 
     Ok(CheckResult::Ok)
 }
@@ -529,9 +565,11 @@ fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
         #[cfg(unix)]
         {
             if libc::gethostname(result.as_mut_ptr() as _, result.len()) != 0 {
-                return Err(std::io::Error::last_os_error() // Calls errno
-                    .context("could not get hostname")
-                    .into());
+                return Err(
+                    std::io::Error::last_os_error() // Calls errno
+                        .context("Could not get hostname: gethostname failed")
+                        .into(),
+                );
             }
         }
 
@@ -548,7 +586,11 @@ fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
             match winapi::um::winsock2::WSAStartup(0x202, &mut wsa_data) {
                 0 => (),
                 result => {
-                    return Err(Context::new(format!("WSAStartup failed with {}", result)).into());
+                    return Err(format!(
+                        "Could not get hostname: WSAStartup failed with {}",
+                        result,
+                    )
+                    .into());
                 }
             }
 
@@ -556,30 +598,28 @@ fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
                 // Can't use std::io::Error::last_os_error() because that calls GetLastError, not WSAGetLastError
                 let winsock_err = winapi::um::winsock2::WSAGetLastError();
 
-                return Err(Context::new(format!(
-                    "gethostname failed with last error {}",
-                    winsock_err
-                ))
+                return Err(format!(
+                    "Could not get hostname: gethostname failed with {}",
+                    winsock_err,
+                )
                 .into());
             }
         }
 
-        let nul_index = result
-            .iter()
-            .position(|&b| b == b'\0')
-            .ok_or_else(|| Context::new("gethostname did not return NUL-terminated string"))?;
+        let nul_index = result.iter().position(|&b| b == b'\0').ok_or_else(|| {
+            Context::new("Could not get hostname: gethostname did not return NUL-terminated string")
+        })?;
 
-        let result = CStr::from_bytes_with_nul_unchecked(&result[..=nul_index]);
-
-        let result = result.to_str().context("could not get hostname")?;
-
-        result.to_string()
+        CStr::from_bytes_with_nul_unchecked(&result[..=nul_index])
+            .to_str()
+            .context("Could not get hostname: gethostname returned non-ASCII string")?
+            .to_owned()
     };
 
     if config_hostname != machine_hostname {
         return Err(Context::new(format!(
-            "machine has hostname {} but config has hostname {}",
-            machine_hostname, config_hostname
+            "config.yaml has hostname {} but device reports hostname {}",
+            config_hostname, machine_hostname,
         ))
         .into());
     }
@@ -619,21 +659,33 @@ fn daemon_mgmt_endpoint_uri(check: &mut Check) -> Result<CheckResult, failure::E
         ("unix", "unix") | ("unix", "fd") => {
             args.push(Cow::Borrowed(OsStr::new("-v")));
 
-            // On Windows we mount the parent folder because we can't mount the socket files directly
+            let socket_path =
+                connect_management_uri.to_uds_file_path()
+                .context("Could not parse connect.management_uri: does not represent a valid file path")?;
 
-            let socket_path = connect_management_uri.to_uds_file_path().context("could not parse connect.management_uri as file path")?;
+            // On Windows we mount the parent folder because we can't mount the socket files directly
             #[cfg(windows)]
-            let socket_path = socket_path.parent().ok_or_else(|| Context::new("connect.management_uri is not a valid file path - does not have a parent directory"))?;
-            let socket_path = socket_path.to_str().ok_or_else(|| Context::new("connect.management_uri is a unix socket, but the file path is not valid utf-8"))?;
+            let socket_path =
+                socket_path.parent()
+                .ok_or_else(|| Context::new("Could not parse connect.management_uri: does not have a parent directory"))?;
+
+            let socket_path =
+                socket_path.to_str()
+                .ok_or_else(|| Context::new("Could not parse connect.management_uri: file path is not valid utf-8"))?;
 
             args.push(Cow::Owned(format!("{}:{}", socket_path, socket_path).into()));
         },
 
         (scheme1, scheme2) if scheme1 != scheme2 => return Err(Context::new(
-            format!("config.yaml has invalid combination of schemes for connect.management_uri ({:?}) and listen.management_uri ({:?})", scheme1, scheme2))
+            format!(
+                "config.yaml has invalid combination of schemes for connect.management_uri ({:?}) and listen.management_uri ({:?})",
+                scheme1, scheme2,
+            ))
             .into()),
 
-        (scheme, _) => return Err(Context::new(format!("unrecognized scheme {} for connect.management_uri", scheme)).into()),
+        (scheme, _) => return Err(Context::new(
+            format!("Could not parse connect.management_uri: scheme {} is invalid", scheme),
+        ).into()),
     }
 
     args.extend(vec![
@@ -644,17 +696,11 @@ fn daemon_mgmt_endpoint_uri(check: &mut Check) -> Result<CheckResult, failure::E
         Cow::Owned(OsString::from(connect_management_uri.to_string())),
     ]);
 
-    let output = docker(docker_host_arg, args)?;
-    if !output.status.success() {
-        return Err(Context::new(format!(
-            "docker returned {}, stderr = {}",
-            output.status,
-            String::from_utf8_lossy(&*output.stderr)
-        ))
-        .into());
+    match docker(docker_host_arg, args) {
+        Ok(_) => Ok(CheckResult::Ok),
+        Err((Some(stderr), err)) => Err(err.context(stderr).into()),
+        Err((None, err)) => Err(err.context("Could not spawn docker process").into()),
     }
-
-    Ok(CheckResult::Ok)
 }
 
 fn iotedged_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
@@ -672,23 +718,31 @@ fn iotedged_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
 
     let output = process
         .output()
-        .with_context(|_| format!("could not run {:?}", process))?;
+        .context("Could not spawn iotedged process")?;
     if !output.status.success() {
         return Err(Context::new(format!(
             "iotedged returned {}, stderr = {}",
             output.status,
-            String::from_utf8_lossy(&*output.stderr)
+            String::from_utf8_lossy(&*output.stderr),
         ))
+        .context("Could not spawn iotedged process")
         .into());
     }
 
     let output =
-        String::from_utf8(output.stdout).context("could not parse output of iotedged --version")?;
+        String::from_utf8(output.stdout).context("Could not parse output of iotedged --version")?;
 
     let iotedged_version_regex = Regex::new(r"^iotedged ([^ ]+)(?: \(.*\))?$")
         .expect("This hard-coded regex is expected to be valid.");
-    let captures = iotedged_version_regex.captures(output.trim()).ok_or_else(||
-        Context::new("could not parse output of iotedged --version {:?} : does not match expected format"))?;
+    let captures = iotedged_version_regex
+        .captures(output.trim())
+        .ok_or_else(|| {
+            Context::new(format!(
+                "output {:?} does not match expected format",
+                output,
+            ))
+            .context("Could not parse output of iotedged --version")
+        })?;
     let version = captures
         .get(1)
         .expect("unreachable: regex defines one capturing group")
@@ -696,8 +750,9 @@ fn iotedged_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
 
     if version != latest_versions.iotedged {
         return Ok(CheckResult::Warning(format!(
-            "expected iotedged to have version {} but it has version {}",
-            latest_versions.iotedged, version
+            "Installed IoT Edge daemon has version {} but version {} is available. Please see <TODO: aka.ms URL> for update instructions.",
+            version,
+            latest_versions.iotedged,
         )));
     }
 
@@ -722,15 +777,25 @@ fn host_local_time(check: &mut Check) -> Result<CheckResult, failure::Error> {
     } = match mini_sntp::query(&check.ntp_server) {
         Ok(result) => result,
         Err(ref err) if is_server_unreachable_error(err) => {
-            return Ok(CheckResult::Warning(err.to_string()));
+            return Ok(CheckResult::Warning(format!(
+                "Could not query NTP server: {}",
+                err,
+            )));
         }
-        Err(err) => return Err(err.into()),
+        Err(err) => {
+            return Err(err.context("Could not query NTP server").into());
+        }
     };
 
     if local_clock_offset.num_seconds().abs() >= 10 {
         return Ok(CheckResult::Warning(format!(
-            "detected large difference between host local time and real time: {}",
-            local_clock_offset
+            "Time on the device is out of sync with the NTP server. This may cause problems connecting to IoT Hub. \
+             Please ensure time on device is accurate, for example by {}.",
+            if cfg!(windows) {
+                "setting up the Windows Time service to automatically sync with a time server"
+            } else {
+                "installing an NTP daemon"
+            },
         )));
     }
 
@@ -746,7 +811,7 @@ fn container_local_time(check: &mut Check) -> Result<CheckResult, failure::Error
 
     let expected_duration = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .context("could not query local time of host")?;
+        .context("Could not query local time of host")?;
 
     let output = docker(
         docker_host_arg,
@@ -757,33 +822,19 @@ fn container_local_time(check: &mut Check) -> Result<CheckResult, failure::Error
             "/iotedge-diagnostics",
             "local-time",
         ],
-    )?;
-    if !output.status.success() {
-        return Err(Context::new(format!(
-            "docker returned {}, stderr = {}",
-            output.status,
-            String::from_utf8_lossy(&*output.stderr)
-        ))
-        .into());
-    }
-
-    let output = &output.stdout;
-    let output = std::str::from_utf8(output)
-        .with_context(|_| format!("could not parse container output {:?}", output))?;
-    let output = output
-        .trim_end()
-        .parse::<u64>()
-        .with_context(|_| format!("could not parse container output {:?}", output))?;
+    )
+    .map_err(|(_, err)| err)
+    .context("Could not query local time inside container")?;
+    let output = std::str::from_utf8(&output)
+        .map_err(failure::Error::from)
+        .and_then(|output| output.trim_end().parse::<u64>().map_err(Into::into))
+        .context("Could not parse container output")?;
     let actual_duration = std::time::Duration::from_secs(output);
 
     let diff = std::cmp::max(actual_duration, expected_duration)
         - std::cmp::min(actual_duration, expected_duration);
     if diff.as_secs() >= 10 {
-        return Err(Context::new(format!(
-            "detected large difference between host local time {:?} and container local time {:?}",
-            expected_duration, actual_duration,
-        ))
-        .into());
+        return Err(Context::new("Detected time drift between host and container").into());
     }
 
     Ok(CheckResult::Ok)
@@ -797,13 +848,14 @@ fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Erro
     };
 
     if settings.certificates().is_none() {
-        Ok(CheckResult::Warning(
-            "Certificates have not been set, so device will operate in quick start mode which is not supported in production"
-                .to_string(),
-        ))
-    } else {
-        Ok(CheckResult::Ok)
+        return Ok(CheckResult::Warning(
+            "Device is using self-signed, automatically generated certs. \
+             Please see <TODO: aka.ms URL> for certificate management best practices."
+                .to_owned(),
+        ));
     }
+
+    Ok(CheckResult::Ok)
 }
 
 fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failure::Error> {
@@ -825,47 +877,85 @@ fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failur
         return Ok(CheckResult::Skipped);
     };
 
-    let certificates = if let Some(certificates) = settings.certificates() {
-        certificates
+    let (device_ca_cert_path, device_ca_cert_path_source) = if let Some(certificates) =
+        settings.certificates()
+    {
+        (
+            certificates.device_ca_cert().to_owned(),
+            Cow::Borrowed("certificates.device_ca_cert"),
+        )
     } else {
-        return Ok(CheckResult::Skipped);
+        let certs_dir = settings.homedir().join("hsm").join("certs");
+
+        let mut device_ca_cert_path = None;
+
+        let entries = std::fs::read_dir(&certs_dir)
+            .with_context(|_| format!("Could not enumerate files under {}", certs_dir.display()))?;
+        for entry in entries {
+            let entry = entry.with_context(|_| {
+                format!("Could not enumerate files under {}", certs_dir.display())
+            })?;
+            let path = entry.path();
+            if let Some(file_name) = path.file_name().and_then(OsStr::to_str) {
+                if file_name.starts_with("device_ca_alias") && file_name.ends_with(".cert.pem") {
+                    device_ca_cert_path = Some(path);
+                    break;
+                }
+            }
+        }
+
+        let device_ca_cert_path = device_ca_cert_path.ok_or_else(|| {
+            Context::new(format!(
+                "Could not find device CA certificate under {}",
+                certs_dir.display(),
+            ))
+        })?;
+        let device_ca_cert_path_source = device_ca_cert_path.to_string_lossy().into_owned();
+        (device_ca_cert_path, Cow::Owned(device_ca_cert_path_source))
     };
 
-    let device_ca_cert_path = certificates.device_ca_cert();
-    let mut device_ca_cert_file =
-        File::open(device_ca_cert_path).context("could not parse certificates.device_ca_cert")?;
-    let mut device_ca_cert = vec![];
-    device_ca_cert_file
-        .read_to_end(&mut device_ca_cert)
-        .context("could not parse certificates.device_ca_cert")?;
+    let (not_after, not_before) = File::open(device_ca_cert_path)
+        .map_err(failure::Error::from)
+        .and_then(|mut device_ca_cert_file| {
+            let mut device_ca_cert = vec![];
+            device_ca_cert_file.read_to_end(&mut device_ca_cert)?;
+            let device_ca_cert = openssl::x509::X509::stack_from_pem(&device_ca_cert)?;
+            let device_ca_cert = &device_ca_cert[0];
 
-    let device_ca_cert = openssl::x509::X509::stack_from_pem(&device_ca_cert)
-        .context("could not parse certificates.device_ca_cert")?;
-    let device_ca_cert = &device_ca_cert[0];
+            let not_after = parse_openssl_time(device_ca_cert.not_after())?;
+            let not_before = parse_openssl_time(device_ca_cert.not_before())?;
 
-    let not_after = parse_openssl_time(device_ca_cert.not_after())
-        .context("could not parse not-after time of certificates.device_ca_cert")?;
-    let not_before = parse_openssl_time(device_ca_cert.not_before())
-        .context("could not parse not-before time of certificates.device_ca_cert")?;
+            Ok((not_after, not_before))
+        })
+        .with_context(|_| {
+            format!(
+                "Could not parse {} as a valid certificate file",
+                device_ca_cert_path_source,
+            )
+        })?;
 
     let now = chrono::Utc::now();
 
     if not_before > now {
-        return Err(Context::new(format!("certificate specified by certificates.device_ca_cert has not-before time {} which is in the future", not_before)).into());
+        return Err(Context::new(format!(
+            "Device CA certificate in {} has not-before time {} which is in the future",
+            device_ca_cert_path_source, not_before,
+        ))
+        .into());
     }
 
     if not_after < now {
         return Err(Context::new(format!(
-            "certificate specified by certificates.device_ca_cert expired at {}",
-            not_after
+            "Device CA certificate in {} expired at {}",
+            device_ca_cert_path_source, not_after,
         ))
         .into());
     }
 
     if not_after < now + chrono::Duration::days(7) {
         return Ok(CheckResult::Warning(format!(
-            "certificate specified by certificates.device_ca_cert will expire soon ({})",
-            not_after
+            "Device CA certificate in {} will expire soon ({})",
+            device_ca_cert_path_source, not_after,
         )));
     }
 
@@ -873,6 +963,10 @@ fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failur
 }
 
 fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    const MESSAGE: &str =
+        "Device is not using a production-supported container engine (moby-engine). \
+         See https://aka.ms/iotedge-platsup#container-engines for details.";
+
     let settings = if let Some(settings) = &check.settings {
         settings
     } else {
@@ -889,41 +983,47 @@ fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::
         let moby_runtime_uri = settings.moby_runtime().uri().to_string();
 
         if moby_runtime_uri != "npipe://./pipe/iotedge_moby_engine" {
-            return Ok(CheckResult::Warning(format!(
-                "moby_runtime.uri {:?} is not supported for production. \
-                It must be set to \"npipe://./pipe/iotedge_moby_engine\" to use the supported Moby engine.",
-                moby_runtime_uri
-            )));
+            return Ok(CheckResult::Warning(MESSAGE.to_owned()));
         }
     }
 
     let docker_server_major_version = docker_server_version
         .split('.')
         .next()
-        .ok_or_else(|| {
-            Context::new(format!(
-                "container runtime returned malformed version string {:?}",
-                docker_server_version
+        .map(std::str::FromStr::from_str);
+    let docker_server_major_version: u32 = match docker_server_major_version {
+        Some(Ok(docker_server_major_version)) => docker_server_major_version,
+        Some(Err(err)) => {
+            return Err(err
+                .context(format!(
+                    "Container engine returned malformed version string {:?}",
+                    docker_server_version,
+                ))
+                .into());
+        }
+        None => {
+            return Err(Context::new(format!(
+                "Container engine returned malformed version string {:?}",
+                docker_server_version,
             ))
-        })?
-        .parse::<u32>()
-        .with_context(|_| {
-            format!(
-                "container runtime returned malformed version string {:?}",
-                docker_server_version
-            )
-        })?;
+            .into());
+        }
+    };
 
     // Moby does not identify itself in any unique way. Moby devs recommend assuming that anything less than version 10 is Moby,
     // since it's currently 3.x and regular Docker is in the high 10s.
     if docker_server_major_version >= 10 {
-        return Ok(CheckResult::Warning("Container engine does not appear to be the Moby engine. Only the Moby engine is supported for production.".to_owned()));
+        return Ok(CheckResult::Warning(MESSAGE.to_owned()));
     }
 
     Ok(CheckResult::Ok)
 }
 
-fn container_runtime_logrotate(_: &mut Check) -> Result<CheckResult, failure::Error> {
+fn container_engine_logrotate(_: &mut Check) -> Result<CheckResult, failure::Error> {
+    const MESSAGE: &str =
+        "Device is not configured to rotate module logs which may cause it run out of disk space. \
+         Please see <TODO: aka.ms URL> for best practices.";
+
     #[derive(serde_derive::Deserialize)]
     struct DaemonConfig {
         #[serde(rename = "log-driver")]
@@ -942,74 +1042,71 @@ fn container_runtime_logrotate(_: &mut Check) -> Result<CheckResult, failure::Er
         max_size: Option<String>,
     }
 
-    let daemon_config_file = match File::open(CONTAINER_RUNTIME_CONFIG_PATH) {
+    let daemon_config_file = match File::open(CONTAINER_ENGINE_CONFIG_PATH) {
         Ok(daemon_config_file) => daemon_config_file,
         Err(err) => {
             return Ok(CheckResult::Warning(format!(
-                "could not open {}: {}",
-                CONTAINER_RUNTIME_CONFIG_PATH, err
+                "Could not open container engine config file {}: {}",
+                CONTAINER_ENGINE_CONFIG_PATH, err,
             )));
         }
     };
-
-    let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)
-        .with_context(|_| format!("could not parse {}", CONTAINER_RUNTIME_CONFIG_PATH))?;
+    let daemon_config: DaemonConfig =
+        serde_json::from_reader(daemon_config_file).with_context(|_| {
+            format!(
+                "Could not parse container engine config file {}",
+                CONTAINER_ENGINE_CONFIG_PATH,
+            )
+        })?;
 
     if daemon_config.log_driver.is_none() {
-        return Ok(CheckResult::Warning(format!(
-            "log-driver is not set in {}",
-            CONTAINER_RUNTIME_CONFIG_PATH
-        )));
+        return Ok(CheckResult::Warning(MESSAGE.to_owned()));
     }
 
     if let Some(log_opts) = &daemon_config.log_opts {
         if log_opts.max_file.is_none() {
-            return Ok(CheckResult::Warning(format!(
-                "log-opts.max-file is not set in {}",
-                CONTAINER_RUNTIME_CONFIG_PATH
-            )));
+            return Ok(CheckResult::Warning(MESSAGE.to_owned()));
         }
 
         if log_opts.max_size.is_none() {
-            return Ok(CheckResult::Warning(format!(
-                "log-opts.max-size is not set in {}",
-                CONTAINER_RUNTIME_CONFIG_PATH
-            )));
+            return Ok(CheckResult::Warning(MESSAGE.to_owned()));
         }
     } else {
-        return Ok(CheckResult::Warning(format!(
-            "log-opts is not set in {}",
-            CONTAINER_RUNTIME_CONFIG_PATH
-        )));
+        return Ok(CheckResult::Warning(MESSAGE.to_owned()));
     }
 
     Ok(CheckResult::Ok)
 }
 
-fn container_runtime_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
+fn container_engine_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
+    const MESSAGE: &str =
+        "Container engine is not configured with DNS server setting, which may impact connectivity to IoT Hub. \
+         Please see <TODO: aka.ms URL> for best practices.";
+
     #[derive(serde_derive::Deserialize)]
     struct DaemonConfig {
         dns: Option<Vec<String>>,
     }
 
-    let daemon_config_file = match File::open(CONTAINER_RUNTIME_CONFIG_PATH) {
+    let daemon_config_file = match File::open(CONTAINER_ENGINE_CONFIG_PATH) {
         Ok(daemon_config_file) => daemon_config_file,
         Err(err) => {
             return Ok(CheckResult::Warning(format!(
-                "could not open {}: {}",
-                CONTAINER_RUNTIME_CONFIG_PATH, err
+                "Could not open container engine config file {}: {}",
+                CONTAINER_ENGINE_CONFIG_PATH, err,
             )));
         }
     };
-
-    let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)
-        .with_context(|_| format!("could not parse {}", CONTAINER_RUNTIME_CONFIG_PATH))?;
+    let daemon_config: DaemonConfig =
+        serde_json::from_reader(daemon_config_file).with_context(|_| {
+            format!(
+                "Could not parse container engine config file {}",
+                CONTAINER_ENGINE_CONFIG_PATH,
+            )
+        })?;
 
     if let Some(&[]) | None = daemon_config.dns.as_ref().map(std::ops::Deref::deref) {
-        return Ok(CheckResult::Warning(format!(
-            "No DNS servers are defined in {}",
-            CONTAINER_RUNTIME_CONFIG_PATH
-        )));
+        return Ok(CheckResult::Warning(MESSAGE.to_owned()));
     }
 
     Ok(CheckResult::Ok)
@@ -1023,21 +1120,38 @@ fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResul
     };
 
     let iothub_host = std::net::ToSocketAddrs::to_socket_addrs(&(&**iothub_hostname, port))
-        .with_context(|_| "could not resolve Azure IoT Hub hostname")?
+        .with_context(|_| {
+            format!(
+                "Could not connect to {}:{} : could not resolve hostname",
+                iothub_hostname, port,
+            )
+        })?
         .next()
         .ok_or_else(|| {
-            Context::new("could not resolve Azure IoT Hub hostname: no addresses found")
+            Context::new(format!(
+                "Could not connect to {}:{} : could not resolve hostname: no addresses found",
+                iothub_hostname, port,
+            ))
         })?;
 
     let stream = TcpStream::connect_timeout(&iothub_host, std::time::Duration::from_secs(10))
-        .context("could not connect to IoT Hub")?;
+        .with_context(|_| format!("Could not connect to {}:{}", iothub_hostname, port))?;
 
-    let tls_connector =
-        native_tls::TlsConnector::new().context("could not create TLS connector")?;
+    let tls_connector = native_tls::TlsConnector::new().with_context(|_| {
+        format!(
+            "Could not connect to {}:{} : could not create TLS connector",
+            iothub_hostname, port,
+        )
+    })?;
 
     let _ = tls_connector
         .connect(iothub_hostname, stream)
-        .context("could not complete TLS handshake with Azure IoT Hub")?;
+        .with_context(|_| {
+            format!(
+                "Could not connect to {}:{} : could not complete TLS handshake",
+                iothub_hostname, port,
+            )
+        })?;
 
     Ok(CheckResult::Ok)
 }
@@ -1085,20 +1199,19 @@ fn connection_to_iot_hub_container(
         &port,
     ]);
 
-    let output = docker(docker_host_arg, args)?;
-    if !output.status.success() {
-        return Err(Context::new(format!(
-            "container on the {} network could not connect to Azure IoT Hub\n\
-             docker returned {}, stderr = {}",
-            if use_container_runtime_network {
-                network_name
-            } else {
-                "default"
-            },
-            output.status,
-            String::from_utf8_lossy(&*output.stderr)
-        ))
-        .into());
+    if let Err((_, err)) = docker(docker_host_arg, args) {
+        return Err(err
+            .context(format!(
+                "Container on the {} network could not connect to {}:{}",
+                if use_container_runtime_network {
+                    network_name
+                } else {
+                    "default"
+                },
+                iothub_hostname,
+                port,
+            ))
+            .into());
     }
 
     Ok(CheckResult::Ok)
@@ -1111,26 +1224,25 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
         return Ok(CheckResult::Skipped);
     };
 
-    let output = docker(docker_host_arg, vec!["inspect", "edgeHub"])?;
-    if !output.status.success() {
-        return Err(Context::new(format!(
-            "docker returned {}, stderr = {}",
-            output.status,
-            String::from_utf8_lossy(&*output.stderr),
-        ))
-        .into());
-    }
-
-    let (inspect_result,): (docker::models::InlineResponse200,) =
-        serde_json::from_slice(&output.stdout)
-            .context("could not parse result of docker inspect")?;
+    let inspect_result = docker(docker_host_arg, vec!["inspect", "edgeHub"])
+        .map_err(|(_, err)| err)
+        .and_then(|output| {
+            let (inspect_result,): (docker::models::InlineResponse200,) =
+                serde_json::from_slice(&output)
+                    .context("could not parse result of docker inspect")?;
+            Ok(inspect_result)
+        })
+        .context("Could not check current state of Edge Hub container")?;
 
     let is_running = inspect_result
         .state()
         .and_then(docker::models::InlineResponse200State::running)
         .cloned()
         .ok_or_else(|| {
-            Context::new("could not parse result of docker inspect: state.status is not set")
+            Context::new(
+                "Could not check current state of Edge Hub container: \
+                 could not parse result of docker inspect: state.status is not set",
+            )
         })?;
     if is_running {
         // Whatever ports it wanted to bind to must've been available for it to be running
@@ -1142,7 +1254,8 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
         .and_then(docker::models::HostConfig::port_bindings)
         .ok_or_else(|| {
             Context::new(
-                "could not parse result of docker inspect: host_config.port_bindings is not set",
+                "Could not check port bindings of Edge Hub container: \
+                 could not parse result of docker inspect: host_config.port_bindings is not set",
             )
         })?
         .values()
@@ -1155,89 +1268,26 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
             Ok(_) => (),
             Err(ref err) if err.kind() == std::io::ErrorKind::AddrInUse => {
                 return Err(Context::new(format!(
-                    "port {} is not available for edge hub to bind to",
-                    port_binding
-                ))
-                .into());
+                    "Edge hub cannot start on device because port {} is already in use. \
+                     Please stop the application using the port or remove the port binding from Edge hub's deployment.",
+                    port_binding,
+                )).into());
+            }
+            Err(ref err) if err.kind() == std::io::ErrorKind::PermissionDenied => {
+                return Err(Context::new(format!(
+                    "Permission denied when attempting to bind to port {}. You might need to run this command as root.",
+                    port_binding,
+                )).into());
             }
             Err(err) => {
                 return Err(err
                     .context(format!(
-                        "could not check if port {} is available for edge hub to bind to",
-                        port_binding
+                        "Could not check if port {} is available for Edge Hub to bind to",
+                        port_binding,
                     ))
                     .into());
             }
         }
-    }
-
-    Ok(CheckResult::Ok)
-}
-
-fn container_runtime_network(check: &mut Check) -> Result<CheckResult, failure::Error> {
-    let settings = if let Some(settings) = &check.settings {
-        settings
-    } else {
-        return Ok(CheckResult::Skipped);
-    };
-
-    let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
-        docker_host_arg
-    } else {
-        return Ok(CheckResult::Skipped);
-    };
-
-    let network_name = settings.moby_runtime().network();
-
-    let mut module1_process = Command::new("docker");
-    module1_process.arg("-H");
-    module1_process.arg(docker_host_arg);
-
-    module1_process.args(vec![
-        "run",
-        "--rm",
-        "--network",
-        network_name,
-        "--name",
-        "diagnostics-1",
-    ]);
-    module1_process.arg(&check.diagnostics_image_name);
-    module1_process.args(vec![
-        "/iotedge-diagnostics",
-        "idle-module",
-        "--duration",
-        "10",
-    ]);
-    module1_process.stdout(std::process::Stdio::null());
-    module1_process.stderr(std::process::Stdio::null());
-
-    // Let it run in the background
-    module1_process
-        .spawn()
-        .with_context(|_| format!("could not run {:?}", module1_process))?;
-
-    let module2_output = docker(
-        docker_host_arg,
-        vec![
-            "run",
-            "--rm",
-            "--network",
-            network_name,
-            "--name",
-            "diagnostics-2",
-            &check.diagnostics_image_name,
-            "/iotedge-diagnostics",
-            "resolve-module",
-            "--hostname",
-            "diagnostics-1",
-        ],
-    )?;
-    if !module2_output.status.success() {
-        return Ok(CheckResult::Warning(format!(
-            "docker returned {}, stderr = {}",
-            module2_output.status,
-            String::from_utf8_lossy(&*module2_output.stderr)
-        )));
     }
 
     Ok(CheckResult::Ok)
@@ -1262,7 +1312,7 @@ fn colored<F>(
     }
 }
 
-fn docker<I>(docker_host_arg: &str, args: I) -> Result<std::process::Output, failure::Error>
+fn docker<I>(docker_host_arg: &str, args: I) -> Result<Vec<u8>, (Option<String>, failure::Error)>
 where
     I: IntoIterator,
     <I as IntoIterator>::Item: AsRef<OsStr>,
@@ -1273,9 +1323,41 @@ where
 
     process.args(args);
 
-    Ok(process
-        .output()
-        .with_context(|_| format!("could not run {:?}", process))?)
+    let output = process.output().map_err(|err| {
+        (
+            None,
+            err.context(format!("could not run {:?}", process)).into(),
+        )
+    })?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&*output.stderr).into_owned();
+        let err = Context::new(format!(
+            "docker returned {}, stderr = {}",
+            output.status, stderr,
+        ))
+        .into();
+        return Err((Some(stderr), err));
+    }
+
+    Ok(output.stdout)
+}
+
+fn write_lines<'a>(
+    writer: &mut impl Write,
+    first_line_indent: &str,
+    other_lines_indent: &str,
+    mut lines: impl Iterator<Item = &'a str>,
+) -> std::io::Result<()> {
+    if let Some(line) = lines.next() {
+        writeln!(writer, "{}{}", first_line_indent, line)?;
+    }
+
+    for line in lines {
+        writeln!(writer, "{}{}", other_lines_indent, line)?;
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -1293,7 +1375,7 @@ mod tests {
                 "{}/../edgelet-config/test/{}/{}",
                 env!("CARGO_MANIFEST_DIR"),
                 if cfg!(windows) { "windows" } else { "linux" },
-                filename
+                filename,
             );
 
             let mut check = runtime
@@ -1321,21 +1403,24 @@ mod tests {
             }
 
             match super::settings_hostname(&mut check) {
-                Ok(check_result) => panic!(
+                Err(err) => {
+                    let message = err.to_string();
+                    assert!(
+                        message
+                            .starts_with("config.yaml has hostname localhost but device reports"),
+                        "checking hostname in {} produced unexpected error: {}",
+                        filename,
+                        message,
+                    );
+                }
+                check_result => panic!(
                     "checking hostname in {} returned {:?}",
                     filename, check_result
-                ),
-                Err(err) => assert!(
-                    err.to_string()
-                        .contains("but config has hostname localhost"),
-                    "checking hostname in {} produced unexpected error: {}",
-                    filename,
-                    err,
                 ),
             }
 
             // Pretend it's Moby
-            check.docker_server_version = Some("3.0.3".to_string());
+            check.docker_server_version = Some("3.0.3".to_owned());
 
             match super::settings_moby_runtime_uri(&mut check) {
                 Ok(super::CheckResult::Ok) => (),
@@ -1356,7 +1441,7 @@ mod tests {
             "{}/../edgelet-config/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
-            filename
+            filename,
         );
 
         let mut check = runtime
@@ -1371,7 +1456,6 @@ mod tests {
             .unwrap();
 
         match super::parse_settings(&mut check) {
-            Ok(check_result) => panic!("parsing {} returned {:?}", filename, check_result),
             Err(err) => {
                 let err = err
                     .iter_causes()
@@ -1385,6 +1469,8 @@ mod tests {
                     err,
                 );
             }
+
+            check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
     }
 
@@ -1398,7 +1484,7 @@ mod tests {
             "{}/../edgelet-config/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
-            filename
+            filename,
         );
 
         let mut check = runtime
@@ -1417,12 +1503,14 @@ mod tests {
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
 
-        // Pretend it's Moby
-        check.docker_server_version = Some("3.0.3".to_string());
+        // Pretend it's Moby even though named pipe indicates otherwise
+        check.docker_server_version = Some("3.0.3".to_owned());
 
         match super::settings_moby_runtime_uri(&mut check) {
             Ok(super::CheckResult::Warning(warning)) => assert!(
-                warning.contains(r#"It must be set to "npipe://./pipe/iotedge_moby_engine" to use the supported Moby engine"#),
+                warning.contains(
+                    "Device is not using a production-supported container engine (moby-engine)."
+                ),
                 "checking moby_runtime.uri in {} failed with an unexpected warning: {}",
                 filename,
                 warning
@@ -1444,7 +1532,7 @@ mod tests {
             "{}/../edgelet-config/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
-            filename
+            filename,
         );
 
         let mut check = runtime
@@ -1464,11 +1552,13 @@ mod tests {
         }
 
         // Pretend it's Docker
-        check.docker_server_version = Some("18.09.1".to_string());
+        check.docker_server_version = Some("18.09.1".to_owned());
 
         match super::settings_moby_runtime_uri(&mut check) {
             Ok(super::CheckResult::Warning(warning)) => assert!(
-                warning.contains("Container engine does not appear to be the Moby engine."),
+                warning.contains(
+                    "Device is not using a production-supported container engine (moby-engine)."
+                ),
                 "checking moby_runtime.uri in {} failed with an unexpected warning: {}",
                 filename,
                 warning
