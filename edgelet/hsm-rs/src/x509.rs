@@ -2,8 +2,10 @@
 
 use std::ffi::CStr;
 use std::ops::{Deref, Drop};
-use std::os::raw::{c_char, c_void};
+use std::os::raw::{c_char, c_void, c_uchar};
 use std::string::String;
+use std::ptr;
+use std::slice;
 
 use super::GetCerts;
 use super::*;
@@ -96,7 +98,78 @@ impl GetCerts for X509 {
         let common_name = unsafe { CStr::from_ptr(*result).to_string_lossy().into_owned() };
         Ok(common_name)
     }
+
+    /// Sign data using the device identity x509 certificate
+    fn sign_with_private_key(&self, data: &[u8]) -> Result<PrivateKeySignDigest, Error> {
+
+        let mut key_ln: usize = 0;
+        let mut ptr = ptr::null_mut();
+
+        let sign_fn = self
+            .interface
+            .hsm_client_sign_with_private_key
+            .ok_or(ErrorKind::NoneFn)?;
+        let result = unsafe {
+            sign_fn(
+                self.handle,
+                data.as_ptr(),
+                data.len(),
+                &mut ptr,
+                &mut key_ln,
+            )
+        };
+
+        match result {
+            0 => Ok(PrivateKeySignDigest::new(self.interface, ptr as *const _, key_ln)),
+            _ => Err(ErrorKind::PrivateKeySignFn)?,
+        }
+    }
 }
+
+/// When buffer data is returned from TPM interface, it is placed in this struct.
+/// This is a buffer allocated by the C library.
+#[derive(Debug)]
+pub struct X509Buffer {
+    interface: HSM_CLIENT_X509_INTERFACE,
+    data: *const c_uchar,
+    len: usize,
+}
+
+impl Drop for X509Buffer {
+    fn drop(&mut self) {
+        let free_fn = self
+            .interface
+            .hsm_client_free_buffer
+            .expect("Unknown Free function for X509Buffer");
+        unsafe { free_fn(self.data as *mut c_void) };
+    }
+}
+
+impl X509Buffer {
+    pub fn new(interface: HSM_CLIENT_X509_INTERFACE, data: *const c_uchar, len: usize) -> X509Buffer {
+        X509Buffer {
+            interface,
+            data,
+            len,
+        }
+    }
+}
+
+impl Deref for X509Buffer {
+    type Target = [u8];
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
+pub type PrivateKeySignDigest = X509Buffer;
+
+impl AsRef<[u8]> for X509Buffer {
+    fn as_ref(&self) -> &[u8] {
+        unsafe { slice::from_raw_parts(self.data, self.len) }
+    }
+}
+
 
 /// When data is returned from x509 interface, it is placed in this struct.
 /// This is a buffer allocated by the C library.
@@ -136,7 +209,7 @@ impl Deref for X509Data {
 #[cfg(test)]
 mod tests {
     use std::ffi::CStr;
-    use std::os::raw::{c_char, c_int, c_void};
+    use std::os::raw::{c_char, c_int, c_void, c_uchar};
     use std::ptr;
     use std::slice;
 
@@ -233,6 +306,28 @@ mod tests {
         }
     }
 
+    const DEFAULT_DIGEST_SIZE: usize = 5_usize;
+    const DEFAULT_DIGEST: [u8; DEFAULT_DIGEST_SIZE] = [0, 1, 2 ,3, 4];
+
+    unsafe extern "C" fn fake_private_key_sign(
+        handle: HSM_CLIENT_HANDLE,
+        _data_to_be_signed: *const c_uchar,
+        _data_to_be_signed_size: usize,
+        digest: *mut *mut c_uchar,
+        digest_size: *mut usize,
+    ) -> c_int {
+        let n = handle as isize;
+        if n == 0 {
+            let s = malloc(DEFAULT_DIGEST_SIZE);
+            memcpy(s, DEFAULT_DIGEST.as_ptr() as *const c_void, DEFAULT_DIGEST_SIZE);
+            *digest = s as *mut c_uchar;
+            *digest_size = DEFAULT_DIGEST_SIZE;
+            0
+        } else {
+            1
+        }
+    }
+
     fn fake_no_if_x509_hsm() -> X509 {
         X509 {
             handle: unsafe { fake_handle_create_good() },
@@ -268,6 +363,14 @@ mod tests {
         println!("You should never see this print {:?}", result);
     }
 
+    #[test]
+    #[should_panic(expected = "HSM API Not Implemented")]
+    fn x509_no_sign_with_private_key_function_fail() {
+        let hsm_x509 = fake_no_if_x509_hsm();
+        let result = hsm_x509.sign_with_private_key(b"aabb").unwrap();
+        println!("You should never see this print {:?}", result);
+    }
+
     fn fake_good_x509_hsm() -> X509 {
         X509 {
             handle: unsafe { fake_handle_create_good() },
@@ -278,6 +381,7 @@ mod tests {
                 hsm_client_get_key: Some(fake_get_cert_key),
                 hsm_client_get_common_name: Some(fake_get_name),
                 hsm_client_free_buffer: Some(fake_buffer_destroy),
+                hsm_client_sign_with_private_key: Some(fake_private_key_sign),
             },
         }
     }
@@ -299,6 +403,13 @@ mod tests {
         } else {
             assert!(false);
         }
+
+        let result4 = hsm_x509.sign_with_private_key(b"aabbcc");
+        if let Ok(x509_buffer) = result4 {
+            assert_eq!(x509_buffer.as_ref(), DEFAULT_DIGEST);
+        } else {
+            assert!(false);
+        }
     }
 
     fn fake_bad_x509_hsm() -> X509 {
@@ -311,6 +422,7 @@ mod tests {
                 hsm_client_get_key: Some(fake_get_cert_key),
                 hsm_client_get_common_name: Some(fake_get_name),
                 hsm_client_free_buffer: Some(fake_buffer_destroy),
+                hsm_client_sign_with_private_key: Some(fake_private_key_sign),
             },
         }
     }
@@ -339,5 +451,13 @@ mod tests {
         let hsm_x509 = fake_bad_x509_hsm();
         let result3 = hsm_x509.get_common_name().unwrap();
         println!("This string should not be displayed {:?}", result3);
+    }
+
+    #[test]
+    #[should_panic(expected = "HSM API sign with private key failed")]
+    fn sign_with_private_key_error() {
+        let hsm_x509 = fake_bad_x509_hsm();
+        let result = hsm_x509.sign_with_private_key(b"aabbcc").unwrap();
+        println!("This string should not be displayed {:?}", result);
     }
 }

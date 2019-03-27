@@ -161,8 +161,15 @@ pub type HSM_CLIENT_GET_CERT_KEY =
     Option<unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE) -> *mut c_char>;
 pub type HSM_CLIENT_GET_COMMON_NAME =
     Option<unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE) -> *mut c_char>;
-pub type HSM_CLIENT_SIGN_WITH_PRIVATE_KEY =
-    Option<unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE) -> *mut c_char>;
+pub type HSM_CLIENT_SIGN_WITH_PRIVATE_KEY = Option<
+    unsafe extern "C" fn(
+        handle: HSM_CLIENT_HANDLE,
+        data_to_be_signed: *const c_uchar,
+        data_to_be_signed_size: usize,
+        digest: *mut *mut c_uchar,
+        digest_size: *mut usize,
+    ) -> c_int,
+>;
 
 /// API to return the limits of a random number generated from HSM hardware.
 /// The API to return a random number is HSM_CLIENT_GET_RANDOM_NUMBER. The
