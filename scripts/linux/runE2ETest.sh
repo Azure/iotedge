@@ -60,7 +60,7 @@ function get_iotedged_artifact_folder() {
     if [ "$image_architecture_label" = 'amd64' ]; then
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu-amd64"
     elif [ "$image_architecture_label" = 'arm64v8' ]; then
-        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu-aarch64"
+        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu16.04-aarch64"
     else
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu-armhf"
     fi
