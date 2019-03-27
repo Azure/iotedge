@@ -192,8 +192,14 @@ function prepare_test_from_artifacts() {
                 cp "$module_to_functions_deployment_artifact_file" "$deployment_working_file";;
         esac
 
+        if [[ $image_architecture_label == 'arm32v7' ]] ||
+           [[ $image_architecture_label == 'arm64v8' ]]; then
+            sed -i -e "s@<OptimizeForPerformance>@false@g" "$deployment_working_file"
+        else
+            sed -i -e "s@<OptimizeForPerformance>@true@g" "$deployment_working_file"
+        fi
+
         sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
-        sed -i -e "s@<OptimizeForPerformance>@true@g" "$deployment_working_file"
         sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
         sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
         sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
