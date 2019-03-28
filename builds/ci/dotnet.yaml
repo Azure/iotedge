@@ -44,9 +44,10 @@ jobs:
       - task: CopyFiles@2
         displayName: Copy cert files
         inputs:
+          sourceFolder: $(Build.BinariesDirectory)/publish
           contents: |
-            tools/CACertificates/openssl_root_ca.cnf
-            tools/CACertificates/certGen.sh
+            CACertificates/openssl_root_ca.cnf
+            CACertificates/certGen.sh
             IotEdgeQuickstart.linux-*.tar.gz
             LeafDevice.linux-*.tar.gz
             e2e_deployment_files/*
@@ -98,13 +99,15 @@ jobs:
       - task: CopyFiles@2
         displayName: Copy cert files
         inputs:
+          sourceFolder: $(Build.BinariesDirectory)/publish
           contents: |
-            tools\CACertificates\openssl_root_ca.cnf
-            tools\CACertificates\certGen.sh
+            CACertificates\openssl_root_ca.cnf
+            CACertificates\ca-certs.ps1
             IotEdgeQuickstart.win10-*.zip
             LeafDevice.win10-*.zip
             e2e_deployment_files\*
             e2e_test_files\*
+            scripts\windows\setup\IotEdgeSecurityDaemon.ps1
             scripts\windows\test\Run-E2ETest.ps1
           targetFolder: $(Build.ArtifactStagingDirectory)
       - task: PublishBuildArtifacts@1
