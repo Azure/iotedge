@@ -27,7 +27,7 @@ use crate::error::{Error, ErrorKind};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum ReprovisioningStatus {
-    None,
+    DeviceDataNotUpdated,
     DeviceDataUpdated,
     InitialAssignment,
     DeviceDataMigrated,
@@ -38,19 +38,18 @@ impl FromStr for ReprovisioningStatus {
     type Err = ();
 
     fn from_str(s: &str) -> Result<ReprovisioningStatus, ()> {
+        // TODO: check with DPS substatus value for DeviceDataUpdated when it is implemented on service side
         match s {
-            "initialAssignment" => Ok(ReprovisioningStatus::InitialAssignment),
             "deviceDataMigrated" => Ok(ReprovisioningStatus::DeviceDataMigrated),
             "deviceDataReset" => Ok(ReprovisioningStatus::DeviceDataReset),
-            "deviceDataUpdated" => Ok(ReprovisioningStatus::DeviceDataUpdated),
-            _ => Ok(ReprovisioningStatus::None),
+            _ => Ok(ReprovisioningStatus::InitialAssignment),
         }
     }
 }
 
 impl Default for ReprovisioningStatus {
     fn default() -> Self {
-        ReprovisioningStatus::None
+        ReprovisioningStatus::InitialAssignment
     }
 }
 
@@ -126,8 +125,8 @@ impl Provision for ManualProvisioning {
             .map(|_| ProvisioningResult {
                 device_id,
                 hub_name: hub,
-                reconfigure: ReprovisioningStatus::None,
-                sha256_thumbprint: None
+                reconfigure: ReprovisioningStatus::DeviceDataNotUpdated,
+                sha256_thumbprint: None,
             })
             .map_err(|err| Error::from(err.context(ErrorKind::Provision)));
         Box::new(result.into_future())
@@ -282,16 +281,19 @@ where
         let d = match c {
             Ok(c) => Either::A(
                 c.register()
-                    .map(|(device_id, hub_name, reconfigure)| {
+                    .map(|(device_id, hub_name, substatus)| {
                         info!(
                             "DPS registration assigned device \"{}\" in hub \"{}\"",
                             device_id, hub_name
                         );
+                        let reconfigure = substatus.map_or_else(
+                            || ReprovisioningStatus::InitialAssignment,
+                            |s| ReprovisioningStatus::from_str(s.as_ref()).unwrap(),
+                        );
                         ProvisioningResult {
                             device_id,
                             hub_name,
-                            reconfigure: ReprovisioningStatus::from_str(reconfigure.as_ref())
-                                .unwrap(),
+                            reconfigure,
                             sha256_thumbprint: None,
                         }
                     })
@@ -397,7 +399,7 @@ where
                                 ReprovisioningStatus::InitialAssignment
                             } else {
                                 info!("No changes to device reprovisioning.");
-                                ReprovisioningStatus::None
+                                ReprovisioningStatus::DeviceDataNotUpdated
                             }
                         }
                         _ => ReprovisioningStatus::InitialAssignment,
@@ -641,7 +643,10 @@ mod tests {
                 let prov_result = result.expect("Unexpected");
                 assert_eq!(prov_result.device_id(), "TestDevice");
                 assert_eq!(prov_result.hub_name(), "TestHub");
-                assert_eq!(prov_result.reconfigure(), ReprovisioningStatus::None);
+                assert_eq!(
+                    prov_result.reconfigure(),
+                    ReprovisioningStatus::DeviceDataNotUpdated
+                );
                 Ok::<_, Error>(())
             });
         tokio::runtime::current_thread::Runtime::new()
@@ -717,7 +722,7 @@ mod tests {
         let json = serde_json::to_string(&ProvisioningResult {
             device_id: "something".to_string(),
             hub_name: "something".to_string(),
-            reconfigure: ReprovisioningStatus::InitialAssignment,
+            reconfigure: ReprovisioningStatus::DeviceDataNotUpdated,
             sha256_thumbprint: None,
         })
         .unwrap();
@@ -726,6 +731,6 @@ mod tests {
             json
         );
         let result: ProvisioningResult = serde_json::from_str(&json).unwrap();
-        assert_eq!(result.reconfigure, ReprovisioningStatus::None)
+        assert_eq!(result.reconfigure, ReprovisioningStatus::InitialAssignment)
     }
 }

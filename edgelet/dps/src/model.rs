@@ -214,7 +214,10 @@ pub struct X509RegistrationResult {
     certificate_info: Option<X509CertificateInfo>,
     #[serde(rename = "enrollmentGroupId", skip_serializing_if = "Option::is_none")]
     enrollment_group_id: Option<String>,
-    #[serde(rename = "signingCertificateInfo", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "signingCertificateInfo",
+        skip_serializing_if = "Option::is_none"
+    )]
     signing_certificate_info: Option<X509CertificateInfo>,
 }
 
@@ -315,6 +318,7 @@ pub struct X509CertificateInfo {
     version: i32,
 }
 
+#[allow(clippy::too_many_arguments)]
 impl X509CertificateInfo {
     /// X509 certificate info.
     pub fn new(
@@ -328,14 +332,14 @@ impl X509CertificateInfo {
         version: i32,
     ) -> X509CertificateInfo {
         X509CertificateInfo {
-            subject_name: subject_name,
-            sha1_thumbprint: sha1_thumbprint,
-            sha256_thumbprint: sha256_thumbprint,
-            issuer_name: issuer_name,
-            not_before_utc: not_before_utc,
-            not_after_utc: not_after_utc,
-            serial_number: serial_number,
-            version: version,
+            subject_name,
+            sha1_thumbprint,
+            sha256_thumbprint,
+            issuer_name,
+            not_before_utc,
+            not_after_utc,
+            serial_number,
+            version,
         }
     }
 

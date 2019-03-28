@@ -657,7 +657,9 @@ where
             })
             .and_then(move |prov_result| {
                 info!("Successful DPS provisioning.");
-                if prov_result.reconfigure() != ReprovisioningStatus::None {
+                if prov_result.reconfigure() == ReprovisioningStatus::DeviceDataNotUpdated {
+                    Either::B(future::ok((prov_result, runtime)))
+                } else {
                     info!(
                         "Reprovisioning status {:?} will trigger reconfiguration of modules.",
                         prov_result.reconfigure()
@@ -670,8 +672,6 @@ where
                         Ok((prov_result, runtime))
                     });
                     Either::A(remove)
-                } else {
-                    Either::B(future::ok((prov_result, runtime)))
                 }
             })
             .and_then(move |(prov_result, runtime)| {
@@ -728,9 +728,11 @@ where
             )))
         })
         .and_then(|prov_result| {
-            if prov_result.reconfigure() != ReprovisioningStatus::None {
+            if prov_result.reconfigure() == ReprovisioningStatus::DeviceDataNotUpdated {
+                Either::B(future::ok((prov_result, runtime)))
+            } else {
                 info!("Successful DPS provisioning. This will trigger reconfiguration of modules.");
-                // Each time DPS provisions, it gets back a new device key. This results in obsolete
+                // Each time DPS reprovisions, it gets back a new device key. This results in obsolete
                 // module keys in IoTHub from the previous provisioning. We delete all containers
                 // after each DPS provisioning run so that IoTHub can be updated with new module
                 // keys when the deployment is executed by EdgeAgent.
@@ -741,8 +743,6 @@ where
                     Ok((prov_result, runtime))
                 });
                 Either::A(remove)
-            } else {
-                Either::B(future::ok((prov_result, runtime)))
             }
         })
         .and_then(move |(prov_result, runtime)| {

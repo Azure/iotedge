@@ -411,7 +411,7 @@ where
 
     pub fn register(
         &self,
-    ) -> Box<dyn Future<Item = (String, String, String), Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = (String, String, Option<String>), Error = Error> + Send> {
         let key_store = self.key_store.clone();
         let mut key_store_status = self.key_store.clone();
         let client_with_token_status = self.client.clone();
@@ -498,7 +498,7 @@ where
 
 fn get_device_info(
     registration_result: &DeviceRegistrationResult,
-) -> Result<(String, String, String), Error> {
+) -> Result<(String, String, Option<String>), Error> {
     Ok((
         registration_result
             .device_id()
@@ -512,12 +512,7 @@ fn get_device_info(
                 Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
             })?
             .to_string(),
-        registration_result
-            .substatus()
-            .ok_or_else(|| {
-                Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
-            })?
-            .to_string(),
+        registration_result.substatus().map(|s| s.to_string()),
     ))
 }
 
@@ -1082,7 +1077,7 @@ mod tests {
             (
                 "device".to_string(),
                 "hub".to_string(),
-                "initialAssignment".to_string()
+                Some("initialAssignment".to_string())
             )
         )
     }
