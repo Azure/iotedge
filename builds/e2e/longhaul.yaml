@@ -117,7 +117,7 @@ jobs:
           artifactName: $(images.artifact.name)
           itemPattern: |
             $(images.artifact.name)/IotEdgeQuickstart.linux-arm.tar.gz
-            $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.arm.amqp.json
+            $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.arm32v7.amqp.json
             $(images.artifact.name)/scripts/linux/runE2ETest.sh
             $(images.artifact.name)/artifactInfo.txt
       # Deploy long haul
@@ -176,7 +176,7 @@ jobs:
           artifactName: $(images.artifact.name)
           itemPattern: |
             $(images.artifact.name)/IotEdgeQuickstart.linux-arm.tar.gz
-            $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.arm.mqtt.json
+            $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.arm32v7.mqtt.json
             $(images.artifact.name)/scripts/linux/runE2ETest.sh
             $(images.artifact.name)/artifactInfo.txt
       # Deploy long haul
