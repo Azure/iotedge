@@ -1,0 +1,82 @@
+# Run a simple smoke test against a dogfood deployment of the IoT Hub service
+
+pr: none
+trigger: none
+
+pool:
+  vmImage: ubuntu-16.04
+
+steps:
+- checkout: none
+
+- task: AzureKeyVault@1
+  displayName: Get secrets
+  inputs:
+    azureSubscription: $(az.subscription)
+    keyVaultName: $(az.keyVault)
+    secretsFilter: >-
+      IotHubConnStr2,
+      EventHubConnStr2
+
+- task: Docker@1
+  displayName: Docker login
+  inputs:
+    azureSubscriptionEndpoint: $(az.subscription)
+    azureContainerRegistry: $(az.containerRegistry)
+    command: login
+
+- task: DownloadBuildArtifacts@0
+  displayName: Download smoke tests
+  inputs:
+    buildType: specific
+    project: one
+    pipeline: $(az.pipeline.artifacts)
+    buildVersionToDownload: latestFromBranch
+    branchName: refs/heads/master
+    downloadType: specific
+    itemPattern: core-linux/IotEdgeQuickstart.linux-x64.tar.gz
+
+- script: |
+    mkdir -p $(System.ArtifactsDirectory)/smoke
+    tar \
+      -C $(System.ArtifactsDirectory)/smoke \
+      -xzf $(System.ArtifactsDirectory)/core-linux/IotEdgeQuickstart.linux-x64.tar.gz
+    rm -r $(System.ArtifactsDirectory)/core-linux
+  displayName: Install smoke tests
+
+- script: |
+    #!/bin/bash
+
+    iothub_connstr="$(connstr.iotHub)"
+    if [ -z $iothub_connstr ]; then
+      iothub_connstr="$(IotHubConnStr2)"
+    fi
+    eventhub_connstr="$(connstr.eventHub)"
+    if [ -z $eventhub_connstr ]; then
+      eventhub_connstr="$(EventHubConnStr2)"
+    fi
+
+    # Run smoke tests
+    sudo $(System.ArtifactsDirectory)/smoke/IotEdgeQuickstart \
+      -c "$iothub_connstr" \
+      -e "$eventhub_connstr"
+    res=$?
+
+    # Collect logs
+    logdir=$(System.ArtifactsDirectory)/logs
+    mkdir -p $logdir
+    echo > "$logdir/$(Build.DefinitionName)-$(Build.BuildNumber)"
+    sudo journalctl > $logdir/iotedged.log
+    docker logs edgeAgent > $logdir/edgeAgent.log
+    docker logs edgeHub > $logdir/edgeHub.log
+    docker logs tempSensor > $logdir/tempSensor.log
+
+    exit $res
+  displayName: Run smoke tests
+
+- task: PublishBuildArtifacts@1
+  displayName: Publish logs
+  inputs:
+    PathtoPublish: $(System.ArtifactsDirectory)/logs
+    ArtifactName: logs
+  condition: succeededOrFailed()
