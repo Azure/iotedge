@@ -14,7 +14,7 @@ use std::net;
 use std::net::ToSocketAddrs;
 #[cfg(unix)]
 use std::os::unix::io::FromRawFd;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use failure::{Fail, ResultExt};
 use futures::{future, Future, Poll, Stream};
@@ -203,6 +203,7 @@ impl HyperExt for Http {
                     .with_context(|_| ErrorKind::BindListener(BindListenerType::Address(addr)))?;
                 Incoming::Tcp(listener)
             }
+            #[cfg(unix)]
             HTTPS_SCHEME => {
                 let addr = url
                     .to_socket_addrs()
@@ -216,13 +217,13 @@ impl HyperExt for Http {
                     })?;
 
                 let cert = match cert_manager {
-                    Some(cert_manager) => cert_manager.get_certificate(),
+                    Some(cert_manager) => cert_manager.get_pkcs12_certificate(),
                     None => return Err(Error::from(ErrorKind::CertificateCreationError)),
                 };
 
                 let cert = cert.with_context(|_| ErrorKind::TlsBootstrapError)?;
 
-                let cert_identity = Identity::from_pkcs12(cert.as_ref(), "")
+                let cert_identity = Identity::from_pkcs12(&cert, "")
                     .with_context(|_| ErrorKind::TlsIdentityCreationError)?;
 
                 let tls_acceptor = TlsAcceptor::builder(cert_identity)
@@ -232,7 +233,7 @@ impl HyperExt for Http {
 
                 let listener = TcpListener::bind(&addr)
                     .with_context(|_| ErrorKind::BindListener(BindListenerType::Address(addr)))?;
-                Incoming::Tls(listener, tls_acceptor)
+                Incoming::Tls(listener, tls_acceptor, Mutex::new(vec![]))
             }
             UNIX_SCHEME => {
                 let path = url

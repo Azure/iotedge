@@ -29,6 +29,9 @@ pub enum ErrorKind {
     #[fail(display = "Unable to create a TLS certificate")]
     CertificateCreationError,
 
+    #[fail(display = "Unable to convert a TLS certificate into a PKCS#12 certificate")]
+    CertificateConverstionError,
+
     #[fail(display = "Could not perform HTTP request")]
     Http,
 

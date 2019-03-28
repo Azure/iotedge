@@ -145,7 +145,7 @@ const EDGE_SETTINGS_SUBDIR: &str = "cache";
 /// These are the properties of the workload CA certificate
 const IOTEDGED_VALIDITY: u64 = 7_776_000; // 90 days
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
-const IOTEDGED_TLS_COMMONNAME: &str = "iotedge tls";
+const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
 
 const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200; // 2 hours
 const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 7_776_000; // 90 days

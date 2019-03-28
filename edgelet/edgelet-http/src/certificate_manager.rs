@@ -1,6 +1,12 @@
+#[cfg(unix)]
 use std::sync::{Arc, RwLock};
 
-use edgelet_core::crypto::{Certificate, CreateCertificate};
+use openssl::pkcs12::Pkcs12;
+use openssl::pkey::PKey;
+use openssl::stack::Stack;
+use openssl::x509::X509;
+
+use edgelet_core::crypto::{Certificate, CreateCertificate, KeyBytes, PrivateKey, Signature};
 use edgelet_core::CertificateProperties;
 use failure::ResultExt;
 
@@ -8,7 +14,7 @@ pub use crate::error::{Error, ErrorKind};
 
 #[derive(Clone)]
 pub struct CertificateManager<C: CreateCertificate + Clone> {
-    certificate: Arc<RwLock<Option<String>>>,
+    certificate: Arc<RwLock<Option<(String, String)>>>,
     crypto: C,
     props: CertificateProperties,
 }
@@ -22,7 +28,42 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
         }
     }
 
-    pub fn get_certificate(&self) -> Result<String, Error> {
+    // Convenience function since native-tls does not yet support PEM
+    // and since everything else uses PEM certificates, we want to keep
+    // the actual storage of the certificate in the PEM format.
+    pub fn get_pkcs12_certificate(&self) -> Result<Vec<u8>, Error> {
+        let stored_cert_bundle = self
+            .get_certificate()
+            .with_context(|_| ErrorKind::CertificateCreationError)?;
+
+        let cert = stored_cert_bundle.0.as_bytes();
+
+        let mut certs =
+            X509::stack_from_pem(cert).with_context(|_| ErrorKind::CertificateConverstionError)?;
+
+        let mut ca_certs = Stack::new().with_context(|_| ErrorKind::CertificateConverstionError)?;
+        for cert in certs.split_off(1) {
+            ca_certs
+                .push(cert)
+                .with_context(|_| ErrorKind::CertificateConverstionError)?;
+        }
+
+        let key = PKey::private_key_from_pem(stored_cert_bundle.1.as_bytes())
+            .expect("Issue getting private key");
+
+        let server_cert = &certs[0];
+        let mut builder = Pkcs12::builder();
+        builder.ca(ca_certs);
+        let pkcs_certs = builder
+            .build("", "", &key, &server_cert)
+            .with_context(|_| ErrorKind::CertificateConverstionError)?;
+
+        Ok(pkcs_certs
+            .to_der()
+            .with_context(|_| ErrorKind::CertificateConverstionError)?)
+    }
+
+    pub fn get_certificate(&self) -> Result<(String, String), Error> {
         // First, try to directly read
         {
             let cert = self
@@ -31,7 +72,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
                 .expect("Locking the certificate for read failed.");
 
             if let Some(cert) = cert.as_ref() {
-                return Ok(cert.to_string());
+                return Ok(cert.clone());
             }
         }
 
@@ -42,16 +83,16 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
             .expect("Locking the certificate for write failed.");
 
         if let Some(cert) = cert.as_ref() {
-            Ok(cert.to_string())
+            Ok(cert.clone())
         } else {
-            let new_cert = self
+            let (new_cert, private_key) = self
                 .create_cert()
                 .with_context(|_| ErrorKind::CertificateCreationError)?;
-            Ok(cert.get_or_insert(new_cert).to_string())
+            Ok(cert.get_or_insert((new_cert, private_key)).clone())
         }
     }
 
-    fn create_cert(&self) -> Result<String, Error> {
+    fn create_cert(&self) -> Result<(String, String), Error> {
         let cert = self
             .crypto
             .create_certificate(&self.props)
@@ -61,10 +102,27 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
             .pem()
             .with_context(|_| ErrorKind::CertificateCreationError)?;
 
+        let cert_private_key = cert
+            .get_private_key()
+            .with_context(|_| ErrorKind::CertificateCreationError)?;
+
+        let pk = match cert_private_key {
+            Some(pk) => pk,
+            None => panic!("did not expect reference private key"),
+        };
+
+        let pk_bytes = match pk {
+            PrivateKey::Ref(_) => panic!("did not expect reference private key"),
+            PrivateKey::Key(KeyBytes::Pem(k)) => k,
+        };
+
         let cert_str = String::from_utf8(cert_pem.as_ref().to_vec())
             .with_context(|_| ErrorKind::CertificateCreationError)?;
 
-        Ok(cert_str)
+        let key_str = String::from_utf8(pk_bytes.as_bytes().to_vec())
+            .with_context(|_| ErrorKind::CertificateCreationError)?;
+
+        Ok((cert_str, key_str))
     }
 
     #[cfg(test)]
@@ -80,6 +138,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use edgelet_core::crypto::{KeyBytes, PrivateKey};
     use edgelet_core::{CertificateProperties, CertificateType};
 
     use chrono::{DateTime, Utc};
@@ -95,7 +154,7 @@ mod tests {
         let crypto = TestCrypto::new().unwrap();
 
         let edgelet_cert_props = CertificateProperties::new(
-            1_234_56,
+            123_456,
             "IOTEDGED_TLS_COMMONNAME".to_string(),
             CertificateType::Server,
             "iotedge-tls".to_string(),
@@ -111,7 +170,7 @@ mod tests {
         let crypto = TestCrypto::new().unwrap();
 
         let edgelet_cert_props = CertificateProperties::new(
-            1_234_56,
+            123_456,
             "IOTEDGED_TLS_COMMONNAME".to_string(),
             CertificateType::Server,
             "iotedge-tls".to_string(),
@@ -121,7 +180,7 @@ mod tests {
 
         let cert = manager.get_certificate().unwrap();
 
-        assert_eq!(cert, "test".to_string());
+        assert_eq!(cert.0, "test".to_string());
 
         assert_eq!(manager.has_certificate(), true);
     }
@@ -163,7 +222,9 @@ mod tests {
         }
 
         fn get_private_key(&self) -> Result<Option<CorePrivateKey<Self::KeyBuffer>>, CoreError> {
-            Ok(None)
+            Ok(Some(PrivateKey::Key(KeyBytes::Pem(
+                "akey".to_string().as_bytes().to_vec(),
+            ))))
         }
 
         fn get_valid_to(&self) -> Result<DateTime<Utc>, CoreError> {
