@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
     using System;
     using System.Collections.Generic;
+    using System.Data;
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
@@ -399,11 +400,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             }
                             else
                             {
-                                var storeProvider = c.Resolve<IStoreProvider>();
                                 var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
                                 var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
-                                IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                                IEntityStore<string, TwinStoreEntity> entityStore = storeProvider.GetEntityStore<string, TwinStoreEntity>("EdgeTwin");
+                                var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
+                                IEntityStore<string, TwinStoreEntity> entityStore = await GetEncryptedEntityStoreIfSupported<string, TwinStoreEntity>(c, "EdgeTwin");
+                                IConnectionManager connectionManager = await connectionManagerTask;
                                 ITwinManager twinManager = StoringTwinManager.Create(
                                     connectionManager,
                                     messageConverterProvider,
@@ -546,6 +547,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             base.Load(builder);
+        }
+
+        static async Task<IEntityStore<TK, TV>> GetEncryptedEntityStoreIfSupported<TK, TV>(IComponentContext context, string entityName)
+        {
+            var storeProvider = context.Resolve<IStoreProvider>();
+            Option<IEncryptionProvider> encryptionProvider = await context.Resolve<Task<Option<IEncryptionProvider>>>();
+           IEntityStore<TK, TV> entityStore = encryptionProvider.Map(
+                    e =>
+                    {
+                        IEntityStore<string, string> underlyingEntityStore = storeProvider.GetEntityStore<string, string>($"underlying{entityName}");
+                        IKeyValueStore<string, string> es = new EncryptedStore<string, string>(underlyingEntityStore, e);                    
+                        ITypeMapper<TK, string> keyMapper = new JsonMapper<TK>();
+                        ITypeMapper<TV, string> valueMapper = new JsonMapper<TV>();
+                        IKeyValueStore<TK, TV> dbStoreMapper = new DbStoreMapper<TK, string, TV, string>(es, keyMapper, valueMapper);
+                        IEntityStore<TK, TV> tes = new EntityStore<TK, TV>(dbStoreMapper, entityName);
+                        return tes;
+                    })
+                .GetOrElse(
+                    () => storeProvider.GetEntityStore<TK, TV>(entityName));
+                
+            return entityStore;
         }
     }
 }
