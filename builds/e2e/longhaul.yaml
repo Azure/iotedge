@@ -65,7 +65,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
-          release.label: 'LH'
+          release.label: 'lh'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name)'
           container.registry: '$(container.registry)'
@@ -123,7 +123,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
-          release.label: 'LH-AMQP'
+          release.label: 'lh-amqp'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name)'
           container.registry: '$(container.registry)'
@@ -182,7 +182,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
-          release.label: 'LH-MQTT'
+          release.label: 'lh-mqtt'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name)'
           container.registry: '$(container.registry)'
