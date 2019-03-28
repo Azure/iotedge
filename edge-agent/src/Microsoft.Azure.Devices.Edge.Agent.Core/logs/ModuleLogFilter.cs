@@ -10,6 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
     public class ModuleLogFilter : IEquatable<ModuleLogFilter>
     {
+        public static ModuleLogFilter Empty = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.None<int>(), Option.None<string>());
+
         public ModuleLogFilter(Option<int> tail, Option<int> since, Option<int> logLevel, Option<string> regex)
         {
             this.Tail = tail;
@@ -24,8 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             : this(Option.Maybe(tail), Option.Maybe(since), Option.Maybe(loglevel), Option.Maybe(regex))
         {
         }
-
-        public static ModuleLogFilter Empty = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.None<int>(), Option.None<string>());
 
         [JsonProperty("tail")]
         [JsonConverter(typeof(OptionConverter<int>), true)]
@@ -50,13 +50,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             => this.Equals(obj as ModuleLogFilter);
 
         public bool Equals(ModuleLogFilter other)
-        {
-            return other != null &&
-                   this.Tail.Equals(other.Tail) &&
-                   this.Since.Equals(other.Since) &&
-                   this.LogLevel.Equals(other.LogLevel) &&
-                   this.Regex.Equals(other.Regex);
-        }
+            => other != null &&
+               this.Tail.Equals(other.Tail) &&
+               this.Since.Equals(other.Since) &&
+               this.LogLevel.Equals(other.LogLevel) &&
+               this.RegexString.Equals(other.RegexString);
 
         public override int GetHashCode()
         {
@@ -64,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             hashCode = hashCode * -1521134295 + EqualityComparer<Option<int>>.Default.GetHashCode(this.Tail);
             hashCode = hashCode * -1521134295 + EqualityComparer<Option<int>>.Default.GetHashCode(this.Since);
             hashCode = hashCode * -1521134295 + EqualityComparer<Option<int>>.Default.GetHashCode(this.LogLevel);
-            hashCode = hashCode * -1521134295 + EqualityComparer<Option<Regex>>.Default.GetHashCode(this.Regex);
+            hashCode = hashCode * -1521134295 + EqualityComparer<Option<string>>.Default.GetHashCode(this.RegexString);
             return hashCode;
         }
     }
