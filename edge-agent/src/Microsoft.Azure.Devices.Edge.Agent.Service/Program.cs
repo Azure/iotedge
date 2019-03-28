@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 {
                     case "twin":
                         bool enableStreams = configuration.GetValue(Constants.EnableStreams, false);
-                        int requestTimeoutSecs = configuration.GetValue(Constants.RequestTimeoutSecs, 120);
+                        int requestTimeoutSecs = configuration.GetValue(Constants.RequestTimeoutSecs, 600);
                         builder.RegisterModule(
                             new TwinConfigSourceModule(
                                 iothubHostname,
