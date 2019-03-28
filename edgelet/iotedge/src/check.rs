@@ -1008,20 +1008,12 @@ fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::
         .map(std::str::FromStr::from_str);
     let docker_server_major_version: u32 = match docker_server_major_version {
         Some(Ok(docker_server_major_version)) => docker_server_major_version,
-        Some(Err(err)) => {
-            return Err(err
-                .context(format!(
-                    "Container engine returned malformed version string {:?}",
-                    docker_server_version,
-                ))
-                .into());
-        }
-        None => {
-            return Err(Context::new(format!(
-                "Container engine returned malformed version string {:?}",
-                docker_server_version,
-            ))
-            .into());
+        Some(Err(_)) | None => {
+            return Ok(CheckResult::Warning(format!(
+                "Container engine returned malformed version string {:?}\n\
+                 {}",
+                docker_server_version, MESSAGE,
+            )));
         }
     };
 
