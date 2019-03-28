@@ -442,8 +442,13 @@ fn parse_settings(check: &mut Check) -> Result<CheckResult, failure::Error> {
     if let Err(err) = File::open(config_file) {
         let message = match err.kind() {
             std::io::ErrorKind::PermissionDenied => format!(
-                "Could not open file {}. You might need to run this command as root.",
+                "Could not open file {}. You might need to run this command as {}.",
                 config_file.display(),
+                if cfg!(windows) {
+                    "Administrator"
+                } else {
+                    "root"
+                },
             ),
             _ => format!("Could not open file {}", config_file.display()),
         };
@@ -534,8 +539,18 @@ fn container_engine(check: &mut Check) -> Result<CheckResult, failure::Error> {
             );
 
             if let Some(message) = message {
-                if message.contains("Got permission denied") {
-                    error_message += "\nYou might need to run this command as root.";
+                #[cfg(unix)]
+                {
+                    if message.contains("Got permission denied") {
+                        error_message += "\nYou might need to run this command as root.";
+                    }
+                }
+
+                #[cfg(windows)]
+                {
+                    if message.contains("Access is denied") {
+                        error_message += "\nYou might need to run this command as Administrator.";
+                    }
                 }
             }
 
@@ -1266,6 +1281,7 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
         // Try to bind to the port ourselves. If it fails with AddrInUse, then something else has bound to it.
         match std::net::TcpListener::bind(format!("127.0.0.1:{}", port_binding)) {
             Ok(_) => (),
+
             Err(ref err) if err.kind() == std::io::ErrorKind::AddrInUse => {
                 return Err(Context::new(format!(
                     "Edge hub cannot start on device because port {} is already in use. \
@@ -1273,12 +1289,15 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
                     port_binding,
                 )).into());
             }
+
+            #[cfg(unix)]
             Err(ref err) if err.kind() == std::io::ErrorKind::PermissionDenied => {
                 return Err(Context::new(format!(
                     "Permission denied when attempting to bind to port {}. You might need to run this command as root.",
                     port_binding,
                 )).into());
             }
+
             Err(err) => {
                 return Err(err
                     .context(format!(
