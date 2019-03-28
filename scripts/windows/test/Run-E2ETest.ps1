@@ -254,11 +254,6 @@ Function PrepareTestFromArtifacts
                 Copy-Item $DirectMethodModuleToModuleDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
                 (Get-Content $DeploymentWorkingFilePath).replace('<UpstreamProtocol>','Mqtt') | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<ClientTransportType>','Mqtt_Tcp_Only') | Set-Content $DeploymentWorkingFilePath
-
-                If ($Architecture -eq "arm32v7")
-                {
-                    (Get-Content $DeploymentWorkingFilePath).replace('<MqttEventsProcessorThreadCount>','1') | Set-Content $DeploymentWorkingFilePath
-                }
             }
             "TempFilter"
             {
@@ -282,15 +277,6 @@ Function PrepareTestFromArtifacts
             }
         }
 
-        If ($Architecture -eq "arm32v7") 
-        {
-            (Get-Content $DeploymentWorkingFilePath).replace('<OptimizeForPerformance>', 'false') | Set-Content $DeploymentWorkingFilePath
-        }
-        else
-        {
-            (Get-Content $DeploymentWorkingFilePath).replace('<OptimizeForPerformance>', 'true') | Set-Content $DeploymentWorkingFilePath
-        }
-        
         $ImageArchitectureLabel = $(GetImageArchitectureLabel)
         (Get-Content $DeploymentWorkingFilePath).replace('<Architecture>', $ImageArchitectureLabel) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<Build.BuildNumber>', $ArtifactImageBuildNumber) | Set-Content $DeploymentWorkingFilePath
@@ -479,6 +465,7 @@ Function RunDirectMethodAmqpTest
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
+            -n `"$env:computername`" ``
             -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
@@ -510,6 +497,7 @@ Function RunDirectMethodMqttTest
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
+            -n `"$env:computername`" ``
             -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
@@ -546,7 +534,6 @@ Function RunQuickstartCertsTest
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-        --optimize_for_performance true ``
         --leave-running=All ``
         --no-verify"
     If ($ProxyUri) {
@@ -591,6 +578,7 @@ Function RunTempFilterTest
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
+            -n `"$env:computername`" ``
             -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilter`" ``
@@ -628,6 +616,7 @@ Function RunTempFilterFunctionsTest
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
+            -n `"$env:computername`" ``
             -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilterFunctions`" ``
@@ -659,12 +648,13 @@ Function RunTempSensorTest
         -d `"$deviceId`" ``
         -c `"$IoTHubConnectionString`" ``
         -e `"$EventHubConnectionString`" ``
+        -n `"$env:computername`" ``
         -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-        -tw `"$TwinTestFileArtifactFilePath`" ``
-        --optimize_for_performance true"
+        -tw `"$TwinTestFileArtifactFilePath`""
+
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             -l `"$DeploymentWorkingFilePath`" ``
@@ -821,7 +811,6 @@ Function RunTransparentGatewayTest
         --device_ca_cert `"$EdgeCertGenScriptDir\certs\iot-edge-device-$edgeDeviceId-full-chain.cert.pem`" ``
         --device_ca_pk `"$EdgeCertGenScriptDir\private\iot-edge-device-$edgeDeviceId.key.pem`" ``
         --trusted_ca_certs `"$TrustedCACertificatePath`" ``
-        --optimize_for_performance true ``
         --leave-running=All ``
         --no-verify"
 
