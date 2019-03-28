@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 }
 
                 // This does not timeout the actual handle request operation.
-                // It relies on the handler to cancel the operation when the cancellation token is set to cancelled. 
+                // It relies on the handler to cancel the operation when the cancellation token is set to cancelled.
                 using (var cancellationTokenSource = new CancellationTokenSource(this.maxRequestTimeout))
                 {
                     Option<string> responsePayload = await requestHandler.HandleRequest(Option.Maybe(payloadJson), cancellationTokenSource.Token);
