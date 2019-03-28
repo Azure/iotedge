@@ -82,6 +82,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const string EnableStreams = "EnableStreams";
 
         public const string RequestTimeoutSecs = "RequestTimeoutSecs";
+        
+        public const string AllModulesIdentifier = "all";
 
         public static class Labels
         {

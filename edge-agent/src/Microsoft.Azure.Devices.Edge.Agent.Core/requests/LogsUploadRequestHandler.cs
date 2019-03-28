@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
             async Task<IList<string>> GetModuleIds()
             {
-                if (payload.Id == "all")
+                if (payload.Id == Constants.AllModulesIdentifier)
                 {
                     IEnumerable<ModuleRuntimeInfo> modules = await this.runtimeInfoProvider.GetModules(cancellationToken);
                     return modules.Select(m => m.Name).ToList();
