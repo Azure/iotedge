@@ -431,6 +431,7 @@ function run_directmethod_test()
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --verify-data-from-module "DirectMethodSender" \
         -l "$deployment_working_file" && ret=$? || ret=$?
@@ -515,6 +516,7 @@ function run_longhaul_test() {
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=All \
         -l "$deployment_working_file" \
@@ -591,6 +593,7 @@ function run_stress_test() {
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=All \
         -l "$deployment_working_file" \
@@ -621,6 +624,7 @@ function run_tempfilter_test() {
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         --verify-data-from-module "tempFilter" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         -l "$deployment_working_file" && ret=$? || ret=$?
@@ -650,6 +654,7 @@ function run_tempfilterfunctions_test() {
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         --verify-data-from-module "tempFilterFunctions" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         -l "$deployment_working_file" && ret=$? || ret=$?
@@ -679,6 +684,7 @@ function run_tempsensor_test() {
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
         --optimize_for_performance=true \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$?
