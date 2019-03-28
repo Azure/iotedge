@@ -135,11 +135,6 @@ function prepare_test_from_artifacts() {
             'directmethodmqtt')
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
-
-                if [[ $image_architecture_label == 'arm32v7' ]] ||
-                   [[ $image_architecture_label == 'arm64v8' ]]; then
-                    sed -i -e "s@<MqttEventsProcessorThreadCount>@1@g" "$deployment_working_file"
-                fi
                 
                 sed -i -e "s@<UpstreamProtocol>@Mqtt@g" "$deployment_working_file"
                 sed -i -e "s@<ClientTransportType>@Mqtt_Tcp_Only@g" "$deployment_working_file";;
@@ -147,11 +142,6 @@ function prepare_test_from_artifacts() {
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
 
-                if [[ $image_architecture_label == 'arm32v7' ]] ||
-                   [[ $image_architecture_label == 'arm64v8' ]]; then
-                    sed -i -e "s@<MqttEventsProcessorThreadCount>@1@g" "$deployment_working_file"
-                fi
-                
                 sed -i -e "s@<UpstreamProtocol>@Mqttws@g" "$deployment_working_file"
                 sed -i -e "s@<ClientTransportType>@Mqtt_WebSocket_Only@g" "$deployment_working_file";;
             'longhaul' | 'stress')
@@ -191,13 +181,6 @@ function prepare_test_from_artifacts() {
                 echo "Copy deployment file from $module_to_functions_deployment_artifact_file"
                 cp "$module_to_functions_deployment_artifact_file" "$deployment_working_file";;
         esac
-
-        if [[ $image_architecture_label == 'arm32v7' ]] ||
-           [[ $image_architecture_label == 'arm64v8' ]]; then
-            sed -i -e "s@<OptimizeForPerformance>@false@g" "$deployment_working_file"
-        else
-            sed -i -e "s@<OptimizeForPerformance>@true@g" "$deployment_working_file"
-        fi
 
         sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
         sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
@@ -548,7 +531,6 @@ function run_quickstartcerts_test() {
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=Core \
-        --optimize_for_performance=true \
         --no-verify && ret=$? || ret=$?
 
     declare -a certs=( /var/lib/iotedge/hsm/certs/edge_owner_ca*.pem )
@@ -680,7 +662,6 @@ function run_tempsensor_test() {
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
-        --optimize_for_performance=true \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
