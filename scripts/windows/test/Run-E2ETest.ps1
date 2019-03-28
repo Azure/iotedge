@@ -254,11 +254,6 @@ Function PrepareTestFromArtifacts
                 Copy-Item $DirectMethodModuleToModuleDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
                 (Get-Content $DeploymentWorkingFilePath).replace('<UpstreamProtocol>','Mqtt') | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<ClientTransportType>','Mqtt_Tcp_Only') | Set-Content $DeploymentWorkingFilePath
-
-                If ($Architecture -eq "arm32v7")
-                {
-                    (Get-Content $DeploymentWorkingFilePath).replace('<MqttEventsProcessorThreadCount>','1') | Set-Content $DeploymentWorkingFilePath
-                }
             }
             "TempFilter"
             {
@@ -284,7 +279,6 @@ Function PrepareTestFromArtifacts
 
         $ImageArchitectureLabel = $(GetImageArchitectureLabel)
         (Get-Content $DeploymentWorkingFilePath).replace('<Architecture>', $ImageArchitectureLabel) | Set-Content $DeploymentWorkingFilePath
-        (Get-Content $DeploymentWorkingFilePath).replace('<OptimizeForPerformance>', 'true') | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<Build.BuildNumber>', $ArtifactImageBuildNumber) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Username>', $ContainerRegistryUsername) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Password>', $ContainerRegistryPassword) | Set-Content $DeploymentWorkingFilePath
@@ -538,7 +532,6 @@ Function RunQuickstartCertsTest
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-        --optimize_for_performance true ``
         --leave-running=All ``
         --no-verify"
     If ($ProxyUri) {
@@ -655,8 +648,8 @@ Function RunTempSensorTest
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-        -tw `"$TwinTestFileArtifactFilePath`" ``
-        --optimize_for_performance true"
+        -tw `"$TwinTestFileArtifactFilePath`""
+
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             -l `"$DeploymentWorkingFilePath`" ``
@@ -813,7 +806,6 @@ Function RunTransparentGatewayTest
         --device_ca_cert `"$EdgeCertGenScriptDir\certs\iot-edge-device-$edgeDeviceId-full-chain.cert.pem`" ``
         --device_ca_pk `"$EdgeCertGenScriptDir\private\iot-edge-device-$edgeDeviceId.key.pem`" ``
         --trusted_ca_certs `"$TrustedCACertificatePath`" ``
-        --optimize_for_performance true ``
         --leave-running=All ``
         --no-verify"
 
@@ -863,12 +855,21 @@ Function RunTest
     Return $testExitCode
 }
 
+Function SetEnvironmentVariable
+{
+    # IoTEdgeQuickstart runs different processes to call iotedge list right after running installation script.
+    # E2E test failed randomly when running iotedge list command throws Win32Exception as Path environment variable may not be in place yet.
+    # Therefore set it explicitly before running each test.
+    $env:Path="$env:Path;C:\Program Files\iotedge-moby;C:\Program Files\iotedge"
+}
+
 Function TestSetup
 {
     ValidateTestParameters
     CleanUp | Out-Host
     InitializeWorkingFolder
     PrepareTestFromArtifacts
+    SetEnvironmentVariable
 }
 
 Function ValidateTestParameters
