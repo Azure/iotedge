@@ -41,21 +41,23 @@ jobs:
           testRunner: VSTest
           testResultsFiles: '**/TestResults/result.trx'
         condition: succeededOrFailed()
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifact: e2e deployment files'
+      - task: CopyFiles@2
+        displayName: Copy cert files
         inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish/e2e_deployment_files'
-          ArtifactName: 'core-linux/e2e_deployment_files'
+          contents: |
+            tools/CACertificates/openssl_root_ca.cnf
+            tools/CACertificates/certGen.sh
+            IotEdgeQuickstart.linux-*.tar.gz
+            LeafDevice.linux-*.tar.gz
+            e2e_deployment_files/*
+            e2e_test_files/*
+            scripts/linux/runE2ETest.sh
+          targetFolder: $(Build.ArtifactStagingDirectory)
       - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifact: e2e test files'
+        displayName: Publish artifacts
         inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish/e2e_test_files'
-          ArtifactName: 'core-linux/e2e_test_files'
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifact: IotEdgeQuickStart'
-        inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish/IotEdgeQuickstart.linux-x64.tar.gz'
-          ArtifactName: 'core-linux'
+          pathtoPublish: $(Build.ArtifactStagingDirectory)
+          ArtifactName: core-linux
   - job: windows
     displayName: Windows
     timeoutInMinutes: 120
@@ -86,22 +88,6 @@ jobs:
         displayName: Test
         env:
           TEST_FILTER: $(test.filter)
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifact: e2e deployment files'
-        inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish/e2e_deployment_files'
-          ArtifactName: 'core-windows/e2e_deployment_files'
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifact: IotEdgeQuickStart'
-        inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish/IotEdgeQuickStart'
-          ArtifactName: 'core-windows/IotEdgeQuickStart'
-      - task: PublishBuildArtifacts@1
-        name: publish_artifacts
-        displayName: 'Publish Artifacts'
-        inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish'
-          ArtifactName: 'core-windows'
       - task: PublishTestResults@1
         name: publish_results
         displayName: 'Publish test results'
@@ -109,6 +95,23 @@ jobs:
         inputs:
           testRunner: VSTest
           testResultsFiles: '**\TestResults\*.trx'
+      - task: CopyFiles@2
+        displayName: Copy cert files
+        inputs:
+          contents: |
+            tools\CACertificates\openssl_root_ca.cnf
+            tools\CACertificates\certGen.sh
+            IotEdgeQuickstart.win10-*.zip
+            LeafDevice.win10-*.zip
+            e2e_deployment_files\*
+            e2e_test_files\*
+            scripts\windows\test\Run-E2ETest.ps1
+          targetFolder: $(Build.ArtifactStagingDirectory)
+      - task: PublishBuildArtifacts@1
+        displayName: Publish artifacts
+        inputs:
+          pathtoPublish: $(Build.ArtifactStagingDirectory)
+          artifactName: core-windows
       - powershell: docker system prune -a -f
         name: clean_machine
         displayName: Clean machine
