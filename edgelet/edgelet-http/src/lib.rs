@@ -9,10 +9,10 @@
     clippy::use_self
 )]
 
-#[cfg(linux)]
+#[cfg(target_os = "linux")]
 use std::net;
 use std::net::ToSocketAddrs;
-#[cfg(linux)]
+#[cfg(target_os = "linux")]
 use std::os::unix::io::FromRawFd;
 use std::sync::Arc;
 
@@ -22,10 +22,10 @@ use hyper::server::conn::Http;
 use hyper::service::{NewService, Service};
 use hyper::{Body, Response};
 use log::{debug, error, Level};
-#[cfg(linux)]
+#[cfg(target_os = "linux")]
 use systemd::Socket;
 use tokio::net::TcpListener;
-#[cfg(linux)]
+#[cfg(target_os = "linux")]
 use tokio_uds::UnixListener;
 use url::Url;
 
@@ -54,7 +54,7 @@ const HTTP_SCHEME: &str = "http";
 #[cfg(windows)]
 const PIPE_SCHEME: &str = "npipe";
 const TCP_SCHEME: &str = "tcp";
-#[cfg(linux)]
+#[cfg(target_os = "linux")]
 const FD_SCHEME: &str = "fd";
 
 pub trait IntoResponse {
@@ -192,7 +192,7 @@ impl HyperExt for Http {
                     .map_err(|_| ErrorKind::InvalidUrl(url.to_string()))?;
                 unix::listener(path)?
             }
-            #[cfg(linux)]
+            #[cfg(target_os = "linux")]
             FD_SCHEME => {
                 let host = url.host_str().ok_or_else(|| {
                     ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::NoHost)

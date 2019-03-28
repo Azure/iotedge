@@ -73,7 +73,7 @@ if(MSVC)
 else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security -std=c99 ")
 
-    # suppress format-nonliteral warnings on macos
+    # suppress compiler warnings on macos complaining about calls to vsnprintf
     if(APPLE)
         set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=format-nonliteral")
     endif(APPLE)

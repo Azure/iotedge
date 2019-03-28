@@ -26,7 +26,7 @@ sudo apt-get install -y git cmake build-essential curl libcurl4-openssl-dev libs
 
 ### macOS
 
-1. Install necessary tools for development
+1. Install necessary tools for development using [Homebrew](https://brew.sh/) package manager
     ```bash
     brew update    
     brew install cmake openssl 
