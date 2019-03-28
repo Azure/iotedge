@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             this.Encoding = encoding;
             this.ContentType = contentType;
             this.SasUrl = sasUrl;
-            this.Filter = filter;
+            this.Filter = filter ?? ModuleLogFilter.Empty;
         }
 
         [JsonConstructor]
