@@ -1,8 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 {
+    using System;
     using System.Text.RegularExpressions;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
     public class ModuleLogFilter
@@ -23,12 +25,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
         public static ModuleLogFilter Empty = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.None<int>(), Option.None<string>());
 
+        [JsonProperty("tail")]
+        [JsonConverter(typeof(OptionConverter<int>), true)]
         public Option<int> Tail { get; }
 
+        [JsonProperty("since")]
+        [JsonConverter(typeof(OptionConverter<int>), true)]
         public Option<int> Since { get; }
 
+        [JsonProperty("loglevel")]
+        [JsonConverter(typeof(OptionConverter<int>), true)]
         public Option<int> LogLevel { get; }
 
+        [JsonProperty("regex")]
+        [JsonConverter(typeof(OptionConverter<Regex>))]
         public Option<Regex> Regex { get; }
     }
 }
