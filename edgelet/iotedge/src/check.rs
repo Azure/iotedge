@@ -1053,16 +1053,18 @@ fn container_engine_logrotate(_: &mut Check) -> Result<CheckResult, failure::Err
         Ok(daemon_config_file) => daemon_config_file,
         Err(err) => {
             return Ok(CheckResult::Warning(format!(
-                "Could not open container engine config file {}: {}",
-                CONTAINER_ENGINE_CONFIG_PATH, err,
+                "Could not open container engine config file {}: {}\n\
+                 {}",
+                CONTAINER_ENGINE_CONFIG_PATH, err, MESSAGE,
             )));
         }
     };
     let daemon_config: DaemonConfig =
         serde_json::from_reader(daemon_config_file).with_context(|_| {
             format!(
-                "Could not parse container engine config file {}",
-                CONTAINER_ENGINE_CONFIG_PATH,
+                "Could not parse container engine config file {}\n\
+                 {}",
+                CONTAINER_ENGINE_CONFIG_PATH, MESSAGE,
             )
         })?;
 
@@ -1099,16 +1101,18 @@ fn container_engine_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
         Ok(daemon_config_file) => daemon_config_file,
         Err(err) => {
             return Ok(CheckResult::Warning(format!(
-                "Could not open container engine config file {}: {}",
-                CONTAINER_ENGINE_CONFIG_PATH, err,
+                "Could not open container engine config file {}: {}\n\
+                 {}",
+                CONTAINER_ENGINE_CONFIG_PATH, err, MESSAGE,
             )));
         }
     };
     let daemon_config: DaemonConfig =
         serde_json::from_reader(daemon_config_file).with_context(|_| {
             format!(
-                "Could not parse container engine config file {}",
-                CONTAINER_ENGINE_CONFIG_PATH,
+                "Could not parse container engine config file {}\n\
+                 {}",
+                CONTAINER_ENGINE_CONFIG_PATH, MESSAGE,
             )
         })?;
 
