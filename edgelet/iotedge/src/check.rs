@@ -750,9 +750,9 @@ fn iotedged_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
 
     if version != latest_versions.iotedged {
         return Ok(CheckResult::Warning(format!(
-            "Installed IoT Edge daemon has version {} but version {} is available. Please see <TODO: aka.ms URL> for update instructions.",
-            version,
-            latest_versions.iotedged,
+            "Installed IoT Edge daemon has version {} but version {} is available. \
+             Please see https://aka.ms/iotedge-update-runtime for update instructions.",
+            version, latest_versions.iotedged,
         )));
     }
 
@@ -850,7 +850,7 @@ fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Erro
     if settings.certificates().is_none() {
         return Ok(CheckResult::Warning(
             "Device is using self-signed, automatically generated certs. \
-             Please see <TODO: aka.ms URL> for certificate management best practices."
+             Please see https://aka.ms/iotedge-prod-checklist-certs for certificate management best practices."
                 .to_owned(),
         ));
     }
@@ -965,7 +965,7 @@ fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failur
 fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::Error> {
     const MESSAGE: &str =
         "Device is not using a production-supported container engine (moby-engine). \
-         See https://aka.ms/iotedge-platsup#container-engines for details.";
+         Please see https://aka.ms/iotedge-prod-checklist-moby for details.";
 
     let settings = if let Some(settings) = &check.settings {
         settings
@@ -1022,7 +1022,7 @@ fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::
 fn container_engine_logrotate(_: &mut Check) -> Result<CheckResult, failure::Error> {
     const MESSAGE: &str =
         "Device is not configured to rotate module logs which may cause it run out of disk space. \
-         Please see <TODO: aka.ms URL> for best practices.";
+         Please see https://aka.ms/iotedge-prod-checklist-logs for best practices.";
 
     #[derive(serde_derive::Deserialize)]
     struct DaemonConfig {
@@ -1081,7 +1081,7 @@ fn container_engine_logrotate(_: &mut Check) -> Result<CheckResult, failure::Err
 fn container_engine_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
     const MESSAGE: &str =
         "Container engine is not configured with DNS server setting, which may impact connectivity to IoT Hub. \
-         Please see <TODO: aka.ms URL> for best practices.";
+         Please see https://aka.ms/iotedge-prod-checklist-dns for best practices.";
 
     #[derive(serde_derive::Deserialize)]
     struct DaemonConfig {
