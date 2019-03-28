@@ -12,7 +12,7 @@ pub mod registration;
 pub use error::{Error, ErrorKind};
 pub use model::{
     DeviceRegistration, DeviceRegistrationResult, RegistrationOperationStatus,
-    TpmRegistrationResult,
+    TpmRegistrationResult, X509RegistrationResult, X509CertificateInfo, 
 };
 pub use registration::{DpsClient, DpsTokenSource};
 

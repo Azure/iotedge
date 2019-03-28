@@ -20,8 +20,8 @@ use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_utils::log_failure;
 use hsm::TpmKey as HsmTpmKey;
 use log::Level;
-use std::str::FromStr;
 use sha2::{Digest, Sha256};
+use std::str::FromStr;
 
 use crate::error::{Error, ErrorKind};
 
@@ -58,6 +58,8 @@ impl Default for ReprovisioningStatus {
 pub struct ProvisioningResult {
     device_id: String,
     hub_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sha256_thumbprint: Option<String>,
     #[serde(skip)]
     reconfigure: ReprovisioningStatus,
 }
@@ -125,6 +127,7 @@ impl Provision for ManualProvisioning {
                 device_id,
                 hub_name: hub,
                 reconfigure: ReprovisioningStatus::None,
+                sha256_thumbprint: None
             })
             .map_err(|err| Error::from(err.context(ErrorKind::Provision)));
         Box::new(result.into_future())
@@ -210,6 +213,7 @@ where
                             // after each DPS provisioning run so that IoTHub can be updated with new module
                             // keys when the deployment is executed by EdgeAgent.
                             reconfigure: ReprovisioningStatus::InitialAssignment,
+                            sha256_thumbprint: None,
                         }
                     })
                     .map_err(|err| Error::from(err.context(ErrorKind::Provision))),
@@ -288,6 +292,7 @@ where
                             hub_name,
                             reconfigure: ReprovisioningStatus::from_str(reconfigure.as_ref())
                                 .unwrap(),
+                            sha256_thumbprint: None,
                         }
                     })
                     .map_err(|err| Error::from(err.context(ErrorKind::Provision))),
@@ -338,27 +343,27 @@ where
     }
 
     fn diff_with_backup_inner(
-            path: PathBuf,
-            prov_result: &ProvisioningResult,
-        ) -> Result<bool, serde_json::Error> {
-            match Self::restore(path) {
-                Ok(restored_prov_result) => {
-                    let buffer = serde_json::to_string(&restored_prov_result)?;
-                    let buffer = Sha256::digest_str(&buffer);
-                    let buffer = base64::encode(&buffer);
+        path: PathBuf,
+        prov_result: &ProvisioningResult,
+    ) -> Result<bool, serde_json::Error> {
+        match Self::restore(path) {
+            Ok(restored_prov_result) => {
+                let buffer = serde_json::to_string(&restored_prov_result)?;
+                let buffer = Sha256::digest_str(&buffer);
+                let buffer = base64::encode(&buffer);
 
-                    let s = serde_json::to_string(prov_result)?;
-                    let s = Sha256::digest_str(&s);
-                    let encoded = base64::encode(&s);
-                    if encoded == buffer {
-                        Ok(false)
-                    } else {
-                        Ok(true)
-                    }
+                let s = serde_json::to_string(prov_result)?;
+                let s = Sha256::digest_str(&s);
+                let encoded = base64::encode(&s);
+                if encoded == buffer {
+                    Ok(false)
+                } else {
+                    Ok(true)
                 }
-                Err(_err) => Ok(true),
             }
+            Err(_err) => Ok(true),
         }
+    }
 
     fn diff_with_backup(path: PathBuf, prov_result: &ProvisioningResult) -> bool {
         match Self::diff_with_backup_inner(path, prov_result) {
@@ -439,6 +444,7 @@ mod tests {
                 device_id: "TestDevice".to_string(),
                 hub_name: "TestHub".to_string(),
                 reconfigure: ReprovisioningStatus::DeviceDataUpdated,
+                sha256_thumbprint: None,
             }))
         }
     }
@@ -456,6 +462,7 @@ mod tests {
                 device_id: "TestDevice".to_string(),
                 hub_name: "TestHubUpdated".to_string(),
                 reconfigure: ReprovisioningStatus::DeviceDataUpdated,
+                sha256_thumbprint: None,
             }))
         }
     }
@@ -711,6 +718,7 @@ mod tests {
             device_id: "something".to_string(),
             hub_name: "something".to_string(),
             reconfigure: ReprovisioningStatus::InitialAssignment,
+            sha256_thumbprint: None,
         })
         .unwrap();
         assert_eq!(
