@@ -87,7 +87,7 @@ function get_long_haul_deployment_artifact_file() {
        [ "$image_architecture_label" = 'arm64v8' ]; then
         path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.json"
     else
-        path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.arm.json"
+        path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.arm32v7.$LONG_HAUL_PROTOCOL_HEAD.json"
     fi
 
     echo "$path"
@@ -148,6 +148,7 @@ function prepare_test_from_artifacts() {
                 if [[ "${TEST_NAME,,}" == 'longhaul' ]]; then
                     echo "Copy deployment file from $long_haul_deployment_artifact_file"
                     cp "$long_haul_deployment_artifact_file" "$deployment_working_file"
+                    
                     sed -i -e "s@<LoadGen.TransportType>@$LOADGEN_TRANSPORT_TYPE@g" "$deployment_working_file"
                     sed -i -e "s@<ServiceClientConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
                 else
@@ -323,6 +324,9 @@ function process_args() {
         elif [ $saveNextArg -eq 23 ]; then
             MQTT_SETTINGS_ENABLED="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 24 ]; then
+            LONG_HAUL_PROTOCOL_HEAD="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -349,6 +353,7 @@ function process_args() {
                 '-loadGen4TransportType' ) saveNextArg=21;;
                 '-amqpSettingsEnabled' ) saveNextArg=22;;
                 '-mqttSettingsEnabled' ) saveNextArg=23;;
+                '-longHaulProtocolHead' ) saveNextArg=24;;
                 * ) usage;;
             esac
         fi
@@ -414,6 +419,7 @@ function run_directmethod_test()
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --verify-data-from-module "DirectMethodSender" \
         -l "$deployment_working_file" && ret=$? || ret=$?
@@ -498,6 +504,7 @@ function run_longhaul_test() {
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=All \
         -l "$deployment_working_file" \
@@ -573,6 +580,7 @@ function run_stress_test() {
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=All \
         -l "$deployment_working_file" \
@@ -603,6 +611,7 @@ function run_tempfilter_test() {
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         --verify-data-from-module "tempFilter" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         -l "$deployment_working_file" && ret=$? || ret=$?
@@ -632,6 +641,7 @@ function run_tempfilterfunctions_test() {
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         --verify-data-from-module "tempFilterFunctions" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         -l "$deployment_working_file" && ret=$? || ret=$?
@@ -661,6 +671,7 @@ function run_tempsensor_test() {
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$?
 
@@ -798,6 +809,7 @@ function usage() {
     echo ' -loadGen4TransportType          Transport type for LoadGen4 for stress test. Default is mqtt.'
     echo ' -amqpSettingsEnabled            Enable amqp protocol head in Edge Hub.'
     echo ' -mqttSettingsEnabled            Enable mqtt protocol head in Edge Hub.'
+    echo ' -longHaulProtocolHead           Specify which protocol head is used to run long haul test for ARM32v7 device. Valid values are amqp (default) and mqtt.'
     exit 1;
 }
 
@@ -805,6 +817,7 @@ process_args "$@"
 
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 LOADGEN_TRANSPORT_TYPE="${LOADGEN_TRANSPORT_TYPE:-mqtt}"
+LONG_HAUL_PROTOCOL_HEAD="${LONG_HAUL_PROTOCOL_HEAD:-amqp}"
 SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.1}"
 LOADGEN1_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
 LOADGEN2_TRANSPORT_TYPE="${LOADGEN2_TRANSPORT_TYPE:-amqp}"
