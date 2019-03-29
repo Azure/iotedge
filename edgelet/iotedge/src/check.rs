@@ -53,6 +53,7 @@ enum CheckResult {
     Ok,
     Warning(String),
     Skipped,
+    Fatal(failure::Error),
 }
 
 impl Check {
@@ -208,6 +209,7 @@ impl Check {
                     ("latest security daemon", iotedged_version),
                     ("host time is close to real time", host_local_time),
                     ("container time is close to host time", container_local_time),
+                    ("DNS server", container_engine_dns),
                     ("production readiness: certificates", settings_certificates),
                     (
                         "production readiness: certificates expiry",
@@ -221,7 +223,6 @@ impl Check {
                         "production readiness: logs policy",
                         container_engine_logrotate,
                     ),
-                    ("production readiness: DNS server", container_engine_dns),
                 ],
             ),
             (
@@ -299,13 +300,22 @@ impl Check {
 
         let mut have_warnings = false;
         let mut have_skipped = false;
+        let mut have_fatal = false;
         let mut have_errors = false;
 
         for (section_name, section_checks) in CHECKS {
+            if have_fatal {
+                break;
+            }
+
             println!("{}", section_name);
             println!("{}", "-".repeat(section_name.len()));
 
             for (check_name, check) in *section_checks {
+                if have_fatal {
+                    break;
+                }
+
                 match check(self) {
                     Ok(CheckResult::Ok) => {
                         colored(&mut stdout, &success_color_spec, is_a_tty, |stdout| {
@@ -334,6 +344,31 @@ impl Check {
                                 Ok(())
                             });
                         }
+                    }
+
+                    Ok(CheckResult::Fatal(err)) => {
+                        have_fatal = true;
+
+                        colored(&mut stdout, &error_color_spec, is_a_tty, |stdout| {
+                            writeln!(stdout, "\u{00d7} {}", check_name)?;
+
+                            let message = err.to_string();
+
+                            write_lines(stdout, "    ", "    ", message.lines())?;
+
+                            if self.verbose {
+                                for cause in err.iter_causes() {
+                                    write_lines(
+                                        stdout,
+                                        "        caused by: ",
+                                        "                   ",
+                                        cause.to_string().lines(),
+                                    )?;
+                                }
+                            }
+
+                            Ok(())
+                        });
                     }
 
                     Err(err) => {
@@ -366,7 +401,7 @@ impl Check {
             println!();
         }
 
-        match (have_warnings, have_skipped, have_errors) {
+        match (have_warnings, have_skipped, have_fatal || have_errors) {
             (false, false, false) => {
                 colored(&mut stdout, &success_color_spec, is_a_tty, |stdout| {
                     writeln!(stdout, "All checks succeeded.")?;
@@ -440,20 +475,24 @@ fn parse_settings(check: &mut Check) -> Result<CheckResult, failure::Error> {
     //
     // So we first try to open the file for reading ourselves.
     if let Err(err) = File::open(config_file) {
-        let message = match err.kind() {
-            std::io::ErrorKind::PermissionDenied => format!(
-                "Could not open file {}. You might need to run this command as {}.",
-                config_file.display(),
-                if cfg!(windows) {
-                    "Administrator"
-                } else {
-                    "root"
-                },
-            ),
-            _ => format!("Could not open file {}", config_file.display()),
-        };
-
-        return Err(err.context(message).into());
+        if err.kind() == std::io::ErrorKind::PermissionDenied {
+            return Ok(CheckResult::Fatal(
+                err.context(format!(
+                    "Could not open file {}. You might need to run this command as {}.",
+                    config_file.display(),
+                    if cfg!(windows) {
+                        "Administrator"
+                    } else {
+                        "root"
+                    },
+                ))
+                .into(),
+            ));
+        } else {
+            return Err(err
+                .context(format!("Could not open file {}", config_file.display()))
+                .into());
+        }
     }
 
     let settings = match Settings::new(Some(config_file)) {
@@ -543,6 +582,7 @@ fn container_engine(check: &mut Check) -> Result<CheckResult, failure::Error> {
                 {
                     if message.contains("Got permission denied") {
                         error_message += "\nYou might need to run this command as root.";
+                        return Ok(CheckResult::Fatal(err.context(error_message).into()));
                     }
                 }
 
@@ -550,6 +590,7 @@ fn container_engine(check: &mut Check) -> Result<CheckResult, failure::Error> {
                 {
                     if message.contains("Access is denied") {
                         error_message += "\nYou might need to run this command as Administrator.";
+                        return Ok(CheckResult::Fatal(err.context(error_message).into()));
                     }
                 }
             }
@@ -855,6 +896,42 @@ fn container_local_time(check: &mut Check) -> Result<CheckResult, failure::Error
     Ok(CheckResult::Ok)
 }
 
+fn container_engine_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
+    const MESSAGE: &str =
+        "Container engine is not configured with DNS server setting, which may impact connectivity to IoT Hub. \
+         Please see https://aka.ms/iotedge-prod-checklist-dns for best practices.";
+
+    #[derive(serde_derive::Deserialize)]
+    struct DaemonConfig {
+        dns: Option<Vec<String>>,
+    }
+
+    let daemon_config_file = match File::open(CONTAINER_ENGINE_CONFIG_PATH) {
+        Ok(daemon_config_file) => daemon_config_file,
+        Err(err) => {
+            return Ok(CheckResult::Warning(format!(
+                "Could not open container engine config file {}: {}\n\
+                 {}",
+                CONTAINER_ENGINE_CONFIG_PATH, err, MESSAGE,
+            )));
+        }
+    };
+    let daemon_config: DaemonConfig =
+        serde_json::from_reader(daemon_config_file).with_context(|_| {
+            format!(
+                "Could not parse container engine config file {}\n\
+                 {}",
+                CONTAINER_ENGINE_CONFIG_PATH, MESSAGE,
+            )
+        })?;
+
+    if let Some(&[]) | None = daemon_config.dns.as_ref().map(std::ops::Deref::deref) {
+        return Ok(CheckResult::Warning(MESSAGE.to_owned()));
+    }
+
+    Ok(CheckResult::Ok)
+}
+
 fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Error> {
     let settings = if let Some(settings) = &check.settings {
         settings
@@ -1087,42 +1164,6 @@ fn container_engine_logrotate(_: &mut Check) -> Result<CheckResult, failure::Err
     Ok(CheckResult::Ok)
 }
 
-fn container_engine_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
-    const MESSAGE: &str =
-        "Container engine is not configured with DNS server setting, which may impact connectivity to IoT Hub. \
-         Please see https://aka.ms/iotedge-prod-checklist-dns for best practices.";
-
-    #[derive(serde_derive::Deserialize)]
-    struct DaemonConfig {
-        dns: Option<Vec<String>>,
-    }
-
-    let daemon_config_file = match File::open(CONTAINER_ENGINE_CONFIG_PATH) {
-        Ok(daemon_config_file) => daemon_config_file,
-        Err(err) => {
-            return Ok(CheckResult::Warning(format!(
-                "Could not open container engine config file {}: {}\n\
-                 {}",
-                CONTAINER_ENGINE_CONFIG_PATH, err, MESSAGE,
-            )));
-        }
-    };
-    let daemon_config: DaemonConfig =
-        serde_json::from_reader(daemon_config_file).with_context(|_| {
-            format!(
-                "Could not parse container engine config file {}\n\
-                 {}",
-                CONTAINER_ENGINE_CONFIG_PATH, MESSAGE,
-            )
-        })?;
-
-    if let Some(&[]) | None = daemon_config.dns.as_ref().map(std::ops::Deref::deref) {
-        return Ok(CheckResult::Warning(MESSAGE.to_owned()));
-    }
-
-    Ok(CheckResult::Ok)
-}
-
 fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResult, failure::Error> {
     let iothub_hostname = if let Some(iothub_hostname) = &check.iothub_hostname {
         iothub_hostname
@@ -1288,10 +1329,10 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
 
             #[cfg(unix)]
             Err(ref err) if err.kind() == std::io::ErrorKind::PermissionDenied => {
-                return Err(Context::new(format!(
+                return Ok(CheckResult::Fatal(Context::new(format!(
                     "Permission denied when attempting to bind to port {}. You might need to run this command as root.",
                     port_binding,
-                )).into());
+                )).into()));
             }
 
             Err(err) => {
