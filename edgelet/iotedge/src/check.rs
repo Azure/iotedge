@@ -293,7 +293,15 @@ impl Check {
         };
         let error_color_spec = {
             let mut error_color_spec = termcolor::ColorSpec::new();
-            error_color_spec.set_fg(Some(termcolor::Color::Red));
+            if cfg!(windows) {
+                // `Color::Red` maps to `FG_RED` which is too hard to read on the default blue-background profile that PS uses.
+                // PS uses `FG_RED | FG_INTENSITY` == 12 == `[ConsoleColor]::Red` as the foreground color for its error text,
+                // with black background, so mimic that.
+                error_color_spec.set_fg(Some(termcolor::Color::Rgb(255, 0, 0)));
+                error_color_spec.set_bg(Some(termcolor::Color::Black));
+            } else {
+                error_color_spec.set_fg(Some(termcolor::Color::Red));
+            }
             error_color_spec
         };
         let is_a_tty = atty::is(atty::Stream::Stdout);
