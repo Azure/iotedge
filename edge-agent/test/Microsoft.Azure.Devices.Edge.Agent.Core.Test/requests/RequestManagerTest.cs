@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var requestHandler = new Mock<IRequestHandler>();
-            requestHandler.Setup(r => r.HandleRequest(It.IsAny<Option<string>>(), CancellationToken.None))
+            requestHandler.Setup(r => r.HandleRequest(It.IsAny<Option<string>>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Option.Some("{\"prop3\":\"foo\",\"prop4\":100}"));
             requestHandler.SetupGet(r => r.RequestName).Returns("req1");
             var requestHandlers = new List<IRequestHandler>
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var requestHandler = new Mock<IRequestHandler>();
-            requestHandler.Setup(r => r.HandleRequest(Option.Some(payload), CancellationToken.None)).ThrowsAsync(handlerException);
+            requestHandler.Setup(r => r.HandleRequest(Option.Some(payload), It.IsAny<CancellationToken>())).ThrowsAsync(handlerException);
             requestHandler.SetupGet(r => r.RequestName).Returns("req1");
             var requestHandlers = new List<IRequestHandler>
             {
