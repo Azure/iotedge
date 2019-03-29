@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt;
-use std::io::{self, ErrorKind, Read, Write};
+use std::io::{self, Read, Write};
 use std::net::SocketAddr;
 #[cfg(unix)]
 use std::os::unix::net::SocketAddr as UnixSocketAddr;
@@ -9,14 +9,14 @@ use std::path::Path;
 
 use bytes::{Buf, BufMut};
 use edgelet_core::pid::Pid;
-use futures::{Async, Future, Poll};
+use futures::Poll;
 #[cfg(windows)]
 use mio_uds_windows::net::SocketAddr as UnixSocketAddr;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpStream;
 #[cfg(windows)]
 use tokio_named_pipe::PipeStream;
-use tokio_tls::{Accept, TlsStream};
+use tokio_tls::TlsStream;
 #[cfg(unix)]
 use tokio_uds::UnixStream;
 #[cfg(windows)]
@@ -34,8 +34,7 @@ pub use self::incoming::Incoming;
 
 pub enum StreamSelector {
     Tcp(TcpStream),
-    TlsConnecting(Accept<TcpStream>),
-    TlsConnected(TlsStream<TcpStream>),
+    Tls(TlsStream<TcpStream>),
     #[cfg(windows)]
     Pipe(PipeStream),
     Unix(UnixStream),
@@ -46,8 +45,7 @@ impl StreamSelector {
     pub fn pid(&self) -> io::Result<Pid> {
         match *self {
             StreamSelector::Tcp(_) => Ok(Pid::Any),
-            StreamSelector::TlsConnecting(_) => Ok(Pid::Any),
-            StreamSelector::TlsConnected(_) => Ok(Pid::Any),
+            StreamSelector::Tls(_) => Ok(Pid::Any),
             #[cfg(windows)]
             StreamSelector::Pipe(_) => Ok(Pid::Any),
             StreamSelector::Unix(ref stream) => stream.pid(),
@@ -59,15 +57,7 @@ impl Read for StreamSelector {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self {
             StreamSelector::Tcp(stream) => stream.read(buf),
-            StreamSelector::TlsConnecting(stream) => match stream.poll() {
-                Ok(Async::Ready(stream)) => {
-                    *self = StreamSelector::TlsConnected(stream);
-                    self.read(buf)
-                }
-                Ok(Async::NotReady) => Err(ErrorKind::WouldBlock.into()),
-                Err(e) => Err(io::Error::new(ErrorKind::Other, e)),
-            },
-            StreamSelector::TlsConnected(stream) => stream.read(buf),
+            StreamSelector::Tls(stream) => stream.read(buf),
             #[cfg(windows)]
             StreamSelector::Pipe(stream) => stream.read(buf),
             StreamSelector::Unix(stream) => stream.read(buf),
@@ -79,15 +69,7 @@ impl Write for StreamSelector {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match self {
             StreamSelector::Tcp(stream) => stream.write(buf),
-            StreamSelector::TlsConnecting(stream) => match stream.poll() {
-                Ok(Async::Ready(stream)) => {
-                    *self = StreamSelector::TlsConnected(stream);
-                    self.write(buf)
-                }
-                Ok(Async::NotReady) => Err(ErrorKind::WouldBlock.into()),
-                Err(e) => Err(io::Error::new(ErrorKind::Other, e)),
-            },
-            StreamSelector::TlsConnected(stream) => stream.write(buf),
+            StreamSelector::Tls(stream) => stream.write(buf),
             #[cfg(windows)]
             StreamSelector::Pipe(stream) => stream.write(buf),
             StreamSelector::Unix(stream) => stream.write(buf),
@@ -97,15 +79,7 @@ impl Write for StreamSelector {
     fn flush(&mut self) -> io::Result<()> {
         match self {
             StreamSelector::Tcp(stream) => stream.flush(),
-            StreamSelector::TlsConnecting(stream) => match stream.poll() {
-                Ok(Async::Ready(stream)) => {
-                    *self = StreamSelector::TlsConnected(stream);
-                    self.flush()
-                }
-                Ok(Async::NotReady) => Err(ErrorKind::WouldBlock.into()),
-                Err(e) => Err(io::Error::new(ErrorKind::Other, e)),
-            },
-            StreamSelector::TlsConnected(stream) => stream.flush(),
+            StreamSelector::Tls(stream) => stream.flush(),
             #[cfg(windows)]
             StreamSelector::Pipe(stream) => stream.flush(),
             StreamSelector::Unix(stream) => stream.flush(),
@@ -118,17 +92,7 @@ impl AsyncRead for StreamSelector {
     unsafe fn prepare_uninitialized_buffer(&self, buf: &mut [u8]) -> bool {
         match *self {
             StreamSelector::Tcp(ref stream) => stream.prepare_uninitialized_buffer(buf),
-            StreamSelector::TlsConnecting(ref _stream) => {
-                /* We are doing this because the expectation of this function is to
-                 * prepare a buffer.
-                 */
-                for i in buf {
-                    *i = 0;
-                }
-
-                true
-            }
-            StreamSelector::TlsConnected(ref stream) => stream.prepare_uninitialized_buffer(buf),
+            StreamSelector::Tls(ref stream) => stream.prepare_uninitialized_buffer(buf),
             #[cfg(windows)]
             StreamSelector::Pipe(ref stream) => stream.prepare_uninitialized_buffer(buf),
             StreamSelector::Unix(ref stream) => stream.prepare_uninitialized_buffer(buf),
@@ -139,15 +103,7 @@ impl AsyncRead for StreamSelector {
     fn read_buf<B: BufMut>(&mut self, buf: &mut B) -> Poll<usize, io::Error> {
         match self {
             StreamSelector::Tcp(stream) => stream.read_buf(buf),
-            StreamSelector::TlsConnecting(stream) => match stream.poll() {
-                Ok(Async::Ready(stream)) => {
-                    *self = StreamSelector::TlsConnected(stream);
-                    self.read_buf(buf)
-                }
-                Ok(Async::NotReady) => Ok(Async::NotReady),
-                Err(e) => Err(io::Error::new(ErrorKind::Other, e)),
-            },
-            StreamSelector::TlsConnected(stream) => stream.read_buf(buf),
+            StreamSelector::Tls(stream) => stream.read_buf(buf),
             #[cfg(windows)]
             StreamSelector::Pipe(stream) => stream.read_buf(buf),
             StreamSelector::Unix(stream) => stream.read_buf(buf),
@@ -159,8 +115,7 @@ impl AsyncWrite for StreamSelector {
     fn shutdown(&mut self) -> Poll<(), io::Error> {
         match self {
             StreamSelector::Tcp(stream) => AsyncWrite::shutdown(stream),
-            StreamSelector::TlsConnecting(_stream) => Ok(Async::Ready(())),
-            StreamSelector::TlsConnected(stream) => TlsStream::shutdown(stream),
+            StreamSelector::Tls(stream) => TlsStream::shutdown(stream),
             #[cfg(windows)]
             StreamSelector::Pipe(stream) => PipeStream::shutdown(stream),
             StreamSelector::Unix(stream) => AsyncWrite::shutdown(stream),
@@ -171,15 +126,7 @@ impl AsyncWrite for StreamSelector {
     fn write_buf<B: Buf>(&mut self, buf: &mut B) -> Poll<usize, io::Error> {
         match self {
             StreamSelector::Tcp(stream) => stream.write_buf(buf),
-            StreamSelector::TlsConnecting(stream) => match stream.poll() {
-                Ok(Async::Ready(stream)) => {
-                    *self = StreamSelector::TlsConnected(stream);
-                    self.write_buf(buf)
-                }
-                Ok(Async::NotReady) => Ok(Async::NotReady),
-                Err(e) => Err(io::Error::new(ErrorKind::Other, e)),
-            },
-            StreamSelector::TlsConnected(stream) => stream.write_buf(buf),
+            StreamSelector::Tls(stream) => stream.write_buf(buf),
             #[cfg(windows)]
             StreamSelector::Pipe(stream) => stream.write_buf(buf),
             StreamSelector::Unix(stream) => stream.write_buf(buf),

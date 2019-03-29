@@ -80,7 +80,7 @@ impl Stream for Incoming {
                         let (_, addr) = connections.remove(i);
                         match result {
                             Ok(Async::Ready(tls_stream)) => {
-                                Async::Ready(Some((StreamSelector::TlsConnected(tls_stream), addr)))
+                                Async::Ready(Some((StreamSelector::Tls(tls_stream), addr)))
                             }
                             Ok(_) => unreachable!(),
                             Err(err) => return Err(TokioIoError::new(TokioIoErrorKind::Other, err)),

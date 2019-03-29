@@ -167,6 +167,7 @@ where
     }
 }
 
+#[allow(clippy::cast_sign_loss)]
 pub trait HyperExt {
     fn bind_url<C, S>(
         &self,
