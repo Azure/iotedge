@@ -37,7 +37,7 @@ pub struct Check {
     config_file: PathBuf,
     diagnostics_image_name: String,
     iotedged: PathBuf,
-    latest_versions: Result<super::LatestVersions, Error>,
+    latest_versions: Result<super::LatestVersions, Option<Error>>,
     ntp_server: String,
     verbose: bool,
 
@@ -51,7 +51,7 @@ pub struct Check {
 #[derive(Debug)]
 enum CheckResult {
     Ok,
-    Warning(String),
+    Warning(failure::Error),
     Skipped,
     Fatal(failure::Error),
 }
@@ -170,7 +170,7 @@ impl Check {
                 diagnostics_image_name,
                 iotedged,
                 ntp_server,
-                latest_versions,
+                latest_versions: latest_versions.map_err(Some),
                 verbose,
 
                 settings: None,
@@ -329,7 +329,22 @@ impl Check {
 
                         colored(&mut stdout, &warning_color_spec, is_a_tty, |stdout| {
                             writeln!(stdout, "\u{203c} {}", check_name)?;
-                            write_lines(stdout, "    ", "    ", warning.lines())?;
+
+                            let message = warning.to_string();
+
+                            write_lines(stdout, "    ", "    ", message.lines())?;
+
+                            if self.verbose {
+                                for cause in warning.iter_causes() {
+                                    write_lines(
+                                        stdout,
+                                        "        caused by: ",
+                                        "                   ",
+                                        cause.to_string().lines(),
+                                    )?;
+                                }
+                            }
+
                             Ok(())
                         });
                     }
@@ -760,9 +775,12 @@ fn daemon_mgmt_endpoint_uri(check: &mut Check) -> Result<CheckResult, failure::E
 }
 
 fn iotedged_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
-    let latest_versions = match &check.latest_versions {
-        Ok(latest_versions) => latest_versions,
-        Err(err) => return Ok(CheckResult::Warning(err.to_string())),
+    let latest_versions = match &mut check.latest_versions {
+        Ok(latest_versions) => &*latest_versions,
+        Err(err) => match err.take() {
+            Some(err) => return Ok(CheckResult::Warning(err.into())),
+            None => return Ok(CheckResult::Skipped),
+        },
     };
 
     let mut process = Command::new(&check.iotedged);
@@ -805,11 +823,14 @@ fn iotedged_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
         .as_str();
 
     if version != latest_versions.iotedged {
-        return Ok(CheckResult::Warning(format!(
-            "Installed IoT Edge daemon has version {} but version {} is available. \
-             Please see https://aka.ms/iotedge-update-runtime for update instructions.",
-            version, latest_versions.iotedged,
-        )));
+        return Ok(CheckResult::Warning(
+            Context::new(format!(
+                "Installed IoT Edge daemon has version {} but version {} is available. \
+                 Please see https://aka.ms/iotedge-update-runtime for update instructions.",
+                version, latest_versions.iotedged,
+            ))
+            .into(),
+        ));
     }
 
     Ok(CheckResult::Ok)
@@ -832,19 +853,19 @@ fn host_local_time(check: &mut Check) -> Result<CheckResult, failure::Error> {
         local_clock_offset, ..
     } = match mini_sntp::query(&check.ntp_server) {
         Ok(result) => result,
-        Err(ref err) if is_server_unreachable_error(err) => {
-            return Ok(CheckResult::Warning(format!(
-                "Could not query NTP server: {}",
-                err,
-            )));
-        }
         Err(err) => {
-            return Err(err.context("Could not query NTP server").into());
+            if is_server_unreachable_error(&err) {
+                return Ok(CheckResult::Warning(
+                    err.context("Could not query NTP server").into(),
+                ));
+            } else {
+                return Err(err.context("Could not query NTP server").into());
+            }
         }
     };
 
     if local_clock_offset.num_seconds().abs() >= 10 {
-        return Ok(CheckResult::Warning(format!(
+        return Ok(CheckResult::Warning(Context::new(format!(
             "Time on the device is out of sync with the NTP server. This may cause problems connecting to IoT Hub. \
              Please ensure time on device is accurate, for example by {}.",
             if cfg!(windows) {
@@ -852,7 +873,7 @@ fn host_local_time(check: &mut Check) -> Result<CheckResult, failure::Error> {
             } else {
                 "installing an NTP daemon"
             },
-        )));
+        )).into()));
     }
 
     Ok(CheckResult::Ok)
@@ -907,14 +928,18 @@ fn container_engine_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
         dns: Option<Vec<String>>,
     }
 
-    let daemon_config_file = match File::open(CONTAINER_ENGINE_CONFIG_PATH) {
+    let daemon_config_file = File::open(CONTAINER_ENGINE_CONFIG_PATH)
+        .with_context(|_| {
+            format!(
+                "Could not open container engine config file {}",
+                CONTAINER_ENGINE_CONFIG_PATH,
+            )
+        })
+        .context(MESSAGE);
+    let daemon_config_file = match daemon_config_file {
         Ok(daemon_config_file) => daemon_config_file,
         Err(err) => {
-            return Ok(CheckResult::Warning(format!(
-                "Could not open container engine config file {}: {}\n\
-                 {}",
-                CONTAINER_ENGINE_CONFIG_PATH, err, MESSAGE,
-            )));
+            return Ok(CheckResult::Warning(err.into()));
         }
     };
     let daemon_config: DaemonConfig =
@@ -927,7 +952,7 @@ fn container_engine_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
         })?;
 
     if let Some(&[]) | None = daemon_config.dns.as_ref().map(std::ops::Deref::deref) {
-        return Ok(CheckResult::Warning(MESSAGE.to_owned()));
+        return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));
     }
 
     Ok(CheckResult::Ok)
@@ -941,11 +966,10 @@ fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Erro
     };
 
     if settings.certificates().is_none() {
-        return Ok(CheckResult::Warning(
+        return Ok(CheckResult::Warning(Context::new(
             "Device is using self-signed, automatically generated certs. \
-             Please see https://aka.ms/iotedge-prod-checklist-certs for certificate management best practices."
-                .to_owned(),
-        ));
+             Please see https://aka.ms/iotedge-prod-checklist-certs for certificate management best practices.",
+        ).into()));
     }
 
     Ok(CheckResult::Ok)
@@ -1046,10 +1070,13 @@ fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failur
     }
 
     if not_after < now + chrono::Duration::days(7) {
-        return Ok(CheckResult::Warning(format!(
-            "Device CA certificate in {} will expire soon ({})",
-            device_ca_cert_path_source, not_after,
-        )));
+        return Ok(CheckResult::Warning(
+            Context::new(format!(
+                "Device CA certificate in {} will expire soon ({})",
+                device_ca_cert_path_source, not_after,
+            ))
+            .into(),
+        ));
     }
 
     Ok(CheckResult::Ok)
@@ -1076,7 +1103,7 @@ fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::
         let moby_runtime_uri = settings.moby_runtime().uri().to_string();
 
         if moby_runtime_uri != "npipe://./pipe/iotedge_moby_engine" {
-            return Ok(CheckResult::Warning(MESSAGE.to_owned()));
+            return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));
         }
     }
 
@@ -1087,18 +1114,21 @@ fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::
     let docker_server_major_version: u32 = match docker_server_major_version {
         Some(Ok(docker_server_major_version)) => docker_server_major_version,
         Some(Err(_)) | None => {
-            return Ok(CheckResult::Warning(format!(
-                "Container engine returned malformed version string {:?}\n\
-                 {}",
-                docker_server_version, MESSAGE,
-            )));
+            return Ok(CheckResult::Warning(
+                Context::new(format!(
+                    "Container engine returned malformed version string {:?}",
+                    docker_server_version,
+                ))
+                .context(MESSAGE)
+                .into(),
+            ));
         }
     };
 
     // Moby does not identify itself in any unique way. Moby devs recommend assuming that anything less than version 10 is Moby,
     // since it's currently 3.x and regular Docker is in the high 10s.
     if docker_server_major_version >= 10 {
-        return Ok(CheckResult::Warning(MESSAGE.to_owned()));
+        return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));
     }
 
     Ok(CheckResult::Ok)
@@ -1128,14 +1158,18 @@ fn container_engine_logrotate(_: &mut Check) -> Result<CheckResult, failure::Err
         max_size: Option<String>,
     }
 
-    let daemon_config_file = match File::open(CONTAINER_ENGINE_CONFIG_PATH) {
+    let daemon_config_file = File::open(CONTAINER_ENGINE_CONFIG_PATH)
+        .with_context(|_| {
+            format!(
+                "Could not open container engine config file {}",
+                CONTAINER_ENGINE_CONFIG_PATH,
+            )
+        })
+        .context(MESSAGE);
+    let daemon_config_file = match daemon_config_file {
         Ok(daemon_config_file) => daemon_config_file,
         Err(err) => {
-            return Ok(CheckResult::Warning(format!(
-                "Could not open container engine config file {}: {}\n\
-                 {}",
-                CONTAINER_ENGINE_CONFIG_PATH, err, MESSAGE,
-            )));
+            return Ok(CheckResult::Warning(err.into()));
         }
     };
     let daemon_config: DaemonConfig =
@@ -1148,19 +1182,19 @@ fn container_engine_logrotate(_: &mut Check) -> Result<CheckResult, failure::Err
         })?;
 
     if daemon_config.log_driver.is_none() {
-        return Ok(CheckResult::Warning(MESSAGE.to_owned()));
+        return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));
     }
 
     if let Some(log_opts) = &daemon_config.log_opts {
         if log_opts.max_file.is_none() {
-            return Ok(CheckResult::Warning(MESSAGE.to_owned()));
+            return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));
         }
 
         if log_opts.max_size.is_none() {
-            return Ok(CheckResult::Warning(MESSAGE.to_owned()));
+            return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));
         }
     } else {
-        return Ok(CheckResult::Warning(MESSAGE.to_owned()));
+        return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));
     }
 
     Ok(CheckResult::Ok)
@@ -1566,7 +1600,7 @@ mod tests {
 
         match super::settings_moby_runtime_uri(&mut check) {
             Ok(super::CheckResult::Warning(warning)) => assert!(
-                warning.contains(
+                warning.to_string().contains(
                     "Device is not using a production-supported container engine (moby-engine)."
                 ),
                 "checking moby_runtime.uri in {} failed with an unexpected warning: {}",
@@ -1614,7 +1648,7 @@ mod tests {
 
         match super::settings_moby_runtime_uri(&mut check) {
             Ok(super::CheckResult::Warning(warning)) => assert!(
-                warning.contains(
+                warning.to_string().contains(
                     "Device is not using a production-supported container engine (moby-engine)."
                 ),
                 "checking moby_runtime.uri in {} failed with an unexpected warning: {}",
