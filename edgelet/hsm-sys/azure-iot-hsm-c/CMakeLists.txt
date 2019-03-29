@@ -74,7 +74,7 @@ else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security -std=c99 ")
 
     # suppress clang compiler warnings complaining about calls to vsnprintf
-    if(CMAKE_C_FLAGS MATCHES "Clang")
+    if(CMAKE_C_COMPILER_ID MATCHES "Clang")
         set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=format-nonliteral")
     endif()
 
