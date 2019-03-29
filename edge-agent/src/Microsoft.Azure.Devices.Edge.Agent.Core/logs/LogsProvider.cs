@@ -3,7 +3,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.IO;
+    using System.Linq;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -36,12 +39,58 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
             Preconditions.CheckNotNull(callback, nameof(callback));
 
-            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(logOptions.Id, true, logOptions.Filter.Tail, logOptions.Filter.Since, cancellationToken);
-            Events.ReceivedStream(logOptions.Id);
+            ISet<string> ids = await this.GetIds(logOptions.Id, cancellationToken);
+            IEnumerable<Task> streamingTasks = ids.Select(id => this.GetLogsStream(id, logOptions, callback, cancellationToken));
+            await Task.WhenAll(streamingTasks);
+        }
+
+        public async Task GetLogsStream(IList<ModuleLogOptions> logOptionsList, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
+        {
+            Preconditions.CheckNotNull(logOptionsList, nameof(logOptionsList));
+            Preconditions.CheckNotNull(callback, nameof(callback));
+
+            var idsToProcess = new Dictionary<string, ModuleLogOptions>(StringComparer.OrdinalIgnoreCase);
+            foreach (ModuleLogOptions logOptions in logOptionsList)
+            {
+                ISet<string> ids = await this.GetIds(logOptions.Id, cancellationToken);
+                foreach (string id in ids)
+                {
+                    if (!idsToProcess.ContainsKey(id))
+                    {
+                        idsToProcess[id] = logOptions;
+                    }
+                }
+            }
+
+            IEnumerable<Task> streamingTasks = idsToProcess.Select(kvp => this.GetLogsStream(kvp.Key, kvp.Value, callback, cancellationToken));
+            await Task.WhenAll(streamingTasks);
+        }
+
+        internal async Task GetLogsStream(string id, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
+        {
+            Preconditions.CheckNotNull(logOptions, nameof(logOptions));
+            Preconditions.CheckNotNull(callback, nameof(callback));
+
+            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(id, true, logOptions.Filter.Tail, logOptions.Filter.Since, cancellationToken);
+            Events.ReceivedStream(id);
 
             await (NeedToProcessStream(logOptions)
                 ? this.logsProcessor.ProcessLogsStream(logsStream, logOptions, callback)
                 : this.WriteLogsStreamToOutput(logOptions.Id, callback, logsStream, cancellationToken));
+        }
+
+        internal async Task<ISet<string>> GetIds(string id, CancellationToken cancellationToken)
+        {
+            IEnumerable<string> modules = (await this.runtimeInfoProvider.GetModules(cancellationToken))
+                .Select(m => m.Name);
+
+            if (!id.Equals(Constants.AllModulesIdentifier, StringComparison.OrdinalIgnoreCase))
+            {
+                var regex = new Regex("id");
+                modules = modules.Where(m => regex.IsMatch(m));
+            }
+
+            return modules.ToImmutableHashSet();            
         }
 
         internal static bool NeedToProcessStream(ModuleLogOptions logOptions) =>
