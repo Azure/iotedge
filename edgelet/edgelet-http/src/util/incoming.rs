@@ -61,7 +61,9 @@ impl Stream for Incoming {
 
                 // Take a read lock on our pending connection list returning a tuple representing an index
                 // + the state on the poll
-                let mut connections = connections.lock().expect("Unable to lock the connection mutex");
+                let mut connections = connections
+                    .lock()
+                    .expect("Unable to lock the connection mutex");
                 let val = connections
                     .iter_mut()
                     .map(|(fut, _)| fut.poll())

@@ -1,9 +1,15 @@
-#[cfg(unix)]
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
+
 use std::sync::{Arc, RwLock};
 
+#[cfg(unix)]
 use openssl::pkcs12::Pkcs12;
+#[cfg(unix)]
 use openssl::pkey::PKey;
+#[cfg(unix)]
 use openssl::stack::Stack;
+#[cfg(unix)]
 use openssl::x509::X509;
 
 use edgelet_core::crypto::{Certificate, CreateCertificate, KeyBytes, PrivateKey, Signature};
@@ -21,7 +27,7 @@ pub struct CertificateManager<C: CreateCertificate + Clone> {
 
 impl<C: CreateCertificate + Clone> CertificateManager<C> {
     pub fn new(crypto: C, props: CertificateProperties) -> Self {
-        CertificateManager {
+        Self {
             certificate: Arc::new(RwLock::new(None)),
             crypto,
             props,
@@ -31,6 +37,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
     // Convenience function since native-tls does not yet support PEM
     // and since everything else uses PEM certificates, we want to keep
     // the actual storage of the certificate in the PEM format.
+    #[cfg(unix)]
     pub fn get_pkcs12_certificate(&self) -> Result<Vec<u8>, Error> {
         let stored_cert_bundle = self
             .get_certificate()
