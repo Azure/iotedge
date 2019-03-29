@@ -168,25 +168,26 @@ where
     }
 }
 
-#[allow(clippy::cast_sign_loss)]
 pub trait HyperExt {
     fn bind_url<C, S>(
         &self,
         url: Url,
         new_service: S,
-        _cert_manager: Option<&CertificateManager<C>>,
+        cert_manager: Option<&CertificateManager<C>>,
     ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
         S: NewService<ReqBody = Body>;
 }
 
+// This variable is used on Unix but not Windows
+#[allow(unused_variables)]
 impl HyperExt for Http {
     fn bind_url<C, S>(
         &self,
         url: Url,
         new_service: S,
-        _cert_manager: Option<&CertificateManager<C>>,
+        cert_manager: Option<&CertificateManager<C>>,
     ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
@@ -222,8 +223,8 @@ impl HyperExt for Http {
                         )
                     })?;
 
-                let cert = match _cert_manager {
-                    Some(_cert_manager) => _cert_manager.get_pkcs12_certificate(),
+                let cert = match cert_manager {
+                    Some(cert_manager) => cert_manager.get_pkcs12_certificate(),
                     None => return Err(Error::from(ErrorKind::CertificateCreationError)),
                 };
 

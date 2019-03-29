@@ -89,11 +89,13 @@ impl Stream for Incoming {
                             Ok(Async::Ready(tls_stream)) => {
                                 #[cfg(not(windows))]
                                 {
-                                Async::Ready(Some((StreamSelector::Tls(tls_stream), addr)))
+                                    Async::Ready(Some((StreamSelector::Tls(tls_stream), addr)))
                                 }
                                 #[cfg(windows)]
                                 {
-                                Async::Ready(Some((Box::new(StreamSelector::Tls(tls_stream), addr))))
+                                    Async::Ready(Some(
+                                        (Box::new(StreamSelector::Tls(tls_stream), addr)),
+                                    ))
                                 }
                             }
                             Ok(_) => unreachable!(),
