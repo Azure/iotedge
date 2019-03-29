@@ -899,8 +899,8 @@ fn container_local_time(check: &mut Check) -> Result<CheckResult, failure::Error
 fn container_engine_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
     const MESSAGE: &str =
         "Container engine is not configured with DNS server setting, which may impact connectivity to IoT Hub. \
-         Please see https://aka.ms/iotedge-prod-checklist-dns for best practices.\n\
-         You can ignore this warning if you are setting DNS server per module in the Edge deployment.";
+         Please see https://aka.ms/iotedge-prod-checklist-dns for best practices.\n\
+         You can ignore this warning if you are setting DNS server per module in the Edge deployment.";
 
     #[derive(serde_derive::Deserialize)]
     struct DaemonConfig {
@@ -1107,8 +1107,8 @@ fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::
 fn container_engine_logrotate(_: &mut Check) -> Result<CheckResult, failure::Error> {
     const MESSAGE: &str =
         "Container engine is not configured to rotate module logs which may cause it run out of disk space. \
-         Please see https://aka.ms/iotedge-prod-checklist-logs for best practices.\n\
-         You can ignore this warning if you are setting log policy per module in the Edge deployment.";
+         Please see https://aka.ms/iotedge-prod-checklist-logs for best practices.\n\
+         You can ignore this warning if you are setting log policy per module in the Edge deployment.";
 
     #[derive(serde_derive::Deserialize)]
     struct DaemonConfig {
