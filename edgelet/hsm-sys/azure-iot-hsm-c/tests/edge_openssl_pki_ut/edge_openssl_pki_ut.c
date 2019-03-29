@@ -174,6 +174,14 @@ MOCKABLE_FUNCTION(, void, X509_EXTENSION_free, X509_EXTENSION*, ex);
 
 MOCKABLE_FUNCTION(, void, X509V3_set_ctx, X509V3_CTX*, ctx, X509*, issuer, X509*, subj, X509_REQ*, req, X509_CRL*, crl, int, flags);
 
+MOCKABLE_FUNCTION(, EVP_MD_CTX*, EVP_MD_CTX_create);
+MOCKABLE_FUNCTION(, void, EVP_MD_CTX_destroy, EVP_MD_CTX*, ctx);
+MOCKABLE_FUNCTION(, const EVP_MD*, EVP_get_digestbyname, const char*, name);
+MOCKABLE_FUNCTION(, int, EVP_DigestInit_ex, EVP_MD_CTX*, ctx, const EVP_MD*, type, ENGINE*, impl);
+MOCKABLE_FUNCTION(, int, EVP_DigestSignInit, EVP_MD_CTX*, ctx, EVP_PKEY_CTX**, pctx, const EVP_MD*, type, ENGINE*, e, EVP_PKEY*, pkey);
+MOCKABLE_FUNCTION(, int, EVP_DigestSignFinal, EVP_MD_CTX*, ctx, unsigned char*, sigret, size_t*, siglen);
+MOCKABLE_FUNCTION(, int, EVP_DigestUpdate, EVP_MD_CTX*, ctx, const void*, d, size_t, cnt);
+
 #undef ENABLE_MOCKS
 
 //#############################################################################
@@ -268,6 +276,10 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 #define VALID_ASN1_TIME_STRING_UTC_LEN    13
 #define INVALID_ASN1_TIME_STRING_UTC_FORMAT 0
 #define INVALID_ASN1_TIME_STRING_UTC_LEN    0
+#define TEST_EVP_MD_CTX (EVP_MD_CTX*)0x2033
+#define TEST_EVP_MD (const EVP_MD*)0x2034
+#define TEST_ENGINE_IMPL (ENGINE*)0x2035
+#define TEST_EVP_PKEY_CTX (EVP_PKEY_CTX*)0x2036
 
 typedef struct VERIFY_CERT_TEST_PARAMS_TAG
 {
@@ -1131,6 +1143,67 @@ static int test_hook_X509_get_ext_by_NID(X509 *x, int nid, int lastpos)
     (void)nid;
     (void)lastpos;
 
+    return 1;
+}
+
+static EVP_MD_CTX* test_hook_EVP_MD_CTX_create(void)
+{
+    return TEST_EVP_MD_CTX;
+}
+
+static void test_hook_EVP_MD_CTX_destroy(EVP_MD_CTX *ctx)
+{
+    (void)ctx;
+}
+
+static const EVP_MD* test_hook_EVP_get_digestbyname(const char *name)
+{
+    (void)name;
+
+    return TEST_EVP_MD;
+}
+
+static int test_hook_EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
+{
+    (void)ctx;
+    (void)type;
+    (void)impl;
+
+    return 1;
+}
+
+static int test_hook_EVP_DigestSignInit
+(
+    EVP_MD_CTX *ctx,
+    EVP_PKEY_CTX **pctx,
+    const EVP_MD *type,
+    ENGINE *e,
+    EVP_PKEY *pkey
+)
+{
+    (void)ctx;
+    (void)pctx;
+    (void)type;
+    (void)e;
+    (void)pkey;
+
+    return 1;
+}
+
+static int test_hook_EVP_DigestSignFinal(EVP_MD_CTX *ctx, unsigned char *sigret, size_t *siglen)
+{
+    (void)ctx;
+    (void)sigret;
+    (void)siglen;
+
+    return 1;
+}
+
+static int test_hook_EVP_DigestUpdate(EVP_MD_CTX *ctx, const void *d, size_t cnt)
+{
+    (void)ctx;
+    (void)d;
+    (void)cnt;
     return 1;
 }
 
@@ -2214,6 +2287,26 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         REGISTER_GLOBAL_MOCK_HOOK(X509V3_set_ctx, test_hook_X509V3_set_ctx);
 
         REGISTER_GLOBAL_MOCK_HOOK(X509_get_ext_by_NID, test_hook_X509_get_ext_by_NID);
+
+        REGISTER_GLOBAL_MOCK_HOOK(EVP_MD_CTX_create, test_hook_EVP_MD_CTX_create);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(EVP_MD_CTX_create, NULL);
+
+        REGISTER_GLOBAL_MOCK_HOOK(EVP_MD_CTX_destroy, test_hook_EVP_MD_CTX_destroy);
+
+        REGISTER_GLOBAL_MOCK_HOOK(EVP_get_digestbyname, test_hook_EVP_get_digestbyname);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(EVP_get_digestbyname, NULL);
+
+        REGISTER_GLOBAL_MOCK_HOOK(EVP_DigestInit_ex, test_hook_EVP_DigestInit_ex);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(EVP_DigestInit_ex, 0);
+
+        REGISTER_GLOBAL_MOCK_HOOK(EVP_DigestSignInit, test_hook_EVP_DigestSignInit);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(EVP_DigestSignInit, 0);
+
+        REGISTER_GLOBAL_MOCK_HOOK(EVP_DigestSignFinal, test_hook_EVP_DigestSignFinal);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(EVP_DigestSignFinal, 0);
+
+        REGISTER_GLOBAL_MOCK_HOOK(EVP_DigestUpdate, test_hook_EVP_DigestUpdate);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(EVP_DigestUpdate, 0);
     }
 
     TEST_SUITE_CLEANUP(TestClassCleanup)

@@ -240,7 +240,11 @@ static int edge_hsm_client_destroy_master_encryption_key(HSM_CLIENT_HANDLE handl
     return result;
 }
 
-static CERT_INFO_HANDLE edge_hsm_client_create_certificate(HSM_CLIENT_HANDLE handle, CERT_PROPS_HANDLE certificate_props)
+static CERT_INFO_HANDLE edge_hsm_client_create_certificate
+(
+    HSM_CLIENT_HANDLE handle,
+    CERT_PROPS_HANDLE certificate_props
+)
 {
     CERT_INFO_HANDLE result;
     const char* alias;
@@ -528,9 +532,9 @@ static int edge_hsm_client_decrypt_data
     return result;
 }
 
-static int edge_hsm_client_crypto_sign_with_private_key
+static int sign_using_private_key
 (
-    HSM_CLIENT_HANDLE hsm_handle,
+    HSM_CLIENT_HANDLE handle,
     const char* alias,
     const unsigned char* data,
     size_t data_size,
@@ -538,13 +542,64 @@ static int edge_hsm_client_crypto_sign_with_private_key
     size_t* digest_size
 )
 {
-    (void)hsm_handle;
+    // EDGE_CRYPTO *edge_crypto = (EDGE_CRYPTO*)handle;
+    // result = g_hsm_store_if->hsm_client_store_get_pki_cert(edge_crypto->hsm_store_handle,
+    //                                                            alias);
+
+    // result = sign_using_private_key(handle, alias, data, data_size, digest, digest_size);
+
+    (void)handle;
     (void)alias;
     (void)data;
     (void)data_size;
     (void)digest;
     (void)digest_size;
-    return __LINE__;
+    return __FAILURE__;
+}
+
+static int edge_hsm_client_crypto_sign_with_private_key
+(
+    HSM_CLIENT_HANDLE handle,
+    const char* alias,
+    const unsigned char* data,
+    size_t data_size,
+    unsigned char** digest,
+    size_t* digest_size
+)
+{
+    int result;
+
+    if (g_crypto_ref == 0)
+    {
+        LOG_ERROR("hsm_client_crypto_init not called");
+        result = __FAILURE__;
+    }
+    else if (handle == NULL)
+    {
+        LOG_ERROR("Invalid handle value specified");
+        result = __FAILURE__;
+    }
+    else if (alias == NULL)
+    {
+        LOG_ERROR("Invalid alias value");
+        result = __FAILURE__;
+    }
+    else if ((data == NULL) || (data_size == 0))
+    {
+        LOG_ERROR("Invalid data and or data_size value");
+        result = __FAILURE__;
+    }
+    else if ((digest == NULL) || (digest_size == NULL))
+    {
+        LOG_ERROR("Invalid digest and or digest_size value");
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = sign_using_private_key(handle, alias, data, data_size, digest, digest_size);
+    }
+
+    return result;
 }
 
 static CERT_INFO_HANDLE edge_hsm_client_crypto_get_certificate
