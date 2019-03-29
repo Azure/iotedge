@@ -37,6 +37,7 @@ function get_image_architecture_label() {
     case "$arch" in
         'x86_64' ) image_architecture_label='amd64';;
         'armv7l' ) image_architecture_label='arm32v7';;
+        'aarch64' ) image_architecture_label='arm64v8';;
         *) print_error "Unsupported OS architecture: $arch"; exit 1;;
     esac
 }
@@ -45,7 +46,9 @@ function get_iotedge_quickstart_artifact_file() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
         path="$E2E_TEST_DIR/artifacts/core-linux/IotEdgeQuickstart.linux-x64.tar.gz"
-    else
+    elif [ "$image_architecture_label" = 'arm64v8' ]; then
+        path="$E2E_TEST_DIR/artifacts/core-linux/IotEdgeQuickstart.linux-arm64.tar.gz"
+    else 
         path="$E2E_TEST_DIR/artifacts/core-linux/IotEdgeQuickstart.linux-arm.tar.gz"
     fi
 
@@ -56,6 +59,8 @@ function get_iotedged_artifact_folder() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu-amd64"
+    elif [ "$image_architecture_label" = 'arm64v8' ]; then
+        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu16.04-aarch64"
     else
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu-armhf"
     fi
@@ -67,8 +72,22 @@ function get_leafdevice_artifact_file() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
         path="$E2E_TEST_DIR/artifacts/core-linux/LeafDevice.linux-x64.tar.gz"
+    elif [ "$image_architecture_label" = 'arm64v8' ]; then
+        path="$E2E_TEST_DIR/artifacts/core-linux/LeafDevice.linux-arm64.tar.gz"
     else
         path="$E2E_TEST_DIR/artifacts/core-linux/LeafDevice.linux-arm.tar.gz"
+    fi
+
+    echo "$path"
+}
+
+function get_long_haul_deployment_artifact_file() {
+    local path
+    if [ "$image_architecture_label" = 'amd64' ] ||
+       [ "$image_architecture_label" = 'arm64v8' ]; then
+        path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.json"
+    else
+        path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.arm32v7.$LONG_HAUL_PROTOCOL_HEAD.json"
     fi
 
     echo "$path"
@@ -116,25 +135,20 @@ function prepare_test_from_artifacts() {
             'directmethodmqtt')
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
-
-                if [[ $image_architecture_label == 'arm32v7' ]]; then
-                    sed -i -e "s@<MqttEventsProcessorThreadCount>@1@g" "$deployment_working_file"
-                fi
+                
                 sed -i -e "s@<UpstreamProtocol>@Mqtt@g" "$deployment_working_file"
                 sed -i -e "s@<ClientTransportType>@Mqtt_Tcp_Only@g" "$deployment_working_file";;
             'directmethodmqttws')
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
 
-                if [[ $image_architecture_label == 'arm32v7' ]]; then
-                    sed -i -e "s@<MqttEventsProcessorThreadCount>@1@g" "$deployment_working_file"
-                fi
                 sed -i -e "s@<UpstreamProtocol>@Mqttws@g" "$deployment_working_file"
                 sed -i -e "s@<ClientTransportType>@Mqtt_WebSocket_Only@g" "$deployment_working_file";;
             'longhaul' | 'stress')
                 if [[ "${TEST_NAME,,}" == 'longhaul' ]]; then
                     echo "Copy deployment file from $long_haul_deployment_artifact_file"
                     cp "$long_haul_deployment_artifact_file" "$deployment_working_file"
+                    
                     sed -i -e "s@<LoadGen.TransportType>@$LOADGEN_TRANSPORT_TYPE@g" "$deployment_working_file"
                     sed -i -e "s@<ServiceClientConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
                 else
@@ -144,17 +158,19 @@ function prepare_test_from_artifacts() {
                     sed -i -e "s@<LoadGen2.TransportType>@$LOADGEN2_TRANSPORT_TYPE@g" "$deployment_working_file"
                     sed -i -e "s@<LoadGen3.TransportType>@$LOADGEN3_TRANSPORT_TYPE@g" "$deployment_working_file"
                     sed -i -e "s@<LoadGen4.TransportType>@$LOADGEN4_TRANSPORT_TYPE@g" "$deployment_working_file"
+                    sed -i -e "s@<amqpSettings__enabled>@$AMQP_SETTINGS_ENABLED@g" "$deployment_working_file"
+                    sed -i -e "s@<mqttSettings__enabled>@$MQTT_SETTINGS_ENABLED@g" "$deployment_working_file"
                 fi
 
                 local escapedSnitchAlertUrl
-                local escapedSnitchBuildId
+                local escapedBuildId
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
-                escapedSnitchBuildId="${SNITCH_BUILD_NUMBER//./}"
+                escapedBuildId="${ARTIFACT_IMAGE_BUILD_NUMBER//./}"
                 sed -i -e "s@<Snitch.AlertUrl>@$escapedSnitchAlertUrl@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.BuildNumber>@$SNITCH_BUILD_NUMBER@g" "$deployment_working_file"
-                sed -i -e "s@<Snitch.BuildId>@$escapedSnitchBuildId@g" "$deployment_working_file"
+                sed -i -e "s@<Snitch.BuildId>@$RELEASE_LABEL-$image_architecture_label-linux-$escapedBuildId@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.ReportingIntervalInSecs>@$SNITCH_REPORTING_INTERVAL_IN_SECS@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.StorageAccount>@$SNITCH_STORAGE_ACCOUNT@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.StorageMasterKey>@$SNITCH_STORAGE_MASTER_KEY@g" "$deployment_working_file"
@@ -168,7 +184,6 @@ function prepare_test_from_artifacts() {
         esac
 
         sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
-        sed -i -e "s@<OptimizeForPerformance>@true@g" "$deployment_working_file"
         sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
         sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
         sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
@@ -303,6 +318,15 @@ function process_args() {
         elif [ $saveNextArg -eq 21 ]; then
             LOADGEN4_TRANSPORT_TYPE="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 22 ]; then
+            AMQP_SETTINGS_ENABLED="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 23 ]; then
+            MQTT_SETTINGS_ENABLED="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 24 ]; then
+            LONG_HAUL_PROTOCOL_HEAD="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -327,6 +351,9 @@ function process_args() {
                 '-loadGen2TransportType' ) saveNextArg=19;;
                 '-loadGen3TransportType' ) saveNextArg=20;;
                 '-loadGen4TransportType' ) saveNextArg=21;;
+                '-amqpSettingsEnabled' ) saveNextArg=22;;
+                '-mqttSettingsEnabled' ) saveNextArg=23;;
+                '-longHaulProtocolHead' ) saveNextArg=24;;
                 * ) usage;;
             esac
         fi
@@ -336,6 +363,8 @@ function process_args() {
     [[ -z "$RELEASE_LABEL" ]] && { print_error 'Release label is required.'; exit 1; }
     [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error 'Artifact image build number is required'; exit 1; }
     [[ -z "$TEST_NAME" ]] && { print_error 'Test name is required'; exit 1; }
+    [[ -z "$CONTAINER_REGISTRY" ]] && { print_error 'Container registry is required'; exit 1; }
+    [[ -z "$CONTAINER_REGISTRY_USERNAME" ]] && { print_error 'Container registry username is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$IOTHUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
@@ -390,6 +419,7 @@ function run_directmethod_test()
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --verify-data-from-module "DirectMethodSender" \
         -l "$deployment_working_file" && ret=$? || ret=$?
@@ -474,6 +504,7 @@ function run_longhaul_test() {
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=All \
         -l "$deployment_working_file" \
@@ -507,7 +538,6 @@ function run_quickstartcerts_test() {
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=Core \
-        --optimize_for_performance=true \
         --no-verify && ret=$? || ret=$?
 
     declare -a certs=( /var/lib/iotedge/hsm/certs/edge_owner_ca*.pem )
@@ -546,10 +576,11 @@ function run_stress_test() {
         -d "$device_id" \
         -a "$iotedge_package" \
         -c "$IOTHUB_CONNECTION_STRING" \
-        -e "$EVENTHUB_CONNECTION_STRING" \
+        -e "doesNotNeed" \
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=All \
         -l "$deployment_working_file" \
@@ -580,6 +611,7 @@ function run_tempfilter_test() {
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         --verify-data-from-module "tempFilter" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         -l "$deployment_working_file" && ret=$? || ret=$?
@@ -609,6 +641,7 @@ function run_tempfilterfunctions_test() {
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         --verify-data-from-module "tempFilterFunctions" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         -l "$deployment_working_file" && ret=$? || ret=$?
@@ -638,8 +671,8 @@ function run_tempsensor_test() {
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
-        --optimize_for_performance=true \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -724,9 +757,14 @@ function validate_test_parameters() {
     done
 
     if [[ "${TEST_NAME,,}" == "longhaul" ]] ||
-       [[ "${TEST_NAME,,}" == "stress" ]];    then
+       [[ "${TEST_NAME,,}" == "stress" ]]; then
         if [[ -z "$SNITCH_ALERT_URL" ]]; then
             print_error "Required snitch alert URL."
+            ((error++))
+        fi
+
+        if [[ -z "$SNITCH_STORAGE_ACCOUNT" ]]; then
+            print_error "Required snitch storage account."
             ((error++))
         fi
 
@@ -752,41 +790,55 @@ function usage() {
     echo "                                 'Stress', 'TempFilter', 'TempFilterFunctions', 'TempSensor'"
     echo "                                 Note: 'All' option doesn't include long hual and stress test."
     echo ' -artifactImageBuildNumber       Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
-    echo " -containerRegistry              Host address of container registry, default is 'edgebuilds.azurecr.io'"
-    echo " -containerRegistryUsername      Username of container registry, default is 'EdgeBuilds'"
-    echo ' -containerRegistryPassword      Password of given username for container registory'
-    echo ' -iotHubConnectionString         IoT hub connection string for creating edge device'
-    echo ' -eventHubConnectionString       Event hub connection string for receive D2C messages'
-    echo ' -loadGenTransportType           Transport type for LoadGen for long haul test. Default is mqtt'
-    echo ' -loadGenMessageFrequency        Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01'
-    echo ' -snitchAlertUrl                 Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test'
-    echo ' -snitchBuildNumber              Build number for snitcher docker image for long haul and stress test. Default is 1.1'
-    echo ' -snitchReportingIntervalInSecs  Reporting frequency in seconds to send status email for long hual and stress test. Default is 86400 (1 day)'
-    echo ' -snitchStorageAccount           Azure blob Sstorage account for store logs used in status email for long haul and stress test. Default is snitchstore'
-    echo ' -snitchStorageMasterKey         Master key of snitch storage account for long haul and stress test'
-    echo ' -snitchTestDurationInSecs       Test duration in seconds for long haul and stress test'
-    echo ' -loadGen1TransportType           Transport type for LoadGen1 for stress test. Default is amqp'
-    echo ' -loadGen2TransportType           Transport type for LoadGen2 for stress test. Default is amqp'
-    echo ' -loadGen3TransportType           Transport type for LoadGen3 for stress test. Default is mqtt'
-    echo ' -loadGen4TransportType           Transport type for LoadGen4 for stress test. Default is mqtt'
+    echo " -containerRegistry              Host address of container registry."
+    echo " -containerRegistryUsername      Username of container registry."
+    echo ' -containerRegistryPassword      Password of given username for container registory.'
+    echo ' -iotHubConnectionString         IoT hub connection string for creating edge device.'
+    echo ' -eventHubConnectionString       Event hub connection string for receive D2C messages.'
+    echo ' -loadGenTransportType           Transport type for LoadGen for long haul test. Default is mqtt.'
+    echo ' -loadGenMessageFrequency        Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.'
+    echo ' -snitchAlertUrl                 Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.'
+    echo ' -snitchBuildNumber              Build number for snitcher docker image for long haul and stress test. Default is 1.1.'
+    echo ' -snitchReportingIntervalInSecs  Reporting frequency in seconds to send status email for long hual and stress test. Default is 86400 (1 day) for long haul and 1700000 for stress test.'
+    echo ' -snitchStorageAccount           Azure blob Sstorage account for store logs used in status email for long haul and stress test.'
+    echo ' -snitchStorageMasterKey         Master key of snitch storage account for long haul and stress test.'
+    echo ' -snitchTestDurationInSecs       Test duration in seconds for long haul and stress test.'
+    echo ' -loadGen1TransportType          Transport type for LoadGen1 for stress test. Default is amqp.'
+    echo ' -loadGen2TransportType          Transport type for LoadGen2 for stress test. Default is amqp.'
+    echo ' -loadGen3TransportType          Transport type for LoadGen3 for stress test. Default is mqtt.'
+    echo ' -loadGen4TransportType          Transport type for LoadGen4 for stress test. Default is mqtt.'
+    echo ' -amqpSettingsEnabled            Enable amqp protocol head in Edge Hub.'
+    echo ' -mqttSettingsEnabled            Enable mqtt protocol head in Edge Hub.'
+    echo ' -longHaulProtocolHead           Specify which protocol head is used to run long haul test for ARM32v7 device. Valid values are amqp (default) and mqtt.'
     exit 1;
 }
 
 process_args "$@"
 
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
-CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
-CONTAINER_REGISTRY_USERNAME="${CONTAINER_REGISTRY_USERNAME:-EdgeBuilds}"
 LOADGEN_TRANSPORT_TYPE="${LOADGEN_TRANSPORT_TYPE:-mqtt}"
-LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
+LONG_HAUL_PROTOCOL_HEAD="${LONG_HAUL_PROTOCOL_HEAD:-amqp}"
 SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.1}"
-SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-86400}"
-SNITCH_STORAGE_ACCOUNT="${SNITCH_STORAGE_ACCOUNT:-snitchstore}"
-SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-604800}"
 LOADGEN1_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
-LOADGEN2_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
-LOADGEN3_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-mqtt}"
-LOADGEN4_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-mqtt}"
+LOADGEN2_TRANSPORT_TYPE="${LOADGEN2_TRANSPORT_TYPE:-amqp}"
+LOADGEN3_TRANSPORT_TYPE="${LOADGEN3_TRANSPORT_TYPE:-mqtt}"
+LOADGEN4_TRANSPORT_TYPE="${LOADGEN4_TRANSPORT_TYPE:-mqtt}"
+if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
+    LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
+    SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-86400}"
+    SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-604800}"
+fi
+if [[ "${TEST_NAME,,}" == "stress" ]]; then
+    LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:00.03}"
+    SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-1700000}"
+    SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-14400}"
+fi
+if [ "$AMQP_SETTINGS_ENABLED" != "false" ]; then
+    AMQP_SETTINGS_ENABLED="true"
+fi
+if [ "$MQTT_SETTINGS_ENABLED" != "false" ]; then
+    MQTT_SETTINGS_ENABLED="true"
+fi
 
 working_folder="$E2E_TEST_DIR/working"
 get_image_architecture_label
@@ -797,7 +849,7 @@ twin_testfile_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/t
 module_to_module_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/module_to_module_deployment.template.json"
 module_to_functions_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/module_to_functions_deployment.template.json"
 dm_module_to_module_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/dm_module_to_module_deployment.json"
-long_haul_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.json"
+long_haul_deployment_artifact_file="$(get_long_haul_deployment_artifact_file)"
 stress_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/stress_deployment.template.json"
 deployment_working_file="$working_folder/deployment.json"
 quickstart_working_folder="$working_folder/quickstart"

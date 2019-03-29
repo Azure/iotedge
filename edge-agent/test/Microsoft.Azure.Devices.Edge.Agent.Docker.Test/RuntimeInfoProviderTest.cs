@@ -285,12 +285,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(dockerClient);
 
             // Act
-            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), CancellationToken.None);
+            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), Option.None<int>(), CancellationToken.None);
 
             // Assert
             Assert.NotNull(receivedContainerLogsParameters);
             Assert.False(receivedContainerLogsParameters.Follow);
             Assert.Null(receivedContainerLogsParameters.Tail);
+            Assert.Null(receivedContainerLogsParameters.Since);
             Assert.True(receivedContainerLogsParameters.ShowStderr);
             Assert.True(receivedContainerLogsParameters.ShowStdout);
             var buffer = new byte[1024];
@@ -300,12 +301,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(dummyLogs, receivedLogs);
 
             // Act
-            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.Some(1000), CancellationToken.None);
+            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.Some(1000), Option.None<int>(), CancellationToken.None);
 
             // Assert
             Assert.NotNull(receivedContainerLogsParameters);
             Assert.True(receivedContainerLogsParameters.Follow);
             Assert.Equal("1000", receivedContainerLogsParameters.Tail);
+            Assert.Null(receivedContainerLogsParameters.Since);
+            Assert.True(receivedContainerLogsParameters.ShowStderr);
+            Assert.True(receivedContainerLogsParameters.ShowStdout);
+            buffer = new byte[1024];
+            readBytes = await receivedLogsStream.ReadAsync(buffer);
+            Assert.Equal(1000, readBytes);
+            receivedLogs = Encoding.UTF8.GetString(buffer, 0, readBytes);
+            Assert.Equal(dummyLogs, receivedLogs);
+
+            // Act
+            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.None<int>(), Option.Some(1552887267), CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(receivedContainerLogsParameters);
+            Assert.True(receivedContainerLogsParameters.Follow);
+            Assert.Null(receivedContainerLogsParameters.Tail);
+            Assert.Equal("1552887267", receivedContainerLogsParameters.Since);
             Assert.True(receivedContainerLogsParameters.ShowStderr);
             Assert.True(receivedContainerLogsParameters.ShowStdout);
             buffer = new byte[1024];

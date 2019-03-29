@@ -5,6 +5,7 @@ namespace IotEdgeQuickstart.Details
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Net;
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
@@ -131,12 +132,15 @@ namespace IotEdgeQuickstart.Details
 
         DeviceContext context;
 
+        Option<IWebProxy> proxy;
+
         protected Details(
             IBootstrapper bootstrapper,
             Option<RegistryCredentials> credentials,
             string iothubConnectionString,
             string eventhubCompatibleEndpointWithEntityPath,
             UpstreamProtocolType upstreamProtocol,
+            Option<string> proxy,
             string imageTag,
             string deviceId,
             string hostname,
@@ -183,6 +187,7 @@ namespace IotEdgeQuickstart.Details
             this.optimizedForPerformance = optimizedForPerformance;
             this.runtimeLogLevel = runtimeLogLevel;
             this.cleanUpExistingDeviceOnSuccess = cleanUpExistingDeviceOnSuccess;
+            this.proxy = proxy.Map(p => new WebProxy(p) as IWebProxy);
         }
 
         protected Task VerifyEdgeIsNotAlreadyActive()
@@ -206,8 +211,10 @@ namespace IotEdgeQuickstart.Details
         protected async Task GetOrCreateEdgeDeviceIdentity()
         {
             Console.WriteLine("Getting or Creating device Identity.");
+            var settings = new HttpTransportSettings();
+            this.proxy.ForEach(p => settings.Proxy = p);
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
 
             Device device = await rm.GetDeviceAsync(this.deviceId);
             if (device != null)
@@ -264,8 +271,10 @@ namespace IotEdgeQuickstart.Details
 
                 try
                 {
+                    var settings = new ServiceClientTransportSettings();
+                    this.proxy.ForEach(p => settings.HttpProxy = p);
                     ServiceClient serviceClient =
-                        ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType);
+                        ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType, settings);
 
                     while (true)
                     {
@@ -322,13 +331,17 @@ namespace IotEdgeQuickstart.Details
             // First Verify if module is already running.
             await this.bootstrapper.VerifyModuleIsRunning(moduleId);
 
-            var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath);
-            builder.TransportType = this.eventHubClientTransportType;
+            var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath)
+            {
+                TransportType = this.eventHubClientTransportType
+            };
 
             Console.WriteLine($"Receiving events from device '{this.context.Device.Id}' on Event Hub '{builder.EntityPath}'");
 
             EventHubClient eventHubClient =
                 EventHubClient.CreateFromConnectionString(builder.ToString());
+
+            this.proxy.ForEach(p => eventHubClient.WebProxy = p);
 
             PartitionReceiver eventHubReceiver = eventHubClient.CreateReceiver(
                 "$Default",

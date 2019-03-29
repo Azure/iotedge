@@ -40,6 +40,12 @@
               },
               "InfluxDbUrl": {
                 "value": "http://influxdb:8086"
+              },
+              "amqpSettings__enabled": {
+                "value": "<amqpSettings__enabled>"
+              },
+              "mqttSettings__enabled": {
+                "value": "<mqttSettings__enabled>"
               }
             },
             "status": "running",
@@ -154,6 +160,9 @@
               },
               "BLOB_CONTAINER_NAME": {
                 "value": "loadtest1"
+              },
+              "RUST_LOG": {
+                "value": "snitcher=info"
               }
             },
             "settings": {
@@ -184,7 +193,7 @@
             "status": "running",
             "restartPolicy": "on-unhealthy",
             "settings": {
-              "image": "influxdb:1.5",
+              "image": "influxdb:1.7",
               "createOptions": "{\"ExposedPorts\":{\"8086/tcp\":{}},\"HostConfig\":{\"PortBindings\":{\"8086/tcp\":[{\"HostPort\":\"8086\"}]}}}"
             }
           }

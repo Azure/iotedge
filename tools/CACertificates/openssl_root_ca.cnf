@@ -11,7 +11,7 @@ crl_dir           = $dir/crl
 new_certs_dir     = $dir/newcerts
 database          = $dir/index.txt
 serial            = $dir/serial
-RANDFILE          = $dir/private/.rand
+RANDFILE          = $dir/.rnd
 # We enable this solely to facilitate non production and/or test automation environments.
 # This flag essentially allows the creation of certificates with the same subject name
 # (or distinguishing name DN). What this essentially boils down to is if a certificate

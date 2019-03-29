@@ -71,6 +71,11 @@ PS> Initialize-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -
 .EXAMPLE
 
 PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -SymmetricKey $symmetricKey
 #>
 function Initialize-IoTEdge {
     [CmdletBinding(DefaultParameterSetName = 'Manual')]
@@ -94,6 +99,10 @@ function Initialize-IoTEdge {
         # The DPS registration ID.
         [Parameter(Mandatory = $true, ParameterSetName = 'DPS')]
         [String] $RegistrationId,
+
+        # The DPS symmetric key to provision the Edge device identity
+        [Parameter(ParameterSetName = 'DPS')]
+        [String] $SymmetricKey,
 
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
@@ -137,7 +146,7 @@ function Initialize-IoTEdge {
         return
     }
 
-    if (-not (Setup-Environment $ContainerOs)) {
+    if (-not (Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck)) {
         return
     }
 
@@ -241,7 +250,8 @@ function Update-IoTEdge {
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
-        -Update
+        -Update `
+        -SkipArchCheck
 }
 
 <#
@@ -297,7 +307,10 @@ function Deploy-IoTEdge {
         [HashTable] $InvokeWebRequestParameters,
 
         # Restart if needed without prompting.
-        [Switch] $RestartIfNeeded
+        [Switch] $RestartIfNeeded,
+
+        # Skip processor architecture check.
+        [Switch] $SkipArchCheck
     )
 
     Install-Packages `
@@ -305,7 +318,8 @@ function Deploy-IoTEdge {
         -Proxy $Proxy `
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
-        -RestartIfNeeded:$RestartIfNeeded
+        -RestartIfNeeded:$RestartIfNeeded `
+        -SkipArchCheck:$SkipArchCheck
 }
 
 <#
@@ -332,6 +346,11 @@ PS> Install-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -Con
 .EXAMPLE
 
 PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -SymmetricKey $symmetricKey
 #>
 function Install-IoTEdge {
     [CmdletBinding(DefaultParameterSetName = 'Manual')]
@@ -355,6 +374,10 @@ function Install-IoTEdge {
         # The DPS registration ID.
         [Parameter(Mandatory = $true, ParameterSetName = 'DPS')]
         [String] $RegistrationId,
+
+        # The DPS symmetric key to provision the Edge device identity
+        [Parameter(ParameterSetName = 'DPS')]
+        [String] $SymmetricKey,
 
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
@@ -396,7 +419,10 @@ function Install-IoTEdge {
         [HashTable] $InvokeWebRequestParameters,
 
         # Restart if needed without prompting.
-        [Switch] $RestartIfNeeded
+        [Switch] $RestartIfNeeded,
+
+        # Skip processor architecture check.
+        [Switch] $SkipArchCheck
     )
 
     # Used to indicate success of Deploy-IoTEdge so we can abort early in case of failure
@@ -410,7 +436,8 @@ function Install-IoTEdge {
         -Proxy $Proxy `
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
-        -RestartIfNeeded:$RestartIfNeeded
+        -RestartIfNeeded:$RestartIfNeeded `
+        -SkipArchCheck:$SkipArchCheck
 
     if (-not $script:installPackagesCompleted) {
         return
@@ -425,6 +452,7 @@ function Install-IoTEdge {
     if ($DeviceConnectionString) { $Params["-DeviceConnectionString"] = $DeviceConnectionString }
     if ($ScopeId) { $Params["-ScopeId"] = $ScopeId }
     if ($RegistrationId) { $Params["-RegistrationId"] = $RegistrationId }
+    if ($SymmetricKey) { $Params["-SymmetricKey"] = $SymmetricKey }
     if ($AgentImage) { $Params["-AgentImage"] = $AgentImage }
     if ($Username) { $Params["-Username"] = $Username }
     if ($Password) { $Params["-Password"] = $Password }
@@ -536,7 +564,8 @@ function Install-Packages(
         [String] $OfflineInstallationPath,
         [HashTable] $InvokeWebRequestParameters,
         [Switch] $RestartIfNeeded,
-        [Switch] $Update
+        [Switch] $Update,
+        [Switch] $SkipArchCheck
     )
 {
     $ErrorActionPreference = 'Stop'
@@ -596,7 +625,7 @@ function Install-Packages(
         }
     }
 
-    if (-not (Setup-Environment $ContainerOs)) {
+    if (-not (Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck:$SkipArchCheck)) {
         return
     }
 
@@ -642,7 +671,7 @@ function Install-Packages(
     }
 }
 
-function Setup-Environment([string] $ContainerOs) {
+function Setup-Environment([string] $ContainerOs, [switch] $SkipArchCheck) {
     $currentWindowsBuild = Get-WindowsBuild
     $preRequisitesMet = switch ($ContainerOs) {
         'Linux' {
@@ -679,6 +708,13 @@ function Setup-Environment([string] $ContainerOs) {
             }
         }
     }
+
+    if ((-not $SkipArchCheck) -and ($env:PROCESSOR_ARCHITECTURE -eq 'ARM')) {
+        Write-HostRed ('IoT Edge is currently not supported on Windows ARM32. ' +
+            'See https://aka.ms/iotedge-platsup for more details.')
+        $preRequisitesMet = $false
+    }
+
     if ($preRequisitesMet) {
         Write-HostGreen "The container host is on supported build version $currentWindowsBuild."
         Set-ContainerOs
@@ -1286,13 +1322,16 @@ function Set-ProvisioningMode {
             return $configurationYaml
         }
         else {
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*registration_id:\s".*"'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*registration_id:\s*".*"\s*#?\s*symmetric_key:\s".*"'
             $replacementContent = @(
                 'provisioning:',
                 '  source: ''dps''',
                 '  global_endpoint: ''https://global.azure-devices-provisioning.net''',
                 "  scope_id: '$ScopeId'",
                 "  registration_id: '$RegistrationId'")
+            if ($SymmetricKey) {
+                $replacementContent += "  symmetric_key: '$SymmetricKey'"
+            }
             $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
 
             $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
