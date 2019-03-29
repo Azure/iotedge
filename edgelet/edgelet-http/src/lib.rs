@@ -59,6 +59,7 @@ use self::pid::PidService;
 use self::util::incoming::Incoming;
 
 const HTTP_SCHEME: &str = "http";
+#[cfg(unix)]
 const HTTPS_SCHEME: &str = "https";
 #[cfg(windows)]
 const PIPE_SCHEME: &str = "npipe";
@@ -173,7 +174,7 @@ pub trait HyperExt {
         &self,
         url: Url,
         new_service: S,
-        cert_manager: Option<&CertificateManager<C>>,
+        _cert_manager: Option<&CertificateManager<C>>,
     ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
@@ -185,7 +186,7 @@ impl HyperExt for Http {
         &self,
         url: Url,
         new_service: S,
-        cert_manager: Option<&CertificateManager<C>>,
+        _cert_manager: Option<&CertificateManager<C>>,
     ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
@@ -221,8 +222,8 @@ impl HyperExt for Http {
                         )
                     })?;
 
-                let cert = match cert_manager {
-                    Some(cert_manager) => cert_manager.get_pkcs12_certificate(),
+                let cert = match _cert_manager {
+                    Some(_cert_manager) => _cert_manager.get_pkcs12_certificate(),
                     None => return Err(Error::from(ErrorKind::CertificateCreationError)),
                 };
 

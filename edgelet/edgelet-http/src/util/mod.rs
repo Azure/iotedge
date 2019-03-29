@@ -34,7 +34,10 @@ pub use self::incoming::Incoming;
 
 pub enum StreamSelector {
     Tcp(TcpStream),
+    #[cfg(not(windows))]
     Tls(TlsStream<TcpStream>),
+    #[cfg(windows)]
+    Tls(Box<TlsStream<TcpStream>>),
     #[cfg(windows)]
     Pipe(PipeStream),
     Unix(UnixStream),

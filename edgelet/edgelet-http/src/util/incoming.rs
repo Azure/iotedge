@@ -1,13 +1,20 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::io;
+#[cfg(unix)]
 use std::sync::Mutex;
 
 use futures::{Poll, Stream};
+#[cfg(unix)]
 use tokio::io::{Error as TokioIoError, ErrorKind as TokioIoErrorKind};
+#[cfg(windows)]
+use tokio::net::TcpListener;
+#[cfg(unix)]
 use tokio::net::{TcpListener, TcpStream};
+#[cfg(unix)]
 use tokio::prelude::*;
-use tokio_tls::Accept;
+#[cfg(unix)]
+use tokio_tls::{Accept, TlsAcceptor};
 #[cfg(unix)]
 use tokio_uds::UnixListener;
 #[cfg(windows)]
@@ -15,10 +22,9 @@ use tokio_uds_windows::UnixListener;
 
 use crate::util::{IncomingSocketAddr, StreamSelector};
 
-use tokio_tls::TlsAcceptor;
-
 pub enum Incoming {
     Tcp(TcpListener),
+    #[cfg(unix)]
     Tls(
         TcpListener,
         TlsAcceptor,
@@ -45,6 +51,7 @@ impl Stream for Incoming {
                     Some((StreamSelector::Tcp(stream), IncomingSocketAddr::Tcp(addr)))
                 })
             }
+            #[cfg(unix)]
             Incoming::Tls(ref mut listener, ref mut acceptor, ref mut connections) => {
                 // check if we have a tcp connection and if we do then kick off TLS handshake
                 // and store the future representing that operation in "connections"
@@ -80,7 +87,14 @@ impl Stream for Incoming {
                         let (_, addr) = connections.remove(i);
                         match result {
                             Ok(Async::Ready(tls_stream)) => {
+                                #[cfg(not(windows))]
+                                {
                                 Async::Ready(Some((StreamSelector::Tls(tls_stream), addr)))
+                                }
+                                #[cfg(windows)]
+                                {
+                                Async::Ready(Some((Box::new(StreamSelector::Tls(tls_stream), addr))))
+                                }
                             }
                             Ok(_) => unreachable!(),
                             Err(err) => return Err(TokioIoError::new(TokioIoErrorKind::Other, err)),
