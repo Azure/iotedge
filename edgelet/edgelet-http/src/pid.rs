@@ -52,10 +52,10 @@ impl UnixStreamExt for UnixStream {
 }
 
 #[cfg(target_os = "linux")]
-use self::impl_unix::get_pid;
+use self::impl_linix::get_pid;
 
 #[cfg(target_os = "linux")]
-mod impl_unix {
+mod impl_linix {
     use libc::{c_void, getsockopt, ucred, SOL_SOCKET, SO_PEERCRED};
     use std::os::unix::io::AsRawFd;
     use std::{io, mem};

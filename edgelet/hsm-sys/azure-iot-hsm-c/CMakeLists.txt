@@ -73,10 +73,10 @@ if(MSVC)
 else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security -std=c99 ")
 
-    # suppress compiler warnings on macos complaining about calls to vsnprintf
-    if(APPLE)
+    # suppress clang compiler warnings complaining about calls to vsnprintf
+    if(CMAKE_C_FLAGS MATCHES "Clang")
         set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=format-nonliteral")
-    endif(APPLE)
+    endif()
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security ")
 
