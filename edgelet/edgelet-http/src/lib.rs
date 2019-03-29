@@ -14,6 +14,9 @@ use std::net;
 use std::net::ToSocketAddrs;
 #[cfg(unix)]
 use std::os::unix::io::FromRawFd;
+#[cfg(windows)]
+use std::sync::Arc;
+#[cfg(unix)]
 use std::sync::{Arc, Mutex};
 
 use failure::{Fail, ResultExt};
@@ -32,6 +35,7 @@ use url::Url;
 use edgelet_core::crypto::CreateCertificate;
 use edgelet_core::{UrlExt, UNIX_SCHEME};
 use edgelet_utils::log_failure;
+#[cfg(unix)]
 use native_tls::{Identity, TlsAcceptor};
 
 pub mod authorization;

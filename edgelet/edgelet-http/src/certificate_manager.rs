@@ -199,7 +199,7 @@ mod tests {
 
     impl TestCrypto {
         pub fn new() -> Result<Self, CoreError> {
-            Ok(TestCrypto { created: true })
+            Ok(Self { created: true })
         }
     }
 
