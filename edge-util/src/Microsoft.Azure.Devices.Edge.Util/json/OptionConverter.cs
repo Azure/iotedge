@@ -6,13 +6,32 @@ namespace Microsoft.Azure.Devices.Edge.Util.Json
 
     public class OptionConverter<T> : JsonConverter
     {
+        readonly bool nullOnNone;
+
+        public OptionConverter()
+            : this(false)
+        {
+        }
+
+        public OptionConverter(bool nullOnNone)
+        {
+            this.nullOnNone = nullOnNone;
+        }
+
         public override bool CanRead => false;
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value is Option<T> option)
             {
-                serializer.Serialize(writer, option.OrDefault());
+                if (option.HasValue || !this.nullOnNone)
+                {
+                    serializer.Serialize(writer, option.OrDefault());
+                }
+                else
+                {
+                    serializer.Serialize(writer, null);
+                }
             }
             else
             {

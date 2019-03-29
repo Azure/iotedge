@@ -11,7 +11,6 @@ jobs:
 ################################################################################
     displayName: LinuxARM64
     pool:
-      name: Hosted Ubuntu 1604
       vmImage: 'ubuntu-16.04'
     variables:
       NetCorePackageUri: https://download.visualstudio.microsoft.com/download/pr/efa6dde9-a5ee-4322-b13c-a2a02d3980f0/dad445eba341c1d806bae5c8afb47015/dotnet-sdk-3.0.100-preview-010184-linux-x64.tar.gz
@@ -128,7 +127,6 @@ jobs:
 ################################################################################
     displayName: Linux
     pool:
-      name: Hosted Ubuntu 1604
       vmImage: 'ubuntu-16.04'
     variables:
       NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-linux-x64.tar.gz
