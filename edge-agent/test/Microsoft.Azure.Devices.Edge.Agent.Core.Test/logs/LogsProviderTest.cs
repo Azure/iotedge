@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -40,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
             runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, cancellationToken))
-                .ReturnsAsync(new MemoryStream(GetDockerLogsStream(TestLogTexts)));
+                .ReturnsAsync(new MemoryStream(DockerFraming.Frame(TestLogTexts)));
 
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
@@ -69,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
             runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, cancellationToken))
-                .ReturnsAsync(new MemoryStream(GetDockerLogsStream(TestLogTexts)));
+                .ReturnsAsync(new MemoryStream(DockerFraming.Frame(TestLogTexts)));
 
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
@@ -98,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
             runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, cancellationToken))
-                .ReturnsAsync(new MemoryStream(GetDockerLogsStream(TestLogTexts)));
+                .ReturnsAsync(new MemoryStream(DockerFraming.Frame(TestLogTexts)));
 
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
@@ -139,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
             runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, cancellationToken))
-                .ReturnsAsync(new MemoryStream(GetDockerLogsStream(TestLogTexts)));
+                .ReturnsAsync(new MemoryStream(DockerFraming.Frame(TestLogTexts)));
 
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
@@ -179,7 +180,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             Option<int> since = Option.None<int>();
             CancellationToken cancellationToken = CancellationToken.None;
 
-            byte[] dockerLogsStreamBytes = GetDockerLogsStream(TestLogTexts);
+            byte[] dockerLogsStreamBytes = DockerFraming.Frame(TestLogTexts);
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
             runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, true, tail, since, cancellationToken))
                 .ReturnsAsync(new MemoryStream(dockerLogsStreamBytes));
@@ -205,34 +206,65 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             Assert.Equal(dockerLogsStreamBytes, receivedBytes);
         }
 
-        static byte[] GetDockerLogsStream(IEnumerable<string> logTexts)
+        [Fact]
+        public async Task GetLogsStreamWithFiltersTest()
         {
-            byte streamByte = 01;
-            var padding = new byte[3];
-            var outputBytes = new List<byte>();
-            foreach (string text in logTexts)
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "dev1";
+            string moduleId = "mod1";
+            Option<int> tail = Option.Some(10);
+            Option<int> since = Option.Some(1552887267);
+            CancellationToken cancellationToken = CancellationToken.None;
+
+            byte[] dockerLogsStreamBytes = DockerFraming.Frame(TestLogTexts);
+            var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, true, tail, since, cancellationToken))
+                .ReturnsAsync(new MemoryStream(dockerLogsStreamBytes));
+
+            var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
+            var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
+
+            var filter = new ModuleLogFilter(tail, since, Option.Some(6), Option.Some("Starting"));
+            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.Gzip, LogsContentType.Text, filter);
+
+            var receivedBytes = new List<byte>();
+
+            Task Callback(ArraySegment<byte> bytes)
             {
-                byte[] textBytes = Encoding.UTF8.GetBytes(text);
-                byte[] lenBytes = GetLengthBytes(textBytes.Length);
-                outputBytes.Add(streamByte);
-                outputBytes.AddRange(padding);
-                outputBytes.AddRange(lenBytes);
-                outputBytes.AddRange(textBytes);
+                receivedBytes.AddRange(bytes.ToArray());
+                return Task.CompletedTask;
             }
 
-            return outputBytes.ToArray();
+            // Act
+            await logsProvider.GetLogsStream(logOptions, Callback, cancellationToken);
+            await Task.Delay(TimeSpan.FromSeconds(3));
+
+            // Assert
+            Assert.NotEmpty(receivedBytes);
+            string receivedText = Compression.DecompressFromGzip(receivedBytes.ToArray())
+                .Skip(8)
+                .ToArray()
+                .FromBytes();
+            Assert.Equal(TestLogTexts[0], receivedText);
         }
 
-        static byte[] GetLengthBytes(int len)
+        [Theory]
+        [MemberData(nameof(GetNeedToProcessStreamTestData))]
+        public void NeedToProcessStreamTest(ModuleLogOptions logOptions, bool expectedResult)
         {
-            byte[] intBytes = BitConverter.GetBytes(len);
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(intBytes);
-            }
+            Assert.Equal(expectedResult, LogsProvider.NeedToProcessStream(logOptions));
+        }
 
-            byte[] result = intBytes;
-            return result;
+        public static IEnumerable<object[]> GetNeedToProcessStreamTestData()
+        {
+            yield return new object[] { new ModuleLogOptions("id", LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty), false };
+            yield return new object[] { new ModuleLogOptions("id", LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>())), false };
+            yield return new object[] { new ModuleLogOptions("id", LogsContentEncoding.Gzip, LogsContentType.Text, ModuleLogFilter.Empty), true };
+            yield return new object[] { new ModuleLogOptions("id", LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.Some(3), Option.Some("foo"))), true };
+            yield return new object[] { new ModuleLogOptions("id", LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.Some(3), Option.None<string>())), true };
+            yield return new object[] { new ModuleLogOptions("id", LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.Some("foo"))), true };
+            yield return new object[] { new ModuleLogOptions("id", LogsContentEncoding.None, LogsContentType.Json, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>())), true };
         }
     }
 }
