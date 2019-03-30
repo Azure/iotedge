@@ -551,7 +551,7 @@ fn settings_connection_string(check: &mut Check) -> Result<CheckResult, failure:
 
     if let Provisioning::Manual(manual) = settings.provisioning() {
         let (_, _, hub) = manual.parse_device_connection_string().context(
-            "Invalid connection string format detected. \
+            "Invalid connection string format detected.\n\
              Please check the value of the provisioning.device_connection_string parameter.",
         )?;
         check.iothub_hostname = Some(hub.to_owned());
@@ -595,7 +595,7 @@ fn container_engine(check: &mut Check) -> Result<CheckResult, failure::Error> {
         Ok(output) => output,
         Err((message, err)) => {
             let mut error_message = format!(
-                "Could not communicate with container engine at {}. \
+                "Could not communicate with container engine at {}.\n\
                  Please check your moby-engine installation and ensure the service is running.",
                 uri,
             );
@@ -833,7 +833,7 @@ fn iotedged_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
     if version != latest_versions.iotedged {
         return Ok(CheckResult::Warning(
             Context::new(format!(
-                "Installed IoT Edge daemon has version {} but version {} is available. \
+                "Installed IoT Edge daemon has version {} but version {} is available.\n\
                  Please see https://aka.ms/iotedge-update-runtime for update instructions.",
                 version, latest_versions.iotedged,
             ))
@@ -874,7 +874,7 @@ fn host_local_time(check: &mut Check) -> Result<CheckResult, failure::Error> {
 
     if local_clock_offset.num_seconds().abs() >= 10 {
         return Ok(CheckResult::Warning(Context::new(format!(
-            "Time on the device is out of sync with the NTP server. This may cause problems connecting to IoT Hub. \
+            "Time on the device is out of sync with the NTP server. This may cause problems connecting to IoT Hub.\n\
              Please ensure time on device is accurate, for example by {}.",
             if cfg!(windows) {
                 "setting up the Windows Time service to automatically sync with a time server"
@@ -927,7 +927,7 @@ fn container_local_time(check: &mut Check) -> Result<CheckResult, failure::Error
 
 fn container_engine_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
     const MESSAGE: &str =
-        "Container engine is not configured with DNS server setting, which may impact connectivity to IoT Hub. \
+        "Container engine is not configured with DNS server setting, which may impact connectivity to IoT Hub.\n\
          Please see https://aka.ms/iotedge-prod-checklist-dns for best practices.\n\
          You can ignore this warning if you are setting DNS server per module in the Edge deployment.";
 
@@ -975,7 +975,7 @@ fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Erro
 
     if settings.certificates().is_none() {
         return Ok(CheckResult::Warning(Context::new(
-            "Device is using self-signed, automatically generated certs. \
+            "Device is using self-signed, automatically generated certs.\n\
              Please see https://aka.ms/iotedge-prod-checklist-certs for certificate management best practices.",
         ).into()));
     }
@@ -1092,7 +1092,7 @@ fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failur
 
 fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::Error> {
     const MESSAGE: &str =
-        "Device is not using a production-supported container engine (moby-engine). \
+        "Device is not using a production-supported container engine (moby-engine).\n\
          Please see https://aka.ms/iotedge-prod-checklist-moby for details.";
 
     let settings = if let Some(settings) = &check.settings {
@@ -1144,7 +1144,7 @@ fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::
 
 fn container_engine_logrotate(_: &mut Check) -> Result<CheckResult, failure::Error> {
     const MESSAGE: &str =
-        "Container engine is not configured to rotate module logs which may cause it run out of disk space. \
+        "Container engine is not configured to rotate module logs which may cause it run out of disk space.\n\
          Please see https://aka.ms/iotedge-prod-checklist-logs for best practices.\n\
          You can ignore this warning if you are setting log policy per module in the Edge deployment.";
 
@@ -1365,7 +1365,7 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
 
             Err(ref err) if err.kind() == std::io::ErrorKind::AddrInUse => {
                 return Err(Context::new(format!(
-                    "Edge hub cannot start on device because port {} is already in use. \
+                    "Edge hub cannot start on device because port {} is already in use.\n\
                      Please stop the application using the port or remove the port binding from Edge hub's deployment.",
                     port_binding,
                 )).into());
