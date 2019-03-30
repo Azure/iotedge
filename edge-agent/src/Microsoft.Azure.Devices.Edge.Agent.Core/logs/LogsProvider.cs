@@ -39,7 +39,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
             Preconditions.CheckNotNull(callback, nameof(callback));
 
-            ISet<string> ids = await this.GetIds(logOptions.Id, cancellationToken);
+            IEnumerable<string> modules = (await this.runtimeInfoProvider.GetModules(cancellationToken))
+                .Select(m => m.Name);
+            ISet<string> ids = GetIds(logOptions.Id, modules);
             IEnumerable<Task> streamingTasks = ids.Select(id => this.GetLogsStream(id, logOptions, callback, cancellationToken));
             await Task.WhenAll(streamingTasks);
         }
@@ -49,10 +51,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             Preconditions.CheckNotNull(logOptionsList, nameof(logOptionsList));
             Preconditions.CheckNotNull(callback, nameof(callback));
 
+            IList<string> modules = (await this.runtimeInfoProvider.GetModules(cancellationToken))
+                .Select(m => m.Name)
+                .ToList();
+
             var idsToProcess = new Dictionary<string, ModuleLogOptions>(StringComparer.OrdinalIgnoreCase);
             foreach (ModuleLogOptions logOptions in logOptionsList)
             {
-                ISet<string> ids = await this.GetIds(logOptions.Id, cancellationToken);
+                ISet<string> ids = GetIds(logOptions.Id, modules);
                 foreach (string id in ids)
                 {
                     if (!idsToProcess.ContainsKey(id))
@@ -79,18 +85,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                 : this.WriteLogsStreamToOutput(logOptions.Id, callback, logsStream, cancellationToken));
         }
 
-        internal async Task<ISet<string>> GetIds(string id, CancellationToken cancellationToken)
+        internal static ISet<string> GetIds(string id, IEnumerable<string> ids)
         {
-            IEnumerable<string> modules = (await this.runtimeInfoProvider.GetModules(cancellationToken))
-                .Select(m => m.Name);
-
             if (!id.Equals(Constants.AllModulesIdentifier, StringComparison.OrdinalIgnoreCase))
             {
-                var regex = new Regex("id");
-                modules = modules.Where(m => regex.IsMatch(m));
+                var regex = new Regex(id);
+                ids = ids.Where(m => regex.IsMatch(m));
             }
 
-            return modules.ToImmutableHashSet();            
+            return ids.ToImmutableHashSet();            
         }
 
         internal static bool NeedToProcessStream(ModuleLogOptions logOptions) =>
