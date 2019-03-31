@@ -1060,7 +1060,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         // assert
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         ASSERT_IS_NOT_NULL(digest, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(int, HMAC_SHA256_DIGEST_LEN, digest_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((HMAC_SHA256_DIGEST_LEN <= digest_size), "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(digest);
