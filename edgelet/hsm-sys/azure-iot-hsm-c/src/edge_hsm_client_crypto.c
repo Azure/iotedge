@@ -534,27 +534,48 @@ static int edge_hsm_client_decrypt_data
 
 static int sign_using_private_key
 (
-    HSM_CLIENT_HANDLE handle,
+    EDGE_CRYPTO *edge_crypto,
     const char* alias,
-    const unsigned char* data,
-    size_t data_size,
+    const unsigned char* tbs,
+    size_t tbs_size,
     unsigned char** digest,
     size_t* digest_size
 )
 {
-    // EDGE_CRYPTO *edge_crypto = (EDGE_CRYPTO*)handle;
-    // result = g_hsm_store_if->hsm_client_store_get_pki_cert(edge_crypto->hsm_store_handle,
-    //                                                            alias);
+    int result;
+    KEY_HANDLE key_handle;
+    const HSM_CLIENT_STORE_INTERFACE *store_if = g_hsm_store_if;
+    const HSM_CLIENT_KEY_INTERFACE *key_if = g_hsm_key_if;
+    key_handle = store_if->hsm_client_store_open_key(edge_crypto->hsm_store_handle,
+                                                     HSM_KEY_ASYMMETRIC_PRIVATE_KEY,
+                                                     alias);
+    if (key_handle == NULL)
+    {
+        LOG_ERROR("Could not get private key for alias '%s'", alias);
+        result = __FAILURE__;
+    }
+    else
+    {
+        int status = key_if->hsm_client_key_sign(key_handle, tbs, tbs_size, digest, digest_size);
+        if (status != 0)
+        {
+            LOG_ERROR("Error signing data. Error code %d", status);
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+        // always close the key handle
+        status = store_if->hsm_client_store_close_key(edge_crypto->hsm_store_handle, key_handle);
+        if (status != 0)
+        {
+            LOG_ERROR("Error closing key handle. Error code %d", status);
+            result = __FAILURE__;
+        }
+    }
 
-    // result = sign_using_private_key(handle, alias, data, data_size, digest, digest_size);
-
-    (void)handle;
-    (void)alias;
-    (void)data;
-    (void)data_size;
-    (void)digest;
-    (void)digest_size;
-    return __FAILURE__;
+    return result;
 }
 
 static int edge_hsm_client_crypto_sign_with_private_key
@@ -596,7 +617,13 @@ static int edge_hsm_client_crypto_sign_with_private_key
     }
     else
     {
-        result = sign_using_private_key(handle, alias, data, data_size, digest, digest_size);
+        EDGE_CRYPTO *edge_crypto = (EDGE_CRYPTO*)handle;
+        result = sign_using_private_key(edge_crypto,
+                                        alias,
+                                        data,
+                                        data_size,
+                                        digest,
+                                        digest_size);
     }
 
     return result;

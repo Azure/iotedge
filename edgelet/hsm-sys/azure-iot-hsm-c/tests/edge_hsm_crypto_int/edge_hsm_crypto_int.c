@@ -66,6 +66,8 @@ static size_t TEST_IV_SIZE = sizeof(TEST_IV);
 #define DEVICE_CA_ALIAS "test_device_ca"
 #define DEVICE_CA_PATH_LEN ((INT_CA_2_PATH_LEN) - 1)
 
+#define HMAC_SHA256_DIGEST_LEN 256
+
 static STRING_HANDLE BASE_TG_CERTS_PATH = NULL;
 static STRING_HANDLE VALID_DEVICE_CA_PATH = NULL;
 static STRING_HANDLE VALID_DEVICE_PK_PATH = NULL;
@@ -1035,6 +1037,37 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         hsm_test_util_unsetenv(ENV_DEVICE_CA_PATH);
         hsm_test_util_unsetenv(ENV_DEVICE_PK_PATH);
         hsm_test_util_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
+    }
+
+    TEST_FUNCTION(hsm_client_crypto_sign_with_private_key_smoke)
+    {
+        // arrange
+        int status;
+        HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
+        const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
+        CERT_PROPS_HANDLE certificate_props = test_helper_create_ca_cert_properties();
+        CERT_INFO_HANDLE ca_handle = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
+        ASSERT_IS_NOT_NULL(ca_handle, "Line:" TOSTRING(__LINE__));
+
+        unsigned char data[] = { 'a', 'b', 'c' };
+        size_t data_size = sizeof(data);
+        unsigned char* digest = NULL;
+        size_t digest_size = 0;
+
+        // act
+        status = interface->hsm_client_crypto_sign_with_private_key(hsm_handle, TEST_CA_ALIAS, data, data_size, &digest, &digest_size);
+
+        // assert
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(digest, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, HMAC_SHA256_DIGEST_LEN, digest_size, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        free(digest);
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_CA_ALIAS);
+        certificate_info_destroy(ca_handle);
+        cert_properties_destroy(certificate_props);
+        test_helper_crypto_deinit(hsm_handle);
     }
 
 END_TEST_SUITE(edge_hsm_crypto_int_tests)

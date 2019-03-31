@@ -110,10 +110,14 @@ MOCKABLE_FUNCTION(, int, EC_GROUP_get_curve_name, const EC_GROUP*, group);
     MOCKABLE_FUNCTION(, int, EVP_PKEY_bits, const EVP_PKEY*, pkey);
     MOCKABLE_FUNCTION(, X509_NAME*, X509_get_subject_name, const X509*, a);
     MOCKABLE_FUNCTION(, int, X509_get_ext_by_NID, const X509*, x, int, nid, int, lastpos);
+    MOCKABLE_FUNCTION(, EVP_MD_CTX*, EVP_MD_CTX_new);
+    MOCKABLE_FUNCTION(, void, EVP_MD_CTX_free, EVP_MD_CTX*, ctx);
 #else
     MOCKABLE_FUNCTION(, int, EVP_PKEY_bits, EVP_PKEY*, pkey);
     MOCKABLE_FUNCTION(, X509_NAME*, X509_get_subject_name, X509*, a);
     MOCKABLE_FUNCTION(, int, X509_get_ext_by_NID, X509*, x, int, nid, int, lastpos);
+    MOCKABLE_FUNCTION(, EVP_MD_CTX*, EVP_MD_CTX_create);
+    MOCKABLE_FUNCTION(, void, EVP_MD_CTX_destroy, EVP_MD_CTX*, ctx);
 #endif
 
 MOCKABLE_FUNCTION(, BIO*, BIO_new_file, const char*, filename, const char*, mode);
@@ -174,8 +178,6 @@ MOCKABLE_FUNCTION(, void, X509_EXTENSION_free, X509_EXTENSION*, ex);
 
 MOCKABLE_FUNCTION(, void, X509V3_set_ctx, X509V3_CTX*, ctx, X509*, issuer, X509*, subj, X509_REQ*, req, X509_CRL*, crl, int, flags);
 
-MOCKABLE_FUNCTION(, EVP_MD_CTX*, EVP_MD_CTX_create);
-MOCKABLE_FUNCTION(, void, EVP_MD_CTX_destroy, EVP_MD_CTX*, ctx);
 MOCKABLE_FUNCTION(, const EVP_MD*, EVP_get_digestbyname, const char*, name);
 MOCKABLE_FUNCTION(, int, EVP_DigestInit_ex, EVP_MD_CTX*, ctx, const EVP_MD*, type, ENGINE*, impl);
 MOCKABLE_FUNCTION(, int, EVP_DigestSignInit, EVP_MD_CTX*, ctx, EVP_PKEY_CTX**, pctx, const EVP_MD*, type, ENGINE*, e, EVP_PKEY*, pkey);
@@ -2288,11 +2290,17 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
 
         REGISTER_GLOBAL_MOCK_HOOK(X509_get_ext_by_NID, test_hook_X509_get_ext_by_NID);
 
-        REGISTER_GLOBAL_MOCK_HOOK(EVP_MD_CTX_create, test_hook_EVP_MD_CTX_create);
-        REGISTER_GLOBAL_MOCK_FAIL_RETURN(EVP_MD_CTX_create, NULL);
+        #if ((OPENSSL_VERSION_NUMBER & 0xFFF00000L) >= 0x10100000L)
+            REGISTER_GLOBAL_MOCK_HOOK(EVP_MD_CTX_new, test_hook_EVP_MD_CTX_create);
+            REGISTER_GLOBAL_MOCK_FAIL_RETURN(EVP_MD_CTX_new, NULL);
 
-        REGISTER_GLOBAL_MOCK_HOOK(EVP_MD_CTX_destroy, test_hook_EVP_MD_CTX_destroy);
+            REGISTER_GLOBAL_MOCK_HOOK(EVP_MD_CTX_free, test_hook_EVP_MD_CTX_destroy);
+        #else
+            REGISTER_GLOBAL_MOCK_HOOK(EVP_MD_CTX_create, test_hook_EVP_MD_CTX_create);
+            REGISTER_GLOBAL_MOCK_FAIL_RETURN(EVP_MD_CTX_create, NULL);
 
+            REGISTER_GLOBAL_MOCK_HOOK(EVP_MD_CTX_destroy, test_hook_EVP_MD_CTX_destroy);
+        #endif
         REGISTER_GLOBAL_MOCK_HOOK(EVP_get_digestbyname, test_hook_EVP_get_digestbyname);
         REGISTER_GLOBAL_MOCK_FAIL_RETURN(EVP_get_digestbyname, NULL);
 
