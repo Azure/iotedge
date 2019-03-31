@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
 
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, Mock.Of<ILogsProcessor>());
 
-            var logsStreamRequest = new LogsStreamRequest("1.0", id);
+            var logsStreamRequest = new LogsStreamRequest("1.0", id, LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty);
             byte[] logsStreamRequestBytes = logsStreamRequest.ToBytes();
             var logsStreamRequestArraySeg = new ArraySegment<byte>(logsStreamRequestBytes);
             var clientWebSocket = new Mock<IClientWebSocket>();
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
 
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, Mock.Of<ILogsProcessor>());
 
-            var logsStreamRequest = new LogsStreamRequest("1.0", id);
+            var logsStreamRequest = new LogsStreamRequest("1.0", id, LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty);
             byte[] logsStreamRequestBytes = logsStreamRequest.ToBytes();
             var logsStreamRequestArraySeg = new ArraySegment<byte>(logsStreamRequestBytes);
             var clientWebSocket = new Mock<IClientWebSocket>();

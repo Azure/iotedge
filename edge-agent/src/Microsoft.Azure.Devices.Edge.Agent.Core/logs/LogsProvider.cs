@@ -36,16 +36,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
             Preconditions.CheckNotNull(callback, nameof(callback));
 
-            if (logOptions.ContentEncoding != LogsContentEncoding.None || logOptions.ContentType != LogsContentType.Text)
-            {
-                throw new NotImplementedException();
-            }
-
-            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(logOptions.Id, true, Option.None<int>(), Option.None<int>(), cancellationToken);
+            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(logOptions.Id, true, logOptions.Filter.Tail, logOptions.Filter.Since, cancellationToken);
             Events.ReceivedStream(logOptions.Id);
 
-            await this.WriteLogsStreamToOutput(logOptions.Id, callback, logsStream, cancellationToken);
+            await (NeedToProcessStream(logOptions)
+                ? this.logsProcessor.ProcessLogsStream(logsStream, logOptions, callback)
+                : this.WriteLogsStreamToOutput(logOptions.Id, callback, logsStream, cancellationToken));
         }
+
+        internal static bool NeedToProcessStream(ModuleLogOptions logOptions) =>
+            logOptions.Filter.LogLevel.HasValue
+            || logOptions.Filter.Regex.HasValue
+            || logOptions.ContentEncoding != LogsContentEncoding.None
+            || logOptions.ContentType != LogsContentType.Text;
 
         static byte[] ProcessByContentEncoding(byte[] bytes, LogsContentEncoding contentEncoding) =>
             contentEncoding == LogsContentEncoding.Gzip
