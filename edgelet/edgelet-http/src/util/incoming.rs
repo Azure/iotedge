@@ -59,18 +59,18 @@ impl Stream for Incoming {
                     if let Async::Ready((tcp_stream, addr)) = val {
                         connections
                             .lock()
-                            .expect("Unable to lock the connection mutex")
+                            .expect("Unable to lock the connections mutex")
                             .push((acceptor.accept(tcp_stream), IncomingSocketAddr::Tcp(addr)));
                     }
                 }) {
                     return Err(err);
                 }
 
-                // Take a read lock on our pending connection list returning a tuple representing an index
+                // Take a lock on our pending connection list returning a tuple representing an index
                 // + the state on the poll
                 let mut connections = connections
                     .lock()
-                    .expect("Unable to lock the connection mutex");
+                    .expect("Unable to lock the connections mutex");
                 let val = connections
                     .iter_mut()
                     .map(|(fut, _)| fut.poll())

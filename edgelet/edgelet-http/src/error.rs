@@ -30,7 +30,7 @@ pub enum ErrorKind {
     CertificateCreationError,
 
     #[fail(display = "Unable to convert a TLS certificate into a PKCS#12 certificate")]
-    CertificateConverstionError,
+    CertificateConversionError,
 
     #[fail(display = "Could not perform HTTP request")]
     Http,
