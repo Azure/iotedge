@@ -11,14 +11,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     /// <summary>
     /// This converter contains the logic to convert telemetry messages to/from amqp messages
     /// </summary>
     public class AmqpMessageConverter : IMessageConverter<AmqpMessage>
     {
+        static readonly ILogger Log = Logger.Factory.CreateLogger<AmqpMessageConverter>();
+
         public IMessage ToMessage(AmqpMessage sourceMessage)
         {
+            Log.LogInformation($"in ToMessage. To: {sourceMessage.Properties.To}");
             byte[] GetMessageBody()
             {
                 using (var ms = new MemoryStream())
@@ -59,6 +63,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 systemProperties.AddIfNonEmpty(SystemProperties.LockToken, lockToken);
             }
 
+            if (sourceMessage.MessageAnnotations.Map.TryGetValue("iothub-interface-id", out string hubInterfaceId))
+            {
+                Log.LogInformation($"Found InterfaceId! Adding to Systemproperties: {hubInterfaceId}");
+                systemProperties.AddIfNonEmpty(SystemProperties.InterfaceId, hubInterfaceId);
+            }
+
             if (sourceMessage.ApplicationProperties != null)
             {
                 foreach (KeyValuePair<MapKey, object> property in sourceMessage.ApplicationProperties.Map)
@@ -95,6 +105,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         public AmqpMessage FromMessage(IMessage message)
         {
+            Log.LogInformation("In FromMessage");
+
             AmqpMessage amqpMessage = AmqpMessage.Create(
                 new Data
                 {
@@ -190,8 +202,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 amqpMessage.ApplicationProperties.Map[Constants.MessagePropertiesOperationKey] = operation;
             }
 
+            if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.InterfaceId, out string interfaceId))
+            {
+                amqpMessage.ApplicationProperties.Map[Constants.MessagePropertiesOperationKey] = operation;
+            }
+
             foreach (KeyValuePair<string, string> property in message.Properties)
             {
+                Log.LogInformation("Message contians InteraceId");
+                if (interfaceId.Equals("http://security.azureiot.com/SecurityAgent/1.0.0", StringComparison.OrdinalIgnoreCase))
+                {
+                    Log.LogInformation("Ideally will set as SecurityMessage");
+                }
+
                 amqpMessage.ApplicationProperties.Map[property.Key] = property.Value;
             }
 

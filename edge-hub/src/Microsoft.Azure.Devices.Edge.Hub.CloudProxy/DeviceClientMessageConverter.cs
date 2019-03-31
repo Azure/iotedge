@@ -7,17 +7,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     public class DeviceClientMessageConverter : IMessageConverter<Message>
     {
         // Same Value as IotHub
         static readonly TimeSpan ClockSkewAdjustment = TimeSpan.FromSeconds(30);
 
+        static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceClientMessageConverter>();
+
         public Message FromMessage(IMessage inputMessage)
         {
             Preconditions.CheckNotNull(inputMessage, nameof(inputMessage));
             Preconditions.CheckArgument(inputMessage.Body != null, "IMessage.Body should not be null");
-
+            Log.LogInformation("In DeviceClientMessageConverter.FromMessage");
             var message = new Message(inputMessage.Body);
 
             if (inputMessage.Properties != null)
@@ -30,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             if (inputMessage.SystemProperties != null)
             {
+                Log.LogInformation("inputmessage contains SystemProperties");
                 if (inputMessage.SystemProperties.TryGetNonEmptyValue(SystemProperties.MessageId, out string messageId))
                 {
                     message.MessageId = messageId;
@@ -69,6 +73,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     message.MessageSchema = messageSchema;
                 }
+
+                if (inputMessage.SystemProperties.TryGetNonEmptyValue(SystemProperties.InterfaceId, out string interfaceId))
+                {
+                    Log.LogInformation("Message contians InteraceId");
+                    if (interfaceId.Equals("http://security.azureiot.com/SecurityAgent/1.0.0", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Log.LogInformation("Setting as SecurityMessage");
+                        message.SetAsSecurityMessage();
+                    }
+                }
             }
 
             return message;
@@ -76,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public IMessage ToMessage(Message sourceMessage)
         {
+            Log.LogInformation($"Received message to {sourceMessage.To}");
             EdgeMessage message = new EdgeMessage.Builder(sourceMessage.GetBytes())
                 .SetProperties(sourceMessage.Properties)
                 .Build();
