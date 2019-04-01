@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
 
     public class LogsStreamRequestHandler : IStreamRequestHandler
     {
+        const int MaxLogRequestSizeBytes = 8192; // 8kb
         readonly ILogsProvider logsProvider;
 
         public LogsStreamRequestHandler(ILogsProvider logsProvider)
@@ -64,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
         async Task<LogsStreamRequest> ReadLogsStreamingRequest(IClientWebSocket clientWebSocket, CancellationToken cancellationToken)
         {
             // Max size of the request can be 8k
-            var buf = new byte[8192];
+            var buf = new byte[MaxLogRequestSizeBytes];
             var arrSeg = new ArraySegment<byte>(buf);
             WebSocketReceiveResult result = await clientWebSocket.ReceiveAsync(arrSeg, cancellationToken);
             if (result.Count > 0)
