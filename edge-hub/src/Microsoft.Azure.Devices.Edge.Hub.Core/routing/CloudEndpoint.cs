@@ -100,18 +100,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public Task CloseAsync(CancellationToken token) => Task.CompletedTask;
 
-            internal static int GetBatchSize(int batchSize, long messageSize)
-            {
-                while (true)
-                {
-                    if (batchSize == 1 || Constants.MaxMessageSize > messageSize * batchSize)
-                    {
-                        return batchSize;
-                    }
-
-                    batchSize = batchSize - 1;
-                }
-            }
+            internal static int GetBatchSize(int batchSize, long messageSize) =>
+                Math.Min((int)(Constants.MaxMessageSize / messageSize), batchSize);
 
             static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Contains(ex.GetType());
 
