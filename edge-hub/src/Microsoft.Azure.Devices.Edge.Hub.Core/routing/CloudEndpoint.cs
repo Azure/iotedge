@@ -131,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 List<InvalidDetails<IRoutingMessage>> invalid = routingMessages
                     .Select(m => new InvalidDetails<IRoutingMessage>(m, FailureKind.InvalidInput))
                     .ToList();
-                var sendFailureDetails = new SendFailureDetails(FailureKind.InvalidInput, new InvalidOperationException("Message does not contain device id"));
+                var sendFailureDetails = new SendFailureDetails(FailureKind.InvalidInput, ex);
                 return new SinkResult<IRoutingMessage>(ImmutableList<IRoutingMessage>.Empty, ImmutableList<IRoutingMessage>.Empty, invalid, sendFailureDetails);
             }
 

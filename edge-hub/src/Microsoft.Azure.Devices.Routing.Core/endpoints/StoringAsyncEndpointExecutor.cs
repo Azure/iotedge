@@ -178,6 +178,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
         }
 
+        // This class is used to prefetch messages from the store before they are needed.
+        // As soon as the previous batch is consumed, the next batch is fetched.
+        // A pump is started as soon as the object is created, and it keeps the messages list populated.
         internal class StoreMessagesProvider
         {
             readonly IMessageIterator iterator;
