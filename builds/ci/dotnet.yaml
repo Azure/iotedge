@@ -35,7 +35,14 @@ jobs:
         inputs:
           packageType: sdk
           version: $(netCoreVersion)
-      - script: command -v dotnet
+      - script: |
+          check_file() {
+            [ -f $1 ] && "'$1' exists" || "'$1' does not exist"
+          }
+          echo "command -v dotnet: $(command -v dotnet)"
+          check_file "$AGENT_WORKFOLDER/dotnet/dotnet"
+          check_file "/usr/share/dotnet/dotnet"
+          check_file "/usr/local/share/dotnet/dotnet"
         displayName: Where is dotnet?
       - script: |
           sudo apt-get update
