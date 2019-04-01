@@ -58,7 +58,7 @@ jobs:
         displayName: Publish artifacts
         inputs:
           pathtoPublish: $(Build.ArtifactStagingDirectory)
-          artifactName: core-linux
+          artifactName: e2e-linux
   - job: windows
     displayName: Windows
     timeoutInMinutes: 120
@@ -114,7 +114,7 @@ jobs:
         displayName: Publish artifacts
         inputs:
           pathtoPublish: $(Build.ArtifactStagingDirectory)
-          artifactName: core-windows
+          artifactName: e2e-windows
       - powershell: docker system prune -a -f
         name: clean_machine
         displayName: Clean machine
