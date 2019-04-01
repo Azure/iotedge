@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
+#include <time.h>
 
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/crt_abstractions.h"
@@ -200,26 +201,38 @@ static CERT_INFO_HANDLE create_device_certificate(HSM_CLIENT_HANDLE hsm_handle)
     else
     {
         CERT_PROPS_HANDLE certificate_props;
+
         if ((validity_seconds = certificate_info_get_valid_to(issuer)) == 0)
         {
             LOG_ERROR("Issuer alias's %s certificate contains invalid expiration", issuer_alias);
             result = NULL;
         }
-        else if ((certificate_props = create_edge_device_properties(common_name,
-                                                                    validity_seconds,
-                                                                    issuer_alias)) == NULL)
-        {
-            LOG_ERROR("Error creating certificate properties for device certificate");
-            result = NULL;
-        }
         else
         {
-            result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
-            if (result == NULL)
+            double seconds_left = 0;
+            time_t now = time(NULL);
+
+            if ((seconds_left = difftime(validity_seconds, now)) <= 0)
             {
-                LOG_ERROR("Failed to create device certificate with CN %s", common_name);
+                LOG_ERROR("Issuer certificate has expired");
+                result = NULL;
             }
-            cert_properties_destroy(certificate_props);
+            else if ((certificate_props = create_edge_device_properties(common_name,
+                                                                        seconds_left,
+                                                                        issuer_alias)) == NULL)
+            {
+                LOG_ERROR("Error creating certificate properties for device certificate");
+                result = NULL;
+            }
+            else
+            {
+                result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
+                if (result == NULL)
+                {
+                    LOG_ERROR("Failed to create device certificate with CN %s", common_name);
+                }
+                cert_properties_destroy(certificate_props);
+            }
         }
         certificate_info_destroy(issuer);
     }
@@ -244,6 +257,41 @@ static int get_device_id_cert_env_vars(char **device_cert_file_path, char **devi
     else
     {
         result = 0;
+    }
+
+    return result;
+}
+
+static CERT_INFO_HANDLE prepare_device_certifiicate_info
+(
+    const char *cert_file_path,
+    const char *pk_file_path
+)
+{
+    CERT_INFO_HANDLE result;
+    char *cert_contents, *private_key_contents;
+    size_t private_key_size = 0;
+
+    if ((private_key_contents = read_file_into_cstring(pk_file_path, &private_key_size)) == NULL)
+    {
+        LOG_ERROR("Could not load private key into buffer %s", pk_file_path);
+        result = NULL;
+    }
+    else if ((cert_contents = read_file_into_cstring(cert_file_path, NULL)) == NULL)
+    {
+        LOG_ERROR("Could not read certificate into buffer %s", cert_file_path);
+        free(private_key_contents);
+        result = NULL;
+    }
+    else
+    {
+        result = certificate_info_create(cert_contents,
+                                         private_key_contents,
+                                         private_key_size,
+                                         (private_key_size != 0) ? PRIVATE_KEY_PAYLOAD :
+                                                                   PRIVATE_KEY_UNKNOWN);
+        free(private_key_contents);
+        free(cert_contents);
     }
 
     return result;
@@ -311,8 +359,16 @@ static CERT_INFO_HANDLE get_or_create_device_certificate(HSM_CLIENT_HANDLE hsm_h
         }
         else
         {
-            // no device certificate and key were provided so generate them
-            result = create_device_certificate(hsm_handle);
+            if (env_set)
+            {
+                result = prepare_device_certifiicate_info(device_cert_file_path,
+                                                          device_pk_file_path);
+            }
+            else
+            {
+                // no device certificate and key were provided so generate them
+                result = create_device_certificate(hsm_handle);
+            }
         }
     }
 
