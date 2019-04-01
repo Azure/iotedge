@@ -14,6 +14,8 @@ variables:
   #container.registry: ''
   #snitch.storage.account: ''
   # Variables settable at queue time
+  #edgelet.package.branchName
+  #images.branchName
   #loadGen.message.frequency.amd64: 'xx:xx:xx.xx'
   #loadGen.message.frequency.arm32v7: 'xx:xx:xx.xx'
   #loadGen.transportType: ''
@@ -47,6 +49,7 @@ jobs:
           buildType: specific
           project: $(vsts.project)
           pipeline: $(edgelet.package.build)
+          branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
@@ -55,6 +58,7 @@ jobs:
           buildType: specific
           project: $(vsts.project)
           pipeline: $(images.build)
+          branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
           artifactName: $(images.artifact.name)
           itemPattern: |
@@ -105,6 +109,7 @@ jobs:
           buildType: specific
           project: $(vsts.project)
           pipeline: $(edgelet.package.build)
+          branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
@@ -113,6 +118,7 @@ jobs:
           buildType: specific
           project: $(vsts.project)
           pipeline: $(images.build)
+          branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
           artifactName: $(images.artifact.name)
           itemPattern: |
@@ -164,6 +170,7 @@ jobs:
           buildType: specific
           project: $(vsts.project)
           pipeline: $(edgelet.package.build)
+          branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
@@ -172,6 +179,7 @@ jobs:
           buildType: specific
           project: $(vsts.project)
           pipeline: $(images.build)
+          branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
           artifactName: $(images.artifact.name)
           itemPattern: |
