@@ -35,6 +35,8 @@ jobs:
         inputs:
           packageType: sdk
           version: $(netCoreVersion)
+      - script: command -v dotnet
+        displayName: Where is dotnet?
       - script: |
           sudo apt-get update
           sudo apt-get install -y libsnappy1v5
