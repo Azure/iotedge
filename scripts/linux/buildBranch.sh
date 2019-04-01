@@ -77,7 +77,7 @@ process_args()
         exit 1
     fi
 
-    if [ ! -f $DOTNET_ROOT_PATH ]; then
+    if [ ! -f "$DOTNET_ROOT_PATH" ]; then
         local dotnet_path=$(command -v dotnet)
         if [ $? -eq 0 ]; then
             DOTNET_ROOT_PATH=$(dirname $dotnet_path)
