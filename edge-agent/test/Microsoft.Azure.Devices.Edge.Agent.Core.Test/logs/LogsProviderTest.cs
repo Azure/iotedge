@@ -483,7 +483,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             {
                 new List<(string id, ModuleLogOptions logOptions)>
                 {
-                    ("e.*", logOptions1),
+                    ("^e.*", logOptions1),
                     ("mod", logOptions2)
                 },
                 new List<string> { "edgeAgent", "edgeHub", "module1", "eModule2" },
