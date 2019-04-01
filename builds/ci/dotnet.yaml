@@ -20,8 +20,8 @@ jobs:
       - task: AzureKeyVault@1
         displayName: Get secrets
         inputs:
-          azureSubscription: $(az.subscription)
-          keyVaultName: $(az.keyvault)
+          azureSubscription: $(azure.subscription)
+          keyVaultName: $(kv.name)
           secretsFilter: >-
             DummySecret1,
             EdgeCapableDevice2,
