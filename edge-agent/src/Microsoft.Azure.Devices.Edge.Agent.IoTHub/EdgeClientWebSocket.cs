@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     class EdgeClientWebSocket : IClientWebSocket
     {
         readonly ClientWebSocket clientWebSocket;
+        // TODO: Check if locking is necessary here and if separate locks can be used for reading and writing.
         readonly AsyncLock clientWebSocketLock;
 
         EdgeClientWebSocket(ClientWebSocket clientWebSocket)
