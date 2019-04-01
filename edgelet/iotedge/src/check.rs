@@ -28,13 +28,9 @@ use edgelet_http::MaybeProxyClient;
 use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
 use crate::LatestVersions;
 
-#[cfg(windows)]
-const CONTAINER_ENGINE_CONFIG_PATH: &str = r"C:\ProgramData\iotedge-moby\config\daemon.json";
-#[cfg(unix)]
-const CONTAINER_ENGINE_CONFIG_PATH: &str = "/etc/docker/daemon.json";
-
 pub struct Check {
     config_file: PathBuf,
+    container_engine_config_path: PathBuf,
     diagnostics_image_name: String,
     iotedged: PathBuf,
     latest_versions: Result<super::LatestVersions, Option<Error>>,
@@ -72,6 +68,7 @@ enum CheckResult {
 impl Check {
     pub fn new(
         config_file: PathBuf,
+        container_engine_config_path: PathBuf,
         diagnostics_image_name: String,
         expected_iotedged_version: Option<String>,
         iotedged: PathBuf,
@@ -180,6 +177,7 @@ impl Check {
         latest_versions.then(move |latest_versions| {
             Ok(Check {
                 config_file,
+                container_engine_config_path,
                 diagnostics_image_name,
                 iotedged,
                 ntp_server,
@@ -966,7 +964,7 @@ fn container_local_time(check: &mut Check) -> Result<CheckResult, failure::Error
     Ok(CheckResult::Ok)
 }
 
-fn container_engine_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
+fn container_engine_dns(check: &mut Check) -> Result<CheckResult, failure::Error> {
     const MESSAGE: &str =
         "Container engine is not configured with DNS server setting, which may impact connectivity to IoT Hub.\n\
          Please see https://aka.ms/iotedge-prod-checklist-dns for best practices.\n\
@@ -977,11 +975,11 @@ fn container_engine_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
         dns: Option<Vec<String>>,
     }
 
-    let daemon_config_file = File::open(CONTAINER_ENGINE_CONFIG_PATH)
+    let daemon_config_file = File::open(&check.container_engine_config_path)
         .with_context(|_| {
             format!(
                 "Could not open container engine config file {}",
-                CONTAINER_ENGINE_CONFIG_PATH,
+                check.container_engine_config_path.display(),
             )
         })
         .context(MESSAGE);
@@ -991,14 +989,14 @@ fn container_engine_dns(_: &mut Check) -> Result<CheckResult, failure::Error> {
             return Ok(CheckResult::Warning(err.into()));
         }
     };
-    let daemon_config: DaemonConfig =
-        serde_json::from_reader(daemon_config_file).with_context(|_| {
+    let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)
+        .with_context(|_| {
             format!(
-                "Could not parse container engine config file {}\n\
-                 {}",
-                CONTAINER_ENGINE_CONFIG_PATH, MESSAGE,
+                "Could not parse container engine config file {}",
+                check.container_engine_config_path.display(),
             )
-        })?;
+        })
+        .context(MESSAGE)?;
 
     if let Some(&[]) | None = daemon_config.dns.as_ref().map(std::ops::Deref::deref) {
         return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));
@@ -1186,7 +1184,7 @@ fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::
     Ok(CheckResult::Ok)
 }
 
-fn container_engine_logrotate(_: &mut Check) -> Result<CheckResult, failure::Error> {
+fn container_engine_logrotate(check: &mut Check) -> Result<CheckResult, failure::Error> {
     const MESSAGE: &str =
         "Container engine is not configured to rotate module logs which may cause it run out of disk space.\n\
          Please see https://aka.ms/iotedge-prod-checklist-logs for best practices.\n\
@@ -1210,11 +1208,11 @@ fn container_engine_logrotate(_: &mut Check) -> Result<CheckResult, failure::Err
         max_size: Option<String>,
     }
 
-    let daemon_config_file = File::open(CONTAINER_ENGINE_CONFIG_PATH)
+    let daemon_config_file = File::open(&check.container_engine_config_path)
         .with_context(|_| {
             format!(
                 "Could not open container engine config file {}",
-                CONTAINER_ENGINE_CONFIG_PATH,
+                check.container_engine_config_path.display(),
             )
         })
         .context(MESSAGE);
@@ -1224,14 +1222,14 @@ fn container_engine_logrotate(_: &mut Check) -> Result<CheckResult, failure::Err
             return Ok(CheckResult::Warning(err.into()));
         }
     };
-    let daemon_config: DaemonConfig =
-        serde_json::from_reader(daemon_config_file).with_context(|_| {
+    let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)
+        .with_context(|_| {
             format!(
-                "Could not parse container engine config file {}\n\
-                 {}",
-                CONTAINER_ENGINE_CONFIG_PATH, MESSAGE,
+                "Could not parse container engine config file {}",
+                check.container_engine_config_path.display(),
             )
-        })?;
+        })
+        .context(MESSAGE)?;
 
     if daemon_config.log_driver.is_none() {
         return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));
@@ -1525,6 +1523,7 @@ mod tests {
             let mut check = runtime
                 .block_on(super::Check::new(
                     config_file.into(),
+                    "daemon.json".into(), // unused for this test
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                     Some("1.0.0".to_owned()),      // unused for this test
                     "iotedged".into(),             // unused for this test
@@ -1591,6 +1590,7 @@ mod tests {
         let mut check = runtime
             .block_on(super::Check::new(
                 config_file.into(),
+                "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
@@ -1634,6 +1634,7 @@ mod tests {
         let mut check = runtime
             .block_on(super::Check::new(
                 config_file.into(),
+                "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
@@ -1682,6 +1683,7 @@ mod tests {
         let mut check = runtime
             .block_on(super::Check::new(
                 config_file.into(),
+                "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test

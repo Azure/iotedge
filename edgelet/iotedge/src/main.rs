@@ -22,6 +22,17 @@ const MGMT_URI: &str = "unix:///var/run/iotedge/mgmt.sock";
 #[cfg(windows)]
 const MGMT_URI: &str = "unix:///C:/ProgramData/iotedge/mgmt/sock";
 
+#[cfg(unix)]
+const DEFAULT_CONFIG_PATH: &str = "/etc/iotedge/config.yaml";
+#[cfg(windows)]
+const DEFAULT_CONFIG_PATH: &str = r"C:\ProgramData\iotedge\config.yaml";
+
+#[cfg(unix)]
+const DEFAULT_CONTAINER_ENGINE_CONFIG_PATH: &str = "/etc/docker/daemon.json";
+#[cfg(windows)]
+const DEFAULT_CONTAINER_ENGINE_CONFIG_PATH: &str =
+    r"C:\ProgramData\iotedge-moby\config\daemon.json";
+
 fn main() {
     if let Err(ref error) = run() {
         let fail: &dyn Fail = error;
@@ -70,9 +81,15 @@ fn run() -> Result<(), Error> {
                         .value_name("FILE")
                         .help("Sets daemon configuration file")
                         .takes_value(true)
-                        .default_value(
-                            if cfg!(windows) { r"C:\ProgramData\iotedge\config.yaml" } else { "/etc/iotedge/config.yaml" }
-                        ),
+                        .default_value(DEFAULT_CONFIG_PATH),
+                )
+                .arg(
+                    Arg::with_name("container-engine-config-file")
+                        .long("container-engine-config-file")
+                        .value_name("FILE")
+                        .help("Sets the path of the container engine configuration file")
+                        .takes_value(true)
+                        .default_value(DEFAULT_CONTAINER_ENGINE_CONFIG_PATH),
                 )
                 .arg(
                     Arg::with_name("diagnostics-image-name")
@@ -177,6 +194,10 @@ fn run() -> Result<(), Error> {
         ("check", Some(args)) => tokio_runtime.block_on(
             Check::new(
                 args.value_of_os("config-file")
+                    .expect("arg has a default value")
+                    .to_os_string()
+                    .into(),
+                args.value_of_os("container-engine-config-file")
                     .expect("arg has a default value")
                     .to_os_string()
                     .into(),
