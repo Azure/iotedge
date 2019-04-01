@@ -34,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             return logBytes;
         }
 
+        // The id parameter is a regex. Logs for all modules that match this regex are processed.
         public async Task GetLogsStream(string id, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
@@ -47,6 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             await Task.WhenAll(streamingTasks);
         }
 
+        // The id parameter in the ids is a regex. Logs for all modules that match this regex are processed.
+        // If multiple id parameters match a module, the first one is considered. 
         public async Task GetLogsStream(IList<(string id, ModuleLogOptions logOptions)> ids, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(ids, nameof(ids));
