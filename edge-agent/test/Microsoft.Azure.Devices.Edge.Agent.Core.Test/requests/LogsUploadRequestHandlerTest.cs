@@ -51,8 +51,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             var logsUploader = new Mock<ILogsUploader>();
             var logsProvider = new Mock<ILogsProvider>();
             var uploadBytes = new byte[100];
-            var moduleLogOptions = new ModuleLogOptions(id, contentEncoding, contentType, filter);
-            logsProvider.Setup(l => l.GetLogs(moduleLogOptions, It.IsAny<CancellationToken>()))
+            var moduleLogOptions = new ModuleLogOptions(contentEncoding, contentType, filter);
+            logsProvider.Setup(l => l.GetLogs(id, moduleLogOptions, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(uploadBytes);
             logsUploader.Setup(l => l.Upload(sasUrl, id, uploadBytes, contentEncoding, contentType))
                 .Returns(Task.CompletedTask);

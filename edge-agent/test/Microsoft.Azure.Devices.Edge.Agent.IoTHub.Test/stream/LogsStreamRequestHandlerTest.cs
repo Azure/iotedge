@@ -33,8 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
                 .ReturnsAsync(new MemoryStream(buffer));
 
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, Mock.Of<ILogsProcessor>());
-
-            var logsStreamRequest = new LogsStreamRequest("1.0", id, LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty);
+            var logRequestItem = new LogRequestItem(id, ModuleLogFilter.Empty);
+            var logsStreamRequest = new LogsStreamRequest("1.0", new List<LogRequestItem> { logRequestItem }, LogsContentEncoding.None, LogsContentType.Text);
             byte[] logsStreamRequestBytes = logsStreamRequest.ToBytes();
             var logsStreamRequestArraySeg = new ArraySegment<byte>(logsStreamRequestBytes);
             var clientWebSocket = new Mock<IClientWebSocket>();
@@ -76,8 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
                 .ReturnsAsync(new MemoryStream(buffer));
 
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, Mock.Of<ILogsProcessor>());
-
-            var logsStreamRequest = new LogsStreamRequest("1.0", id, LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty);
+            var logRequestItem = new LogRequestItem(id, ModuleLogFilter.Empty);
+            var logsStreamRequest = new LogsStreamRequest("1.0", new List<LogRequestItem> { logRequestItem }, LogsContentEncoding.None, LogsContentType.Text);
             byte[] logsStreamRequestBytes = logsStreamRequest.ToBytes();
             var logsStreamRequestArraySeg = new ArraySegment<byte>(logsStreamRequestBytes);
             var clientWebSocket = new Mock<IClientWebSocket>();

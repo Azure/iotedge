@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
 
     public class LogsStreamRequest
     {
-        public LogsStreamRequest(string schemaVersion, List<LogRequestItem> items, LogsContentEncoding encoding, LogsContentType contentType, ModuleLogFilter filter)
+        public LogsStreamRequest(string schemaVersion, List<LogRequestItem> items, LogsContentEncoding encoding, LogsContentType contentType)
         {
             this.SchemaVersion = schemaVersion;
             this.Items = Preconditions.CheckNotNull(items, nameof(items));

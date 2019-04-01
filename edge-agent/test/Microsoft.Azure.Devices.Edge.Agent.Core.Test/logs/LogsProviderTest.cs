@@ -27,6 +27,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             "<3> 2019-05-08 02:23:23.137 +00:00 [ERR] - Something really bad happened.\n"
         };
 
+        public static IEnumerable<object[]> GetNeedToProcessStreamTestData()
+        {
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty), false };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>())), false };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, ModuleLogFilter.Empty), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.Some(3), Option.Some("foo"))), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.Some(3), Option.None<string>())), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.Some("foo"))), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>())), true };
+        }
+
         [Fact]
         public async Task GetLogsAsTextTest()
         {
@@ -46,10 +57,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty);
 
             // Act
-            byte[] bytes = await logsProvider.GetLogs(logOptions, cancellationToken);
+            byte[] bytes = await logsProvider.GetLogs(moduleId, logOptions, cancellationToken);
 
             // Assert
             string logsText = Encoding.UTF8.GetString(bytes);
@@ -75,10 +86,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.Gzip, LogsContentType.Text, ModuleLogFilter.Empty);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, ModuleLogFilter.Empty);
 
             // Act
-            byte[] bytes = await logsProvider.GetLogs(logOptions, cancellationToken);
+            byte[] bytes = await logsProvider.GetLogs(moduleId, logOptions, cancellationToken);
 
             // Assert
             byte[] decompressedBytes = Compression.DecompressFromGzip(bytes);
@@ -104,10 +115,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.None, LogsContentType.Json, ModuleLogFilter.Empty);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, ModuleLogFilter.Empty);
 
             // Act
-            byte[] bytes = await logsProvider.GetLogs(logOptions, cancellationToken);
+            byte[] bytes = await logsProvider.GetLogs(moduleId, logOptions, cancellationToken);
 
             // Assert
             var logMessages = bytes.FromBytes<List<ModuleLogMessage>>();
@@ -145,10 +156,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.Gzip, LogsContentType.Json, ModuleLogFilter.Empty);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Json, ModuleLogFilter.Empty);
 
             // Act
-            byte[] bytes = await logsProvider.GetLogs(logOptions, cancellationToken);
+            byte[] bytes = await logsProvider.GetLogs(moduleId, logOptions, cancellationToken);
 
             // Assert
             byte[] decompressedBytes = Compression.DecompressFromGzip(bytes);
@@ -188,7 +199,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty);
 
             var receivedBytes = new List<byte>();
 
@@ -199,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             }
 
             // Act
-            await logsProvider.GetLogsStream(logOptions, Callback, cancellationToken);
+            await logsProvider.GetLogsStream(moduleId, logOptions, Callback, cancellationToken);
 
             // Assert
             Assert.NotEmpty(receivedBytes);
@@ -226,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
             var filter = new ModuleLogFilter(tail, since, Option.Some(6), Option.Some("Starting"));
-            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.Gzip, LogsContentType.Text, filter);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter);
 
             var receivedBytes = new List<byte>();
 
@@ -237,7 +248,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             }
 
             // Act
-            await logsProvider.GetLogsStream(logOptions, Callback, cancellationToken);
+            await logsProvider.GetLogsStream(moduleId, logOptions, Callback, cancellationToken);
             await Task.Delay(TimeSpan.FromSeconds(3));
 
             // Assert
@@ -254,17 +265,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         public void NeedToProcessStreamTest(ModuleLogOptions logOptions, bool expectedResult)
         {
             Assert.Equal(expectedResult, LogsProvider.NeedToProcessStream(logOptions));
-        }
-
-        public static IEnumerable<object[]> GetNeedToProcessStreamTestData()
-        {
-            yield return new object[] { new ModuleLogOptions("id", LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty), false };
-            yield return new object[] { new ModuleLogOptions("id", LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>())), false };
-            yield return new object[] { new ModuleLogOptions("id", LogsContentEncoding.Gzip, LogsContentType.Text, ModuleLogFilter.Empty), true };
-            yield return new object[] { new ModuleLogOptions("id", LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.Some(3), Option.Some("foo"))), true };
-            yield return new object[] { new ModuleLogOptions("id", LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.Some(3), Option.None<string>())), true };
-            yield return new object[] { new ModuleLogOptions("id", LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.Some("foo"))), true };
-            yield return new object[] { new ModuleLogOptions("id", LogsContentEncoding.None, LogsContentType.Json, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>())), true };
         }
     }
 }

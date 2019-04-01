@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             switch (logOptions.ContentType)
             {
                 case LogsContentType.Json:
-                    IEnumerable<ModuleLogMessage> logMessages = await this.logsProcessor.GetMessages(id, logsStream, id, logOptions.Filter);
+                    IEnumerable<ModuleLogMessage> logMessages = await this.logsProcessor.GetMessages(id, logsStream, logOptions.Filter);
                     return logMessages.ToBytes();
 
                 default:
