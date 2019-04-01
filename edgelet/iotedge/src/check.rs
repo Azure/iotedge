@@ -266,7 +266,14 @@ impl Check {
         let mut stdout = termcolor::StandardStream::stdout(termcolor::ColorChoice::Auto);
         let success_color_spec = {
             let mut success_color_spec = termcolor::ColorSpec::new();
-            success_color_spec.set_fg(Some(termcolor::Color::Green));
+            if cfg!(windows) {
+                // `Color::Green` maps to `FG_GREEN` which is too hard to read on the default blue-background profile that PS uses.
+                // PS uses `FG_GREEN | FG_INTENSITY` == 8 == `[ConsoleColor]::Green` as the foreground color for its error text,
+                // so mimic that.
+                success_color_spec.set_fg(Some(termcolor::Color::Rgb(0, 255, 0)));
+            } else {
+                success_color_spec.set_fg(Some(termcolor::Color::Green));
+            }
             success_color_spec
         };
         let warning_color_spec = {
