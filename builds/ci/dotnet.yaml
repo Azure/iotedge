@@ -15,39 +15,58 @@ jobs:
       vmImage: ubuntu-16.04
     variables:
       testEnvironment: linux
-      netCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-linux-x64.tar.gz
+      netCoreVersion: 2.1.302
     steps:
+      - task: AzureKeyVault@1
+        displayName: Get secrets
+        inputs:
+          azureSubscription: $(az.subscription)
+          keyVaultName: $(az.keyvault)
+          secretsFilter: >-
+            DummySecret1,
+            EdgeCapableDevice2,
+            EventHubConnStr2,
+            IotDevice2ConnStr2,
+            IotDevice3ConnStr2,
+            IotHubConnStr2,
+            IotHubMqttHeadCert
+      - task: DotNetCoreInstaller@0
+        displayName: Install .NET Core
+        inputs:
+          packageType: sdk
+          version: $(netCoreVersion)
       - script: |
           sudo apt-get update
           sudo apt-get install -y libsnappy1v5
-          exit 1
-        displayName: Does ubuntu-16.04 image include libsnappy1v5?
-      - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUri)
-        name: install_dependencies
-        displayName: Install dependencies
-      - script: scripts/linux/installKvPrereqs_Ubuntu.sh
-        name: install_test_dependencies
-        displayName: 'Install test dependencies'
-      - bash: |
-          az login --service-principal --username $(kv.sp.user) --tenant $(kv.sp.tenant) --password $(kv.sp.password)
-          scripts/linux/downloadAndInstallCert.sh -c IoTEdgeTestCert -v $(kv.name)
-          scripts/linux/downloadAndInstallCert.sh -c IotHubMqttHeadCert -v $(kv.name) -s 'Root'
-        name: install_certs
-        displayName: 'Install test certificate'
+        displayName: Install libsnappy1v5 # Needed for rocksdb integration tests
+      - pwsh: |
+          $store = [System.Security.Cryptography.X509Certificates.X509Store]::new('Root', 'CurrentUser')
+          $store.Open('ReadWrite')
+          $bytes = [System.Convert]::FromBase64String($env:CERT_VALUE)
+          $cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($bytes)
+          $store.Add($cert)
+        displayName: Install protocol head certificate # Needed for integration tests
+        env:
+          CERT_VALUE: $(IotHubMqttHeadCert)
       - script: scripts/linux/buildBranch.sh -c "$BUILD_CONFIGURATION" --no-rocksdb-bin
-        name: build
-        displayName: 'Build'
+        displayName: Build
       - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $TEST_FILTER" "$BUILD_CONFIGURATION"'
-        name: test
         displayName: Test
+        env:
+          DummySecret1: $(DummySecret1)
+          EdgeCapableDevice2: $(EdgeCapableDevice2)
+          EventHubConnStr2: $(EventHubConnStr2)
+          IotDevice2ConnStr2: $(IotDevice2ConnStr2)
+          IotDevice3ConnStr2: $(IotDevice3ConnStr2)
+          IotHubConnStr2: $(IotHubConnStr2)
       - task: PublishTestResults@1
-        displayName: 'Publish test results'
+        displayName: Publish test results
         inputs:
           testRunner: VSTest
           testResultsFiles: '**/TestResults/result.trx'
         condition: succeededOrFailed()
       - task: CopyFiles@2
-        displayName: Copy cert files
+        displayName: Stage artifacts
         inputs:
           sourceFolder: $(Build.BinariesDirectory)/publish
           contents: |
@@ -66,6 +85,7 @@ jobs:
           artifactName: e2e-linux
   - job: windows
     displayName: Windows
+    condition: false
     timeoutInMinutes: 120
     pool:
       name: $(windows.pool.name)
