@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
 
             // Act
             var logsUploadRequestHandler = new LogsUploadRequestHandler(logsUploader.Object, logsProvider.Object);
-            Option<string> response = await logsUploadRequestHandler.HandleRequest(Option.Maybe(payload));
+            Option<string> response = await logsUploadRequestHandler.HandleRequest(Option.Maybe(payload), CancellationToken.None);
 
             // Assert
             Assert.False(response.HasValue);
