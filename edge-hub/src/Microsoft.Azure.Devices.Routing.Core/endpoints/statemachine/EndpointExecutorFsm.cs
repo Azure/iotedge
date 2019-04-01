@@ -294,7 +294,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 {
                     ISinkResult<IMessage> result;
                     Events.Send(thisPtr, thisPtr.currentSendCommand.Messages, messages);
-                    
+
                     using (var cts = new CancellationTokenSource(endpointTimeout))
                     {
                         result = await thisPtr.processor.ProcessAsync(messages, cts.Token);
