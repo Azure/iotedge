@@ -5,9 +5,8 @@ provisioning:
   global_endpoint: "scheme://jibba-jabba.net"
   scope_id: "i got no time for the jibba-jabba"
   attestation: 
-    method: "symmetric_key"
+    method: "tpm"
     registration_id: "register me fool"
-    symmetric_key: "key"
 
 agent:
   name: "edgeAgent"
