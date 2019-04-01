@@ -62,6 +62,48 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             await Task.WhenAll(streamingTasks);
         }
 
+        internal static IDictionary<string, ModuleLogOptions> GetIdsToProcess(IList<(string id, ModuleLogOptions logOptions)> idList, IList<string> allIds)
+        {
+            var idsToProcess = new Dictionary<string, ModuleLogOptions>(StringComparer.OrdinalIgnoreCase);
+            foreach ((string regex, ModuleLogOptions logOptions) in idList)
+            {
+                ISet<string> ids = GetMatchingIds(regex, allIds);
+                if (ids.Count == 0)
+                {
+                    Events.NoMatchingModule(regex, allIds);
+                }
+                else
+                {
+                    foreach (string id in ids)
+                    {
+                        if (!idsToProcess.ContainsKey(id))
+                        {
+                            idsToProcess[id] = logOptions;
+                        }
+                    }
+                }
+            }
+
+            return idsToProcess;
+        }
+
+        internal static ISet<string> GetMatchingIds(string id, IEnumerable<string> ids)
+        {
+            if (!id.Equals(Constants.AllModulesIdentifier, StringComparison.OrdinalIgnoreCase))
+            {
+                var regex = new Regex(id, RegexOptions.IgnoreCase);
+                ids = ids.Where(m => regex.IsMatch(m));
+            }
+
+            return ids.ToImmutableHashSet();
+        }
+
+        internal static bool NeedToProcessStream(ModuleLogOptions logOptions) =>
+            logOptions.Filter.LogLevel.HasValue
+            || logOptions.Filter.Regex.HasValue
+            || logOptions.ContentEncoding != LogsContentEncoding.None
+            || logOptions.ContentType != LogsContentType.Text;
+
         internal async Task GetLogsStreamInternal(string id, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
@@ -74,41 +116,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                 ? this.logsProcessor.ProcessLogsStream(id, logsStream, logOptions, callback)
                 : this.WriteLogsStreamToOutput(id, callback, logsStream, cancellationToken));
         }
-
-        internal static IDictionary<string, ModuleLogOptions> GetIdsToProcess(IList<(string id, ModuleLogOptions logOptions)> idList, IList<string> allIds)
-        {
-            var idsToProcess = new Dictionary<string, ModuleLogOptions>(StringComparer.OrdinalIgnoreCase);
-            foreach ((string regex, ModuleLogOptions logOptions) in idList)
-            {
-                ISet<string> ids = GetMatchingIds(regex, allIds);
-                foreach (string id in ids)
-                {
-                    if (!idsToProcess.ContainsKey(id))
-                    {
-                        idsToProcess[id] = logOptions;
-                    }
-                }
-            }
-
-            return idsToProcess;
-        }
-
-        internal static ISet<string> GetMatchingIds(string id, IEnumerable<string> ids)
-        {
-            if (!id.Equals(Constants.AllModulesIdentifier, StringComparison.OrdinalIgnoreCase))
-            {
-                var regex = new Regex(id);
-                ids = ids.Where(m => regex.IsMatch(m));
-            }
-
-            return ids.ToImmutableHashSet();            
-        }
-
-        internal static bool NeedToProcessStream(ModuleLogOptions logOptions) =>
-            logOptions.Filter.LogLevel.HasValue
-            || logOptions.Filter.Regex.HasValue
-            || logOptions.ContentEncoding != LogsContentEncoding.None
-            || logOptions.ContentType != LogsContentType.Text;
 
         static byte[] ProcessByContentEncoding(byte[] bytes, LogsContentEncoding contentEncoding) =>
             contentEncoding == LogsContentEncoding.Gzip
@@ -178,7 +185,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                 ErrorWhileStreaming,
                 ReceivedStream,
                 StreamingCompleted,
-                StreamingLogs
+                StreamingLogs,
+                NoMatchingModule
             }
 
             public static void ErrorWhileProcessingStream(string id, Exception ex)
@@ -205,6 +213,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             public static void StreamingLogs(IDictionary<string, ModuleLogOptions> idsToProcess)
             {
                 Log.LogDebug((int)EventIds.StreamingLogs, $"Streaming logs for {idsToProcess.ToJson()}");
+            }
+
+            public static void NoMatchingModule(string regex, IList<string> allIds)
+            {
+                string idsString = allIds.Join(", ");
+                Log.LogWarning((int)EventIds.NoMatchingModule, $"The regex {regex} in the log stream request did not match any of the modules - {idsString}");
             }
 
             internal static void StreamingLogs(ISet<string> ids, ModuleLogOptions logOptions)
