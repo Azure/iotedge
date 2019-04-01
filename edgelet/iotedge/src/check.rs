@@ -48,11 +48,24 @@ pub struct Check {
     iothub_hostname: Option<String>,
 }
 
+/// The various ways a check can resolve.
+///
+/// Check functions return `Result<CheckResult, failure::Error>` where `Err` represents the check failed.
 #[derive(Debug)]
 enum CheckResult {
+    /// Check succeeded.
     Ok,
+
+    /// Check failed with a warning.
     Warning(failure::Error),
+
+    /// Check is not applicable and was ignored. Should be treated as success.
+    Ignored,
+
+    /// Check was skipped because of errors from some previous checks. Should be treated as an error.
     Skipped,
+
+    /// Check failed, and further checks should not be performed.
     Fatal(failure::Error),
 }
 
@@ -241,13 +254,31 @@ impl Check {
                         |check| connection_to_iot_hub_host(check, 8883),
                     ),
                     ("container on the default network can connect to IoT Hub AMQP port", |check| {
-                        connection_to_iot_hub_container(check, 5671, false)
+                        if cfg!(windows) {
+                            // The default network is the same as the IoT Edge module network,
+                            // so let the module network checks handle it.
+                            Ok(CheckResult::Ignored)
+                        } else {
+                            connection_to_iot_hub_container(check, 5671, false)
+                        }
                     }),
                     ("container on the default network can connect to IoT Hub HTTPS port", |check| {
-                        connection_to_iot_hub_container(check, 443, false)
+                        if cfg!(windows) {
+                            // The default network is the same as the IoT Edge module network,
+                            // so let the module network checks handle it.
+                            Ok(CheckResult::Ignored)
+                        } else {
+                            connection_to_iot_hub_container(check, 443, false)
+                        }
                     }),
                     ("container on the default network can connect to IoT Hub MQTT port", |check| {
-                        connection_to_iot_hub_container(check, 8883, false)
+                        if cfg!(windows) {
+                            // The default network is the same as the IoT Edge module network,
+                            // so let the module network checks handle it.
+                            Ok(CheckResult::Ignored)
+                        } else {
+                            connection_to_iot_hub_container(check, 8883, false)
+                        }
                     }),
                     ("container on the IoT Edge module network can connect to IoT Hub AMQP port", |check| {
                         connection_to_iot_hub_container(check, 5671, true)
@@ -364,6 +395,8 @@ impl Check {
                             Ok(())
                         });
                     }
+
+                    Ok(CheckResult::Ignored) => (),
 
                     Ok(CheckResult::Skipped) => {
                         have_skipped = true;
