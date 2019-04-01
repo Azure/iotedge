@@ -283,7 +283,7 @@ impl Check {
                 // In its default blue-background profile, PS uses `ConsoleColor::DarkYellow` as its default foreground text color
                 // and maps it to a dark gray.
                 //
-                // So use explicit RGB to define yellow for Windows.
+                // So use explicit RGB to define yellow for Windows. Also use a black background to mimic PS warnings.
                 //
                 // Ref:
                 // - https://docs.rs/termcolor/0.3.6/src/termcolor/lib.rs.html#1380 defines `termcolor::Color::Yellow` as `wincolor::Color::Yellow`
@@ -293,6 +293,7 @@ impl Check {
                 // - https://docs.microsoft.com/en-us/dotnet/api/system.consolecolor#fields defines `6` as `[ConsoleColor]::DarkYellow`
                 // - `$Host.UI.RawUI.ForegroundColor` in the default PS profile is `DarkYellow`, and writing in it prints dark gray text.
                 warning_color_spec.set_fg(Some(termcolor::Color::Rgb(255, 255, 0)));
+                warning_color_spec.set_bg(Some(termcolor::Color::Black));
             } else {
                 warning_color_spec.set_fg(Some(termcolor::Color::Yellow));
             }
