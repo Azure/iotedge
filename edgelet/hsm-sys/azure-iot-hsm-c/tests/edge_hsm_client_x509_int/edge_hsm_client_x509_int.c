@@ -449,7 +449,64 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         hsm_client_x509_deinit();
     }
 
+    TEST_FUNCTION(hsm_client_x509_get_certificate_expected_failure)
+    {
+        //arrange
+        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        hsm_client_x509_init();
+        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
+        ASSERT_IS_NOT_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
 
+        // act
+        char* certificate = interface->hsm_client_get_cert(hsm_handle);
+
+        // assert
+        ASSERT_IS_NULL(certificate, "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        interface->hsm_client_x509_destroy(hsm_handle);
+        hsm_client_x509_deinit();
+    }
+
+    TEST_FUNCTION(hsm_client_x509_get_private_key_expected_failure)
+    {
+        //arrange
+        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        hsm_client_x509_init();
+        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
+        ASSERT_IS_NOT_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
+
+        // act
+        char* key = interface->hsm_client_get_key(hsm_handle);
+
+        // assert
+        ASSERT_IS_NULL(key, "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        interface->hsm_client_x509_destroy(hsm_handle);
+        hsm_client_x509_deinit();
+    }
+
+    TEST_FUNCTION(hsm_client_x509_get_common_name_expected_failure)
+    {
+        //arrange
+        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        hsm_client_x509_init();
+        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
+        ASSERT_IS_NOT_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
+
+        // act
+        char* name = interface->hsm_client_get_common_name(hsm_handle);
+
+        // assert
+        ASSERT_IS_NULL(name, "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        interface->hsm_client_x509_destroy(hsm_handle);
+        hsm_client_x509_deinit();
+    }
+
+#if 0
     TEST_FUNCTION(hsm_client_x509_e2e_without_device_id_env_fails)
     {
         //arrange
@@ -500,6 +557,7 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         interface->hsm_client_x509_destroy(hsm_handle);
         hsm_client_x509_deinit();
     }
+#endif
 
 #if 0
     TEST_FUNCTION(hsm_client_crypto_random_bytes_smoke)
