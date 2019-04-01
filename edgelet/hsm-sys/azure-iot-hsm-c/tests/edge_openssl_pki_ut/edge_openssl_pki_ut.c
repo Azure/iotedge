@@ -282,6 +282,7 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 #define TEST_EVP_MD (const EVP_MD*)0x2034
 #define TEST_ENGINE_IMPL (ENGINE*)0x2035
 #define TEST_EVP_PKEY_CTX (EVP_PKEY_CTX*)0x2036
+#define HMAC_SHA256_SIZE 256
 
 typedef struct VERIFY_CERT_TEST_PARAMS_TAG
 {
@@ -1196,7 +1197,7 @@ static int test_hook_EVP_DigestSignFinal(EVP_MD_CTX *ctx, unsigned char *sigret,
 {
     (void)ctx;
     (void)sigret;
-    (void)siglen;
+    *siglen = HMAC_SHA256_SIZE;
 
     return 1;
 }
@@ -2033,6 +2034,82 @@ static void test_helper_verify_certificate
     i++;
 
     STRICT_EXPECTED_CALL(X509_STORE_free(TEST_X509_STORE));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    i++;
+}
+
+static void test_helper_create_cert_key
+(
+    char *failed_function_list,
+    size_t failed_function_size
+)
+{
+    uint64_t failed_function_bitmask = 0;
+    size_t i = 0;
+
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(BIO_new_file(TEST_KEY_FILE, "r"));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    STRICT_EXPECTED_CALL(PEM_read_bio_PrivateKey(TEST_BIO, NULL, NULL, NULL)).SetReturn(TEST_EVP_KEY);
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    STRICT_EXPECTED_CALL(BIO_free_all(TEST_BIO));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    i++;
+
+    EXPECTED_CALL(gballoc_malloc(IGNORED_NUM_ARG));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+}
+
+static void test_helper_cert_key_interface_sign
+(
+    char *failed_function_list,
+    size_t failed_function_size
+)
+{
+    uint64_t failed_function_bitmask = 0;
+    size_t i = 0;
+
+    umock_c_reset_all_calls();
+
+    EXPECTED_CALL(EVP_MD_CTX_create());
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    STRICT_EXPECTED_CALL(EVP_get_digestbyname("SHA256"));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    STRICT_EXPECTED_CALL(EVP_DigestInit_ex(TEST_EVP_MD_CTX, TEST_EVP_MD, NULL));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    STRICT_EXPECTED_CALL(EVP_DigestSignInit(TEST_EVP_MD_CTX, NULL, TEST_EVP_MD, NULL, IGNORED_PTR_ARG));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    STRICT_EXPECTED_CALL(EVP_DigestSignUpdate(TEST_EVP_MD_CTX, IGNORED_PTR_ARG, IGNORED_NUM_ARG));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    STRICT_EXPECTED_CALL(EVP_DigestSignFinal(TEST_EVP_MD_CTX, NULL, IGNORED_PTR_ARG));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    EXPECTED_CALL(gballoc_malloc(IGNORED_NUM_ARG));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    STRICT_EXPECTED_CALL(EVP_DigestSignFinal(TEST_EVP_MD_CTX, IGNORED_PTR_ARG, IGNORED_PTR_ARG));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    STRICT_EXPECTED_CALL(EVP_MD_CTX_destroy(TEST_EVP_MD_CTX));
     ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 }
@@ -3502,6 +3579,241 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         }
 
         //cleanup
+        umock_c_negative_tests_deinit();
+    }
+
+    /**
+     * Test function for API
+     *   create_cert_key
+    */
+    TEST_FUNCTION(create_cert_key_success)
+    {
+        // arrange
+        size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
+        char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
+        memset(failed_function_list, 0, failed_function_size);
+
+        test_helper_create_cert_key(failed_function_list, failed_function_size);
+
+        // act
+        KEY_HANDLE result = create_cert_key(TEST_KEY_FILE);
+
+        // assert
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        key_destroy(result);
+    }
+
+    /**
+     * Test function for API
+     *   create_cert_key
+    */
+    TEST_FUNCTION(create_cert_key_invalid_param)
+    {
+        // arrange
+
+        // act
+        KEY_HANDLE result = create_cert_key(NULL);
+
+        // assert
+        ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+    }
+
+    /**
+     * Test function for API
+     *   create_cert_key
+    */
+    TEST_FUNCTION(create_cert_key_negative)
+    {
+        // arrange
+        int test_result = umock_c_negative_tests_init();
+        ASSERT_ARE_EQUAL(int, 0, test_result);
+
+        size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
+        char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
+        memset(failed_function_list, 0, failed_function_size);
+        test_helper_create_cert_key(failed_function_list, failed_function_size);
+
+        umock_c_negative_tests_snapshot();
+
+        for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(i);
+
+            if (failed_function_list[i] == 1)
+            {
+                // act
+                KEY_HANDLE result = create_cert_key(NULL);
+
+                // assert
+                ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
+            }
+        }
+
+        //cleanup
+        umock_c_negative_tests_deinit();
+    }
+
+    /**
+     * Test function for API
+     *   Certificate key interface
+    */
+    TEST_FUNCTION(cert_key_interface_expected_failures)
+    {
+        // arrange
+        size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
+        char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
+        memset(failed_function_list, 0, failed_function_size);
+        test_helper_create_cert_key(failed_function_list, failed_function_size);
+        KEY_HANDLE key_handle = create_cert_key(TEST_KEY_FILE);
+        unsigned char tbs[] = { 'a', 'b' };
+        unsigned char *digest;
+        size_t digest_size;
+        SIZED_BUFFER identity = {tbs, sizeof(tbs)};
+        SIZED_BUFFER plaintext = {tbs, sizeof(tbs)};
+        SIZED_BUFFER initialization_vector = {tbs, sizeof(tbs)};
+        SIZED_BUFFER ciphertext = {tbs, sizeof(tbs)};
+        int status;
+
+        // act, assert
+        status = key_derive_and_sign(key_handle, tbs, sizeof(tbs), tbs, sizeof(tbs), &digest, &digest_size);
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        status = key_encrypt(key_handle, &identity, &plaintext, &initialization_vector, &ciphertext);
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        status = key_decrypt(key_handle, &identity, &ciphertext, &initialization_vector, &plaintext);
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        key_destroy(key_handle);
+    }
+
+    /**
+     * Test function for API
+     *   Certificate key interface
+    */
+    TEST_FUNCTION(cert_key_interface_key_sign_success)
+    {
+        // arrange
+        size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
+        char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
+        memset(failed_function_list, 0, failed_function_size);
+        KEY_HANDLE key_handle = create_cert_key(TEST_KEY_FILE);
+        umock_c_reset_all_calls();
+        test_helper_cert_key_interface_sign(failed_function_list, failed_function_size);
+        unsigned char tbs[] = { 'a', 'b' };
+        unsigned char *digest;
+        size_t digest_size;
+        int status;
+
+        // act
+        status = key_sign(key_handle, tbs, sizeof(tbs), &digest, &digest_size);
+
+        // assert
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, HMAC_SHA256_SIZE, digest_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        free(digest);
+        key_destroy(key_handle);
+    }
+
+    /**
+     * Test function for API
+     *   Certificate key interface
+    */
+    TEST_FUNCTION(cert_key_interface_key_sign_invalid_params_fails)
+    {
+        // arrange
+        KEY_HANDLE key_handle = create_cert_key(TEST_KEY_FILE);
+        unsigned char tbs[] = { 'a', 'b' };
+        unsigned char *digest;
+        size_t digest_size;
+        int status;
+
+        // act, assert 1
+        digest = (unsigned char*)0x1000;
+        digest_size = 10;
+        status = key_sign(key_handle, NULL, sizeof(tbs), &digest, &digest_size);
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(digest, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, digest_size, "Line:" TOSTRING(__LINE__));
+
+        // act, assert 2
+        digest = (unsigned char*)0x1000;
+        digest_size = 10;
+        status = key_sign(key_handle, tbs, 0, &digest, &digest_size);
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(digest, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, digest_size, "Line:" TOSTRING(__LINE__));
+
+        // act, assert 3
+        digest = (unsigned char*)0x1000;
+        digest_size = 10;
+        status = key_sign(key_handle, tbs, sizeof(tbs), NULL, &digest_size);
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, digest_size, "Line:" TOSTRING(__LINE__));
+
+        // act, assert 4
+        digest = (unsigned char*)0x1000;
+        digest_size = 10;
+        status = key_sign(key_handle, tbs, sizeof(tbs), &digest, NULL);
+        ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(digest, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        key_destroy(key_handle);
+    }
+
+    /**
+     * Test function for API
+     *   Certificate key interface
+    */
+    TEST_FUNCTION(cert_key_interface_key_sign_negative)
+    {
+        // arrange
+        int test_result = umock_c_negative_tests_init();
+        ASSERT_ARE_EQUAL(int, 0, test_result);
+
+        size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
+        char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
+        memset(failed_function_list, 0, failed_function_size);
+        KEY_HANDLE key_handle = create_cert_key(TEST_KEY_FILE);
+        unsigned char tbs[] = { 'a', 'b' };
+        int status;
+
+        umock_c_reset_all_calls();
+        test_helper_cert_key_interface_sign(failed_function_list, failed_function_size);
+        umock_c_negative_tests_snapshot();
+
+        for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(i);
+
+            if (failed_function_list[i] == 1)
+            {
+                unsigned char *digest = (unsigned char*)0x1000;
+                size_t digest_size = 10;
+
+                // act
+                status = key_sign(key_handle, tbs, sizeof(tbs), &digest, &digest_size);
+
+                // assert
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_IS_NULL(digest, "Line:" TOSTRING(__LINE__));
+                ASSERT_IS_NULL(digest_size, "Line:" TOSTRING(__LINE__));
+            }
+        }
+
+        //cleanup
+        key_destroy(key_handle);
         umock_c_negative_tests_deinit();
     }
 
