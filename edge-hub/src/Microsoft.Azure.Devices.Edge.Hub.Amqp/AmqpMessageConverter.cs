@@ -11,15 +11,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
 
     /// <summary>
     /// This converter contains the logic to convert telemetry messages to/from amqp messages
     /// </summary>
     public class AmqpMessageConverter : IMessageConverter<AmqpMessage>
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger<AmqpMessageConverter>();
-
         public IMessage ToMessage(AmqpMessage sourceMessage)
         {
             byte[] GetMessageBody()
@@ -62,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 systemProperties.AddIfNonEmpty(SystemProperties.LockToken, lockToken);
             }
 
-            if (sourceMessage.MessageAnnotations.Map.TryGetValue("iothub-interface-id", out string hubInterfaceId))
+            if (sourceMessage.MessageAnnotations.Map.TryGetValue(SystemProperties.InterfaceId, out string hubInterfaceId))
             {
                 systemProperties.AddIfNonEmpty(SystemProperties.InterfaceId, hubInterfaceId);
             }
