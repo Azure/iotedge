@@ -982,10 +982,13 @@ fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Erro
     };
 
     if settings.certificates().is_none() {
-        return Ok(CheckResult::Warning(Context::new(
-            "Device is using self-signed, automatically generated certs.\n\
-             Please see https://aka.ms/iotedge-prod-checklist-certs for certificate management best practices.",
-        ).into()));
+        return Ok(CheckResult::Warning(
+            Context::new(
+                "Device is using self-signed, automatically generated certs.\n\
+                 Please see https://aka.ms/iotedge-prod-checklist-certs for best practices.",
+            )
+            .into(),
+        ));
     }
 
     Ok(CheckResult::Ok)
