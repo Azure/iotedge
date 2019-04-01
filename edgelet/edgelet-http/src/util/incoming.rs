@@ -66,11 +66,13 @@ impl Stream for Incoming {
                     return Err(err);
                 }
 
-                // Take a lock on our pending connection list returning a tuple representing an index
-                // + the state on the poll
                 let mut connections = connections
                     .lock()
                     .expect("Unable to lock the connections mutex");
+
+                // Look through the connections list for the first connection that is either ready to be
+                // passed to the stream selector or has failed and needs the error bubbled up.
+                // Return a tuple containing the index and state.
                 let val = connections
                     .iter_mut()
                     .map(|(fut, _)| fut.poll())
@@ -98,6 +100,8 @@ impl Stream for Incoming {
                                     ))
                                 }
                             }
+                            // The prior block included a filter that specifically asked for is_ready state,
+                            // so this line is unreachable.
                             Ok(_) => unreachable!(),
                             Err(err) => return Err(TokioIoError::new(TokioIoErrorKind::Other, err)),
                         }

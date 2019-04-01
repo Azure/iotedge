@@ -125,9 +125,11 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
 
         let pk = match cert_private_key {
             Some(pk) => pk,
-            None => panic!("Private key not found"),
+            None => panic!("Unable to acquire a private key."),
         };
 
+        // Our implementations do not return a ref, and if they did, it would be unusable by Tokio
+        // a ref simply is a label/alias to a private key, not the actual bits.
         let pk_bytes = match pk {
             PrivateKey::Ref(_) => panic!("did not expect reference private key"),
             PrivateKey::Key(KeyBytes::Pem(k)) => k,

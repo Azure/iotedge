@@ -12,6 +12,7 @@ use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
 use edgelet_http::Error as HttpError;
 use edgelet_http::HyperExt;
 use edgelet_http::{Run, Version};
+use edgelet_test_utils::get_unused_tcp_port;
 
 use futures::{future, Future};
 use hyper::server::conn::Http;
@@ -40,22 +41,22 @@ fn tls_functional_test() {
 
     let client = hyper::Client::builder().build::<_, hyper::Body>(https_connector);
 
-    let request = client.get(
-        "https://localhost:8881/route1/hello?api-version=2018-06-28"
-            .parse()
-            .unwrap(),
-    );
+    let port = get_unused_tcp_port();
+    let addr = format!("https://localhost:{}", port);
+    let server = configure_test(&addr).map_err(|err| eprintln!("{}", err));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
-
-    let server = configure_test().map_err(|err| eprintln!("{}", err));
     runtime.spawn(server);
+
+    let full_address = format!("{}/route1/hello?api-version=2018-06-28", addr);
+
+    let request = client.get(full_address.parse().unwrap());
 
     let res = runtime.block_on(request).unwrap();
     assert_eq!(res.status(), 200);
 }
 
-pub fn configure_test() -> Run {
+pub fn configure_test(address: &str) -> Run {
     // setup the IOTEDGE_HOMEDIR folder where certs can be generated and stored
     let home_dir = TempDir::new("tls_integration_test").unwrap();
     env::set_var(HOMEDIR_KEY, &home_dir.path());
@@ -90,11 +91,7 @@ pub fn configure_test() -> Run {
     let router = Router::from(recognizer);
 
     Http::new()
-        .bind_url(
-            Url::parse("https://127.0.0.1:8881").unwrap(),
-            router,
-            Some(&manager),
-        )
+        .bind_url(Url::parse(address).unwrap(), router, Some(&manager))
         .unwrap()
         .run()
 }
