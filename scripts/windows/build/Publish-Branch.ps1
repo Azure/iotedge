@@ -120,14 +120,6 @@ if ($LASTEXITCODE -ne 0) {
     throw "Failed building IoT Edge solution."
 }
 
-$IoTEdgeSamplesSolutionPath = Join-Path $BuildRepositoryLocalPath "samples\dotnet\Microsoft.Azure.Devices.Edge.Samples.sln"
-Write-Host "`nBuilding IoT Edge Samples solution [$IoTEdgeSamplesSolutionPath]`n"
-&$DOTNET_PATH build -c $Configuration -o $BuildBinariesDirectory $IoTEdgeSamplesSolutionPath |
-        Write-Host
-if ($LASTEXITCODE -ne 0) {
-    throw "Failed building IoT Edge Samples solution."
-}
-
 <#
  # Publish applications
  #>
@@ -137,13 +129,6 @@ Write-Host "`nPublishing .NET Core apps`n"
 $appProjectList = New-Object 'System.Collections.Generic.List[String]'
 $appProjectList.Add("Microsoft.Azure.Devices.Edge.Agent.Service.csproj")
 $appProjectList.Add("Microsoft.Azure.Devices.Edge.Hub.Service.csproj")
-$appProjectList.Add("SimulatedTemperatureSensor.csproj")
-$appProjectList.Add("TemperatureFilter.csproj")
-$appProjectList.Add("load-gen.csproj")
-$appProjectList.Add("MessagesAnalyzer.csproj")
-$appProjectList.Add("DirectMethodSender.csproj")
-$appProjectList.Add("DirectMethodReceiver.csproj")
-$appProjectList.Add("DirectMethodCloudSender.csproj")
 
 # Download latest rocksdb ARM32 library
 $rocksdbARMUri = "https://edgebuild.blob.core.windows.net/rocksdb/rocksdb-arm.dll"

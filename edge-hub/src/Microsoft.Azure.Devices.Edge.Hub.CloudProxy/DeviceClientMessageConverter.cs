@@ -20,7 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             Preconditions.CheckNotNull(inputMessage, nameof(inputMessage));
             Preconditions.CheckArgument(inputMessage.Body != null, "IMessage.Body should not be null");
-            Log.LogInformation("In DeviceClientMessageConverter.FromMessage");
             var message = new Message(inputMessage.Body);
 
             if (inputMessage.Properties != null)
@@ -33,7 +32,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             if (inputMessage.SystemProperties != null)
             {
-                Log.LogInformation("inputmessage contains SystemProperties");
                 if (inputMessage.SystemProperties.TryGetNonEmptyValue(SystemProperties.MessageId, out string messageId))
                 {
                     message.MessageId = messageId;
@@ -76,10 +74,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
                 if (inputMessage.SystemProperties.TryGetNonEmptyValue(SystemProperties.InterfaceId, out string interfaceId))
                 {
-                    Log.LogInformation("Message contians InteraceId");
                     if (interfaceId.Equals("http://security.azureiot.com/SecurityAgent/1.0.0", StringComparison.OrdinalIgnoreCase))
                     {
-                        Log.LogInformation("Setting as SecurityMessage");
+                        Log.LogDebug("Setting as SecurityMessage");
                         message.SetAsSecurityMessage();
                     }
                 }

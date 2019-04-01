@@ -22,7 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         public IMessage ToMessage(AmqpMessage sourceMessage)
         {
-            Log.LogInformation($"in ToMessage. To: {sourceMessage.Properties.To}");
             byte[] GetMessageBody()
             {
                 using (var ms = new MemoryStream())
@@ -65,7 +64,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             if (sourceMessage.MessageAnnotations.Map.TryGetValue("iothub-interface-id", out string hubInterfaceId))
             {
-                Log.LogInformation($"Found InterfaceId! Adding to Systemproperties: {hubInterfaceId}");
                 systemProperties.AddIfNonEmpty(SystemProperties.InterfaceId, hubInterfaceId);
             }
 
@@ -105,8 +103,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         public AmqpMessage FromMessage(IMessage message)
         {
-            Log.LogInformation("In FromMessage");
-
             AmqpMessage amqpMessage = AmqpMessage.Create(
                 new Data
                 {
@@ -202,19 +198,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 amqpMessage.ApplicationProperties.Map[Constants.MessagePropertiesOperationKey] = operation;
             }
 
-            if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.InterfaceId, out string interfaceId))
-            {
-                amqpMessage.ApplicationProperties.Map[Constants.MessagePropertiesOperationKey] = operation;
-            }
-
             foreach (KeyValuePair<string, string> property in message.Properties)
             {
-                Log.LogInformation("Message contians InteraceId");
-                if (interfaceId.Equals("http://security.azureiot.com/SecurityAgent/1.0.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    Log.LogInformation("Ideally will set as SecurityMessage");
-                }
-
                 amqpMessage.ApplicationProperties.Map[property.Key] = property.Value;
             }
 
