@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
@@ -277,6 +278,115 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
                 string expectedText = TestLogTexts[expectedLogLineIds[i]];
                 Assert.Contains(logMessage.Text, expectedText, StringComparison.OrdinalIgnoreCase);
             }
+        }
+
+        [Fact]
+        public async Task ProcessStreamTest()
+        {
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "dev1";
+            string moduleId = "mod1";
+            int logLevel = 6;
+            string regex = "Starting";
+            var logMessageParser = new LogMessageParser(iotHub, deviceId);
+            var logsProcessor = new LogsProcessor(logMessageParser);
+            var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
+            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.None, LogsContentType.Text, filter);
+
+            var receivedBytes = new List<byte>();
+
+            Task Callback(ArraySegment<byte> bytes)
+            {
+                receivedBytes.AddRange(bytes.ToArray());
+                return Task.CompletedTask;
+            }
+
+            // Act
+            await logsProcessor.ProcessLogsStream(stream, logOptions, Callback);
+            await Task.Delay(TimeSpan.FromSeconds(5));
+
+            // Assert
+            Assert.NotEmpty(receivedBytes);
+            string receivedText = receivedBytes
+                .Skip(8)
+                .ToArray()
+                .FromBytes();
+            Assert.Equal(TestLogTexts[0], receivedText);
+        }
+
+        [Fact]
+        public async Task ProcessStreamToMessageTest()
+        {
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "dev1";
+            string moduleId = "mod1";
+            int logLevel = 6;
+            string regex = "Starting";
+            var logMessageParser = new LogMessageParser(iotHub, deviceId);
+            var logsProcessor = new LogsProcessor(logMessageParser);
+            var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
+            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.None, LogsContentType.Json, filter);
+
+            var receivedBytes = new List<byte>();
+
+            Task Callback(ArraySegment<byte> bytes)
+            {
+                receivedBytes.AddRange(bytes.ToArray());
+                return Task.CompletedTask;
+            }
+
+            // Act
+            await logsProcessor.ProcessLogsStream(stream, logOptions, Callback);
+            await Task.Delay(TimeSpan.FromSeconds(5));
+
+            // Assert
+            Assert.NotEmpty(receivedBytes);
+            var logMessage = receivedBytes.ToArray().FromBytes<ModuleLogMessage>();
+            Assert.Equal(iotHub, logMessage.IoTHub);
+            Assert.Equal(deviceId, logMessage.DeviceId);
+            Assert.Equal(moduleId, logMessage.ModuleId);
+            Assert.Equal(6, logMessage.LogLevel);
+            Assert.Contains(logMessage.Text, TestLogTexts[0]);
+        }
+
+        [Fact]
+        public async Task ProcessStreamWithGzipTest()
+        {
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "dev1";
+            string moduleId = "mod1";
+            int logLevel = 6;
+            string regex = "Starting";
+            var logMessageParser = new LogMessageParser(iotHub, deviceId);
+            var logsProcessor = new LogsProcessor(logMessageParser);
+            var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
+            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.Gzip, LogsContentType.Text, filter);
+
+            var receivedBytes = new List<byte>();
+
+            Task Callback(ArraySegment<byte> bytes)
+            {
+                receivedBytes.AddRange(bytes.ToArray());
+                return Task.CompletedTask;
+            }
+
+            // Act
+            await logsProcessor.ProcessLogsStream(stream, logOptions, Callback);
+            await Task.Delay(TimeSpan.FromSeconds(5));
+
+            // Assert
+            Assert.NotEmpty(receivedBytes);
+            string receivedText = Compression.DecompressFromGzip(receivedBytes.ToArray())
+                .Skip(8)
+                .ToArray()
+                .FromBytes();
+            Assert.Equal(TestLogTexts[0], receivedText);
         }
     }
 }
