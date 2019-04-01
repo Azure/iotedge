@@ -284,7 +284,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             TimeSpan retryAfter;
             ICollection<IMessage> messages = EmptyMessages;
             Stopwatch stopwatch = Stopwatch.StartNew();
-
+            TimeSpan endpointTimeout = TimeSpan.FromMilliseconds(thisPtr.config.Timeout.TotalMilliseconds * thisPtr.Endpoint.FanOutFactor);
             try
             {
                 Preconditions.CheckNotNull(thisPtr.currentSendCommand);
@@ -294,7 +294,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 {
                     ISinkResult<IMessage> result;
                     Events.Send(thisPtr, thisPtr.currentSendCommand.Messages, messages);
-                    using (var cts = new CancellationTokenSource(thisPtr.config.Timeout))
+                    
+                    using (var cts = new CancellationTokenSource(endpointTimeout))
                     {
                         result = await thisPtr.processor.ProcessAsync(messages, cts.Token);
                     }
