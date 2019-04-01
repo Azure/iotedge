@@ -59,6 +59,7 @@ jobs:
           IotDevice2ConnStr2: $(IotDevice2ConnStr2)
           IotDevice3ConnStr2: $(IotDevice3ConnStr2)
           IotHubConnStr2: $(IotHubConnStr2)
+          IotHubMqttHeadCert: $(IotHubMqttHeadCert)
       - task: PublishTestResults@1
         displayName: Publish test results
         inputs:
