@@ -5,8 +5,8 @@ trigger:
       - master
 pr: none
 variables:
-  test.filter: Category=Integration&Category!=Stress
-  build.configuration: Release
+  test.filter: Category=Integration&Category!=Stress&DisplayName~CloudProxyNullReceiverTest
+  build.configuration: Debug
 jobs:
   - job: linux
     displayName: Linux
