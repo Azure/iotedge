@@ -169,11 +169,11 @@ publish_quickstart()
     local rid="$1"
     echo "Publishing IotEdgeQuickstart for '$rid'"
     $DOTNET_ROOT_PATH/dotnet publish \
-        $ROOT_FOLDER/smoke/IotEdgeQuickstart \
         -c $CONFIGURATION \
         -f $DOTNET_RUNTIME \
         -p:DotNet_Runtime=$DOTNET_RUNTIME \
         -r $rid \
+        $ROOT_FOLDER/smoke/IotEdgeQuickstart
     if [ $? -gt 0 ]; then
         RES=1
     fi
@@ -189,11 +189,11 @@ publish_leafdevice()
     local rid="$1"
     echo "Publishing LeafDevice for '$rid'"
     $DOTNET_ROOT_PATH/dotnet publish \
-        $ROOT_FOLDER/smoke/LeafDevice \
         -c $CONFIGURATION \
         -f $DOTNET_RUNTIME \
         -p:DotNet_Runtime=$DOTNET_RUNTIME \
         -r $rid \
+        $ROOT_FOLDER/smoke/LeafDevice
     if [ $? -gt 0 ]; then
         RES=1
     fi

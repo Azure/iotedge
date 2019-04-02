@@ -228,25 +228,25 @@ Write-Host "Copying $SRC_CERT_TOOLS_DIR to $PUB_CERT_TOOLS_DIR"
 Copy-Item $SRC_CERT_TOOLS_DIR $PUB_CERT_TOOLS_DIR -Recurse -Force
 
 <#
- # Publish IotEdgeQuickstart
+ # Publish IoTEdgeQuickstart
  #>
-$IotEdgeQuickstartProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/IotEdgeQuickstart"
-$IotEdgeQuickstartPublishBaseFolder = Join-Path $PUBLISH_FOLDER "IotEdgeQuickstart"
+$IoTEdgeQuickstartProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/IoTEdgeQuickstart"
+$IoTEdgeQuickstartPublishBaseFolder = Join-Path $PUBLISH_FOLDER "IoTEdgeQuickstart"
 
-Write-Host "Publishing - IotEdgeQuickstart x64"
-$ProjectPublishPath = Join-Path $IotEdgeQuickstartPublishBaseFolder "x64"
-&$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-x64" -c $Configuration -o $ProjectPublishPath $IotEdgeQuickstartProjectFolder |
+Write-Host "Publishing - IoTEdgeQuickstart x64"
+$ProjectPublishPath = Join-Path $IoTEdgeQuickstartPublishBaseFolder "x64"
+&$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-x64" -c $Configuration -o $ProjectPublishPath $IoTEdgeQuickstartProjectFolder |
     Write-Host
 if ($LASTEXITCODE -ne 0) {
-    throw "Failed publishing IotEdgeQuickstart x64."
+    throw "Failed publishing IoTEdgeQuickstart x64."
 }
 
-Write-Host "Publishing - IotEdgeQuickstart arm32"
+Write-Host "Publishing - IoTEdgeQuickstart arm32"
 $ProjectPublishPath = Join-Path $IoTEdgeQuickstartPublishBaseFolder "arm32v7"
 &$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-arm" -c $Configuration -o $ProjectPublishPath $IoTEdgeQuickstartProjectFolder |
     Write-Host
 if ($LASTEXITCODE -ne 0) {
-    throw "Failed publishing IotEdgeQuickstart arm32."
+    throw "Failed publishing IoTEdgeQuickstart arm32."
 }
 
 <#
