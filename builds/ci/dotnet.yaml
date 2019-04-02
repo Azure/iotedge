@@ -89,10 +89,11 @@ jobs:
     displayName: Windows
     timeoutInMinutes: 120
     pool:
-      name: $(windows.pool.name)
-      demands:
-        - azureps
-        - Run-CI -equals true
+      # name: $(windows.pool.name)
+      # demands:
+      #   - azureps
+      #   - Run-CI -equals true
+      vmImage: windows-2019
     variables:
       testEnvironment: windows
       netCoreVersion: 2.1.302
