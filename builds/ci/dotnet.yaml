@@ -115,11 +115,6 @@ jobs:
         inputs:
           packageType: sdk
           version: $(netCoreVersion)
-      - powershell: |
-          get-command dotnet
-          gci -r -path c:\ dotnet.exe
-          exit 1
-        displayName: Where is dotnet?
       # - task: AzurePowerShell@2
       #   displayName: 'Install test certificate'
       #   inputs:
