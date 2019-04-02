@@ -126,15 +126,12 @@ jobs:
       #   name: install_dependencies
       #   displayName: Install dependencies
       - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:$env:BUILD_CONFIGURATION -UpdateVersion
-        name: build
         displayName: Build
       - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$env:TEST_FILTER" -BuildConfig "$env:BUILD_CONFIGURATION"
-        name: test
         displayName: Test
         env:
           TEST_FILTER: $(test.filter)
       - task: PublishTestResults@1
-        name: publish_results
         displayName: 'Publish test results'
         condition: succeededOrFailed()
         inputs:
@@ -160,5 +157,4 @@ jobs:
           pathtoPublish: $(Build.ArtifactStagingDirectory)
           artifactName: e2e-windows
       - powershell: docker system prune -a -f
-        name: clean_machine
         displayName: Clean machine
