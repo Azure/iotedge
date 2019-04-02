@@ -556,6 +556,10 @@ pub struct HsmCertificate {
 }
 
 impl HsmCertificate {
+    pub fn from(cert_info_handle: CERT_INFO_HANDLE) -> Result<Self, Error> {
+        Ok(HsmCertificate { cert_info_handle })
+    }
+
     pub fn pem(&self) -> Result<String, Error> {
         let cert = unsafe {
             CStr::from_ptr(certificate_info_get_certificate(self.cert_info_handle))

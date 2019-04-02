@@ -170,6 +170,8 @@ pub type HSM_CLIENT_SIGN_WITH_PRIVATE_KEY = Option<
         digest_size: *mut usize,
     ) -> c_int,
 >;
+pub type HSM_CLIENT_GET_CERTIFICATE_INFO =
+    Option<unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE) -> CERT_INFO_HANDLE>;
 
 /// API to return the limits of a random number generated from HSM hardware.
 /// The API to return a random number is HSM_CLIENT_GET_RANDOM_NUMBER. The
@@ -678,6 +680,7 @@ pub struct HSM_CLIENT_X509_INTERFACE_TAG {
     pub hsm_client_get_common_name: HSM_CLIENT_GET_COMMON_NAME,
     pub hsm_client_free_buffer: HSM_CLIENT_FREE_BUFFER,
     pub hsm_client_sign_with_private_key: HSM_CLIENT_SIGN_WITH_PRIVATE_KEY,
+    pub hsm_client_get_certificate_info: HSM_CLIENT_GET_CERTIFICATE_INFO,
 }
 
 pub type HSM_CLIENT_X509_INTERFACE = HSM_CLIENT_X509_INTERFACE_TAG;
@@ -692,6 +695,7 @@ impl Default for HSM_CLIENT_X509_INTERFACE_TAG {
             hsm_client_get_common_name: None,
             hsm_client_free_buffer: None,
             hsm_client_sign_with_private_key: None,
+            hsm_client_get_certificate_info: None,
         }
     }
 }
@@ -700,7 +704,7 @@ impl Default for HSM_CLIENT_X509_INTERFACE_TAG {
 fn bindgen_test_layout_HSM_CLIENT_X509_INTERFACE_TAG() {
     assert_eq!(
         ::std::mem::size_of::<HSM_CLIENT_X509_INTERFACE_TAG>(),
-        7_usize * ::std::mem::size_of::<usize>(),
+        8_usize * ::std::mem::size_of::<usize>(),
         concat!("Size of: ", stringify!(HSM_CLIENT_X509_INTERFACE_TAG))
     );
     assert_eq!(
@@ -797,6 +801,19 @@ fn bindgen_test_layout_HSM_CLIENT_X509_INTERFACE_TAG() {
             stringify!(HSM_CLIENT_X509_INTERFACE_TAG),
             "::",
             stringify!(hsm_client_sign_with_private_key)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE_TAG>())).hsm_client_get_certificate_info
+                as *const _ as usize
+        },
+        7_usize * ::std::mem::size_of::<usize>(),
+        concat!(
+            "Offset of field: ",
+            stringify!(HSM_CLIENT_X509_INTERFACE_TAG),
+            "::",
+            stringify!(hsm_client_get_certificate_info)
         )
     );
 }

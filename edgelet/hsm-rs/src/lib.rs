@@ -46,6 +46,7 @@ pub trait GetCerts {
     fn get_key(&self) -> Result<X509Data, Error>;
     fn get_common_name(&self) -> Result<String, Error>;
     fn sign_with_private_key(&self, data: &[u8]) -> Result<PrivateKeySignDigest, Error>;
+    fn get_certificate_info(&self) -> Result<HsmCertificate, Error>;
 }
 
 pub trait MakeRandom {
