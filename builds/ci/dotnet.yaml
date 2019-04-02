@@ -7,6 +7,7 @@ pr: none
 variables:
   test.filter: Category=Integration&Category!=Stress
   build.configuration: Release
+  dotnet.version: 2.1.302
 jobs:
   - job: linux
     displayName: Linux
@@ -15,7 +16,6 @@ jobs:
       vmImage: ubuntu-16.04
     variables:
       testEnvironment: linux
-      netCoreVersion: 2.1.302
     steps:
       - task: AzureKeyVault@1
         displayName: Get secrets
@@ -34,7 +34,7 @@ jobs:
         displayName: Install .NET Core
         inputs:
           packageType: sdk
-          version: $(netCoreVersion)
+          version: $(dotnet.version)
       - script: |
           sudo apt-get update
           sudo apt-get install -y libsnappy1v5
@@ -91,7 +91,6 @@ jobs:
       vmImage: windows-2019
     variables:
       testEnvironment: windows
-      netCoreVersion: 2.1.302
     steps:
       - task: AzureKeyVault@1
         displayName: Get secrets
@@ -110,7 +109,7 @@ jobs:
         displayName: Install .NET Core
         inputs:
           packageType: sdk
-          version: $(netCoreVersion)
+          version: $(dotnet.version)
       - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration $(Build.Configuration) -UpdateVersion
         displayName: Build
       - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$(test.filter)" -BuildConfig $(Build.Configuration)
