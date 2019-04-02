@@ -272,7 +272,7 @@ static CERT_INFO_HANDLE prepare_device_certifiicate_info
     char *cert_contents, *private_key_contents;
     size_t private_key_size = 0;
 
-    if ((private_key_contents = read_file_into_cstring(pk_file_path, &private_key_size)) == NULL)
+    if ((private_key_contents = read_file_into_buffer(pk_file_path, &private_key_size)) == NULL)
     {
         LOG_ERROR("Could not load private key into buffer %s", pk_file_path);
         result = NULL;
@@ -350,7 +350,7 @@ static CERT_INFO_HANDLE get_or_create_device_certificate(HSM_CLIENT_HANDLE hsm_h
         }
 
         LOG_DEBUG("Device identity setup mask 0x%02x", mask);
-        if (env_set && (mask != 0x4))
+        if (env_set && (mask != 0x3))
         {
             LOG_ERROR("To provisiong the Edge with device identity certificates, set "
                       "env variables with valid values:\n  %s\n  %s",

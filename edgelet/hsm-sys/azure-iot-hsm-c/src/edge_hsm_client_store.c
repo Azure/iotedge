@@ -895,7 +895,7 @@ static CERT_INFO_HANDLE prepare_cert_info_handle
         LOG_ERROR("Private key file path is NULL");
         result = NULL;
     }
-    else if ((private_key_contents = read_file_into_cstring(pk_file, &private_key_size)) == NULL)
+    else if ((private_key_contents = read_file_into_buffer(pk_file, &private_key_size)) == NULL)
     {
         LOG_ERROR("Could not load private key into buffer %s", pk_file);
         result = NULL;
