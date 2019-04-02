@@ -192,6 +192,11 @@
             "type": "docker",
             "status": "running",
             "restartPolicy": "on-unhealthy",
+            "env": {
+              "RUST_LOG": {
+                "value": "debug"
+              }
+            },
             "settings": {
               "image": "influxdb:1.5",
               "createOptions": "{\"ExposedPorts\":{\"8086/tcp\":{}},\"HostConfig\":{\"PortBindings\":{\"8086/tcp\":[{\"HostPort\":\"8086\"}]}}}"
