@@ -241,7 +241,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "Failed publishing IotEdgeQuickstart x64."
 }
 
-Write-Host "Publishing - IoTEdgeQuickstart arm32"
+Write-Host "Publishing - IotEdgeQuickstart arm32"
 $ProjectPublishPath = Join-Path $IoTEdgeQuickstartPublishBaseFolder "arm32v7"
 &$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-arm" -c $Configuration -o $ProjectPublishPath $IoTEdgeQuickstartProjectFolder |
     Write-Host
