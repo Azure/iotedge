@@ -49,9 +49,9 @@ jobs:
         displayName: Install protocol head certificate # Needed for integration tests
         env:
           CERT_VALUE: $(IotHubMqttHeadCert)
-      - script: scripts/linux/buildBranch.sh -c "$BUILD_CONFIGURATION" --no-rocksdb-bin
+      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         displayName: Build
-      - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $TEST_FILTER" "$BUILD_CONFIGURATION"'
+      - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)" $(Build.Configuration)'
         displayName: Test
         env:
           DummySecret1: $(DummySecret1)
@@ -125,12 +125,10 @@ jobs:
       # - powershell: scripts/windows/setup/Install-Prerequisites.ps1 -DotnetSdkUrl $(NetCorePackageUri)
       #   name: install_dependencies
       #   displayName: Install dependencies
-      - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:$env:BUILD_CONFIGURATION -UpdateVersion
+      - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration $(Build.Configuration) -UpdateVersion
         displayName: Build
-      - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$env:TEST_FILTER" -BuildConfig "$env:BUILD_CONFIGURATION"
+      - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$(test.filter)" -BuildConfig $(Build.Configuration)
         displayName: Test
-        env:
-          TEST_FILTER: $(test.filter)
       - task: PublishTestResults@1
         displayName: 'Publish test results'
         condition: succeededOrFailed()
