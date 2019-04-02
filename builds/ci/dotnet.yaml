@@ -98,19 +98,19 @@ jobs:
       testEnvironment: windows
       netCoreVersion: 2.1.302
     steps:
-      # - task: AzureKeyVault@1
-      #   displayName: Get secrets
-      #   inputs:
-      #     azureSubscription: $(azure.subscription)
-      #     keyVaultName: $(kv.name)
-      #     secretsFilter: >-
-      #       DummySecret1,
-      #       EdgeCapableDevice2,
-      #       EventHubConnStr2,
-      #       IotDevice2ConnStr2,
-      #       IotDevice3ConnStr2,
-      #       IotHubConnStr2,
-      #       IotHubMqttHeadCert
+      - task: AzureKeyVault@1
+        displayName: Get secrets
+        inputs:
+          azureSubscription: $(azure.subscription)
+          keyVaultName: $(kv.name)
+          secretsFilter: >-
+            DummySecret1,
+            EdgeCapableDevice2,
+            EventHubConnStr2,
+            IotDevice2ConnStr2,
+            IotDevice3ConnStr2,
+            IotHubConnStr2,
+            IotHubMqttHeadCert
       - task: DotNetCoreInstaller@0
         displayName: Install .NET Core
         inputs:
@@ -130,6 +130,14 @@ jobs:
         displayName: Build
       - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$(test.filter)" -BuildConfig $(Build.Configuration)
         displayName: Test
+        env:
+          DummySecret1: $(DummySecret1)
+          EdgeCapableDevice2: $(EdgeCapableDevice2)
+          EventHubConnStr2: $(EventHubConnStr2)
+          IotDevice2ConnStr2: $(IotDevice2ConnStr2)
+          IotDevice3ConnStr2: $(IotDevice3ConnStr2)
+          IotHubConnStr2: $(IotHubConnStr2)
+          IotHubMqttHeadCert: $(IotHubMqttHeadCert)
       - task: PublishTestResults@1
         displayName: 'Publish test results'
         condition: succeededOrFailed()
