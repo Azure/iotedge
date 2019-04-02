@@ -1064,8 +1064,51 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
 
         // cleanup
         free(digest);
-        interface->hsm_client_destroy_certificate(hsm_handle, TEST_CA_ALIAS);
         certificate_info_destroy(ca_handle);
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_CA_ALIAS);
+        cert_properties_destroy(certificate_props);
+        test_helper_crypto_deinit(hsm_handle);
+    }
+
+    TEST_FUNCTION(hsm_client_crypto_get_certificate_smoke)
+    {
+        // arrange 1
+        int status;
+        CERT_INFO_HANDLE result;
+        HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
+        const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
+
+        // act, 1 ensure certificate get fails when it has not yet been created
+        result = interface->hsm_client_crypto_get_certificate(hsm_handle, TEST_CA_ALIAS);
+
+        // assert 1
+        ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
+
+
+        // arrange 2
+        CERT_PROPS_HANDLE certificate_props = test_helper_create_ca_cert_properties();
+        CERT_INFO_HANDLE ca_handle = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
+        ASSERT_IS_NOT_NULL(ca_handle, "Line:" TOSTRING(__LINE__));
+
+        // act 2 get the same certificate
+        result = interface->hsm_client_crypto_get_certificate(hsm_handle, TEST_CA_ALIAS);
+
+        // assert 2 ensure both certificate and key returned are identical
+        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
+        status = strcmp(certificate_info_get_certificate(ca_handle), certificate_info_get_certificate(result));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        size_t ca_pk_size = 0, result_pk_size = 0;
+        const void *ca_pk = certificate_info_get_private_key(ca_handle, &ca_pk_size);
+        const void *result_pk = certificate_info_get_private_key(result, &result_pk_size);
+        ASSERT_ARE_EQUAL(size_t, ca_pk_size, result_pk_size, "Line:" TOSTRING(__LINE__));
+        status = memcmp(ca_pk, result_pk, ca_pk_size);
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((certificate_info_private_key_type(ca_handle) == certificate_info_private_key_type(result)), "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        certificate_info_destroy(result);
+        certificate_info_destroy(ca_handle);
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_CA_ALIAS);
         cert_properties_destroy(certificate_props);
         test_helper_crypto_deinit(hsm_handle);
     }
