@@ -117,7 +117,8 @@ if [[ -n "$ARM_PACKAGE" ]]; then
         gcc-4.8-arm-linux-gnueabihf=4.8.2-16ubuntu4cross0.11 \
         gcc-4.8-multilib-arm-linux-gnueabihf=4.8.2-16ubuntu4cross0.11 \
         libc6-armhf-cross=2.19-0ubuntu2cross1.104 \
-        gcc-arm-linux-gnueabihf=4:4.8.2-1
+        gcc-arm-linux-gnueabihf=4:4.8.2-1 \
+        binutils-aarch64-linux-gnu
 
     # For future reference:
     # ubuntu systems (host) sets openssl library version to 1.0.0,
