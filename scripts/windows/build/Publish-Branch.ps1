@@ -230,13 +230,13 @@ Copy-Item $SRC_CERT_TOOLS_DIR $PUB_CERT_TOOLS_DIR -Recurse -Force
 <#
  # Publish IotEdgeQuickstart
  #>
- $IotEdgeQuickstartProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/IotEdgeQuickstart"
- $IotEdgeQuickstartPublishBaseFolder = Join-Path $PUBLISH_FOLDER "IotEdgeQuickstart"
+$IotEdgeQuickstartProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/IotEdgeQuickstart"
+$IotEdgeQuickstartPublishBaseFolder = Join-Path $PUBLISH_FOLDER "IotEdgeQuickstart"
 
- Write-Host "Publishing - IotEdgeQuickstart x64"
- $ProjectPublishPath = Join-Path $IotEdgeQuickstartPublishBaseFolder "x64"
- &$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-x64" -c $Configuration -o $ProjectPublishPath $IotEdgeQuickstartProjectFolder |
-     Write-Host
+Write-Host "Publishing - IotEdgeQuickstart x64"
+$ProjectPublishPath = Join-Path $IotEdgeQuickstartPublishBaseFolder "x64"
+&$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-x64" -c $Configuration -o $ProjectPublishPath $IotEdgeQuickstartProjectFolder |
+    Write-Host
 if ($LASTEXITCODE -ne 0) {
     throw "Failed publishing IotEdgeQuickstart x64."
 }
@@ -252,10 +252,10 @@ if ($LASTEXITCODE -ne 0) {
 <#
  # Publish LeafDevice
  #>
- $LeafDeviceProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/LeafDevice"
- $LeafDevicePublishBaseFolder = Join-Path $PUBLISH_FOLDER "LeafDevice"
- 
- Write-Host "Publishing - LeafDevice x64"
+$LeafDeviceProjectFolder = Join-Path $BuildRepositoryLocalPath "smoke/LeafDevice"
+$LeafDevicePublishBaseFolder = Join-Path $PUBLISH_FOLDER "LeafDevice"
+
+Write-Host "Publishing - LeafDevice x64"
 $ProjectPublishPath = Join-Path $LeafDevicePublishBaseFolder "x64"
 &$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-x64" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
     Write-Host
