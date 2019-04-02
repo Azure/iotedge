@@ -163,5 +163,5 @@ jobs:
         inputs:
           pathtoPublish: $(Build.ArtifactStagingDirectory)
           artifactName: e2e-windows
-      - powershell: docker system prune -a -f
-        displayName: Clean machine
+      # - powershell: docker system prune -a -f
+      #   displayName: Clean machine
