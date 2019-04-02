@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 {
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
