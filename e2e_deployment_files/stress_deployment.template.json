@@ -198,7 +198,7 @@
               }
             },
             "settings": {
-              "image": "influxdb:1.5",
+              "image": "influxdb:1.7.5",
               "createOptions": "{\"ExposedPorts\":{\"8086/tcp\":{}},\"HostConfig\":{\"PortBindings\":{\"8086/tcp\":[{\"HostPort\":\"8086\"}]}}}"
             }
           }
