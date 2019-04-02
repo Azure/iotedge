@@ -502,28 +502,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             yield return new object[]
             {
                 "edge",
-                new List<string> { "edgehub", "edgeAgent", "module1", "edgMod2"},
+                new List<string> { "edgehub", "edgeAgent", "module1", "edgMod2" },
                 new List<string> { "edgehub", "edgeAgent" },
             };
 
             yield return new object[]
             {
                 "e.*t",
-                new List<string> { "edgehub", "edgeAgent", "module1", "eandt"},
+                new List<string> { "edgehub", "edgeAgent", "module1", "eandt" },
                 new List<string> { "edgeAgent", "eandt" },
             };
 
             yield return new object[]
             {
                 "EDGE",
-                new List<string> { "edgehub", "edgeAgent", "module1", "testmod3"},
+                new List<string> { "edgehub", "edgeAgent", "module1", "testmod3" },
                 new List<string> { "edgehub", "edgeAgent" },
             };
 
             yield return new object[]
             {
                 "^e.*",
-                new List<string> { "edgehub", "edgeAgent", "module1", "eandt"},
+                new List<string> { "edgehub", "edgeAgent", "module1", "eandt" },
                 new List<string> { "edgehub", "edgeAgent", "eandt" },
             };
         }

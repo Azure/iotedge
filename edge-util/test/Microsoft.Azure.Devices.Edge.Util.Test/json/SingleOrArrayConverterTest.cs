@@ -18,8 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Json
             {
                 new TestClass(
                     new List<string> { "foo" },
-                    new List<PropertyClass> { new PropertyClass("Bar") }
-                ),
+                    new List<PropertyClass> { new PropertyClass("Bar") }),
                 "{\"items\":\"foo\",\"propertyItems\":{\"testProp\":\"Bar\"}}"
             };
 
@@ -27,8 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Json
             {
                 new TestClass(
                     new List<string> { "foo", "foo2" },
-                    new List<PropertyClass> { new PropertyClass("Bar"), new PropertyClass("Bar2") }
-                ),
+                    new List<PropertyClass> { new PropertyClass("Bar"), new PropertyClass("Bar2") }),
                 "{\"items\":[\"foo\",\"foo2\"],\"propertyItems\":[{\"testProp\":\"Bar\"},{\"testProp\":\"Bar2\"}]}"
             };
         }

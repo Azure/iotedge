@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         }
 
         // The id parameter in the ids is a regex. Logs for all modules that match this regex are processed.
-        // If multiple id parameters match a module, the first one is considered. 
+        // If multiple id parameters match a module, the first one is considered.
         public async Task GetLogsStream(IList<(string id, ModuleLogOptions logOptions)> ids, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(ids, nameof(ids));
