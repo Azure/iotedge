@@ -79,7 +79,7 @@
                 "value": "-1"
               },
               "ClientTransportType": {
-                "value": "Mqtt_Tcp_Only"
+                "value": "Amqp_Tcp_Only"
               }
             }
           },
@@ -93,7 +93,7 @@
                 "value": "19"
               },
               "ClientTransportType": {
-                "value": "Mqtt_Tcp_Only"
+                "value": "Amqp_Tcp_Only"
               }
             },
             "settings": {
@@ -115,7 +115,7 @@
                 "value": "-1"
               },
               "ClientTransportType": {
-                "value": "Amqp_Tcp_Only"
+                "value": "Mqtt_Tcp_Only"
               }
             }
           },
@@ -129,7 +129,7 @@
                 "value": "19"
               },
               "ClientTransportType": {
-                "value": "Amqp_Tcp_Only"
+                "value": "Mqtt_Tcp_Only"
               }
             },
             "settings": {
@@ -205,7 +205,7 @@
             "status": "running",
             "restartPolicy": "on-unhealthy",
             "settings": {
-              "image": "influxdb:1.7",
+              "image": "influxdb:1.7.5",
               "createOptions": "{\"ExposedPorts\":{\"8086/tcp\":{}},\"HostConfig\":{\"PortBindings\":{\"8086/tcp\":[{\"HostPort\":\"8086\"}]}}}"
             }
           },
@@ -219,7 +219,7 @@
                 "value": "DirectMethodReceiver"
               },
               "ClientTransportType": {
-                "value": "Mqtt_Tcp_Only"
+                "value": "Amqp_Tcp_Only"
               },
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
@@ -237,7 +237,7 @@
             "restartPolicy": "always",
             "env": {
               "ClientTransportType": {
-                "value": "Mqtt_Tcp_Only"
+                "value": "Amqp_Tcp_Only"
               }
             },
             "settings": {
@@ -255,7 +255,7 @@
                 "value": "DirectMethodReceiver2"
               },
               "ClientTransportType": {
-                "value": "Amqp_Tcp_Only"
+                "value": "Mqtt_Tcp_Only"
               },
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
@@ -273,7 +273,7 @@
             "restartPolicy": "always",
             "env": {
               "ClientTransportType": {
-                "value": "Amqp_Tcp_Only"
+                "value": "Mqtt_Tcp_Only"
               }
             },
             "settings": {

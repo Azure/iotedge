@@ -107,17 +107,22 @@ if ($CreateTemplate) {
 
     # VERSION is either 1.0.7~dev or 1.0.7
     $splitVersion = $env:VERSION -split "~"
-    if ($splitVersion.Length -eq 1) {
-        $version = $env:VERSION
+    if (($splitVersion.Length -eq 1) -or ($splitVersion[1] -notmatch "^\w+\d{8}\.\d+$")) {
+        if ($splitVersion.Length -eq 1) {
+            $version = $env:VERSION
+        }
+        else {
+            $version = $splitVersion[0]
+        }
         $splitVersion = $version -split "\."
         if ($splitVersion.Length -eq 3) {
             $version = ("{0}.0" -f $version)
         }
         if ($version -notmatch "\d+\.\d+\.\d+\.\d+") {
-            throw "Windows package requires VERSION in form major.minor.build.revision, each segment having 0-65535"
+            throw "Unexpected version string; Windows package requires VERSION in form major.minor.build.revision, each segment having 0-65535."
         }
     }
-    else {
+    elseif ($splitVersion[1] -match "^\w+\d{8}\.\d+$") { # internal build with version set to something like: '1.0.8~dev20190328.3'
         # we need 255^2 tops per segment
         $major = ($splitVersion[0] -split "\.")[0]
         $splitSuffix = ($splitVersion[1] -split "\.")
@@ -126,6 +131,9 @@ if ($CreateTemplate) {
         $dateEncoded = ("{0}{1}" -f ($date.ToString("yy")), $date.DayOfYear.ToString("000"))
         $buildPerDay = $splitSuffix[-1]
         $version = "0.{0}.{1}.{2}" -f $major, $dateEncoded, $buildPerDay
+    }
+    else {
+        throw "Unexpected version string."
     }
 
     Write-Host "IoTEdge using version '$version'"
