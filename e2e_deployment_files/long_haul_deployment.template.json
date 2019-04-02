@@ -216,7 +216,7 @@
             "restartPolicy": "always",
             "env": {
               "TargetModuleId": {
-                "value": "DirectMethodReceiver2"
+                "value": "DirectMethodReceiver"
               },
               "ClientTransportType": {
                 "value": "Amqp_Tcp_Only"
@@ -252,7 +252,7 @@
             "restartPolicy": "always",
             "env": {
               "TargetModuleId": {
-                "value": "DirectMethodReceiver"
+                "value": "DirectMethodReceiver2"
               },
               "ClientTransportType": {
                 "value": "Mqtt_Tcp_Only"
