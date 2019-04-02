@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Collections.Generic;
     using Microsoft.Extensions.Logging;
     using Serilog;
+    using Serilog.Configuration;
     using Serilog.Core;
     using Serilog.Events;
 
@@ -23,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             { "fatal", LogEventLevel.Fatal }
         };
 
-        static readonly Lazy<ILoggerFactory> LoggerLazy = new Lazy<ILoggerFactory>(() => GetLoggerFactory(), true);
+        static readonly Lazy<ILoggerFactory> LoggerLazy = new Lazy<ILoggerFactory>(GetLoggerFactory, true);
         static LogEventLevel logLevel = LogEventLevel.Information;
 
         public static ILoggerFactory Factory => LoggerLazy.Value;
@@ -38,25 +39,30 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         static ILoggerFactory GetLoggerFactory()
         {
-            var levelSwitch = new LoggingLevelSwitch();
-            levelSwitch.MinimumLevel = logLevel;
-            Serilog.Core.Logger loggerConfig = new LoggerConfiguration()
+            string outputTemplate = logLevel > LogEventLevel.Debug
+                ? "<{Severity}> {Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] - {Message}{NewLine}{Exception}"
+                : "<{Severity}> {Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext:1}] - {Message}{NewLine}{Exception}";
+
+            LoggerConfiguration ConsoleSinkMap(LoggerSinkConfiguration loggerSinkConfiguration)
+                => loggerSinkConfiguration.Console(outputTemplate: outputTemplate);
+
+            return GetLoggerFactory(logLevel, ConsoleSinkMap);
+        }
+
+        internal static ILoggerFactory GetLoggerFactory(LogEventLevel logEventLevel, Func<LoggerSinkConfiguration, LoggerConfiguration> loggerSink)
+        {
+            var levelSwitch = new LoggingLevelSwitch
+            {
+                MinimumLevel = logEventLevel
+            };
+
+            LoggerSinkConfiguration loggerSinkConfiguration = new LoggerConfiguration()
                 .MinimumLevel.ControlledBy(levelSwitch)
                 .Enrich.FromLogContext()
                 .Enrich.With(SeverityEnricher.Instance)
-                .WriteTo.Console(
-                    outputTemplate: "<{Severity}> {Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] - {Message}{NewLine}{Exception}").CreateLogger();
+                .WriteTo;
 
-            if (levelSwitch.MinimumLevel <= LogEventLevel.Debug)
-            {
-                // Overwrite with richer content if less then debug
-                loggerConfig = new LoggerConfiguration()
-                    .MinimumLevel.ControlledBy(levelSwitch)
-                    .Enrich.FromLogContext()
-                    .Enrich.With(SeverityEnricher.Instance)
-                    .WriteTo.Console(
-                        outputTemplate: "<{Severity}> {Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext:1}] - {Message}{NewLine}{Exception}").CreateLogger();
-            }
+            Serilog.Core.Logger loggerConfig = loggerSink(loggerSinkConfiguration).CreateLogger();
 
             ILoggerFactory factory = new LoggerFactory()
                 .AddSerilog(loggerConfig);
