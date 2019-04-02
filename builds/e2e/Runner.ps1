@@ -84,6 +84,10 @@ New-Module -ScriptBlock {
         
         netsh winhttp set proxy "${ProxyHostname}:3128" "<local>"
 
+        # iotedge-moby needs this variable for `docker pull`
+        Write-Host 'Setting HTTPS_PROXY in environment'
+        [Environment]::SetEnvironmentVariable("HTTPS_PROXY", $proxyUri, [EnvironmentVariableTarget]::Machine)
+
         # Add public key so agent can SSH into this runner
         $authorizedKeys = Join-Path ${env:UserProfile} (Join-Path ".ssh" "authorized_keys")
         Write-Host "Adding public key to $authorizedKeys"
