@@ -17,10 +17,13 @@ cp -R $BUILD_REPOSITORY_LOCALPATH/edgelet/iotedge-diagnostics/docker $PUBLISH_FO
 cd "$BUILD_REPOSITORY_LOCALPATH/edgelet"
 
 cross build -p iotedge-diagnostics --release --target x86_64-unknown-linux-musl
+strip $BUILD_REPOSITORY_LOCALPATH/edgelet/target/x86_64-unknown-linux-musl/release/iotedge-diagnostics
 cp $BUILD_REPOSITORY_LOCALPATH/edgelet/target/x86_64-unknown-linux-musl/release/iotedge-diagnostics $PUBLISH_FOLDER/azureiotedge-diagnostics/docker/linux/amd64/
 
 cross build -p iotedge-diagnostics --release --target armv7-unknown-linux-musleabihf
+arm-linux-gnueabihf-strip $BUILD_REPOSITORY_LOCALPATH/edgelet/target/armv7-unknown-linux-musleabihf/release/iotedge-diagnostics
 cp $BUILD_REPOSITORY_LOCALPATH/edgelet/target/armv7-unknown-linux-musleabihf/release/iotedge-diagnostics $PUBLISH_FOLDER/azureiotedge-diagnostics/docker/linux/arm32v7/
 
 cross build -p iotedge-diagnostics --release --target aarch64-unknown-linux-musl
+aarch64-linux-gnu-strip $BUILD_REPOSITORY_LOCALPATH/edgelet/target/aarch64-unknown-linux-musl/release/iotedge-diagnostics
 cp $BUILD_REPOSITORY_LOCALPATH/edgelet/target/aarch64-unknown-linux-musl/release/iotedge-diagnostics $PUBLISH_FOLDER/azureiotedge-diagnostics/docker/linux/arm64v8/
