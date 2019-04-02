@@ -70,6 +70,12 @@ if (Test-Path env:DOTNET_PATH) {
     }
 }
 
+if (Test-Path $DOTNET_PATH -PathType Leaf) {
+    Write-Host "Found '$DOTNET_PATH'"
+} else {
+    throw "$DOTNET_PATH not found"
+}
+
 $PUBLISH_FOLDER = Join-Path $BuildBinariesDirectory "publish"
 $VERSIONINFO_FILE_PATH = Join-Path $BuildRepositoryLocalPath "versionInfo.json"
 
@@ -83,10 +89,6 @@ $SRC_E2E_TEST_FILES_DIR = Join-Path $BuildRepositoryLocalPath "e2e_test_files"
 $PUB_E2E_TEST_FILES_DIR = Join-Path $PUBLISH_FOLDER "e2e_test_files"
 $SRC_CERT_TOOLS_DIR = Join-Path $BuildRepositoryLocalPath "tools/CACertificates"
 $PUB_CERT_TOOLS_DIR = Join-Path $PUBLISH_FOLDER "CACertificates"
-
-if (-not (Test-Path $DOTNET_PATH -PathType Leaf)) {
-    throw "$DOTNET_PATH not found"
-}
 
 if (Test-Path $BuildBinariesDirectory -PathType Container) {
     Remove-Item $BuildBinariesDirectory -Force -Recurse
