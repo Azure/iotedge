@@ -277,10 +277,7 @@ pub type HSM_CLIENT_CRYPTO_SIGN_WITH_PRIVATE_KEY = Option<
 >;
 
 pub type HSM_CLIENT_CRYPTO_GET_CERTIFICATE = Option<
-    unsafe extern "C" fn(
-        handle: HSM_CLIENT_HANDLE,
-        alias: *const c_char,
-    ) -> CERT_INFO_HANDLE,
+    unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE, alias: *const c_char) -> CERT_INFO_HANDLE,
 >;
 
 pub type CRYPTO_ENCODING_TAG = u32;
@@ -792,8 +789,8 @@ fn bindgen_test_layout_HSM_CLIENT_X509_INTERFACE_TAG() {
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE_TAG>())).hsm_client_sign_with_private_key
-                as *const _ as usize
+            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE_TAG>()))
+                .hsm_client_sign_with_private_key as *const _ as usize
         },
         6_usize * ::std::mem::size_of::<usize>(),
         concat!(
@@ -805,8 +802,8 @@ fn bindgen_test_layout_HSM_CLIENT_X509_INTERFACE_TAG() {
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE_TAG>())).hsm_client_get_certificate_info
-                as *const _ as usize
+            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE_TAG>()))
+                .hsm_client_get_certificate_info as *const _ as usize
         },
         7_usize * ::std::mem::size_of::<usize>(),
         concat!(
@@ -1014,8 +1011,8 @@ fn bindgen_test_layout_HSM_CLIENT_CRYPTO_INTERFACE_TAG() {
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>())).hsm_client_crypto_sign_with_private_key
-                as *const _ as usize
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>()))
+                .hsm_client_crypto_sign_with_private_key as *const _ as usize
         },
         11_usize * ::std::mem::size_of::<usize>(),
         concat!(
@@ -1027,8 +1024,8 @@ fn bindgen_test_layout_HSM_CLIENT_CRYPTO_INTERFACE_TAG() {
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>())).hsm_client_crypto_get_certificate
-                as *const _ as usize
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>()))
+                .hsm_client_crypto_get_certificate as *const _ as usize
         },
         12_usize * ::std::mem::size_of::<usize>(),
         concat!(

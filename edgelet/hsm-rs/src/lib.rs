@@ -22,7 +22,7 @@ pub use crate::crypto::{
 };
 pub use crate::error::{Error, ErrorKind};
 pub use crate::tpm::{Tpm, TpmDigest, TpmKey};
-pub use crate::x509::{X509Data, X509, PrivateKeySignDigest};
+pub use crate::x509::{PrivateKeySignDigest, X509Data, X509};
 
 // Traits
 

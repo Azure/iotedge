@@ -997,7 +997,7 @@ mod tests {
 
     unsafe extern "C" fn fake_get_crypto_cert(
         handle: HSM_CLIENT_HANDLE,
-        _alias: *const c_char
+        _alias: *const c_char,
     ) -> CERT_INFO_HANDLE {
         let n = handle as isize;
         if n == 0 {
@@ -1114,7 +1114,7 @@ mod tests {
                 hsm_client_get_trust_bundle: Some(fake_trust_bundle),
                 hsm_client_free_buffer: Some(real_buffer_destroy),
                 hsm_client_crypto_sign_with_private_key: Some(fake_private_key_sign),
-                hsm_client_crypto_get_certificate: Some(fake_get_crypto_cert)
+                hsm_client_crypto_get_certificate: Some(fake_get_crypto_cert),
             },
         }
     }
@@ -1197,7 +1197,7 @@ mod tests {
                 hsm_client_get_trust_bundle: Some(fake_trust_bundle),
                 hsm_client_free_buffer: Some(real_buffer_destroy),
                 hsm_client_crypto_sign_with_private_key: Some(fake_private_key_sign),
-                hsm_client_crypto_get_certificate: Some(fake_get_crypto_cert)
+                hsm_client_crypto_get_certificate: Some(fake_get_crypto_cert),
             },
         }
     }
