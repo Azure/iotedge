@@ -59,7 +59,17 @@ if (-not $BuildSourceVersion) {
     $BuildSourceVersion = DefaultBuildSourceVersion
 }
 
-$DOTNET_PATH = [IO.Path]::Combine($AgentWorkFolder, "dotnet", "dotnet.exe")
+if (Test-Path env:DOTNET_PATH) {
+    $DOTNET_PATH = $env:DOTNET_PATH
+} else {
+    $dotnetCmd = Get-Command dotnet -ErrorAction SilentlyContinue
+    if ($?) {
+        $DOTNET_PATH = $dotnetCmd.Path
+    } else {
+        $DOTNET_PATH = [IO.Path]::Combine($AgentWorkFolder, "dotnet", "dotnet.exe")
+    }
+}
+
 $PUBLISH_FOLDER = Join-Path $BuildBinariesDirectory "publish"
 $VERSIONINFO_FILE_PATH = Join-Path $BuildRepositoryLocalPath "versionInfo.json"
 
