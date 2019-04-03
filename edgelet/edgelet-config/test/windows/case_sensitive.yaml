@@ -14,18 +14,16 @@ agent:
       Hostname: VAluE3
 hostname: "localhost"
 
-# Sets the connection uris for clients
 connect:
   workload_uri: "http://localhost:8081"
   management_uri: "http://localhost:8080"
 
-# Sets the uris to listen on
-# These can be different than the connect uris.
-# For instance, when using the fd:// scheme for systemd
 listen:
   workload_uri: "http://0.0.0.0:8081"
   management_uri: "http://0.0.0.0:8080"
+
 homedir: "C:\\Temp"
+
 moby_runtime:
   uri: "npipe://./pipe/iotedge_moby_engine"
   network: "azure-iot-edge"

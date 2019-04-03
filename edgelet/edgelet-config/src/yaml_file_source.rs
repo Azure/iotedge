@@ -29,7 +29,7 @@ impl Source for YamlFileSource {
             YamlFileSource::String(_) => None,
         };
 
-        let s = match self {
+        let contents = match self {
             YamlFileSource::File(path) => {
                 let mut file =
                     File::open(path).map_err(|err| ConfigError::Foreign(Box::new(err)))?;
@@ -43,17 +43,16 @@ impl Source for YamlFileSource {
             YamlFileSource::String(s) => Cow::Borrowed(*s),
         };
 
-        let docs =
-            YamlLoader::load_from_str(&*s).map_err(|err| ConfigError::Foreign(Box::new(err)))?;
+        let docs = YamlLoader::load_from_str(&*contents)
+            .map_err(|err| ConfigError::Foreign(Box::new(err)))?;
 
         let mut docs = docs.into_iter();
         let doc = match docs.next() {
             Some(doc) => {
                 if docs.next().is_some() {
-                    return Err(ConfigError::Foreign(Box::new(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        "More than one YAML document provided",
-                    ))));
+                    return Err(ConfigError::Foreign(Box::new(
+                        YamlFileSourceError::MoreThanOneDocument,
+                    )));
                 }
 
                 doc
@@ -125,9 +124,29 @@ fn from_yaml_value(uri: Option<&String>, value: Yaml) -> Result<Value, ConfigErr
         // The original function returns `Value::new(uri, ValueKind::Nil)` here.
         // Since `ValueKind` is private, we have to return Err instead. It shouldn't be a problem for our use case
         // since we don't expect null / bad value / alias.
-        value => Err(ConfigError::Foreign(Box::new(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("unrecognized YAML value {:?}", value),
-        )))),
+        value => Err(ConfigError::Foreign(Box::new(
+            YamlFileSourceError::UnrecognizedYamlValue(value),
+        ))),
     }
 }
+
+#[derive(Debug)]
+enum YamlFileSourceError {
+    MoreThanOneDocument,
+    UnrecognizedYamlValue(Yaml),
+}
+
+impl std::fmt::Display for YamlFileSourceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            YamlFileSourceError::MoreThanOneDocument => {
+                write!(f, "more than one YAML document provided")
+            }
+            YamlFileSourceError::UnrecognizedYamlValue(value) => {
+                write!(f, "unrecognized YAML value {:?}", value)
+            }
+        }
+    }
+}
+
+impl std::error::Error for YamlFileSourceError {}
