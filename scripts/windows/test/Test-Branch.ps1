@@ -88,7 +88,7 @@ foreach ($testDll in (Get-ChildItem $BuildBinariesDirectory -Include $SUFFIX -Re
 	}
 }
 
-$testCommandPrefix = "$DOTNET_PATH vstest /Logger:`"$LOGGER_ARG`" /TestAdapterPath:`"$BuildBinariesDirectory`" /Parallel /InIsolation"
+$testCommandPrefix = "'$DOTNET_PATH' vstest /Logger:`"$LOGGER_ARG`" /TestAdapterPath:`"$BuildBinariesDirectory`" /Parallel /InIsolation"
 
 if ($Filter) {
     $testCommandPrefix += " /TestCaseFilter:`"$Filter`"" 
