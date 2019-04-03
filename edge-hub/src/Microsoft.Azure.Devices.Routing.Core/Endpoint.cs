@@ -33,6 +33,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public abstract void LogUserMetrics(long messageCount, long latencyInMs);
 
+        public virtual int FanOutFactor => 1;
+
         public bool Equals(Endpoint other)
         {
             if (ReferenceEquals(null, other))

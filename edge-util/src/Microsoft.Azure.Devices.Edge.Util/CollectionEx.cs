@@ -132,5 +132,24 @@ namespace Microsoft.Azure.Devices.Edge.Util
             value = default(TValue);
             return false;
         }
+
+        public static IEnumerable<IEnumerable<T>> Batch<T>(this IEnumerable<T> list, int batchSize)
+        {
+            var current = new List<T>();
+            foreach (T item in list)
+            {
+                current.Add(item);
+                if (current.Count == batchSize)
+                {
+                    yield return current;
+                    current = new List<T>(batchSize);
+                }
+            }
+
+            if (current.Count > 0)
+            {
+                yield return current;
+            }
+        }
     }
 }
