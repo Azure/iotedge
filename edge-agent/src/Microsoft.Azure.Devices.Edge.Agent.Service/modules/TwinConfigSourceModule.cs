@@ -92,11 +92,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 async c =>
                 {
                     var logsUploader = c.Resolve<ILogsUploader>();
-                    ILogsProvider logsProvider = await c.Resolve<Task<ILogsProvider>>();
+                    var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
+                    var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
+                    IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
+                    ILogsProvider logsProvider = await logsProviderTask;
                     var requestHandlers = new List<IRequestHandler>
                     {
                         new PingRequestHandler(),
-                        new LogsUploadRequestHandler(logsUploader, logsProvider)
+                        new LogsUploadRequestHandler(logsUploader, logsProvider, runtimeInfoProvider)
                     };
                     return new RequestManager(requestHandlers, this.requestTimeout) as IRequestManager;
                 })
