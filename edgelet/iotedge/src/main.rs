@@ -18,7 +18,7 @@ use edgelet_http_mgmt::ModuleClient;
 use iotedge::*;
 
 #[cfg(unix)]
-const MGMT_URI: &str = "unix:///var/run/iotedge/mgmt.sock";
+const MGMT_URI: &str = "unix:///var/lib/iotedge/mgmt.sock";
 #[cfg(windows)]
 const MGMT_URI: &str = "unix:///C:/ProgramData/iotedge/mgmt/sock";
 

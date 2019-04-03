@@ -159,7 +159,7 @@ connect:
 # These values can be different from the connect URIs. For instance, when
 # using the fd:// scheme for systemd:
 #     listen address is fd://iotedge.workload,
-#     connect address is unix:///var/run/iotedge/workload.sock
+#     connect address is unix:///var/lib/iotedge/workload.sock
 #
 # Note: When using the fd:// scheme for listen.management_uri or listen.workload_uri,
 # the path of connect.management_uri and connect.workload_uri must match

@@ -205,8 +205,8 @@ namespace IotEdgeQuickstart.Details
             }
             else
             {
-                doc.ReplaceOrAdd("connect.management_uri", "unix:///var/run/iotedge/mgmt.sock");
-                doc.ReplaceOrAdd("connect.workload_uri", "unix:///var/run/iotedge/workload.sock");
+                doc.ReplaceOrAdd("connect.management_uri", "unix:///var/lib/iotedge/mgmt.sock");
+                doc.ReplaceOrAdd("connect.workload_uri", "unix:///var/lib/iotedge/workload.sock");
                 doc.ReplaceOrAdd("listen.management_uri", "fd://iotedge.mgmt.socket");
                 doc.ReplaceOrAdd("listen.workload_uri", "fd://iotedge.socket");
             }
