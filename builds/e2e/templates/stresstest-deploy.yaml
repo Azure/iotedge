@@ -13,10 +13,10 @@ parameters:
   amqp.settings.enabled: 'true'
   mqtt.settings.enabled: 'true'
   loadGen.message.frequency: ''
-  loadGen1.transportType: 'amqp'
-  loadGen2.transportType: 'amqp'
-  loadGen3.transportType: 'mqtt'
-  loadGen4.transportType: 'mqtt'
+  loadGen1.transportType: 'Amqp_Tcp_Only'
+  loadGen2.transportType: 'Amqp_WebSocket_Only'
+  loadGen3.transportType: 'Mqtt_Tcp_Only'
+  loadGen4.transportType: 'Mqtt_WebSocket_Only'
 
 steps:
   - task: CopyFiles@2

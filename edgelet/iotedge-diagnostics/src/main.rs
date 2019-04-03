@@ -51,29 +51,7 @@ fn main() -> Result<(), Error> {
                         .help("Port to connect to"),
                 ),
         )
-        .subcommand(clap::SubCommand::with_name("local-time").about("print local time"))
-        .subcommand(
-            clap::SubCommand::with_name("idle-module")
-                .about("idle for some time, then exit")
-                .arg(
-                    clap::Arg::with_name("duration")
-                        .long("duration")
-                        .required(true)
-                        .takes_value(true)
-                        .help("How long to idle for, in seconds"),
-                ),
-        )
-        .subcommand(
-            clap::SubCommand::with_name("resolve-module")
-                .about("tries to resolve the specified module")
-                .arg(
-                    clap::Arg::with_name("hostname")
-                        .long("hostname")
-                        .required(true)
-                        .takes_value(true)
-                        .help("The hostname to resolve"),
-                ),
-        );
+        .subcommand(clap::SubCommand::with_name("local-time").about("print local time"));
 
     let matches = app.get_matches();
 
@@ -175,24 +153,6 @@ fn main() -> Result<(), Error> {
                     .unwrap()
                     .as_secs()
             );
-        }
-
-        ("idle-module", Some(matches)) => {
-            let duration = matches.value_of("duration").expect("parameter is required");
-            let duration: u64 = duration
-                .parse()
-                .map_err(|err| format!("could not parse duration: {}", err))?;
-
-            std::thread::sleep(std::time::Duration::from_secs(duration));
-        }
-
-        ("resolve-module", Some(matches)) => {
-            let hostname = matches.value_of("hostname").expect("parameter is required");
-
-            let _ = std::net::ToSocketAddrs::to_socket_addrs(&(hostname, 80))
-                .map_err(|err| format!("could not resolve {}: {}", hostname, err))?
-                .next()
-                .ok_or_else(|| format!("could not resolve {}: no addresses found", hostname))?;
         }
 
         (subcommand, _) => panic!("unexpected subcommand {}", subcommand),
