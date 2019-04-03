@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -129,6 +130,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             Plan addPlan = await planner.PlanAsync(desiredSet, currentSet, RuntimeInfo, moduleIdentities);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, addPlan, CancellationToken.None);
+
+            factory.Recorder.ForEach(r => Assert.Equal(updateExecutionList, r.ExecutionList));
+        }
+
+        [Fact]
+        [Unit]
+        public async void TestUpdateModuleForModuleNeverStarted()
+        {
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
+
+            IRuntimeModule currentModule = new TestRuntimeModule(
+                "mod1",
+                "version1",
+                RestartPolicy.OnUnhealthy,
+                "test",
+                ModuleStatus.Running,
+                Config1,
+                0,
+                "created",
+                DateTime.MinValue,
+                DateTime.MinValue,
+                0,
+                DateTime.MinValue,
+                ModuleStatus.Stopped);
+            IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { desiredModule });
+            ModuleSet currentSet = ModuleSet.Create(currentModule);
+            ModuleSet desiredSet = ModuleSet.Create(desiredModule);
+
+            var updateExecutionList = new List<TestRecordType>
+            {
+                new TestRecordType(TestCommandType.TestStop, desiredModule),
+                new TestRecordType(TestCommandType.TestStart, desiredModule),
+            };
+            Plan plan = await planner.PlanAsync(desiredSet, currentSet, RuntimeInfo, moduleIdentities);
+            var planRunner = new OrderedPlanRunner();
+            await planRunner.ExecuteAsync(1, plan, CancellationToken.None);
 
             factory.Recorder.ForEach(r => Assert.Equal(updateExecutionList, r.ExecutionList));
         }

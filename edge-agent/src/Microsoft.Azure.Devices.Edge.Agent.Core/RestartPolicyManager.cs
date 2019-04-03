@@ -86,6 +86,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 return shouldRestart;
             }
 
+            // On Raspberry Pi, we experienced that a taskCanceledException is thrown during module creation;
+            // this causes the container is in created status, but not running; e.g. influxdb in stress test.
+            // Therefore the module should be restarted if it is never run before and in stopped status.
+            if (module.RuntimeStatus == ModuleStatus.Stopped && module.LastExitTimeUtc == DateTime.MinValue)
+            {
+                return true;
+            }
+
             return false;
         }
     }
