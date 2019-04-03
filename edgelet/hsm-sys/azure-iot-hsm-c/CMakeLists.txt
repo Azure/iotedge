@@ -63,6 +63,7 @@ if(MSVC)
     else()
         add_definitions(/W4)
     endif(run_unittests)
+
     # export functions in DLL
     set(source_c_files ${source_c_files}
         ./src/hsm_client_data.def
@@ -71,6 +72,12 @@ if(MSVC)
     add_definitions(-DGB_MEASURE_MEMORY_FOR_THIS -DGB_DEBUG_ALLOC)
 else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security -std=c99 ")
+
+    # suppress clang compiler warnings complaining about calls to vsnprintf
+    if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=format-nonliteral")
+    endif()
+
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security ")
 
     if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
