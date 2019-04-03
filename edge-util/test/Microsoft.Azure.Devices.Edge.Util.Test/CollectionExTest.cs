@@ -195,5 +195,53 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.Equal(obj, returnedObj);
             Assert.False(objectDictionary.TryGetNonEmptyValue("2", out returnedObj));
         }
+
+        [Theory]
+        [MemberData(nameof(GetBatchTestData))]
+        public void BatchTest(IList<int> list, int batchSize, IList<int> expectedBatches)
+        {
+            // Act
+            IList<IEnumerable<int>> batches = list.Batch(batchSize).ToList();
+
+            // Assert
+            Assert.Equal(expectedBatches.Count, batches.Count);
+            int ctr = 0;
+            foreach (int expectedBatchSize in expectedBatches)
+            {
+                IList<int> batch = batches[ctr].ToList();
+                Assert.Equal(expectedBatchSize, batch.Count);
+                for (int i = 0; i < batch.Count; i++)
+                {
+                    Assert.Equal(list[ctr * batchSize + i], batch[i]);
+                }
+
+                ctr++;
+            }
+        }
+
+        public static IEnumerable<object[]> GetBatchTestData()
+        {
+            var rand = new Random();
+
+            int batchSize = 10;
+            var list = Enumerable.Range(0, 64).Select(n => rand.Next()).ToList();
+            var expectedBatches = new List<int> { 10, 10, 10, 10, 10, 10, 4 };
+            yield return new object[] { list, batchSize, expectedBatches };
+
+            batchSize = 100;
+            list = Enumerable.Range(0, 64).Select(n => rand.Next()).ToList();
+            expectedBatches = new List<int> { 64 };
+            yield return new object[] { list, batchSize, expectedBatches };
+
+            batchSize = 1;
+            list = Enumerable.Range(0, 6).Select(n => rand.Next()).ToList();
+            expectedBatches = new List<int> { 1, 1, 1, 1, 1, 1 };
+            yield return new object[] { list, batchSize, expectedBatches };
+
+            batchSize = 10;
+            list = Enumerable.Range(0, 50).Select(n => rand.Next()).ToList();
+            expectedBatches = new List<int> { 10, 10, 10, 10, 10 };
+            yield return new object[] { list, batchSize, expectedBatches };
+        }
     }
 }

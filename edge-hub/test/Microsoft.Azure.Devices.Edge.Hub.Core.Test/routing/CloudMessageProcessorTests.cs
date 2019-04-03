@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -95,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                         : Option.None<ICloudProxy>());
             }
 
-            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter);
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter, maxBatchSize: 1);
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
 
             ISinkResult<IRoutingMessage> result1 = await cloudMessageProcessor.ProcessAsync(message1, CancellationToken.None);
@@ -195,6 +196,190 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.Empty(result1.Failed);
             Assert.Equal(2, result1.InvalidDetailsList.Count);
             Assert.True(result1.SendFailureDetails.HasValue);
+        }
+
+        [Fact]
+        public async Task ProcessInBatchesTest()
+        {
+            // Arrange
+            string device1 = "d1";
+            string device2 = "d2";
+            string device3 = "d3";
+
+            IList<IRoutingMessage> device1Messages = GetMessages(device1, 45);
+            IList<IRoutingMessage> device2Messages = GetMessages(device2, 25);
+            IList<IRoutingMessage> device3Messages = GetMessages(device3, 30);
+
+            IList<IRoutingMessage> messagesToProcess = device1Messages
+                .Concat(device2Messages)
+                .Concat(device3Messages)
+                .ToList();
+
+            Mock<ICloudProxy> InitCloudProxy(List<int> receivedMsgCountList)
+            {
+                var cp = new Mock<ICloudProxy>();
+                cp.Setup(c => c.SendMessageBatchAsync(It.IsAny<IEnumerable<IMessage>>()))
+                    .Callback<IEnumerable<IMessage>>(b => receivedMsgCountList.Add(b.Count()))
+                    .Returns(Task.CompletedTask);
+                cp.SetupGet(p => p.IsActive).Returns(true);
+                return cp;
+            }
+
+            var device1CloudReceivedMessagesCountList = new List<int>();
+            Mock<ICloudProxy> device1CloudProxy = InitCloudProxy(device1CloudReceivedMessagesCountList);
+
+            var device2CloudReceivedMessagesCountList = new List<int>();
+            Mock<ICloudProxy> device2CloudProxy = InitCloudProxy(device2CloudReceivedMessagesCountList);
+
+            var device3CloudReceivedMessagesCountList = new List<int>();
+            Mock<ICloudProxy> device3CloudProxy = InitCloudProxy(device3CloudReceivedMessagesCountList);
+
+            Task<Option<ICloudProxy>> GetCloudProxy(string id)
+            {
+                ICloudProxy cp = null;
+                if (id == device1)
+                {
+                    cp = device1CloudProxy.Object;
+                }
+                else if (id == device2)
+                {
+                    cp = device2CloudProxy.Object;
+                }
+                else if (id == device3)
+                {
+                    cp = device3CloudProxy.Object;
+                }
+
+                return Task.FromResult(Option.Maybe(cp));
+            }
+
+            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
+            string cloudEndpointId = Guid.NewGuid().ToString();
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter, 10);
+
+            // Act
+            IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
+            ISinkResult<IRoutingMessage> sinkResult = await cloudMessageProcessor.ProcessAsync(messagesToProcess, CancellationToken.None);
+
+            // Assert
+            Assert.Equal(messagesToProcess, sinkResult.Succeeded);
+            Assert.Equal(device1CloudReceivedMessagesCountList, new[] { 10, 10, 10, 10, 5 });
+            Assert.Equal(device2CloudReceivedMessagesCountList, new[] { 10, 10, 5 });
+            Assert.Equal(device3CloudReceivedMessagesCountList, new[] { 10, 10, 10 });
+        }
+
+        [Fact]
+        public async Task ProcessInBatchesWithBatchSizeTest()
+        {
+            // Arrange
+            string device1 = "d1";
+            string device2 = "d2";
+            string device3 = "d3";
+
+            IList<IRoutingMessage> device1Messages = GetMessages(device1, 45);
+            IList<IRoutingMessage> device2Messages = GetMessages(device2, 25);
+            IList<IRoutingMessage> device3Messages = GetMessages(device3, 30);
+
+            IList<IRoutingMessage> messagesToProcess = device1Messages
+                .Concat(device2Messages)
+                .Concat(device3Messages)
+                .ToList();
+
+            Mock<ICloudProxy> InitCloudProxy(List<int> receivedMsgCountList)
+            {
+                var cp = new Mock<ICloudProxy>();
+                cp.Setup(c => c.SendMessageBatchAsync(It.IsAny<IEnumerable<IMessage>>()))
+                    .Callback<IEnumerable<IMessage>>(b => receivedMsgCountList.Add(b.Count()))
+                    .Returns(Task.CompletedTask);
+                cp.SetupGet(p => p.IsActive).Returns(true);
+                return cp;
+            }
+
+            var device1CloudReceivedMessagesCountList = new List<int>();
+            Mock<ICloudProxy> device1CloudProxy = InitCloudProxy(device1CloudReceivedMessagesCountList);
+
+            var device2CloudReceivedMessagesCountList = new List<int>();
+            Mock<ICloudProxy> device2CloudProxy = InitCloudProxy(device2CloudReceivedMessagesCountList);
+
+            var device3CloudReceivedMessagesCountList = new List<int>();
+            Mock<ICloudProxy> device3CloudProxy = InitCloudProxy(device3CloudReceivedMessagesCountList);
+
+            Task<Option<ICloudProxy>> GetCloudProxy(string id)
+            {
+                ICloudProxy cp = null;
+                if (id == device1)
+                {
+                    cp = device1CloudProxy.Object;
+                }
+                else if (id == device2)
+                {
+                    cp = device2CloudProxy.Object;
+                }
+                else if (id == device3)
+                {
+                    cp = device3CloudProxy.Object;
+                }
+
+                return Task.FromResult(Option.Maybe(cp));
+            }
+
+            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
+            string cloudEndpointId = Guid.NewGuid().ToString();
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter, 30);
+
+            // Act
+            IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
+            ISinkResult<IRoutingMessage> sinkResult = await cloudMessageProcessor.ProcessAsync(messagesToProcess, CancellationToken.None);
+
+            // Assert
+            Assert.Equal(messagesToProcess, sinkResult.Succeeded);
+            Assert.Equal(device1CloudReceivedMessagesCountList, new[] { 30, 15 });
+            Assert.Equal(device2CloudReceivedMessagesCountList, new[] { 25 });
+            Assert.Equal(device3CloudReceivedMessagesCountList, new[] { 30 });
+        }
+
+        [Theory]
+        [InlineData(10, 1024, 10)]
+        [InlineData(10, 64 * 1024, 4)]
+        [InlineData(20, 50 * 1024, 5)]
+        public void GetBatchSizeTest(int maxBatchSize, int maxMessageSize, int expectedBatchSize)
+        {
+            Assert.Equal(expectedBatchSize, CloudEndpoint.CloudMessageProcessor.GetBatchSize(maxBatchSize, maxMessageSize));
+        }
+
+        static IList<IRoutingMessage> GetMessages(string id, int count)
+        {
+            var messages = new List<IRoutingMessage>();
+            for (int i = 0; i < count; i++)
+            {
+                messages.Add(GetMessage(id));
+            }
+
+            return messages;
+        }
+
+        static IRoutingMessage GetMessage(string id)
+        {
+            byte[] messageBody = Encoding.UTF8.GetBytes("Message body");
+            var properties = new Dictionary<string, string>()
+            {
+                { "Prop1", "Val1" },
+                { "Prop2", "Val2" }
+            };
+
+            var systemProperties = new Dictionary<string, string>
+            {
+                { SystemProperties.DeviceId, id }
+            };
+
+            var cancelProperties = new Dictionary<string, string>()
+            {
+                { "Delay", "true" },
+                { "Prop2", "Val2" }
+            };
+
+            var message = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
+            return message;
         }
     }
 }
