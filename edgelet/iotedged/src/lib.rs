@@ -660,6 +660,10 @@ where
                 if prov_result.reconfigure() == ReprovisioningStatus::DeviceDataNotUpdated {
                     Either::B(future::ok((prov_result, runtime)))
                 } else {
+                    // If there was a DPS reprovision and device key was updated results in obsolete
+                    // module keys in IoTHub from the previous provisioning. We delete all containers
+                    // after each DPS provisioning run so that IoTHub can be updated with new module
+                    // keys when the deployment is executed by EdgeAgent.
                     info!(
                         "Reprovisioning status {:?} will trigger reconfiguration of modules.",
                         prov_result.reconfigure()
