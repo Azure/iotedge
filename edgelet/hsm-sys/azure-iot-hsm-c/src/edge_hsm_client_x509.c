@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -218,7 +219,7 @@ static CERT_INFO_HANDLE create_device_certificate(HSM_CLIENT_HANDLE hsm_handle)
                 result = NULL;
             }
             else if ((certificate_props = create_edge_device_properties(common_name,
-                                                                        seconds_left,
+                                                                        (uint64_t)floor(seconds_left),
                                                                         issuer_alias)) == NULL)
             {
                 LOG_ERROR("Error creating certificate properties for device certificate");
