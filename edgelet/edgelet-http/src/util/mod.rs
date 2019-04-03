@@ -16,6 +16,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpStream;
 #[cfg(windows)]
 use tokio_named_pipe::PipeStream;
+use tokio_tls::TlsStream;
 #[cfg(unix)]
 use tokio_uds::UnixStream;
 #[cfg(windows)]
@@ -33,6 +34,10 @@ pub use self::incoming::Incoming;
 
 pub enum StreamSelector {
     Tcp(TcpStream),
+    #[cfg(not(windows))]
+    Tls(TlsStream<TcpStream>),
+    #[cfg(windows)]
+    Tls(Box<TlsStream<TcpStream>>),
     #[cfg(windows)]
     Pipe(PipeStream),
     Unix(UnixStream),
@@ -43,6 +48,7 @@ impl StreamSelector {
     pub fn pid(&self) -> io::Result<Pid> {
         match *self {
             StreamSelector::Tcp(_) => Ok(Pid::Any),
+            StreamSelector::Tls(_) => Ok(Pid::Any),
             #[cfg(windows)]
             StreamSelector::Pipe(_) => Ok(Pid::Any),
             StreamSelector::Unix(ref stream) => stream.pid(),
@@ -52,31 +58,34 @@ impl StreamSelector {
 
 impl Read for StreamSelector {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        match *self {
-            StreamSelector::Tcp(ref mut stream) => stream.read(buf),
+        match self {
+            StreamSelector::Tcp(stream) => stream.read(buf),
+            StreamSelector::Tls(stream) => stream.read(buf),
             #[cfg(windows)]
-            StreamSelector::Pipe(ref mut stream) => stream.read(buf),
-            StreamSelector::Unix(ref mut stream) => stream.read(buf),
+            StreamSelector::Pipe(stream) => stream.read(buf),
+            StreamSelector::Unix(stream) => stream.read(buf),
         }
     }
 }
 
 impl Write for StreamSelector {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        match *self {
-            StreamSelector::Tcp(ref mut stream) => stream.write(buf),
+        match self {
+            StreamSelector::Tcp(stream) => stream.write(buf),
+            StreamSelector::Tls(stream) => stream.write(buf),
             #[cfg(windows)]
-            StreamSelector::Pipe(ref mut stream) => stream.write(buf),
-            StreamSelector::Unix(ref mut stream) => stream.write(buf),
+            StreamSelector::Pipe(stream) => stream.write(buf),
+            StreamSelector::Unix(stream) => stream.write(buf),
         }
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        match *self {
-            StreamSelector::Tcp(ref mut stream) => stream.flush(),
+        match self {
+            StreamSelector::Tcp(stream) => stream.flush(),
+            StreamSelector::Tls(stream) => stream.flush(),
             #[cfg(windows)]
-            StreamSelector::Pipe(ref mut stream) => stream.flush(),
-            StreamSelector::Unix(ref mut stream) => stream.flush(),
+            StreamSelector::Pipe(stream) => stream.flush(),
+            StreamSelector::Unix(stream) => stream.flush(),
         }
     }
 }
@@ -86,6 +95,7 @@ impl AsyncRead for StreamSelector {
     unsafe fn prepare_uninitialized_buffer(&self, buf: &mut [u8]) -> bool {
         match *self {
             StreamSelector::Tcp(ref stream) => stream.prepare_uninitialized_buffer(buf),
+            StreamSelector::Tls(ref stream) => stream.prepare_uninitialized_buffer(buf),
             #[cfg(windows)]
             StreamSelector::Pipe(ref stream) => stream.prepare_uninitialized_buffer(buf),
             StreamSelector::Unix(ref stream) => stream.prepare_uninitialized_buffer(buf),
@@ -94,32 +104,35 @@ impl AsyncRead for StreamSelector {
 
     #[inline]
     fn read_buf<B: BufMut>(&mut self, buf: &mut B) -> Poll<usize, io::Error> {
-        match *self {
-            StreamSelector::Tcp(ref mut stream) => stream.read_buf(buf),
+        match self {
+            StreamSelector::Tcp(stream) => stream.read_buf(buf),
+            StreamSelector::Tls(stream) => stream.read_buf(buf),
             #[cfg(windows)]
-            StreamSelector::Pipe(ref mut stream) => stream.read_buf(buf),
-            StreamSelector::Unix(ref mut stream) => stream.read_buf(buf),
+            StreamSelector::Pipe(stream) => stream.read_buf(buf),
+            StreamSelector::Unix(stream) => stream.read_buf(buf),
         }
     }
 }
 
 impl AsyncWrite for StreamSelector {
     fn shutdown(&mut self) -> Poll<(), io::Error> {
-        match *self {
-            StreamSelector::Tcp(ref mut stream) => <&TcpStream>::shutdown(&mut &*stream),
+        match self {
+            StreamSelector::Tcp(stream) => AsyncWrite::shutdown(stream),
+            StreamSelector::Tls(stream) => TlsStream::shutdown(stream),
             #[cfg(windows)]
-            StreamSelector::Pipe(ref mut stream) => PipeStream::shutdown(stream),
-            StreamSelector::Unix(ref mut stream) => <&UnixStream>::shutdown(&mut &*stream),
+            StreamSelector::Pipe(stream) => PipeStream::shutdown(stream),
+            StreamSelector::Unix(stream) => AsyncWrite::shutdown(stream),
         }
     }
 
     #[inline]
     fn write_buf<B: Buf>(&mut self, buf: &mut B) -> Poll<usize, io::Error> {
-        match *self {
-            StreamSelector::Tcp(ref mut stream) => stream.write_buf(buf),
+        match self {
+            StreamSelector::Tcp(stream) => stream.write_buf(buf),
+            StreamSelector::Tls(stream) => stream.write_buf(buf),
             #[cfg(windows)]
-            StreamSelector::Pipe(ref mut stream) => stream.write_buf(buf),
-            StreamSelector::Unix(ref mut stream) => stream.write_buf(buf),
+            StreamSelector::Pipe(stream) => stream.write_buf(buf),
+            StreamSelector::Unix(stream) => stream.write_buf(buf),
         }
     }
 }
