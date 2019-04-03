@@ -223,7 +223,7 @@ pub struct X509RegistrationResult {
 
 impl X509RegistrationResult {
     /// X509 registration result.
-    pub fn new() -> X509RegistrationResult {
+    pub fn new() -> Self {
         X509RegistrationResult {
             certificate_info: None,
             enrollment_group_id: None,
@@ -235,10 +235,7 @@ impl X509RegistrationResult {
         self.certificate_info = Some(certificate_info);
     }
 
-    pub fn with_certificate_info(
-        mut self,
-        certificate_info: X509CertificateInfo,
-    ) -> X509RegistrationResult {
+    pub fn with_certificate_info(mut self, certificate_info: X509CertificateInfo) -> Self {
         self.certificate_info = Some(certificate_info);
         self
     }
@@ -255,16 +252,13 @@ impl X509RegistrationResult {
         self.enrollment_group_id = Some(enrollment_group_id);
     }
 
-    pub fn with_enrollment_group_id(
-        mut self,
-        enrollment_group_id: String,
-    ) -> X509RegistrationResult {
+    pub fn with_enrollment_group_id(mut self, enrollment_group_id: String) -> Self {
         self.enrollment_group_id = Some(enrollment_group_id);
         self
     }
 
-    pub fn enrollment_group_id(&self) -> Option<&String> {
-        self.enrollment_group_id.as_ref()
+    pub fn enrollment_group_id(&self) -> Option<&str> {
+        self.enrollment_group_id.as_ref().map(AsRef::as_ref)
     }
 
     pub fn reset_enrollment_group_id(&mut self) {
@@ -278,7 +272,7 @@ impl X509RegistrationResult {
     pub fn with_signing_certificate_info(
         mut self,
         signing_certificate_info: X509CertificateInfo,
-    ) -> X509RegistrationResult {
+    ) -> Self {
         self.signing_certificate_info = Some(signing_certificate_info);
         self
     }
@@ -330,7 +324,7 @@ impl X509CertificateInfo {
         not_after_utc: String,
         serial_number: String,
         version: i32,
-    ) -> X509CertificateInfo {
+    ) -> Self {
         X509CertificateInfo {
             subject_name,
             sha1_thumbprint,
@@ -347,12 +341,12 @@ impl X509CertificateInfo {
         self.subject_name = subject_name;
     }
 
-    pub fn with_subject_name(mut self, subject_name: String) -> X509CertificateInfo {
+    pub fn with_subject_name(mut self, subject_name: String) -> Self {
         self.subject_name = subject_name;
         self
     }
 
-    pub fn subject_name(&self) -> &String {
+    pub fn subject_name(&self) -> &str {
         &self.subject_name
     }
 
@@ -360,12 +354,12 @@ impl X509CertificateInfo {
         self.sha1_thumbprint = sha1_thumbprint;
     }
 
-    pub fn with_sha1_thumbprint(mut self, sha1_thumbprint: String) -> X509CertificateInfo {
+    pub fn with_sha1_thumbprint(mut self, sha1_thumbprint: String) -> Self {
         self.sha1_thumbprint = sha1_thumbprint;
         self
     }
 
-    pub fn sha1_thumbprint(&self) -> &String {
+    pub fn sha1_thumbprint(&self) -> &str {
         &self.sha1_thumbprint
     }
 
@@ -373,12 +367,12 @@ impl X509CertificateInfo {
         self.sha256_thumbprint = sha256_thumbprint;
     }
 
-    pub fn with_sha256_thumbprint(mut self, sha256_thumbprint: String) -> X509CertificateInfo {
+    pub fn with_sha256_thumbprint(mut self, sha256_thumbprint: String) -> Self {
         self.sha256_thumbprint = sha256_thumbprint;
         self
     }
 
-    pub fn sha256_thumbprint(&self) -> &String {
+    pub fn sha256_thumbprint(&self) -> &str {
         &self.sha256_thumbprint
     }
 
@@ -386,12 +380,12 @@ impl X509CertificateInfo {
         self.issuer_name = issuer_name;
     }
 
-    pub fn with_issuer_name(mut self, issuer_name: String) -> X509CertificateInfo {
+    pub fn with_issuer_name(mut self, issuer_name: String) -> Self {
         self.issuer_name = issuer_name;
         self
     }
 
-    pub fn issuer_name(&self) -> &String {
+    pub fn issuer_name(&self) -> &str {
         &self.issuer_name
     }
 
@@ -399,12 +393,12 @@ impl X509CertificateInfo {
         self.not_before_utc = not_before_utc;
     }
 
-    pub fn with_not_before_utc(mut self, not_before_utc: String) -> X509CertificateInfo {
+    pub fn with_not_before_utc(mut self, not_before_utc: String) -> Self {
         self.not_before_utc = not_before_utc;
         self
     }
 
-    pub fn not_before_utc(&self) -> &String {
+    pub fn not_before_utc(&self) -> &str {
         &self.not_before_utc
     }
 
@@ -412,12 +406,12 @@ impl X509CertificateInfo {
         self.not_after_utc = not_after_utc;
     }
 
-    pub fn with_not_after_utc(mut self, not_after_utc: String) -> X509CertificateInfo {
+    pub fn with_not_after_utc(mut self, not_after_utc: String) -> Self {
         self.not_after_utc = not_after_utc;
         self
     }
 
-    pub fn not_after_utc(&self) -> &String {
+    pub fn not_after_utc(&self) -> &str {
         &self.not_after_utc
     }
 
@@ -425,12 +419,12 @@ impl X509CertificateInfo {
         self.serial_number = serial_number;
     }
 
-    pub fn with_serial_number(mut self, serial_number: String) -> X509CertificateInfo {
+    pub fn with_serial_number(mut self, serial_number: String) -> Self {
         self.serial_number = serial_number;
         self
     }
 
-    pub fn serial_number(&self) -> &String {
+    pub fn serial_number(&self) -> &str {
         &self.serial_number
     }
 
@@ -438,13 +432,13 @@ impl X509CertificateInfo {
         self.version = version;
     }
 
-    pub fn with_version(mut self, version: i32) -> X509CertificateInfo {
+    pub fn with_version(mut self, version: i32) -> Self {
         self.version = version;
         self
     }
 
-    pub fn version(&self) -> &i32 {
-        &self.version
+    pub fn version(&self) -> i32 {
+        self.version
     }
 }
 

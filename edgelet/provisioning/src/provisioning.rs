@@ -19,13 +19,12 @@ use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_utils::log_failure;
 use hsm::TpmKey as HsmTpmKey;
-use log::Level;
+use log::{debug, Level};
 use sha2::{Digest, Sha256};
-use std::str::FromStr;
 
 use crate::error::{Error, ErrorKind};
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum ReprovisioningStatus {
     DeviceDataNotUpdated,
     DeviceDataUpdated,
@@ -34,15 +33,17 @@ pub enum ReprovisioningStatus {
     DeviceDataReset,
 }
 
-impl FromStr for ReprovisioningStatus {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<ReprovisioningStatus, ()> {
+impl From<&str> for ReprovisioningStatus {
+    fn from(s: &str) -> ReprovisioningStatus {
         // TODO: check with DPS substatus value for DeviceDataUpdated when it is implemented on service side
         match s {
-            "deviceDataMigrated" => Ok(ReprovisioningStatus::DeviceDataMigrated),
-            "deviceDataReset" => Ok(ReprovisioningStatus::DeviceDataReset),
-            _ => Ok(ReprovisioningStatus::InitialAssignment),
+            "deviceDataMigrated" => ReprovisioningStatus::DeviceDataMigrated,
+            "deviceDataReset" => ReprovisioningStatus::DeviceDataReset,
+            "initialAssignment" => ReprovisioningStatus::InitialAssignment,
+            _ => {
+                debug!("DPS provisioning result substatus {}", s);
+                ReprovisioningStatus::InitialAssignment
+            }
         }
     }
 }
@@ -73,7 +74,7 @@ impl ProvisioningResult {
     }
 
     pub fn reconfigure(&self) -> ReprovisioningStatus {
-        self.reconfigure.clone()
+        self.reconfigure
     }
 }
 
@@ -288,7 +289,7 @@ where
                         );
                         let reconfigure = substatus.map_or_else(
                             || ReprovisioningStatus::InitialAssignment,
-                            |s| ReprovisioningStatus::from_str(s.as_ref()).unwrap(),
+                            |s| ReprovisioningStatus::from(s.as_ref()),
                         );
                         ProvisioningResult {
                             device_id,
@@ -363,14 +364,20 @@ where
                     Ok(true)
                 }
             }
-            Err(_err) => Ok(true),
+            Err(err) => {
+                log_failure(Level::Debug, &err);
+                Ok(true)
+            }
         }
     }
 
     fn diff_with_backup(path: PathBuf, prov_result: &ProvisioningResult) -> bool {
         match Self::diff_with_backup_inner(path, prov_result) {
             Ok(result) => result,
-            Err(_err) => true,
+            Err(err) => {
+                log_failure(Level::Debug, &err);
+                true
+            }
         }
     }
 }
