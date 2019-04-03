@@ -26,6 +26,12 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred while binding a listener to {}", _0)]
     BindListener(BindListenerType),
 
+    #[fail(display = "Unable to create a TLS certificate")]
+    CertificateCreationError,
+
+    #[fail(display = "Unable to convert a TLS certificate into a PKCS#12 certificate")]
+    CertificateConversionError,
+
     #[fail(display = "Could not perform HTTP request")]
     Http,
 
@@ -65,6 +71,12 @@ pub enum ErrorKind {
 
     #[fail(display = "An error occurred in the service")]
     ServiceError,
+
+    #[fail(display = "An error occured configuring the TLS stack")]
+    TlsBootstrapError,
+
+    #[fail(display = "An error occured during creation of the TLS identity from cert")]
+    TlsIdentityCreationError,
 
     #[fail(display = "Token source error")]
     TokenSource,
