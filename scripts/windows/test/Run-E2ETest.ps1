@@ -222,8 +222,8 @@ Function PrepareTestFromArtifacts
     }
 
     # IoT Edge Quickstart
-    Write-Host "Copy IoT Edge Quickstart from $IoTEdgeQuickstartArtifactFolder to $QuickstartWorkingFolder"
-    Copy-Item $IoTEdgeQuickstartArtifactFolder -Destination $QuickstartWorkingFolder -Recurse -Force
+    Write-Host "Copy IoT Edge Quickstart from $IotEdgeQuickstartArtifactFolder to $QuickstartWorkingFolder"
+    Copy-Item $IotEdgeQuickstartArtifactFolder -Destination $QuickstartWorkingFolder -Recurse -Force
 
     # Leaf device
     If (($TestName -eq "QuickstartCerts") -Or ($TestName -eq "TransparentGateway"))
@@ -461,7 +461,7 @@ Function RunDirectMethodAmqpTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DMAmqp"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
 
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
@@ -493,7 +493,7 @@ Function RunDirectMethodMqttTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DMMqtt"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
 
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
@@ -525,7 +525,7 @@ Function RunQuickstartCertsTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-QuickstartCerts"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
 
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
         -d `"$deviceId`" ``
         -c `"$IoTHubConnectionString`" ``
         -e `"doesNotNeed`" ``
@@ -574,7 +574,7 @@ Function RunTempFilterTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilter"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
 
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
@@ -612,7 +612,7 @@ Function RunTempFilterFunctionsTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilterFunc"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
 
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
@@ -644,7 +644,7 @@ Function RunTempSensorTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempSensor"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt."
 
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
         -d `"$deviceId`" ``
         -c `"$IoTHubConnectionString`" ``
         -e `"$EventHubConnectionString`" ``
@@ -799,7 +799,7 @@ Function RunTransparentGatewayTest
     New-CACertsEdgeDevice $edgeDeviceId
 
     #launch the edge as a transparent gateway
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
         -d `"$edgeDeviceId`" ``
         -c `"$IoTHubConnectionString`" ``
         -e `"doesNotNeed`" ``
@@ -862,7 +862,7 @@ Function RunTest
 
 Function SetEnvironmentVariable
 {
-    # IoTEdgeQuickstart runs different processes to call iotedge list right after running installation script.
+    # IotEdgeQuickstart runs different processes to call iotedge list right after running installation script.
     # E2E test failed randomly when running iotedge list command throws Win32Exception as Path environment variable may not be in place yet.
     # Therefore set it explicitly before running each test.
     $env:Path="$env:Path;C:\Program Files\iotedge-moby;C:\Program Files\iotedge"
@@ -887,7 +887,7 @@ Function ValidateTestParameters
     }
 
     $validatingItems = @(
-        (Join-Path $IoTEdgeQuickstartArtifactFolder "*"),
+        (Join-Path $IotEdgeQuickstartArtifactFolder "*"),
         $InstallationScriptPath)
 
     If (($TestName -eq "DirectMethodAmqp") -Or ($TestName -eq "DirectMethodMqtt"))
@@ -961,7 +961,7 @@ $RuntimeOnlyDeploymentFilename = 'runtime_only_deployment.template.json'
 $QuickstartDeploymentFilename = 'quickstart_deployment.template.json'
 $TwinTestFilename = "twin_test_tempSensor.json"
 
-$IoTEdgeQuickstartArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\IoTEdgeQuickstart\$Architecture"
+$IotEdgeQuickstartArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\IotEdgeQuickstart\$Architecture"
 $LeafDeviceArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\LeafDevice\$Architecture"
 $IoTEdgedArtifactFolder = Join-Path $E2ETestFolder "artifacts\iotedged-windows"
 $PackagesArtifactFolder = Join-Path $E2ETestFolder "artifacts\packages"
@@ -979,7 +979,7 @@ $QuickstartWorkingFolder = (Join-Path $TestWorkingFolder "quickstart")
 $LeafDeviceWorkingFolder = (Join-Path $TestWorkingFolder "leafdevice")
 $IoTEdgedWorkingFolder = (Join-Path $TestWorkingFolder "iotedged")
 $PackagesWorkingFolder = (Join-Path $TestWorkingFolder "packages")
-$IoTEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuickstart.exe")
+$IotEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuickstart.exe")
 $LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
 $DeploymentWorkingFilePath = Join-Path $QuickstartWorkingFolder "deployment.json"
 
