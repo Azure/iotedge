@@ -59,30 +59,36 @@ if (-not $BuildSourceVersion) {
     $BuildSourceVersion = DefaultBuildSourceVersion
 }
 
-$SLN_PATTERN = "Microsoft.Azure.*.sln"
-$TEST_CSPROJ_PATTERN = "Microsoft.Azure*Test.csproj"
+if (Test-Path env:DOTNET_PATH) {
+    $DOTNET_PATH = $env:DOTNET_PATH
+} else {
+    $dotnetCmd = Get-Command dotnet -ErrorAction SilentlyContinue
+    if ($?) {
+        $DOTNET_PATH = $dotnetCmd.Path
+    } else {
+        $DOTNET_PATH = [IO.Path]::Combine($AgentWorkFolder, "dotnet", "dotnet.exe")
+    }
+}
 
-$DOTNET_PATH = [IO.Path]::Combine($AgentWorkFolder, "dotnet", "dotnet.exe")
+if (Test-Path $DOTNET_PATH -PathType Leaf) {
+    Write-Host "Found '$DOTNET_PATH'"
+} else {
+    throw "$DOTNET_PATH not found"
+}
+
 $PUBLISH_FOLDER = Join-Path $BuildBinariesDirectory "publish"
-$RELEASE_TESTS_FOLDER = Join-Path $BuildBinariesDirectory "release-tests"
 $VERSIONINFO_FILE_PATH = Join-Path $BuildRepositoryLocalPath "versionInfo.json"
 
 $SRC_SCRIPTS_DIR = Join-Path $BuildRepositoryLocalPath "scripts"
 $PUB_SCRIPTS_DIR = Join-Path $PUBLISH_FOLDER "scripts"
-$PUB_STRESS_DIR = Join-Path $PUBLISH_FOLDER "stress"
 $SRC_BIN_DIR = Join-Path $BuildRepositoryLocalPath "bin"
 $PUB_BIN_DIR = Join-Path $PUBLISH_FOLDER "bin"
 $SRC_E2E_TEMPLATES_DIR = Join-Path $BuildRepositoryLocalPath "e2e_deployment_files"
 $PUB_E2E_TEMPLATES_DIR = Join-Path $PUBLISH_FOLDER "e2e_deployment_files"
 $SRC_E2E_TEST_FILES_DIR = Join-Path $BuildRepositoryLocalPath "e2e_test_files"
 $PUB_E2E_TEST_FILES_DIR = Join-Path $PUBLISH_FOLDER "e2e_test_files"
-$TEST_SCRIPTS_DIR = Join-Path $RELEASE_TESTS_FOLDER "scripts"
 $SRC_CERT_TOOLS_DIR = Join-Path $BuildRepositoryLocalPath "tools/CACertificates"
 $PUB_CERT_TOOLS_DIR = Join-Path $PUBLISH_FOLDER "CACertificates"
-
-if (-not (Test-Path $DOTNET_PATH -PathType Leaf)) {
-    throw "$DOTNET_PATH not found"
-}
 
 if (Test-Path $BuildBinariesDirectory -PathType Container) {
     Remove-Item $BuildBinariesDirectory -Force -Recurse
@@ -230,17 +236,17 @@ $IoTEdgeQuickstartPublishBaseFolder = Join-Path $PUBLISH_FOLDER "IoTEdgeQuicksta
 Write-Host "Publishing - IoTEdgeQuickstart x64"
 $ProjectPublishPath = Join-Path $IoTEdgeQuickstartPublishBaseFolder "x64"
 &$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-x64" -c $Configuration -o $ProjectPublishPath $IoTEdgeQuickstartProjectFolder |
-	Write-Host
+    Write-Host
 if ($LASTEXITCODE -ne 0) {
-	throw "Failed publishing IoTEdgeQuickstart x64."
+    throw "Failed publishing IoTEdgeQuickstart x64."
 }
 
 Write-Host "Publishing - IoTEdgeQuickstart arm32"
 $ProjectPublishPath = Join-Path $IoTEdgeQuickstartPublishBaseFolder "arm32v7"
 &$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-arm" -c $Configuration -o $ProjectPublishPath $IoTEdgeQuickstartProjectFolder |
-	Write-Host
+    Write-Host
 if ($LASTEXITCODE -ne 0) {
-	throw "Failed publishing IoTEdgeQuickstart arm32."
+    throw "Failed publishing IoTEdgeQuickstart arm32."
 }
 
 <#
@@ -252,15 +258,15 @@ $LeafDevicePublishBaseFolder = Join-Path $PUBLISH_FOLDER "LeafDevice"
 Write-Host "Publishing - LeafDevice x64"
 $ProjectPublishPath = Join-Path $LeafDevicePublishBaseFolder "x64"
 &$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-x64" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
-	Write-Host
+    Write-Host
 if ($LASTEXITCODE -ne 0) {
-	throw "Failed publishing LeafDevice x64."
+    throw "Failed publishing LeafDevice x64."
 }
 
 Write-Host "Publishing - LeafDevice arm32"
 $ProjectPublishPath = Join-Path $LeafDevicePublishBaseFolder "arm32v7"
 &$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-arm" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
-	Write-Host
+    Write-Host
 if ($LASTEXITCODE -ne 0) {
-	throw "Failed publishing LeafDevice arm32."
+    throw "Failed publishing LeafDevice arm32."
 }
