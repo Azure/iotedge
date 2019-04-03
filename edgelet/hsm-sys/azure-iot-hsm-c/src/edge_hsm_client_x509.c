@@ -185,18 +185,26 @@ static CERT_INFO_HANDLE create_device_certificate(HSM_CLIENT_HANDLE hsm_handle)
     char *common_name;
 
     if ((hsm_get_env(ENV_REGISTRATION_ID, &common_name) != 0) ||
-        (common_name == NULL) ||
-        (strlen(common_name) == 0))
+        (common_name == NULL))
     {
         LOG_ERROR("Environment variable %s is not set or empty."
                   "This value is required to create the device identity certificate",
                   ENV_REGISTRATION_ID);
         result = NULL;
     }
+    else if (strlen(common_name) == 0)
+    {
+        LOG_ERROR("Environment variable %s is not set or empty."
+                  "This value is required to create the device identity certificate",
+                  ENV_REGISTRATION_ID);
+        free(common_name);
+        result = NULL;
+    }
     else if ((issuer = interface->hsm_client_crypto_get_certificate(hsm_handle,
                                                                     issuer_alias)) == NULL)
     {
         LOG_ERROR("Issuer alias %s does not exist", issuer_alias);
+        free(common_name);
         result = NULL;
     }
     else
@@ -235,6 +243,7 @@ static CERT_INFO_HANDLE create_device_certificate(HSM_CLIENT_HANDLE hsm_handle)
                 cert_properties_destroy(certificate_props);
             }
         }
+        free(common_name);
         certificate_info_destroy(issuer);
     }
 
@@ -244,19 +253,27 @@ static CERT_INFO_HANDLE create_device_certificate(HSM_CLIENT_HANDLE hsm_handle)
 static int get_device_id_cert_env_vars(char **device_cert_file_path, char **device_pk_file_path)
 {
     int result;
+    char *cert_path = NULL;
+    char *key_path = NULL;
 
-    if (hsm_get_env(ENV_DEVICE_CERTIFICATE_PATH, device_cert_file_path) != 0)
+    if (hsm_get_env(ENV_DEVICE_CERTIFICATE_PATH, &cert_path) != 0)
     {
         LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_CERTIFICATE_PATH);
         result = __FAILURE__;
     }
-    else if (hsm_get_env(ENV_DEVICE_PRIVATE_KEY_PATH, device_pk_file_path) != 0)
+    else if (hsm_get_env(ENV_DEVICE_PRIVATE_KEY_PATH, &key_path) != 0)
     {
         LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_PRIVATE_KEY_PATH);
+        if (cert_path != NULL)
+        {
+            free(cert_path);
+        }
         result = __FAILURE__;
     }
     else
     {
+        *device_cert_file_path = cert_path;
+        *device_pk_file_path = key_path;
         result = 0;
     }
 
@@ -370,6 +387,14 @@ static CERT_INFO_HANDLE get_or_create_device_certificate(HSM_CLIENT_HANDLE hsm_h
                 // no device certificate and key were provided so generate them
                 result = create_device_certificate(hsm_handle);
             }
+        }
+        if (device_cert_file_path != NULL)
+        {
+            free(device_cert_file_path);
+        }
+        if (device_pk_file_path != NULL)
+        {
+            free(device_pk_file_path);
         }
     }
 

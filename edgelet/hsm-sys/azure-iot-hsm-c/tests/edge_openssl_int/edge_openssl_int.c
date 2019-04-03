@@ -1034,6 +1034,7 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
 
         // cleanup
         free(digest);
+        key_destroy(key_handle);
         STRING_delete(output_b64);
     }
 

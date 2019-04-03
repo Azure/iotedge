@@ -2049,6 +2049,10 @@ static void test_helper_create_cert_key
 
     umock_c_reset_all_calls();
 
+    EXPECTED_CALL(initialize_openssl());
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    i++;
+
     STRICT_EXPECTED_CALL(BIO_new_file(TEST_KEY_FILE, "r"));
     ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
@@ -3613,6 +3617,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
     TEST_FUNCTION(create_cert_key_invalid_param)
     {
         // arrange
+        EXPECTED_CALL(initialize_openssl());
 
         // act
         KEY_HANDLE result = create_cert_key(NULL);

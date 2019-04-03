@@ -1613,6 +1613,7 @@ KEY_HANDLE create_cert_key(const char* key_file_name)
     EVP_PKEY* evp_key;
     CERT_KEY *cert_key;
 
+    initialize_openssl();
     if (key_file_name == NULL)
     {
         LOG_ERROR("Key file name cannot be NULL");
