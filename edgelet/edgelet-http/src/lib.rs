@@ -14,7 +14,10 @@ use std::net;
 use std::net::ToSocketAddrs;
 #[cfg(unix)]
 use std::os::unix::io::FromRawFd;
+#[cfg(windows)]
 use std::sync::Arc;
+#[cfg(unix)]
+use std::sync::{Arc, Mutex};
 
 use failure::{Fail, ResultExt};
 use futures::{future, Future, Poll, Stream};
@@ -29,10 +32,14 @@ use tokio::net::TcpListener;
 use tokio_uds::UnixListener;
 use url::Url;
 
+use edgelet_core::crypto::CreateCertificate;
 use edgelet_core::{UrlExt, UNIX_SCHEME};
 use edgelet_utils::log_failure;
+#[cfg(unix)]
+use native_tls::{Identity, TlsAcceptor};
 
 pub mod authorization;
+pub mod certificate_manager;
 pub mod client;
 pub mod error;
 pub mod logging;
@@ -42,6 +49,7 @@ mod unix;
 mod util;
 mod version;
 
+pub use self::certificate_manager::CertificateManager;
 pub use self::error::{BindListenerType, Error, ErrorKind, InvalidUrlReason};
 pub use self::util::proxy::MaybeProxyClient;
 pub use self::util::UrlConnector;
@@ -51,6 +59,8 @@ use self::pid::PidService;
 use self::util::incoming::Incoming;
 
 const HTTP_SCHEME: &str = "http";
+#[cfg(unix)]
+const HTTPS_SCHEME: &str = "https";
 #[cfg(windows)]
 const PIPE_SCHEME: &str = "npipe";
 const TCP_SCHEME: &str = "tcp";
@@ -159,14 +169,28 @@ where
 }
 
 pub trait HyperExt {
-    fn bind_url<S>(&self, url: Url, new_service: S) -> Result<Server<S>, Error>
+    fn bind_url<C, S>(
+        &self,
+        url: Url,
+        new_service: S,
+        cert_manager: Option<&CertificateManager<C>>,
+    ) -> Result<Server<S>, Error>
     where
+        C: CreateCertificate + Clone,
         S: NewService<ReqBody = Body>;
 }
 
+// This variable is used on Unix but not Windows
+#[allow(unused_variables)]
 impl HyperExt for Http {
-    fn bind_url<S>(&self, url: Url, new_service: S) -> Result<Server<S>, Error>
+    fn bind_url<C, S>(
+        &self,
+        url: Url,
+        new_service: S,
+        cert_manager: Option<&CertificateManager<C>>,
+    ) -> Result<Server<S>, Error>
     where
+        C: CreateCertificate + Clone,
         S: NewService<ReqBody = Body>,
     {
         let incoming = match url.scheme() {
@@ -185,6 +209,38 @@ impl HyperExt for Http {
                 let listener = TcpListener::bind(&addr)
                     .with_context(|_| ErrorKind::BindListener(BindListenerType::Address(addr)))?;
                 Incoming::Tcp(listener)
+            }
+            #[cfg(unix)]
+            HTTPS_SCHEME => {
+                let addr = url
+                    .to_socket_addrs()
+                    .context(ErrorKind::InvalidUrl(url.to_string()))?
+                    .next()
+                    .ok_or_else(|| {
+                        ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::NoAddress,
+                        )
+                    })?;
+
+                let cert = match cert_manager {
+                    Some(cert_manager) => cert_manager.get_pkcs12_certificate(),
+                    None => return Err(Error::from(ErrorKind::CertificateCreationError)),
+                };
+
+                let cert = cert.with_context(|_| ErrorKind::TlsBootstrapError)?;
+
+                let cert_identity = Identity::from_pkcs12(&cert, "")
+                    .with_context(|_| ErrorKind::TlsIdentityCreationError)?;
+
+                let tls_acceptor = TlsAcceptor::builder(cert_identity)
+                    .build()
+                    .with_context(|_| ErrorKind::TlsBootstrapError)?;
+                let tls_acceptor = tokio_tls::TlsAcceptor::from(tls_acceptor);
+
+                let listener = TcpListener::bind(&addr)
+                    .with_context(|_| ErrorKind::BindListener(BindListenerType::Address(addr)))?;
+                Incoming::Tls(listener, tls_acceptor, Mutex::new(vec![]))
             }
             UNIX_SCHEME => {
                 let path = url
