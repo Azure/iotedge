@@ -51,18 +51,15 @@ impl UnixStreamExt for UnixStream {
     }
 }
 
-#[cfg(unix)]
-use self::impl_unix::get_pid;
+#[cfg(target_os = "linux")]
+use self::impl_linux::get_pid;
 
-#[cfg(unix)]
-mod impl_unix {
+#[cfg(target_os = "linux")]
+mod impl_linux {
     use libc::{c_void, getsockopt, ucred, SOL_SOCKET, SO_PEERCRED};
     use std::os::unix::io::AsRawFd;
     use std::{io, mem};
-    #[cfg(unix)]
     use tokio_uds::UnixStream;
-    #[cfg(windows)]
-    use tokio_uds_windows::UnixStream;
 
     use super::*;
 
@@ -95,6 +92,34 @@ mod impl_unix {
             Ok(Pid::Value(ucred.pid))
         } else {
             Err(io::Error::last_os_error())
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub use self::impl_macos::get_pid;
+
+#[cfg(target_os = "macos")]
+pub mod impl_macos {
+    use edgelet_core::pid::Pid;
+    use libc::getpeereid;
+    use std::os::unix::io::AsRawFd;
+    use std::{io, mem};
+    use tokio_uds::{UCred, UnixStream};
+
+    pub fn get_pid(sock: &UnixStream) -> io::Result<Pid> {
+        unsafe {
+            let raw_fd = sock.as_raw_fd();
+
+            let mut ucred: UCred = mem::uninitialized();
+
+            let ret = getpeereid(raw_fd, &mut ucred.uid, &mut ucred.gid);
+
+            if ret == 0 {
+                Ok(Pid::Value(ucred.uid as _))
+            } else {
+                Err(io::Error::last_os_error())
+            }
         }
     }
 }
