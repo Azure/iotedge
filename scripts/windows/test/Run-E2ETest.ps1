@@ -175,8 +175,8 @@ Function PrepareTestFromArtifacts
     }
 
     # IoT Edge Quickstart
-    Write-Host "Copy IoT Edge Quickstart from $IoTEdgeQuickstartArtifactFolder to $QuickstartWorkingFolder"
-    Copy-Item $IoTEdgeQuickstartArtifactFolder -Destination $QuickstartWorkingFolder -Recurse -Force
+    Write-Host "Copy IoT Edge Quickstart from $IotEdgeQuickstartArtifactFolder to $QuickstartWorkingFolder"
+    Copy-Item $IotEdgeQuickstartArtifactFolder -Destination $QuickstartWorkingFolder -Recurse -Force
 
     # Leaf device
     If (($TestName -eq "QuickstartCerts") -Or ($TestName -eq "TransparentGateway"))
@@ -357,10 +357,10 @@ Function RunDirectMethodAmqpTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "e2e-${ReleaseLabel}-Windows-DMAmqp"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
-    
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DMAmqp"
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
+
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
@@ -383,10 +383,10 @@ Function RunDirectMethodMqttTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "e2e-${ReleaseLabel}-Windows-DMMqtt"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
-    
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DMMqtt"
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
+
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
@@ -412,7 +412,7 @@ Function RunQuickstartCertsTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-QuickstartCerts"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
 
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
         -d `"$deviceId`" ``
         -c `"$IoTHubConnectionString`" ``
         -e `"doesNotNeed`" ``
@@ -448,10 +448,10 @@ Function RunTempFilterTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "e2e-${ReleaseLabel}-Windows-tempFilter"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
-    
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilter"
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
+
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
@@ -480,10 +480,10 @@ Function RunTempFilterFunctionsTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "e2e-${ReleaseLabel}-Windows-tempFilterFunc"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" and deployment file $DeploymentWorkingFilePath started at $testStartAt"
-    
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilterFunc"
+    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
+
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
@@ -509,7 +509,7 @@ Function RunTempSensorTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-tempSensor"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt."
 
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
         -d `"$deviceId`" ``
         -c `"$IoTHubConnectionString`" ``
         -e `"$EventHubConnectionString`" ``
@@ -535,7 +535,7 @@ Function RunTransparentGatewayTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-TransGW"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt."
 
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
         -d `"$deviceId`" ``
         -c `"$IoTHubConnectionString`" ``
         -e `"doesNotNeed`" ``
@@ -603,7 +603,7 @@ Function ValidateE2ETestParameters
     }
 
     $validatingItems = @(
-        (Join-Path $IoTEdgeQuickstartArtifactFolder "*"),
+        (Join-Path $IotEdgeQuickstartArtifactFolder "*"),
         $InstallationScriptPath)
 
     If (($TestName -eq "DirectMethodAmqp") -Or ($TestName -eq "DirectMethodMqtt"))
@@ -662,7 +662,7 @@ $ModuleToFunctionsDeploymentFilename = "module_to_functions_deployment.template.
 $DirectMethodModuleToModuleDeploymentFilename = "dm_module_to_module_deployment.json"
 $TwinTestFilename = "twin_test_tempSensor.json"
 
-$IoTEdgeQuickstartArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\IoTEdgeQuickstart\$Architecture"
+$IotEdgeQuickstartArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\IotEdgeQuickstart\$Architecture"
 $LeafDeviceArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\LeafDevice\$Architecture"
 $IoTEdgedArtifactFolder = Join-Path $E2ETestFolder "artifacts\iotedged-windows"
 $PackagesArtifactFolder = Join-Path $E2ETestFolder "artifacts\packages"
@@ -678,7 +678,7 @@ $QuickstartWorkingFolder = (Join-Path $TestWorkingFolder "quickstart")
 $LeafDeviceWorkingFolder = (Join-Path $TestWorkingFolder "leafdevice")
 $IoTEdgedWorkingFolder = (Join-Path $TestWorkingFolder "iotedged")
 $PackagesWorkingFolder = (Join-Path $TestWorkingFolder "packages")
-$IoTEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuickstart.exe")
+$IotEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuickstart.exe")
 $LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
 $DeploymentWorkingFilePath = Join-Path $QuickstartWorkingFolder "deployment.json"
 
