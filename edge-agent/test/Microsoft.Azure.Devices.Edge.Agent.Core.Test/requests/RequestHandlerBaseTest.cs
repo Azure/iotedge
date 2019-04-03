@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -24,11 +25,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             // Act / Assert
             if (expectedException != null)
             {
-                await Assert.ThrowsAsync(expectedException, () => requestHandler.HandleRequest(Option.Maybe(payloadJson)));
+                await Assert.ThrowsAsync(expectedException, () => requestHandler.HandleRequest(Option.Maybe(payloadJson), CancellationToken.None));
             }
             else
             {
-                Option<string> responsePayload = await requestHandler.HandleRequest(Option.Maybe(payloadJson));
+                Option<string> responsePayload = await requestHandler.HandleRequest(Option.Maybe(payloadJson), CancellationToken.None);
                 Assert.True(responsePayload.HasValue);
                 Assert.Equal(payloadJson, responsePayload.OrDefault());
             }
@@ -38,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             public override string RequestName => "TestImpl";
 
-            protected override Task<Option<RequestResponse>> HandleRequestInternal(Option<RequestPayload> payload)
+            protected override Task<Option<RequestResponse>> HandleRequestInternal(Option<RequestPayload> payload, CancellationToken token)
             {
                 RequestPayload requestPayload = payload.Expect(() => new ArgumentException("Payload should not be null"));
                 return Task.FromResult(Option.Some(new RequestResponse(requestPayload.Prop1, requestPayload.Prop2)));

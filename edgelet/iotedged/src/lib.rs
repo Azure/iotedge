@@ -27,6 +27,7 @@ use std::fs;
 use std::fs::{DirBuilder, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use failure::{Fail, ResultExt};
 use futures::future::Either;
@@ -53,6 +54,7 @@ use edgelet_core::{
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
+use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
 use edgelet_http::{HyperExt, MaybeProxyClient, API_VERSION};
@@ -143,6 +145,7 @@ const EDGE_SETTINGS_SUBDIR: &str = "cache";
 /// These are the properties of the workload CA certificate
 const IOTEDGED_VALIDITY: u64 = 7_776_000; // 90 days
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
+const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
 
 const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200; // 2 hours
 const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 7_776_000; // 90 days
@@ -515,7 +518,17 @@ where
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
     let (work_tx, work_rx) = oneshot::channel();
 
-    let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx);
+    let edgelet_cert_props = CertificateProperties::new(
+        IOTEDGED_VALIDITY,
+        IOTEDGED_TLS_COMMONNAME.to_string(),
+        CertificateType::Server,
+        "iotedge-tls".to_string(),
+    )
+    .with_issuer(CertificateIssuer::DeviceCa);
+
+    let cert_manager = Arc::new(CertificateManager::new(crypto.clone(), edgelet_cert_props));
+
+    let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, cert_manager.clone());
 
     let workload = start_workload(
         &settings,
@@ -523,6 +536,7 @@ where
         &runtime,
         work_rx,
         crypto,
+        cert_manager,
         workload_config,
     );
 
@@ -866,13 +880,15 @@ fn build_env(
     env
 }
 
-fn start_management<K, HC>(
+fn start_management<C, K, HC>(
     settings: &Settings<DockerConfig>,
     mgmt: &DockerModuleRuntime,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
+    cert_manager: Arc<CertificateManager<C>>,
 ) -> impl Future<Item = (), Error = Error>
 where
+    C: CreateCertificate + Clone,
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl + Send + Sync,
 {
@@ -889,7 +905,7 @@ where
             let service = LoggingService::new(label, service);
             info!("Listening on {} with 1 thread for management API.", url);
             let run = Http::new()
-                .bind_url(url.clone(), service)
+                .bind_url(url.clone(), service, Some(&cert_manager))
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,
@@ -902,12 +918,13 @@ where
         .flatten()
 }
 
-fn start_workload<K, C, W>(
+fn start_workload<K, C, CE, W>(
     settings: &Settings<DockerConfig>,
     key_store: &K,
     runtime: &DockerModuleRuntime,
     shutdown: Receiver<()>,
     crypto: &C,
+    cert_manager: Arc<CertificateManager<CE>>,
     config: W,
 ) -> impl Future<Item = (), Error = Error>
 where
@@ -921,6 +938,7 @@ where
         + Send
         + Sync
         + 'static,
+    CE: CreateCertificate + Clone,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
 {
     info!("Starting workload API...");
@@ -935,7 +953,7 @@ where
             ))?;
             let service = LoggingService::new(label, service);
             let run = Http::new()
-                .bind_url(url.clone(), service)
+                .bind_url(url.clone(), service, Some(&cert_manager))
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::WorkloadService,

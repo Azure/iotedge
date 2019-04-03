@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string deviceId;
         readonly string iotHubHostName;
         readonly bool enableStreams;
+        readonly TimeSpan requestTimeout;
 
         public TwinConfigSourceModule(
             string iotHubHostname,
@@ -37,7 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             IConfiguration config,
             VersionInfo versionInfo,
             TimeSpan configRefreshFrequency,
-            bool enableStreams)
+            bool enableStreams,
+            TimeSpan requestTimeout)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -46,6 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.versionInfo = Preconditions.CheckNotNull(versionInfo, nameof(versionInfo));
             this.configRefreshFrequency = configRefreshFrequency;
             this.enableStreams = enableStreams;
+            this.requestTimeout = requestTimeout;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -95,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         new PingRequestHandler(),
                         new LogsUploadRequestHandler(logsUploader, logsProvider)
                     };
-                    return new RequestManager(requestHandlers) as IRequestManager;
+                    return new RequestManager(requestHandlers, this.requestTimeout) as IRequestManager;
                 })
                 .As<Task<IRequestManager>>()
                 .SingleInstance();
