@@ -18,6 +18,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public const string IotEdgeIdentityCapability = "iotEdge";
         public const string ServiceIdentityRefreshMethodName = "RefreshDeviceScopeIdentityCache";
+
+        public const long MaxMessageSize = 256 * 1024; // matches IoTHub
+
         public static readonly Version ConfigSchemaVersion = new Version("1.0");
     }
 }
