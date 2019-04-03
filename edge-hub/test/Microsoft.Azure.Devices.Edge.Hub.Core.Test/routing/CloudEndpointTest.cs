@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             IProcessor moduleMessageProcessor = cloudEndpoint.CreateProcessor();
             Task result = moduleMessageProcessor.CloseAsync(CancellationToken.None);
-            Assert.Equal(TaskEx.Done, result);
+            Assert.Equal(Task.CompletedTask, result);
         }
 
         [Fact]
