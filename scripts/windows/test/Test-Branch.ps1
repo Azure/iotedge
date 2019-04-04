@@ -44,10 +44,22 @@ if (-not $BuildBinariesDirectory) {
 
 $SUFFIX = "Microsoft.Azure*test.dll"
 $LOGGER_ARG = "trx;LogFileName=result.trx"
-$DOTNET_PATH = [IO.Path]::Combine($AgentWorkFolder, "dotnet", "dotnet.exe")
 
-if (-not (Test-Path $DOTNET_PATH -PathType Leaf)) {
-    throw "$DOTNET_PATH not found."
+if (Test-Path env:DOTNET_PATH) {
+    $DOTNET_PATH = $env:DOTNET_PATH
+} else {
+    $dotnetCmd = Get-Command dotnet -ErrorAction SilentlyContinue
+    if ($?) {
+        $DOTNET_PATH = $dotnetCmd.Path
+    } else {
+        $DOTNET_PATH = [IO.Path]::Combine($AgentWorkFolder, "dotnet", "dotnet.exe")
+    }
+}
+
+if (Test-Path $DOTNET_PATH -PathType Leaf) {
+    Write-Host "Found '$DOTNET_PATH'"
+} else {
+    throw "$DOTNET_PATH not found"
 }
 
 if (-not $BuildConfig) {
@@ -76,7 +88,7 @@ foreach ($testDll in (Get-ChildItem $BuildBinariesDirectory -Include $SUFFIX -Re
 	}
 }
 
-$testCommandPrefix = "$DOTNET_PATH vstest /Logger:`"$LOGGER_ARG`" /TestAdapterPath:`"$BuildBinariesDirectory`" /Parallel /InIsolation"
+$testCommandPrefix = "& '$DOTNET_PATH' vstest /Logger:`"$LOGGER_ARG`" /TestAdapterPath:`"$BuildBinariesDirectory`" /Parallel /InIsolation"
 
 if ($Filter) {
     $testCommandPrefix += " /TestCaseFilter:`"$Filter`"" 
