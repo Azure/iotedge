@@ -27,16 +27,29 @@
 #                     attestation
 ###############################################################################
 
+# Manual provisioning configuration
 provisioning:
   source: "manual"
   device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
 
+# DPS TPM provisioning configuration
 # provisioning:
 #   source: "dps"
 #   global_endpoint: "https://global.azure-devices-provisioning.net"
 #   scope_id: "{scope_id}"
-#   registration_id: "{registration_id}"
-#   symmetric_key: "{symmetric_key}"
+#   attestation:
+#     method: "tpm"
+#     registration_id: "{registration_id}"
+
+# DPS symmetric key provisioning configuration
+# provisioning:
+#   source: "dps"
+#   global_endpoint: "https://global.azure-devices-provisioning.net"
+#   scope_id: "{scope_id}"
+#   attestation:
+#     method: "symmetric_key"
+#     registration_id: "{registration_id}"
+#     symmetric_key: "{symmetric_key}"
 
 ###############################################################################
 # Certificate settings
