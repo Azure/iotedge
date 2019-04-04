@@ -522,7 +522,6 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
 
         for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
         {
-            int status;
             umock_c_negative_tests_reset();
             umock_c_negative_tests_fail_call(i);
 
