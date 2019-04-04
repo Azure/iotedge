@@ -33,7 +33,7 @@ environment variables.
 
 `ConfigSource`
 
-`ConfigSourceBindPath`
+`LocalConfigPath`
 
 `DockerLoggingDriver`
 
@@ -56,16 +56,17 @@ Set to the IoT Hub connection string of the edge device. Needed when
 May be set to "twin" or "local".  When set to "twin",
 the edge device twin is used as a configuration source for modules. When set to 
 "local", a file (`config.json`) is used as a configuration source for modules.
-A custom (`config.json`) file can be used by bind mounting a directory containing the 
-custom configuration file into the edge agent container and specifying the 
-`ConfigSourceBindPath` environment variable to the bind path.
+
+A custom configuration JSON file can be used by bind mounting a directory containing the 
+custom configuration file into the edge agent container and specifying the path to the
+configuration file in the container using the `LocalConfigPath` environment variable.
+
 `DeviceConnectionString` must be set to a device connection string if `ConfigSource`
 is set to "twin".
 
-### ConfigSourceBindPath
+### LocalConfigPath
 
-Path to the bind mounted directory containing the custom (`config.json`) file used as the
-configuration source.
+Path to the custom configuration JSON file used as the configuration source in the "local" mode.
 
 ### DockerLoggingDriver
 

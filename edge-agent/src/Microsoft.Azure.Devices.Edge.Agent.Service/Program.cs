@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     public class Program
     {
         const string ConfigFileName = "appsettings_agent.json";
+        const string DefaultLocalConfigFilePath = "config.json";
         const string EdgeAgentStorageFolder = "edgeAgent";
         const string VersionInfoFileName = "versionInfo.json";
         static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromMinutes(1);
@@ -149,8 +150,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         break;
 
                     case "local":
-                        string configSourceFilePath = GetConfigurationSourceFilePath(configuration, logger);
-                        builder.RegisterModule(new FileConfigSourceModule(configSourceFilePath, configuration));
+                        string localConfigFilePath = GetLocalConfigFilePath(configuration, logger);
+                        builder.RegisterModule(new FileConfigSourceModule(localConfigFilePath, configuration));
                         break;
 
                     default:
@@ -255,19 +256,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             return storagePath;
         }
 
-        static string GetConfigurationSourceFilePath(IConfiguration configuration, ILogger logger)
+        static string GetLocalConfigFilePath(IConfiguration configuration, ILogger logger)
         {
-            string configFileName = "config.json";
-            string configSourceBindPath = configuration.GetValue<string>("ConfigSourceBindPath");
+            string localConfigPath = configuration.GetValue<string>("LocalConfigPath");
 
-            if (string.IsNullOrWhiteSpace(configSourceBindPath) || !Directory.Exists(configSourceBindPath))
+            if (string.IsNullOrWhiteSpace(localConfigPath))
             {
-                logger.LogInformation("The config source folder is invalid. Using default path instead.");
-                return configFileName;
+                logger.LogInformation("No local config path specified. Using default path instead.");
+                localConfigPath = DefaultLocalConfigFilePath;
             }
 
-            string configFilePath = Path.Combine(configSourceBindPath, configFileName);
-            return configFilePath;
+            return localConfigPath;
         }
 
         static void LogLogo(ILogger logger)
