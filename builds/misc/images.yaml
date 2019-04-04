@@ -38,13 +38,26 @@ jobs:
       - script: scripts/linux/buildDiagnostics.sh
         displayName: Build iotedge-diagnostics
 
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifacts'
+      - task: CopyFiles@2
+        displayName: Stage artifacts
         inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish'
-          ArtifactName: 'core-linux'
+          sourceFolder: $(Build.BinariesDirectory)/publish
+          contents: |
+            CACertificates/openssl_root_ca.cnf
+            CACertificates/certGen.sh
+            linux-arm64/IotEdgeQuickstart.tar.gz
+            e2e_deployment_files/*
+            e2e_test_files/*
+            scripts/linux/runE2ETest.sh
+          targetFolder: $(Build.ArtifactStagingDirectory)
 
-     # azureiotedge-diagnostics - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: PublishBuildArtifacts@1
+        displayName: Publish artifacts
+        inputs:
+          pathtoPublish: $(Build.ArtifactStagingDirectory)
+          artifactName: e2e-linux-arm64
+
+    # azureiotedge-diagnostics - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
         displayName: Build Image azureiotedge-diagnostics - aarch64
         inputs: 
@@ -157,11 +170,43 @@ jobs:
       - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
         displayName: 'Create Artifact Info File'
 
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifacts'
+      - task: CopyFiles@2
+        displayName: Stage linux-x64 artifacts
         inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish'
-          ArtifactName: 'core-linux'
+          sourceFolder: $(Build.BinariesDirectory)/publish
+          contents: |
+            CACertificates/openssl_root_ca.cnf
+            CACertificates/certGen.sh
+            linux-x64/IotEdgeQuickstart.tar.gz
+            e2e_deployment_files/*
+            e2e_test_files/*
+            scripts/linux/runE2ETest.sh
+          targetFolder: $(Build.ArtifactStagingDirectory)/linux-x64
+
+      - task: PublishBuildArtifacts@1
+        displayName: Publish linux-x64 artifacts
+        inputs:
+          pathtoPublish: $(Build.ArtifactStagingDirectory)/linux-x64
+          artifactName: e2e-linux-x64
+
+      - task: CopyFiles@2
+        displayName: Stage linux-arm artifacts
+        inputs:
+          sourceFolder: $(Build.BinariesDirectory)/publish
+          contents: |
+            CACertificates/openssl_root_ca.cnf
+            CACertificates/certGen.sh
+            linux-arm/IotEdgeQuickstart.tar.gz
+            e2e_deployment_files/*
+            e2e_test_files/*
+            scripts/linux/runE2ETest.sh
+          targetFolder: $(Build.ArtifactStagingDirectory)/linux-arm
+
+      - task: PublishBuildArtifacts@1
+        displayName: Publish linux-arm artifacts
+        inputs:
+          pathtoPublish: $(Build.ArtifactStagingDirectory)/linux-arm
+          artifactName: e2e-linux-arm
 
       # azureiotedge-diagnostics
       - template: templates/image-linux.yaml
@@ -269,11 +314,45 @@ jobs:
       - powershell: scripts/windows/build/Create-ArtifactInfo.ps1 -outputFolder '$(Build.BinariesDirectory)/publish' -buildNumber $(Build.BuildNumber)
         displayName: 'Create Artifact Info File'
 
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifacts'
+      - task: CopyFiles@2
+        displayName: Copy win10-x64 artifacts
         inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish'
-          ArtifactName: 'core-windows'
+          sourceFolder: $(Build.BinariesDirectory)/publish
+          contents: |
+            CACertificates\openssl_root_ca.cnf
+            CACertificates\ca-certs.ps1
+            win10-x64\IotEdgeQuickstart.zip
+            e2e_deployment_files\*
+            e2e_test_files\*
+            scripts\windows\setup\IotEdgeSecurityDaemon.ps1
+            scripts\windows\test\Run-E2ETest.ps1
+          targetFolder: $(Build.ArtifactStagingDirectory)
+
+      - task: PublishBuildArtifacts@1
+        displayName: Publish win10-x64 artifacts
+        inputs:
+          pathtoPublish: $(Build.ArtifactStagingDirectory)
+          artifactName: e2e-win10-x64
+
+      - task: CopyFiles@2
+        displayName: Copy win10-arm artifacts
+        inputs:
+          sourceFolder: $(Build.BinariesDirectory)/publish
+          contents: |
+            CACertificates\openssl_root_ca.cnf
+            CACertificates\ca-certs.ps1
+            win10-arm\IotEdgeQuickstart.zip
+            e2e_deployment_files\*
+            e2e_test_files\*
+            scripts\windows\setup\IotEdgeSecurityDaemon.ps1
+            scripts\windows\test\Run-E2ETest.ps1
+          targetFolder: $(Build.ArtifactStagingDirectory)
+
+      - task: PublishBuildArtifacts@1
+        displayName: Publish win10-arm artifacts
+        inputs:
+          pathtoPublish: $(Build.ArtifactStagingDirectory)
+          artifactName: e2e-win10-arm
 
       # azureiotedge-diagnostics
       - template: templates/image-windows.yaml

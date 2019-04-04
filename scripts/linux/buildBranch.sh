@@ -169,38 +169,32 @@ publish_quickstart()
     local rid="$1"
     echo "Publishing IotEdgeQuickstart for '$rid'"
     $DOTNET_ROOT_PATH/dotnet publish \
+        $ROOT_FOLDER/smoke/IotEdgeQuickstart
         -c $CONFIGURATION \
         -f $DOTNET_RUNTIME \
         -p:DotNet_Runtime=$DOTNET_RUNTIME \
         -r $rid \
-        $ROOT_FOLDER/smoke/IotEdgeQuickstart
+        -o "$ROOT_FOLDER/smoke/publish/$CONFIGURATION/$DOTNET_RUNTIME/$rid"
     if [ $? -gt 0 ]; then
         RES=1
     fi
 
-    tar \
-        -C "$ROOT_FOLDER/smoke/IotEdgeQuickstart/bin/$CONFIGURATION/$DOTNET_RUNTIME/$rid/publish/" \
-        -czf "$PUBLISH_FOLDER/IotEdgeQuickstart.$rid.tar.gz" \
-        .
-}
-
-publish_leafdevice()
-{
-    local rid="$1"
     echo "Publishing LeafDevice for '$rid'"
     $DOTNET_ROOT_PATH/dotnet publish \
+        $ROOT_FOLDER/smoke/LeafDevice
         -c $CONFIGURATION \
         -f $DOTNET_RUNTIME \
         -p:DotNet_Runtime=$DOTNET_RUNTIME \
         -r $rid \
-        $ROOT_FOLDER/smoke/LeafDevice
+        -o "$ROOT_FOLDER/smoke/publish/$CONFIGURATION/$DOTNET_RUNTIME/$rid"
     if [ $? -gt 0 ]; then
         RES=1
     fi
 
+    mkdir -p "$PUBLISH_FOLDER/$rid"
     tar \
-        -C "$ROOT_FOLDER/smoke/LeafDevice/bin/$CONFIGURATION/$DOTNET_RUNTIME/$rid/publish/" \
-        -czf "$PUBLISH_FOLDER/LeafDevice.$rid.tar.gz" \
+        -C "$ROOT_FOLDER/smoke/publish/$CONFIGURATION/$DOTNET_RUNTIME/$rid/" \
+        -czf "$PUBLISH_FOLDER/$rid/IotEdgeQuickstart.tar.gz" \
         .
 }
 
@@ -267,8 +261,5 @@ publish_files $SRC_CERT_TOOLS_DIR $PUBLISH_FOLDER
 publish_quickstart linux-arm
 publish_quickstart linux-x64
 publish_quickstart linux-arm64
-publish_leafdevice linux-arm
-publish_leafdevice linux-x64
-publish_leafdevice linux-arm64
 
 exit $RES
