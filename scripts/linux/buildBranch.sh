@@ -49,7 +49,7 @@ print_help_and_exit()
 process_args()
 {
     local save_next_arg=0
-    for arg in "$@"; 
+    for arg in "$@";
     do
         if [ $save_next_arg -eq 1 ]; then
             CONFIGURATION="$arg"
@@ -169,7 +169,7 @@ publish_quickstart()
     local rid="$1"
     echo "Publishing IotEdgeQuickstart for '$rid'"
     $DOTNET_ROOT_PATH/dotnet publish \
-        $ROOT_FOLDER/smoke/IotEdgeQuickstart
+        $ROOT_FOLDER/smoke/IotEdgeQuickstart \
         -c $CONFIGURATION \
         -f $DOTNET_RUNTIME \
         -p:DotNet_Runtime=$DOTNET_RUNTIME \
@@ -181,7 +181,7 @@ publish_quickstart()
 
     echo "Publishing LeafDevice for '$rid'"
     $DOTNET_ROOT_PATH/dotnet publish \
-        $ROOT_FOLDER/smoke/LeafDevice
+        $ROOT_FOLDER/smoke/LeafDevice \
         -c $CONFIGURATION \
         -f $DOTNET_RUNTIME \
         -p:DotNet_Runtime=$DOTNET_RUNTIME \
@@ -202,18 +202,18 @@ build_solution()
 {
     echo "Building IoT Edge solution"
     dotnet --version
-    
+
     build_command="$DOTNET_ROOT_PATH/dotnet build -c $CONFIGURATION -o \"$BUILD_BINARIESDIRECTORY\""
-    
+
     if [ -n "$DOTNETBUILD_OS" ]; then
         build_command="$build_command -p:OS=$DOTNETBUILD_OS"
     fi
-    
+
     if [ -n "$DOTNET_RUNTIME" ]; then
         build_command="$build_command -p:DotNet_Runtime=$DOTNET_RUNTIME"
     fi
     build_command="$build_command $ROOT_FOLDER/Microsoft.Azure.Devices.Edge.sln"
-        
+
     eval ${build_command}
     if [ $? -gt 0 ]; then
         RES=1
