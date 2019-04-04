@@ -149,7 +149,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         break;
 
                     case "local":
-                        builder.RegisterModule(new FileConfigSourceModule("config.json", configuration));
+                        string configSourceFilePath = GetConfigurationSourceFilePath(configuration, logger);
+                        builder.RegisterModule(new FileConfigSourceModule(configSourceFilePath, configuration));
                         break;
 
                     default:
@@ -252,6 +253,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
 
             return storagePath;
+        }
+
+        static string GetConfigurationSourceFilePath(IConfiguration configuration, ILogger logger)
+        {
+            string configFileName = "config.json";
+            string configSourceBindPath = configuration.GetValue<string>("ConfigSourceBindPath");
+
+            if (string.IsNullOrWhiteSpace(configSourceBindPath) || !Directory.Exists(configSourceBindPath))
+            {
+                logger.LogInformation("The config source folder is invalid. Using default path instead.");
+                return configFileName;
+            }
+
+            string configFilePath = Path.Combine(configSourceBindPath, configFileName);
+            return configFilePath;
         }
 
         static void LogLogo(ILogger logger)
