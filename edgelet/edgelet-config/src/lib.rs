@@ -3,6 +3,7 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
+    clippy::default_trait_access,
     clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
     clippy::module_name_repetitions,
     clippy::shadow_unrelated,
@@ -13,7 +14,7 @@ use std::fs::OpenOptions;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-use config::{Config, Environment, File, FileFormat};
+use config::{Config, Environment};
 use failure::{Context, Fail};
 use log::{debug, Level};
 use regex::Regex;
@@ -26,6 +27,9 @@ use url::Url;
 use edgelet_core::crypto::MemoryKey;
 use edgelet_core::ModuleSpec;
 use edgelet_utils::log_failure;
+
+mod yaml_file_source;
+use yaml_file_source::YamlFileSource;
 
 /// This is the name of the network created by the iotedged
 const DEFAULT_NETWORKID: &str = "azure-iot-edge";
@@ -264,9 +268,9 @@ where
             })
         });
         let mut config = Config::default();
-        config.merge(File::from_str(DEFAULTS, FileFormat::Yaml))?;
+        config.merge(YamlFileSource::String(DEFAULTS))?;
         if let Some(file) = filename {
-            config.merge(File::with_name(file).required(true))?;
+            config.merge(YamlFileSource::File(file.into()))?;
         }
 
         config.merge(Environment::with_prefix("iotedge"))?;
@@ -406,6 +410,8 @@ mod tests {
     static GOOD_SETTINGS_TG: &str = "test/linux/sample_settings.tg.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_DPS_SYM_KEY: &str = "test/linux/sample_settings.dps.sym.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_CASE_SENSITIVE: &str = "test/linux/case_sensitive.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
@@ -419,6 +425,8 @@ mod tests {
     static GOOD_SETTINGS_TG: &str = "test/windows/sample_settings.tg.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_DPS_SYM_KEY: &str = "test/windows/sample_settings.dps.sym.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_CASE_SENSITIVE: &str = "test/windows/case_sensitive.yaml";
 
     fn unwrap_manual_provisioning(p: &Provisioning) -> String {
         match p {
@@ -572,5 +580,18 @@ mod tests {
             network: "some-network".to_string(),
         };
         assert_eq!("some-network", moby2.network());
+    }
+
+    #[test]
+    fn case_of_names_of_keys_is_preserved() {
+        let settings =
+            Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_CASE_SENSITIVE))).unwrap();
+
+        let env = settings.agent().env();
+        assert_eq!(env.get("AbC").map(AsRef::as_ref), Some("VAluE1"));
+        assert_eq!(env.get("DeF").map(AsRef::as_ref), Some("VAluE2"));
+
+        let create_options = settings.agent().config().create_options();
+        assert_eq!(create_options.hostname(), Some("VAluE3"));
     }
 }
