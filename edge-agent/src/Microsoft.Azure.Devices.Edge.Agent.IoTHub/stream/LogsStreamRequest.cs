@@ -18,6 +18,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             this.ContentType = contentType;
         }
 
+        [JsonConstructor]
+        LogsStreamRequest(string schemaVersion, List<LogRequestItem> items, LogsContentEncoding? encoding, LogsContentType? contentType)
+            : this(schemaVersion, items, encoding ?? LogsContentEncoding.None, contentType ?? LogsContentType.Text)
+        {
+        }
+
         [JsonProperty("schemaVersion")]
         public string SchemaVersion { get; }
 
