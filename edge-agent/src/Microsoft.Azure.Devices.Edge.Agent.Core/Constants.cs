@@ -85,8 +85,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string AllModulesIdentifier = "all";
 
-        public const string AllModulesIdentifier = "all";
-
         public static class Labels
         {
             public const string Version = "net.azure-devices.edge.version";

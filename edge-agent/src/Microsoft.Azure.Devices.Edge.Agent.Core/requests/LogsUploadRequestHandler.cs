@@ -41,16 +41,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 }
             }
 
+            var moduleLogOptions = new ModuleLogOptions(payload.Encoding, payload.ContentType, payload.Filter);
             IList<string> moduleIds = await GetModuleIds();
-            IEnumerable<Task> uploadTasks = moduleIds.Select(m => this.UploadLogs(payload.SasUrl, new ModuleLogOptions(m, payload.Encoding, payload.ContentType, payload.Filter), cancellationToken));
+            IEnumerable<Task> uploadTasks = moduleIds.Select(m => this.UploadLogs(payload.SasUrl, m, moduleLogOptions, cancellationToken));
             await Task.WhenAll(uploadTasks);
             return Option.None<object>();
         }
 
-        async Task UploadLogs(string sasUrl, ModuleLogOptions moduleLogOptions, CancellationToken token)
+        async Task UploadLogs(string sasUrl, string id, ModuleLogOptions moduleLogOptions, CancellationToken token)
         {
-            byte[] logBytes = await this.logsProvider.GetLogs(moduleLogOptions, token);
-            await this.logsUploader.Upload(sasUrl, moduleLogOptions.Id, logBytes, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
+            byte[] logBytes = await this.logsProvider.GetLogs(id, moduleLogOptions, token);
+            await this.logsUploader.Upload(sasUrl, id, logBytes, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
         }
     }
 }
