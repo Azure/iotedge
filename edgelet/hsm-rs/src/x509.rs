@@ -7,7 +7,7 @@ use std::ptr;
 use std::slice;
 use std::string::String;
 
-use super::GetCerts;
+use super::GetDeviceIdentityCert;
 use super::*;
 use crate::error::{Error, ErrorKind};
 
@@ -55,7 +55,7 @@ impl X509 {
     }
 }
 
-impl GetCerts for X509 {
+impl GetDeviceIdentityCert for X509 {
     /// Retrieves the certificate to be used for x509 communication.
     fn get_cert(&self) -> Result<X509Data, Error> {
         let key_fn = self
@@ -128,6 +128,7 @@ impl GetCerts for X509 {
         }
     }
 
+    /// Retrieves the certificate to be used for x509 communication.
     fn get_certificate_info(&self) -> Result<HsmCertificate, Error> {
         let if_fn = self
             .interface
@@ -236,7 +237,7 @@ mod tests {
     use std::ptr;
     use std::slice;
 
-    use super::super::GetCerts;
+    use super::super::GetDeviceIdentityCert;
     use super::{X509Data, X509};
     use hsm_sys::*;
 
