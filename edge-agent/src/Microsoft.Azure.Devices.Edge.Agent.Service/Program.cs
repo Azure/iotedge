@@ -266,6 +266,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 localConfigPath = DefaultLocalConfigFilePath;
             }
 
+            logger.LogInformation($"Local config path: {localConfigPath}");
             return localConfigPath;
         }
 
