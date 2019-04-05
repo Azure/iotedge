@@ -51,7 +51,7 @@ provisioning:
 #     type: "symmetric_key"
 #     registration_id: "{registration_id}"
 #     device_id: "<OPTIONAL DEVICE ID TO BE PROVISIONED IN IOTHUB>"
-#     key: "{symmetric_key}"
+#     symmetric_key: "{symmetric_key}"
 
 # DPS X.509 provisioning configuration
 # provisioning:
