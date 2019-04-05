@@ -1463,20 +1463,20 @@ function Validate-GatewaySettings {
 
 function Get-DpsProvisioningSettings {
     $idCertFilesProvided = $false
-    $attestationType="tpm" # default
+    $attestationMethod="tpm" # default
     if ($SymmetricKey) {
-        $attestationType="symmetric_key"
+        $attestationMethod="symmetric_key"
     }
     elseif ($AutoGenX509IdentityCertificate) {
-        $attestationType="x509"
+        $attestationMethod="x509"
     }
     elseif ($X509IdentityCertificate -or $X509IdentityPrivateKey) {
-        $attestationType="x509"
+        $attestationMethod="x509"
         $idCertFilesProvided = $true
     }
 
     if ($idCertFilesProvided -and $RegistrationId) {
-        throw "RegistrationId is not required for this DPS provisioning mode."
+        Write-HostYellow 'RegistrationId is strictly not required for this DPS provisioning mode as it can be obtained from the certificate'
     }
     else {
         if (-not $RegistrationId) {
@@ -1484,7 +1484,7 @@ function Get-DpsProvisioningSettings {
         }
     }
 
-    if ($attestationType -eq "x509") {
+    if ($attestationMethod -eq "x509") {
         if ($idCertFilesProvided) {
             if (-Not (Test-Path -Path $X509IdentityCertificate)) {
                 throw "Identity certificate file $X509IdentityCertificate not found."
@@ -1503,7 +1503,7 @@ function Get-DpsProvisioningSettings {
         }
     }
 
-    return $attestationType
+    return $attestationMethod
 }
 
 function Set-ProvisioningMode {
@@ -1521,12 +1521,12 @@ function Set-ProvisioningMode {
             return $configurationYaml
         }
         else {
-            $attestationType = Get-DpsProvisioningSettings
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*attestation:\s*#?\s*type:\s*"' + $attestationType + '"\s*#?\s*registration_id:\s*".*"\s*#?\s*device_id:\s*".*"'
+            $attestationMethod = Get-DpsProvisioningSettings
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*attestation:\s*#?\s*method:\s*"' + $attestationMethod + '"\s*#?\s*registration_id:\s*".*"\s*#?\s*device_id:\s*".*"'
 
-            if ($attestationType -eq "symmetric_key") {
+            if ($attestationMethod -eq "symmetric_key") {
                 $selectionRegex += '\s*#?\s*symmetric_key:\s".*"'
-            } elseif ($attestationType -eq "x509") {
+            } elseif ($attestationMethod -eq "x509") {
                 $selectionRegex += '\s*#?\s*identity_cert:\s".*"\s*#?\s*identity_pk:\s".*"'
             }
             $replacementContent = @(
@@ -1535,7 +1535,7 @@ function Set-ProvisioningMode {
                 '  global_endpoint: ''https://global.azure-devices-provisioning.net''',
                 "  scope_id: '$ScopeId'",
                 "  attestation:",
-                "    type: '$attestationType'")
+                "    method: '$attestationMethod'")
             if ($RegistrationId) {
                 $replacementContent += "    registration_id: '$RegistrationId'"
             }
@@ -1842,6 +1842,10 @@ function Write-HostGreen {
 
 function Write-HostRed {
     Write-Host -ForegroundColor Red @args
+}
+
+function Write-HostYellow {
+    Write-Host -ForegroundColor Yellow @args
 }
 
 function Remove-BuiltinWritePermissions([string] $Path) {
