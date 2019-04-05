@@ -9,11 +9,13 @@
         To get details about parameters, please run "Get-Help .\Run-E2ETest.ps1 -Parameter *"
         To find out what E2E tests are supported, just run "Get-Help .\Run-E2ETest.ps1 -Parameter TestName"
 
-        Please ensure that E2E test folder have below folders/files:
-        - artifacts\core-windows: artifact from Image build.
-        - artifacts\iotedged-windows: artifact from edgelet build.
-        - artifacts\packages: contains packages of Moby docker engine, CLI and IoT Edge security daemon.
-          Either artifacts\iotedged-windows or packages folder exists, which is used for IoT Edge security daemon installation.
+        Please ensure that the E2E test folder has the following folders/files:
+        - artifacts\CACertificates\** (from {repo}\tools\CACertificates)
+        - artifacts\IotEdgeQuickstart.zip (produced by Publish-Branch.ps1)
+        - artifacts\Microsoft-Azure-IoTEdge.cab (generated\signed by Edgelet Packages pipeline)
+        - artifacts\e2e_deployment_files\** (from {repo}\e2e_deployment_files)
+        - artifacts\e2e_test_files\** (from {repo}\e2e_test_files)
+        - artifacts\scripts\** (from {repo}\scripts)
 
     .PARAMETER E2ETestFolder
         Path of E2E test folder which contains artifacts and certs folders; Default is current directory.
@@ -131,12 +133,7 @@ $global:ProgressPreference = "SilentlyContinue"
 
 Function AppendInstallationOption([string] $testCommand)
 {
-    If (Test-Path (Join-Path $PackagesWorkingFolder "*"))
-    {
-        Return $testCommand + " --offline-installation-path `"$PackagesWorkingFolder`""
-    }
-
-    Return $testCommand += " -a `"$IoTEdgedWorkingFolder`""
+    Return $testCommand += " --offline-installation-path `"$IotedgedWorkingFolder`""
 }
 
 Function CleanUp
@@ -197,6 +194,7 @@ Function InitializeWorkingFolder
 {
     PrintHighlightedMessage "Prepare $TestWorkingFolder for test run"
     Remove-Item $TestWorkingFolder -Force -Recurse -ErrorAction SilentlyContinue
+    New-Item $TestWorkingFolder -ItemType Directory | Out-Null
 }
 
 Function PrepareTestFromArtifacts
@@ -204,33 +202,21 @@ Function PrepareTestFromArtifacts
     PrintHighlightedMessage "Copy artifact files to $TestWorkingFolder"
 
     # IoT Edgelet
-    If (Test-Path $PackagesArtifactFolder -PathType Container)
+    If (Test-Path $IotedgedArtifactFilePath)
     {
-        Write-Host "Copy packages artifact from $PackagesArtifactFolder to $PackagesWorkingFolder"
-        Copy-Item $PackagesArtifactFolder -Destination $PackagesWorkingFolder -Recurse -Force
-        Copy-Item $InstallationScriptPath -Destination $PackagesWorkingFolder -Force
-    }
-    ElseIf (Test-Path $IoTEdgedArtifactFolder -PathType Container)
-    {
-        Write-Host "Copy packages artifact from $IoTEdgedArtifactFolder to $PackagesWorkingFolder"
-        Copy-Item $IoTEdgedArtifactFolder -Destination $IoTEdgedWorkingFolder -Recurse -Force
-        Copy-Item $InstallationScriptPath -Destination $IoTEdgedWorkingFolder -Force
+        Write-Host "Copy iotedged artifact $IotedgedArtifactFilePath to $IotedgedWorkingFolder"
+        New-Item $IotedgedWorkingFolder -ItemType Directory | Out-Null
+        Copy-Item $IotedgedArtifactFilePath -Destination $IotedgedWorkingFolder -Force
+        Copy-Item $InstallationScriptPath -Destination $IotedgedWorkingFolder -Force
     }
     Else
     {
-        Throw "Package and iotedged artifact folder doesn't exist"
+        Throw "Iotedged artifact doesn't exist"
     }
 
     # IoT Edge Quickstart
-    Write-Host "Copy IoT Edge Quickstart from $IotEdgeQuickstartArtifactFolder to $QuickstartWorkingFolder"
-    Copy-Item $IotEdgeQuickstartArtifactFolder -Destination $QuickstartWorkingFolder -Recurse -Force
-
-    # Leaf device
-    If (($TestName -eq "QuickstartCerts") -Or ($TestName -eq "TransparentGateway"))
-    {
-        Write-Host "Copy Leaf device from $LeafDeviceArtifactFolder to $LeafDeviceWorkingFolder"
-        Copy-Item $LeafDeviceArtifactFolder -Destination $LeafDeviceWorkingFolder -Recurse -Force
-    }
+    Write-Host "Expand IoT Edge Quickstart archive $IotEdgeQuickstartArtifactFilePath to $QuickstartWorkingFolder"
+    Expand-Archive $IotEdgeQuickstartArtifactFilePath $QuickstartWorkingFolder
 
     # Deployment file
     If (($TestName -eq "DirectMethodAmqp") -Or
@@ -881,14 +867,7 @@ Function ValidateTestParameters
 {
     PrintHighlightedMessage "Validate test parameters for $TestName"
 
-    If (-Not((Test-Path (Join-Path $IoTEdgedArtifactFolder "*")) -Or (Test-Path (Join-Path $PackagesArtifactFolder "*"))))
-    {
-        Throw "Either $IoTEdgedArtifactFolder or $PackagesArtifactFolder should exist"
-    }
-
-    $validatingItems = @(
-        (Join-Path $IotEdgeQuickstartArtifactFolder "*"),
-        $InstallationScriptPath)
+    $validatingItems = @($IotEdgeQuickstartArtifactFilePath, $InstallationScriptPath)
 
     If (($TestName -eq "DirectMethodAmqp") -Or ($TestName -eq "DirectMethodMqtt"))
     {
@@ -901,7 +880,6 @@ Function ValidateTestParameters
         {
             $validatingItems += $RuntimeOnlyDeploymentArtifactFilePath
         }
-        $validatingItems += (Join-Path $LeafDeviceArtifactFolder "*")
     }
 
     If ($TestName -eq "TempFilter")
@@ -948,8 +926,8 @@ Function PrintHighlightedMessage
 $Architecture = GetArchitecture
 $E2ETestFolder = (Resolve-Path $E2ETestFolder).Path
 $DefaultOpensslInstallPath = "C:\vcpkg\installed\x64-windows\tools\openssl"
-$InstallationScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\setup\IotEdgeSecurityDaemon.ps1"
-$EdgeCertGenScriptDir = Join-Path $E2ETestFolder "artifacts\core-windows\CACertificates"
+$InstallationScriptPath = Join-Path $E2ETestFolder "artifacts\scripts\windows\setup\IotEdgeSecurityDaemon.ps1"
+$EdgeCertGenScriptDir = Join-Path $E2ETestFolder "artifacts\CACertificates"
 $EdgeCertGenScript = Join-Path $EdgeCertGenScriptDir "ca-certs.ps1"
 $DefaultInstalledRSARootCACert = Join-Path $EdgeCertGenScriptDir "rsa_root_ca.cert.pem"
 $DefaultInstalledRSARootCAKey = Join-Path $EdgeCertGenScriptDir "rsa_root_ca.key.pem"
@@ -961,12 +939,10 @@ $RuntimeOnlyDeploymentFilename = 'runtime_only_deployment.template.json'
 $QuickstartDeploymentFilename = 'quickstart_deployment.template.json'
 $TwinTestFilename = "twin_test_tempSensor.json"
 
-$IotEdgeQuickstartArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\IotEdgeQuickstart\$Architecture"
-$LeafDeviceArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\LeafDevice\$Architecture"
-$IoTEdgedArtifactFolder = Join-Path $E2ETestFolder "artifacts\iotedged-windows"
-$PackagesArtifactFolder = Join-Path $E2ETestFolder "artifacts\packages"
-$DeploymentFilesFolder = Join-Path $E2ETestFolder "artifacts\core-windows\e2e_deployment_files"
-$TestFileFolder = Join-Path $E2ETestFolder "artifacts\core-windows\e2e_test_files"
+$IotEdgeQuickstartArtifactFilePath = Join-Path $E2ETestFolder "artifacts\IotEdgeQuickstart.zip"
+$IotedgedArtifactFilePath = Join-Path $E2ETestFolder "artifacts\Microsoft-Azure-IoTEdge.cab"
+$DeploymentFilesFolder = Join-Path $E2ETestFolder "artifacts\e2e_deployment_files"
+$TestFileFolder = Join-Path $E2ETestFolder "artifacts\e2e_test_files"
 $ModuleToModuleDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $ModuleToModuleDeploymentFilename
 $ModuleToFunctionDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $ModuleToFunctionsDeploymentFilename
 $RuntimeOnlyDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $RuntimeOnlyDeploymentFilename
@@ -976,11 +952,9 @@ $DirectMethodModuleToModuleDeploymentArtifactFilePath = Join-Path $DeploymentFil
 
 $TestWorkingFolder = Join-Path $E2ETestFolder "working"
 $QuickstartWorkingFolder = (Join-Path $TestWorkingFolder "quickstart")
-$LeafDeviceWorkingFolder = (Join-Path $TestWorkingFolder "leafdevice")
-$IoTEdgedWorkingFolder = (Join-Path $TestWorkingFolder "iotedged")
-$PackagesWorkingFolder = (Join-Path $TestWorkingFolder "packages")
+$IotedgedWorkingFolder = (Join-Path $TestWorkingFolder "iotedged")
 $IotEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuickstart.exe")
-$LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
+$LeafDeviceExeTestPath = (Join-Path $QuickstartWorkingFolder "LeafDevice.exe")
 $DeploymentWorkingFilePath = Join-Path $QuickstartWorkingFolder "deployment.json"
 
 &$InstallationScriptPath

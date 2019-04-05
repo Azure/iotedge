@@ -42,52 +42,13 @@ function get_image_architecture_label() {
     esac
 }
 
-function get_iotedge_quickstart_artifact_file() {
-    local path
-    if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$E2E_TEST_DIR/artifacts/core-linux/IotEdgeQuickstart.linux-x64.tar.gz"
-    elif [ "$image_architecture_label" = 'arm64v8' ]; then
-        path="$E2E_TEST_DIR/artifacts/core-linux/IotEdgeQuickstart.linux-arm64.tar.gz"
-    else 
-        path="$E2E_TEST_DIR/artifacts/core-linux/IotEdgeQuickstart.linux-arm.tar.gz"
-    fi
-
-    echo "$path"
-}
-
-function get_iotedged_artifact_folder() {
-    local path
-    if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu-amd64"
-    elif [ "$image_architecture_label" = 'arm64v8' ]; then
-        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu16.04-aarch64"
-    else
-        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu-armhf"
-    fi
-
-    echo "$path"
-}
-
-function get_leafdevice_artifact_file() {
-    local path
-    if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$E2E_TEST_DIR/artifacts/core-linux/LeafDevice.linux-x64.tar.gz"
-    elif [ "$image_architecture_label" = 'arm64v8' ]; then
-        path="$E2E_TEST_DIR/artifacts/core-linux/LeafDevice.linux-arm64.tar.gz"
-    else
-        path="$E2E_TEST_DIR/artifacts/core-linux/LeafDevice.linux-arm.tar.gz"
-    fi
-
-    echo "$path"
-}
-
 function get_long_haul_deployment_artifact_file() {
     local path
     if [ "$image_architecture_label" = 'amd64' ] ||
        [ "$image_architecture_label" = 'arm64v8' ]; then
-        path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.json"
+        path="$E2E_TEST_DIR/artifacts/e2e_deployment_files/long_haul_deployment.template.json"
     else
-        path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.arm32v7.$LONG_HAUL_PROTOCOL_HEAD.json"
+        path="$E2E_TEST_DIR/artifacts/e2e_deployment_files/long_haul_deployment.template.arm32v7.$LONG_HAUL_PROTOCOL_HEAD.json"
     fi
 
     echo "$path"
@@ -107,12 +68,6 @@ function prepare_test_from_artifacts() {
     echo 'Extract quickstart to working folder'
     mkdir -p "$quickstart_working_folder"
     tar -C "$quickstart_working_folder" -xzf "$iotedge_quickstart_artifact_file"
-
-    if [[ "${TEST_NAME,,}" == 'quickstartcerts' ]]; then
-        echo 'Extract leaf device to working folder'
-        mkdir -p "$leafdevice_working_folder"
-        tar -C "$leafdevice_working_folder" -xzf "$leafdevice_artifact_file"
-    fi
 
     if [[ "${TEST_NAME,,}" == directmethod* ]] ||
        [[ "${TEST_NAME,,}" == 'longhaul' ]] ||
@@ -545,7 +500,7 @@ function run_quickstartcerts_test() {
     # Workaround for multiple certificates in the x509store - remove this after quick start certs have Authority Key Identifier
     rm -rf ~/.dotnet/corefx/cryptography/x509stores/root/
 
-    "$leafdevice_working_folder/LeafDevice" \
+    "$quickstart_working_folder/LeafDevice" \
         -c "$IOTHUB_CONNECTION_STRING" \
         -e "$EVENTHUB_CONNECTION_STRING" \
         -d "$device_id-leaf" \
@@ -672,7 +627,7 @@ function run_tempsensor_test() {
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
-        -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
+        -tw "$twin_testfile_artifact_file" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -729,8 +684,6 @@ function validate_test_parameters() {
             required_files+=($module_to_functions_deployment_artifact_file);;
         'longhaul')
             required_files+=($long_haul_deployment_artifact_file);;
-        'quickstartcerts')
-            required_files+=($leafdevice_artifact_file);;
         'stress')
             required_files+=($stress_deployment_artifact_file);;
     esac
@@ -842,17 +795,15 @@ fi
 
 working_folder="$E2E_TEST_DIR/working"
 get_image_architecture_label
-iotedged_artifact_folder="$(get_iotedged_artifact_folder)"
-iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file)"
-leafdevice_artifact_file="$(get_leafdevice_artifact_file)"
-twin_testfile_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json"
-module_to_module_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/module_to_module_deployment.template.json"
-module_to_functions_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/module_to_functions_deployment.template.json"
-dm_module_to_module_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/dm_module_to_module_deployment.json"
+iotedged_artifact_folder="$E2E_TEST_DIR/artifacts"
+iotedge_quickstart_artifact_file="$E2E_TEST_DIR/artifacts/IotEdgeQuickstart.tar.gz"
+twin_testfile_artifact_file="$E2E_TEST_DIR/artifacts/e2e_test_files/twin_test_tempSensor.json"
+module_to_module_deployment_artifact_file="$E2E_TEST_DIR/artifacts/e2e_deployment_files/module_to_module_deployment.template.json"
+module_to_functions_deployment_artifact_file="$E2E_TEST_DIR/artifacts/e2e_deployment_files/module_to_functions_deployment.template.json"
+dm_module_to_module_deployment_artifact_file="$E2E_TEST_DIR/artifacts/e2e_deployment_files/dm_module_to_module_deployment.json"
 long_haul_deployment_artifact_file="$(get_long_haul_deployment_artifact_file)"
-stress_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/stress_deployment.template.json"
+stress_deployment_artifact_file="$E2E_TEST_DIR/artifacts/e2e_deployment_files/stress_deployment.template.json"
 deployment_working_file="$working_folder/deployment.json"
 quickstart_working_folder="$working_folder/quickstart"
-leafdevice_working_folder="$working_folder/leafdevice"
 
 run_test
