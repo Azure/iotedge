@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt;
+use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -13,6 +14,7 @@ use hyper::{Body, Chunk as HyperChunk, Client};
 use management::apis::client::APIClient;
 use management::apis::configuration::Configuration;
 use management::models::{Config, ModuleDetails as HttpModuleDetails};
+use provisioning::ProvisioningResult;
 use serde_json;
 use url::Url;
 
@@ -142,6 +144,61 @@ impl ModuleRegistry for ModuleClient {
     }
 }
 
+pub struct Settings;
+
+impl RuntimeSettings for Settings {
+    type Config = ModuleConfig;
+
+    fn provisioning(&self) -> &Provisioning {
+        unimplemented!()
+    }
+
+    fn agent(&self) -> &ModuleSpec<Self::Config> {
+        unimplemented!()
+    }
+
+    fn agent_mut(&mut self) -> &mut ModuleSpec<Self::Config> {
+        unimplemented!()
+    }
+
+    fn hostname(&self) -> &str {
+        unimplemented!()
+    }
+
+    fn connect(&self) -> &Connect {
+        unimplemented!()
+    }
+
+    fn listen(&self) -> &Listen {
+        unimplemented!()
+    }
+
+    fn homedir(&self) -> &Path {
+        unimplemented!()
+    }
+
+    fn certificates(&self) -> Option<&Certificates> {
+        unimplemented!()
+    }
+
+    fn watchdog(&self) -> &WatchdogSettings {
+        unimplemented!()
+    }
+}
+
+impl MakeModuleRuntime for ModuleClient {
+    type Config = ModuleConfig;
+    type Settings = Settings;
+    type ProvisioningResult = ProvisioningResult;
+    type ModuleRuntime = Self;
+    type Error = Error;
+    type Future = Box<dyn Future<Item = Self::ModuleRuntime, Error = Self::Error> + Send>;
+
+    fn make_runtime(_: Self::Settings, _: Self::ProvisioningResult) -> Self::Future {
+        unimplemented!()
+    }
+}
+
 impl ModuleRuntime for ModuleClient {
     type Error = Error;
     type Config = ModuleConfig;
@@ -153,7 +210,6 @@ impl ModuleRuntime for ModuleClient {
     type CreateFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type GetFuture =
         Box<dyn Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type InitFuture = FutureResult<(), Self::Error>;
     type ListFuture = Box<dyn Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
     type ListWithDetailsStream =
         Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
@@ -164,14 +220,6 @@ impl ModuleRuntime for ModuleClient {
     type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-
-    fn system_info(&self) -> Self::SystemInfoFuture {
-        unimplemented!()
-    }
-
-    fn init(&self) -> Self::InitFuture {
-        future::ok(())
-    }
 
     fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         unimplemented!()
@@ -251,6 +299,10 @@ impl ModuleRuntime for ModuleClient {
     }
 
     fn remove(&self, _id: &str) -> Self::RemoveFuture {
+        unimplemented!()
+    }
+
+    fn system_info(&self) -> Self::SystemInfoFuture {
         unimplemented!()
     }
 
