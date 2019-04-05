@@ -14,7 +14,8 @@ The application will read the `appsettings.json` for configuration. The format i
 {
   "DockerUri": "<docker service uri>",
   "DeviceConnectionString": "<Your IoT Hub Device Connection String>",
-  "ConfigSource": "<iothubconnected|standalone>",
+  "ConfigSource": "<twin|local>",
+  "LocalConfigPath": "<Path to the custom configuration JSON file in 'local' mode>",
   "DockerLoggingDriver":  "<json-file|journald|fluentd|etwlogs|none>",
   "NetworkId": "<Docker network id>",
   "EdgeDeviceHostName": "<Edge device host name>"
@@ -31,6 +32,8 @@ environment variables.
 `DeviceConnectionString`
 
 `ConfigSource`
+
+`LocalConfigPath`
 
 `DockerLoggingDriver`
 
@@ -52,9 +55,18 @@ Set to the IoT Hub connection string of the edge device. Needed when
 
 May be set to "twin" or "local".  When set to "twin",
 the edge device twin is used as a configuration source for modules. When set to 
-"local", a file (`config.json`) is used as a configuration source for modules. 
+"local", a file (`config.json`) is used as a configuration source for modules.
+
+A custom configuration JSON file can be used by bind mounting a directory containing the 
+custom configuration file into the edge agent container and specifying the path to the
+configuration file in the container using the `LocalConfigPath` environment variable.
+
 `DeviceConnectionString` must be set to a device connection string if `ConfigSource`
 is set to "twin".
+
+### LocalConfigPath
+
+Path to the custom configuration JSON file used as the configuration source in the "local" mode.
 
 ### DockerLoggingDriver
 
