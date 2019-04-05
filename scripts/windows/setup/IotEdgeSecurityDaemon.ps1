@@ -585,7 +585,7 @@ function Install-IoTEdge {
     if ($DeviceId) { $Params["-DeviceId"] = $DeviceId }
     if ($X509IdentityCertificate) { $Params["-X509IdentityCertificate"] = $X509IdentityCertificate }
     if ($X509IdentityPrivateKey) { $Params["-X509IdentityPrivateKey"] = $X509IdentityPrivateKey }
-    if ($AutoGenX509IdentityCertificate) { $Params["-AutoGenX509IdentityCertificate"] }
+    if ($AutoGenX509IdentityCertificate) { $Params["-AutoGenX509IdentityCertificate"] = $AutoGenX509IdentityCertificate }
     if ($DeviceCACertificate) { $Params["-DeviceCACertificate"] = $DeviceCACertificate }
     if ($DeviceCAPrivateKey) { $Params["-DeviceCAPrivateKey"] = $DeviceCAPrivateKey }
     if ($DeviceTrustbundle) { $Params["-DeviceTrustbundle"] = $DeviceTrustbundle }
@@ -1447,13 +1447,13 @@ function Validate-GatewaySettings {
     $certFilesProvided = $false
     if ($DeviceCACertificate -or $DeviceCAPrivateKey -or $DeviceTrustbundle) {
         if (-Not (Test-Path -Path $DeviceCACertificate)) {
-            throw "Device CA certificate $DeviceCACertificate not found. When configuring device CA certificates, a certificate file is required."
+            throw "Device CA certificate file $DeviceCACertificate not found. When configuring device certificates, a certificate file is required."
         }
         if (-Not (Test-Path -Path $DeviceCAPrivateKey)) {
-            throw "Device CA private key $DeviceCAPrivateKey not found. When configuring device CA certificates, a private key file is required."
+            throw "Device CA private key file $DeviceCAPrivateKey not found. When configuring device certificates, a private key file is required."
         }
         if (-Not (Test-Path -Path $DeviceTrustbundle)) {
-            throw "Device CA private key $DeviceTrustbundle not found. When configuring device CA certificates, a trust bundle file is required."
+            throw "Device trustbundle file $DeviceTrustbundle not found. When configuring device certificates, a trust bundle file is required."
         }
         $certFilesProvided = $true
     }
@@ -1476,11 +1476,11 @@ function Get-DpsProvisioningSettings {
     }
 
     if ($idCertFilesProvided -and $RegistrationId) {
-        throw "Registration Id is not required for this DPS provisioning mode."
+        throw "RegistrationId is not required for this DPS provisioning mode."
     }
     else {
         if (-not $RegistrationId) {
-            throw "Registration Id is required for this DPS provisioning mode."
+            throw "RegistrationId is required for this DPS provisioning mode."
         }
     }
 
@@ -1494,6 +1494,9 @@ function Get-DpsProvisioningSettings {
             }
         }
         else {
+            if ($X509IdentityCertificate -or $X509IdentityPrivateKey) {
+                throw "Cannot specify a device identity certificate and also set AutoGenX509IdentityCertificate as true."
+            }
             if (-Not (Validate-GatewaySettings)) {
                 throw "Device CA certificate files are not found. These are required when using AutoGenX509IdentityCertificate."
             }
@@ -1522,7 +1525,7 @@ function Set-ProvisioningMode {
             $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*attestation:\s*#?\s*type:\s*"' + $attestationType + '"\s*#?\s*registration_id:\s*".*"\s*#?\s*device_id:\s*".*"'
 
             if ($attestationType -eq "symmetric_key") {
-                $selectionRegex += '\s*#?\s*key:\s".*"'
+                $selectionRegex += '\s*#?\s*symmetric_key:\s".*"'
             } elseif ($attestationType -eq "x509") {
                 $selectionRegex += '\s*#?\s*identity_cert:\s".*"\s*#?\s*identity_pk:\s".*"'
             }
@@ -1540,12 +1543,12 @@ function Set-ProvisioningMode {
                 $replacementContent += "    device_id: '$DeviceId'"
             }
             if ($SymmetricKey) {
-                $replacementContent += "    key: '$SymmetricKey'"
+                $replacementContent += "    symmetric_key: '$SymmetricKey'"
             }
             if ($X509IdentityCertificate) {
                 $replacementContent += "    identity_cert: '$X509IdentityCertificate'"
             }
-            if ($X509IdentityCertificate) {
+            if ($X509IdentityPrivateKey) {
                 $replacementContent += "    identity_pk: '$X509IdentityPrivateKey'"
             }
             $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
