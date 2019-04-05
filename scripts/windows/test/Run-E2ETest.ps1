@@ -222,8 +222,8 @@ Function PrepareTestFromArtifacts
     }
 
     # IoT Edge Quickstart
-    Write-Host "Copy IoT Edge Quickstart from $IoTEdgeQuickstartArtifactFolder to $QuickstartWorkingFolder"
-    Copy-Item $IoTEdgeQuickstartArtifactFolder -Destination $QuickstartWorkingFolder -Recurse -Force
+    Write-Host "Copy IoT Edge Quickstart from $IotEdgeQuickstartArtifactFolder to $QuickstartWorkingFolder"
+    Copy-Item $IotEdgeQuickstartArtifactFolder -Destination $QuickstartWorkingFolder -Recurse -Force
 
     # Leaf device
     If (($TestName -eq "QuickstartCerts") -Or ($TestName -eq "TransparentGateway"))
@@ -254,11 +254,6 @@ Function PrepareTestFromArtifacts
                 Copy-Item $DirectMethodModuleToModuleDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
                 (Get-Content $DeploymentWorkingFilePath).replace('<UpstreamProtocol>','Mqtt') | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<ClientTransportType>','Mqtt_Tcp_Only') | Set-Content $DeploymentWorkingFilePath
-
-                If ($Architecture -eq "arm32v7")
-                {
-                    (Get-Content $DeploymentWorkingFilePath).replace('<MqttEventsProcessorThreadCount>','1') | Set-Content $DeploymentWorkingFilePath
-                }
             }
             "TempFilter"
             {
@@ -282,15 +277,6 @@ Function PrepareTestFromArtifacts
             }
         }
 
-        If ($Architecture -eq "arm32v7") 
-        {
-            (Get-Content $DeploymentWorkingFilePath).replace('<OptimizeForPerformance>', 'false') | Set-Content $DeploymentWorkingFilePath
-        }
-        else
-        {
-            (Get-Content $DeploymentWorkingFilePath).replace('<OptimizeForPerformance>', 'true') | Set-Content $DeploymentWorkingFilePath
-        }
-        
         $ImageArchitectureLabel = $(GetImageArchitectureLabel)
         (Get-Content $DeploymentWorkingFilePath).replace('<Architecture>', $ImageArchitectureLabel) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<Build.BuildNumber>', $ArtifactImageBuildNumber) | Set-Content $DeploymentWorkingFilePath
@@ -475,10 +461,11 @@ Function RunDirectMethodAmqpTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DMAmqp"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
 
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
+            -n `"$env:computername`" ``
             -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
@@ -506,10 +493,11 @@ Function RunDirectMethodMqttTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DMMqtt"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
 
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
+            -n `"$env:computername`" ``
             -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
@@ -537,7 +525,7 @@ Function RunQuickstartCertsTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-QuickstartCerts"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
 
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
         -d `"$deviceId`" ``
         -c `"$IoTHubConnectionString`" ``
         -e `"doesNotNeed`" ``
@@ -546,7 +534,6 @@ Function RunQuickstartCertsTest
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-        --optimize_for_performance true ``
         --leave-running=All ``
         --no-verify"
     If ($ProxyUri) {
@@ -587,10 +574,11 @@ Function RunTempFilterTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilter"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
 
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
+            -n `"$env:computername`" ``
             -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilter`" ``
@@ -624,10 +612,11 @@ Function RunTempFilterFunctionsTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilterFunc"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
 
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
+            -n `"$env:computername`" ``
             -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilterFunctions`" ``
@@ -655,16 +644,17 @@ Function RunTempSensorTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempSensor"
     PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt."
 
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
         -d `"$deviceId`" ``
         -c `"$IoTHubConnectionString`" ``
         -e `"$EventHubConnectionString`" ``
+        -n `"$env:computername`" ``
         -r `"$ContainerRegistry`" ``
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-        -tw `"$TwinTestFileArtifactFilePath`" ``
-        --optimize_for_performance true"
+        -tw `"$TwinTestFileArtifactFilePath`""
+
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             -l `"$DeploymentWorkingFilePath`" ``
@@ -809,7 +799,7 @@ Function RunTransparentGatewayTest
     New-CACertsEdgeDevice $edgeDeviceId
 
     #launch the edge as a transparent gateway
-    $testCommand = "&$IoTEdgeQuickstartExeTestPath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
         -d `"$edgeDeviceId`" ``
         -c `"$IoTHubConnectionString`" ``
         -e `"doesNotNeed`" ``
@@ -821,7 +811,6 @@ Function RunTransparentGatewayTest
         --device_ca_cert `"$EdgeCertGenScriptDir\certs\iot-edge-device-$edgeDeviceId-full-chain.cert.pem`" ``
         --device_ca_pk `"$EdgeCertGenScriptDir\private\iot-edge-device-$edgeDeviceId.key.pem`" ``
         --trusted_ca_certs `"$TrustedCACertificatePath`" ``
-        --optimize_for_performance true ``
         --leave-running=All ``
         --no-verify"
 
@@ -873,7 +862,7 @@ Function RunTest
 
 Function SetEnvironmentVariable
 {
-    # IoTEdgeQuickstart runs different processes to call iotedge list right after running installation script.
+    # IotEdgeQuickstart runs different processes to call iotedge list right after running installation script.
     # E2E test failed randomly when running iotedge list command throws Win32Exception as Path environment variable may not be in place yet.
     # Therefore set it explicitly before running each test.
     $env:Path="$env:Path;C:\Program Files\iotedge-moby;C:\Program Files\iotedge"
@@ -898,7 +887,7 @@ Function ValidateTestParameters
     }
 
     $validatingItems = @(
-        (Join-Path $IoTEdgeQuickstartArtifactFolder "*"),
+        (Join-Path $IotEdgeQuickstartArtifactFolder "*"),
         $InstallationScriptPath)
 
     If (($TestName -eq "DirectMethodAmqp") -Or ($TestName -eq "DirectMethodMqtt"))
@@ -972,7 +961,7 @@ $RuntimeOnlyDeploymentFilename = 'runtime_only_deployment.template.json'
 $QuickstartDeploymentFilename = 'quickstart_deployment.template.json'
 $TwinTestFilename = "twin_test_tempSensor.json"
 
-$IoTEdgeQuickstartArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\IoTEdgeQuickstart\$Architecture"
+$IotEdgeQuickstartArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\IotEdgeQuickstart\$Architecture"
 $LeafDeviceArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\LeafDevice\$Architecture"
 $IoTEdgedArtifactFolder = Join-Path $E2ETestFolder "artifacts\iotedged-windows"
 $PackagesArtifactFolder = Join-Path $E2ETestFolder "artifacts\packages"
@@ -990,7 +979,7 @@ $QuickstartWorkingFolder = (Join-Path $TestWorkingFolder "quickstart")
 $LeafDeviceWorkingFolder = (Join-Path $TestWorkingFolder "leafdevice")
 $IoTEdgedWorkingFolder = (Join-Path $TestWorkingFolder "iotedged")
 $PackagesWorkingFolder = (Join-Path $TestWorkingFolder "packages")
-$IoTEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuickstart.exe")
+$IotEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuickstart.exe")
 $LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
 $DeploymentWorkingFilePath = Join-Path $QuickstartWorkingFolder "deployment.json"
 

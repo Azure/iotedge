@@ -19,9 +19,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
         public static Task<string> GetSecret(string secret)
         {
             Preconditions.CheckNonWhiteSpace(secret, nameof(secret));
-            return Uri.TryCreate(secret, UriKind.Absolute, out Uri secretUri)
-                ? KeyVaultHelperLazy.Value.GetSecret(secretUri.AbsoluteUri)
-                : KeyVaultHelperLazy.Value.GetSecret(KeyVaultBaseUrl, secret);
+            // Get the secret from the environment first, otherwise go to key vault
+            string value = ConfigHelper.TestConfig[secret];
+            return string.IsNullOrWhiteSpace(value)
+                ? Uri.TryCreate(secret, UriKind.Absolute, out Uri secretUri)
+                    ? KeyVaultHelperLazy.Value.GetSecret(secretUri.AbsoluteUri)
+                    : KeyVaultHelperLazy.Value.GetSecret(KeyVaultBaseUrl, secret)
+                : Task.Run(() => value);
         }
 
         public static Task<string> GetSecretFromConfigKey(string configName)

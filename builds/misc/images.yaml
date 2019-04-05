@@ -12,12 +12,12 @@ jobs:
     displayName: LinuxARM64
     pool:
       vmImage: 'ubuntu-16.04'
-    variables:
-      NetCorePackageUri: https://download.visualstudio.microsoft.com/download/pr/efa6dde9-a5ee-4322-b13c-a2a02d3980f0/dad445eba341c1d806bae5c8afb47015/dotnet-sdk-3.0.100-preview-010184-linux-x64.tar.gz
     steps:
-      - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUri)
-        name: install
-        displayName: Install dependencies
+      - task: DotNetCoreInstaller@0
+        displayName: Install .NET Core
+        inputs:
+          packageType: sdk
+          version: 3.0.100-preview-010184
 
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'

@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     public class Program
     {
         const string ConfigFileName = "appsettings_agent.json";
+        const string DefaultLocalConfigFilePath = "config.json";
         const string EdgeAgentStorageFolder = "edgeAgent";
         const string VersionInfoFileName = "versionInfo.json";
         static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromMinutes(1);
@@ -135,11 +136,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 {
                     case "twin":
                         bool enableStreams = configuration.GetValue(Constants.EnableStreams, false);
-                        builder.RegisterModule(new TwinConfigSourceModule(iothubHostname, deviceId, backupConfigFilePath, configuration, versionInfo, TimeSpan.FromSeconds(configRefreshFrequencySecs), enableStreams));
+                        int requestTimeoutSecs = configuration.GetValue(Constants.RequestTimeoutSecs, 600);
+                        builder.RegisterModule(
+                            new TwinConfigSourceModule(
+                                iothubHostname,
+                                deviceId,
+                                backupConfigFilePath,
+                                configuration,
+                                versionInfo,
+                                TimeSpan.FromSeconds(configRefreshFrequencySecs),
+                                enableStreams,
+                                TimeSpan.FromSeconds(requestTimeoutSecs)));
                         break;
 
                     case "local":
-                        builder.RegisterModule(new FileConfigSourceModule("config.json", configuration));
+                        string localConfigFilePath = GetLocalConfigFilePath(configuration, logger);
+                        builder.RegisterModule(new FileConfigSourceModule(localConfigFilePath, configuration));
                         break;
 
                     default:
@@ -242,6 +254,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
 
             return storagePath;
+        }
+
+        static string GetLocalConfigFilePath(IConfiguration configuration, ILogger logger)
+        {
+            string localConfigPath = configuration.GetValue<string>("LocalConfigPath");
+
+            if (string.IsNullOrWhiteSpace(localConfigPath))
+            {
+                logger.LogInformation("No local config path specified. Using default path instead.");
+                localConfigPath = DefaultLocalConfigFilePath;
+            }
+
+            logger.LogInformation($"Local config path: {localConfigPath}");
+            return localConfigPath;
         }
 
         static void LogLogo(ILogger logger)

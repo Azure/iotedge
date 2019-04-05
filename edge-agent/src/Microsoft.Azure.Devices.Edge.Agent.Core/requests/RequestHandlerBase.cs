@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -12,10 +13,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     {
         public abstract string RequestName { get; }
 
-        public async Task<Option<string>> HandleRequest(Option<string> payloadJson)
+        public async Task<Option<string>> HandleRequest(Option<string> payloadJson, CancellationToken cancellationToken)
         {
             Option<TU> payload = this.ParsePayload(payloadJson);
-            Option<TV> result = await this.HandleRequestInternal(payload);
+            Option<TV> result = await this.HandleRequestInternal(payload, cancellationToken);
             Option<string> responseJson = result.Map(r => r.ToJson());
             return responseJson;
         }
@@ -32,6 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             }
         }
 
-        protected abstract Task<Option<TV>> HandleRequestInternal(Option<TU> payload);
+        protected abstract Task<Option<TV>> HandleRequestInternal(Option<TU> payload, CancellationToken cancellationToken);
     }
 }

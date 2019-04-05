@@ -24,6 +24,19 @@ sudo apt-get update
 sudo apt-get install -y git cmake build-essential curl libcurl4-openssl-dev libssl-dev uuid-dev pkg-config
 ```
 
+### macOS
+
+1. Install necessary tools for development using [Homebrew](https://brew.sh/) package manager
+    ```bash
+    brew update    
+    brew install cmake openssl 
+    ```
+    
+1. Set `OPENSSL_ROOT_DIR`
+    ```bash
+    export OPENSSL_ROOT_DIR=/usr/local/opt/openssl
+    ```
+
 #### Windows
 
 1. Install `vcpkg`

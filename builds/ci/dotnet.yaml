@@ -5,8 +5,9 @@ trigger:
       - master
 pr: none
 variables:
-  test.filter: "Category=Integration&Category!=Stress"
-  build.configuration: "Release"
+  test.filter: Category=Integration&Category!=Stress
+  build.configuration: Release
+  dotnet.version: 2.1.302
 jobs:
   - job: linux
     displayName: Linux
@@ -14,101 +15,98 @@ jobs:
     pool:
       vmImage: ubuntu-16.04
     variables:
-      TestEnvironment: linux
-      NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-linux-x64.tar.gz
+      testEnvironment: linux
     steps:
-      - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUri)
-        name: install_dependencies
-        displayName: Install dependencies
-      - script: scripts/linux/installKvPrereqs_Ubuntu.sh
-        name: install_test_dependencies
-        displayName: 'Install test dependencies'
-      - bash: |
-          az login --service-principal --username $(kv.sp.user) --tenant $(kv.sp.tenant) --password $(kv.sp.password)
-          scripts/linux/downloadAndInstallCert.sh -c IoTEdgeTestCert -v $(kv.name)
-          scripts/linux/downloadAndInstallCert.sh -c IotHubMqttHeadCert -v $(kv.name) -s 'Root'
-        name: install_certs
-        displayName: 'Install test certificate'
-      - script: scripts/linux/buildBranch.sh -c "$BUILD_CONFIGURATION" --no-rocksdb-bin
-        name: build
-        displayName: 'Build'
-      - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $TEST_FILTER" "$BUILD_CONFIGURATION"'
-        name: test
+      - task: AzureKeyVault@1
+        displayName: Get secrets
+        inputs:
+          azureSubscription: $(azure.subscription)
+          keyVaultName: $(kv.name)
+          secretsFilter: >-
+            DummySecret1,
+            EdgeCapableDevice2,
+            EventHubConnStr2,
+            IotDevice2ConnStr2,
+            IotDevice3ConnStr2,
+            IotHubConnStr2,
+            IotHubMqttHeadCert
+      - task: DotNetCoreInstaller@0
+        displayName: Install .NET Core
+        inputs:
+          packageType: sdk
+          version: $(dotnet.version)
+      - script: |
+          sudo apt-get update
+          sudo apt-get install -y libsnappy1v5
+        displayName: Install libsnappy1v5 # Needed for rocksdb integration tests
+      - pwsh: |
+          $store = [System.Security.Cryptography.X509Certificates.X509Store]::new('Root', 'CurrentUser')
+          $store.Open('ReadWrite')
+          $bytes = [System.Convert]::FromBase64String($env:CERT_VALUE)
+          $cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($bytes)
+          $store.Add($cert)
+        displayName: Install protocol head certificate # Needed for integration tests
+        env:
+          CERT_VALUE: $(IotHubMqttHeadCert)
+      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
+        displayName: Build
+      - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)" $(Build.Configuration)'
         displayName: Test
+        env:
+          DummySecret1: $(DummySecret1)
+          EdgeCapableDevice2: $(EdgeCapableDevice2)
+          EventHubConnStr2: $(EventHubConnStr2)
+          IotDevice2ConnStr2: $(IotDevice2ConnStr2)
+          IotDevice3ConnStr2: $(IotDevice3ConnStr2)
+          IotHubConnStr2: $(IotHubConnStr2)
+          IotHubMqttHeadCert: $(IotHubMqttHeadCert)
       - task: PublishTestResults@1
-        displayName: 'Publish test results'
+        displayName: Publish test results
         inputs:
           testRunner: VSTest
           testResultsFiles: '**/TestResults/result.trx'
         condition: succeededOrFailed()
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifact: e2e deployment files'
-        inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish/e2e_deployment_files'
-          ArtifactName: 'core-linux/e2e_deployment_files'
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifact: e2e test files'
-        inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish/e2e_test_files'
-          ArtifactName: 'core-linux/e2e_test_files'
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifact: IotEdgeQuickStart'
-        inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish/IotEdgeQuickstart.linux-x64.tar.gz'
-          ArtifactName: 'core-linux'
   - job: windows
     displayName: Windows
     timeoutInMinutes: 120
     pool:
-      name: $(windows.pool.name)
-      demands:
-        - azureps
-        - Run-CI -equals true
+      vmImage: windows-2019
     variables:
-      NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-win-x64.zip
-      TestEnvironment: windows
+      testEnvironment: windows
     steps:
-      - task: AzurePowerShell@2
-        displayName: 'Install test certificate'
+      - task: AzureKeyVault@1
+        displayName: Get secrets
         inputs:
-          azureSubscription: "$(azure.subscription)"
-          ScriptPath: 'scripts/windows/setup/Install-VaultCertificate.ps1'
-          ScriptArguments: '-VaultName $(kv.name) -CertificateName IoTEdgeTestCert'
-          azurePowerShellVersion: LatestVersion
-      - powershell: scripts/windows/setup/Install-Prerequisites.ps1 -DotnetSdkUrl $(NetCorePackageUri)
-        name: install_dependencies
-        displayName: Install dependencies
-      - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:$env:BUILD_CONFIGURATION -UpdateVersion
-        name: build
+          azureSubscription: $(azure.subscription)
+          keyVaultName: $(kv.name)
+          secretsFilter: >-
+            DummySecret1,
+            EdgeCapableDevice2,
+            EventHubConnStr2,
+            IotDevice2ConnStr2,
+            IotDevice3ConnStr2,
+            IotHubConnStr2,
+            IotHubMqttHeadCert
+      - task: DotNetCoreInstaller@0
+        displayName: Install .NET Core
+        inputs:
+          packageType: sdk
+          version: $(dotnet.version)
+      - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration $(Build.Configuration) -UpdateVersion
         displayName: Build
-      - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$env:TEST_FILTER" -BuildConfig "$env:BUILD_CONFIGURATION"
-        name: test
+      - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$(test.filter)" -BuildConfig $(Build.Configuration)
         displayName: Test
         env:
-          TEST_FILTER: $(test.filter)
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifact: e2e deployment files'
-        inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish/e2e_deployment_files'
-          ArtifactName: 'core-windows/e2e_deployment_files'
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifact: IotEdgeQuickStart'
-        inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish/IotEdgeQuickStart'
-          ArtifactName: 'core-windows/IotEdgeQuickStart'
-      - task: PublishBuildArtifacts@1
-        name: publish_artifacts
-        displayName: 'Publish Artifacts'
-        inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish'
-          ArtifactName: 'core-windows'
+          DummySecret1: $(DummySecret1)
+          EdgeCapableDevice2: $(EdgeCapableDevice2)
+          EventHubConnStr2: $(EventHubConnStr2)
+          IotDevice2ConnStr2: $(IotDevice2ConnStr2)
+          IotDevice3ConnStr2: $(IotDevice3ConnStr2)
+          IotHubConnStr2: $(IotHubConnStr2)
+          IotHubMqttHeadCert: $(IotHubMqttHeadCert)
       - task: PublishTestResults@1
-        name: publish_results
-        displayName: 'Publish test results'
+        displayName: Publish test results
         condition: succeededOrFailed()
         inputs:
           testRunner: VSTest
           testResultsFiles: '**\TestResults\*.trx'
-      - powershell: docker system prune -a -f
-        name: clean_machine
-        displayName: Clean machine
