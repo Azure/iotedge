@@ -27,12 +27,12 @@
 #                     attestation
 ###############################################################################
 
-# # Manual provisioning configuration
+# Manual provisioning configuration
 provisioning:
   source: "manual"
   device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
 
-# # DPS TPM provisioning configuration
+# DPS TPM provisioning configuration
 # provisioning:
 #   source: "dps"
 #   global_endpoint: "https://global.azure-devices-provisioning.net"
@@ -42,7 +42,7 @@ provisioning:
 #     registration_id: "{registration_id}"
 #     device_id: "<OPTIONAL DEVICE ID TO BE PROVISIONED IN IOTHUB>"
 
-# # DPS symmetric key provisioning configuration
+# DPS symmetric key provisioning configuration
 # provisioning:
 #   source: "dps"
 #   global_endpoint: "https://global.azure-devices-provisioning.net"
@@ -53,7 +53,7 @@ provisioning:
 #     device_id: "<OPTIONAL DEVICE ID TO BE PROVISIONED IN IOTHUB>"
 #     key: "{symmetric_key}"
 
-# # DPS X.509 provisioning configuration
+# DPS X.509 provisioning configuration
 # provisioning:
 #   source: "dps"
 #   global_endpoint: "https://global.azure-devices-provisioning.net"
