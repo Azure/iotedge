@@ -1,9 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+#include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
+#include <time.h>
 
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/crt_abstractions.h"
@@ -12,24 +15,27 @@
 #include "hsm_utils.h"
 
 extern const char* const EDGE_DEVICE_ALIAS;
-extern const char* const ENV_DEVICE_ID;
+extern const char* const ENV_DEVICE_CERTIFICATE_PATH;
+extern const char* const ENV_DEVICE_PRIVATE_KEY_PATH;
+extern const char* const ENV_REGISTRATION_ID;
+
+static bool g_is_x509_initialized = false;
 static unsigned int g_ref_cnt = 0;
 
 int hsm_client_x509_init()
 {
     int result;
 
-    if (g_ref_cnt == 0)
+    if (!g_is_x509_initialized)
     {
         result = hsm_client_crypto_init();
         if (result == 0)
         {
-            g_ref_cnt = 1;
+            g_is_x509_initialized = true;
         }
     }
     else
     {
-        g_ref_cnt++;
         result = 0;
     }
 
@@ -38,21 +44,21 @@ int hsm_client_x509_init()
 
 void hsm_client_x509_deinit()
 {
-    if (g_ref_cnt == 0)
+    if (!g_is_x509_initialized)
     {
-        LOG_ERROR("hsm_client_x509_deinit not called");
+        LOG_ERROR("hsm_client_x509_init not called");
     }
     else
     {
-        g_ref_cnt--;
         if (g_ref_cnt == 0)
         {
+            g_is_x509_initialized = false;
             hsm_client_crypto_deinit();
         }
     }
 }
 
-void iothub_hsm_free_buffer(void * buffer)
+void edge_x509_hsm_free_buffer(void * buffer)
 {
     if (buffer != NULL)
     {
@@ -60,13 +66,13 @@ void iothub_hsm_free_buffer(void * buffer)
     }
 }
 
-HSM_CLIENT_HANDLE iothub_x509_hsm_create()
+HSM_CLIENT_HANDLE edge_x598_hsm_create()
 {
     HSM_CLIENT_HANDLE result;
 
-    if (g_ref_cnt == 0)
+    if (!g_is_x509_initialized)
     {
-        LOG_ERROR("hsm_client_x509_deinit not called");
+        LOG_ERROR("hsm_client_x509_init not called");
         result = NULL;
     }
     else
@@ -80,23 +86,31 @@ HSM_CLIENT_HANDLE iothub_x509_hsm_create()
         else
         {
             result = interface->hsm_client_crypto_create();
+            if (result != NULL)
+            {
+                g_ref_cnt++;
+            }
         }
     }
 
     return result;
 }
 
-void iothub_x509_hsm_destroy(HSM_CLIENT_HANDLE handle)
+void edge_x509_hsm_destroy(HSM_CLIENT_HANDLE hsm_handle)
 {
-    if (g_ref_cnt == 0)
+    if (!g_is_x509_initialized)
     {
-        LOG_ERROR("hsm_client_x509_deinit not called");
+        LOG_ERROR("hsm_client_x509_init not called");
     }
     else
     {
-        if (handle == NULL)
+        if (hsm_handle == NULL)
         {
-            LOG_ERROR("Null handle parameter");
+            LOG_ERROR("Null hsm handle parameter");
+        }
+        else if (g_ref_cnt == 0)
+        {
+            LOG_ERROR("Mismatch in overall handle create and destroy calls");
         }
         else
         {
@@ -107,8 +121,9 @@ void iothub_x509_hsm_destroy(HSM_CLIENT_HANDLE handle)
             }
             else
             {
-                interface->hsm_client_crypto_destroy(handle);
+                interface->hsm_client_crypto_destroy(hsm_handle);
             }
+            g_ref_cnt--;
         }
     }
 }
@@ -161,183 +176,256 @@ static CERT_PROPS_HANDLE create_edge_device_properties
     return certificate_props;
 }
 
-static CERT_INFO_HANDLE get_or_create_device_certificate(HSM_CLIENT_HANDLE hsm_handle)
+static CERT_INFO_HANDLE create_device_certificate(HSM_CLIENT_HANDLE hsm_handle)
 {
     CERT_INFO_HANDLE result, issuer;
     uint64_t validity_seconds = 0;
     const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
     const char* issuer_alias = hsm_get_device_ca_alias();
-    char *common_name = NULL;
+    char *common_name;
 
-    if ((hsm_get_env(ENV_DEVICE_ID, &common_name) != 0) ||
-        (common_name == NULL) ||
-        (strlen(common_name) == 0))
+    if ((hsm_get_env(ENV_REGISTRATION_ID, &common_name) != 0) ||
+        (common_name == NULL))
     {
-        LOG_ERROR("Environment variable %s is not set or empty", ENV_DEVICE_ID);
+        LOG_ERROR("Environment variable %s is not set or empty."
+                  "This value is required to create the device identity certificate",
+                  ENV_REGISTRATION_ID);
+        result = NULL;
+    }
+    else if (strlen(common_name) == 0)
+    {
+        LOG_ERROR("Environment variable %s is not set or empty."
+                  "This value is required to create the device identity certificate",
+                  ENV_REGISTRATION_ID);
+        free(common_name);
         result = NULL;
     }
     else if ((issuer = interface->hsm_client_crypto_get_certificate(hsm_handle,
                                                                     issuer_alias)) == NULL)
     {
         LOG_ERROR("Issuer alias %s does not exist", issuer_alias);
+        free(common_name);
         result = NULL;
     }
     else
     {
         CERT_PROPS_HANDLE certificate_props;
+
         if ((validity_seconds = certificate_info_get_valid_to(issuer)) == 0)
         {
             LOG_ERROR("Issuer alias's %s certificate contains invalid expiration", issuer_alias);
             result = NULL;
         }
-        else if ((certificate_props = create_edge_device_properties(common_name,
-                                                                    validity_seconds,
-                                                                    issuer_alias)) == NULL)
-        {
-            LOG_ERROR("Error creating certificate properties for device certificate");
-            result = NULL;
-        }
         else
         {
-            result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
-            if (result == NULL)
+            double seconds_left = 0;
+            time_t now = time(NULL);
+
+            if ((seconds_left = difftime(validity_seconds, now)) <= 0)
             {
-                LOG_ERROR("Failed to create device certificate with CN %s", common_name);
+                LOG_ERROR("Issuer certificate has expired");
+                result = NULL;
             }
-            cert_properties_destroy(certificate_props);
+            else if ((certificate_props = create_edge_device_properties(common_name,
+                                                                        (uint64_t)floor(seconds_left),
+                                                                        issuer_alias)) == NULL)
+            {
+                LOG_ERROR("Error creating certificate properties for device certificate");
+                result = NULL;
+            }
+            else
+            {
+                result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
+                if (result == NULL)
+                {
+                    LOG_ERROR("Failed to create device certificate with CN %s", common_name);
+                }
+                cert_properties_destroy(certificate_props);
+            }
         }
+        free(common_name);
         certificate_info_destroy(issuer);
     }
 
     return result;
 }
 
-char* iothub_x509_hsm_get_certificate(HSM_CLIENT_HANDLE hsm_handle)
+static int get_device_id_cert_env_vars(char **device_cert_file_path, char **device_pk_file_path)
 {
-    char* result;
+    int result;
+    char *cert_path = NULL;
+    char *key_path = NULL;
 
-    if (g_ref_cnt == 0)
+    if (hsm_get_env(ENV_DEVICE_CERTIFICATE_PATH, &cert_path) != 0)
     {
-        LOG_ERROR("hsm_client_x509_deinit not called");
+        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_CERTIFICATE_PATH);
+        result = __FAILURE__;
+    }
+    else if (hsm_get_env(ENV_DEVICE_PRIVATE_KEY_PATH, &key_path) != 0)
+    {
+        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_PRIVATE_KEY_PATH);
+        if (cert_path != NULL)
+        {
+            free(cert_path);
+        }
+        result = __FAILURE__;
+    }
+    else
+    {
+        *device_cert_file_path = cert_path;
+        *device_pk_file_path = key_path;
+        result = 0;
+    }
+
+    return result;
+}
+
+static CERT_INFO_HANDLE prepare_device_certifiicate_info
+(
+    const char *cert_file_path,
+    const char *pk_file_path
+)
+{
+    CERT_INFO_HANDLE result;
+    char *cert_contents, *private_key_contents;
+    size_t private_key_size = 0;
+
+    if ((private_key_contents = read_file_into_buffer(pk_file_path, &private_key_size)) == NULL)
+    {
+        LOG_ERROR("Could not load private key into buffer %s", pk_file_path);
         result = NULL;
     }
-    else if (hsm_handle == NULL)
+    else if ((cert_contents = read_file_into_cstring(cert_file_path, NULL)) == NULL)
     {
-        LOG_ERROR("hsm_handle parameter is null");
+        LOG_ERROR("Could not read certificate into buffer %s", cert_file_path);
+        free(private_key_contents);
         result = NULL;
     }
     else
     {
-        CERT_INFO_HANDLE handle = get_or_create_device_certificate(hsm_handle);
-        if (handle == NULL)
+        result = certificate_info_create(cert_contents,
+                                         private_key_contents,
+                                         private_key_size,
+                                         (private_key_size != 0) ? PRIVATE_KEY_PAYLOAD :
+                                                                   PRIVATE_KEY_UNKNOWN);
+        free(private_key_contents);
+        free(cert_contents);
+    }
+
+    return result;
+}
+
+static CERT_INFO_HANDLE get_or_create_device_certificate(HSM_CLIENT_HANDLE hsm_handle)
+{
+    CERT_INFO_HANDLE result;
+    char *device_cert_file_path = NULL;
+    char *device_pk_file_path = NULL;
+    bool env_set = false;
+    unsigned int mask = 0, i = 0;
+
+    if (get_device_id_cert_env_vars(&device_cert_file_path, &device_pk_file_path) != 0)
+    {
+        result = NULL;
+    }
+    else
+    {
+        if (device_cert_file_path != NULL)
         {
-            LOG_ERROR("Could not obtain device certificate");
+            if ((strlen(device_cert_file_path) != 0) && is_file_valid(device_cert_file_path))
+            {
+                mask |= 1 << i; i++;
+            }
+            else
+            {
+                LOG_ERROR("Path set in env variable %s is invalid or cannot be accessed: '%s'",
+                          ENV_DEVICE_CERTIFICATE_PATH, device_cert_file_path);
+            }
+            env_set = true;
+            LOG_DEBUG("Env %s set to %s", ENV_DEVICE_CERTIFICATE_PATH, device_cert_file_path);
+        }
+        else
+        {
+            LOG_DEBUG("Env %s is NULL", ENV_DEVICE_CERTIFICATE_PATH);
+        }
+
+        if (device_pk_file_path != NULL)
+        {
+            if ((strlen(device_pk_file_path) != 0) && is_file_valid(device_pk_file_path))
+            {
+                mask |= 1 << i; i++;
+            }
+            else
+            {
+                LOG_ERROR("Path set in env variable %s is invalid or cannot be accessed: '%s'",
+                          ENV_DEVICE_PRIVATE_KEY_PATH, device_pk_file_path);
+            }
+            env_set = true;
+            LOG_DEBUG("Env %s set to %s", ENV_DEVICE_PRIVATE_KEY_PATH, device_pk_file_path);
+        }
+        else
+        {
+            LOG_DEBUG("Env %s is NULL", ENV_DEVICE_PRIVATE_KEY_PATH);
+        }
+
+        LOG_DEBUG("Device identity setup mask 0x%02x", mask);
+        if (env_set && (mask != 0x3))
+        {
+            LOG_ERROR("To provisiong the Edge with device identity certificates, set "
+                      "env variables with valid values:\n  %s\n  %s",
+                      ENV_DEVICE_CERTIFICATE_PATH, ENV_DEVICE_PRIVATE_KEY_PATH);
             result = NULL;
         }
         else
         {
-            const char * certificate;
-            if ((certificate = certificate_info_get_certificate(handle)) == NULL)
+            if (env_set)
             {
-                LOG_ERROR("Could retrieve device certificate buffer");
-                result = NULL;
+                result = prepare_device_certifiicate_info(device_cert_file_path,
+                                                          device_pk_file_path);
             }
             else
             {
-                result = NULL;
-                if (mallocAndStrcpy_s(&result, certificate) != 0)
-                {
-                    LOG_ERROR("Could not allocate memory to store device certificate");
-                }
+                // no device certificate and key were provided so generate them
+                result = create_device_certificate(hsm_handle);
             }
+        }
+        if (device_cert_file_path != NULL)
+        {
+            free(device_cert_file_path);
+        }
+        if (device_pk_file_path != NULL)
+        {
+            free(device_pk_file_path);
         }
     }
 
     return result;
 }
 
-char* iothub_x509_hsm_get_certificate_key(HSM_CLIENT_HANDLE hsm_handle)
-{
-    char* result;
-
-    if (g_ref_cnt == 0)
-    {
-        LOG_ERROR("hsm_client_x509_deinit not called");
-        result = NULL;
-    }
-    else if (hsm_handle == NULL)
-    {
-        LOG_ERROR("hsm_handle parameter is null");
-        result = NULL;
-    }
-    else
-    {
-        size_t priv_key_len = 0;
-        CERT_INFO_HANDLE handle = get_or_create_device_certificate(hsm_handle);
-        if (handle == NULL)
-        {
-            LOG_ERROR("Could not obtain device private key");
-            result = NULL;
-        }
-        else
-        {
-            const char* private_key;
-            if ((private_key = certificate_info_get_private_key(handle, &priv_key_len)) == NULL)
-            {
-                LOG_ERROR("Could retrieve device private key buffer");
-                result = NULL;
-            }
-            else
-            {
-                result = NULL;
-                if (mallocAndStrcpy_s(&result, private_key) != 0)
-                {
-                    LOG_ERROR("Could not allocate memory to store device certificate");
-                }
-            }
-        }
-    }
-
-    return result;
-}
-
-char* iothub_x509_hsm_get_common_name(HSM_CLIENT_HANDLE hsm_handle)
+char* edge_x509_hsm_get_certificate(HSM_CLIENT_HANDLE hsm_handle)
 {
     (void)hsm_handle;
-    char *result;
+    LOG_ERROR("API unsupported");
 
-    if (g_ref_cnt == 0)
-    {
-        LOG_ERROR("hsm_client_x509_deinit not called");
-        result = NULL;
-    }
-    else if (hsm_handle == NULL)
-    {
-        LOG_ERROR("hsm_handle parameter is null");
-        result = NULL;
-    }
-    else
-    {
-        char *common_name = NULL;
-        if ((hsm_get_env(ENV_DEVICE_ID, &common_name) != 0) || (common_name == NULL))
-        {
-            LOG_ERROR("Environment variable %s is not set or empty", ENV_DEVICE_ID);
-            result = NULL;
-        }
-        else
-        {
-            result = NULL;
-            if (mallocAndStrcpy_s(&result, common_name) != 0)
-            {
-                LOG_ERROR("Could not allocate memory to store device certificate common name");
-            }
-        }
-    }
-
-    return result;
+    return NULL;
 }
 
-static int iothub_x509_sign_with_private_key
+char* edge_x509_hsm_get_certificate_key(HSM_CLIENT_HANDLE hsm_handle)
+{
+    (void)hsm_handle;
+    LOG_ERROR("API unsupported");
+
+    return NULL;
+}
+
+char* edge_x509_hsm_get_common_name(HSM_CLIENT_HANDLE hsm_handle)
+{
+    (void)hsm_handle;
+    LOG_ERROR("API unsupported");
+
+    return NULL;
+}
+
+static int edge_x509_sign_with_private_key
 (
     HSM_CLIENT_HANDLE hsm_handle,
     const unsigned char* data,
@@ -348,9 +436,9 @@ static int iothub_x509_sign_with_private_key
 {
     int result;
 
-    if (g_ref_cnt == 0)
+    if (!g_is_x509_initialized)
     {
-        LOG_ERROR("hsm_client_x509_deinit not called");
+        LOG_ERROR("hsm_client_x509_init not called");
         result = __FAILURE__;
     }
     else if (hsm_handle == NULL)
@@ -372,15 +460,42 @@ static int iothub_x509_sign_with_private_key
     return result;
 }
 
+static CERT_INFO_HANDLE edge_x509_hsm_get_cert_info(HSM_CLIENT_HANDLE hsm_handle)
+{
+    CERT_INFO_HANDLE result;
+
+    if (!g_is_x509_initialized)
+    {
+        LOG_ERROR("hsm_client_x509_init not called");
+        result = NULL;
+    }
+    else if (hsm_handle == NULL)
+    {
+        LOG_ERROR("hsm_handle parameter is null");
+        result = NULL;
+    }
+    else
+    {
+        result = get_or_create_device_certificate(hsm_handle);
+        if (result == NULL)
+        {
+            LOG_ERROR("Could not create device certificate info handle");
+        }
+    }
+
+    return result;
+}
+
 static const HSM_CLIENT_X509_INTERFACE x509_interface =
 {
-    iothub_x509_hsm_create,
-    iothub_x509_hsm_destroy,
-    iothub_x509_hsm_get_certificate,
-    iothub_x509_hsm_get_certificate_key,
-    iothub_x509_hsm_get_common_name,
-    iothub_hsm_free_buffer,
-    iothub_x509_sign_with_private_key
+    edge_x598_hsm_create,
+    edge_x509_hsm_destroy,
+    edge_x509_hsm_get_certificate,
+    edge_x509_hsm_get_certificate_key,
+    edge_x509_hsm_get_common_name,
+    edge_x509_hsm_free_buffer,
+    edge_x509_sign_with_private_key,
+    edge_x509_hsm_get_cert_info
 };
 
 const HSM_CLIENT_X509_INTERFACE* hsm_client_x509_interface()

@@ -2,10 +2,10 @@
 
 use std::ffi::CStr;
 use std::ops::{Deref, Drop};
-use std::os::raw::{c_char, c_void, c_uchar};
-use std::string::String;
+use std::os::raw::{c_char, c_uchar, c_void};
 use std::ptr;
 use std::slice;
+use std::string::String;
 
 use super::GetCerts;
 use super::*;
@@ -101,7 +101,6 @@ impl GetCerts for X509 {
 
     /// Sign data using the device identity x509 certificate
     fn sign_with_private_key(&self, data: &[u8]) -> Result<PrivateKeySignDigest, Error> {
-
         let mut key_ln: usize = 0;
         let mut ptr = ptr::null_mut();
 
@@ -120,8 +119,29 @@ impl GetCerts for X509 {
         };
 
         match result {
-            0 => Ok(PrivateKeySignDigest::new(self.interface, ptr as *const _, key_ln)),
+            0 => Ok(PrivateKeySignDigest::new(
+                self.interface,
+                ptr as *const _,
+                key_ln,
+            )),
             _ => Err(ErrorKind::PrivateKeySignFn)?,
+        }
+    }
+
+    fn get_certificate_info(&self) -> Result<HsmCertificate, Error> {
+        let if_fn = self
+            .interface
+            .hsm_client_get_certificate_info
+            .ok_or(ErrorKind::NoneFn)?;
+        let cert_info_handle = unsafe { if_fn(self.handle) };
+        if cert_info_handle.is_null() {
+            Err(ErrorKind::HsmCertificateFailure)?
+        } else {
+            let handle = HsmCertificate::from(cert_info_handle);
+            match handle {
+                Ok(h) => Ok(h),
+                Err(_) => Err(ErrorKind::HsmCertificateFailure)?,
+            }
         }
     }
 }
@@ -146,7 +166,11 @@ impl Drop for X509Buffer {
 }
 
 impl X509Buffer {
-    pub fn new(interface: HSM_CLIENT_X509_INTERFACE, data: *const c_uchar, len: usize) -> X509Buffer {
+    pub fn new(
+        interface: HSM_CLIENT_X509_INTERFACE,
+        data: *const c_uchar,
+        len: usize,
+    ) -> X509Buffer {
         X509Buffer {
             interface,
             data,
@@ -169,7 +193,6 @@ impl AsRef<[u8]> for X509Buffer {
         unsafe { slice::from_raw_parts(self.data, self.len) }
     }
 }
-
 
 /// When data is returned from x509 interface, it is placed in this struct.
 /// This is a buffer allocated by the C library.
@@ -208,8 +231,8 @@ impl Deref for X509Data {
 
 #[cfg(test)]
 mod tests {
-    use std::ffi::CStr;
-    use std::os::raw::{c_char, c_int, c_void, c_uchar};
+    use std::ffi::{CStr, CString};
+    use std::os::raw::{c_char, c_int, c_uchar, c_void};
     use std::ptr;
     use std::slice;
 
@@ -306,8 +329,26 @@ mod tests {
         }
     }
 
+    static TEST_RSA_CERT: &str = "-----BEGIN CERTIFICATE-----\nMIICpDCCAYwCCQCgAJQdOd6dNzANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwHhcNMTcwMTIwMTkyNTMzWhcNMjcwMTE4MTkyNTMzWjAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDlJ3fRNWm05BRAhgUY7cpzaxHZIORomZaOp2Uua5yv+psdkpv35ExLhKGrUIK1AJLZylnue0ohZfKPFTnoxMHOecnaaXZ9RA25M7XGQvw85ePlGOZKKf3zXw3Ds58GFY6Sr1SqtDopcDuMmDSg/afYVvGHDjb2Fc4hZFip350AADcmjH5SfWuxgptCY2Jl6ImJoOpxt+imWsJCJEmwZaXw+eZBb87e/9PH4DMXjIUFZebShowAfTh/sinfwRkaLVQ7uJI82Ka/icm6Hmr56j7U81gDaF0DhC03ds5lhN7nMp5aqaKeEJiSGdiyyHAescfxLO/SMunNc/eG7iAirY7BAgMBAAEwDQYJKoZIhvcNAQELBQADggEBACU7TRogb8sEbv+SGzxKSgWKKbw+FNgC4Zi6Fz59t+4jORZkoZ8W87NM946wvkIpxbLKuc4F+7nTGHHksyHIiGC3qPpi4vWpqVeNAP+kfQptFoWEOzxD7jQTWIcqYhvssKZGwDk06c/WtvVnhZOZW+zzJKXA7mbwJrfp8VekOnN5zPwrOCumDiRX7BnEtMjqFDgdMgs9ohR5aFsI7tsqp+dToLKaZqBLTvYwCgCJCxdg3QvMhVD8OxcEIFJtDEwm3h9WFFO3ocabCmcMDyXUL354yaZ7RphCBLd06XXdaUU/eV6fOjY6T5ka4ZRJcYDJtjxSG04XPtxswQfrPGGoFhk=\n-----END CERTIFICATE-----";
+
+    unsafe extern "C" fn fake_get_cert_handle(handle: HSM_CLIENT_HANDLE) -> CERT_INFO_HANDLE {
+        let n = handle as isize;
+        if n == 0 {
+            let cert = CString::new(TEST_RSA_CERT).unwrap();
+            let pk = CString::new("1234").unwrap();
+            certificate_info_create(
+                cert.as_ptr(),
+                pk.as_ptr() as *const c_void,
+                pk.to_bytes().len() as usize,
+                1 as u32,
+            )
+        } else {
+            ::std::ptr::null_mut()
+        }
+    }
+
     const DEFAULT_DIGEST_SIZE: usize = 5_usize;
-    const DEFAULT_DIGEST: [u8; DEFAULT_DIGEST_SIZE] = [0, 1, 2 ,3, 4];
+    const DEFAULT_DIGEST: [u8; DEFAULT_DIGEST_SIZE] = [0, 1, 2, 3, 4];
 
     unsafe extern "C" fn fake_private_key_sign(
         handle: HSM_CLIENT_HANDLE,
@@ -319,7 +360,11 @@ mod tests {
         let n = handle as isize;
         if n == 0 {
             let s = malloc(DEFAULT_DIGEST_SIZE);
-            memcpy(s, DEFAULT_DIGEST.as_ptr() as *const c_void, DEFAULT_DIGEST_SIZE);
+            memcpy(
+                s,
+                DEFAULT_DIGEST.as_ptr() as *const c_void,
+                DEFAULT_DIGEST_SIZE,
+            );
             *digest = s as *mut c_uchar;
             *digest_size = DEFAULT_DIGEST_SIZE;
             0
@@ -382,6 +427,7 @@ mod tests {
                 hsm_client_get_common_name: Some(fake_get_name),
                 hsm_client_free_buffer: Some(fake_buffer_destroy),
                 hsm_client_sign_with_private_key: Some(fake_private_key_sign),
+                hsm_client_get_certificate_info: Some(fake_get_cert_handle),
             },
         }
     }
@@ -410,6 +456,13 @@ mod tests {
         } else {
             assert!(false);
         }
+
+        let result5 = hsm_x509.get_certificate_info();
+        if let Ok(cert_handle) = result5 {
+            assert_eq!(TEST_RSA_CERT, cert_handle.pem().unwrap());
+        } else {
+            assert!(false);
+        }
     }
 
     fn fake_bad_x509_hsm() -> X509 {
@@ -423,6 +476,7 @@ mod tests {
                 hsm_client_get_common_name: Some(fake_get_name),
                 hsm_client_free_buffer: Some(fake_buffer_destroy),
                 hsm_client_sign_with_private_key: Some(fake_private_key_sign),
+                hsm_client_get_certificate_info: Some(fake_get_cert_handle),
             },
         }
     }
@@ -458,6 +512,14 @@ mod tests {
     fn sign_with_private_key_error() {
         let hsm_x509 = fake_bad_x509_hsm();
         let result = hsm_x509.sign_with_private_key(b"aabbcc").unwrap();
+        println!("This string should not be displayed {:?}", result);
+    }
+
+    #[test]
+    #[should_panic(expected = "HSM certificate info get failed")]
+    fn get_certificate_info_error() {
+        let hsm_x509 = fake_bad_x509_hsm();
+        let result = hsm_x509.get_certificate_info().unwrap();
         println!("This string should not be displayed {:?}", result);
     }
 }

@@ -170,6 +170,16 @@ typedef char* (*HSM_CLIENT_GET_CERT_KEY)(HSM_CLIENT_HANDLE handle);
 */
 typedef char* (*HSM_CLIENT_GET_COMMON_NAME)(HSM_CLIENT_HANDLE handle);
 
+/**
+* @brief    Retrieves the certificate info handle which can be used for X509 communication.
+*           This serves as the IoT device's identity.
+*
+* @param handle A valid HSM client handle
+*
+* @return       On success a valid CERT_INFO_HANDLE. NULL on failure.
+*/
+typedef CERT_INFO_HANDLE (*HSM_CLIENT_GET_CERTIFICATE_INFO)(HSM_CLIENT_HANDLE handle);
+
 // Cryptographic utilities not tied to a specific hardware implementation
 /**
 * @brief        Provisions a master symmetric encryption key in the HSM. This key will
@@ -219,8 +229,8 @@ typedef int (*HSM_CLIENT_GET_RANDOM_BYTES)(HSM_CLIENT_HANDLE handle, unsigned ch
 typedef CERT_INFO_HANDLE (*HSM_CLIENT_CREATE_CERTIFICATE)(HSM_CLIENT_HANDLE handle, CERT_PROPS_HANDLE certificate_props);
 
 /**
-* @brief    Obtains an X.509 certificate and private key pair if applicable using the
-*           alias. If the alias is invalid or does not exists a NULL is returned.
+* @brief    Obtains an X.509 certificate info handle fir the supplied alias.
+*           If the alias is invalid or does not exists a NULL is returned.
 *
 * @param handle       A valid HSM client handle
 * @param alias        The alias to certificate and private key to
@@ -323,6 +333,7 @@ typedef struct HSM_CLIENT_X509_INTERFACE_TAG
     HSM_CLIENT_GET_COMMON_NAME hsm_client_get_common_name;
     HSM_CLIENT_FREE_BUFFER hsm_client_free_buffer;
     HSM_CLIENT_SIGN_WITH_PRIVATE_KEY hsm_client_sign_with_private_key;
+    HSM_CLIENT_GET_CERTIFICATE_INFO hsm_client_get_cert_info;
 } HSM_CLIENT_X509_INTERFACE;
 
 typedef struct HSM_CLIENT_CRYPTO_INTERFACE_TAG

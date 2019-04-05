@@ -106,6 +106,7 @@ extern time_t get_utc_time_from_asn_string(const unsigned char *time_value, size
 // PKI key operations
 //#################################################################################################
 
+// implementation from https://wiki.openssl.org/index.php/EVP_Signing_and_Verifying
 static int caluclate_hmac_sha256
 (
     EVP_PKEY *evp_key,
@@ -162,7 +163,7 @@ static int caluclate_hmac_sha256
         EVP_MD_CTX_destroy(ctx);
         result = __FAILURE__;
     }
-    else if ((signature = calloc(sign_size, 1)) == NULL)
+    else if ((signature = malloc(sign_size)) == NULL)
     {
         LOG_ERROR("Failed to allocate memory for digest");
         EVP_MD_CTX_destroy(ctx);
@@ -1612,6 +1613,7 @@ KEY_HANDLE create_cert_key(const char* key_file_name)
     EVP_PKEY* evp_key;
     CERT_KEY *cert_key;
 
+    initialize_openssl();
     if (key_file_name == NULL)
     {
         LOG_ERROR("Key file name cannot be NULL");

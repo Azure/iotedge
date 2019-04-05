@@ -15,7 +15,9 @@
 #include <openssl/x509v3.h>
 
 #include "azure_c_shared_utility/gballoc.h"
+#include "azure_c_shared_utility/base64.h"
 #include "azure_c_shared_utility/crt_abstractions.h"
+#include "azure_c_shared_utility/strings.h"
 #include "testrunnerswitcher.h"
 #include "test_utils.h"
 #include "hsm_client_store.h"
@@ -116,6 +118,54 @@ static char *TEST_CHAIN_FILE_PATH        = NULL;
 #define TEST_X509_KEY_USAGE_KEY_CERT_SIGN       "Certificate Sign"
 #define TEST_X509_KEY_EXT_USAGE_SERVER_AUTH     "TLS Web Server Authentication"
 #define TEST_X509_KEY_EXT_USAGE_CLIENT_AUTH     "TLS Web Client Authentication"
+
+#define HMAC_SHA256_DIGEST_LEN 256
+
+static const char * TEST_RSA_ASYMMETRIC_PRIVATE_KEY =
+    "-----BEGIN RSA PRIVATE KEY-----\n" \
+    "MIIEpAIBAAKCAQEAlu3aHGjvNk6sdZFsczd3p0m5qyJTWsgUozTYrbJeVlTyajSj\n" \
+    "zR4cdq7Xs1Cb2/wdf65mxSqC14MzmZ9nEOEyK30Uk+FOQh/ekh7kLD4AICt5+X3B\n" \
+    "iV2cSJkKH+euNSFOi9lj5diTAkLnie0VXUJKNhSubyPAUgSiR5mD4paBGRaTTFSc\n" \
+    "6yWEMms472IwNRLpee0uU4DaozDXv/sBOKRsYmewtVvtCsn4ew+eB1E1X9O92XeL\n" \
+    "idW4N8GESuZLrfcg1vTqzZ9eZ7ZwDg5VpaomV3YBnwOo7rqHcBwnoSfJyqGRlYil\n" \
+    "sTmqnfNnX87ESKRxQ1vJ+06iwXIUclnTJ7xJEwIDAQABAoIBAQCF8UX8qn+IcZ+J\n" \
+    "oupdAd+1Xa9hmc/ho+j0wiR9WetwsGiGKnsnwM4/4YDZyPLY8tB3DJ514flGK1Cy\n" \
+    "yA0epMvyXknRx0S9WC0c/j8+qDNSWWMhMCJ+ts3Ie9DJacFns0xSvjVyuJYWjquO\n" \
+    "8xFft0HG5um7Bj5aS3R9GFc70pd1W/+vDrblcU4qX8R7LKZBLsP+MJz9dKTkt3ab\n" \
+    "IYHF7NO8m6Ahp2cnZf9Q69+KNVbfu8FaJyFN2HRyRKvnwDRcxnDbXYS0cDRwBkSC\n" \
+    "7ko09OsTT02W4q7Hkd1aNO2tgkdWC9t5tgCd1qDYp6lMVhnLR3oswHNQPd4U6LRM\n" \
+    "FrX6XLfBAoGBAMSdFnsuMPKQL0fu20TKBjjjSUKNAaCnke0MGo4TMsA0hS4yuPqC\n" \
+    "J5VPJcLM7m3wI7xtPRssTp6SHO5Feg9Riix5fV4FVU0AcQgKWIbrGgp6aXu8dz5v\n" \
+    "pewWrlsWQKVO4LWsHfeqZKnv9aXPYrbida00feJxOMcrOAIrexXL9RRzAoGBAMSE\n" \
+    "Q5OlUWibqbMhHsACtKu1ENQQVKKkVyJuygUQvIOYRO8//ouGSIELnknAUmjDMiIi\n" \
+    "u6mqR3BdGryagO+Wv1GFWRc5rb8gzr8M5Ir4RuATbJ9+E7MrcX5dWXbXjVeelilV\n" \
+    "PpDWDX5tT/Aow2NH8DIKCjk/R6I9XCgCIXH8UXDhAoGBAJW3jTP1w54h/28GSwBB\n" \
+    "2qUdJl9AIrokgDGDIwGHSwEjvTqls0hHLj87SuTgyrr6vyuv/3Uesyt61f729vCN\n" \
+    "ReuCA95Br2f4axoVTr5GbskF2Cc6J49q021JBDImasm2m9SboSJEJW1mZaeCmYfs\n" \
+    "QHHJZAa38uVvWrIETDEX46NTAoGAOyJ111MS+UCGQ1H/F9Z4mYbl5np3jW2YjtL5\n" \
+    "1aZgo9TJQZlnNoMVBEgDvLuz0LSUPHNpNzf3QVey+PghPneFYLmYwoVnxDDSJely\n" \
+    "SGNHqJwPvrrIoMy83UKn7jwU2z3sf8mYBytyag3o1SLfENwP6m7c/rcNDkQanCtv\n" \
+    "9wXvV+ECgYBu+JRVOCb3/7SuRgafex8OQpV3ype7M6yLiTn8I/170ma9x787VoNV\n" \
+    "epaG2j1pN++0b23tclP1Klql4zmdTZtCoTkkhigQv0i/A0/hicpK92VqHdWXQs1D\n" \
+    "b5ufSKwS6brLwRR6lXo3Vv9aayuXMadsE94lxmMhnX1osZUibPqAew==\n" \
+    "-----END RSA PRIVATE KEY-----\n";
+
+#define TEST_RSA_PRIVATE_KEY_FILE_NAME "rsa_test_private_key.pem"
+static char* TEST_RSA_PRIVATE_KEY_FILE = NULL;
+
+static const char * TEST_RSA_ASYMMETRIC_PUBLIC_KEY =
+    "-----BEGIN PUBLIC KEY-----\n" \
+    "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlu3aHGjvNk6sdZFsczd3\n" \
+    "p0m5qyJTWsgUozTYrbJeVlTyajSjzR4cdq7Xs1Cb2/wdf65mxSqC14MzmZ9nEOEy\n" \
+    "K30Uk+FOQh/ekh7kLD4AICt5+X3BiV2cSJkKH+euNSFOi9lj5diTAkLnie0VXUJK\n" \
+    "NhSubyPAUgSiR5mD4paBGRaTTFSc6yWEMms472IwNRLpee0uU4DaozDXv/sBOKRs\n" \
+    "YmewtVvtCsn4ew+eB1E1X9O92XeLidW4N8GESuZLrfcg1vTqzZ9eZ7ZwDg5Vpaom\n" \
+    "V3YBnwOo7rqHcBwnoSfJyqGRlYilsTmqnfNnX87ESKRxQ1vJ+06iwXIUclnTJ7xJ\n" \
+    "EwIDAQAB\n" \
+    "-----END PUBLIC KEY-----\n";
+
+#define TEST_RSA_PUBLIC_KEY_FILE_NAME "rsa_test_public_key.pem"
+static char* TEST_RSA_PUBLIC_KEY_FILE = NULL;
 
 #define MAX_PATHLEN_STRING_SIZE 32
 #define MAX_X509_EXT_SIZE 512
@@ -640,6 +690,14 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         TEST_CLIENT_PK_ECC_FILE_1   = prepare_file_path(TEST_TEMP_DIR, TEST_CLIENT_PK_ECC_FILE_1_NAME);
 
         TEST_CHAIN_FILE_PATH = prepare_file_path(TEST_TEMP_DIR, TEST_CHAIN_FILE_PATH_NAME);
+
+        TEST_RSA_PRIVATE_KEY_FILE = prepare_file_path(TEST_TEMP_DIR, TEST_RSA_PRIVATE_KEY_FILE_NAME);
+        int status = write_cstring_to_file(TEST_RSA_PRIVATE_KEY_FILE, TEST_RSA_ASYMMETRIC_PRIVATE_KEY);
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+        TEST_RSA_PUBLIC_KEY_FILE = prepare_file_path(TEST_TEMP_DIR, TEST_RSA_PUBLIC_KEY_FILE_NAME);
+        status = write_cstring_to_file(TEST_RSA_PUBLIC_KEY_FILE, TEST_RSA_ASYMMETRIC_PUBLIC_KEY);
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
     }
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -669,6 +727,9 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         free(TEST_CLIENT_PK_ECC_FILE_1); TEST_CLIENT_PK_ECC_FILE_1 = NULL;
 
         free(TEST_CHAIN_FILE_PATH); TEST_CHAIN_FILE_PATH = NULL;
+
+        free(TEST_RSA_PRIVATE_KEY_FILE); TEST_RSA_PRIVATE_KEY_FILE = NULL;
+        free(TEST_RSA_PUBLIC_KEY_FILE); TEST_RSA_PUBLIC_KEY_FILE = NULL;
 
         test_helper_teardown_temp_dir(&TEST_TEMP_DIR, &TEST_TEMP_DIR_GUID);
         test_helper_teardown_temp_dir(&TEST_IOTEDGE_HOMEDIR, &TEST_IOTEDGE_HOMEDIR_GUID);
@@ -922,6 +983,59 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         test_helper_x509_ext_validator(&key_props);
 
         //cleanup
+    }
+
+
+    // The following test requires some prior setup in order to validate
+    // the key sign interface
+    //
+    // 1) Setup test keys
+    //      a) Generate a RSA public-private keypair using openssl
+    //         $> openssl genrsa -out private.pem 2048
+    //      b) Obtain the public key
+    //        $> openssl rsa -in private.pem -outform PEM -pubout -out public.pem
+    //      c) Copy the resulting file buffers.
+    //         See TEST_RSA_ASYMMETRIC_PRIVATE_KEY, TEST_RSA_ASYMMETRIC_PUBLIC_KEY
+    //      d) These buffers need to be exported to files for testing.
+    //         See TestClassInitialize.
+    //
+    // 2) Determine exptected test values based on the generated keys above
+    //      a) Prepare the test data to sign
+    //          $> echo -n "your test string" > tbs.txt
+    //      b) The expected HMAC digest was computed as follows:
+    //          b1) Output binary of the HMAC sign.hmac.sha256.bin
+    //              $> openssl dgst -sign private.pem -keyform PEM -out sign.hmac.sha256.bin tbs.txt
+    //      c) Convert binary to base64 for ease of test
+    //              $> base64 sign.hmac.sha256.bin > sign.hmac.sha256.base64
+    TEST_FUNCTION(test_rsa_key_sign)
+    {
+        // arrange
+        const char *tbs = "What is sunshine without rain? - Logic";
+        size_t tbs_size = strlen(tbs); // we do not use the null term char in the tbs
+        KEY_HANDLE key_handle = create_cert_key(TEST_RSA_PRIVATE_KEY_FILE);
+        unsigned char * digest = NULL;
+        size_t digest_size = 0;
+        STRING_HANDLE output_b64;
+        const char *expected_base64_sig =
+            "P+xw2s65fBegf3e7Y1BiaVsbiJuqDa219Fn55RYyER6fOXqLszcq+LIiF8DRDubsvha4q/2elTNV"
+            "rpWt+kLBJ8iwJwn8CHVSmfstPscyC94NAAIw3Td90BEed1LLVrFmQ0W6Zw7xnC7yXqoL1JydZwmZ"
+            "gY9JAJxqaDnfcZT7HvYnAcyTGLkO5lpj7Zg1EPywfchUJir1Mq4TAM0ha77iboodQp5Ig2Kmk8ed"
+            "LihsYplD0fvoeUMZ+fbGhQOJ367j/ZfGaRusGX23Yqu95BDHC5COhCp3Gm80iymxfhz8gtqqsIhE"
+            "bbEp4XB+IJj6ZOxA7rhYZuyCsv23Mh6zRD2Hvg==";
+
+        // act
+        int result = key_sign(key_handle, (unsigned char*)tbs, tbs_size, &digest, &digest_size);
+
+        // assert
+        ASSERT_IS_NOT_NULL(digest, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, HMAC_SHA256_DIGEST_LEN, digest_size, "Line:" TOSTRING(__LINE__));
+        output_b64 = Base64_Encode_Bytes(digest, digest_size);
+        ASSERT_ARE_EQUAL(int, 0, strcmp(expected_base64_sig, STRING_c_str(output_b64)), "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        free(digest);
+        key_destroy(key_handle);
+        STRING_delete(output_b64);
     }
 
 END_TEST_SUITE(edge_openssl_int_tests)
