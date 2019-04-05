@@ -102,7 +102,7 @@ hostname: "<ADD HOSTNAME HERE>"
 ###############################################################################
 #
 #
-#Configures URIs used by clients of the management and workload APIs
+# Configures URIs used by clients of the management and workload APIs
 #     management_uri - used by the Edge Agent and 'iotedge' CLI to start,
 #                      stop, and manage modules
 #     workload_uri   - used by modules to retrieve tokens and certificates
@@ -110,6 +110,11 @@ hostname: "<ADD HOSTNAME HERE>"
 # The following uri schemes are supported:
 #     http - connect over TCP
 #     unix - connect over Unix domain socket
+#
+# Note: When using the fd:// scheme for listen.management_uri or listen.workload_uri,
+# the path of connect.management_uri and connect.workload_uri must match
+# the path of the underlying socket in the systemd socket files
+# (iotedge.socket and iotedge.mgmt.socket).
 #
 ###############################################################################
 
@@ -135,6 +140,11 @@ connect:
 # using the fd:// scheme for systemd:
 #     listen address is fd://iotedge.workload,
 #     connect address is unix:///var/run/iotedge/workload.sock
+#
+# Note: When using the fd:// scheme for listen.management_uri or listen.workload_uri,
+# the path of connect.management_uri and connect.workload_uri must match
+# the path of the underlying socket in the systemd socket files
+# (iotedge.socket and iotedge.mgmt.socket).
 #
 ###############################################################################
 

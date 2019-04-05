@@ -28,14 +28,13 @@ use hyperlocal::{UnixConnector, Uri as HyperlocalUri};
 use hyperlocal_windows::{UnixConnector, Uri as HyperlocalUri};
 use url::{ParseError, Url};
 
+use edgelet_core::UrlExt;
+
 use error::{Error, ErrorKind, InvalidUrlReason};
 use util::{socket_file_exists, StreamSelector};
-use UrlExt;
-
-const UNIX_SCHEME: &str = "unix";
 #[cfg(windows)]
-const PIPE_SCHEME: &str = "npipe";
-const HTTP_SCHEME: &str = "http";
+use PIPE_SCHEME;
+use {HTTP_SCHEME, UNIX_SCHEME};
 
 pub enum UrlConnector {
     Http(HttpConnector),
@@ -51,7 +50,9 @@ impl UrlConnector {
             PIPE_SCHEME => Ok(UrlConnector::Pipe(PipeConnector)),
 
             UNIX_SCHEME => {
-                let file_path = url.to_uds_file_path()?;
+                let file_path = url
+                    .to_uds_file_path()
+                    .map_err(|_| ErrorKind::InvalidUrl(url.to_string()))?;
                 if socket_file_exists(&file_path) {
                     Ok(UrlConnector::Unix(UnixConnector::new()))
                 } else {

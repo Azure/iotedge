@@ -2,6 +2,7 @@
 members = [
     "docker-rs",
     "dps",
+    "edgelet-config",
     "edgelet-core",
     "edgelet-docker",
     "edgelet-hsm",
@@ -19,8 +20,10 @@ members = [
     "iotedge",
     "iotedged",
     "iotedged-eventlog-messages",
+    "iotedge-diagnostics",
     "iothubservice",
     "management",
+    "mini-sntp",
     "provisioning",
     "systemd",
     "tokio-named-pipe",

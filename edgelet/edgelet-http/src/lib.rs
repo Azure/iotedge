@@ -65,7 +65,6 @@ use std::net;
 use std::net::ToSocketAddrs;
 #[cfg(unix)]
 use std::os::unix::io::FromRawFd;
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use failure::{Fail, ResultExt};
@@ -81,6 +80,7 @@ use tokio::net::TcpListener;
 use tokio_uds::UnixListener;
 use url::Url;
 
+use edgelet_core::{UrlExt, UNIX_SCHEME};
 use edgelet_utils::log_failure;
 
 pub mod authorization;
@@ -102,8 +102,9 @@ use self::pid::PidService;
 use self::util::incoming::Incoming;
 
 const HTTP_SCHEME: &str = "http";
+#[cfg(windows)]
+const PIPE_SCHEME: &str = "npipe";
 const TCP_SCHEME: &str = "tcp";
-const UNIX_SCHEME: &str = "unix";
 #[cfg(unix)]
 const FD_SCHEME: &str = "fd";
 
@@ -237,7 +238,9 @@ impl HyperExt for Http {
                 Incoming::Tcp(listener)
             }
             UNIX_SCHEME => {
-                let path = url.to_uds_file_path()?;
+                let path = url
+                    .to_uds_file_path()
+                    .map_err(|_| ErrorKind::InvalidUrl(url.to_string()))?;
                 unix::listener(path)?
             }
             #[cfg(unix)]
@@ -293,44 +296,5 @@ impl HyperExt for Http {
             new_service,
             incoming,
         })
-    }
-}
-
-pub trait UrlExt {
-    fn to_uds_file_path(&self) -> Result<PathBuf, Error>;
-    fn to_base_path(&self) -> Result<PathBuf, Error>;
-}
-
-impl UrlExt for Url {
-    fn to_uds_file_path(&self) -> Result<PathBuf, Error> {
-        debug_assert_eq!(self.scheme(), UNIX_SCHEME);
-
-        if cfg!(windows) {
-            // We get better handling of Windows file syntax if we parse a
-            // unix:// URL as a file:// URL. Specifically:
-            // - On Unix, `Url::parse("unix:///path")?.to_file_path()` succeeds and
-            //   returns "/path".
-            // - On Windows, `Url::parse("unix:///C:/path")?.to_file_path()` fails
-            //   with Err(()).
-            // - On Windows, `Url::parse("file:///C:/path")?.to_file_path()` succeeds
-            //   and returns "C:\\path".
-            debug_assert_eq!(self.scheme(), UNIX_SCHEME);
-            let mut s = self.to_string();
-            s.replace_range(..4, "file");
-            let url = Url::parse(&s).with_context(|_| ErrorKind::InvalidUrl(s.clone()))?;
-            let path = url
-                .to_file_path()
-                .map_err(|()| ErrorKind::InvalidUrl(url.to_string()))?;
-            Ok(path)
-        } else {
-            Ok(Path::new(self.path()).to_path_buf())
-        }
-    }
-
-    fn to_base_path(&self) -> Result<PathBuf, Error> {
-        match self.scheme() {
-            "unix" => Ok(self.to_uds_file_path()?),
-            _ => Ok(self.as_str().into()),
-        }
     }
 }
