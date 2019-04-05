@@ -704,7 +704,7 @@ mod tests {
     fn diff_with_same_cached_returns_false() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
-        let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS))).unwrap(); //TODO
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
         let settings_to_write = serde_json::to_string(&settings).unwrap();
         let sha_to_write = Sha256::digest_str(&settings_to_write);
         let base64_to_write = base64::encode(&sha_to_write);
