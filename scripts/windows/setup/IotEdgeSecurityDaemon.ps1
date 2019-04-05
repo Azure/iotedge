@@ -1475,8 +1475,10 @@ function Get-DpsProvisioningSettings {
         $idCertFilesProvided = $true
     }
 
-    if ($idCertFilesProvided -and $RegistrationId) {
-        Write-HostYellow 'RegistrationId is strictly not required for this DPS provisioning mode as it can be obtained from the certificate'
+    if ($idCertFilesProvided) {
+        if ($RegistrationId) {
+            Write-HostYellow 'NOTE: RegistrationId is strictly not required for this DPS provisioning mode as it can be obtained from the identity certificate'
+        }
     }
     else {
         if (-not $RegistrationId) {
