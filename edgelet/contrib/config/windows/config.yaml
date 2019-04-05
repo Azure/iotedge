@@ -38,7 +38,7 @@ provisioning:
 #   global_endpoint: "https://global.azure-devices-provisioning.net"
 #   scope_id: "{scope_id}"
 #   attestation:
-#     type: "tpm"
+#     method: "tpm"
 #     registration_id: "{registration_id}"
 #     device_id: "<OPTIONAL DEVICE ID TO BE PROVISIONED IN IOTHUB>"
 
@@ -48,7 +48,7 @@ provisioning:
 #   global_endpoint: "https://global.azure-devices-provisioning.net"
 #   scope_id: "{scope_id}"
 #   attestation:
-#     type: "symmetric_key"
+#     method: "symmetric_key"
 #     registration_id: "{registration_id}"
 #     device_id: "<OPTIONAL DEVICE ID TO BE PROVISIONED IN IOTHUB>"
 #     symmetric_key: "{symmetric_key}"
@@ -59,7 +59,7 @@ provisioning:
 #   global_endpoint: "https://global.azure-devices-provisioning.net"
 #   scope_id: "{scope_id}"
 #   attestation:
-#     type: "x509"
+#     method: "x509"
 #     registration_id: "<OPTIONAL REGISTRATION ID. IF UNSPECIFIED CAN BE OBTAINED FROM CN OF identity_cert"
 #     device_id: "<OPTIONAL DEVICE ID TO BE PROVISIONED IN IOTHUB>"
 #     identity_cert: "<OPTIONAL PATH TO DEVICE IDENTITY CERTIFICATE HERE. IF UNSPECIFIED, DEVICE CA WILL ISSUE ONE>"
