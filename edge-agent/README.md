@@ -15,7 +15,7 @@ The application will read the `appsettings.json` for configuration. The format i
   "DockerUri": "<docker service uri>",
   "DeviceConnectionString": "<Your IoT Hub Device Connection String>",
   "ConfigSource": "<twin|local>",
-  "ConfigSourceBindPath": "<Bind path to the folder where the config.json is in 'local' mode>",
+  "LocalConfigPath": "<Path to the custom configuration JSON file in 'local' mode>",
   "DockerLoggingDriver":  "<json-file|journald|fluentd|etwlogs|none>",
   "NetworkId": "<Docker network id>",
   "EdgeDeviceHostName": "<Edge device host name>"
