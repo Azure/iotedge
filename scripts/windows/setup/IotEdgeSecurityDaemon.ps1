@@ -137,7 +137,7 @@ function Initialize-IoTEdge {
         return
     }
 
-    if (-not (Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck)) {
+    if (-not (Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck -SkipBatteryCheck)) {
         return
     }
 
@@ -242,7 +242,8 @@ function Update-IoTEdge {
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
         -Update `
-        -SkipArchCheck
+        -SkipArchCheck `
+        -SkipBatteryCheck
 }
 
 <#
@@ -301,7 +302,10 @@ function Deploy-IoTEdge {
         [Switch] $RestartIfNeeded,
 
         # Skip processor architecture check.
-        [Switch] $SkipArchCheck
+        [Switch] $SkipArchCheck,
+
+        # Skip battery check.
+        [Switch] $SkipBatteryCheck
     )
 
     Install-Packages `
@@ -310,7 +314,8 @@ function Deploy-IoTEdge {
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
-        -SkipArchCheck:$SkipArchCheck
+        -SkipArchCheck:$SkipArchCheck `
+        -SkipBatteryCheck:$SkipBatteryCheck
 }
 
 <#
@@ -404,7 +409,10 @@ function Install-IoTEdge {
         [Switch] $RestartIfNeeded,
 
         # Skip processor architecture check.
-        [Switch] $SkipArchCheck
+        [Switch] $SkipArchCheck,
+
+        # Skip battery check.
+        [Switch] $SkipBatteryCheck
     )
 
     # Used to indicate success of Deploy-IoTEdge so we can abort early in case of failure
@@ -419,7 +427,8 @@ function Install-IoTEdge {
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
-        -SkipArchCheck:$SkipArchCheck
+        -SkipArchCheck:$SkipArchCheck `
+        -SkipBatteryCheck:$SkipBatteryCheck
 
     if (-not $script:installPackagesCompleted) {
         return
@@ -546,7 +555,8 @@ function Install-Packages(
         [HashTable] $InvokeWebRequestParameters,
         [Switch] $RestartIfNeeded,
         [Switch] $Update,
-        [Switch] $SkipArchCheck
+        [Switch] $SkipArchCheck,
+        [Switch] $SkipBatteryCheck
     )
 {
     $ErrorActionPreference = 'Stop'
@@ -606,7 +616,7 @@ function Install-Packages(
         }
     }
 
-    if (-not (Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck:$SkipArchCheck)) {
+    if (-not (Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck:$SkipArchCheck -SkipBatteryCheck:$SkipBatteryCheck)) {
         return
     }
 
@@ -652,7 +662,10 @@ function Install-Packages(
     }
 }
 
-function Setup-Environment([string] $ContainerOs, [switch] $SkipArchCheck) {
+function Setup-Environment {
+    [CmdletBinding()]
+    param ([string] $ContainerOs, [switch] $SkipArchCheck, [switch] $SkipBatteryCheck)
+
     $currentWindowsBuild = Get-WindowsBuild
     $preRequisitesMet = switch ($ContainerOs) {
         'Linux' {
@@ -717,6 +730,25 @@ function Setup-Environment([string] $ContainerOs, [switch] $SkipArchCheck) {
         # for IoT Core anyway because the "System.Net.ServicePointManager" type doesn't exist in its version of dotnet.
         [System.Net.ServicePointManager]::SecurityProtocol =
             [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
+    }
+
+    if (($ContainerOs -eq 'Windows') -and (-not $SkipBatteryCheck)) {
+        if ((Get-Command 'Get-WmiObject' -ErrorAction Ignore) -ne $null) {
+            [psobject[]] $batteries = Get-WmiObject Win32_Battery -ErrorAction Ignore
+            if (($batteries -ne $null) -and ($batteries.Length -gt 0)) {
+                Write-Warning (
+                    "One or more batteries were detected on this device.`n`n" +
+                    'A known Windows operating system issue prevents transition to sleep and hibernate power states when IoT Edge modules ' +
+                    "(process-isolated Windows Nano Server containers) are running. This issue impacts battery life on the device.`n`n" +
+                    'As a workaround, use the command "Stop-Service iotedge, iotedge-moby -Force" to stop any running IoT Edge modules ' +
+                    'before using these power states.')
+
+                if (-not $PSCmdlet.ShouldContinue('Do you want to continue with installation?', '')) {
+                    Write-HostRed 'Aborting installation.'
+                    return $false
+                }
+            }
+        }
     }
 
     return $true
