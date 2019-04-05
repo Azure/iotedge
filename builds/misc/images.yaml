@@ -29,7 +29,7 @@ jobs:
       - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
         displayName: Modify path
 
-      - bash: 'cargo install --git https://github.com/myagley/cross.git --branch set-path'
+      - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
         displayName: 'Install cross (fork with docker fix)'
 
       - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin
