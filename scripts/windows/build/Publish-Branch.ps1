@@ -263,7 +263,7 @@ Function PublishSmokeApps([string] $Rid)
 
     $ArchPath = Join-Path $PUBLISH_FOLDER $Rid
     New-Item -ItemType Directory -Force -Path $ArchPath
-    Compress-Archive $SmokeOutputPath (Join-Path $ArchPath "IotEdgeQuickstart.zip")
+    Compress-Archive (Join-Path $SmokeOutputPath '\*') (Join-Path $ArchPath 'IotEdgeQuickstart.zip')
 }
 
 PublishSmokeApps 'win10-x64'
