@@ -141,6 +141,7 @@ pub enum AttestationMethod {
 #[serde(rename_all = "lowercase")]
 pub struct TpmAttestationInfo {
     registration_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     device_id: Option<String>,
 }
 
@@ -166,22 +167,21 @@ impl TpmAttestationInfo {
 pub struct SymmetricKeyAttestationInfo {
     registration_id: String,
     symmetric_key: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    device_id: Option<String>,
 }
 
 impl SymmetricKeyAttestationInfo {
-    pub fn new(registration_id: String, symmetric_key: String) -> Self {
-        SymmetricKeyAttestationInfo {
-            registration_id,
-            symmetric_key,
-        }
-    }
-
     pub fn registration_id(&self) -> &str {
         &self.registration_id
     }
 
     pub fn symmetric_key(&self) -> &str {
         &self.symmetric_key
+    }
+
+    pub fn device_id(&self) -> Option<&str> {
+        self.device_id.as_ref().map(AsRef::as_ref)
     }
 }
 
@@ -190,6 +190,8 @@ impl SymmetricKeyAttestationInfo {
 pub struct X509AttestationInfo {
     identity_cert: PathBuf,
     identity_pk: PathBuf,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    device_id: Option<String>,
 }
 
 impl X509AttestationInfo {
@@ -199,6 +201,10 @@ impl X509AttestationInfo {
 
     pub fn identity_pk(&self) -> &Path {
         &self.identity_pk
+    }
+    
+    pub fn device_id(&self) -> Option<&str> {
+        self.device_id.as_ref().map(AsRef::as_ref)
     }
 }
 
@@ -524,6 +530,8 @@ mod tests {
     #[cfg(unix)]
     static GOOD_SETTINGS_DPS_TPM: &str = "test/linux/sample_settings.dps.tpm.yaml";
     #[cfg(unix)]
+    static GOOD_SETTINGS_DPS_TPM1: &str = "test/linux/sample_settings.dps.tpm.1.yaml";
+    #[cfg(unix)]
     static GOOD_SETTINGS_DPS_DEFAULT: &str = "test/linux/sample_settings.dps.default.yaml";
     #[cfg(unix)]
     static BAD_SETTINGS_DPS_TPM: &str = "test/linux/bad_sample_settings.dps.tpm.yaml";
@@ -548,6 +556,8 @@ mod tests {
     static GOOD_SETTINGS_CASE_SENSITIVE: &str = "test/windows/case_sensitive.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_DPS_TPM: &str = "test/windows/sample_settings.dps.tpm.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_DPS_TPM1: &str = "test/windows/sample_settings.dps.tpm.1.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_DPS_DEFAULT: &str = "test/windows/sample_settings.dps.default.yaml";
     #[cfg(windows)]
@@ -646,7 +656,8 @@ mod tests {
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
                 match dps.attestation() {
                     AttestationMethod::Tpm(ref tpm) => {
-                        assert_eq!(tpm.registration_id(), "register me fool")
+                        assert_eq!(tpm.registration_id(), "register me fool");
+                        assert_eq!(tpm.device_id(), None);
                     }
                     _ => assert!(false),
                 }
@@ -668,7 +679,8 @@ mod tests {
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
                 match dps.attestation() {
                     AttestationMethod::Tpm(ref tpm) => {
-                        assert_eq!(tpm.registration_id(), "register me fool")
+                        assert_eq!(tpm.registration_id(), "register me fool");
+                        assert_eq!(tpm.device_id(), Some("d1"));
                     }
                     _ => assert!(false),
                 }
@@ -692,6 +704,7 @@ mod tests {
                     AttestationMethod::SymmetricKey(ref key) => {
                         assert_eq!(key.symmetric_key(), "key");
                         assert_eq!(key.registration_id(), "register me fool");
+                        assert_eq!(key.device_id(), Some("d1"));
                     }
                     _ => assert!(false),
                 }
@@ -729,7 +742,7 @@ mod tests {
             .write_all(base64_to_write.as_bytes())
             .unwrap();
         let settings =
-            Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM))).unwrap();
+            Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
         assert_eq!(settings.diff_with_cached(&path), false);
     }
 
@@ -738,7 +751,7 @@ mod tests {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
         let settings1 =
-            Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM))).unwrap();
+            Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
         let settings_to_write = serde_json::to_string(&settings1).unwrap();
         let sha_to_write = Sha256::digest_str(&settings_to_write);
         let base64_to_write = base64::encode(&sha_to_write);

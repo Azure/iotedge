@@ -8,6 +8,7 @@ provisioning:
     method: "symmetric_key"
     registration_id: "register me fool"
     symmetric_key: "key"
+    device_id: "d1"
 
 agent:
   name: "edgeAgent"
