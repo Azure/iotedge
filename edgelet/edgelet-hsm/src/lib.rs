@@ -12,3 +12,4 @@ pub mod tpm;
 pub use crypto::{Certificate, Crypto};
 pub use error::{Error, ErrorKind};
 pub use tpm::{TpmKey, TpmKeyStore};
+pub use x509::{X509, GetDeviceIdentityCert};
