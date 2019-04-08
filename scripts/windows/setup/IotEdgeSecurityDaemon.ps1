@@ -1495,15 +1495,15 @@ function Validate-GatewaySettings {
 
 function Get-DpsProvisioningSettings {
     $idCertFilesProvided = $false
-    $attestationMethod="tpm" # default
+    $attestationMethod = 'tpm' # default
     if ($SymmetricKey) {
-        $attestationMethod="symmetric_key"
+        $attestationMethod = 'symmetric_key'
     }
     elseif ($AutoGenX509IdentityCertificate) {
-        $attestationMethod="x509"
+        $attestationMethod = 'x509'
     }
     elseif ($X509IdentityCertificate -or $X509IdentityPrivateKey) {
-        $attestationMethod="x509"
+        $attestationMethod = 'x509'
         $idCertFilesProvided = $true
     }
 
@@ -1518,7 +1518,7 @@ function Get-DpsProvisioningSettings {
         }
     }
 
-    if ($attestationMethod -eq "x509") {
+    if ($attestationMethod -eq 'x509') {
         if ($idCertFilesProvided) {
             if (-Not (Test-Path -Path $X509IdentityCertificate)) {
                 throw "Identity certificate file $X509IdentityCertificate not found."
@@ -1529,10 +1529,10 @@ function Get-DpsProvisioningSettings {
         }
         else {
             if ($X509IdentityCertificate -or $X509IdentityPrivateKey) {
-                throw "Cannot specify a device identity certificate and also set AutoGenX509IdentityCertificate as true."
+                throw 'Cannot specify a device identity certificate and also set AutoGenX509IdentityCertificate as true.'
             }
             if (-Not (Validate-GatewaySettings)) {
-                throw "Device CA certificate files are not found. These are required when using AutoGenX509IdentityCertificate."
+                throw 'Device CA certificate files are not found. These are required when using AutoGenX509IdentityCertificate.'
             }
         }
     }
@@ -1558,9 +1558,9 @@ function Set-ProvisioningMode {
             $attestationMethod = Get-DpsProvisioningSettings
             $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*attestation:\s*#?\s*method:\s*"' + $attestationMethod + '"\s*#?\s*registration_id:\s*".*"\s*#?\s*device_id:\s*".*"'
 
-            if ($attestationMethod -eq "symmetric_key") {
+            if ($attestationMethod -eq 'symmetric_key') {
                 $selectionRegex += '\s*#?\s*symmetric_key:\s".*"'
-            } elseif ($attestationMethod -eq "x509") {
+            } elseif ($attestationMethod -eq 'x509') {
                 $selectionRegex += '\s*#?\s*identity_cert:\s".*"\s*#?\s*identity_pk:\s".*"'
             }
             $replacementContent = @(
