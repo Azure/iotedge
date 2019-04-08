@@ -3,12 +3,21 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
+use std::env;
+use tempfile::TempDir;
+
 use edgelet_core::{Certificate, GetTrustBundle};
 use edgelet_hsm::Crypto;
+
+const HOMEDIR_KEY: &str = "IOTEDGE_HOMEDIR";
 
 #[test]
 fn crypto_get_trust_bundle() {
     // arrange
+    let home_dir = TempDir::new().unwrap();
+    env::set_var(HOMEDIR_KEY, &home_dir.path());
+    println!("IOTEDGE_HOMEDIR set to {:#?}", home_dir.path());
+
     let crypto = Crypto::new().unwrap();
 
     // act
@@ -23,4 +32,7 @@ fn crypto_get_trust_bundle() {
     // assert
     // assume cert_type is PEM(0)
     assert!(!buffer.as_bytes().is_empty());
+
+    // cleanup
+    home_dir.close().unwrap();
 }

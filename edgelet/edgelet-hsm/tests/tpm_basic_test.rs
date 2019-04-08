@@ -3,10 +3,12 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
+use std::env;
 use std::str;
 
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
+use tempfile::TempDir;
 
 use bytes::Bytes;
 use edgelet_core::crypto::Sign;
@@ -16,6 +18,7 @@ use edgelet_core::KeyIdentity;
 use edgelet_core::KeyStore;
 use edgelet_hsm::TpmKeyStore;
 
+const HOMEDIR_KEY: &str = "IOTEDGE_HOMEDIR";
 const TEST_KEY_BASE64: &str = "D7PuplFy7vIr0349blOugqCxyfMscyVZDoV9Ii0EFnA=";
 
 pub fn test_helper_compute_hmac(key: &[u8], input: &[u8]) -> Vec<u8> {
@@ -36,6 +39,10 @@ pub fn test_helper_compute_hmac(key: &[u8], input: &[u8]) -> Vec<u8> {
 #[test]
 fn tpm_basic_test() {
     // arrange
+    let home_dir = TempDir::new().unwrap();
+    env::set_var(HOMEDIR_KEY, &home_dir.path());
+    println!("IOTEDGE_HOMEDIR set to {:#?}", home_dir.path());
+
     let key_store = TpmKeyStore::new().unwrap();
 
     let decoded_key = base64::decode(TEST_KEY_BASE64).unwrap();
@@ -75,4 +82,5 @@ fn tpm_basic_test() {
     assert_eq!(test_expected_digest1.as_slice(), digest1.as_bytes());
     assert_eq!(test_expected_digest2.as_slice(), digest2.as_bytes());
     assert_ne!(digest1.as_bytes(), digest2.as_bytes());
+    home_dir.close().unwrap();
 }
