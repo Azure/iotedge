@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
 {
+    using System;
     using System.IO;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -17,8 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
 
         public string Name => this.blockBlob.Name;
 
-        public BlobProperties BlobProperties => this.blockBlob.Properties;
-
         public Task UploadFromByteArrayAsync(byte[] bytes) => this.blockBlob.UploadFromByteArrayAsync(bytes, 0, bytes.Length);
     }
 
@@ -33,8 +32,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
 
         public string Name => this.appendBlob.Name;
 
-        public BlobProperties BlobProperties => this.appendBlob.Properties;
-
-        public Task AppendByteArray(byte[] bytes) => this.appendBlob.AppendBlockAsync(new MemoryStream(bytes));
+        public Task AppendByteArray(ArraySegment<byte> bytes) => this.appendBlob.AppendFromByteArrayAsync(bytes.Array, bytes.Offset, bytes.Count);
     }
 }

@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.WindowsAzure.Storage.Blob;
     using Moq;
@@ -78,8 +79,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
             byte[] payload = Encoding.UTF8.GetBytes("Test payload string");
 
             var azureBlob = new Mock<IAzureBlob>();
-            azureBlob.Setup(a => a.BlobProperties)
-                .Returns(new BlobProperties());
             azureBlob.Setup(a => a.Name)
                 .Returns(() => receivedBlobName);
             azureBlob.Setup(a => a.UploadFromByteArrayAsync(payload))
@@ -87,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
                 .Returns(Task.CompletedTask);
 
             var azureBlobUploader = new Mock<IAzureBlobUploader>();
-            azureBlobUploader.Setup(a => a.GetBlob(It.IsAny<Uri>(), It.IsAny<string>()))
+            azureBlobUploader.Setup(a => a.GetBlob(It.IsAny<Uri>(), It.IsAny<string>(), Option.None<string>(), Option.None<string>()))
                 .Callback<Uri, string>((u, b) =>
                 {
                     receivedSasUri = u;

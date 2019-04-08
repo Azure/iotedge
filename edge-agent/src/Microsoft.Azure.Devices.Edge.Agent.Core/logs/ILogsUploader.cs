@@ -8,11 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
     {
         Task Upload(string uri, string module, byte[] payload, LogsContentEncoding logsContentEncoding, LogsContentType logsContentType);
 
-        Func<byte[], Task> GetUploaderCallback(string uri, string module, LogsContentEncoding logsContentEncoding, LogsContentType logsContentType);
-    }
-
-    public interface ILogsUploaderInstance
-    {
-        Task Append(byte[] bytes);
+        Task<Func<ArraySegment<byte>, Task>> GetUploaderCallback(string uri, string module, LogsContentEncoding logsContentEncoding, LogsContentType logsContentType);
     }
 }

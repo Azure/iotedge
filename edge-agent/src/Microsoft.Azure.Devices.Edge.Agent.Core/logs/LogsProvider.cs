@@ -35,34 +35,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         }
 
         // The id parameter is a regex. Logs for all modules that match this regex are processed.
-        public async Task GetLogsStream(string id, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
+        public Task GetLogsStream(string id, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
             Preconditions.CheckNotNull(callback, nameof(callback));
 
-            IEnumerable<string> modules = (await this.runtimeInfoProvider.GetModules(cancellationToken))
-                .Select(m => m.Name);
-            ISet<string> matchingIds = GetMatchingIds(id, modules);
-            Events.StreamingLogs(matchingIds, logOptions);
-            IEnumerable<Task> streamingTasks = matchingIds.Select(i => this.GetLogsStreamInternal(i, logOptions, callback, cancellationToken));
-            await Task.WhenAll(streamingTasks);
+            Events.StreamingLogs(id, logOptions);
+            return this.GetLogsStreamInternal(id, logOptions, callback, cancellationToken);
         }
 
         // The id parameter in the ids is a regex. Logs for all modules that match this regex are processed.
         // If multiple id parameters match a module, the first one is considered.
-        public async Task GetLogsStream(IList<(string id, ModuleLogOptions logOptions)> ids, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
+        public Task GetLogsStream(IList<(string id, ModuleLogOptions logOptions)> ids, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(ids, nameof(ids));
             Preconditions.CheckNotNull(callback, nameof(callback));
 
-            IList<string> modules = (await this.runtimeInfoProvider.GetModules(cancellationToken))
-                .Select(m => m.Name)
-                .ToList();
-
-            IDictionary<string, ModuleLogOptions> idsToProcess = GetIdsToProcess(ids, modules);
-            Events.StreamingLogs(idsToProcess);
-            IEnumerable<Task> streamingTasks = idsToProcess.Select(kvp => this.GetLogsStreamInternal(kvp.Key, kvp.Value, callback, cancellationToken));
-            await Task.WhenAll(streamingTasks);
+            Events.StreamingLogs(ids);
+            IEnumerable<Task> streamingTasks = ids.Select(item => this.GetLogsStreamInternal(item.id, item.logOptions, callback, cancellationToken));
+            return Task.WhenAll(streamingTasks);
         }
 
         internal static IDictionary<string, ModuleLogOptions> GetIdsToProcess(IList<(string id, ModuleLogOptions logOptions)> idList, IList<string> allIds)
@@ -213,9 +204,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                 Log.LogInformation((int)EventIds.StreamingCompleted, $"Completed streaming logs for {id}");
             }
 
-            public static void StreamingLogs(IDictionary<string, ModuleLogOptions> idsToProcess)
+            public static void StreamingLogs(IList<(string id, ModuleLogOptions logOptions)> ids)
             {
-                Log.LogDebug((int)EventIds.StreamingLogs, $"Streaming logs for {idsToProcess.ToJson()}");
+                Log.LogDebug((int)EventIds.StreamingLogs, $"Streaming logs for {ids.ToJson()}");
             }
 
             public static void NoMatchingModule(string regex, IList<string> allIds)
@@ -224,10 +215,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                 Log.LogWarning((int)EventIds.NoMatchingModule, $"The regex {regex} in the log stream request did not match any of the modules - {idsString}");
             }
 
-            internal static void StreamingLogs(ISet<string> ids, ModuleLogOptions logOptions)
+            internal static void StreamingLogs(string id, ModuleLogOptions logOptions)
             {
-                string idsString = ids.Join(",");
-                Log.LogDebug((int)EventIds.StreamingLogs, $"Streaming logs for {idsString} with options {logOptions.ToJson()}");
+                Log.LogDebug((int)EventIds.StreamingLogs, $"Streaming logs for {id} with options {logOptions.ToJson()}");
             }
         }
     }

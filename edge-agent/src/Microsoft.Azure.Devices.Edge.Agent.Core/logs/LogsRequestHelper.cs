@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
     public static class LogsRequestHelper
     {
-        internal static async Task<IList<(string id, ModuleLogOptions logOptions)>> MapToLogOptions(this IEnumerable<LogRequestItem> requestItems, IRuntimeInfoProvider runtimeInfoProvider, LogsContentEncoding encoding, LogsContentType contentType, CancellationToken cancellationToken)
+        public static async Task<IList<(string id, ModuleLogOptions logOptions)>> MapToLogOptions(this IEnumerable<LogRequestItem> requestItems, IRuntimeInfoProvider runtimeInfoProvider, LogsContentEncoding encoding, LogsContentType contentType, CancellationToken cancellationToken)
         {
             IList<string> allIds = (await runtimeInfoProvider.GetModules(cancellationToken))
                 .Select(m => m.Name)

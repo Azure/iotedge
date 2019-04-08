@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
 {
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -15,7 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
         {
             // Arrange
             var logsProvider = Mock.Of<ILogsProvider>();
-            var streamRequestHandlerProvider = new StreamRequestHandlerProvider(logsProvider);
+            var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>();
+            var streamRequestHandlerProvider = new StreamRequestHandlerProvider(logsProvider, runtimeInfoProvider);
 
             // Act
             bool result = streamRequestHandlerProvider.TryGetHandler("Logs", out IStreamRequestHandler handler);

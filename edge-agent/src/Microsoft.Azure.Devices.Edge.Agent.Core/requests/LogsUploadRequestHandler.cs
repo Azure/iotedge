@@ -36,8 +36,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
         async Task UploadLogs(string sasUrl, string id, ModuleLogOptions moduleLogOptions, CancellationToken token)
         {
-            byte[] logBytes = await this.logsProvider.GetLogs(id, moduleLogOptions, token);
-            await this.logsUploader.Upload(sasUrl, id, logBytes, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
+            if (moduleLogOptions.ContentType == LogsContentType.Json)
+            {
+                byte[] logBytes = await this.logsProvider.GetLogs(id, moduleLogOptions, token);
+                await this.logsUploader.Upload(sasUrl, id, logBytes, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
+            }
+            else if (moduleLogOptions.ContentType == LogsContentType.Text)
+            {
+                Func<ArraySegment<byte>, Task> uploaderCallback = await this.logsUploader.GetUploaderCallback(sasUrl, id, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
+                await this.logsProvider.GetLogsStream(id, moduleLogOptions, uploaderCallback, token);
+            }
         }
     }
 }

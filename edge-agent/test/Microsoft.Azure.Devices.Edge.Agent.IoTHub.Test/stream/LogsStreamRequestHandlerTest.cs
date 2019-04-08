@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
             clientWebSocket.SetupGet(c => c.State).Returns(WebSocketState.Open);
 
             // Act
-            var logsStreamRequestHandler = new LogsStreamRequestHandler(logsProvider);
+            var logsStreamRequestHandler = new LogsStreamRequestHandler(logsProvider, runtimeInfoProvider.Object);
             await logsStreamRequestHandler.Handle(clientWebSocket.Object, CancellationToken.None);
 
             // Assert
@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
             clientWebSocket.SetupGet(c => c.State).Returns(WebSocketState.Open);
 
             // Act
-            var logsStreamRequestHandler = new LogsStreamRequestHandler(logsProvider);
+            var logsStreamRequestHandler = new LogsStreamRequestHandler(logsProvider, runtimeInfoProvider.Object);
             Task handleTask = logsStreamRequestHandler.Handle(clientWebSocket.Object, CancellationToken.None);
 
             await Task.Delay(TimeSpan.FromSeconds(10));

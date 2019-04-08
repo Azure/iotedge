@@ -75,8 +75,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     {
                         if (this.enableStreams)
                         {
-                            ILogsProvider logsProvider = await c.Resolve<Task<ILogsProvider>>();
-                            var streamRequestHandlerProvider = new StreamRequestHandlerProvider(logsProvider);
+                            var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
+                            var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
+                            IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
+                            ILogsProvider logsProvider = await logsProviderTask;
+                            var streamRequestHandlerProvider = new StreamRequestHandlerProvider(logsProvider, runtimeInfoProvider);
                             return new StreamRequestListener(streamRequestHandlerProvider) as IStreamRequestListener;
                         }
                         else
