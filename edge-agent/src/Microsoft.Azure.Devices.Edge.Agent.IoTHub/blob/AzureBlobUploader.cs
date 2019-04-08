@@ -15,6 +15,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
             return azureBlob;
         }
 
-        public Task UploadBlob(IAzureBlob blob, byte[] bytes) => blob.UploadFromByteArrayAsync(bytes);
+        public IAzureAppendBlob GetAppendBlob(Uri containerUri, string blobName)
+        {
+            var container = new CloudBlobContainer(containerUri);
+            CloudAppendBlob blob = container.GetAppendBlobReference(blobName);
+            var azureBlob = new AzureAppendBlob(blob);
+            return azureBlob;
+        }
     }
 }

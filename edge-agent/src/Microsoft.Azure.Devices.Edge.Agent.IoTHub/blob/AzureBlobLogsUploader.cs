@@ -66,6 +66,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
             }
         }
 
+        public Func<byte[], Task> GetUploaderCallback(string uri, string id, LogsContentEncoding logsContentEncoding, LogsContentType logsContentType)
+        {
+            Preconditions.CheckNonWhiteSpace(uri, nameof(uri));
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
+
+            var containerUri = new Uri(uri);
+            string blobName = this.GetBlobName(id, logsContentEncoding, logsContentType);
+            var container = new CloudBlobContainer(containerUri);
+            Events.Uploading(blobName, container.Name);
+            IAzureAppendBlob blob = this.azureBlobUploader.GetAppendBlob(containerUri, blobName);
+            SetContentEncoding(blob, logsContentEncoding);
+            SetContentType(blob, logsContentType);
+            return blob.AppendByteArray;
+        }
+
         internal static string GetExtension(LogsContentEncoding logsContentEncoding, LogsContentType logsContentType)
         {
             if (logsContentEncoding == LogsContentEncoding.Gzip)
@@ -88,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
             return $"{this.iotHubName}/{this.deviceId}/{blobName}.{extension}";
         }
 
-        static void SetContentType(IAzureBlob blob, LogsContentType logsContentType)
+        static void SetContentType(IAzureBlobBase blob, LogsContentType logsContentType)
         {
             switch (logsContentType)
             {
@@ -101,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
             }
         }
 
-        static void SetContentEncoding(IAzureBlob blob, LogsContentEncoding logsContentEncoding)
+        static void SetContentEncoding(IAzureBlobBase blob, LogsContentEncoding logsContentEncoding)
         {
             switch (logsContentEncoding)
             {
