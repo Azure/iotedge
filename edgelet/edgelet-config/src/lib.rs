@@ -234,7 +234,7 @@ impl<'de> serde::Deserialize<'de> for Dps {
         let value: Inner = serde::Deserialize::deserialize(deserializer)?;
 
         let attestation = if let Some(attestation) = value.attestation {
-            if let Some(_reg_id) = value.registration_id {
+            if value.registration_id.is_some() {
                 return Err(serde::de::Error::custom(
                     "Provisioning registration_id has to be set only in attestation",
                 ));
