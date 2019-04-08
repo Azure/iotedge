@@ -223,14 +223,15 @@ impl<'de> serde::Deserialize<'de> for Dps {
                     att
                 }
             }
-            None => match value.registration_id {
-                Some(reg_id) => AttestationMethod::Tpm(TpmAttestationInfo::new(reg_id.to_string())),
-                None => {
+            None => {
+                if let Some(reg_id) = value.registration_id {
+                    AttestationMethod::Tpm(TpmAttestationInfo::new(reg_id.to_string()))
+                } else {
                     return Err(serde::de::Error::custom(
                         "Provisioning registration_id has to be set",
                     ));
                 }
-            },
+            }
         };
 
         Ok(Dps {
