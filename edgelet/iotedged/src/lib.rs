@@ -314,7 +314,7 @@ impl Main {
                         start_edgelet!(key_store, provisioning_result, root_key, runtime);
                     }
                     AttestationMethod::X509(ref _x509) => {
-                        info!("Starting provisioning edge device via x509...");
+                        panic!("Provisioning of Edge device via x509 is currently unsupported");
                         // TODO: implement
                     }
                 }
