@@ -233,20 +233,24 @@ impl<'de> serde::Deserialize<'de> for Dps {
 
         let value: Inner = serde::Deserialize::deserialize(deserializer)?;
 
-        let attestation = if let Some(attestation) = value.attestation {
-            if value.registration_id.is_some() {
-                return Err(serde::de::Error::custom(
-                    "Provisioning registration_id has to be set only in attestation",
-                ));
-            } else {
-                attestation
+        let attestation = match value.attestation {
+            Some(att) => {
+                if value.registration_id.is_some() {
+                    return Err(serde::de::Error::custom(
+                        "Provisioning registration_id has to be set only in attestation",
+                    ));
+                } else {
+                    att
+                }
             }
-        } else if let Some(reg_id) = value.registration_id {
-            AttestationMethod::Tpm(TpmAttestationInfo::new(reg_id.to_string()))
-        } else {
-            return Err(serde::de::Error::custom(
-                "Provisioning registration_id has to be set",
-            ));
+            None => match value.registration_id {
+                Some(reg_id) => AttestationMethod::Tpm(TpmAttestationInfo::new(reg_id.to_string())),
+                None => {
+                    return Err(serde::de::Error::custom(
+                        "Provisioning registration_id has to be set",
+                    ));
+                }
+            },
         };
 
         Ok(Dps {
