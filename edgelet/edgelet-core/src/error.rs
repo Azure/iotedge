@@ -56,6 +56,12 @@ pub enum ErrorKind {
 
     #[fail(display = "Signing error occurred. Invalid key length: {}", _0)]
     SignInvalidKeyLength(usize),
+
+    #[fail(display = "A error occurred when obtaining the device identity certificate.")]
+    DeviceIdentityCertificate,
+
+    #[fail(display = "A error occurred when signing using the device identity private key.")]
+    DeviceIdentitySign,
 }
 
 impl Fail for Error {
