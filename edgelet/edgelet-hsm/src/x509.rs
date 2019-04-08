@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use failure::Fail;
 
-use hsm::{X509 as HsmX509, Buffer, GetDeviceIdentityCertificate};
+use hsm::{X509 as HsmX509, PrivateKeySignDigest as HsmPrivateKeySignDigest, GetDeviceIdentityCertificate as HsmGetDeviceIdentityCertificate};
 
 pub use crate::error::{Error, ErrorKind};
 use crate::crypto::{Certificate};
@@ -34,7 +34,7 @@ impl X509 {
 
 impl CoreGetDeviceIdentityCertificate for X509 {
     type Certificate = Certificate;
-    type Buffer = Buffer;
+    type Buffer = HsmPrivateKeySignDigest;
 
     fn get(&self) -> Result<Self::Certificate, CoreError> {
         let cert = self
@@ -43,12 +43,15 @@ impl CoreGetDeviceIdentityCertificate for X509 {
             .expect("Lock on X509 structure failed")
             .get_certificate_info()
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
-            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))?;
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::DeviceIdentityCertificate)))?;
         Ok(Certificate::new(cert))
     }
 
-    fn sign_with_private_key(&self, _data: &[u8]) -> Result<Self::Buffer, CoreError>
-    {
-        Err(CoreErrorKind::KeyStore)?
+    fn sign_with_private_key(&self, data: &[u8]) -> Result<Self::Buffer, CoreError> {
+        self.x509
+            .lock()
+            .expect("Lock on X509 structure failed")
+            .sign_with_private_key(data)
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::DeviceIdentitySign)))
     }
 }

@@ -39,6 +39,9 @@ fn x509_get_identity_cert_success() {
         PrivateKey::Key(KeyBytes::Pem(k)) => assert!(!k.as_bytes().is_empty()),
     }
 
+    let buffer = x509.sign_with_private_key(b"sign me up").unwrap();
+    assert!(!buffer.as_bytes().is_empty());
+
     // cleanup
     home_dir.close().unwrap();
 }
