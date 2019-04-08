@@ -202,7 +202,7 @@ impl X509AttestationInfo {
     pub fn identity_pk(&self) -> &Path {
         &self.identity_pk
     }
-    
+
     pub fn device_id(&self) -> Option<&str> {
         self.device_id.as_ref().map(AsRef::as_ref)
     }
