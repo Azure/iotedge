@@ -3,7 +3,9 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
+    clippy::default_trait_access,
     clippy::module_name_repetitions,
+    clippy::too_many_arguments,
     clippy::type_complexity,
     clippy::use_self
 )]

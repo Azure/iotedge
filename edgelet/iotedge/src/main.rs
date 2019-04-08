@@ -117,6 +117,13 @@ fn run() -> Result<(), Error> {
                         ),
                 )
                 .arg(
+                    Arg::with_name("json")
+                        .long("json")
+                        .value_name("FILE")
+                        .help("Also output diagnostics result in JSON format to the specified file.")
+                        .takes_value(true),
+                )
+                .arg(
                     Arg::with_name("ntp-server")
                         .long("ntp-server")
                         .value_name("NTP_SERVER")
@@ -210,6 +217,8 @@ fn run() -> Result<(), Error> {
                     .expect("arg has a default value")
                     .to_os_string()
                     .into(),
+                args.value_of_os("json")
+                    .map(|json_file| json_file.to_os_string().into()),
                 args.value_of("ntp-server")
                     .expect("arg has a default value")
                     .to_string(),
