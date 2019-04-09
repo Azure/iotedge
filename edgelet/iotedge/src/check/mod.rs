@@ -5,7 +5,7 @@ use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::{CStr, OsStr, OsString};
 use std::fs::File;
-use std::io::{BufWriter, Read, Write};
+use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::PathBuf;
 use std::process::Command;
@@ -18,7 +18,6 @@ use futures::{Future, IntoFuture, Stream};
 use libc;
 use regex::Regex;
 use serde_json;
-use termcolor::WriteColor;
 
 use edgelet_config::{Provisioning, Settings};
 use edgelet_core::{self, UrlExt};
@@ -32,14 +31,17 @@ use crate::LatestVersions;
 mod os_info;
 use self::os_info::OsInfo;
 
+mod stdout;
+use self::stdout::Stdout;
+
 pub struct Check {
     config_file: PathBuf,
     container_engine_config_path: PathBuf,
     diagnostics_image_name: String,
     iotedged: PathBuf,
-    json_file_path: Option<PathBuf>,
     latest_versions: Result<super::LatestVersions, Option<Error>>,
     ntp_server: String,
+    output_format: OutputFormat,
     verbose: bool,
 
     os_info: OsInfo,
@@ -49,6 +51,12 @@ pub struct Check {
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
     iothub_hostname: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum OutputFormat {
+    Json,
+    Text,
 }
 
 /// The various ways a check can resolve.
@@ -79,8 +87,8 @@ impl Check {
         diagnostics_image_name: String,
         expected_iotedged_version: Option<String>,
         iotedged: PathBuf,
-        json_file_path: Option<PathBuf>,
         ntp_server: String,
+        output_format: OutputFormat,
         verbose: bool,
     ) -> impl Future<Item = Self, Error = Error> + Send {
         let latest_versions = if let Some(expected_iotedged_version) = expected_iotedged_version {
@@ -188,9 +196,9 @@ impl Check {
                 container_engine_config_path,
                 diagnostics_image_name,
                 iotedged,
-                json_file_path,
-                ntp_server,
                 latest_versions: latest_versions.map_err(Some),
+                ntp_server,
+                output_format,
                 verbose,
 
                 os_info: OsInfo::new(),
@@ -312,73 +320,12 @@ impl Check {
             ),
         ];
 
-        let json_file = if let Some(json_file_path) = &self.json_file_path {
-            match File::create(json_file_path) {
-                Ok(json_file) => Some((json_file_path.clone(), BufWriter::new(json_file))),
-                Err(err) => {
-                    eprintln!("Could not save JSON file: {}", err);
-                    return Err(ErrorKind::Diagnostics.into());
-                }
-            }
-        } else {
-            None
-        };
-
         let mut check_results = CheckResultsSerializable {
             os_info: self.os_info.clone(),
             checks: Default::default(),
         };
 
-        let mut stdout = termcolor::StandardStream::stdout(termcolor::ColorChoice::Auto);
-        let success_color_spec = {
-            let mut success_color_spec = termcolor::ColorSpec::new();
-            if cfg!(windows) {
-                // `Color::Green` maps to `FG_GREEN` which is too hard to read on the default blue-background profile that PS uses.
-                // PS uses `FG_GREEN | FG_INTENSITY` == 8 == `[ConsoleColor]::Green` as the foreground color for its error text,
-                // so mimic that.
-                success_color_spec.set_fg(Some(termcolor::Color::Rgb(0, 255, 0)));
-            } else {
-                success_color_spec.set_fg(Some(termcolor::Color::Green));
-            }
-            success_color_spec
-        };
-        let warning_color_spec = {
-            let mut warning_color_spec = termcolor::ColorSpec::new();
-            if cfg!(windows) {
-                // `Color::Yellow` maps to `FOREGROUND_GREEN | FOREGROUND_RED` == 6 == `ConsoleColor::DarkYellow`.
-                // In its default blue-background profile, PS uses `ConsoleColor::DarkYellow` as its default foreground text color
-                // and maps it to a dark gray.
-                //
-                // So use explicit RGB to define yellow for Windows. Also use a black background to mimic PS warnings.
-                //
-                // Ref:
-                // - https://docs.rs/termcolor/0.3.6/src/termcolor/lib.rs.html#1380 defines `termcolor::Color::Yellow` as `wincolor::Color::Yellow`
-                // - https://docs.rs/wincolor/0.1.6/x86_64-pc-windows-msvc/src/wincolor/win.rs.html#18
-                //   defines `wincolor::Color::Yellow` as `FG_YELLOW`, which in turn is `FOREGROUND_GREEN | FOREGROUND_RED`
-                // - https://docs.microsoft.com/en-us/windows/console/char-info-str defines `FOREGROUND_GREEN | FOREGROUND_RED` as `2 | 4 == 6`
-                // - https://docs.microsoft.com/en-us/dotnet/api/system.consolecolor#fields defines `6` as `[ConsoleColor]::DarkYellow`
-                // - `$Host.UI.RawUI.ForegroundColor` in the default PS profile is `DarkYellow`, and writing in it prints dark gray text.
-                warning_color_spec.set_fg(Some(termcolor::Color::Rgb(255, 255, 0)));
-                warning_color_spec.set_bg(Some(termcolor::Color::Black));
-            } else {
-                warning_color_spec.set_fg(Some(termcolor::Color::Yellow));
-            }
-            warning_color_spec
-        };
-        let error_color_spec = {
-            let mut error_color_spec = termcolor::ColorSpec::new();
-            if cfg!(windows) {
-                // `Color::Red` maps to `FG_RED` which is too hard to read on the default blue-background profile that PS uses.
-                // PS uses `FG_RED | FG_INTENSITY` == 12 == `[ConsoleColor]::Red` as the foreground color for its error text,
-                // with black background, so mimic that.
-                error_color_spec.set_fg(Some(termcolor::Color::Rgb(255, 0, 0)));
-                error_color_spec.set_bg(Some(termcolor::Color::Black));
-            } else {
-                error_color_spec.set_fg(Some(termcolor::Color::Red));
-            }
-            error_color_spec
-        };
-        let is_a_tty = atty::is(atty::Stream::Stdout);
+        let mut stdout = Stdout::new(self.output_format);
 
         let mut have_warnings = false;
         let mut have_skipped = false;
@@ -390,8 +337,10 @@ impl Check {
                 break;
             }
 
-            println!("{}", section_name);
-            println!("{}", "-".repeat(section_name.len()));
+            if self.output_format == OutputFormat::Text {
+                println!("{}", section_name);
+                println!("{}", "-".repeat(section_name.len()));
+            }
 
             for (check_id, check_name, check) in *section_checks {
                 if have_fatal {
@@ -404,7 +353,7 @@ impl Check {
                             .checks
                             .insert(check_id, CheckResultSerializable::Ok);
 
-                        colored(&mut stdout, &success_color_spec, is_a_tty, |stdout| {
+                        stdout.write_success(|stdout| {
                             writeln!(stdout, "\u{221a} {}", check_name)?;
                             Ok(())
                         });
@@ -420,7 +369,7 @@ impl Check {
                             },
                         );
 
-                        colored(&mut stdout, &warning_color_spec, is_a_tty, |stdout| {
+                        stdout.write_warning(|stdout| {
                             writeln!(stdout, "\u{203c} {}", check_name)?;
 
                             let message = warning.to_string();
@@ -456,7 +405,7 @@ impl Check {
                             .insert(check_id, CheckResultSerializable::Skipped);
 
                         if self.verbose {
-                            colored(&mut stdout, &warning_color_spec, is_a_tty, |stdout| {
+                            stdout.write_warning(|stdout| {
                                 writeln!(stdout, "\u{203c} {}", check_name)?;
                                 writeln!(stdout, "    skipping because of previous failures")?;
                                 Ok(())
@@ -474,7 +423,7 @@ impl Check {
                             },
                         );
 
-                        colored(&mut stdout, &error_color_spec, is_a_tty, |stdout| {
+                        stdout.write_error(|stdout| {
                             writeln!(stdout, "\u{00d7} {}", check_name)?;
 
                             let message = err.to_string();
@@ -506,7 +455,7 @@ impl Check {
                             },
                         );
 
-                        colored(&mut stdout, &error_color_spec, is_a_tty, |stdout| {
+                        stdout.write_error(|stdout| {
                             writeln!(stdout, "\u{00d7} {}", check_name)?;
 
                             let message = err.to_string();
@@ -530,12 +479,14 @@ impl Check {
                 }
             }
 
-            println!();
+            if self.output_format == OutputFormat::Text {
+                println!();
+            }
         }
 
         let result = match (have_warnings, have_skipped, have_fatal || have_errors) {
             (false, false, false) => {
-                colored(&mut stdout, &success_color_spec, is_a_tty, |stdout| {
+                stdout.write_success(|stdout| {
                     writeln!(stdout, "All checks succeeded.")?;
                     Ok(())
                 });
@@ -544,7 +495,7 @@ impl Check {
             }
 
             (_, _, true) => {
-                colored(&mut stdout, &error_color_spec, is_a_tty, |stdout| {
+                stdout.write_error(|stdout| {
                     write!(stdout, "One or more checks raised errors.")?;
                     if self.verbose {
                         writeln!(stdout)?;
@@ -558,7 +509,7 @@ impl Check {
             }
 
             (_, true, _) => {
-                colored(&mut stdout, &warning_color_spec, is_a_tty, |stdout| {
+                stdout.write_warning(|stdout| {
                     write!(
                         stdout,
                         "One or more checks were skipped due to errors from other checks."
@@ -575,7 +526,7 @@ impl Check {
             }
 
             (true, _, _) => {
-                colored(&mut stdout, &warning_color_spec, is_a_tty, |stdout| {
+                stdout.write_warning(|stdout| {
                     write!(stdout, "One or more checks raised warnings.")?;
                     if self.verbose {
                         writeln!(stdout)?;
@@ -589,20 +540,13 @@ impl Check {
             }
         };
 
-        if let Some((json_file_path, json_file)) = json_file {
-            if let Err(err) = serde_json::to_writer(json_file, &check_results) {
-                eprintln!(
-                    "Could not save JSON file {}: {}",
-                    json_file_path.to_string_lossy(),
-                    err
-                );
+        if self.output_format == OutputFormat::Json {
+            if let Err(err) = serde_json::to_writer(std::io::stdout(), &check_results) {
+                eprintln!("Could not write JSON output: {}", err,);
                 return Err(ErrorKind::Diagnostics.into());
             }
 
-            println!(
-                "Successfully saved JSON file {}",
-                json_file_path.to_string_lossy()
-            );
+            println!();
         }
 
         result
@@ -1523,25 +1467,6 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
     Ok(CheckResult::Ok)
 }
 
-fn colored<F>(
-    stdout: &mut termcolor::StandardStream,
-    spec: &termcolor::ColorSpec,
-    is_a_tty: bool,
-    f: F,
-) where
-    F: FnOnce(&mut termcolor::StandardStream) -> std::io::Result<()>,
-{
-    if is_a_tty {
-        let _ = stdout.set_color(spec);
-    }
-
-    f(stdout).expect("could not write to stdout");
-
-    if is_a_tty {
-        let _ = stdout.reset();
-    }
-}
-
 fn docker<I>(docker_host_arg: &str, args: I) -> Result<Vec<u8>, (Option<String>, failure::Error)>
 where
     I: IntoIterator,
@@ -1574,7 +1499,7 @@ where
 }
 
 fn write_lines<'a>(
-    writer: &mut impl Write,
+    writer: &mut (impl Write + ?Sized),
     first_line_indent: &str,
     other_lines_indent: &str,
     mut lines: impl Iterator<Item = &'a str>,
@@ -1632,8 +1557,8 @@ mod tests {
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                     Some("1.0.0".to_owned()),      // unused for this test
                     "iotedged".into(),             // unused for this test
-                    None,                          // unused for this test
                     "pool.ntp.org:123".to_owned(), // unused for this test
+                    super::OutputFormat::Text,     // unused for this test
                     false,
                 ))
                 .unwrap();
@@ -1700,8 +1625,8 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
-                None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
+                super::OutputFormat::Text,     // unused for this test
                 false,
             ))
             .unwrap();
@@ -1745,8 +1670,8 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
-                None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
+                super::OutputFormat::Text,     // unused for this test
                 false,
             ))
             .unwrap();
@@ -1795,8 +1720,8 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
-                None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
+                super::OutputFormat::Text,     // unused for this test
                 false,
             ))
             .unwrap();

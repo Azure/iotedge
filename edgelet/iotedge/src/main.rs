@@ -117,19 +117,21 @@ fn run() -> Result<(), Error> {
                         ),
                 )
                 .arg(
-                    Arg::with_name("json")
-                        .long("json")
-                        .value_name("FILE")
-                        .help("Also output diagnostics result in JSON format to the specified file.")
-                        .takes_value(true),
-                )
-                .arg(
                     Arg::with_name("ntp-server")
                         .long("ntp-server")
                         .value_name("NTP_SERVER")
                         .help("Sets the NTP server to use when checking host local time.")
                         .takes_value(true)
                         .default_value("pool.ntp.org:123"),
+                )
+                .arg(
+                    Arg::with_name("output")
+                        .long("output")
+                        .value_name("FORMAT")
+                        .help("Output format.")
+                        .takes_value(true)
+                        .possible_values(&["json", "text"])
+                        .default_value("text"),
                 )
                 .arg(
                     Arg::with_name("verbose")
@@ -217,11 +219,16 @@ fn run() -> Result<(), Error> {
                     .expect("arg has a default value")
                     .to_os_string()
                     .into(),
-                args.value_of_os("json")
-                    .map(|json_file| json_file.to_os_string().into()),
                 args.value_of("ntp-server")
                     .expect("arg has a default value")
                     .to_string(),
+                args.value_of("output")
+                    .map(|arg| match arg {
+                        "json" => OutputFormat::Json,
+                        "text" => OutputFormat::Text,
+                        _ => unreachable!(),
+                    })
+                    .expect("arg has a default value"),
                 args.occurrences_of("verbose") > 0,
             )
             .and_then(|mut check| check.execute()),
