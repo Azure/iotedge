@@ -5,15 +5,7 @@ trigger:
       - master
 pr: none
 
-# Variable defined in VSTS
-  #registry.address: <Edge builds container registry>
-  #registry.password: <Edge builds password>
-  #registyr.user: <Edge builds login>
-  # Variables settable at queue time
-  #Build.Configuration: Release
-
 jobs:
-         
 ################################################################################
   - job: linuxARM64
 ################################################################################

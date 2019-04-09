@@ -4,7 +4,10 @@
  # Builds and publishes to target/publish/ the iotedge-diagnostics binary and its associated dockerfile
  #>
 
-param([string]$BuildConfiguration = "release")
+param(
+    [ValidateSet("debug", "release")]
+    [string]$BuildConfiguration = "release"
+)
  
 $ErrorActionPreference = 'Continue'
 
