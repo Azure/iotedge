@@ -28,7 +28,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         {
             LogsUploadRequest payload = payloadOption.Expect(() => new ArgumentException("Request payload not found"));
 
-            IList<(string id, ModuleLogOptions logOptions)> logOptionsList = await payload.Items.MapToLogOptions(this.runtimeInfoProvider, payload.Encoding, payload.ContentType, cancellationToken);
+            ILogsRequestToOptionsMapper requestToOptionsMapper = new LogsRequestToOptionsMapper(
+                this.runtimeInfoProvider,
+                payload.Encoding,
+                payload.ContentType,
+                LogOutputFraming.None,
+                Option.Some(new LogsOutputGroupingConfig(100, TimeSpan.FromSeconds(10))));
+            IList<(string id, ModuleLogOptions logOptions)> logOptionsList = await requestToOptionsMapper.MapToLogOptions(payload.Items, cancellationToken);
             IEnumerable<Task> uploadLogsTasks = logOptionsList.Select(l => this.UploadLogs(payload.SasUrl, l.id, l.logOptions, cancellationToken));
             await Task.WhenAll(uploadLogsTasks);
             return Option.None<object>();

@@ -7,11 +7,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
     public class ModuleLogOptions : IEquatable<ModuleLogOptions>
     {
-        public ModuleLogOptions(LogsContentEncoding contentEncoding, LogsContentType contentType, ModuleLogFilter filter)
+        public ModuleLogOptions(
+            LogsContentEncoding contentEncoding,
+            LogsContentType contentType,
+            ModuleLogFilter filter,
+            LogOutputFraming outputFraming,
+            Option<LogsOutputGroupingConfig> outputGroupingConfig)
         {
             this.ContentEncoding = contentEncoding;
             this.ContentType = contentType;
             this.Filter = Preconditions.CheckNotNull(filter, nameof(filter));
+            this.OutputFraming = outputFraming;
+            this.OutputGroupingConfig = outputGroupingConfig;
         }
 
         public LogsContentEncoding ContentEncoding { get; }
@@ -19,6 +26,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         public LogsContentType ContentType { get; }
 
         public ModuleLogFilter Filter { get; }
+
+        public LogOutputFraming OutputFraming { get; }
+
+        public Option<LogsOutputGroupingConfig> OutputGroupingConfig { get; }
 
         public override bool Equals(object obj)
             => this.Equals(obj as ModuleLogOptions);
