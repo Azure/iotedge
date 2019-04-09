@@ -7,12 +7,12 @@
 
 BUILD_CONFIGURATION=${1:-release}
 
-if [[ "${BUILD_CONFIGURATION,,}" == "release" ]]; then
-    BUILD_CONFIGURATION="release"
-    BUILD_CONFIG_OPTION="--release"
+if [[ "${BUILD_CONFIGURATION,,}" == 'release' ]]; then
+    BUILD_CONFIGURATION='release'
+    BUILD_CONFIG_OPTION='--release'
 else
-    BUILD_CONFIGURATION="debug"
-    BUILD_CONFIG_OPTION=""
+    BUILD_CONFIGURATION='debug'
+    BUILD_CONFIG_OPTION=''
 fi
 
 set -euo pipefail

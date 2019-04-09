@@ -5,8 +5,8 @@
  #>
 
 param(
-    [ValidateSet("debug", "release")]
-    [string]$BuildConfiguration = "release"
+    [ValidateSet('debug', 'release')]
+    [string]$BuildConfiguration = 'release'
 )
  
 $ErrorActionPreference = 'Continue'
@@ -14,12 +14,12 @@ $ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot 'util.ps1')
 
 Assert-Rust
-If ($BuildConfiguration.ToLower() == "release") {
-    $BuildConfiguration="release"
-    $BuildConfigOption="--release"
+If ($BuildConfiguration -eq 'release') {
+    $BuildConfiguration = 'release'
+    $BuildConfigOption = '--release'
 } else {
-    $BuildConfiguration="debug"
-    $BuildConfigOption=""
+    $BuildConfiguration = 'debug'
+    $BuildConfigOption = ''
 }
 
 $cargo = Get-CargoCommand
