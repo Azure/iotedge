@@ -4,14 +4,14 @@
  # Builds and publishes to target/publish/ the iotedge-diagnostics binary and its associated dockerfile
  #>
 
-param([string]$BuildConfiguration = "Release")
+param([string]$BuildConfiguration = "release")
  
 $ErrorActionPreference = 'Continue'
 
 . (Join-Path $PSScriptRoot 'util.ps1')
 
 Assert-Rust
-
+$BuildConfiguration = $BuildConfiguration.ToLower()
 $cargo = Get-CargoCommand
 $ManifestPath = Get-Manifest
 
