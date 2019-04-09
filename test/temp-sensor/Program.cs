@@ -1,28 +1,44 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
+using common;
 
 namespace temp_sensor
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task<int> Main(string[] args)
         {
-            // UninstallSecurityDaemon();
-            // CreateEdgeDeviceIdentity();
-            // InstallSecurityDaemon();
-            // ConfigureSecurityDaemon();
-            // EnsureSecurityDaemonIsRunning();
-            // EnsureEdgeAgentIsRunning();
-            // EnsureEdgeAgentIsConnectedToIotHub();
-            // var config = CreateEdgeConfiguration();
-            // AddTempSensor(config);
-            // DeployEdgeConfiguration(config);
-            // EnsureConfigurationIsDeployed();
-            // EnsureTempSensorIsRunning();
-            // EnsureTempSensorEventsAreSent();
-            // UpdateTempSensorTwin();
-            // EnsureTempSensorTwinUpdatesAreReported();
-            // StopSecurityDaemon();
-            // DeleteEdgeDeviceIdentity();
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
+            {
+                // ** setup
+                var daemon = new SecurityDaemon(args[0]);
+                await daemon.UninstallAsync(cts.Token).ConfigureAwait(false);
+                // InstallSecurityDaemon();
+                // StopSecurityDaemon();
+                // var identity = CreateEdgeDeviceIdentity();
+                // ConfigureSecurityDaemon(identity);
+                // StartSecurityDaemon();
+                // EnsureSecurityDaemonIsRunning();
+                // EnsureEdgeAgentIsRunning();
+                // EnsureEdgeAgentIsConnectedToIotHub();
+
+                // ** test
+                // var config = CreateEdgeConfiguration();
+                // AddTempSensor(config);
+                // DeployEdgeConfiguration(config);
+                // EnsureConfigurationIsDeployed();
+                // EnsureTempSensorIsRunning();
+                // EnsureTempSensorEventsAreSent();
+                // UpdateTempSensorTwin();
+                // EnsureTempSensorTwinUpdatesAreReported();
+
+                // ** teardown
+                // StopSecurityDaemon();
+                // DeleteEdgeDeviceIdentity(identity);
+            }
+
+            return 0;
         }
     }
 }
