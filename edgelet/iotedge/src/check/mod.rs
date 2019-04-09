@@ -1523,6 +1523,7 @@ struct CheckResultsSerializable {
 
 #[derive(Debug, serde_derive::Serialize)]
 #[serde(tag = "result")]
+#[serde(rename_all = "snake_case")]
 enum CheckResultSerializable {
     Ok,
     Warning { details: Vec<String> },
