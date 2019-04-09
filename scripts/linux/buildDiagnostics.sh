@@ -5,8 +5,8 @@
 # It then publishes the binaries along with their corresponding dockerfiles to the publish directory,
 # so that buildImage.sh can build the container image.
 
-BuildConfiguration=${1,,}
-BuildConfiguration=${BuildConfiguration:-release}
+BuildConfiguration=${1:-release}
+BuildConfiguration=${BuildConfiguration,,}
 
 set -euo pipefail
 
