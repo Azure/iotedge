@@ -42,7 +42,7 @@ where
         .context(ErrorKind::SetWriteTimeoutOnSocket)?;
 
     let mut num_retries_remaining = 3;
-    while num_retries_remaining > 0 {
+    loop {
         match query_inner(&socket, addr) {
             Ok(result) => return Ok(result),
             Err(err) => {
@@ -65,8 +65,6 @@ where
             }
         }
     }
-
-    unreachable!();
 }
 
 fn query_inner(socket: &UdpSocket, addr: SocketAddr) -> Result<SntpTimeQueryResult, Error> {
@@ -180,17 +178,23 @@ fn parse_server_response(
         }
     };
 
-    if packet.version_number != 3 {
+    // RFC 2030 says:
+    //
+    // >Version 4 servers are required to
+    // >reply in the same version as the request, so the VN field of the
+    // >request also specifies the version of the reply.
+    //
+    // But at least one pool.ntp.org server does not respect this and responds with VN=4
+    // even though our client requests have VN=3.
+    //
+    // So allow both VN=3 and VN=4 in the server response. The response body format is identical for both anyway.
+    if packet.version_number != 3 && packet.version_number != 4 {
         return Err(
             ErrorKind::BadServerResponse(BadServerResponseReason::VersionNumber(
                 packet.version_number,
             ))
             .into(),
         );
-    }
-
-    if packet.mode != 4 {
-        return Err(ErrorKind::BadServerResponse(BadServerResponseReason::Mode(packet.mode)).into());
     }
 
     if packet.mode != 4 {
