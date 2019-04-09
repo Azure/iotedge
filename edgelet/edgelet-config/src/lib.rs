@@ -161,9 +161,7 @@ pub struct TpmAttestationInfo {
 
 impl TpmAttestationInfo {
     pub fn new(registration_id: String) -> Self {
-        TpmAttestationInfo {
-            registration_id,
-        }
+        TpmAttestationInfo { registration_id }
     }
 
     pub fn registration_id(&self) -> &str {
