@@ -34,5 +34,6 @@ const HSM_CLIENT_TPM_INTERFACE* hsm_client_tpm_interface(void)
     #else
         result = hsm_client_tpm_device_interface();
     #endif
+
     return result;
 }
