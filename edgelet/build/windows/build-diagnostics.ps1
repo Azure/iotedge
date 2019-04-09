@@ -14,7 +14,14 @@ $ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot 'util.ps1')
 
 Assert-Rust
-$BuildConfiguration = $BuildConfiguration.ToLower()
+If ($BuildConfiguration.ToLower() == "release") {
+    $BuildConfiguration="release"
+    $BuildConfigOption="--release"
+} else {
+    $BuildConfiguration="debug"
+    $BuildConfigOption=""
+}
+
 $cargo = Get-CargoCommand
 $ManifestPath = Get-Manifest
 
@@ -24,8 +31,8 @@ $env:NO_VALGRIND = 'true'
 
 $originalRustflags = $env:RUSTFLAGS
 $env:RUSTFLAGS += ' -C target-feature=+crt-static'
-Write-Host "$cargo build -p iotedge-diagnostics --$BuildConfiguration --manifest-path $ManifestPath"
-Invoke-Expression "$cargo build -p iotedge-diagnostics --$BuildConfiguration --manifest-path $ManifestPath"
+Write-Host "$cargo build -p iotedge-diagnostics $BuildConfigOption --manifest-path $ManifestPath"
+Invoke-Expression "$cargo build -p iotedge-diagnostics $BuildConfigOption --manifest-path $ManifestPath"
 if ($originalRustflags -eq '') {
     Remove-Item Env:\RUSTFLAGS
 }
