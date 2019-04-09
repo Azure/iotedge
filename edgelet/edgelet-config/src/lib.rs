@@ -509,8 +509,6 @@ mod tests {
     #[cfg(unix)]
     static GOOD_SETTINGS_DPS_SYM_KEY: &str = "test/linux/sample_settings.dps.sym.yaml";
     #[cfg(unix)]
-    static GOOD_SETTINGS_CASE_SENSITIVE: &str = "test/linux/case_sensitive.yaml";
-    #[cfg(unix)]
     static GOOD_SETTINGS_DPS_TPM: &str = "test/linux/sample_settings.dps.tpm.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_DPS_TPM1: &str = "test/linux/sample_settings.dps.tpm.1.yaml";
@@ -535,8 +533,6 @@ mod tests {
     static GOOD_SETTINGS_TG: &str = "test/windows/sample_settings.tg.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_DPS_SYM_KEY: &str = "test/windows/sample_settings.dps.sym.yaml";
-    #[cfg(windows)]
-    static GOOD_SETTINGS_CASE_SENSITIVE: &str = "test/windows/case_sensitive.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_DPS_TPM: &str = "test/windows/sample_settings.dps.tpm.yaml";
     #[cfg(windows)]
