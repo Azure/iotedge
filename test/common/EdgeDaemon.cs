@@ -10,19 +10,19 @@ using Microsoft.Azure.Devices.Edge.Util;
 
 namespace common
 {
-    public enum SecurityDaemonStatus
+    public enum EdgeDaemonStatus
     {
         Running = ServiceControllerStatus.Running,
         Stopped = ServiceControllerStatus.Stopped
     }
 
-    public class SecurityDaemon
+    public class EdgeDaemon
     {
         private string deviceConnectionString;
         private EdgeDeviceIdentity identity;
         private string scriptDir;
 
-        public SecurityDaemon(string scriptDir, EdgeDeviceIdentity identity)
+        public EdgeDaemon(string scriptDir, EdgeDeviceIdentity identity)
         {
             this.deviceConnectionString = identity.ConnectionString
                 .Expect(() => new ArgumentException("Edge device identity has not been created"));
@@ -97,7 +97,7 @@ namespace common
             Console.WriteLine("Daemon was uninstalled");
         }
 
-        public async Task WaitForStatusAsync(SecurityDaemonStatus desired, CancellationToken token)
+        public async Task WaitForStatusAsync(EdgeDaemonStatus desired, CancellationToken token)
         {
             var sc = new ServiceController("iotedge");
             while (sc.Status != (ServiceControllerStatus)desired)

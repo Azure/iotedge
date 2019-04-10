@@ -19,10 +19,10 @@ namespace temp_sensor
                 // ** setup
                 var identity = new EdgeDeviceIdentity(args[0]);
                 await identity.GetOrCreateAsync(args[1], cts.Token).ConfigureAwait(false);
-                var daemon = new SecurityDaemon(args[2], identity);
+                var daemon = new EdgeDaemon(args[2], identity);
                 await daemon.UninstallAsync(cts.Token).ConfigureAwait(false);
                 await daemon.InstallAsync(cts.Token).ConfigureAwait(false);
-                await daemon.WaitForStatusAsync(SecurityDaemonStatus.Running, cts.Token);
+                await daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, cts.Token);
                 await daemon.VerifyModuleIsRunningAsync("edgeAgent", cts.Token);
                 // EnsureEdgeAgentIsConnectedToIotHub();
 
@@ -37,7 +37,7 @@ namespace temp_sensor
                 // EnsureTempSensorTwinUpdatesAreReported();
 
                 // ** teardown
-                // StopSecurityDaemon();
+                // StopEdgeDaemon();
                 // DeleteEdgeDeviceIdentity(identity);
             }
 
