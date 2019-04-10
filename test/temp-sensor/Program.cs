@@ -18,7 +18,7 @@ namespace temp_sensor
             {
                 // ** setup
                 var identity = new EdgeDeviceIdentity(args[0]);
-                await identity.CreateAsync(args[1], cts.Token).ConfigureAwait(false);
+                await identity.GetOrCreateAsync(args[1], cts.Token).ConfigureAwait(false);
                 var daemon = new SecurityDaemon(args[2], identity);
                 await daemon.UninstallAsync(cts.Token).ConfigureAwait(false);
                 await daemon.InstallAsync(cts.Token).ConfigureAwait(false);

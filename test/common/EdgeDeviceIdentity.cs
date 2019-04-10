@@ -43,7 +43,28 @@ namespace common
                 $"DeviceId={device.Id};" +
                 $"SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}"
             );
-            Console.WriteLine($">>> Device connection string: {this.deviceConnectionString}");
+        }
+
+        public async Task GetOrCreateAsync(string deviceId, CancellationToken token)
+        {
+            var settings = new HttpTransportSettings();
+            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.hubConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
+
+            Device device = await rm.GetDeviceAsync(deviceId, token);
+            if (device != null)
+            {
+                this.device = Option.Some(device);
+                this.deviceConnectionString = Option.Some(
+                    $"HostName={builder.HostName};" +
+                    $"DeviceId={device.Id};" +
+                    $"SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}"
+                );
+            }
+            else
+            {
+                await this.CreateAsync(deviceId, token);
+            }
         }
     }
 }
