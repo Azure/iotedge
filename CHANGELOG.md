@@ -1,3 +1,28 @@
+# 1.0.7-rc2 (2019-04-10)
+* `iotedge check` troubleshooting command
+* Upgrade C# SDK to 1.20.0
+
+## Edge Agent
+### Features
+* Upgrade to version 1.20.0 of the C# SDK ([50420d2](https://github.com/Azure/iotedge/commit/50420d21a4deea6827f9650ebb92fc9eaa89ea5f))
+
+## Edge Hub
+### Features
+* Upgrade to version 1.20.0 of the C# SDK ([50420d2](https://github.com/Azure/iotedge/commit/50420d21a4deea6827f9650ebb92fc9eaa89ea5f))
+
+## iotedged
+### Features
+* Add `iotedge check` troubleshooting command ([1d74b97](https://github.com/Azure/iotedge/commit/1d74b97e1893134d6989366145e694dedd162f0f))
+* Use CAB file for Windows installation ([ce232a8](https://github.com/Azure/iotedge/commit/ce232a8f8ef98f2b22964242ae34dc810e02672a))
+
+## Simulated Temperature Sensor
+### Features
+* Upgrade to version 1.20.0 of the C# SDK ([50420d2](https://github.com/Azure/iotedge/commit/50420d21a4deea6827f9650ebb92fc9eaa89ea5f))
+
+## Functions Binding
+### Features
+* Upgrade to version 1.20.0 of the C# SDK ([50420d2](https://github.com/Azure/iotedge/commit/50420d21a4deea6827f9650ebb92fc9eaa89ea5f))
+
 # 1.0.7-rc1 (2019-02-21)
 
 ## Edge Agent
