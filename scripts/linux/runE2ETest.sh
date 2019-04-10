@@ -136,7 +136,7 @@ function prepare_test_from_artifacts() {
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
 
-                # Temporarily fix to run on RPi, bug is created (https://msazure.visualstudio.com/One/_workitems/edit/4396517)
+                # Temporarily fix to avoid edgeHub fail when running on RPi, bug is created (https://msazure.visualstudio.com/One/_workitems/edit/4396517)
                 if [[ "$image_architecture_label" == 'arm32v7' ]]; then
                     sed -i -e "s@<UpstreamProtocol>@Amqp@g" "$deployment_working_file"
                 else
@@ -148,7 +148,7 @@ function prepare_test_from_artifacts() {
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
 
-                # Temporarily fix to run on RPi, bug is created (https://msazure.visualstudio.com/One/_workitems/edit/4396517)
+                # Temporarily fix to avoid edgeHub fail when running on RPi, bug is created (https://msazure.visualstudio.com/One/_workitems/edit/4396517)
                 if [[ "$image_architecture_label" == 'arm32v7' ]]; then
                     sed -i -e "s@<UpstreamProtocol>@AmqpWs@g" "$deployment_working_file"
                 else
