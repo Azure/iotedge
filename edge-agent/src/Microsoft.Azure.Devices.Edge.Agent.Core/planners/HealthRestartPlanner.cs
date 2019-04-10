@@ -159,8 +159,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                 });
 
             // apply restart policy for modules that are not in the deployment list and aren't running
-            IEnumerable<Task<ICommand>> restartTasks = this.ApplyRestartPolicy(updateStateChanged.Where(m => !m.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase)));
-            IEnumerable<ICommand> restart = await Task.WhenAll(restartTasks);
+            IEnumerable<Task<ICommand>> updateStateChangedTasks = this.ProcessStateChangedModules(updateStateChanged.Where(m => !m.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase)).ToList());
+            IEnumerable<ICommand> stateChangedTasks = await Task.WhenAll(updateStateChangedTasks);
 
             // clear the "restartCount" and "lastRestartTime" values for running modules that have been up
             // for more than "IntensiveCareTime" & still have an entry for them in the store
@@ -172,12 +172,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                 .Concat(removeState)
                 .Concat(addedCommands)
                 .Concat(updatedCommands)
-                .Concat(restart)
+                .Concat(stateChangedTasks)
                 .Concat(resetHealthStatus)
                 .ToList();
 
             Events.PlanCreated(commands);
             return new Plan(commands);
+        }
+
+        IEnumerable<Task<ICommand>> ProcessStateChangedModules(IList<IRuntimeModule> updateStateChangedModules)
+        {
+            var tasks = new List<Task<ICommand>>();
+            IEnumerable<IRuntimeModule> modulesToStop = updateStateChangedModules.Where(m => m.DesiredStatus == ModuleStatus.Stopped);
+            IEnumerable<IRuntimeModule> modulesToRestart = updateStateChangedModules.Where(m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus == ModuleStatus.Backoff);
+            IEnumerable<IRuntimeModule> modulesToStart = updateStateChangedModules.Where(m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus == ModuleStatus.Stopped);
+
+            tasks.AddRange(modulesToStop.Select(this.commandFactory.StopAsync));
+            tasks.AddRange(modulesToStart.Select(this.commandFactory.StartAsync));
+            tasks.AddRange(this.ApplyRestartPolicy(modulesToRestart));
+            return tasks;
         }
 
         IEnumerable<Task<ICommand>> ApplyRestartPolicy(IEnumerable<IRuntimeModule> modules)
@@ -291,7 +304,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                 .Except(updateDeployed.Select(m => current.Modules[m.Name] as IRuntimeModule)).ToList();
 
             IList<IRuntimeModule> updateStateChanged = currentRuntimeModules
-                .Where(m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus != ModuleStatus.Running).ToList();
+                .Where(m => m.DesiredStatus != m.RuntimeStatus).ToList();
 
             // Apart from all of the lists above, there can be modules in "current" where neither
             // the desired state has changed nor the runtime state has changed. For example, a module
