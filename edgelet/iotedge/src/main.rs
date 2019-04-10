@@ -117,6 +117,13 @@ fn run() -> Result<(), Error> {
                         ),
                 )
                 .arg(
+                    Arg::with_name("iothub-hostname")
+                        .long("iothub-hostname")
+                        .value_name("IOTHUB_HOSTNAME")
+                        .help("Sets the hostname of the Azure IoT Hub that this device would connect to. If using manual provisioning, this does not need to be specified.")
+                        .takes_value(true),
+                )
+                .arg(
                     Arg::with_name("ntp-server")
                         .long("ntp-server")
                         .value_name("NTP_SERVER")
@@ -210,6 +217,7 @@ fn run() -> Result<(), Error> {
                     .expect("arg has a default value")
                     .to_os_string()
                     .into(),
+                args.value_of("iothub-hostname").map(ToOwned::to_owned),
                 args.value_of("ntp-server")
                     .expect("arg has a default value")
                     .to_string(),
