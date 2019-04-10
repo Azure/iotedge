@@ -25,7 +25,7 @@ namespace temp_sensor
                 await daemon.InstallAsync(cts.Token).ConfigureAwait(false);
                 await daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, cts.Token);
 
-                var agent = new EdgeModule("edgeAgent");
+                var agent = new EdgeAgent();
                 await agent.WaitForStatusAsync(EdgeModuleStatus.Running, cts.Token);
 
                 // EnsureEdgeAgentIsConnectedToIotHub();
