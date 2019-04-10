@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
     using Xunit;
 
     public class DiffTest
@@ -122,6 +123,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             // assert
             Assert.True(Diff.Empty.Equals(diff1));
             Assert.True(diff1.IsEmpty);
+
+            Diff diff2 = new Diff.Builder().WithAdded(Mock.Of<IModule>()).Build();
+            Assert.False(diff2.IsEmpty);
+
+            Diff diff3 = new Diff.Builder().WithDesiredStatusUpdated(Mock.Of<IModule>()).Build();
+            Assert.False(diff2.IsEmpty);
+
+            Diff diff4 = new Diff.Builder().WithUpdated(Mock.Of<IModule>()).Build();
+            Assert.False(diff2.IsEmpty);
+
+            Diff diff5 = new Diff.Builder().WithRemoved("mod1").Build();
+            Assert.False(diff2.IsEmpty);
         }
     }
 }
