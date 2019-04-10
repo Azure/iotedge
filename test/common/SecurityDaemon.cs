@@ -1,12 +1,19 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
 using System;
+using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
 using common;
 
 namespace common
 {
+    public enum SecurityDaemonStatus
+    {
+        Running = ServiceControllerStatus.Running,
+        Stopped = ServiceControllerStatus.Stopped
+    }
+
     public class SecurityDaemon
     {
         private string deviceConnectionString;
@@ -43,6 +50,16 @@ namespace common
             };
             string[] result = await Process.RunAsync("powershell", string.Join(";", commands), token);
             Console.WriteLine(string.Join("\n", result));
+        }
+
+        public async Task WaitForStatusAsync(SecurityDaemonStatus desired, CancellationToken token)
+        {
+            var sc = new ServiceController("iotedge");
+            while (sc.Status != (ServiceControllerStatus)desired)
+            {
+                await Task.Delay(250, token).ConfigureAwait(false);
+                sc.Refresh();
+            }
         }
     }
 }

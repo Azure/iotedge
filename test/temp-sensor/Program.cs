@@ -22,7 +22,7 @@ namespace temp_sensor
                 var daemon = new SecurityDaemon(args[2], identity);
                 await daemon.UninstallAsync(cts.Token).ConfigureAwait(false);
                 await daemon.InstallAsync(cts.Token).ConfigureAwait(false);
-                // EnsureSecurityDaemonIsRunning();
+                await daemon.WaitForStatusAsync(SecurityDaemonStatus.Running, cts.Token);
                 // EnsureEdgeAgentIsRunning();
                 // EnsureEdgeAgentIsConnectedToIotHub();
 
