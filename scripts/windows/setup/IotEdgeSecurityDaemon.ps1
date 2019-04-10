@@ -1417,6 +1417,15 @@ function Validate-GatewaySettings {
     return $certFilesProvided
 }
 
+function Get-DpsProvisioningSettings {
+    $attestationMethod = 'tpm' # default
+    if ($SymmetricKey) {
+        $attestationMethod = 'symmetric_key'
+    }
+
+    return $attestationMethod
+}
+
 function Set-ProvisioningMode {
     Update-ConfigYaml({
         param($configurationYaml)
@@ -1432,15 +1441,22 @@ function Set-ProvisioningMode {
             return $configurationYaml
         }
         else {
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*registration_id:\s*".*"\s*#?\s*symmetric_key:\s".*"'
+            $attestationMethod = Get-DpsProvisioningSettings
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*attestation:\s*#?\s*method:\s*"' + $attestationMethod + '"\s*#?\s*registration_id:\s*".*"'
+
+            if ($attestationMethod -eq 'symmetric_key') {
+                $selectionRegex += '\s*#?\s*symmetric_key:\s".*"'
+            }
             $replacementContent = @(
                 'provisioning:',
                 '  source: ''dps''',
                 '  global_endpoint: ''https://global.azure-devices-provisioning.net''',
                 "  scope_id: '$ScopeId'",
-                "  registration_id: '$RegistrationId'")
+                "  attestation:",
+                "    method: '$attestationMethod'",
+                "    registration_id: '$RegistrationId'")
             if ($SymmetricKey) {
-                $replacementContent += "  symmetric_key: '$SymmetricKey'"
+                $replacementContent += "    symmetric_key: '$SymmetricKey'"
             }
             $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
 
