@@ -62,8 +62,7 @@ impl SetPlatformDefines for Config {
     fn set_test_defines(&mut self) -> &mut Self {
         if std::env::var("CARGO_FEATURE_IN_MEMORY").is_ok() {
             self.define("USE_TEST_TPM_INTERFACE_IN_MEM", "ON")
-        }
-        else {
+        } else {
             self.define("USE_TEST_TPM_INTERFACE_IN_MEM", "OFF")
         }
     }
