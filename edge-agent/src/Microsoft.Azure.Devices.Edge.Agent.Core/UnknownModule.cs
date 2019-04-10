@@ -25,6 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public IDictionary<string, EnvVal> Env { get; } = ImmutableDictionary<string, EnvVal>.Empty;
 
+        public bool OnlyModuleStatusChanged(IModule other) => other is UnknownModule;
+
         public bool Equals(IModule other) => other != null && ReferenceEquals(this, other);
     }
 
