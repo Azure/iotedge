@@ -135,20 +135,31 @@ function prepare_test_from_artifacts() {
             'directmethodmqtt')
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
-                
+
+                # Temporarily fix to avoid edgeHub fail when running on RPi, bug is created (https://msazure.visualstudio.com/One/_workitems/edit/4396517)
+                if [[ "$image_architecture_label" == 'arm32v7' ]]; then
+                    sed -i -e "s@<UpstreamProtocol>@Amqp@g" "$deployment_working_file"
+                else
+                    sed -i -e "s@<UpstreamProtocol>@Mqtt@g" "$deployment_working_file"
+                fi
                 sed -i -e "s@<UpstreamProtocol>@Mqtt@g" "$deployment_working_file"
                 sed -i -e "s@<ClientTransportType>@Mqtt_Tcp_Only@g" "$deployment_working_file";;
             'directmethodmqttws')
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
 
-                sed -i -e "s@<UpstreamProtocol>@Mqttws@g" "$deployment_working_file"
+                # Temporarily fix to avoid edgeHub fail when running on RPi, bug is created (https://msazure.visualstudio.com/One/_workitems/edit/4396517)
+                if [[ "$image_architecture_label" == 'arm32v7' ]]; then
+                    sed -i -e "s@<UpstreamProtocol>@AmqpWs@g" "$deployment_working_file"
+                else
+                    sed -i -e "s@<UpstreamProtocol>@MqttWs@g" "$deployment_working_file"
+                fi
                 sed -i -e "s@<ClientTransportType>@Mqtt_WebSocket_Only@g" "$deployment_working_file";;
             'longhaul' | 'stress')
                 if [[ "${TEST_NAME,,}" == 'longhaul' ]]; then
                     echo "Copy deployment file from $long_haul_deployment_artifact_file"
                     cp "$long_haul_deployment_artifact_file" "$deployment_working_file"
-                    
+
                     sed -i -e "s@<LoadGen.TransportType>@$LOADGEN_TRANSPORT_TYPE@g" "$deployment_working_file"
                     sed -i -e "s@<ServiceClientConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
                 else

@@ -128,14 +128,134 @@ impl Manual {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(tag = "method")]
 #[serde(rename_all = "lowercase")]
+pub enum AttestationMethod {
+    Tpm(TpmAttestationInfo),
+    #[serde(rename = "symmetric_key")]
+    SymmetricKey(SymmetricKeyAttestationInfo),
+    X509(X509AttestationInfo),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub struct TpmAttestationInfo {
+    registration_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    device_id: Option<String>,
+}
+
+impl TpmAttestationInfo {
+    pub fn new(registration_id: String) -> Self {
+        TpmAttestationInfo {
+            registration_id,
+            device_id: None,
+        }
+    }
+
+    pub fn registration_id(&self) -> &str {
+        &self.registration_id
+    }
+
+    pub fn device_id(&self) -> Option<&str> {
+        self.device_id.as_ref().map(AsRef::as_ref)
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub struct SymmetricKeyAttestationInfo {
+    registration_id: String,
+    symmetric_key: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    device_id: Option<String>,
+}
+
+impl SymmetricKeyAttestationInfo {
+    pub fn registration_id(&self) -> &str {
+        &self.registration_id
+    }
+
+    pub fn symmetric_key(&self) -> &str {
+        &self.symmetric_key
+    }
+
+    pub fn device_id(&self) -> Option<&str> {
+        self.device_id.as_ref().map(AsRef::as_ref)
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub struct X509AttestationInfo {
+    identity_cert: PathBuf,
+    identity_pk: PathBuf,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    device_id: Option<String>,
+}
+
+impl X509AttestationInfo {
+    pub fn identity_cert(&self) -> &Path {
+        &self.identity_cert
+    }
+
+    pub fn identity_pk(&self) -> &Path {
+        &self.identity_pk
+    }
+
+    pub fn device_id(&self) -> Option<&str> {
+        self.device_id.as_ref().map(AsRef::as_ref)
+    }
+}
+
+#[derive(Debug, Serialize)]
 pub struct Dps {
     #[serde(with = "url_serde")]
     global_endpoint: Url,
     scope_id: String,
-    registration_id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    symmetric_key: Option<String>,
+    attestation: AttestationMethod,
+}
+
+impl<'de> serde::Deserialize<'de> for Dps {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Debug, serde_derive::Deserialize)]
+        struct Inner {
+            #[serde(with = "url_serde")]
+            global_endpoint: Url,
+            scope_id: String,
+            registration_id: Option<String>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            attestation: Option<AttestationMethod>,
+        }
+
+        let value: Inner = serde::Deserialize::deserialize(deserializer)?;
+
+        let attestation = match (value.attestation, value.registration_id) {
+            (Some(_att), Some(_)) => {
+                return Err(serde::de::Error::custom(
+                    "Provisioning registration_id has to be set only in attestation",
+                ));
+            }
+            (Some(att), None) => att,
+            (None, Some(reg_id)) => {
+                AttestationMethod::Tpm(TpmAttestationInfo::new(reg_id.to_string()))
+            }
+            (None, None) => {
+                return Err(serde::de::Error::custom(
+                    "Provisioning registration_id has to be set",
+                ));
+            }
+        };
+
+        Ok(Dps {
+            global_endpoint: value.global_endpoint,
+            scope_id: value.scope_id,
+            attestation,
+        })
+    }
 }
 
 impl Dps {
@@ -147,12 +267,8 @@ impl Dps {
         &self.scope_id
     }
 
-    pub fn registration_id(&self) -> &str {
-        &self.registration_id
-    }
-
-    pub fn symmetric_key(&self) -> Option<&str> {
-        self.symmetric_key.as_ref().map(AsRef::as_ref)
+    pub fn attestation(&self) -> &AttestationMethod {
+        &self.attestation
     }
 }
 
@@ -412,6 +528,18 @@ mod tests {
     static GOOD_SETTINGS_DPS_SYM_KEY: &str = "test/linux/sample_settings.dps.sym.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_CASE_SENSITIVE: &str = "test/linux/case_sensitive.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_DPS_TPM: &str = "test/linux/sample_settings.dps.tpm.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_DPS_TPM1: &str = "test/linux/sample_settings.dps.tpm.1.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_DPS_DEFAULT: &str = "test/linux/sample_settings.dps.default.yaml";
+    #[cfg(unix)]
+    static BAD_SETTINGS_DPS_TPM: &str = "test/linux/bad_sample_settings.dps.tpm.yaml";
+    #[cfg(unix)]
+    static BAD_SETTINGS_DPS_DEFAULT: &str = "test/linux/bad_sample_settings.dps.default.yaml";
+    #[cfg(unix)]
+    static BAD_SETTINGS_DPS_SYM_KEY: &str = "test/linux/bad_sample_settings.dps.sym.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
@@ -427,6 +555,18 @@ mod tests {
     static GOOD_SETTINGS_DPS_SYM_KEY: &str = "test/windows/sample_settings.dps.sym.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_CASE_SENSITIVE: &str = "test/windows/case_sensitive.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_DPS_TPM: &str = "test/windows/sample_settings.dps.tpm.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_DPS_TPM1: &str = "test/windows/sample_settings.dps.tpm.1.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_DPS_DEFAULT: &str = "test/windows/sample_settings.dps.default.yaml";
+    #[cfg(windows)]
+    static BAD_SETTINGS_DPS_TPM: &str = "test/windows/bad_sample_settings.dps.tpm.yaml";
+    #[cfg(windows)]
+    static BAD_SETTINGS_DPS_DEFAULT: &str = "test/windows/bad_sample_settings.dps.default.yaml";
+    #[cfg(windows)]
+    static BAD_SETTINGS_DPS_SYM_KEY: &str = "test/windows/bad_sample_settings.dps.sym.yaml";
 
     fn unwrap_manual_provisioning(p: &Provisioning) -> String {
         match p {
@@ -460,6 +600,15 @@ mod tests {
     #[test]
     fn bad_file_gets_error() {
         let settings = Settings::<DockerConfig>::new(Some(Path::new(BAD_SETTINGS)));
+        assert!(settings.is_err());
+
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(BAD_SETTINGS_DPS_DEFAULT)));
+        assert!(settings.is_err());
+
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(BAD_SETTINGS_DPS_TPM)));
+        assert!(settings.is_err());
+
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(BAD_SETTINGS_DPS_SYM_KEY)));
         assert!(settings.is_err());
     }
 
@@ -497,6 +646,51 @@ mod tests {
     }
 
     #[test]
+    fn dps_prov_default_get_settings() {
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_DPS_DEFAULT)));
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+        match s.provisioning() {
+            Provisioning::Dps(ref dps) => {
+                assert_eq!(dps.global_endpoint().scheme(), "scheme");
+                assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
+                assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
+                match dps.attestation() {
+                    AttestationMethod::Tpm(ref tpm) => {
+                        assert_eq!(tpm.registration_id(), "register me fool");
+                        assert_eq!(tpm.device_id(), None);
+                    }
+                    _ => assert!(false),
+                }
+            }
+            _ => assert!(false),
+        };
+    }
+
+    #[test]
+    fn dps_prov_tpm_get_settings() {
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM)));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+        match s.provisioning() {
+            Provisioning::Dps(ref dps) => {
+                assert_eq!(dps.global_endpoint().scheme(), "scheme");
+                assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
+                assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
+                match dps.attestation() {
+                    AttestationMethod::Tpm(ref tpm) => {
+                        assert_eq!(tpm.registration_id(), "register me fool");
+                        assert_eq!(tpm.device_id(), Some("d1"));
+                    }
+                    _ => assert!(false),
+                }
+            }
+            _ => assert!(false),
+        };
+    }
+
+    #[test]
     fn dps_prov_symmetric_key_get_settings() {
         let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_DPS_SYM_KEY)));
         println!("{:?}", settings);
@@ -507,8 +701,14 @@ mod tests {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
-                assert_eq!(dps.registration_id(), "register me fool");
-                assert_eq!(dps.symmetric_key().unwrap(), "first name Mr last name T");
+                match dps.attestation() {
+                    AttestationMethod::SymmetricKey(ref key) => {
+                        assert_eq!(key.symmetric_key(), "key");
+                        assert_eq!(key.registration_id(), "register me fool");
+                        assert_eq!(key.device_id(), Some("d1"));
+                    }
+                    _ => assert!(false),
+                }
             }
             _ => assert!(false),
         };
@@ -526,6 +726,42 @@ mod tests {
             .unwrap()
             .write_all(base64_to_write.as_bytes())
             .unwrap();
+        assert_eq!(settings.diff_with_cached(&path), false);
+    }
+
+    #[test]
+    fn diff_with_tpm_default_and_explicit_returns_false() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let path = tmp_dir.path().join("cache");
+        let settings1 =
+            Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_DPS_DEFAULT))).unwrap();
+        let settings_to_write = serde_json::to_string(&settings1).unwrap();
+        let sha_to_write = Sha256::digest_str(&settings_to_write);
+        let base64_to_write = base64::encode(&sha_to_write);
+        FsFile::create(&path)
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+        let settings =
+            Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
+        assert_eq!(settings.diff_with_cached(&path), false);
+    }
+
+    #[test]
+    fn diff_with_tpm_explicit_and_default_returns_false() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let path = tmp_dir.path().join("cache");
+        let settings1 =
+            Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
+        let settings_to_write = serde_json::to_string(&settings1).unwrap();
+        let sha_to_write = Sha256::digest_str(&settings_to_write);
+        let base64_to_write = base64::encode(&sha_to_write);
+        FsFile::create(&path)
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+        let settings =
+            Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_DPS_DEFAULT))).unwrap();
         assert_eq!(settings.diff_with_cached(&path), false);
     }
 
