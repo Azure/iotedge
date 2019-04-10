@@ -43,6 +43,8 @@ namespace common
                 $"DeviceId={device.Id};" +
                 $"SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}"
             );
+
+            Console.WriteLine($"Edge device '{device.Id}' was created on hub '{builder.HostName}'");
         }
 
         public async Task GetOrCreateAsync(string deviceId, CancellationToken token)
@@ -60,6 +62,8 @@ namespace common
                     $"DeviceId={device.Id};" +
                     $"SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}"
                 );
+
+                Console.WriteLine($"Edge device '{device.Id}' already exists on hub '{builder.HostName}'");
             }
             else
             {

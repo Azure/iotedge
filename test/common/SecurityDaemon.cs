@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 
 using System;
 using System.Linq;
@@ -79,8 +79,9 @@ namespace common
                 $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1",
                 $"Install-IoTEdge -Manual -ContainerOs Windows -DeviceConnectionString '{this.deviceConnectionString}'"
             };
-            string[] result = await Process.RunAsync("powershell", string.Join(";", commands), token);
-            Console.WriteLine(string.Join("\n", result));
+            await Process.RunAsync("powershell", string.Join(";", commands), token);
+
+            Console.WriteLine("Daemon was installed");
         }
 
         public async Task UninstallAsync(CancellationToken token)
@@ -91,8 +92,9 @@ namespace common
                 $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1",
                 "Uninstall-IoTEdge -Force"
             };
-            string[] result = await Process.RunAsync("powershell", string.Join(";", commands), token);
-            Console.WriteLine(string.Join("\n", result));
+            await Process.RunAsync("powershell", string.Join(";", commands), token);
+
+            Console.WriteLine("Daemon was uninstalled");
         }
 
         public async Task WaitForStatusAsync(SecurityDaemonStatus desired, CancellationToken token)
@@ -103,6 +105,8 @@ namespace common
                 await Task.Delay(250, token).ConfigureAwait(false);
                 sc.Refresh();
             }
+
+            Console.WriteLine($"Daemon is {desired.ToString().ToLower()}");
         }
     }
 }
