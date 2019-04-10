@@ -27,16 +27,43 @@
 #                     attestation
 ###############################################################################
 
+# Manual provisioning configuration
 provisioning:
   source: "manual"
   device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
 
+# DPS TPM provisioning configuration
 # provisioning:
 #   source: "dps"
 #   global_endpoint: "https://global.azure-devices-provisioning.net"
 #   scope_id: "{scope_id}"
-#   registration_id: "{registration_id}"
-#   symmetric_key: "{symmetric_key}"
+#   attestation:
+#     method: "tpm"
+#     registration_id: "{registration_id}"
+#     device_id: "<OPTIONAL DEVICE ID TO BE PROVISIONED IN IOTHUB>"
+
+# DPS symmetric key provisioning configuration
+# provisioning:
+#   source: "dps"
+#   global_endpoint: "https://global.azure-devices-provisioning.net"
+#   scope_id: "{scope_id}"
+#   attestation:
+#     method: "symmetric_key"
+#     registration_id: "{registration_id}"
+#     device_id: "<OPTIONAL DEVICE ID TO BE PROVISIONED IN IOTHUB>"
+#     symmetric_key: "{symmetric_key}"
+
+# DPS X.509 provisioning configuration
+# provisioning:
+#   source: "dps"
+#   global_endpoint: "https://global.azure-devices-provisioning.net"
+#   scope_id: "{scope_id}"
+#   attestation:
+#     method: "x509"
+#     registration_id: "<OPTIONAL REGISTRATION ID. IF UNSPECIFIED CAN BE OBTAINED FROM CN OF identity_cert"
+#     device_id: "<OPTIONAL DEVICE ID TO BE PROVISIONED IN IOTHUB>"
+#     identity_cert: "<OPTIONAL PATH TO DEVICE IDENTITY CERTIFICATE HERE. IF UNSPECIFIED, DEVICE CA WILL ISSUE ONE>"
+#     identity_pk: "<OPTIONAL PATH TO DEVICE IDENTITY PRIVATE KEY HERE. IF UNSPECIFIED, DEVICE CA WILL ISSUE ONE>"
 
 ###############################################################################
 # Certificate settings
@@ -80,7 +107,7 @@ provisioning:
 #       auth   - (docker) Modules may need authoriation to connect to container registry.
 #
 # Adding environment variables:
-# replace "env: {}" with 
+# replace "env: {}" with
 #  env:
 #    key: "value"
 #
