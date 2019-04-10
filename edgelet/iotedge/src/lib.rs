@@ -4,6 +4,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::module_name_repetitions,
+    clippy::too_many_arguments,
     clippy::type_complexity,
     clippy::use_self
 )]
