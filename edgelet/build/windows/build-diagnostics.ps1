@@ -4,11 +4,23 @@
  # Builds and publishes to target/publish/ the iotedge-diagnostics binary and its associated dockerfile
  #>
 
+param(
+    [ValidateSet('debug', 'release')]
+    [string]$BuildConfiguration = 'release'
+)
+ 
 $ErrorActionPreference = 'Continue'
 
 . (Join-Path $PSScriptRoot 'util.ps1')
 
 Assert-Rust
+If ($BuildConfiguration -eq 'release') {
+    $BuildConfiguration = 'release'
+    $BuildConfigOption = '--release'
+} else {
+    $BuildConfiguration = 'debug'
+    $BuildConfigOption = ''
+}
 
 $cargo = Get-CargoCommand
 $ManifestPath = Get-Manifest
@@ -19,8 +31,8 @@ $env:NO_VALGRIND = 'true'
 
 $originalRustflags = $env:RUSTFLAGS
 $env:RUSTFLAGS += ' -C target-feature=+crt-static'
-Write-Host "$cargo build -p iotedge-diagnostics --release --manifest-path $ManifestPath"
-Invoke-Expression "$cargo build -p iotedge-diagnostics --release --manifest-path $ManifestPath"
+Write-Host "$cargo build -p iotedge-diagnostics $BuildConfigOption --manifest-path $ManifestPath"
+Invoke-Expression "$cargo build -p iotedge-diagnostics $BuildConfigOption --manifest-path $ManifestPath"
 if ($originalRustflags -eq '') {
     Remove-Item Env:\RUSTFLAGS
 }
@@ -42,5 +54,5 @@ Copy-Item -Recurse `
     ([IO.Path]::Combine($publishFolder, 'docker'))
 
 Copy-Item `
-    ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', 'release', 'iotedge-diagnostics.exe')) `
+    ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', $BuildConfiguration, 'iotedge-diagnostics.exe')) `
     ([IO.Path]::Combine($publishFolder, 'docker', 'windows', 'amd64'))
