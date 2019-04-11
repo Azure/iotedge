@@ -19,6 +19,7 @@
 #include "azure_c_shared_utility/crt_abstractions.h"
 
 #include "hsm_client_data.h"
+#include "hsm_client_tpm_in_mem.h"
 
 //#############################################################################
 // Test defines and data
@@ -68,9 +69,9 @@ static void test_helper_tear_down_homedir(void)
 static HSM_CLIENT_HANDLE tpm_provision(void)
 {
     int status;
-    status = hsm_client_tpm_init();
+    status = hsm_client_tpm_store_init();
     ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-    const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+    const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
     HSM_CLIENT_HANDLE result = interface->hsm_client_tpm_create();
     ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
     return result;
@@ -83,7 +84,7 @@ static void tpm_activate_key
     size_t key_size
 )
 {
-    const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+    const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
     int status = interface->hsm_client_activate_identity_key(hsm_handle, key, key_size);
     ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 }
@@ -98,7 +99,7 @@ static int tpm_sign
     BUFFER_HANDLE hash
 )
 {
-    const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+    const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
     unsigned char *digest;
     size_t digest_size;
     int status;
@@ -125,9 +126,9 @@ static int tpm_sign
 
 static void tpm_deprovision(HSM_CLIENT_HANDLE hsm_handle)
 {
-    const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+    const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
     interface->hsm_client_tpm_destroy(hsm_handle);
-    hsm_client_tpm_deinit();
+    hsm_client_tpm_store_deinit();
 }
 
 static BUFFER_HANDLE test_helper_base64_converter(const char* input)

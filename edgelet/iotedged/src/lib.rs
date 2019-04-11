@@ -41,7 +41,10 @@ use url::Url;
 
 use docker::models::HostConfig;
 use dps::DPS_API_VERSION;
-use edgelet_config::{Dps, Manual, Provisioning, Settings, DEFAULT_CONNECTION_STRING};
+use edgelet_config::{
+    AttestationMethod, Dps, Manual, Provisioning, Settings, SymmetricKeyAttestationInfo,
+    TpmAttestationInfo, DEFAULT_CONNECTION_STRING,
+};
 use edgelet_core::crypto::{
     Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity,
     KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
@@ -283,28 +286,37 @@ impl Main {
                     }};
                 }
 
-                if let Some(key) = dps.symmetric_key() {
-                    info!("Staring provisioning edge device via symmetric key...");
-                    let (key_store, provisioning_result, root_key, runtime) =
-                        dps_symmetric_key_provision(
-                            &dps,
-                            hyper_client.clone(),
-                            dps_path,
-                            runtime,
-                            &mut tokio_runtime,
-                            key,
-                        )?;
-                    start_edgelet!(key_store, provisioning_result, root_key, runtime);
-                } else {
-                    info!("Staring provisioning edge device via TPM...");
-                    let (key_store, provisioning_result, root_key, runtime) = dps_tpm_provision(
-                        &dps,
-                        hyper_client.clone(),
-                        dps_path,
-                        runtime,
-                        &mut tokio_runtime,
-                    )?;
-                    start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                match dps.attestation() {
+                    AttestationMethod::Tpm(ref tpm) => {
+                        info!("Starting provisioning edge device via TPM...");
+                        let (key_store, provisioning_result, root_key, runtime) =
+                            dps_tpm_provision(
+                                &dps,
+                                hyper_client.clone(),
+                                dps_path,
+                                runtime,
+                                &mut tokio_runtime,
+                                tpm,
+                            )?;
+                        start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                    }
+                    AttestationMethod::SymmetricKey(ref symmetric_key_info) => {
+                        info!("Starting provisioning edge device via symmetric key...");
+                        let (key_store, provisioning_result, root_key, runtime) =
+                            dps_symmetric_key_provision(
+                                &dps,
+                                hyper_client.clone(),
+                                dps_path,
+                                runtime,
+                                &mut tokio_runtime,
+                                symmetric_key_info,
+                            )?;
+                        start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                    }
+                    AttestationMethod::X509(ref _x509) => {
+                        panic!("Provisioning of Edge device via x509 is currently unsupported");
+                        // TODO: implement
+                    }
                 }
             }
         };
@@ -622,14 +634,15 @@ fn dps_symmetric_key_provision<HC, M>(
     backup_path: PathBuf,
     runtime: M,
     tokio_runtime: &mut tokio::runtime::Runtime,
-    key: &str,
+    key: &SymmetricKeyAttestationInfo,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey, M), Error>
 where
     HC: 'static + ClientImpl,
     M: ModuleRuntime + Send + 'static,
 {
     let mut memory_hsm = MemoryKeyStore::new();
-    let key_bytes = base64::decode(key).context(ErrorKind::SymmetricKeyMalformed)?;
+    let key_bytes =
+        base64::decode(key.symmetric_key()).context(ErrorKind::SymmetricKeyMalformed)?;
 
     memory_hsm
         .activate_identity_key(KeyIdentity::Device, "primary".to_string(), key_bytes)
@@ -639,7 +652,7 @@ where
         hyper_client,
         provisioning.global_endpoint().clone(),
         provisioning.scope_id().to_string(),
-        provisioning.registration_id().to_string(),
+        key.registration_id().to_string(),
         DPS_API_VERSION.to_string(),
     )
     .context(ErrorKind::Initialize(
@@ -691,6 +704,7 @@ fn dps_tpm_provision<HC, M>(
     backup_path: PathBuf,
     runtime: M,
     tokio_runtime: &mut tokio::runtime::Runtime,
+    tpm_attestation_info: &TpmAttestationInfo,
 ) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey, M), Error>
 where
     HC: 'static + ClientImpl,
@@ -709,8 +723,8 @@ where
         hyper_client,
         provisioning.global_endpoint().clone(),
         provisioning.scope_id().to_string(),
-        provisioning.registration_id().to_string(),
-        "2018-11-01".to_string(),
+        tpm_attestation_info.registration_id().to_string(),
+        DPS_API_VERSION.to_string(),
         ek_result,
         srk_result,
     )
