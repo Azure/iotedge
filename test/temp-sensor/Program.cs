@@ -27,8 +27,7 @@ namespace temp_sensor
 
                 var agent = new EdgeAgent();
                 await agent.WaitForStatusAsync(EdgeModuleStatus.Running, cts.Token);
-
-                // EnsureEdgeAgentIsConnectedToIotHub();
+                await agent.PingAsync(args[0], args[1], cts.Token);
 
                 // ** test
                 // var config = CreateEdgeConfiguration();
