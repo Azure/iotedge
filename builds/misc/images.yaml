@@ -4,20 +4,20 @@ trigger:
     include:
       - master
 pr: none
+
 jobs:
-         
 ################################################################################
   - job: linuxARM64
 ################################################################################
     displayName: LinuxARM64
     pool:
       vmImage: 'ubuntu-16.04'
-    variables:
-      NetCorePackageUri: https://download.visualstudio.microsoft.com/download/pr/efa6dde9-a5ee-4322-b13c-a2a02d3980f0/dad445eba341c1d806bae5c8afb47015/dotnet-sdk-3.0.100-preview-010184-linux-x64.tar.gz
     steps:
-      - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUri)
-        name: install
-        displayName: Install dependencies
+      - task: DotNetCoreInstaller@0
+        displayName: Install .NET Core
+        inputs:
+          packageType: sdk
+          version: 3.0.100-preview-010184
 
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
@@ -31,11 +31,11 @@ jobs:
       - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
         displayName: 'Install cross (fork with docker fix)'
 
-      - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin --os Unix --dotnet_runtime netcoreapp3.0
+      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin --os Unix --dotnet_runtime netcoreapp3.0
         name: build
-        displayName: Build (release)
+        displayName: Build ($(Build.Configuration))
 
-      - script: scripts/linux/buildDiagnostics.sh
+      - script: scripts/linux/buildDiagnostics.sh $(Build.Configuration)
         displayName: Build iotedge-diagnostics
 
       - task: PublishBuildArtifacts@1
@@ -147,11 +147,11 @@ jobs:
       - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
         displayName: 'Install cross (fork with docker fix)'
 
-      - script: scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin
+      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         name: build
-        displayName: Build (release)
+        displayName: Build ($(Build.Configuration))
 
-      - script: scripts/linux/buildDiagnostics.sh
+      - script: scripts/linux/buildDiagnostics.sh $(Build.Configuration)
         displayName: Build iotedge-diagnostics
 
       - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
@@ -259,11 +259,11 @@ jobs:
       - script: echo $(registry.password)|docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin
         displayName: Docker Login
 
-      - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"Release" -PublishTests:$False -UpdateVersion
+      - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"$(Build.Configuration)" -PublishTests:$False -UpdateVersion
         name: build
-        displayName: Build
+        displayName: Build ($(Build.Configuration))
 
-      - powershell: edgelet/build/windows/build-diagnostics.ps1
+      - powershell: edgelet/build/windows/build-diagnostics.ps1 -BuildConfiguration $(Build.Configuration)
         displayName: Build iotedge-diagnostics
 
       - powershell: scripts/windows/build/Create-ArtifactInfo.ps1 -outputFolder '$(Build.BinariesDirectory)/publish' -buildNumber $(Build.BuildNumber)
