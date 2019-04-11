@@ -103,7 +103,9 @@ impl Stream for Incoming {
                             // The prior block included a filter that specifically asked for is_ready state,
                             // so this line is unreachable.
                             Ok(_) => unreachable!(),
-                            Err(err) => return Err(TokioIoError::new(TokioIoErrorKind::Other, err)),
+                            Err(err) => {
+                                return Err(TokioIoError::new(TokioIoErrorKind::Other, err))
+                            }
                         }
                     }
                     None => Async::NotReady,

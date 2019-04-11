@@ -92,7 +92,7 @@ where
                     IdentityOperation::UpdateIdentity(module_id),
                 ))?)
         })
-        .unwrap_or_else(|e| e.into_response())
+        .unwrap_or_else(IntoResponse::into_response)
 }
 
 fn read_request(

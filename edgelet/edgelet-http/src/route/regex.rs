@@ -141,7 +141,7 @@ fn match_route(re: &Regex, path: &str) -> Option<Parameters> {
                     || cap.get(i).expect("missing capture").as_str().to_owned(),
                     |v| v.to_string(),
                 );
-            captures.push((name.map(|s| s.to_owned()), val));
+            captures.push((name.map(ToOwned::to_owned), val));
         }
         Parameters { captures }
     })
