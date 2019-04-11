@@ -44,7 +44,7 @@ where
         params: Parameters,
     ) -> Box<dyn Future<Item = Response<Body>, Error = Error> + Send> {
         let (name, pid) = (
-            params.name("name").map(|n| n.to_string()),
+            params.name("name").map(ToString::to_string),
             req.extensions()
                 .get::<Pid>()
                 .cloned()

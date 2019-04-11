@@ -969,7 +969,7 @@ fn container_logs_succeeds() {
         0x65,
     ];
 
-    let assert = task.and_then(|logs| logs.concat2()).and_then(|b| {
+    let assert = task.and_then(Stream::concat2).and_then(|b| {
         assert_eq!(&expected_body[..], b.as_ref());
         Ok(())
     });

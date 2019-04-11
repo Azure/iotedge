@@ -587,7 +587,7 @@ mod tests {
             Provisioning::Manual(ref manual) => {
                 assert_eq!(manual.device_connection_string(), DEFAULT_CONNECTION_STRING)
             }
-            _ => assert!(false),
+            _ => unreachable!(),
         }
     }
 
@@ -660,10 +660,10 @@ mod tests {
                         assert_eq!(tpm.registration_id(), "register me fool");
                         assert_eq!(tpm.device_id(), None);
                     }
-                    _ => assert!(false),
+                    _ => unreachable!(),
                 }
             }
-            _ => assert!(false),
+            _ => unreachable!(),
         };
     }
 
@@ -683,10 +683,10 @@ mod tests {
                         assert_eq!(tpm.registration_id(), "register me fool");
                         assert_eq!(tpm.device_id(), Some("d1"));
                     }
-                    _ => assert!(false),
+                    _ => unreachable!(),
                 }
             }
-            _ => assert!(false),
+            _ => unreachable!(),
         };
     }
 
@@ -707,10 +707,10 @@ mod tests {
                         assert_eq!(key.registration_id(), "register me fool");
                         assert_eq!(key.device_id(), Some("d1"));
                     }
-                    _ => assert!(false),
+                    _ => unreachable!(),
                 }
             }
-            _ => assert!(false),
+            _ => unreachable!(),
         };
     }
 
