@@ -11,64 +11,122 @@ namespace common
 {
     public class EdgeDeviceIdentity
     {
-        Option<Device> device;
-        Option<string> deviceConnectionString;
+        class DeviceContext
+        {
+            public string ConnectionString { get; }
+            public bool Owned { get; }
+            public Device Device { get; }
+            public RegistryManager Registry { get; }
+
+            public DeviceContext(Device device, string hostname, bool owned, RegistryManager rm)
+            {
+                this.ConnectionString = 
+                    $"HostName={hostname};" +
+                    $"DeviceId={device.Id};" +
+                    $"SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}";
+                this.Owned = owned;
+                this.Device = device;
+                this.Registry = rm;
+            }
+        }
+
+        Option<DeviceContext> context;
+        string deviceId;
         string hubConnectionString;
 
-        public Option<string> ConnectionString => this.deviceConnectionString;
+        public Option<string> ConnectionString => this.context.Map(c => c.ConnectionString);
 
-        public EdgeDeviceIdentity(string hubConnectionString)
+        public EdgeDeviceIdentity(string deviceId, string hubConnectionString)
         {
-            this.device = Option.None<Device>();
-            this.deviceConnectionString = Option.None<string>();
+            this.context = Option.None<DeviceContext>();
+            this.deviceId = deviceId;
             this.hubConnectionString = hubConnectionString;
         }
 
-        public async Task CreateAsync(string deviceId, CancellationToken token)
+        public async Task CreateAsync(CancellationToken token)
         {
             var settings = new HttpTransportSettings();
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.hubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
 
-            var device = new Device(deviceId)
+            await this._CreateAsync(rm, builder.HostName, token);
+        }
+
+        public async Task GetOrCreateAsync(CancellationToken token)
+        {
+            var settings = new HttpTransportSettings();
+            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.hubConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
+
+            Device device = await rm.GetDeviceAsync(this.deviceId, token);
+            if (device != null)
+            {
+                if (!device.Capabilities.IotEdge)
+                {
+                    throw new InvalidOperationException(
+                        $"Device '{device.Id}' exists, but is not an edge device"
+                    );
+                }
+
+                var context = new DeviceContext(device, builder.HostName, false, rm);
+                this.context = Option.Some(context);
+
+                Console.WriteLine($"Device '{device.Id}' already exists on hub '{builder.HostName}'");
+            }
+            else
+            {
+                await this._CreateAsync(rm, builder.HostName, token);
+            }
+        }
+
+        async Task _CreateAsync(RegistryManager rm, string hostname, CancellationToken token)
+        {
+            var device = new Device(this.deviceId)
             {
                 Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
                 Capabilities = new DeviceCapabilities() { IotEdge = true }
             };
-
             device = await rm.AddDeviceAsync(device, token);
-            this.device = Option.Some(device);
-            this.deviceConnectionString = Option.Some(
-                $"HostName={builder.HostName};" +
-                $"DeviceId={device.Id};" +
-                $"SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}"
-            );
 
-            Console.WriteLine($"Edge device '{device.Id}' was created on hub '{builder.HostName}'");
+            var context = new DeviceContext(device, hostname, true, rm);
+            this.context = Option.Some(context);
+
+            Console.WriteLine($"Edge device '{device.Id}' was created on hub '{hostname}'");
         }
 
-        public async Task GetOrCreateAsync(string deviceId, CancellationToken token)
+        public async Task DeleteAsync(CancellationToken token)
         {
-            var settings = new HttpTransportSettings();
-            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.hubConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
+            DeviceContext context = _GetContextForDelete();
+            await this._DeleteAsync(context, token);
+        }
 
-            Device device = await rm.GetDeviceAsync(deviceId, token);
-            if (device != null)
+        public async Task MaybeDeleteAsync(CancellationToken token)
+        {
+            DeviceContext context = _GetContextForDelete();
+            if (context.Owned)
             {
-                this.device = Option.Some(device);
-                this.deviceConnectionString = Option.Some(
-                    $"HostName={builder.HostName};" +
-                    $"DeviceId={device.Id};" +
-                    $"SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}"
-                );
-
-                Console.WriteLine($"Edge device '{device.Id}' already exists on hub '{builder.HostName}'");
+                await this._DeleteAsync(context, token);
             }
             else
             {
-                await this.CreateAsync(deviceId, token);
+                Console.WriteLine($"Pre-existing device '{context.Device.Id}' was not deleted");
             }
+        }
+
+        DeviceContext _GetContextForDelete()
+        {
+            return this.context.Expect(
+                () => new InvalidOperationException(
+                    $"Cannot delete unknown device '{this.deviceId}'. Call " +
+                    "[GetOr]CreateAsync() first."
+                )
+            );
+        }
+
+        async Task _DeleteAsync(DeviceContext context, CancellationToken token)
+        {
+            await context.Registry.RemoveDeviceAsync(context.Device);
+            Console.WriteLine($"Device '{context.Device.Id}' was deleted");
         }
     }
 }

@@ -56,16 +56,31 @@ namespace common
             Console.WriteLine("Daemon was uninstalled");
         }
 
+        public async Task StopAsync(CancellationToken token)
+        {
+            var sc = new ServiceController("iotedge");
+            if (sc.Status != ServiceControllerStatus.Stopped)
+            {
+                sc.Stop();
+                await this._WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
+            }
+            Console.WriteLine($"Daemon is stopped");
+        }
+
         public async Task WaitForStatusAsync(EdgeDaemonStatus desired, CancellationToken token)
         {
             var sc = new ServiceController("iotedge");
-            while (sc.Status != (ServiceControllerStatus)desired)
+            await this._WaitForStatusAsync(sc, (ServiceControllerStatus)desired, token);
+            Console.WriteLine($"Daemon is {desired.ToString().ToLower()}");
+        }
+
+        async Task _WaitForStatusAsync(ServiceController sc, ServiceControllerStatus desired, CancellationToken token)
+        {
+            while (sc.Status != desired)
             {
                 await Task.Delay(250, token).ConfigureAwait(false);
                 sc.Refresh();
             }
-
-            Console.WriteLine($"Daemon is {desired.ToString().ToLower()}");
         }
     }
 }
