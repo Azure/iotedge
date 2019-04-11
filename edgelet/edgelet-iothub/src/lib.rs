@@ -66,7 +66,7 @@ impl Identity for HubIdentity {
     fn auth_type(&self) -> AuthType {
         self.hub_module
             .authentication()
-            .and_then(|auth_mechanism| auth_mechanism.type_())
+            .and_then(AuthMechanism::type_)
             .map_or(AuthType::None, convert_auth_type)
     }
 }

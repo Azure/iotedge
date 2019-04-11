@@ -52,7 +52,7 @@ where
         let pid = req
             .extensions()
             .get::<Pid>()
-            .map_or_else(|| "-".to_string(), |p| p.to_string());
+            .map_or_else(|| "-".to_string(), ToString::to_string);
 
         let inner = self.inner.call(req);
 
@@ -60,7 +60,7 @@ where
             let body_length = response
                 .headers()
                 .get(CONTENT_LENGTH)
-                .and_then(|l| l.to_str().ok().map(|l| l.to_string()))
+                .and_then(|l| l.to_str().ok().map(ToString::to_string))
                 .unwrap_or_else(|| "-".to_string());
 
             info!(
