@@ -12,6 +12,7 @@ const USE_EMULATOR: &str = "use_emulator";
 trait SetPlatformDefines {
     fn set_platform_defines(&mut self) -> &mut Self;
     fn set_build_shared(&mut self) -> &mut Self;
+    fn set_test_defines(&mut self) -> &mut Self;
 }
 
 impl SetPlatformDefines for Config {
@@ -55,6 +56,14 @@ impl SetPlatformDefines for Config {
                 .define(USE_EMULATOR, "OFF")
         } else {
             self.define("run_valgrind", rv).define(USE_EMULATOR, "OFF")
+        }
+    }
+
+    fn set_test_defines(&mut self) -> &mut Self {
+        if std::env::var("CARGO_FEATURE_IN_MEMORY").is_ok() {
+            self.define("USE_TEST_TPM_INTERFACE_IN_MEM", "ON")
+        } else {
+            self.define("USE_TEST_TPM_INTERFACE_IN_MEM", "OFF")
         }
     }
 
@@ -137,6 +146,7 @@ fn main() {
         .define("skip_samples", "ON")
         .set_platform_defines()
         .set_build_shared()
+        .set_test_defines()
         .profile("Release")
         .build();
 
@@ -146,6 +156,7 @@ fn main() {
     // defined in the CMakefile.txt)
 
     println!("cargo:rerun-if-env-changed=RUN_VALGRIND");
+    println!("cargo:rerun-if-env-changed=CARGO_FEATURE_IN_MEMORY");
     // For libraries which will just install in target directory
     println!("cargo:rustc-link-search=native={}", iothsm.display());
     // For libraries (ie. C Shared) which will install in $target/lib
