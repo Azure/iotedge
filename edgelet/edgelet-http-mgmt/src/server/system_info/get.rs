@@ -106,7 +106,10 @@ mod tests {
 
                 assert_eq!("os_type_sample", os_type);
                 assert_eq!("architecture_sample", architecture);
-                assert_eq!(edgelet_core::version(), system_info.version());
+                assert_eq!(
+                    edgelet_core::version_with_source_version(),
+                    system_info.version(),
+                );
 
                 Ok(())
             })
