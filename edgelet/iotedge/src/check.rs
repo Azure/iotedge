@@ -72,6 +72,7 @@ impl Check {
         diagnostics_image_name: String,
         expected_iotedged_version: Option<String>,
         iotedged: PathBuf,
+        iothub_hostname: Option<String>,
         ntp_server: String,
         verbose: bool,
     ) -> impl Future<Item = Self, Error = Error> + Send {
@@ -187,7 +188,7 @@ impl Check {
                 settings: None,
                 docker_host_arg: None,
                 docker_server_version: None,
-                iothub_hostname: None,
+                iothub_hostname,
             })
         })
     }
@@ -594,6 +595,8 @@ fn settings_connection_string(check: &mut Check) -> Result<CheckResult, failure:
              Please check the value of the provisioning.device_connection_string parameter.",
         )?;
         check.iothub_hostname = Some(hub.to_owned());
+    } else if check.iothub_hostname.is_none() {
+        return Err(Context::new("Device is not using manual provisioning, so Azure IoT Hub hostname needs to be specified with --iothub-hostname").into());
     }
 
     Ok(CheckResult::Ok)
@@ -1508,11 +1511,7 @@ mod tests {
     fn config_file_checks_ok() {
         let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
 
-        for filename in &[
-            "sample_settings.yaml",
-            "sample_settings.dps.sym.yaml",
-            "sample_settings.tg.yaml",
-        ] {
+        for filename in &["sample_settings.yaml", "sample_settings.tg.yaml"] {
             let config_file = format!(
                 "{}/../edgelet-config/test/{}/{}",
                 env!("CARGO_MANIFEST_DIR"),
@@ -1527,6 +1526,7 @@ mod tests {
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                     Some("1.0.0".to_owned()),      // unused for this test
                     "iotedged".into(),             // unused for this test
+                    None,                          // unused for this test
                     "pool.ntp.org:123".to_owned(), // unused for this test
                     false,
                 ))
@@ -1594,6 +1594,7 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
+                None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 false,
             ))
@@ -1619,6 +1620,81 @@ mod tests {
     }
 
     #[test]
+    fn settings_connection_string_dps() {
+        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+        let filename = "sample_settings.dps.sym.yaml";
+        let config_file = format!(
+            "{}/../edgelet-config/test/{}/{}",
+            env!("CARGO_MANIFEST_DIR"),
+            if cfg!(windows) { "windows" } else { "linux" },
+            filename,
+        );
+
+        let mut check = runtime
+            .block_on(super::Check::new(
+                config_file.into(),
+                "daemon.json".into(), // unused for this test
+                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Some("1.0.0".to_owned()), // unused for this test
+                "iotedged".into(),        // unused for this test
+                Some("something.something.com".to_owned()), // pretend user specified --iothub-hostname
+                "pool.ntp.org:123".to_owned(),              // unused for this test
+                false,
+            ))
+            .unwrap();
+
+        match super::parse_settings(&mut check) {
+            Ok(super::CheckResult::Ok) => (),
+            check_result => panic!("parsing {} returned {:?}", filename, check_result),
+        }
+
+        match super::settings_connection_string(&mut check) {
+            Ok(super::CheckResult::Ok) => (),
+            check_result => panic!("parsing {} returned {:?}", filename, check_result),
+        }
+    }
+
+    #[test]
+    fn settings_connection_string_dps_err() {
+        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+        let filename = "sample_settings.dps.sym.yaml";
+        let config_file = format!(
+            "{}/../edgelet-config/test/{}/{}",
+            env!("CARGO_MANIFEST_DIR"),
+            if cfg!(windows) { "windows" } else { "linux" },
+            filename,
+        );
+
+        let mut check = runtime
+            .block_on(super::Check::new(
+                config_file.into(),
+                "daemon.json".into(), // unused for this test
+                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Some("1.0.0".to_owned()),      // unused for this test
+                "iotedged".into(),             // unused for this test
+                None,                          // pretend user did not specify --iothub-hostname
+                "pool.ntp.org:123".to_owned(), // unused for this test
+                false,
+            ))
+            .unwrap();
+
+        match super::parse_settings(&mut check) {
+            Ok(super::CheckResult::Ok) => (),
+            check_result => panic!("parsing {} returned {:?}", filename, check_result),
+        }
+
+        match super::settings_connection_string(&mut check) {
+            Err(err) => assert!(err.to_string().contains("Device is not using manual provisioning, so Azure IoT Hub hostname needs to be specified with --iothub-hostname")),
+            check_result => panic!(
+                "checking connection string in {} returned {:?}",
+                filename, check_result
+            ),
+        }
+    }
+
+    #[test]
     #[cfg(windows)]
     fn moby_runtime_uri_windows_wants_moby_based_on_runtime_uri() {
         let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
@@ -1638,6 +1714,7 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
+                None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 false,
             ))
@@ -1687,6 +1764,7 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
+                None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 false,
             ))

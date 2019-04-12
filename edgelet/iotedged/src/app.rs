@@ -15,7 +15,7 @@ use crate::logging;
 
 pub fn create_base_app<'a, 'b>() -> App<'a, 'b> {
     App::new(crate_name!())
-        .version(edgelet_core::version())
+        .version(edgelet_core::version_with_source_version())
         .author(crate_authors!("\n"))
         .about(crate_description!())
         .arg(
@@ -48,7 +48,7 @@ pub fn create_app<'a, 'b>() -> App<'a, 'b> {
 
 pub fn log_banner() {
     info!("Starting Azure IoT Edge Security Daemon");
-    info!("Version - {}", edgelet_core::version());
+    info!("Version - {}", edgelet_core::version_with_source_version());
 }
 
 pub fn init_common<'a>() -> Result<(Settings<DockerConfig>, ArgMatches<'a>), Error> {
