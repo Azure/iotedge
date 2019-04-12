@@ -254,9 +254,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             // build expected execution list
             IList<TestRecordType> expectedExecutionList = data
                 .Where(d => d.UpdatedModule.DesiredStatus != d.RunningModule.RuntimeStatus)
-                .Select(d => d.UpdatedModule.DesiredStatus == ModuleStatus.Running
-                             ? new TestRecordType(TestCommandType.TestStart, d.RunningModule)
-                            : new TestRecordType(TestCommandType.TestStop, d.RunningModule))
+                .Select(
+                    d => d.UpdatedModule.DesiredStatus == ModuleStatus.Running
+                        ? new TestRecordType(TestCommandType.TestStart, d.RunningModule)
+                        : new TestRecordType(TestCommandType.TestStop, d.RunningModule))
                 .ToList();
 
             // Act
@@ -281,7 +282,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             // This test makes sure that a module should be running but is in
             // a stopped state is started
-            
+
             // Arrange
             (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
@@ -1847,7 +1848,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     null,
                     EnvVars),
                 new TestModule(
-                    "updateDeployModule19", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.Never, DefaultConfigurationInfo, EnvVars)
+                    "updateDeployModule19",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.Never,
+                    DefaultConfigurationInfo,
+                    EnvVars)
             ),
             (
                 new TestRuntimeModule(
