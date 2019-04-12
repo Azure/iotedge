@@ -43,13 +43,13 @@ namespace common
             this.hubConnectionString = hubConnectionString;
         }
 
-        public async Task CreateAsync(CancellationToken token)
+        public Task CreateAsync(CancellationToken token)
         {
             var settings = new HttpTransportSettings();
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.hubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
 
-            await this._CreateAsync(rm, builder.HostName, token);
+            return this._CreateAsync(rm, builder.HostName, token);
         }
 
         public async Task GetOrCreateAsync(CancellationToken token)
@@ -94,10 +94,10 @@ namespace common
             Console.WriteLine($"Edge device '{device.Id}' was created on hub '{hostname}'");
         }
 
-        public async Task DeleteAsync(CancellationToken token)
+        public Task DeleteAsync(CancellationToken token)
         {
             DeviceContext context = _GetContextForDelete();
-            await this._DeleteAsync(context, token);
+            return this._DeleteAsync(context, token);
         }
 
         public async Task MaybeDeleteAsync(CancellationToken token)
