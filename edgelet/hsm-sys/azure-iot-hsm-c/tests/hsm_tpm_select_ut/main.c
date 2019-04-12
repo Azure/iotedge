@@ -6,6 +6,6 @@
 int main(void)
 {
     size_t failedTestCount = 0;
-    RUN_TEST_SUITE(hspm_tpm_select_ut, failedTestCount);
+    RUN_TEST_SUITE(hsm_tpm_select_ut, failedTestCount);
     return failedTestCount;
 }
