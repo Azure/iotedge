@@ -57,7 +57,7 @@ fn run() -> Result<(), Error> {
     );
 
     let matches = App::new(crate_name!())
-        .version(edgelet_core::version())
+        .version(edgelet_core::version_with_source_version())
         .about(crate_description!())
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .arg(
