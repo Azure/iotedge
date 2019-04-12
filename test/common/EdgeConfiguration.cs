@@ -38,6 +38,26 @@ namespace common
             config.ModulesContent["$edgeHub"] = GetBaseEdgeHubModulesContent();
         }
 
+        public void AddTempSensor()
+        {
+            ConfigurationContent config = this.config;
+
+            // { "modulesContent": { "$edgeAgent": { "properties.desired": { "modules": { "tempSensor": { ... } } } } } }
+            JObject desired = JObject.FromObject(config.ModulesContent["$edgeAgent"]["properties.desired"]);
+            JObject modules;
+            if (desired.TryGetValue("modules", StringComparison.OrdinalIgnoreCase, out JToken token))
+            {
+                modules = token.Value<JObject>();
+            }
+            else
+            {
+                desired.Add("modules", new JObject());
+                modules = desired.Get<JObject>("modules");
+            }
+            modules.Add("tempSensor", JToken.FromObject(GetBaseTempSensor()));
+            config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
+        }
+
         public async Task DeployAsync()
         {
             var settings = new HttpTransportSettings();
@@ -111,6 +131,17 @@ namespace common
             {
                 image = "mcr.microsoft.com/azureiotedge-hub:1.0",
                 createOptions = "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}]}}}"
+            }
+        };
+
+        static Object GetBaseTempSensor() => new
+        {
+            type = "docker",
+            status = "running",
+            restartPolicy = "always",
+            settings = new
+            {
+                image = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0"
             }
         };
 
