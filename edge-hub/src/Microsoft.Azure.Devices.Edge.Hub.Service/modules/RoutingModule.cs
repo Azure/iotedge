@@ -48,6 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool useV1TwinManager;
         readonly int maxUpstreamBatchSize;
         readonly int upstreamFanOutFactor;
+        readonly bool encryptTwinStore;
 
         public RoutingModule(
             string iotHubName,
@@ -70,7 +71,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             Option<TimeSpan> reportedPropertiesSyncFrequency,
             bool useV1TwinManager,
             int maxUpstreamBatchSize,
-            int upstreamFanOutFactor)
+            int upstreamFanOutFactor,
+            bool encryptTwinStore)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -93,6 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.useV1TwinManager = useV1TwinManager;
             this.maxUpstreamBatchSize = maxUpstreamBatchSize;
             this.upstreamFanOutFactor = upstreamFanOutFactor;
+            this.encryptTwinStore = encryptTwinStore;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -402,7 +405,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
                                 var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
                                 var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
-                                IEntityStore<string, TwinStoreEntity> entityStore = await GetEncryptedEntityStoreIfSupported<string, TwinStoreEntity>(c, "EdgeTwin");
+                                IEntityStore<string, TwinStoreEntity> entityStore = await this.GetTwinStore(c);
                                 IConnectionManager connectionManager = await connectionManagerTask;
                                 ITwinManager twinManager = StoringTwinManager.Create(
                                     connectionManager,
@@ -567,6 +570,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     () => storeProvider.GetEntityStore<TK, TV>(entityName));
 
             return entityStore;
+        }
+
+        async Task<IEntityStore<string, TwinStoreEntity>> GetTwinStore(IComponentContext context)
+        {
+            string entityName = "EdgeTwin";
+            IEntityStore<string, TwinStoreEntity> twinStore;
+            if (this.encryptTwinStore)
+            {
+                twinStore = await GetEncryptedEntityStoreIfSupported<string, TwinStoreEntity>(context, entityName);
+            }
+            else
+            {
+                var storeProvider = context.Resolve<IStoreProvider>();
+                twinStore = storeProvider.GetEntityStore<string, TwinStoreEntity>(entityName);
+            }
+
+            return twinStore;
         }
     }
 }
