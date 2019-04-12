@@ -343,7 +343,7 @@ impl SystemInfo {
         SystemInfo {
             os_type,
             architecture,
-            version: super::version(),
+            version: super::version_with_source_version(),
         }
     }
 
