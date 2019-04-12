@@ -53,7 +53,7 @@ fn run() -> Result<(), Error> {
     let default_uri = option_env!("IOTEDGE_HOST").unwrap_or(MGMT_URI);
     let default_diagnostics_image_name = format!(
         "mcr.microsoft.com/azureiotedge-diagnostics:{}",
-        edgelet_core::version()
+        edgelet_core::version().replace("~", "-")
     );
 
     let matches = App::new(crate_name!())
@@ -115,6 +115,13 @@ fn run() -> Result<(), Error> {
                         .default_value(
                             if cfg!(windows) { r"C:\Program Files\iotedge\iotedged.exe" } else { "/usr/bin/iotedged" }
                         ),
+                )
+                .arg(
+                    Arg::with_name("iothub-hostname")
+                        .long("iothub-hostname")
+                        .value_name("IOTHUB_HOSTNAME")
+                        .help("Sets the hostname of the Azure IoT Hub that this device would connect to. If using manual provisioning, this does not need to be specified.")
+                        .takes_value(true),
                 )
                 .arg(
                     Arg::with_name("ntp-server")
@@ -210,6 +217,7 @@ fn run() -> Result<(), Error> {
                     .expect("arg has a default value")
                     .to_os_string()
                     .into(),
+                args.value_of("iothub-hostname").map(ToOwned::to_owned),
                 args.value_of("ntp-server")
                     .expect("arg has a default value")
                     .to_string(),
