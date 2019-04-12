@@ -366,7 +366,7 @@ impl Check {
                         check_results.checks.insert(
                             check_id,
                             CheckResultSerializable::Warning {
-                                details: warning.iter_chain().map(|err| err.to_string()).collect(),
+                                details: warning.iter_chain().map(ToString::to_string).collect(),
                             },
                         );
 
@@ -420,7 +420,7 @@ impl Check {
                         check_results.checks.insert(
                             check_id,
                             CheckResultSerializable::Fatal {
-                                details: err.iter_chain().map(|err| err.to_string()).collect(),
+                                details: err.iter_chain().map(ToString::to_string).collect(),
                             },
                         );
 
@@ -452,7 +452,7 @@ impl Check {
                         check_results.checks.insert(
                             check_id,
                             CheckResultSerializable::Error {
-                                details: err.iter_chain().map(|err| err.to_string()).collect(),
+                                details: err.iter_chain().map(ToString::to_string).collect(),
                             },
                         );
 
