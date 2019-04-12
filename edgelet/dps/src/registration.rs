@@ -512,7 +512,7 @@ fn get_device_info(
                 Error::from(ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned)
             })?
             .to_string(),
-        registration_result.substatus().map(|s| s.to_string()),
+        registration_result.substatus().map(ToString::to_string),
     ))
 }
 
