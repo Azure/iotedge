@@ -11,6 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         }
 
         protected override IEntityStore<byte[], TV> GetEntityStore<TV>(string entityName)
-            => this.storeProvider.GetEntityStore< byte[], TV>(entityName);
+            => this.storeProvider.GetEntityStore<byte[], TV>(entityName);
     }
 }

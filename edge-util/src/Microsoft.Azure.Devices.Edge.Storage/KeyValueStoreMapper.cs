@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.underlyingStore = Preconditions.CheckNotNull(underlyingStore, nameof(underlyingStore));
             this.keyMapper = Preconditions.CheckNotNull(keyMapper, nameof(keyMapper));
             this.valueMapper = Preconditions.CheckNotNull(valueMapper, nameof(valueMapper));
-        }        
+        }
 
         public void Dispose()
         {

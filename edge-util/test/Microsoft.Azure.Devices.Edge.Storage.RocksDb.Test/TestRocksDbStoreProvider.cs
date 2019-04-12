@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
             Directory.CreateDirectory(this.rocksDbFolder);
             this.rocksDbStoreProvider = DbStoreProvider.Create(options, this.rocksDbFolder, new string[0]);
-        }           
+        }
 
         public void Dispose()
         {

@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     }
 
     public class BytesMapper<T> : ITypeMapper<T, byte[]>
-    {        
+    {
         public byte[] From(T value) => value.ToBytes();
 
         public T To(byte[] value) => value.FromBytes<T>();

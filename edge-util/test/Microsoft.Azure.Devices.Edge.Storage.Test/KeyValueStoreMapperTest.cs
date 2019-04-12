@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             var objectData = new Dictionary<TestClass, TestClass>();
             for (int i = 0; i < 10; i++)
             {
-                objectData[new TestClass($"key{i}", i)] =new TestClass($"value{i}", i);
+                objectData[new TestClass($"key{i}", i)] = new TestClass($"value{i}", i);
             }
 
             var objectData2 = new Dictionary<string, TestClass>();

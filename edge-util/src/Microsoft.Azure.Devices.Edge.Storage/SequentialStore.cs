@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.EntityName = entityName;
         }
 
-        public string EntityName {get; }
+        public string EntityName { get; }
 
         public static Task<ISequentialStore<T>> Create(IKeyValueStore<byte[], T> entityStore, string entityName)
             => Create(entityStore, entityName, DefaultHeadOffset);

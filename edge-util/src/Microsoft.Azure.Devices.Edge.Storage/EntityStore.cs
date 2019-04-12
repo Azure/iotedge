@@ -55,10 +55,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         }
 
         public virtual Task Remove(TK key, CancellationToken cancellationToken)
-        => this.dbStore.Remove(key, cancellationToken);
-        
-        public Task<bool> Remove(TK key, Func<TV, bool> predicate) =>
-            this.Remove(key, predicate, CancellationToken.None);
+            => this.dbStore.Remove(key, cancellationToken);
+
+        public Task<bool> Remove(TK key, Func<TV, bool> predicate)
+            => this.Remove(key, predicate, CancellationToken.None);
 
         public async Task<bool> Remove(TK key, Func<TV, bool> predicate, CancellationToken cancellationToken)
         {

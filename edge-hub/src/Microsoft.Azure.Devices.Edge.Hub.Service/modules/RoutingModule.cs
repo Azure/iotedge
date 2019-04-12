@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
     using System;
     using System.Collections.Generic;
-    using System.Data;
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
@@ -553,11 +552,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         {
             var storeProvider = context.Resolve<IStoreProvider>();
             Option<IEncryptionProvider> encryptionProvider = await context.Resolve<Task<Option<IEncryptionProvider>>>();
-           IEntityStore<TK, TV> entityStore = encryptionProvider.Map(
+            IEntityStore<TK, TV> entityStore = encryptionProvider.Map(
                     e =>
                     {
                         IEntityStore<string, string> underlyingEntityStore = storeProvider.GetEntityStore<string, string>($"underlying{entityName}");
-                        IKeyValueStore<string, string> es = new EncryptedStore<string, string>(underlyingEntityStore, e);                    
+                        IKeyValueStore<string, string> es = new EncryptedStore<string, string>(underlyingEntityStore, e);
                         ITypeMapper<TK, string> keyMapper = new JsonMapper<TK>();
                         ITypeMapper<TV, string> valueMapper = new JsonMapper<TV>();
                         IKeyValueStore<TK, TV> dbStoreMapper = new KeyValueStoreMapper<TK, string, TV, string>(es, keyMapper, valueMapper);
@@ -566,7 +565,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     })
                 .GetOrElse(
                     () => storeProvider.GetEntityStore<TK, TV>(entityName));
-                
+
             return entityStore;
         }
     }
