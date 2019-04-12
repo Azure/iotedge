@@ -14,11 +14,11 @@ The troubleshooting tool is focused on
 
 By design, it does not check for errors in the Edge workload deployment. Examples for these are access to any private container registry used, errors in module create options etc. The rationale being deployment validation is best performed in the facility where it is authored.
 
-IoT Edge module logs or metrics checks are also out of scope.
+Checks that would involve parsing IoT Edge module logs or metrics are also out of scope.
 
 # Result types
 
-Results from checks are characterized as either **errors** or **warnings**. 
+Results from checks are characterized as either **errors** or **warnings**.
 
 Errors have a high likelihood of preventing the Edge runtime or the modules from connecting to the cloud.
 
