@@ -6,22 +6,22 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class DbStoreMapper<TK, TK1, TV, TV1> : IKeyValueStore<TK, TV>
+    public class KeyValueStoreMapper<TK, TK1, TV, TV1> : IKeyValueStore<TK, TV>
     {
-        readonly IKeyValueStore<TK1, TV1> dbStore;
+        readonly IKeyValueStore<TK1, TV1> underlyingStore;
         readonly ITypeMapper<TK, TK1> keyMapper;
         readonly ITypeMapper<TV, TV1> valueMapper;
 
-        public DbStoreMapper(IKeyValueStore<TK1, TV1> dbStore, ITypeMapper<TK, TK1> keyMapper, ITypeMapper<TV, TV1> valueMapper)
+        public KeyValueStoreMapper(IKeyValueStore<TK1, TV1> underlyingStore, ITypeMapper<TK, TK1> keyMapper, ITypeMapper<TV, TV1> valueMapper)
         {
-            this.dbStore = Preconditions.CheckNotNull(dbStore, nameof(dbStore));
+            this.underlyingStore = Preconditions.CheckNotNull(underlyingStore, nameof(underlyingStore));
             this.keyMapper = Preconditions.CheckNotNull(keyMapper, nameof(keyMapper));
             this.valueMapper = Preconditions.CheckNotNull(valueMapper, nameof(valueMapper));
-        }
+        }        
 
         public void Dispose()
         {
-            this.dbStore?.Dispose();
+            this.underlyingStore?.Dispose();
         }
 
         public Task Put(TK key, TV value) => this.Put(key, value, CancellationToken.None);
@@ -41,30 +41,30 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public Task IterateBatch(TK startKey, int batchSize, Func<TK, TV, Task> perEntityCallback) => this.IterateBatch(startKey, batchSize, perEntityCallback, CancellationToken.None);
 
         public Task Put(TK key, TV value, CancellationToken cancellationToken)
-            => this.dbStore.Put(this.keyMapper.From(key), this.valueMapper.From(value), cancellationToken);
+            => this.underlyingStore.Put(this.keyMapper.From(key), this.valueMapper.From(value), cancellationToken);
 
         public async Task<Option<TV>> Get(TK key, CancellationToken cancellationToken)
         {
-            Option<TV1> valueTk1 = await this.dbStore.Get(this.keyMapper.From(key), cancellationToken);
+            Option<TV1> valueTk1 = await this.underlyingStore.Get(this.keyMapper.From(key), cancellationToken);
             Option<TV> value = valueTk1.Map(this.valueMapper.To);
             return value;
         }
 
         public Task Remove(TK key, CancellationToken cancellationToken)
-            => this.dbStore.Remove(this.keyMapper.From(key), cancellationToken);
+            => this.underlyingStore.Remove(this.keyMapper.From(key), cancellationToken);
 
         public Task<bool> Contains(TK key, CancellationToken cancellationToken)
-            => this.dbStore.Contains(this.keyMapper.From(key), cancellationToken);
+            => this.underlyingStore.Contains(this.keyMapper.From(key), cancellationToken);
 
         public async Task<Option<(TK key, TV value)>> GetFirstEntry(CancellationToken cancellationToken)
         {
-            Option<(TK1 key, TV1 value)> firstEntry = await this.dbStore.GetFirstEntry(cancellationToken);
+            Option<(TK1 key, TV1 value)> firstEntry = await this.underlyingStore.GetFirstEntry(cancellationToken);
             return firstEntry.Map(e => (this.keyMapper.To(e.key), this.valueMapper.To(e.value)));
         }
 
         public async Task<Option<(TK key, TV value)>> GetLastEntry(CancellationToken cancellationToken)
         {
-            Option<(TK1 key, TV1 value)> lastEntry = await this.dbStore.GetLastEntry(cancellationToken);
+            Option<(TK1 key, TV1 value)> lastEntry = await this.underlyingStore.GetLastEntry(cancellationToken);
             return lastEntry.Map(e => (this.keyMapper.To(e.key), this.valueMapper.To(e.value)));
         }
 
@@ -83,8 +83,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 => callback(this.keyMapper.To(key), this.valueMapper.To(value));
 
             return startKey.Match(
-                k => this.dbStore.IterateBatch(this.keyMapper.From(k), batchSize, DeserializingCallback, cancellationToken),
-                () => this.dbStore.IterateBatch(batchSize, DeserializingCallback, cancellationToken));
+                k => this.underlyingStore.IterateBatch(this.keyMapper.From(k), batchSize, DeserializingCallback, cancellationToken),
+                () => this.underlyingStore.IterateBatch(batchSize, DeserializingCallback, cancellationToken));
         }
     }
 }

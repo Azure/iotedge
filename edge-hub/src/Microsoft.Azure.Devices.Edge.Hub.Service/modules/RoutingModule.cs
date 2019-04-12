@@ -560,7 +560,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         IKeyValueStore<string, string> es = new EncryptedStore<string, string>(underlyingEntityStore, e);                    
                         ITypeMapper<TK, string> keyMapper = new JsonMapper<TK>();
                         ITypeMapper<TV, string> valueMapper = new JsonMapper<TV>();
-                        IKeyValueStore<TK, TV> dbStoreMapper = new DbStoreMapper<TK, string, TV, string>(es, keyMapper, valueMapper);
+                        IKeyValueStore<TK, TV> dbStoreMapper = new KeyValueStoreMapper<TK, string, TV, string>(es, keyMapper, valueMapper);
                         IEntityStore<TK, TV> tes = new EntityStore<TK, TV>(dbStoreMapper, entityName);
                         return tes;
                     })
