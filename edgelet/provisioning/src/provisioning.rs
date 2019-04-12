@@ -19,16 +19,49 @@ use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_utils::log_failure;
 use hsm::TpmKey as HsmTpmKey;
-use log::Level;
+use log::{debug, Level};
+use sha2::{Digest, Sha256};
 
 use crate::error::{Error, ErrorKind};
+
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
+pub enum ReprovisioningStatus {
+    DeviceDataNotUpdated,
+    DeviceDataUpdated,
+    InitialAssignment,
+    DeviceDataMigrated,
+    DeviceDataReset,
+}
+
+impl From<&str> for ReprovisioningStatus {
+    fn from(s: &str) -> ReprovisioningStatus {
+        // TODO: check with DPS substatus value for DeviceDataUpdated when it is implemented on service side
+        match s {
+            "deviceDataMigrated" => ReprovisioningStatus::DeviceDataMigrated,
+            "deviceDataReset" => ReprovisioningStatus::DeviceDataReset,
+            "initialAssignment" => ReprovisioningStatus::InitialAssignment,
+            _ => {
+                debug!("DPS provisioning result substatus {}", s);
+                ReprovisioningStatus::InitialAssignment
+            }
+        }
+    }
+}
+
+impl Default for ReprovisioningStatus {
+    fn default() -> Self {
+        ReprovisioningStatus::InitialAssignment
+    }
+}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ProvisioningResult {
     device_id: String,
     hub_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sha256_thumbprint: Option<String>,
     #[serde(skip)]
-    reconfigure: bool,
+    reconfigure: ReprovisioningStatus,
 }
 
 impl ProvisioningResult {
@@ -40,7 +73,7 @@ impl ProvisioningResult {
         &self.hub_name
     }
 
-    pub fn reconfigure(&self) -> bool {
+    pub fn reconfigure(&self) -> ReprovisioningStatus {
         self.reconfigure
     }
 }
@@ -93,14 +126,15 @@ impl Provision for ManualProvisioning {
             .map(|_| ProvisioningResult {
                 device_id,
                 hub_name: hub,
-                reconfigure: false,
+                reconfigure: ReprovisioningStatus::DeviceDataNotUpdated,
+                sha256_thumbprint: None,
             })
             .map_err(|err| Error::from(err.context(ErrorKind::Provision)));
         Box::new(result.into_future())
     }
 }
 
-pub struct DpsProvisioning<C>
+pub struct DpsTpmProvisioning<C>
 where
     C: ClientImpl,
 {
@@ -111,7 +145,7 @@ where
     hsm_tpm_srk: HsmTpmKey,
 }
 
-impl<C> DpsProvisioning<C>
+impl<C> DpsTpmProvisioning<C>
 where
     C: ClientImpl,
 {
@@ -132,7 +166,7 @@ where
         )
         .context(ErrorKind::DpsInitialization)?;
 
-        let result = DpsProvisioning {
+        let result = DpsTpmProvisioning {
             client,
             scope_id,
             registration_id,
@@ -143,7 +177,7 @@ where
     }
 }
 
-impl<C> Provision for DpsProvisioning<C>
+impl<C> Provision for DpsTpmProvisioning<C>
 where
     C: 'static + ClientImpl,
 {
@@ -166,7 +200,7 @@ where
         let d = match c {
             Ok(c) => Either::A(
                 c.register()
-                    .map(|(device_id, hub_name)| {
+                    .map(|(device_id, hub_name, _substatus)| {
                         info!(
                             "DPS registration assigned device \"{}\" in hub \"{}\"",
                             device_id, hub_name
@@ -174,7 +208,12 @@ where
                         ProvisioningResult {
                             device_id,
                             hub_name,
-                            reconfigure: false,
+                            // Each time DPS provisions with TPM, it gets back a new device key. This results in obsolete
+                            // module keys in IoTHub from the previous provisioning. We delete all containers
+                            // after each DPS provisioning run so that IoTHub can be updated with new module
+                            // keys when the deployment is executed by EdgeAgent.
+                            reconfigure: ReprovisioningStatus::InitialAssignment,
+                            sha256_thumbprint: None,
                         }
                     })
                     .map_err(|err| Error::from(err.context(ErrorKind::Provision))),
@@ -243,15 +282,20 @@ where
         let d = match c {
             Ok(c) => Either::A(
                 c.register()
-                    .map(|(device_id, hub_name)| {
+                    .map(|(device_id, hub_name, substatus)| {
                         info!(
                             "DPS registration assigned device \"{}\" in hub \"{}\"",
                             device_id, hub_name
                         );
+                        let reconfigure = substatus.map_or_else(
+                            || ReprovisioningStatus::InitialAssignment,
+                            |s| ReprovisioningStatus::from(s.as_ref()),
+                        );
                         ProvisioningResult {
                             device_id,
                             hub_name,
-                            reconfigure: false,
+                            reconfigure,
+                            sha256_thumbprint: None,
                         }
                     })
                     .map_err(|err| Error::from(err.context(ErrorKind::Provision))),
@@ -300,6 +344,42 @@ where
         let prov_result = serde_json::from_str(&buffer).context(ErrorKind::CouldNotRestore)?;
         Ok(prov_result)
     }
+
+    fn diff_with_backup_inner(
+        path: PathBuf,
+        prov_result: &ProvisioningResult,
+    ) -> Result<bool, serde_json::Error> {
+        match Self::restore(path) {
+            Ok(restored_prov_result) => {
+                let buffer = serde_json::to_string(&restored_prov_result)?;
+                let buffer = Sha256::digest_str(&buffer);
+                let buffer = base64::encode(&buffer);
+
+                let s = serde_json::to_string(prov_result)?;
+                let s = Sha256::digest_str(&s);
+                let encoded = base64::encode(&s);
+                if encoded == buffer {
+                    Ok(false)
+                } else {
+                    Ok(true)
+                }
+            }
+            Err(err) => {
+                log_failure(Level::Debug, &err);
+                Ok(true)
+            }
+        }
+    }
+
+    fn diff_with_backup(path: PathBuf, prov_result: &ProvisioningResult) -> bool {
+        match Self::diff_with_backup_inner(path, prov_result) {
+            Ok(result) => result,
+            Err(err) => {
+                log_failure(Level::Debug, &err);
+                true
+            }
+        }
+    }
 }
 
 impl<P> Provision for BackupProvisioning<P>
@@ -313,12 +393,26 @@ where
         key_activator: Self::Hsm,
     ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
         let path = self.path.clone();
+        let restore_path = self.path.clone();
         let path_on_err = self.path.clone();
         Box::new(
             self.underlying
                 .provision(key_activator)
                 .and_then(move |mut prov_result| {
-                    prov_result.reconfigure = true;
+                    let reconfigure = match prov_result.reconfigure {
+                        ReprovisioningStatus::DeviceDataUpdated => {
+                            if Self::diff_with_backup(restore_path, &prov_result) {
+                                info!("Provisioning credentials were changed.");
+                                ReprovisioningStatus::InitialAssignment
+                            } else {
+                                info!("No changes to device reprovisioning.");
+                                ReprovisioningStatus::DeviceDataNotUpdated
+                            }
+                        }
+                        _ => ReprovisioningStatus::InitialAssignment,
+                    };
+
+                    prov_result.reconfigure = reconfigure;
                     match Self::backup(&prov_result, path) {
                         Ok(_) => Either::A(future::ok(prov_result.clone())),
                         Err(err) => Either::B(future::err(err)),
@@ -358,7 +452,26 @@ mod tests {
             Box::new(future::ok(ProvisioningResult {
                 device_id: "TestDevice".to_string(),
                 hub_name: "TestHub".to_string(),
-                reconfigure: false,
+                reconfigure: ReprovisioningStatus::DeviceDataUpdated,
+                sha256_thumbprint: None,
+            }))
+        }
+    }
+
+    struct TestReprovisioning {}
+
+    impl Provision for TestReprovisioning {
+        type Hsm = MemoryKeyStore;
+
+        fn provision(
+            self,
+            _key_activator: Self::Hsm,
+        ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
+            Box::new(future::ok(ProvisioningResult {
+                device_id: "TestDevice".to_string(),
+                hub_name: "TestHubUpdated".to_string(),
+                reconfigure: ReprovisioningStatus::DeviceDataUpdated,
+                sha256_thumbprint: None,
             }))
         }
     }
@@ -518,6 +631,70 @@ mod tests {
     }
 
     #[test]
+    fn device_updated_no_change() {
+        let test_provisioner = TestProvisioning {};
+        let tmp_dir = TempDir::new("backup").unwrap();
+        let file_path = tmp_dir.path().join("dps_backup.json");
+        let file_path_clone = file_path.clone();
+        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path);
+        let task = prov_wrapper.provision(MemoryKeyStore::new());
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+
+        let prov_wrapper_err = BackupProvisioning::new(TestProvisioning {}, file_path_clone);
+        let task1 = prov_wrapper_err
+            .provision(MemoryKeyStore::new())
+            .then(|result| {
+                let prov_result = result.expect("Unexpected");
+                assert_eq!(prov_result.device_id(), "TestDevice");
+                assert_eq!(prov_result.hub_name(), "TestHub");
+                assert_eq!(
+                    prov_result.reconfigure(),
+                    ReprovisioningStatus::DeviceDataNotUpdated
+                );
+                Ok::<_, Error>(())
+            });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task1)
+            .unwrap();
+    }
+
+    #[test]
+    fn device_updated_credential_change() {
+        let test_provisioner = TestProvisioning {};
+        let tmp_dir = TempDir::new("backup").unwrap();
+        let file_path = tmp_dir.path().join("dps_backup.json");
+        let file_path_clone = file_path.clone();
+        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path);
+        let task = prov_wrapper.provision(MemoryKeyStore::new());
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+
+        let prov_wrapper_err = BackupProvisioning::new(TestReprovisioning {}, file_path_clone);
+        let task1 = prov_wrapper_err
+            .provision(MemoryKeyStore::new())
+            .then(|result| {
+                let prov_result = result.expect("Unexpected");
+                assert_eq!(prov_result.device_id(), "TestDevice");
+                assert_eq!(prov_result.hub_name(), "TestHubUpdated");
+                assert_eq!(
+                    prov_result.reconfigure(),
+                    ReprovisioningStatus::InitialAssignment
+                );
+                Ok::<_, Error>(())
+            });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task1)
+            .unwrap();
+    }
+
+    #[test]
     fn restore_failure() {
         let test_provisioner = TestProvisioning {};
         let tmp_dir = TempDir::new("backup").unwrap();
@@ -552,7 +729,8 @@ mod tests {
         let json = serde_json::to_string(&ProvisioningResult {
             device_id: "something".to_string(),
             hub_name: "something".to_string(),
-            reconfigure: true,
+            reconfigure: ReprovisioningStatus::DeviceDataNotUpdated,
+            sha256_thumbprint: None,
         })
         .unwrap();
         assert_eq!(
@@ -560,6 +738,6 @@ mod tests {
             json
         );
         let result: ProvisioningResult = serde_json::from_str(&json).unwrap();
-        assert_eq!(result.reconfigure, false)
+        assert_eq!(result.reconfigure, ReprovisioningStatus::InitialAssignment)
     }
 }

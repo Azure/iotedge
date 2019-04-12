@@ -206,6 +206,242 @@ impl Default for SymmetricKeyRegistrationResult {
     }
 }
 
+/// [`X509RegistrationResult`] : Registration result returned when using `X509` attestation
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct X509RegistrationResult {
+    #[serde(rename = "certificateInfo", skip_serializing_if = "Option::is_none")]
+    certificate_info: Option<X509CertificateInfo>,
+    #[serde(rename = "enrollmentGroupId", skip_serializing_if = "Option::is_none")]
+    enrollment_group_id: Option<String>,
+    #[serde(
+        rename = "signingCertificateInfo",
+        skip_serializing_if = "Option::is_none"
+    )]
+    signing_certificate_info: Option<X509CertificateInfo>,
+}
+
+impl X509RegistrationResult {
+    /// X509 registration result.
+    pub fn new() -> Self {
+        X509RegistrationResult {
+            certificate_info: None,
+            enrollment_group_id: None,
+            signing_certificate_info: None,
+        }
+    }
+
+    pub fn set_certificate_info(&mut self, certificate_info: X509CertificateInfo) {
+        self.certificate_info = Some(certificate_info);
+    }
+
+    pub fn with_certificate_info(mut self, certificate_info: X509CertificateInfo) -> Self {
+        self.certificate_info = Some(certificate_info);
+        self
+    }
+
+    pub fn certificate_info(&self) -> Option<&X509CertificateInfo> {
+        self.certificate_info.as_ref()
+    }
+
+    pub fn reset_certificate_info(&mut self) {
+        self.certificate_info = None;
+    }
+
+    pub fn set_enrollment_group_id(&mut self, enrollment_group_id: String) {
+        self.enrollment_group_id = Some(enrollment_group_id);
+    }
+
+    pub fn with_enrollment_group_id(mut self, enrollment_group_id: String) -> Self {
+        self.enrollment_group_id = Some(enrollment_group_id);
+        self
+    }
+
+    pub fn enrollment_group_id(&self) -> Option<&str> {
+        self.enrollment_group_id.as_ref().map(AsRef::as_ref)
+    }
+
+    pub fn reset_enrollment_group_id(&mut self) {
+        self.enrollment_group_id = None;
+    }
+
+    pub fn set_signing_certificate_info(&mut self, signing_certificate_info: X509CertificateInfo) {
+        self.signing_certificate_info = Some(signing_certificate_info);
+    }
+
+    pub fn with_signing_certificate_info(
+        mut self,
+        signing_certificate_info: X509CertificateInfo,
+    ) -> Self {
+        self.signing_certificate_info = Some(signing_certificate_info);
+        self
+    }
+
+    pub fn signing_certificate_info(&self) -> Option<&X509CertificateInfo> {
+        self.signing_certificate_info.as_ref()
+    }
+
+    pub fn reset_signing_certificate_info(&mut self) {
+        self.signing_certificate_info = None;
+    }
+}
+
+impl Default for X509RegistrationResult {
+    fn default() -> Self {
+        X509RegistrationResult::new()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct X509CertificateInfo {
+    #[serde(rename = "subjectName")]
+    subject_name: String,
+    #[serde(rename = "sha1Thumbprint")]
+    sha1_thumbprint: String,
+    #[serde(rename = "sha256Thumbprint")]
+    sha256_thumbprint: String,
+    #[serde(rename = "issuerName")]
+    issuer_name: String,
+    #[serde(rename = "notBeforeUtc")]
+    not_before_utc: String,
+    #[serde(rename = "notAfterUtc")]
+    not_after_utc: String,
+    #[serde(rename = "serialNumber")]
+    serial_number: String,
+    #[serde(rename = "version")]
+    version: i32,
+}
+
+#[allow(clippy::too_many_arguments)]
+impl X509CertificateInfo {
+    /// X509 certificate info.
+    pub fn new(
+        subject_name: String,
+        sha1_thumbprint: String,
+        sha256_thumbprint: String,
+        issuer_name: String,
+        not_before_utc: String,
+        not_after_utc: String,
+        serial_number: String,
+        version: i32,
+    ) -> Self {
+        X509CertificateInfo {
+            subject_name,
+            sha1_thumbprint,
+            sha256_thumbprint,
+            issuer_name,
+            not_before_utc,
+            not_after_utc,
+            serial_number,
+            version,
+        }
+    }
+
+    pub fn set_subject_name(&mut self, subject_name: String) {
+        self.subject_name = subject_name;
+    }
+
+    pub fn with_subject_name(mut self, subject_name: String) -> Self {
+        self.subject_name = subject_name;
+        self
+    }
+
+    pub fn subject_name(&self) -> &str {
+        &self.subject_name
+    }
+
+    pub fn set_sha1_thumbprint(&mut self, sha1_thumbprint: String) {
+        self.sha1_thumbprint = sha1_thumbprint;
+    }
+
+    pub fn with_sha1_thumbprint(mut self, sha1_thumbprint: String) -> Self {
+        self.sha1_thumbprint = sha1_thumbprint;
+        self
+    }
+
+    pub fn sha1_thumbprint(&self) -> &str {
+        &self.sha1_thumbprint
+    }
+
+    pub fn set_sha256_thumbprint(&mut self, sha256_thumbprint: String) {
+        self.sha256_thumbprint = sha256_thumbprint;
+    }
+
+    pub fn with_sha256_thumbprint(mut self, sha256_thumbprint: String) -> Self {
+        self.sha256_thumbprint = sha256_thumbprint;
+        self
+    }
+
+    pub fn sha256_thumbprint(&self) -> &str {
+        &self.sha256_thumbprint
+    }
+
+    pub fn set_issuer_name(&mut self, issuer_name: String) {
+        self.issuer_name = issuer_name;
+    }
+
+    pub fn with_issuer_name(mut self, issuer_name: String) -> Self {
+        self.issuer_name = issuer_name;
+        self
+    }
+
+    pub fn issuer_name(&self) -> &str {
+        &self.issuer_name
+    }
+
+    pub fn set_not_before_utc(&mut self, not_before_utc: String) {
+        self.not_before_utc = not_before_utc;
+    }
+
+    pub fn with_not_before_utc(mut self, not_before_utc: String) -> Self {
+        self.not_before_utc = not_before_utc;
+        self
+    }
+
+    pub fn not_before_utc(&self) -> &str {
+        &self.not_before_utc
+    }
+
+    pub fn set_not_after_utc(&mut self, not_after_utc: String) {
+        self.not_after_utc = not_after_utc;
+    }
+
+    pub fn with_not_after_utc(mut self, not_after_utc: String) -> Self {
+        self.not_after_utc = not_after_utc;
+        self
+    }
+
+    pub fn not_after_utc(&self) -> &str {
+        &self.not_after_utc
+    }
+
+    pub fn set_serial_number(&mut self, serial_number: String) {
+        self.serial_number = serial_number;
+    }
+
+    pub fn with_serial_number(mut self, serial_number: String) -> Self {
+        self.serial_number = serial_number;
+        self
+    }
+
+    pub fn serial_number(&self) -> &str {
+        &self.serial_number
+    }
+
+    pub fn set_version(&mut self, version: i32) {
+        self.version = version;
+    }
+
+    pub fn with_version(mut self, version: i32) -> Self {
+        self.version = version;
+        self
+    }
+
+    pub fn version(&self) -> i32 {
+        self.version
+    }
+}
+
 /// [`RegistrationOperationStatus`] : Registration operation status.
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -288,7 +524,7 @@ pub struct DeviceRegistrationResult {
     tpm: Option<TpmRegistrationResult>,
     /// Registration result returned when using X509 attestation
     #[serde(skip_deserializing)]
-    x509: Option<String>,
+    x509: Option<X509RegistrationResult>,
     /// Registration result returned when using SymmetricKey attestation
     #[serde(rename = "symmetricKey", skip_serializing_if = "Option::is_none")]
     symmetric_key: Option<SymmetricKeyRegistrationResult>,
