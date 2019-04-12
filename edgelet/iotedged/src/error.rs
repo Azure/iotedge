@@ -77,6 +77,7 @@ impl From<Context<ErrorKind>> for Error {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum InitializeErrorReason {
+    CreateCertificateManager,
     CreateMasterEncryptionKey,
     CreateSettingsDirectory,
     CreateTlsCertificate,
@@ -107,6 +108,10 @@ pub enum InitializeErrorReason {
 impl fmt::Display for InitializeErrorReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            InitializeErrorReason::CreateCertificateManager => {
+                write!(f, "Could not create the certificate manager.")
+            }
+
             InitializeErrorReason::CreateMasterEncryptionKey => {
                 write!(f, "Could not create master encryption key")
             }

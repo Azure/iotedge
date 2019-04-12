@@ -538,7 +538,16 @@ where
     )
     .with_issuer(CertificateIssuer::DeviceCa);
 
-    let cert_manager = Arc::new(CertificateManager::new(crypto.clone(), edgelet_cert_props));
+    let (restart_tx, _restart_rx) = oneshot::channel();
+
+    let cert_manager = CertificateManager::new(
+        crypto.clone(),
+        edgelet_cert_props,
+        Some(Box::new(|| {
+            restart_tx.send(()).unwrap_or(())
+        })),
+    ).context(ErrorKind::Initialize(InitializeErrorReason::CreateCertificateManager))?;
+    let cert_manager = Arc::new(cert_manager);
 
     let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, cert_manager.clone());
 
@@ -557,6 +566,7 @@ where
 
     // Wait for the watchdog to finish, and then send signal to the workload and management services.
     // This way the edgeAgent can finish shutting down all modules.
+
     let edge_rt_with_cleanup = edge_rt.map_err(Into::into).and_then(|_| {
         mgmt_tx.send(()).unwrap_or(());
         work_tx.send(()).unwrap_or(());
@@ -569,6 +579,10 @@ where
         runt_tx.send(()).unwrap_or(());
     });
     tokio_runtime.spawn(shutdown);
+
+    // Restart signaled
+    // Shutdown mgmt_tx and work_tx
+    // Re-call the function recursive style
 
     let services = mgmt
         .join3(workload, edge_rt_with_cleanup)

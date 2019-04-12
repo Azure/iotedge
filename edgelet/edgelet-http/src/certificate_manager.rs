@@ -2,6 +2,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use std::sync::{Arc, RwLock};
+use std::time::{Duration, Instant};
 
 #[cfg(unix)]
 use openssl::pkcs12::Pkcs12;
@@ -11,6 +12,8 @@ use openssl::pkey::PKey;
 use openssl::stack::Stack;
 #[cfg(unix)]
 use openssl::x509::X509;
+use tokio::prelude::*;
+use tokio::timer::Delay;
 
 use edgelet_core::crypto::{
     Certificate as CryptoCertificate, CreateCertificate, KeyBytes, PrivateKey, Signature,
@@ -20,7 +23,6 @@ use failure::ResultExt;
 
 pub use crate::error::{Error, ErrorKind};
 
-#[derive(Clone)]
 pub struct CertificateManager<C: CreateCertificate + Clone> {
     certificate: Arc<RwLock<Option<Certificate>>>,
     crypto: C,
@@ -34,12 +36,29 @@ struct Certificate {
 }
 
 impl<C: CreateCertificate + Clone> CertificateManager<C> {
-    pub fn new(crypto: C, props: CertificateProperties) -> Self {
-        Self {
+    pub fn new(
+        crypto: C,
+        props: CertificateProperties,
+        expiration_callback: Option<Box<dyn Fn() -> () + Send + Sync>>,
+    ) -> Result<Self, Error> {
+        let cert_manager = Self {
             certificate: Arc::new(RwLock::new(None)),
             crypto,
             props,
+        };
+
+        {
+            let mut cert = cert_manager
+                .certificate
+                .write()
+                .expect("Locking the certificate for write failed.");
+
+            let created_certificate = cert_manager.create_cert(expiration_callback)?;
+
+            cert.get_or_insert(created_certificate);
         }
+
+        Ok(cert_manager)
     }
 
     // Convenience function since native-tls does not yet support PEM
@@ -83,33 +102,22 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
     }
 
     fn get_certificate(&self) -> Result<Certificate, Error> {
-        // First, try to directly read
-        {
-            let stored_cert = self
-                .certificate
-                .read()
-                .expect("Locking the certificate for read failed.");
-
-            if let Some(stored_cert) = stored_cert.as_ref() {
-                return Ok(stored_cert.clone());
-            }
-        }
-
-        // No valid cert so must create
-        let mut stored_cert = self
+        // Try to directly read
+        let stored_cert = self
             .certificate
-            .write()
-            .expect("Locking the certificate for write failed.");
+            .read()
+            .expect("Locking the certificate for read failed.");
 
-        if let Some(stored_cert) = stored_cert.as_ref() {
-            Ok(stored_cert.clone())
-        } else {
-            let created_certificate = self.create_cert()?;
-            Ok(stored_cert.get_or_insert(created_certificate).clone())
+        match stored_cert.as_ref() {
+            Some(stored_cert) => Ok(stored_cert.clone()),
+            None => Err(Error::from(ErrorKind::CertificateNotFound)),
         }
     }
 
-    fn create_cert(&self) -> Result<Certificate, Error> {
+    fn create_cert(
+        &self,
+        expiration_callback: Option<Box<dyn Fn() -> () + Send + Sync>>,
+    ) -> Result<Certificate, Error> {
         let cert = self
             .crypto
             .create_certificate(&self.props)
@@ -142,6 +150,26 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
 
         let key_str = String::from_utf8(pk_bytes.as_bytes().to_vec())
             .with_context(|_| ErrorKind::CertificateCreationError)?;
+
+        // Now, let's set a timer to expire this certificate
+        // Expire the certificate at 5% of it's remaining lifetime
+        match expiration_callback {
+            Some(expiration_callback) => {
+                let when = Instant::now()
+                    + Duration::from_secs((*self.props.validity_in_secs() as f64 * 0.05) as u64);
+
+                let update_task = Delay::new(when)
+                    .and_then(move |_| {
+                        (expiration_callback)();
+                        Ok(())
+                    })
+                    .map_err(|e| panic!("delay errored; err={:?}", e));
+
+                tokio::run(update_task);
+            }
+            // The use of an expiration timer is an optional feature, so no-op here.
+            None => {}
+        };
 
         Ok(Certificate {
             cert: cert_str,
