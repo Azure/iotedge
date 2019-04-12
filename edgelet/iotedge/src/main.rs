@@ -134,6 +134,7 @@ fn run() -> Result<(), Error> {
                 .arg(
                     Arg::with_name("output")
                         .long("output")
+                        .short("o")
                         .value_name("FORMAT")
                         .help("Output format.")
                         .takes_value(true)
