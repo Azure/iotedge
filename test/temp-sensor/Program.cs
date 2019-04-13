@@ -36,7 +36,11 @@ namespace temp_sensor
                 config.AddEdgeHub();
                 config.AddTempSensor();
                 await config.DeployAsync();
-                await Task.Delay(TimeSpan.FromSeconds(5));
+
+                var hub = new EdgeModule("edgeHub");
+                var sensor = new EdgeModule("tempSensor");
+                await EdgeModule.WaitForStatusAsync(
+                    new []{hub, sensor}, EdgeModuleStatus.Running, token);
                 // EnsureConfigurationIsDeployed();
                 // EnsureTempSensorIsRunning();
                 // EnsureTempSensorEventsAreSent();

@@ -23,8 +23,17 @@ namespace common
             this.name = name;
         }
 
-        public async Task WaitForStatusAsync(EdgeModuleStatus desired, CancellationToken token)
+        public Task WaitForStatusAsync(EdgeModuleStatus desired, CancellationToken token)
         {
+            return EdgeModule.WaitForStatusAsync(new []{this}, desired, token);
+        }
+
+        public static async Task WaitForStatusAsync(EdgeModule[] modules, EdgeModuleStatus desired, CancellationToken token)
+        {
+            string FormatModules() => modules.Length == 1
+                ? $"module '{modules.First().name}'"
+                : $"modules ({String.Join(", ", modules.Select(module => module.name))})";
+
             try
             {
                 await Retry.Do(
@@ -33,13 +42,21 @@ namespace common
                         string[] result = await Process.RunAsync("iotedge", "list", token);
 
                         return result
-                            .Where(ln => ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries).First() == this.name)
-                            .DefaultIfEmpty("name status")
-                            .Single()
-                            .Split(null as char[], StringSplitOptions.RemoveEmptyEntries)
-                            .ElementAt(1); // second column is STATUS
+                            .Where(ln => {
+                                var columns = ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
+                                foreach (var module in modules)
+                                {
+                                    // each line is "name status"
+                                    if (columns[0] == module.name &&
+                                        columns[1].Equals(desired.ToString(), StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        return true;
+                                    }
+                                }
+                                return false;
+                            }).ToArray();
                     },
-                    s => desired.ToString().Equals(s, StringComparison.OrdinalIgnoreCase),
+                    a => a.Length == modules.Length,
                     e =>
                     {
                         // Retry if iotedged's management endpoint is still starting up,
@@ -54,14 +71,14 @@ namespace common
             }
             catch (OperationCanceledException)
             {
-                throw new Exception($"Error searching for {this.name} module: timed out waiting for module to start");
+                throw new Exception($"Error: timed out waiting for {FormatModules()} to start");
             }
             catch (Exception e)
             {
-                throw new Exception($"Error searching for {this.name} module: {e}");
+                throw new Exception($"Error searching for {FormatModules()}: {e}");
             }
 
-            Console.WriteLine($"Edge module '{this.name}' is running");
+            Console.WriteLine($"Edge {FormatModules()} status is running");
         }
     }
 }
