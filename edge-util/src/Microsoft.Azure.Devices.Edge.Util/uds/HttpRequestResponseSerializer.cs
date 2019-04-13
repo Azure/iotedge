@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
 
             httpResponse.Version = versionNumber;
 
-            if (!Enum.TryParse(statusLineParts[1], out HttpStatusCode statusCode))
+            if (!Enum.TryParse(statusLineParts[1], out HttpStatusCode statusCode) || !Enum.IsDefined(typeof(HttpStatusCode), statusCode))
             {
                 throw new HttpRequestException($"StatusCode is not valid {statusLineParts[1]}.");
             }

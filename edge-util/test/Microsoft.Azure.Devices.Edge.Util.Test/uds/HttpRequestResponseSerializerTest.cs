@@ -136,7 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
             var stream = new HttpBufferedStream(memory);
 
             CancellationToken cancellationToken = default(CancellationToken);
-            await Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
+            await Assert.ThrowsAsync<IOException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
         }
 
         [Fact]
@@ -202,7 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
             var stream = new HttpBufferedStream(memory);
 
             CancellationToken cancellationToken = default(CancellationToken);
-            await Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
+            await Assert.ThrowsAsync<IOException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
         }
 
         [Fact]
