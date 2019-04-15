@@ -38,17 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public bool TryGetModule(string key, out IModule module) => this.Modules.TryGetValue(key, out module);
 
-        public ModuleSet ApplyDiff(Diff diff)
-        {
-            Preconditions.CheckNotNull(diff, nameof(diff));
-
-            IDictionary<string, IModule> updated = this.Modules
-                .SetItems(diff.Updated.Select(m => new KeyValuePair<string, IModule>(m.Name, m)))
-                .RemoveRange(diff.Removed)
-                .ToDictionary(m => m.Key, m => m.Value);
-            return new ModuleSet(updated);
-        }
-
         // TODO use equality comparer instead of equals?
         public Diff Diff(ModuleSet other)
         {
@@ -67,15 +56,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             IEnumerable<string> removed = other.Modules.Keys
                 .Except(this.Modules.Keys);
 
+            // Build list of modules where the config is the same but the desired status
+            // has changed (from stopped to running or vice versa)
+            IList<IModule> desiredStatusChanged = this.Modules.Keys
+                .Intersect(other.Modules.Keys)
+                .Where(key => this.Modules[key].OnlyModuleStatusChanged(other.Modules[key]))
+                .Select(key => this.Modules[key])
+                .ToList();
+
             // build list of modules that are currently running but the
             // configuration has changed; these are modules that need to
             // be "updated"
             IEnumerable<IModule> updated = this.Modules.Keys
                 .Intersect(other.Modules.Keys)
+                .Except(desiredStatusChanged.Select(m => m.Name))
                 .Where(key => !this.Modules[key].Equals(other.Modules[key]))
                 .Select(key => this.Modules[key]);
 
-            return new Diff(created.Concat(updated).ToList(), removed.ToList());
+            return new Diff(created.ToList(), updated.ToList(), desiredStatusChanged, removed.ToList());
         }
 
         public override bool Equals(object obj) => this.Equals(obj as ModuleSet);

@@ -79,6 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
             }
 
             httpResponse.Content = new StreamContent(bufferedStream);
+            var contentHeaders = new Dictionary<string, string>();
             foreach (string header in headers)
             {
                 if (string.IsNullOrWhiteSpace(header))
@@ -99,17 +100,28 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
                 bool headerAdded = httpResponse.Headers.TryAddWithoutValidation(headerName, headerValue);
                 if (!headerAdded)
                 {
-                    if (string.Equals(headerName, ContentLengthHeaderName, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        if (!long.TryParse(headerValue, out long contentLength))
-                        {
-                            throw new HttpRequestException($"Header value is invalid for {headerName}.");
-                        }
+                    contentHeaders.Add(headerName, headerValue);
+                }
+            }
 
-                        await httpResponse.Content.LoadIntoBufferAsync(contentLength);
+            bool isChunked = httpResponse.Headers.TransferEncodingChunked.HasValue
+                             && httpResponse.Headers.TransferEncodingChunked.Value;
+
+            httpResponse.Content = isChunked
+                    ? new StreamContent(new HttpChunkedStreamReader(bufferedStream))
+                    : new StreamContent(bufferedStream);
+
+            foreach (KeyValuePair<string, string> contentHeader in contentHeaders)
+            {
+                httpResponse.Content.Headers.TryAddWithoutValidation(contentHeader.Key, contentHeader.Value);
+                if (string.Equals(contentHeader.Key, ContentLengthHeaderName, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    if (!long.TryParse(contentHeader.Value, out long contentLength))
+                    {
+                        throw new HttpRequestException($"Header value {contentHeader.Value} is invalid for {ContentLengthHeaderName}.");
                     }
 
-                    httpResponse.Content.Headers.TryAddWithoutValidation(headerName, headerValue);
+                    await httpResponse.Content.LoadIntoBufferAsync(contentLength);
                 }
             }
         }
@@ -136,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
 
             httpResponse.Version = versionNumber;
 
-            if (!Enum.TryParse(statusLineParts[1], out HttpStatusCode statusCode))
+            if (!Enum.TryParse(statusLineParts[1], out HttpStatusCode statusCode) || !Enum.IsDefined(typeof(HttpStatusCode), statusCode))
             {
                 throw new HttpRequestException($"StatusCode is not valid {statusLineParts[1]}.");
             }

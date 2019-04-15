@@ -103,6 +103,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         [JsonProperty(PropertyName = "env")]
         IDictionary<string, EnvVal> Env { get; }
+
+        bool OnlyModuleStatusChanged(IModule other);
     }
 
     public interface IModule<TConfig> : IModule, IEquatable<IModule<TConfig>>
