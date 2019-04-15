@@ -29,3 +29,13 @@ members = [
     "tokio-named-pipe",
     "win-logger",
 ]
+
+[replace]
+"backtrace:0.3.6" = { path = '../../backtrace-rs' }
+"cmake:0.1.30" = { path = '../../cmake-rs' }
+"dtoa:0.4.2" = { path = '../../dtoa' }
+"iovec:0.1.2" = { path = '../../iovec' }
+"mio:0.6.14" = { path = '../../mio' }
+"miow:0.3.1" = { path = '../../miow' }
+"serde-hjson:0.8.1" = { path = '../../hjson-rust/hjson' }
+"winapi:0.3.5" = { path = '../../winapi-rs' }
