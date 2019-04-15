@@ -93,16 +93,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
-            // ISerde<Diff>
-            builder.Register(
-                    c => new DiffSerde(
-                        new Dictionary<string, Type>
-                        {
-                            { DockerType, typeof(DockerModule) }
-                        }))
-                .As<ISerde<Diff>>()
-                .SingleInstance();
-
             // ISerde<ModuleSet>
             builder.Register(
                     c => new ModuleSetSerde(

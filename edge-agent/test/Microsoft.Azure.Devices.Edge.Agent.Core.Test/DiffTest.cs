@@ -1,12 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
-    using System;
     using System.Collections.Generic;
-    using System.Collections.Immutable;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Newtonsoft.Json;
+    using Moq;
     using Xunit;
 
     public class DiffTest
@@ -17,13 +14,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         static readonly IModule Module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), EnvVars);
         static readonly IModule Module1A = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), EnvVars);
         static readonly IModule Module2 = new TestModule("mod2", "version2", "type2", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), EnvVars);
+        static readonly IModule Module2A = new TestModule("mod2", "version2", "type2", ModuleStatus.Stopped, Config2, RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), EnvVars);
+        static readonly IModule Module2B = new TestModule("mod2", "version2", "type2", ModuleStatus.Stopped, Config2, RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), EnvVars);
+        static readonly IModule Module3 = new TestModule("mod3", "version3", "type3", ModuleStatus.Stopped, Config2, RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), EnvVars);
 
         [Fact]
         [Unit]
         public void TestEquals()
         {
-            Diff nonEmptyUpdated = Diff.Create(Module1);
-            var nonEmptyRemoved = new Diff(ImmutableList<IModule>.Empty, new List<string> { "module2" });
+            Diff nonEmptyUpdated = new Diff.Builder().WithAdded(Module1).Build();
+            var nonEmptyRemoved = new Diff.Builder().WithRemoved("module2").Build();
             Diff alsoNonEmptyDiff = nonEmptyUpdated;
             object nonEmptyUpdatedObjectSameReference = nonEmptyUpdated;
 
@@ -37,15 +37,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.False(nonEmptyUpdated.Equals(nonEmptyRemoved));
 
             Assert.Equal(Module1, Module1A);
-            Assert.True(nonEmptyUpdated.Equals(Diff.Create(Module1A)));
+            Assert.True(nonEmptyUpdated.Equals(new Diff.Builder().WithAdded(Module1A).Build()));
         }
 
         [Fact]
         [Unit]
         public void TestDiffUnordered()
         {
-            var diff1 = new Diff(new List<IModule> { Module1, Module2 }, new List<string> { "mod3", "mod4" });
-            var diff2 = new Diff(new List<IModule> { Module2, Module1 }, new List<string> { "mod4", "mod3" });
+            Diff diff1 = new Diff.Builder()
+                .WithAdded(Module1, Module2)
+                .WithRemoved("m3", "m4")
+                .WithUpdated(Module2A, Module3)
+                .Build();
+
+            Diff diff2 = new Diff.Builder()
+                .WithAdded(Module2, Module1)
+                .WithRemoved("m4", "m3")
+                .WithUpdated(Module3, Module2A)
+                .Build();
 
             Assert.Equal(diff1, diff2);
         }
@@ -54,13 +63,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void TestDiffHash()
         {
-            var diff1 = new Diff(new List<IModule> { Module1, Module2 }, new List<string> { "mod3", "mod4" });
-            var diff2 = new Diff(new List<IModule> { Module2, Module1 }, new List<string> { "mod4", "mod3" });
-            var diff3 = new Diff(new List<IModule> { Module1A, Module2 }, new List<string> { "mod3", "mod4" });
-            var diff4 = new Diff(new List<IModule> { Module1 }, new List<string> { "mod3" });
-            var diff5 = new Diff(new List<IModule> { Module2 }, new List<string> { "mod3" });
-            var diff6 = new Diff(new List<IModule> { Module1 }, new List<string> { "mod3" });
-            var diff7 = new Diff(new List<IModule> { Module1 }, new List<string> { "mod4" });
+            var diff1 = new Diff.Builder()
+                .WithAdded(Module1, Module2)
+                .WithRemoved("mod3", "mod4")
+                .Build();
+
+            var diff2 = new Diff.Builder()
+                .WithAdded(Module2, Module1)
+                .WithRemoved("mod4", "mod3")
+                .Build();
+
+            var diff3 = new Diff.Builder()
+                .WithAdded(Module1A, Module2)
+                .WithRemoved("mod3", "mod4")
+                .Build();
+
+            var diff4 = new Diff.Builder()
+                .WithAdded(Module1)
+                .WithRemoved("mod3")
+                .Build();
+
+            var diff5 = new Diff.Builder()
+                .WithAdded(Module2)
+                .WithRemoved("mod3")
+                .Build();
+
+            var diff6 = new Diff.Builder()
+                .WithAdded(Module1)
+                .WithRemoved("mod3")
+                .Build();
+
+            var diff7 = new Diff.Builder()
+                .WithAdded(Module1)
+                .WithRemoved("mod4")
+                .Build();
 
             int hash1 = diff1.GetHashCode();
             int hash2 = diff2.GetHashCode();
@@ -81,55 +117,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void TestDiffEmpty()
         {
             // arrange
-            var diff1 = new Diff(ImmutableList<IModule>.Empty, ImmutableList<string>.Empty);
+            Diff diff1 = new Diff.Builder().Build();
+
             // act
             // assert
             Assert.True(Diff.Empty.Equals(diff1));
             Assert.True(diff1.IsEmpty);
-        }
 
-        [Fact]
-        [Unit]
-        public void TestDiffSerialize()
-        {
-            // arrange
-            var serializerInputTable = new Dictionary<string, Type>() { { "test", typeof(TestModule) } };
-            var diffSerde = new DiffSerde(serializerInputTable);
-            Diff nonEmptyUpdated = Diff.Create(Module1);
+            Diff diff2 = new Diff.Builder().WithAdded(Mock.Of<IModule>()).Build();
+            Assert.False(diff2.IsEmpty);
 
-            // act
-            // assert
-            Assert.Throws<NotSupportedException>(() => diffSerde.Serialize(nonEmptyUpdated));
-        }
+            Diff diff3 = new Diff.Builder().WithDesiredStatusUpdated(Mock.Of<IModule>()).Build();
+            Assert.False(diff2.IsEmpty);
 
-        [Fact]
-        [Unit]
-        public void TestDiffDeserialize()
-        {
-            // "mod1", "version1", "type1", ModuleStatus.Running, Config1
-            // Config1 = new TestConfig("image1");
-            // arrange
-            Diff nonEmptyUpdated = Diff.Create(Module1);
-            string nonEmptyUpdatedJson = "{\"modules\":{\"mod1\":{\"version\":\"version1\",\"type\":\"test\",\"status\":\"running\",\"settings\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\",\"version\":\"2\"}}},\"$version\":127}";
-            string nonEmptyRemovedJson = "{\"modules\":{\"module2\": null },\"$version\":127}";
-            string nonSupportedTypeModuleJson = "{\"modules\":{\"mod1\":{\"version\":\"version1\",\"type\":\"unknown\",\"status\":\"running\",\"settings\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\",\"version\":\"2\"}}},\"$version\":127}";
-            string noTypeDiffJson = "{\"modules\":{\"mod1\":{\"version\":\"version1\",\"status\":\"running\",\"settings\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\",\"version\":\"2\"}}},\"$version\":127}";
+            Diff diff4 = new Diff.Builder().WithUpdated(Mock.Of<IModule>()).Build();
+            Assert.False(diff2.IsEmpty);
 
-            var nonEmptyRemoved = new Diff(ImmutableList<IModule>.Empty, new List<string> { "module2" });
-
-            var serializerInputTable = new Dictionary<string, Type>() { { "test", typeof(TestModule) } };
-            var diffSerde = new DiffSerde(serializerInputTable);
-
-            // act
-            Diff nonEmptyUpdatedDeserialized = diffSerde.Deserialize(nonEmptyUpdatedJson);
-            Diff nonEmptyRemovedDeserialized = diffSerde.Deserialize(nonEmptyRemovedJson);
-
-            // assert
-            Assert.Throws<JsonSerializationException>(() => diffSerde.Deserialize(nonSupportedTypeModuleJson));
-            Assert.Throws<NotSupportedException>(() => diffSerde.Deserialize<Diff>(nonEmptyUpdatedJson));
-            Assert.Throws<JsonSerializationException>(() => diffSerde.Deserialize(noTypeDiffJson));
-            Assert.True(nonEmptyUpdatedDeserialized.Equals(nonEmptyUpdated));
-            Assert.True(nonEmptyRemovedDeserialized.Equals(nonEmptyRemoved));
+            Diff diff5 = new Diff.Builder().WithRemoved("mod1").Build();
+            Assert.False(diff2.IsEmpty);
         }
     }
 }
