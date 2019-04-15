@@ -95,7 +95,7 @@ A TLS connection is made and handshake performed from the host to the IoT Hub's 
 
 ## host can connect to and perform TLS handshake with IoT Hub MQTT port
 
-A TLS connection is made and handshake performed from the host to the IoT Hub's MQTTS (port 8883) whose FQDN is inferred from the device connection string in `config.yaml`. The IoT Hub FQDN to use can be overridden using the `--iothub-hostname` switch which should be used for performing connectivity checks for Edge devices using DPS provisioning.
+A TLS connection is made and handshake performed from the host to the IoT Hub's MQTTS (port 8883) whose FQDN is inferred from the device connection string in `config.yaml`. The IoT Hub FQDN to use can be overridden using the `--iothub-hostname` switch which should be used for performing connectivity checks for edge devices using DPS provisioning.
 
 By default, no IoT Edge component connects using this protocol from the host, but connectivity information in this scenario can be useful in debugging.
 
