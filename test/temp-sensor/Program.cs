@@ -20,8 +20,8 @@ namespace temp_sensor
                 CancellationToken token = cts.Token;
 
                 // ** setup
-                var identity = new EdgeDeviceIdentity(args[0], args[1]);
-                string devcs = await identity.GetOrCreateAsync(token);
+                var device = new EdgeDevice(args[0], args[1]);
+                string devcs = await device.GetOrCreateIdentityAsync(token);
 
                 var daemon = new EdgeDaemon(args[3], devcs);
                 await daemon.UninstallAsync(token);
@@ -48,7 +48,7 @@ namespace temp_sensor
 
                 // ** teardown
                 await daemon.StopAsync(token);
-                await identity.MaybeDeleteAsync(token);
+                await device.MaybeDeleteIdentityAsync(token);
             }
 
             return 0;

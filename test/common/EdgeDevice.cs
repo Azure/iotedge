@@ -9,7 +9,7 @@ using Microsoft.Azure.Devices.Shared;
 
 namespace common
 {
-    public class EdgeDeviceIdentity
+    public class EdgeDevice
     {
         class DeviceContext
         {
@@ -34,23 +34,23 @@ namespace common
         string deviceId;
         string hubConnectionString;
 
-        public EdgeDeviceIdentity(string deviceId, string hubConnectionString)
+        public EdgeDevice(string deviceId, string hubConnectionString)
         {
             this.context = Option.None<DeviceContext>();
             this.deviceId = deviceId;
             this.hubConnectionString = hubConnectionString;
         }
 
-        public Task<string> CreateAsync(CancellationToken token)
+        public Task<string> CreateIdentityAsync(CancellationToken token)
         {
             var settings = new HttpTransportSettings();
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.hubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
 
-            return this._CreateAsync(rm, builder.HostName, token);
+            return this._CreateIdentityAsync(rm, builder.HostName, token);
         }
 
-        public async Task<string> GetOrCreateAsync(CancellationToken token)
+        public async Task<string> GetOrCreateIdentityAsync(CancellationToken token)
         {
             var settings = new HttpTransportSettings();
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.hubConnectionString);
@@ -74,11 +74,11 @@ namespace common
             }
             else
             {
-                return await this._CreateAsync(rm, builder.HostName, token);
+                return await this._CreateIdentityAsync(rm, builder.HostName, token);
             }
         }
 
-        Task<string> _CreateAsync(RegistryManager rm, string hub, CancellationToken token)
+        Task<string> _CreateIdentityAsync(RegistryManager rm, string hub, CancellationToken token)
         {
             return Profiler.Run(
                 $"Creating edge device '{this.deviceId}' on hub '{hub}'",
@@ -97,18 +97,18 @@ namespace common
             );
         }
 
-        public Task DeleteAsync(CancellationToken token)
+        public Task DeleteIdentityAsync(CancellationToken token)
         {
             DeviceContext context = _GetContextForDelete();
-            return this._DeleteAsync(context, token);
+            return this._DeleteIdentityAsync(context, token);
         }
 
-        public async Task MaybeDeleteAsync(CancellationToken token)
+        public async Task MaybeDeleteIdentityAsync(CancellationToken token)
         {
             DeviceContext context = _GetContextForDelete();
             if (context.Owned)
             {
-                await this._DeleteAsync(context, token);
+                await this._DeleteIdentityAsync(context, token);
             }
             else
             {
@@ -126,7 +126,7 @@ namespace common
             );
         }
 
-        Task _DeleteAsync(DeviceContext context, CancellationToken token)
+        Task _DeleteIdentityAsync(DeviceContext context, CancellationToken token)
         {
             return Profiler.Run(
                 $"Deleting device '{context.Device.Id}'",
