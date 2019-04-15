@@ -4,17 +4,19 @@ The built-in troubleshooting functionality in the `iotedge` CLI, "iotedge check"
 
 `iotedge help check` displays detailed usage information.
 
+
 # Scope
 
 The troubleshooting tool is focused on
 
-* Surfacing potential problems that prevent getting the edge device cloud connected.
+* Surfacing potential problems that prevent the edge device from connecting to the cloud.
 
 * Surfacing potential configuration deviations from recommended production best-practices.
 
-By design, it does not check for errors in the edge workload deployment. Examples for these are access to any private container registry used, errors in module create options etc. The rationale being deployment validation is best performed in the facility where it is authored.
+By design, it does not check for errors in the edge workload deployment. For example, it does not check that the device can access any private container registries, errors in module create options, etc. Deployment validation is best performed in the facility where it is authored.
 
 Checks that would involve parsing IoT Edge module logs or metrics are also out of scope.
+
 
 # Result types
 
@@ -22,117 +24,106 @@ Results from checks are characterized as either **errors** or **warnings**.
 
 Errors have a high likelihood of preventing the IoT Edge runtime or the modules from connecting to the cloud.
 
-Warnings might not affect immediate connectivity but are potential deviations from best practices and may affect long term stability, offline operation or supportability of the Edge device.
+Warnings might not affect immediate connectivity but are potential deviations from best practices, and may affect long term stability, offline operation or supportability of the edge device.
+
 
 # Configuration checks details
 
 ## config.yaml is well-formed
 
-IoT Edge's `config.yaml` is valid and free of any syntax (e.g. whitespace) errors. Depending on the error, it may not exactly be at the line number and position reported by the parser.
+This check validates that IoT Edge's `config.yaml` is valid and free of any syntax (e.g. whitespace) errors.
+
+If the check fails with an error, the line number and position reported in the error may not be the *exact* location of the problem.
 
 ## config.yaml has well-formed connection string
 
-If a connection string is used, it is of the form: `HostName=<xyz>;DeviceId=<xyz>;SharedAccessKey=<xyz>`
+If the `config.yaml` uses manual provisioning with a connection string, this check validates that the connection string is well-formed and contains the required `Hostname`, `DeviceId` and `SharedAccessKey` parameters.
 
 ## container engine is installed and functional
 
- IoT Edge daemon can communicate with the container engine using the path specified in `moby_runtime.uri` yaml section.
+This check validates that a container engine is installed and running, and is accessible at the endpoint specified in the `moby_runtime.uri` field.
 
 ## config.yaml has correct hostname
 
-*arsing to add*
+This check validates that the value of the `hostname` field in the `config.yaml` is the same as the device's actual hostname.
 
 ## config.yaml has correct URIs for daemon mgmt endpoint
 
-*arsing to add*
+This check validates that the value of the `connect.management_uri` field in the `config.yaml` is valid, and that the IoT Edge daemon's management endpoint can be queried through it.
 
 ## latest security daemon
 
-The installed iotedge version is checked against value from  http://aka.ms/latest-iotedged-version. The value to compare against can be overridden using the `--expected-iotedged-version` switch.
+This check validates that the version of the IoT Edge daemon is the same as the value specified in <https://aka.ms/latest-iotedge-stable>
+
+You can override the expected version using the `--expected-iotedged-version` switch, in which case the tool will not query that URL.
+
+Note that the tool does *not* validate the versions of the Edge Agent and Edge Hub modules.
 
 ## host time is close to real time
 
-*arsing to add*
+This check validates that the device's local time is close to the time reported by an NTP server. `pool.ntp.org:123` is used by default, and can be overridden with the `--ntp-server` parameter.
 
 ## container time is close to host time
 
-*arsing to add*
+This check validates that a container sees a local time that is close to the host device's local time.
 
 ## DNS server (*warning*)
 
-Checks if a DNS server is specified in the container engine's `daemon.json` file. The user has an option to specify this per module in the Edge device's deployment, in which case they can ignore this error. DNS best practices are documented at https://aka.ms/iotedge-prod-checklist-dns
+This check validates that a DNS server has been specified in the container engine's `daemon.json` file. DNS best practices are documented at <https://aka.ms/iotedge-prod-checklist-dns>
+
+It is possible to specify a DNS server in the Edge device's deployment instead of in the container engine's `daemon.json`, and the tool does not detect this. If you have done so, you should ignore this warning.
 
 ## production readiness: certificates (*warning*)
 
-*arsing to add*
+This check validates that device CA and trusted CA certificates have been defined in the `certificates` section of the `config.yaml`. If these certificates are not specified, the device operates in quickstart mode and is not supported in production. Certificate management best practices are documented at <https://aka.ms/iotedge-prod-checklist-certs>
 
-## production readiness: certificates expiry (*warning*)
+## production readiness: certificates expiry
 
-*arsing to add*
+This check validates that the device CA certificate is valid for at least seven more days.
+
+If the certificate has already expired, it is reported as an error. If the certificate will expire in less than seven days, it is reported as a warning.
 
 ## production readiness: container engine (*warning*)
 
-*arsing to add*
+This check validates that the container engine is the Moby container engine. Any other container engine, such as Docker CE, is not supported in production.  See <https://aka.ms/iotedge-prod-checklist-moby> for details.
 
 ## production readiness: logs policy (*warning*)
 
-Checks if log options and limits are specified in the container engine's `daemon.json` file.
-Specifying this for the container engine will propagate the settings to all containers managed by it.
-Users have an option to specify this setting, per module, in the Edge device's deployment in which case they can ignore this warning.
-Log management best practices are documented at https://aka.ms/iotedge-prod-checklist-logs
+This check validates that the container engine is configured to rotate module logs, by specifying log options and limits in the container engine's `daemon.json`. Log management best practices are documented at <https://aka.ms/iotedge-prod-checklist-logs>
+
+By setting these properties in `daemon.json`, the settings are automatically propagated to all module containers. It is also possible to specify this in the Edge device's deployment instead, and the tool does not detect this. If you have done so, you should ignore this warning.
+
 
 # Connectivity check details
 
-## host can connect to and perform TLS handshake with IoT Hub AMQP port
+## host can connect to and perform TLS handshake with IoT Hub AMQP / HTTPS / MQTT port
 
-A TLS connection is made and handshake performed from the host to the IoT Hub's AMQP (port 5671) endpoint. IoT Hub's FQDN is inferred from the device connection string in `config.yaml`. The IoT Hub FQDN to use can be overridden using the `--iothub-hostname` switch which should be used for performing connectivity checks for edge devices using DPS provisioning.
+The tool connects to the IoT Hub's AMQP port (5671), HTTPS port (443) and MQTT port (8883), and completes a TLS handshake for each. This verifies that the IoT Hub is reachable from the device, and that the device is configured to accept its TLS certificate.
 
-By default, no IoT Edge component connects using this protocol from the host, but connectivity information in this scenario can be useful in debugging.
+When using manual provisioning, the FQDN of the IoT Hub is taken from the connection string. For DPS provisioning, you must specify the FQDN of the IoT Hub using the `--iothub-hostname` parameter.
 
-## host can connect to and perform TLS handshake with IoT Hub HTTPS port
+The IoT Edge daemon only uses the HTTPS protocol to connect to the IoT Hub, but connectivity from the host for the AMQP and MQTT protocols can be useful when investigating issues.
 
-A TLS connection is made and handshake performed from the host to the IoT Hub's HTTPS (port 443) endpoint. IoT Hub's FQDN is inferred from the device connection string in `config.yaml`. The IoT Hub FQDN to use can be overridden using the `--iothub-hostname` switch which should be used for performing connectivity checks for edge devices using DPS provisioning.
+## container on the default network can connect to IoT Hub AMQP / HTTPS / MQTT port
 
-## host can connect to and perform TLS handshake with IoT Hub MQTT port
+The tool launches a diagnostics container on the default (`bridge`) container network. This container connects to the IoT Hub's AMQP port (5671), HTTPS port (443) and MQTT port (8883). This verifies that the IoT Hub is reachable from containers on the default container network.
 
-A TLS connection is made and handshake performed from the host to the IoT Hub's MQTTS (port 8883) whose FQDN is inferred from the device connection string in `config.yaml`. The IoT Hub FQDN to use can be overridden using the `--iothub-hostname` switch which should be used for performing connectivity checks for edge devices using DPS provisioning.
+When using manual provisioning, the FQDN of the IoT Hub is taken from the connection string. For DPS provisioning, you must specify the FQDN of the IoT Hub using the `--iothub-hostname` parameter.
 
-By default, no IoT Edge component connects using this protocol from the host, but connectivity information in this scenario can be useful in debugging.
+Note that these checks do not perform a TLS handshake with the IoT Hub.
 
-## container on the default network can connect to IoT Hub AMQP port
+Note that these checks do not run for Windows containers.
 
-A diagnostics container is launched on the default (`bridge`) container network and a connection to IoT Hub's AMQP endpoint (port 5671) is attempted from within the container. The IoT Hub's FQDN is inferred from the device connection string in `config.yaml` which can be overridden using `--iothub-hostname` switch. This test does not perform TLS handshake check because the minimal container image lacks the TLS stack.
+## container on the IoT Edge module network can connect to IoT Hub AMQP / HTTPS / MQTT port
 
->This check does not run for Windows containers.
+The tool launches a diagnostics container on the IoT Edge container network specified by the `moby_runtime.network` field (defaults to `azure-iot-edge` on Linux and `nat` on Windows). This container connects to the IoT Hub's AMQP port (5671), HTTPS port (443) and MQTT port (8883). This verifies that the IoT Hub is reachable from containers on the IoT Edge container network.
 
-## container on the default network can connect to IoT Hub HTTPS port
+When using manual provisioning, the FQDN of the IoT Hub is taken from the connection string. For DPS provisioning, you must specify the FQDN of the IoT Hub using the `--iothub-hostname` parameter.
 
-A diagnostics container is launched on the default (`bridge`) container network and a connection to IoT Hub's HTTPS endpoint (port 443) is attempted from within the container. The IoT Hub's FQDN is inferred from the device connection string in `config.yaml` which can be overridden using `--iothub-hostname` switch. This test does not perform TLS handshake check because the minimal container image lacks the TLS stack.
-
-
->This check does not run for Windows containers.
-
-## container on the default network can connect to IoT Hub MQTT port
-
-A diagnostics container is launched on the default (`bridge`) container network and a connection to IoT Hub's MQTTS endpoint (port 8883) is attempted from within the container. The IoT Hub's FQDN is inferred from the device connection string in `config.yaml` which can be overridden using `--iothub-hostname` switch. This test does not perform TLS handshake check because the minimal container image lacks the TLS stack.
-
-
->This check does not run for Windows containers.
-
-## container on the IoT Edge module network can connect to IoT Hub AMQP port
-
-A diagnostics container is launched on the IoT Edge container network (`azure-iot-edge` on Linux and `nat` on Windows) and a connection to IoT Hub's AMQP endpoint (port 5671) is attempted from within the container. The IoT Hub's FQDN is inferred from the device connection string in `config.yaml` which can be overridden using `--iothub-hostname` switch. This test does not perform TLS handshake check because the minimal container image lacks the TLS stack.
-
-## container on the IoT Edge module network can connect to IoT Hub HTTPS port
-
-A diagnostics container is launched on the IoT Edge container network (`azure-iot-edge` on Linux and `nat` on Windows) and a connection to IoT Hub's HTTPS endpoint (port 443) is attempted from within the container. The IoT Hub's FQDN is inferred from the device connection string in `config.yaml` which can be overridden using `--iothub-hostname` switch. This test does not perform TLS handshake check because the minimal container image lacks the TLS stack.
-
-## container on the IoT Edge module network can connect to IoT Hub MQTT port
-
-A diagnostics container is launched on the IoT Edge container network (`azure-iot-edge` on Linux and `nat` on Windows) and a connection to IoT Hub's MQTTS endpoint (port 8883) is attempted from within the container. The IoT Hub's FQDN is inferred from the device connection string in `config.yaml` which can be overridden using `--iothub-hostname` switch. This test does not perform TLS handshake check because the minimal container image lacks the TLS stack.
+Note that these checks do not perform a TLS handshake with the IoT Hub.
 
 ## Edge Hub can bind to ports on host
 
-The default `createOptions` for Edge Hub host map ports 8883, 443 and 5671 to enable gateway use cases. If these ports are already in use on the host, it will cause the Edge Hub container to fail when starting up. This check tests the availability of these ports on the host. To get a valid result, the Edge Hub container should have attempted starting up at least once prior to running this check.
+Edge Hub can bind to ports on the host so that it can be used as a gateway for leaf devices. For example, the default `createOptions` for Edge Hub set it to bind to ports 443, 5671 and 8883. If any of these ports are already in use on the host device by other services, the Edge Hub container will be unable to start up. The tool validates that Edge Hub is already running (in which case it has successfully bound to any ports it wanted to bind to), or that the ports are available for it to bind to when it does start.
 
-If the default port mapping is explicitly modified or removed in the Edge Hub `createOptions`, the result of this check can be ignored.
+The tool can only detect which ports to test for if the IoT Edge daemon has tried to start the Edge Hub container at least once.
