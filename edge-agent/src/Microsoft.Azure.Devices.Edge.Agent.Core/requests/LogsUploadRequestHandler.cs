@@ -37,7 +37,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 payload.Encoding,
                 payload.ContentType,
                 LogOutputFraming.None,
-                Option.Some(new LogsOutputGroupingConfig(100, TimeSpan.FromSeconds(10))));
+                Option.Some(new LogsOutputGroupingConfig(100, TimeSpan.FromSeconds(10))),
+                false);
             IList<(string id, ModuleLogOptions logOptions)> logOptionsList = await requestToOptionsMapper.MapToLogOptions(payload.Items, cancellationToken);
             IEnumerable<Task> uploadLogsTasks = logOptionsList.Select(l => this.UploadLogs(payload.SasUrl, l.id, l.logOptions, cancellationToken));
             await Task.WhenAll(uploadLogsTasks);
@@ -63,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         async Task GetAndPrintLogFrames(string id)
         {
             Console.WriteLine($"Getting logs for {id}");
-            Stream s = await this.runtimeInfoProvider.GetModuleLogs(id, true, Option.None<int>(), Option.None<int>(), CancellationToken.None);
+            Stream s = await this.runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), Option.None<int>(), CancellationToken.None);
             Console.WriteLine($"Got logs for {id}.. printing log frames");
             byte[] streamBytes = ReadStream(s);
             PrintLogFrames(streamBytes);
@@ -108,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             var sb = new StringBuilder("Printing byte array - {");
             foreach (var b in bytes)
             {
-                sb.Append(b + ", ");
+                sb.Append(b.ToString("X2") + ", ");
             }
             sb.Append("}");
             Console.WriteLine(sb.ToString());

@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
             Preconditions.CheckNotNull(callback, nameof(callback));
 
-            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(id, true, logOptions.Filter.Tail, logOptions.Filter.Since, cancellationToken);
+            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(id, logOptions.Follow, logOptions.Filter.Tail, logOptions.Filter.Since, cancellationToken);
             Events.ReceivedStream(id);
 
             await (NeedToProcessStream(logOptions)

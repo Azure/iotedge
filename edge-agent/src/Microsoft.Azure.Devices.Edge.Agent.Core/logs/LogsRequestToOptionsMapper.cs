@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         readonly IRuntimeInfoProvider runtimeInfoProvider;
         readonly LogsContentEncoding contentEncoding;
         readonly LogsContentType contentType;
-
+        readonly bool follow;
         readonly LogOutputFraming outputFraming;
         readonly Option<LogsOutputGroupingConfig> outputGroupingConfig;
 
@@ -24,13 +24,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             LogsContentEncoding contentEncoding,
             LogsContentType contentType,
             LogOutputFraming outputFraming,
-            Option<LogsOutputGroupingConfig> outputGroupingConfig)
+            Option<LogsOutputGroupingConfig> outputGroupingConfig,
+            bool follow)
         {
             this.runtimeInfoProvider = Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider));
             this.contentType = contentType;
             this.contentEncoding = contentEncoding;
             this.outputFraming = outputFraming;
             this.outputGroupingConfig = outputGroupingConfig;
+            this.follow = follow;
         }
 
         public async Task<IList<(string id, ModuleLogOptions logOptions)>> MapToLogOptions(IEnumerable<LogRequestItem> requestItems, CancellationToken cancellationToken)
@@ -45,7 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                     this.contentType,
                     p.Filter,
                     this.outputFraming,
-                    this.outputGroupingConfig))).ToList();
+                    this.outputGroupingConfig,
+                    this.follow))).ToList();
             IDictionary<string, ModuleLogOptions> idsToProcess = GetIdsToProcess(logOptionsList, allIds);
             return idsToProcess.Select(kvp => (kvp.Key, kvp.Value)).ToList();
         }

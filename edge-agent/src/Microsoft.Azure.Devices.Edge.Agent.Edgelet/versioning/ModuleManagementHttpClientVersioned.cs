@@ -89,11 +89,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                     async () =>
                     {
                         HttpResponseMessage httpResponseMessage = await httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-                        return await httpResponseMessage.Content.ReadAsStreamAsync();
+                        byte[] bytes = await httpResponseMessage.Content.ReadAsByteArrayAsync();
+                        //return await httpResponseMessage.Content.ReadAsStreamAsync();
+                        PrintBytes(module, bytes);
+                        return new MemoryStream(bytes);
                     },
                     $"Get logs for {module}");
                 return stream;
             }
+        }
+
+        static void PrintBytes(string module, byte[] bytes)
+        {
+            var sb = new StringBuilder($"Printing bytes in GetModuleLogs for module {module} - [");
+            foreach (var b in bytes)
+            {
+                sb.Append(b.ToString("X2") + ", ");
+            }
+            sb.Append("]");
+            Console.WriteLine(sb.ToString());
         }
 
         protected abstract void HandleException(Exception ex, string operation);

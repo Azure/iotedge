@@ -54,7 +54,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
                     streamRequest.Encoding,
                     streamRequest.ContentType,
                     LogOutputFraming.SimpleLength,
-                    Option.None<LogsOutputGroupingConfig>());
+                    Option.None<LogsOutputGroupingConfig>(),
+                    true);
                 IList<(string id, ModuleLogOptions logOptions)> logOptionsList = await requestToOptionsMapper.MapToLogOptions(streamRequest.Items, cancellationToken);
 
                 using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, socketCancellationTokenSource.Token))
