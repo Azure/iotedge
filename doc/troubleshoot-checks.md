@@ -91,7 +91,7 @@ By default, no IoT Edge component connects using this protocol from the host, bu
 
 ## host can connect to and perform TLS handshake with IoT Hub HTTPS port
 
-A TLS connection is made and handshake performed from the host to the IoT Hub's HTTPS (port 443) endpoint. IoT Hub's FQDN is inferred from the device connection string in `config.yaml`. The IoT Hub FQDN to use can be overridden using the `--iothub-hostname` switch which should be used for performing connectivity checks for Edge devices using DPS provisioning.
+A TLS connection is made and handshake performed from the host to the IoT Hub's HTTPS (port 443) endpoint. IoT Hub's FQDN is inferred from the device connection string in `config.yaml`. The IoT Hub FQDN to use can be overridden using the `--iothub-hostname` switch which should be used for performing connectivity checks for edge devices using DPS provisioning.
 
 ## host can connect to and perform TLS handshake with IoT Hub MQTT port
 
