@@ -186,3 +186,8 @@ set (CPACK_RPM_PACKAGE_LICENSE "Proprietary")
 
 include (CPack)
 
+if (${run_unittests})
+    if(WIN32)
+        target_link_libraries(iothsm shell32)
+    endif(WIN32)
+endif()

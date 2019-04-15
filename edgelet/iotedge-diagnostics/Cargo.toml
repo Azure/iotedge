@@ -20,4 +20,4 @@ management = { path = "../management" }
 hyperlocal = "0.6"
 
 [target.'cfg(windows)'.dependencies]
-hyperlocal-windows = { git = "https://github.com/Azure/hyperlocal-windows" }
+hyperlocal-windows = { path = "../../../hyperlocal-windows" }
