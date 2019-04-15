@@ -60,7 +60,7 @@ The installed iotedge version is checked against value from  http://aka.ms/lates
 
 ## DNS server (*warning*)
 
-Checks if a DNS server is specified in the container engine's daemon.json file. The user has an option to specify this per module in the Edge device's deployment, in which case they can ignore this error. DNS best practices are documented at https://aka.ms/iotedge-prod-checklist-dns
+Checks if a DNS server is specified in the container engine's `daemon.json` file. The user has an option to specify this per module in the Edge device's deployment, in which case they can ignore this error. DNS best practices are documented at https://aka.ms/iotedge-prod-checklist-dns
 
 ## production readiness: certificates (*warning*)
 
