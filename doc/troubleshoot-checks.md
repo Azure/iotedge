@@ -76,7 +76,10 @@ Checks if a DNS server is specified in the container engine's `daemon.json` file
 
 ## production readiness: logs policy (*warning*)
 
-Checks if log options and limits are specified in the container engine's daemon.json file. Specifying this for the container engine will propagate the settings to all containers managed by it. Users have an option to specify this setting, per module, in the Edge device's deployment in which case they can ignore this warning. Log management best practices are documented at https://aka.ms/iotedge-prod-checklist-logs
+Checks if log options and limits are specified in the container engine's `daemon.json` file.
+Specifying this for the container engine will propagate the settings to all containers managed by it.
+Users have an option to specify this setting, per module, in the Edge device's deployment in which case they can ignore this warning.
+Log management best practices are documented at https://aka.ms/iotedge-prod-checklist-logs
 
 # Connectivity check details
 
