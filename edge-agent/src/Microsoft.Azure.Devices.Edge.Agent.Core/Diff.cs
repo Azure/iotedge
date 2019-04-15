@@ -24,14 +24,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                                && this.DesiredStatusUpdated.Count == 0
                                && this.Removed.Count == 0;
 
+        // Set of new modules that were added
         public IImmutableSet<IModule> Added { get; }
 
+        // Set of modules that were updated i.e. some property / config other than the ModuleStatus was updated
         public IImmutableSet<IModule> Updated { get; }
 
+        // Set of modules whose configuration stayed the same, but whose ModuleStatus was updated
         public IImmutableSet<IModule> DesiredStatusUpdated { get; }
 
+        // Set of modules that were removed
         public IImmutableSet<string> Removed { get; }
 
+        // Added + Updated modules
         public IImmutableSet<IModule> AddedOrUpdated { get; }
 
         public override bool Equals(object obj)
