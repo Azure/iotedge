@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IEnumerable<ICommand> start = await Task.WhenAll(startTasks);
 
             // Only update changed modules
-            IList<Task<ICommand>> updateTasks = diff.Updated
+            IList<Task<ICommand>> updateTasks = diff.AddedOrUpdated
                 .Select(m => this.CreateOrUpdate(current, m, runtimeInfo, moduleIdentities))
                 .ToList();
             IEnumerable<ICommand> update = await Task.WhenAll(updateTasks);
