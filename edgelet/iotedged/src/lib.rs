@@ -68,8 +68,8 @@ use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
 use iothubservice::DeviceClient;
 use provisioning::provisioning::{
-    BackupProvisioning, DpsProvisioning, DpsSymmetricKeyProvisioning, ManualProvisioning,
-    Provision, ProvisioningResult,
+    BackupProvisioning, DpsSymmetricKeyProvisioning, DpsTpmProvisioning, ManualProvisioning,
+    Provision, ProvisioningResult, ReprovisioningStatus,
 };
 
 use crate::workload::WorkloadData;
@@ -660,41 +660,44 @@ where
     ))?;
     let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
 
-    let provision = provision_with_file_backup
-        .provision(memory_hsm.clone())
-        .map_err(|err| {
-            Error::from(err.context(ErrorKind::Initialize(
-                InitializeErrorReason::DpsProvisioningClient,
-            )))
-        })
-        .and_then(move |prov_result| {
-            if prov_result.reconfigure() {
-                info!("Successful DPS provisioning. This will trigger reconfiguration of modules.");
-                // Each time DPS provisions, it gets back a new device key. This results in obsolete
-                // module keys in IoTHub from the previous provisioning. We delete all containers
-                // after each DPS provisioning run so that IoTHub can be updated with new module
-                // keys when the deployment is executed by EdgeAgent.
-                let remove = runtime.remove_all().then(|result| {
-                    result.context(ErrorKind::Initialize(
-                        InitializeErrorReason::DpsProvisioningClient,
-                    ))?;
-                    Ok((prov_result, runtime))
-                });
-                Either::A(remove)
-            } else {
-                Either::B(future::ok((prov_result, runtime)))
-            }
-        })
-        .and_then(move |(prov_result, runtime)| {
-            let k =
-                memory_hsm
-                    .get(&KeyIdentity::Device, "primary")
-                    .context(ErrorKind::Initialize(
-                        InitializeErrorReason::DpsProvisioningClient,
-                    ))?;
-            let derived_key_store = DerivedKeyStore::new(k.clone());
-            Ok((derived_key_store, prov_result, k, runtime))
-        });
+    let provision =
+        provision_with_file_backup
+            .provision(memory_hsm.clone())
+            .map_err(|err| {
+                Error::from(err.context(ErrorKind::Initialize(
+                    InitializeErrorReason::DpsProvisioningClient,
+                )))
+            })
+            .and_then(move |prov_result| {
+                info!("Successful DPS provisioning.");
+                if prov_result.reconfigure() == ReprovisioningStatus::DeviceDataNotUpdated {
+                    Either::B(future::ok((prov_result, runtime)))
+                } else {
+                    // If there was a DPS reprovision and device key was updated results in obsolete
+                    // module keys in IoTHub from the previous provisioning. We delete all containers
+                    // after each DPS provisioning run so that IoTHub can be updated with new module
+                    // keys when the deployment is executed by EdgeAgent.
+                    info!(
+                        "Reprovisioning status {:?} will trigger reconfiguration of modules.",
+                        prov_result.reconfigure()
+                    );
+
+                    let remove = runtime.remove_all().then(|result| {
+                        result.context(ErrorKind::Initialize(
+                            InitializeErrorReason::DpsProvisioningClient,
+                        ))?;
+                        Ok((prov_result, runtime))
+                    });
+                    Either::A(remove)
+                }
+            })
+            .and_then(move |(prov_result, runtime)| {
+                let k = memory_hsm.get(&KeyIdentity::Device, "primary").context(
+                    ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient),
+                )?;
+                let derived_key_store = DerivedKeyStore::new(k.clone());
+                Ok((derived_key_store, prov_result, k, runtime))
+            });
     tokio_runtime.block_on(provision)
 }
 
@@ -719,7 +722,7 @@ where
     let srk_result = tpm.get_srk().context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
-    let dps = DpsProvisioning::new(
+    let dps = DpsTpmProvisioning::new(
         hyper_client,
         provisioning.global_endpoint().clone(),
         provisioning.scope_id().to_string(),
@@ -743,9 +746,11 @@ where
             )))
         })
         .and_then(|prov_result| {
-            if prov_result.reconfigure() {
+            if prov_result.reconfigure() == ReprovisioningStatus::DeviceDataNotUpdated {
+                Either::B(future::ok((prov_result, runtime)))
+            } else {
                 info!("Successful DPS provisioning. This will trigger reconfiguration of modules.");
-                // Each time DPS provisions, it gets back a new device key. This results in obsolete
+                // Each time DPS reprovisions, it gets back a new device key. This results in obsolete
                 // module keys in IoTHub from the previous provisioning. We delete all containers
                 // after each DPS provisioning run so that IoTHub can be updated with new module
                 // keys when the deployment is executed by EdgeAgent.
@@ -756,8 +761,6 @@ where
                     Ok((prov_result, runtime))
                 });
                 Either::A(remove)
-            } else {
-                Either::B(future::ok((prov_result, runtime)))
             }
         })
         .and_then(move |(prov_result, runtime)| {

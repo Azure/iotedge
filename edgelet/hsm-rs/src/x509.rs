@@ -447,7 +447,7 @@ mod tests {
         if let Ok(string3) = result3 {
             assert_eq!(string3, "123456789".to_string());
         } else {
-            assert!(false);
+            unreachable!();
         }
 
         let result4 = hsm_x509.sign_with_private_key(b"aabbcc");
