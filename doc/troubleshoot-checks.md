@@ -20,7 +20,7 @@ Checks that would involve parsing IoT Edge module logs or metrics are also out o
 
 Results from checks are characterized as either **errors** or **warnings**.
 
-Errors have a high likelihood of preventing the Edge runtime or the modules from connecting to the cloud.
+Errors have a high likelihood of preventing the IoT Edge runtime or the modules from connecting to the cloud.
 
 Warnings might not affect immediate connectivity but are potential deviations from best practices and may affect long term stability, offline operation or supportability of the Edge device.
 
