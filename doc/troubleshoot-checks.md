@@ -85,7 +85,7 @@ Log management best practices are documented at https://aka.ms/iotedge-prod-chec
 
 ## host can connect to and perform TLS handshake with IoT Hub AMQP port
 
-A TLS connection is made and handshake performed from the host to the IoT Hub's AMQP (port 5671) endpoint. IoT Hub's FQDN is inferred from the device connection string in `config.yaml`. The IoT Hub FQDN to use can be overridden using the `--iothub-hostname` switch which should be used for performing connectivity checks for Edge devices using DPS provisioning.
+A TLS connection is made and handshake performed from the host to the IoT Hub's AMQP (port 5671) endpoint. IoT Hub's FQDN is inferred from the device connection string in `config.yaml`. The IoT Hub FQDN to use can be overridden using the `--iothub-hostname` switch which should be used for performing connectivity checks for edge devices using DPS provisioning.
 
 By default, no IoT Edge component connects using this protocol from the host, but connectivity information in this scenario can be useful in debugging.
 
