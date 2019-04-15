@@ -12,7 +12,7 @@ The troubleshooting tool is focused on
 
 * Surfacing potential configuration deviations from recommended production best-practices.
 
-By design, it does not check for errors in the Edge workload deployment. Examples for these are access to any private container registry used, errors in module create options etc. The rationale being deployment validation is best performed in the facility where it is authored.
+By design, it does not check for errors in the edge workload deployment. Examples for these are access to any private container registry used, errors in module create options etc. The rationale being deployment validation is best performed in the facility where it is authored.
 
 Checks that would involve parsing IoT Edge module logs or metrics are also out of scope.
 
