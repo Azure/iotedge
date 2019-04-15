@@ -812,6 +812,9 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = interface->hsm_client_encrypt_data(hsm_handle, &id, &pt, &iv, &ciphertext_result_1);
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        // destroy crypto and then recreate to make sure the same master key is used
+        test_helper_crypto_deinit(hsm_handle);
+        hsm_handle = test_helper_crypto_init();
 
         // act, assert
         status = interface->hsm_client_create_master_encryption_key(hsm_handle);
