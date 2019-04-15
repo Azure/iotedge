@@ -30,9 +30,12 @@ namespace common
 
         public static async Task WaitForStatusAsync(EdgeModule[] modules, EdgeModuleStatus desired, CancellationToken token)
         {
-            string FormatModules() => modules.Length == 1
+            string FormatModulesList() => modules.Length == 1
                 ? $"module '{modules.First().name}'"
                 : $"modules ({String.Join(", ", modules.Select(module => module.name))})";
+
+            string FormatSuccessMessage() => $"Edge {FormatModulesList()} " +
+                (modules.Length == 1 ? "is running" : "are running");
 
             try
             {
@@ -71,14 +74,14 @@ namespace common
             }
             catch (OperationCanceledException)
             {
-                throw new Exception($"Error: timed out waiting for {FormatModules()} to start");
+                throw new Exception($"Error: timed out waiting for {FormatModulesList()} to start");
             }
             catch (Exception e)
             {
-                throw new Exception($"Error searching for {FormatModules()}: {e}");
+                throw new Exception($"Error searching for {FormatModulesList()}: {e}");
             }
 
-            Console.WriteLine($"Edge {FormatModules()} status is running");
+            Console.WriteLine(FormatSuccessMessage());
         }
     }
 }
