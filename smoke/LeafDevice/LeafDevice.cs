@@ -33,7 +33,7 @@ namespace LeafDeviceTest
         {
         }
 
-        public async Task RunAsync()
+        public async Task RunAsync(bool keepDevice = false)
         {
             // This test assumes that there is an edge deployment running as transparent gateway.
             try
@@ -52,8 +52,12 @@ namespace LeafDeviceTest
             }
             finally
             {
-                // only remove the identity if we created it; if it already existed in IoT Hub then leave it alone
-                await this.MaybeDeleteDeviceIdentity();
+                if (!keepDevice)
+                {
+                    // only remove the identity if we created it;
+                    // if it already existed in IoT Hub then leave it alone
+                    await this.MaybeDeleteDeviceIdentity();
+                }
             }
         }
 

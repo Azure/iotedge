@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             // and vice versa, to make sure the right values are being used.
             // TODO - This will fail if the user adds modules with the same module name as a system module - for example a module called
             // edgeHub. We might have to catch such cases and flag them as error (or handle them in some other way).
-            IEnumerable<string> updatedModuleIdentites = diff.Updated.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m.Name));
+            IEnumerable<string> updatedModuleIdentites = diff.AddedOrUpdated.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m.Name));
             IEnumerable<string> removedModuleIdentites = diff.Removed.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m));
 
             List<Module> modules = (await this.serviceClient.GetModules()).ToList();
