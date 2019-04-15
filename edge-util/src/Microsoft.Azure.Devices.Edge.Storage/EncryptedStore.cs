@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public async Task Put(TK key, TV value, CancellationToken cancellationToken)
         {
             string valueString = value.ToJson();
-            string encryptedString = await this.encryptionProvider.EncryptAsync(valueString);
+            string encryptedString = await this.EncryptValue(valueString);
             await this.entityStore.Put(key, encryptedString, cancellationToken);
         }
 
@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return await encryptedValue.Map(
                     async e =>
                     {
-                        string decryptedValue = await this.encryptionProvider.DecryptAsync(e);
+                        string decryptedValue = await this.DecryptValue(e);
                         return Option.Some(decryptedValue.FromJson<TV>());
                     })
                 .GetOrElse(() => Task.FromResult(Option.None<TV>()));
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return await encryptedValue.Map(
                     async e =>
                     {
-                        string decryptedValue = await this.encryptionProvider.DecryptAsync(e.value);
+                        string decryptedValue = await this.DecryptValue(e.value);
                         return Option.Some((e.key, decryptedValue.FromJson<TV>()));
                     })
                 .GetOrElse(() => Task.FromResult(Option.None<(TK key, TV value)>()));
@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return await encryptedValue.Map(
                     async e =>
                     {
-                        string decryptedValue = await this.encryptionProvider.DecryptAsync(e.value);
+                        string decryptedValue = await this.DecryptValue(e.value);
                         return Option.Some((e.key, decryptedValue.FromJson<TV>()));
                     })
                 .GetOrElse(() => Task.FromResult(Option.None<(TK key, TV value)>()));
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 batchSize,
                 async (key, stringValue) =>
                 {
-                    string decryptedValue = await this.encryptionProvider.DecryptAsync(stringValue);
+                    string decryptedValue = await this.DecryptValue(stringValue);
                     var value = decryptedValue.FromJson<TV>();
                     await perEntityCallback(key, value);
                 },
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 batchSize,
                 async (key, stringValue) =>
                 {
-                    string decryptedValue = await this.encryptionProvider.DecryptAsync(stringValue);
+                    string decryptedValue = await this.DecryptValue(stringValue);
                     var value = decryptedValue.FromJson<TV>();
                     await perEntityCallback(key, value);
                 },
@@ -120,5 +120,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 this.entityStore?.Dispose();
             }
         }
+
+        protected IEncryptionProvider EncryptionProvider => this.encryptionProvider;
+
+        protected virtual Task<string> EncryptValue(string value)
+            => this.encryptionProvider.EncryptAsync(value);
+
+        protected virtual Task<string> DecryptValue(string encryptedValue)
+            => this.encryptionProvider.DecryptAsync(encryptedValue);
     }
 }

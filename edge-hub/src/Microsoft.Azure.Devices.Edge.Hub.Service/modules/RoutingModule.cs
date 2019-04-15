@@ -551,7 +551,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             base.Load(builder);
         }
 
-        static async Task<IEntityStore<TK, TV>> GetEncryptedEntityStoreIfSupported<TK, TV>(IComponentContext context, string entityName)
+        static async Task<IEntityStore<TK, TV>> GetUpdatableEncryptedEntityStoreIfSupported<TK, TV>(IComponentContext context, string entityName)
         {
             var storeProvider = context.Resolve<IStoreProvider>();
             Option<IEncryptionProvider> encryptionProvider = await context.Resolve<Task<Option<IEncryptionProvider>>>();
@@ -559,7 +559,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     e =>
                     {
                         IEntityStore<string, string> underlyingEntityStore = storeProvider.GetEntityStore<string, string>($"underlying{entityName}");
-                        IKeyValueStore<string, string> es = new EncryptedStore<string, string>(underlyingEntityStore, e);
+                        IKeyValueStore<string, string> es = new UpdatableEncryptedStore<string, string>(underlyingEntityStore, e);
                         ITypeMapper<TK, string> keyMapper = new JsonMapper<TK>();
                         ITypeMapper<TV, string> valueMapper = new JsonMapper<TV>();
                         IKeyValueStore<TK, TV> dbStoreMapper = new KeyValueStoreMapper<TK, string, TV, string>(es, keyMapper, valueMapper);
@@ -578,7 +578,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             IEntityStore<string, TwinStoreEntity> twinStore;
             if (this.encryptTwinStore)
             {
-                twinStore = await GetEncryptedEntityStoreIfSupported<string, TwinStoreEntity>(context, entityName);
+                twinStore = await GetUpdatableEncryptedEntityStoreIfSupported<string, TwinStoreEntity>(context, entityName);
             }
             else
             {
