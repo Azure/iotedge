@@ -8,7 +8,7 @@ The built-in troubleshooting functionality in the `iotedge` CLI, "iotedge check"
 
 The troubleshooting tool is focused on
 
-* Surfacing potential problems that prevent getting Edge device cloud connected.
+* Surfacing potential problems that prevent getting the edge device cloud connected.
 
 * Surfacing potential configuration deviations from recommended production best-practices.
 
