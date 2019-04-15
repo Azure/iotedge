@@ -543,10 +543,11 @@ where
     let cert_manager = CertificateManager::new(
         crypto.clone(),
         edgelet_cert_props,
-        Some(Box::new(|| {
-            restart_tx.send(()).unwrap_or(())
-        })),
-    ).context(ErrorKind::Initialize(InitializeErrorReason::CreateCertificateManager))?;
+        Some(move || restart_tx.send(()).unwrap_or(())),
+    )
+    .context(ErrorKind::Initialize(
+        InitializeErrorReason::CreateCertificateManager,
+    ))?;
     let cert_manager = Arc::new(cert_manager);
 
     let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, cert_manager.clone());

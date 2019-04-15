@@ -36,11 +36,14 @@ struct Certificate {
 }
 
 impl<C: CreateCertificate + Clone> CertificateManager<C> {
-    pub fn new(
+    pub fn new<F>(
         crypto: C,
         props: CertificateProperties,
-        expiration_callback: Option<Box<dyn Fn() -> () + Send + Sync>>,
-    ) -> Result<Self, Error> {
+        expiration_callback: Option<F>,
+    ) -> Result<Self, Error>
+    where
+        F: FnOnce() + Sync + Send + 'static,
+    {
         let cert_manager = Self {
             certificate: Arc::new(RwLock::new(None)),
             crypto,
@@ -114,10 +117,10 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
         }
     }
 
-    fn create_cert(
-        &self,
-        expiration_callback: Option<Box<dyn Fn() -> () + Send + Sync>>,
-    ) -> Result<Certificate, Error> {
+    fn create_cert<F>(&self, expiration_callback: Option<F>) -> Result<Certificate, Error>
+    where
+        F: FnOnce() + Sync + Send + 'static,
+    {
         let cert = self
             .crypto
             .create_certificate(&self.props)
@@ -160,7 +163,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
 
                 let update_task = Delay::new(when)
                     .and_then(move |_| {
-                        (expiration_callback)();
+                        expiration_callback();
                         Ok(())
                     })
                     .map_err(|e| panic!("delay errored; err={:?}", e));
