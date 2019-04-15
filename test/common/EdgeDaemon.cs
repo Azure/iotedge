@@ -30,7 +30,7 @@ namespace common
             this.scriptDir = scriptDir;
         }
 
-        public async Task InstallAsync(CancellationToken token)
+        public Task InstallAsync(CancellationToken token)
         {
             var commands = new string[]
             {
@@ -38,12 +38,13 @@ namespace common
                 $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1",
                 $"Install-IoTEdge -Manual -ContainerOs Windows -DeviceConnectionString '{this.deviceConnectionString}'"
             };
-            await Process.RunAsync("powershell", string.Join(";", commands), token);
-
-            Console.WriteLine("Daemon was installed");
+            return Profiler.Run(
+                "Installing edge daemon",
+                () => Process.RunAsync("powershell", string.Join(";", commands), token)
+            );
         }
 
-        public async Task UninstallAsync(CancellationToken token)
+        public Task UninstallAsync(CancellationToken token)
         {
             var commands = new string[]
             {
@@ -51,27 +52,34 @@ namespace common
                 $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1",
                 "Uninstall-IoTEdge -Force"
             };
-            await Process.RunAsync("powershell", string.Join(";", commands), token);
-
-            Console.WriteLine("Daemon was uninstalled");
+            return Profiler.Run(
+                "Uninstalling edge daemon",
+                () => Process.RunAsync("powershell", string.Join(";", commands), token)
+            );
         }
 
-        public async Task StopAsync(CancellationToken token)
+        public Task StopAsync(CancellationToken token)
         {
             var sc = new ServiceController("iotedge");
-            if (sc.Status != ServiceControllerStatus.Stopped)
-            {
-                sc.Stop();
-                await this._WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
-            }
-            Console.WriteLine($"Daemon is stopped");
+            return Profiler.Run(
+                "Stopping edge daemon",
+                async () => {
+                    if (sc.Status != ServiceControllerStatus.Stopped)
+                    {
+                        sc.Stop();
+                        await this._WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
+                    }
+                }
+            );
         }
 
-        public async Task WaitForStatusAsync(EdgeDaemonStatus desired, CancellationToken token)
+        public Task WaitForStatusAsync(EdgeDaemonStatus desired, CancellationToken token)
         {
             var sc = new ServiceController("iotedge");
-            await this._WaitForStatusAsync(sc, (ServiceControllerStatus)desired, token);
-            Console.WriteLine($"Daemon is {desired.ToString().ToLower()}");
+            return Profiler.Run(
+                $"Waiting for edge daemon to enter the '{desired.ToString().ToLower()}' state",
+                () => this._WaitForStatusAsync(sc, (ServiceControllerStatus)desired, token)
+            );
         }
 
         async Task _WaitForStatusAsync(ServiceController sc, ServiceControllerStatus desired, CancellationToken token)

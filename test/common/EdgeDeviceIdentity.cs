@@ -79,19 +79,22 @@ namespace common
             }
         }
 
-        async Task _CreateAsync(RegistryManager rm, string hostname, CancellationToken token)
+        Task _CreateAsync(RegistryManager rm, string hub, CancellationToken token)
         {
-            var device = new Device(this.deviceId)
-            {
-                Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
-                Capabilities = new DeviceCapabilities() { IotEdge = true }
-            };
-            device = await rm.AddDeviceAsync(device, token);
+            return Profiler.Run(
+                $"Creating edge device '{this.deviceId}' on hub '{hub}'",
+                async () => {
+                    var device = new Device(this.deviceId)
+                    {
+                        Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
+                        Capabilities = new DeviceCapabilities() { IotEdge = true }
+                    };
+                    device = await rm.AddDeviceAsync(device, token);
 
-            var context = new DeviceContext(device, hostname, true, rm);
-            this.context = Option.Some(context);
-
-            Console.WriteLine($"Edge device '{device.Id}' was created on hub '{hostname}'");
+                    var context = new DeviceContext(device, hub, true, rm);
+                    this.context = Option.Some(context);
+                }
+            );
         }
 
         public Task DeleteAsync(CancellationToken token)
@@ -123,10 +126,12 @@ namespace common
             );
         }
 
-        async Task _DeleteAsync(DeviceContext context, CancellationToken token)
+        Task _DeleteAsync(DeviceContext context, CancellationToken token)
         {
-            await context.Registry.RemoveDeviceAsync(context.Device);
-            Console.WriteLine($"Device '{context.Device.Id}' was deleted");
+            return Profiler.Run(
+                $"Deleting device '{context.Device.Id}'",
+                () => context.Registry.RemoveDeviceAsync(context.Device)
+            );
         }
     }
 }

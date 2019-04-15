@@ -11,53 +11,58 @@ namespace common
     {
         public EdgeAgent() : base("edgeAgent") {}
 
-        public async Task PingAsync(string hubConnectionString, string deviceId, CancellationToken token)
+        public Task PingAsync(string hubConnectionString, string deviceId, CancellationToken token)
         {
             Exception savedException = null;
 
-            try
-            {
-                var settings = new ServiceClientTransportSettings();
-                ServiceClient client = ServiceClient.CreateFromConnectionString(
-                    hubConnectionString,
-                    TransportType.Amqp_WebSocket_Only,
-                    settings);
-
-                while (true)
+            async Task _PingAsync() {
+                try
                 {
-                    try
-                    {
-                        CloudToDeviceMethodResult result = await client.InvokeDeviceMethodAsync(
-                            deviceId,
-                            "$edgeAgent",
-                            new CloudToDeviceMethod("ping"),
-                            token);
-                        if (result.Status == 200)
-                        {
-                            break;
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        savedException = e;
-                    }
+                    var settings = new ServiceClientTransportSettings();
+                    ServiceClient client = ServiceClient.CreateFromConnectionString(
+                        hubConnectionString,
+                        TransportType.Amqp_WebSocket_Only,
+                        settings);
 
-                    await Task.Delay(TimeSpan.FromSeconds(5), token);
+                    while (true)
+                    {
+                        try
+                        {
+                            CloudToDeviceMethodResult result = await client.InvokeDeviceMethodAsync(
+                                deviceId,
+                                "$edgeAgent",
+                                new CloudToDeviceMethod("ping"),
+                                token);
+                            if (result.Status == 200)
+                            {
+                                break;
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            savedException = e;
+                        }
+
+                        await Task.Delay(TimeSpan.FromSeconds(5), token);
+                    }
+                }
+                catch (OperationCanceledException e)
+                {
+                    string prefix = "Timed out while trying to ping module 'edgeAgent' from the cloud";
+                    throw new Exception(savedException == null
+                        ? $"{prefix}: {e.Message}"
+                        : $"{prefix}, exception from last attempt: {savedException.Message}");
+                }
+                catch (Exception e)
+                {
+                    throw new Exception($"Failed to ping module 'edgeAgent' from the cloud: {e.Message}");
                 }
             }
-            catch (OperationCanceledException e)
-            {
-                string prefix = "Timed out while trying to ping module 'edgeAgent' from the cloud";
-                throw new Exception(savedException == null
-                    ? $"{prefix}: {e.Message}"
-                    : $"{prefix}, exception from last attempt: {savedException.Message}");
-            }
-            catch (Exception e)
-            {
-                throw new Exception($"Failed to ping module 'edgeAgent' from the cloud: {e.Message}");
-            }
 
-            Console.WriteLine("Pinged module 'edgeAgent' from the cloud");
+            return Profiler.Run(
+                "Pinging module 'edgeAgent' from the cloud",
+                _PingAsync
+            );
         }
     }
 }

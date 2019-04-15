@@ -58,19 +58,21 @@ namespace common
             config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
         }
 
-        public async Task DeployAsync()
+        public Task DeployAsync()
         {
-            var settings = new HttpTransportSettings();
-            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.hubConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
-            await rm.ApplyConfigurationContentOnDeviceAsync(this.deviceId, this.config);
-
             IReadOnlyCollection<string> modules = GetConfigModuleList(this.config);
-            Console.WriteLine($"Edge configuration was deployed to device '{this.deviceId}' with modules:");
-            foreach (string module in modules)
-            {
-                Console.WriteLine($"  {module}");
-            }
+
+            return Profiler.Run(
+                $"Deploying edge configuration to device '{this.deviceId}' with modules ({string.Join(", ", modules)})",
+                () => {
+                    var settings = new HttpTransportSettings();
+                    IotHubConnectionStringBuilder builder =
+                        IotHubConnectionStringBuilder.Create(this.hubConnectionString);
+                    RegistryManager rm =
+                        RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
+                    return rm.ApplyConfigurationContentOnDeviceAsync(this.deviceId, this.config);
+                }
+            );
         }
 
         static ConfigurationContent GetBaseConfig() => new ConfigurationContent
