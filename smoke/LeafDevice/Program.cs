@@ -126,7 +126,7 @@ Defaults:
                         this.X509SecondaryKeyPath,
                         true);
                     LeafDevice testPrimaryCertificate = builder.Build();
-                    await testPrimaryCertificate.RunAsync();
+                    await testPrimaryCertificate.RunAsync(true);
 
                     builder.SetX509ThumbprintAuthProperties(
                         this.X509PrimaryCertPath,
