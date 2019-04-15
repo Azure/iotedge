@@ -132,6 +132,16 @@ fn run() -> Result<(), Error> {
                         .default_value("pool.ntp.org:123"),
                 )
                 .arg(
+                    Arg::with_name("output")
+                        .long("output")
+                        .short("o")
+                        .value_name("FORMAT")
+                        .help("Output format.")
+                        .takes_value(true)
+                        .possible_values(&["json", "text"])
+                        .default_value("text"),
+                )
+                .arg(
                     Arg::with_name("verbose")
                         .long("verbose")
                         .value_name("VERBOSE")
@@ -221,6 +231,13 @@ fn run() -> Result<(), Error> {
                 args.value_of("ntp-server")
                     .expect("arg has a default value")
                     .to_string(),
+                args.value_of("output")
+                    .map(|arg| match arg {
+                        "json" => OutputFormat::Json,
+                        "text" => OutputFormat::Text,
+                        _ => unreachable!(),
+                    })
+                    .expect("arg has a default value"),
                 args.occurrences_of("verbose") > 0,
             )
             .and_then(|mut check| check.execute()),
