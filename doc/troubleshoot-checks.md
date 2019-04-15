@@ -28,7 +28,7 @@ Warnings might not affect immediate connectivity but are potential deviations fr
 
 ## config.yaml is well-formed
 
-IoT Edge's config.yaml is valid and free of any syntax (e.g. whitespace) errors. Depending on the error, it may not exactly be at the line number and position reported by the parser.
+IoT Edge's `config.yaml` is valid and free of any syntax (e.g. whitespace) errors. Depending on the error, it may not exactly be at the line number and position reported by the parser.
 
 ## config.yaml has well-formed connection string
 
