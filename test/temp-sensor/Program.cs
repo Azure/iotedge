@@ -11,7 +11,8 @@ namespace temp_sensor
     {
         // args[0] - device ID
         // args[1] - IoT Hub connection string (TODO: should not be passed on command line?)
-        // args[2] - path to IotEdgeSecurityDaemon.ps1
+        // args[2] - Event Hub-compatible endpoint connection string (TODO: should not be passed on command line?)
+        // args[3] - path to IotEdgeSecurityDaemon.ps1
         static async Task<int> Main(string[] args)
         {
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
@@ -22,7 +23,7 @@ namespace temp_sensor
                 var identity = new EdgeDeviceIdentity(args[0], args[1]);
                 await identity.GetOrCreateAsync(token);
 
-                var daemon = new EdgeDaemon(args[2], identity);
+                var daemon = new EdgeDaemon(args[3], identity);
                 await daemon.UninstallAsync(token);
                 await daemon.InstallAsync(token);
                 await daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
@@ -41,9 +42,7 @@ namespace temp_sensor
                 var sensor = new EdgeModule("tempSensor");
                 await EdgeModule.WaitForStatusAsync(
                     new []{hub, sensor}, EdgeModuleStatus.Running, token);
-                // EnsureConfigurationIsDeployed();
-                // EnsureTempSensorIsRunning();
-                // EnsureTempSensorEventsAreSent();
+                await sensor.ReceiveEventsAsync(args[2], args[0], token);
                 // UpdateTempSensorTwin();
                 // EnsureTempSensorTwinUpdatesAreReported();
 

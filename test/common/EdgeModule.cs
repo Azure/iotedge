@@ -4,7 +4,11 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Azure.Devices;
+using Microsoft.Azure.Devices.Common;
 using Microsoft.Azure.Devices.Edge.Util;
+using Microsoft.Azure.EventHubs;
+using EventHubTransportType = Microsoft.Azure.EventHubs.TransportType;
 
 namespace common
 {
@@ -83,6 +87,53 @@ namespace common
             return Profiler.Run(
                 $"Waiting for {FormatModulesList()} to enter the '{desired.ToString().ToLower()}' state",
                 _WaitForStatusAsync
+            );
+        }
+
+        public Task ReceiveEventsAsync(string eventHubConnectionString, string deviceId, CancellationToken token)
+        {
+            var builder = new EventHubsConnectionStringBuilder(eventHubConnectionString)
+            {
+                TransportType = EventHubTransportType.AmqpWebSockets
+            };
+
+            async Task _ReceiveEventsAsync()
+            {
+                EventHubClient client = EventHubClient.CreateFromConnectionString(builder.ToString());
+                int count = (await client.GetRuntimeInformationAsync()).PartitionCount;
+                string partition = EventHubPartitionKeyResolver.ResolveToPartition(deviceId, count);
+                PartitionReceiver receiver = client.CreateReceiver("$Default", partition, EventPosition.FromEnd());
+
+                var result = new TaskCompletionSource<bool>();
+                using (token.Register(() => result.TrySetCanceled()))
+                {
+                    receiver.SetReceiveHandler(
+                        new PartitionReceiveHandler(
+                            data =>
+                            {
+                                data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
+                                data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
+
+                                if (devId != null && devId.ToString().Equals(deviceId) &&
+                                    modId != null && modId.ToString().Equals(this.name))
+                                {
+                                    result.TrySetResult(true);
+                                    return true;
+                                }
+
+                                return false;
+                            }));
+
+                    await result.Task;
+                }
+
+                await receiver.CloseAsync();
+                await client.CloseAsync();
+            }
+
+            return Profiler.Run(
+                $"Receiving events from device '{deviceId}' on Event Hub '{builder.EntityPath}'",
+                _ReceiveEventsAsync
             );
         }
     }
