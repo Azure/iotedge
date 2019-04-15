@@ -19,14 +19,11 @@ namespace common
     public class EdgeDaemon
     {
         private string deviceConnectionString;
-        private EdgeDeviceIdentity identity;
         private string scriptDir;
 
-        public EdgeDaemon(string scriptDir, EdgeDeviceIdentity identity)
+        public EdgeDaemon(string scriptDir, string deviceConnectionString)
         {
-            this.deviceConnectionString = identity.ConnectionString
-                .Expect(() => new ArgumentException("Edge device identity has not been created"));
-            this.identity = identity;
+            this.deviceConnectionString = deviceConnectionString;
             this.scriptDir = scriptDir;
         }
 

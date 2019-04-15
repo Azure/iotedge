@@ -34,8 +34,6 @@ namespace common
         string deviceId;
         string hubConnectionString;
 
-        public Option<string> ConnectionString => this.context.Map(c => c.ConnectionString);
-
         public EdgeDeviceIdentity(string deviceId, string hubConnectionString)
         {
             this.context = Option.None<DeviceContext>();
@@ -43,7 +41,7 @@ namespace common
             this.hubConnectionString = hubConnectionString;
         }
 
-        public Task CreateAsync(CancellationToken token)
+        public Task<string> CreateAsync(CancellationToken token)
         {
             var settings = new HttpTransportSettings();
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.hubConnectionString);
@@ -52,7 +50,7 @@ namespace common
             return this._CreateAsync(rm, builder.HostName, token);
         }
 
-        public async Task GetOrCreateAsync(CancellationToken token)
+        public async Task<string> GetOrCreateAsync(CancellationToken token)
         {
             var settings = new HttpTransportSettings();
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.hubConnectionString);
@@ -72,14 +70,15 @@ namespace common
                 this.context = Option.Some(context);
 
                 Console.WriteLine($"Device '{device.Id}' already exists on hub '{builder.HostName}'");
+                return context.ConnectionString;
             }
             else
             {
-                await this._CreateAsync(rm, builder.HostName, token);
+                return await this._CreateAsync(rm, builder.HostName, token);
             }
         }
 
-        Task _CreateAsync(RegistryManager rm, string hub, CancellationToken token)
+        Task<string> _CreateAsync(RegistryManager rm, string hub, CancellationToken token)
         {
             return Profiler.Run(
                 $"Creating edge device '{this.deviceId}' on hub '{hub}'",
@@ -93,6 +92,7 @@ namespace common
 
                     var context = new DeviceContext(device, hub, true, rm);
                     this.context = Option.Some(context);
+                    return context.ConnectionString;
                 }
             );
         }
