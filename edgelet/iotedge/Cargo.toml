@@ -40,4 +40,4 @@ mini-sntp = { path = "../mini-sntp" }
 libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3", features = ["winsock2"] }
+winapi = { version = "0.3", features = ["ntdef", "ntstatus", "winnt", "winsock2"] }
