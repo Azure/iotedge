@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.Devices;
 using Microsoft.Azure.Devices.Edge.Util;
@@ -78,14 +79,14 @@ namespace common
             config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
         }
 
-        public Task DeployAsync(string deviceId, RegistryManager rm)
+        public Task DeployAsync(string deviceId, RegistryManager rm, CancellationToken token)
         {
             string message = "Deploying edge configuration to device " +
                 $"'{deviceId}' with modules ({string.Join(", ", this.Modules)})";
 
             return Profiler.Run(
                 message,
-                () => rm.ApplyConfigurationContentOnDeviceAsync(deviceId, this.config)
+                () => rm.ApplyConfigurationContentOnDeviceAsync(deviceId, this.config, token)
             );
         }
 

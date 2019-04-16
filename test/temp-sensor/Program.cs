@@ -36,20 +36,20 @@ namespace temp_sensor
                 var config = new EdgeConfiguration();
                 config.AddEdgeHub();
                 config.AddTempSensor();
-                await device.DeployConfigurationAsync(config);
+                await device.DeployConfigurationAsync(config, token);
 
                 var hub = new EdgeModule("edgeHub");
                 var sensor = new EdgeModule("tempSensor");
                 await EdgeModule.WaitForStatusAsync(
                     new []{hub, sensor}, EdgeModuleStatus.Running, token);
                 await sensor.ReceiveEventsAsync(args[2], args[0], token);
-                await device.UpdateModuleTwin("tempSensor", new {
+                await device.UpdateModuleTwinAsync("tempSensor", new {
                     properties = new {
                         desired = new {
                             someProperty = "some value"
                         }
                     }
-                });
+                }, token);
                 // EnsureTempSensorTwinUpdatesAreReported();
 
                 // ** teardown

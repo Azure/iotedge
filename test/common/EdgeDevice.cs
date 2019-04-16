@@ -125,21 +125,21 @@ namespace common
             );
         }
 
-        public Task DeployConfigurationAsync(EdgeConfiguration config)
+        public Task DeployConfigurationAsync(EdgeConfiguration config, CancellationToken token)
         {
             DeviceContext context = _GetContext("Cannot deploy configuration to");
-            return config.DeployAsync(context.Device.Id, context.Registry);
+            return config.DeployAsync(context.Device.Id, context.Registry, token);
         }
 
-        public Task UpdateModuleTwin(string moduleId, object twinPatch)
+        public Task UpdateModuleTwinAsync(string moduleId, object twinPatch, CancellationToken token)
         {
             DeviceContext context = _GetContext("Cannot update module twin for");
             return Profiler.Run(
                 $"Updating twin for module '{moduleId}'",
                 async () => {
-                    Twin twin = await context.Registry.GetTwinAsync(context.Device.Id, moduleId);
+                    Twin twin = await context.Registry.GetTwinAsync(context.Device.Id, moduleId, token);
                     string patch = JsonConvert.SerializeObject(twinPatch);
-                    await context.Registry.UpdateTwinAsync(context.Device.Id, moduleId, patch, twin.ETag);
+                    await context.Registry.UpdateTwinAsync(context.Device.Id, moduleId, patch, twin.ETag, token);
                 }
             );
         }

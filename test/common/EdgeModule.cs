@@ -72,7 +72,8 @@ namespace common
                             return DaemonNotReady(e.ToString()) ? true : false;
                         },
                         TimeSpan.FromSeconds(5),
-                        token);
+                        token
+                    );
                 }
                 catch (OperationCanceledException)
                 {
