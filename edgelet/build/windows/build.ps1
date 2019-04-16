@@ -19,12 +19,16 @@ if(-Not $Arm)
 # Run cargo build by specifying the manifest file
 $cargo = Get-CargoCommand -Arm:$Arm
 $ManifestPath = Get-Manifest
+$EdgeletPath = Get-EdgeletFolder
 
+Write-Host "$EdgeletPath"
 Write-Host "OPENSSL_DIR $env:OPENSSL_DIR"
 Write-Host "OPENSSL_ROOT_DIR $env:OPENSSL_ROOT_DIR"
 
-Write-Host "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
-Invoke-Expression "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
+Set-Location -Path $EdgeletPath
+
+Write-Host "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' })"
+Invoke-Expression "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' })"
 if ($LastExitCode)
 {
     Throw "cargo build failed with exit code $LastExitCode"
