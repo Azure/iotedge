@@ -20,8 +20,8 @@ if(-Not $Arm)
 $cargo = Get-CargoCommand -Arm:$Arm
 $ManifestPath = Get-Manifest
 
-Write-Host "$cargo build $(if ($Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
-Invoke-Expression "$cargo build $(if ($Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
+Write-Host "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
+Invoke-Expression "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
 if ($LastExitCode)
 {
     Throw "cargo build failed with exit code $LastExitCode"
