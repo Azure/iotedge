@@ -1,22 +1,27 @@
 # Copyright (c) Microsoft. All rights reserved.
 
 param(
-    [switch]$Release
+    [switch]$Release,
+    [switch]$Arm
 )
 
 # Bring in util functions
 $util = Join-Path -Path $PSScriptRoot -ChildPath "util.ps1"
 . $util
 
-# Ensure rust is installed
-Assert-Rust
+# currently arm rust is private tool chain on the build machine with fixed path
+if(-Not $Arm)
+{
+    # Ensure rust is installed
+    Assert-Rust
+}
 
 # Run cargo build by specifying the manifest file
 $cargo = Get-CargoCommand
 $ManifestPath = Get-Manifest
 
-Write-Host "$cargo build --all $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
-Invoke-Expression "$cargo build --all $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
+Write-Host "$cargo build $(if ($Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
+Invoke-Expression "$cargo build $(if ($Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
 if ($LastExitCode)
 {
     Throw "cargo build failed with exit code $LastExitCode"

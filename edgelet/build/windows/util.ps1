@@ -10,6 +10,16 @@ function Test-RustUp
 
 function Get-CargoCommand
 {
+    Param(
+        [Parameter(Mandatory=$false)] [boolean]$Arm = $False
+    )
+
+    if($Arm)
+    {
+        # currently we have private rust toolchain to build arm on Windows, the path is fixed in $env:Path
+        'cargo'
+    }
+
     if (Test-RustUp)
     {
         'cargo +stable-x86_64-pc-windows-msvc '
