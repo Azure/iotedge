@@ -2724,6 +2724,11 @@ static int edge_hsm_client_store_insert_encryption_key
         LOG_DEBUG("HSM store already has encryption key set %s", key_name);
         result = 0;
     }
+    else if (load_encryption_key_from_file(g_crypto_store, key_name) == 0)
+    {
+        LOG_DEBUG("HSM store already has encryption key set %s", key_name);
+        result = 0;
+    }
     else
     {
         size_t key_size = 0;

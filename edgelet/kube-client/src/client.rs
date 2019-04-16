@@ -165,7 +165,7 @@ where
             options.and_then(|o| o.grace_period_seconds),
             None,
             None,
-            options.and_then(|o| o.propagation_policy.as_ref().map(|p| p.as_str())),
+            options.and_then(|o| o.propagation_policy.as_ref().map(AsRef::as_ref)),
         )
         .map_err(Error::from)
         .map(|req| {

@@ -22,7 +22,11 @@ impl Command for Version {
 
     #[allow(clippy::print_literal)]
     fn execute(&mut self) -> Self::Future {
-        println!("{} {}", crate_name!(), edgelet_core::version());
+        println!(
+            "{} {}",
+            crate_name!(),
+            edgelet_core::version_with_source_version(),
+        );
         future::ok(())
     }
 }

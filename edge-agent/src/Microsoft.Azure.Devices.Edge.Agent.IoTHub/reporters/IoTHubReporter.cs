@@ -196,15 +196,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         Task ReportShutdownInternal(AgentState agentState, DeploymentStatus status)
         {
             Option<IEdgeAgentModule> edgeAgentModule = agentState.SystemModules.EdgeAgent
-                .Map(ea => ea as IRuntimeStatusModule)
-                .Filter(ea => ea != null)
-                .Map(ea => (IEdgeAgentModule)ea.WithRuntimeStatus(ModuleStatus.Unknown))
+                .Filter(ea => ea is IRuntimeStatusModule)
+                .Map(ea => ((IRuntimeStatusModule)ea).WithRuntimeStatus(ModuleStatus.Unknown) as IEdgeAgentModule)
                 .Else(agentState.SystemModules.EdgeAgent);
 
             Option<IEdgeHubModule> edgeHubModule = agentState.SystemModules.EdgeHub
-                .Map(eh => eh as IRuntimeStatusModule)
-                .Filter(eh => eh != null)
-                .Map(eh => (IEdgeHubModule)eh.WithRuntimeStatus(ModuleStatus.Unknown))
+                .Filter(eh => eh is IRuntimeStatusModule)
+                .Map(eh => ((IRuntimeStatusModule)eh).WithRuntimeStatus(ModuleStatus.Unknown) as IEdgeHubModule)
                 .Else(agentState.SystemModules.EdgeHub);
 
             IDictionary<string, IModule> updateUserModules = (agentState.Modules ?? ImmutableDictionary<string, IModule>.Empty)

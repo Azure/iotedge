@@ -448,7 +448,21 @@ mod tests {
         if let Ok(string3) = result3 {
             assert_eq!(string3, "123456789".to_string());
         } else {
-            assert!(false);
+            unreachable!();
+        }
+
+        let result4 = hsm_x509.sign_with_private_key(b"aabbcc");
+        if let Ok(x509_buffer) = result4 {
+            assert_eq!(x509_buffer.as_ref(), DEFAULT_DIGEST);
+        } else {
+            panic!("Unexpected result");
+        }
+
+        let result5 = hsm_x509.get_certificate_info();
+        if let Ok(cert_handle) = result5 {
+            assert_eq!(TEST_RSA_CERT, cert_handle.pem().unwrap());
+        } else {
+            panic!("Unexpected result");
         }
 
         let result4 = hsm_x509.sign_with_private_key(b"aabbcc");
