@@ -4,8 +4,9 @@ Write-Host "$env:OPENSSL_ROOT_DIR"
 
 Write-Host "cargo.exe build --target thumbv7a-pc-windows-msvc --release"
 
-cargo.exe --help | Write-Host
-cargo.exe build --target thumbv7a-pc-windows-msvc --release -v | Write-Host
+cargo.exe --help
+cargo.exe clean
+cargo.exe build --target thumbv7a-pc-windows-msvc --release -v
 
 if ($LastExitCode)
 {
