@@ -643,7 +643,10 @@ static CERT_INFO_HANDLE edge_hsm_client_crypto_get_certificate
     CERT_INFO_HANDLE result;
 
     if (!g_is_crypto_initialized)
+    {
+        LOG_ERROR("hsm_client_crypto_init not called");
         result = NULL;
+    }
     else if (handle == NULL)
     {
         LOG_ERROR("Invalid handle value specified");
