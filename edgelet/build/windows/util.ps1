@@ -11,7 +11,7 @@ function Test-RustUp
 function Get-CargoCommand
 {
     Param(
-        [Switch (Mandatory=$false)] $Arm = $false
+        [Switch] $Arm
     )
 
     if($Arm)
