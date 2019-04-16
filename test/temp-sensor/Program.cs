@@ -43,7 +43,13 @@ namespace temp_sensor
                 await EdgeModule.WaitForStatusAsync(
                     new []{hub, sensor}, EdgeModuleStatus.Running, token);
                 await sensor.ReceiveEventsAsync(args[2], args[0], token);
-                // UpdateTempSensorTwin();
+                await device.UpdateModuleTwin("tempSensor", new {
+                    properties = new {
+                        desired = new {
+                            someProperty = "some value"
+                        }
+                    }
+                });
                 // EnsureTempSensorTwinUpdatesAreReported();
 
                 // ** teardown

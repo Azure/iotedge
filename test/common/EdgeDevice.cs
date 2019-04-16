@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Azure.Devices;
 using Microsoft.Azure.Devices.Edge.Util;
 using Microsoft.Azure.Devices.Shared;
+using Newtonsoft.Json;
 
 namespace common
 {
@@ -99,13 +100,13 @@ namespace common
 
         public Task DeleteIdentityAsync(CancellationToken token)
         {
-            DeviceContext context = _GetContextForDelete();
+            DeviceContext context = _GetContext("Cannot delete");
             return this._DeleteIdentityAsync(context, token);
         }
 
         public async Task MaybeDeleteIdentityAsync(CancellationToken token)
         {
-            DeviceContext context = _GetContextForDelete();
+            DeviceContext context = _GetContext("Cannot delete");
             if (context.Owned)
             {
                 await this._DeleteIdentityAsync(context, token);
@@ -114,16 +115,6 @@ namespace common
             {
                 Console.WriteLine($"Pre-existing device '{context.Device.Id}' was not deleted");
             }
-        }
-
-        DeviceContext _GetContextForDelete()
-        {
-            return this.context.Expect(
-                () => new InvalidOperationException(
-                    $"Cannot delete unknown device '{this.deviceId}'. Call " +
-                    "[GetOr]CreateAsync() first."
-                )
-            );
         }
 
         Task _DeleteIdentityAsync(DeviceContext context, CancellationToken token)
@@ -136,14 +127,31 @@ namespace common
 
         public Task DeployConfigurationAsync(EdgeConfiguration config)
         {
-            DeviceContext context = this.context.Expect(
+            DeviceContext context = _GetContext("Cannot deploy configuration to");
+            return config.DeployAsync(context.Device.Id, context.Registry);
+        }
+
+        public Task UpdateModuleTwin(string moduleId, object twinPatch)
+        {
+            DeviceContext context = _GetContext("Cannot update module twin for");
+            return Profiler.Run(
+                $"Updating twin for module '{moduleId}'",
+                async () => {
+                    Twin twin = await context.Registry.GetTwinAsync(context.Device.Id, moduleId);
+                    string patch = JsonConvert.SerializeObject(twinPatch);
+                    await context.Registry.UpdateTwinAsync(context.Device.Id, moduleId, patch, twin.ETag);
+                }
+            );
+        }
+
+        DeviceContext _GetContext(string errorPrefix)
+        {
+            return this.context.Expect(
                 () => new InvalidOperationException(
-                    "Cannot deploy configuration to unknown device " +
-                    $"'{this.deviceId}'. Call [GetOr]CreateAsync() first."
+                    $"{errorPrefix} unknown device '{this.deviceId}'. Call " +
+                    "[GetOr]CreateAsync() first."
                 )
             );
-
-            return config.DeployAsync(context.Device.Id, context.Registry);
         }
     }
 }
