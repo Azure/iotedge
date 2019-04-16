@@ -58,10 +58,10 @@ Function New-Package([string] $Name, [string] $Version)
     $cwd = "."
     $arch = if($Arm) { 'thumbv7a-pc-windows-msvc'} else { '' }
     $cpu = if($Arm) {'arm'} else { 'amd64' }
-    Wr-te-Host "manifest $manifest"
-    Wr-te-Host "arch $arch"
-    Wr-te-Host "cpu $cpu"
-    Wr-te-Host "Build.SourcesDirectory $(Build.SourcesDirectory)"
+    Write-Host "manifest $manifest"
+    Write-Host "arch $arch"
+    Write-Host "cpu $cpu"
+    Write-Host "Build.SourcesDirectory $(Build.SourcesDirectory)"
     Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_IOTEDGE_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR;_Arch=$arch;_MOBY_ROOT=$(Build.SourcesDirectory)' /cpu:$cpu /version:$Version"
     if ($LASTEXITCODE) {
         Throw "Failed to package cab"
