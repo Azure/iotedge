@@ -1,12 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.Devices;
 using Microsoft.Azure.Devices.Edge.Util;
 using Microsoft.Azure.Devices.Shared;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace common
 {
@@ -140,6 +143,38 @@ namespace common
                     Twin twin = await context.Registry.GetTwinAsync(context.Device.Id, moduleId, token);
                     string patch = JsonConvert.SerializeObject(twinPatch);
                     await context.Registry.UpdateTwinAsync(context.Device.Id, moduleId, patch, twin.ETag, token);
+                }
+            );
+        }
+
+        public Task WaitForTwinUpdatesAsync(string moduleId, object twinPatch, CancellationToken token)
+        {
+            DeviceContext context = _GetContext("Cannot get module twin updates for");
+            return Profiler.Run(
+                $"Waiting for expected twin updates for module '{moduleId}'",
+                () => {
+                    return Retry.Do(
+                        async () => {
+                            Twin twin = await context.Registry.GetTwinAsync(context.Device.Id, moduleId, token);
+                            // TODO: Only newer versions of tempSensor mirror certain desired properties
+                            //       to reported (e.g. 1.0.7-rc2). So return desired properties until
+                            //       the temp-sensor e2e test can pull docker images other than the
+                            //       default 'mcr...:1.0'.
+                            // return twin.Properties.Reported;
+                            return twin.Properties.Desired;
+                        },
+                        reported => {
+                            JObject expected = JObject.FromObject(twinPatch)
+                                .Value<JObject>("properties")
+                                .Value<JObject>("reported");
+                            return expected.Value<JObject>().All<KeyValuePair<string, JToken>>(
+                                prop => reported.Contains(prop.Key) && reported[prop.Key] == prop.Value
+                            );
+                        },
+                        null,
+                        TimeSpan.FromSeconds(5),
+                        token
+                    );
                 }
             );
         }

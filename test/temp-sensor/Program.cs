@@ -46,11 +46,19 @@ namespace temp_sensor
                 await device.UpdateModuleTwinAsync("tempSensor", new {
                     properties = new {
                         desired = new {
-                            someProperty = "some value"
+                            SendData = true,
+                            SendInterval = 10
                         }
                     }
                 }, token);
-                // EnsureTempSensorTwinUpdatesAreReported();
+                await device.WaitForTwinUpdatesAsync("tempSensor", new {
+                    properties = new {
+                        reported = new {
+                            SendData = true,
+                            SendInterval = 10
+                        }
+                    }
+                }, token);
 
                 // ** teardown
                 await daemon.StopAsync(token);
