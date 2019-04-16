@@ -17,7 +17,7 @@ if(-Not $Arm)
 }
 
 # Run cargo build by specifying the manifest file
-$cargo = Get-CargoCommand $Arm
+$cargo = Get-CargoCommand -Arm:$Arm
 $ManifestPath = Get-Manifest
 
 Write-Host "$cargo build $(if ($Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
