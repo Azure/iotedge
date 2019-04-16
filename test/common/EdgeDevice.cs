@@ -15,28 +15,16 @@ namespace common
 {
     public class EdgeDevice
     {
-        class DeviceContext
-        {
-            public string ConnectionString { get; }
-            public bool Owned { get; }
-            public Device Device { get; }
-            public RegistryManager Registry { get; }
-
-            public DeviceContext(Device device, string hostname, bool owned, RegistryManager rm)
-            {
-                this.ConnectionString = 
-                    $"HostName={hostname};" +
-                    $"DeviceId={device.Id};" +
-                    $"SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}";
-                this.Owned = owned;
-                this.Device = device;
-                this.Registry = rm;
-            }
-        }
-
         Option<DeviceContext> context;
         string deviceId;
         string hubConnectionString;
+
+        public DeviceContext Context => this.context.Expect(
+            () => new InvalidOperationException(
+                $"No context for unknown device '{this.deviceId}'. Call " +
+                "[GetOr]CreateAsync() first."
+            )
+        );
 
         public EdgeDevice(string deviceId, string hubConnectionString)
         {
@@ -126,12 +114,6 @@ namespace common
                 $"Deleting device '{context.Device.Id}'",
                 () => context.Registry.RemoveDeviceAsync(context.Device)
             );
-        }
-
-        public Task DeployConfigurationAsync(EdgeConfiguration config, CancellationToken token)
-        {
-            DeviceContext context = _GetContext("Cannot deploy configuration to");
-            return config.DeployAsync(context.Device.Id, context.Registry, token);
         }
 
         public Task UpdateModuleTwinAsync(string moduleId, object twinPatch, CancellationToken token)

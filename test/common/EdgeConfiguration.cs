@@ -15,6 +15,7 @@ namespace common
     public class EdgeConfiguration
     {
         ConfigurationContent config;
+        DeviceContext context;
 
         IReadOnlyCollection<string> Modules
         {
@@ -40,9 +41,10 @@ namespace common
             }
         }
 
-        public EdgeConfiguration()
+        public EdgeConfiguration(EdgeDevice device)
         {
             this.config = _GetBaseConfig();
+            this.context = device.Context;
         }
 
         public void AddEdgeHub()
@@ -79,14 +81,14 @@ namespace common
             config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
         }
 
-        public Task DeployAsync(string deviceId, RegistryManager rm, CancellationToken token)
+        public Task DeployAsync(CancellationToken token)
         {
             string message = "Deploying edge configuration to device " +
-                $"'{deviceId}' with modules ({string.Join(", ", this.Modules)})";
+                $"'{this.context.Device.Id}' with modules ({string.Join(", ", this.Modules)})";
 
             return Profiler.Run(
                 message,
-                () => rm.ApplyConfigurationContentOnDeviceAsync(deviceId, this.config, token)
+                () => this.context.DeployConfigurationAsync(this.config, token)
             );
         }
 

@@ -33,10 +33,10 @@ namespace temp_sensor
                 await agent.PingAsync(args[1], args[0], token);
 
                 // ** test
-                var config = new EdgeConfiguration();
+                var config = new EdgeConfiguration(device);
                 config.AddEdgeHub();
                 config.AddTempSensor();
-                await device.DeployConfigurationAsync(config, token);
+                await config.DeployAsync(token);
 
                 var hub = new EdgeModule("edgeHub");
                 var sensor = new EdgeModule("tempSensor");
