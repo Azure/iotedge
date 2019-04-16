@@ -261,6 +261,25 @@ impl CreateCertificate for Crypto {
     }
 }
 
+impl GetCertificate for Crypto {
+    fn get(&self, alias: String) -> Result<HsmCertificate, Error> {
+        let if_fn = self
+            .interface
+            .hsm_client_crypto_get_certificate
+            .ok_or(ErrorKind::NoneFn)?;
+
+        let c_alias = CString::new(alias.clone())
+            .ok()
+            .ok_or_else(|| ErrorKind::ToCStr)?;
+        let cert_info_handle = unsafe { if_fn(self.handle, c_alias.as_ptr()) };
+        if cert_info_handle.is_null() {
+            Err(ErrorKind::NullResponse)?
+        } else {
+            Ok(HsmCertificate { cert_info_handle })
+        }
+    }
+}
+
 impl GetTrustBundle for Crypto {
     fn get_trust_bundle(&self) -> Result<HsmCertificate, Error> {
         let if_fn = self
@@ -537,6 +556,10 @@ pub struct HsmCertificate {
 }
 
 impl HsmCertificate {
+    pub fn from(cert_info_handle: CERT_INFO_HANDLE) -> Result<Self, Error> {
+        Ok(HsmCertificate { cert_info_handle })
+    }
+
     pub fn pem(&self) -> Result<String, Error> {
         let cert = unsafe {
             CStr::from_ptr(certificate_info_get_certificate(self.cert_info_handle))
@@ -862,6 +885,26 @@ mod tests {
     unsafe extern "C" fn fake_handle_create_bad() -> HSM_CLIENT_HANDLE {
         1_isize as *mut c_void
     }
+
+    const DEFAULT_DIGEST_LEN: usize = 32_usize;
+
+    unsafe extern "C" fn fake_private_key_sign(
+        handle: HSM_CLIENT_HANDLE,
+        _alias: *const c_char,
+        _data_to_be_signed: *const c_uchar,
+        _data_to_be_signed_size: usize,
+        digest: *mut *mut c_uchar,
+        digest_size: *mut usize,
+    ) -> c_int {
+        let n = handle as isize;
+        if n == 0 {
+            *digest = malloc(DEFAULT_DIGEST_LEN) as *mut c_uchar;
+            *digest_size = DEFAULT_DIGEST_LEN;
+            0
+        } else {
+            1
+        }
+    }
     unsafe extern "C" fn fake_random_bytes(
         handle: HSM_CLIENT_HANDLE,
         _buffer: *mut c_uchar,
@@ -936,6 +979,25 @@ mod tests {
     unsafe extern "C" fn fake_create_cert(
         handle: HSM_CLIENT_HANDLE,
         _certificate_props: CERT_PROPS_HANDLE,
+    ) -> CERT_INFO_HANDLE {
+        let n = handle as isize;
+        if n == 0 {
+            let cert = CString::new(TEST_RSA_CERT).unwrap();
+            let pk = CString::new("1234").unwrap();
+            certificate_info_create(
+                cert.as_ptr(),
+                pk.as_ptr() as *const c_void,
+                pk.to_bytes().len() as usize,
+                1 as u32,
+            )
+        } else {
+            ::std::ptr::null_mut()
+        }
+    }
+
+    unsafe extern "C" fn fake_get_crypto_cert(
+        handle: HSM_CLIENT_HANDLE,
+        _alias: *const c_char,
     ) -> CERT_INFO_HANDLE {
         let n = handle as isize;
         if n == 0 {
@@ -1051,6 +1113,8 @@ mod tests {
                 hsm_client_decrypt_data: Some(fake_decrypt),
                 hsm_client_get_trust_bundle: Some(fake_trust_bundle),
                 hsm_client_free_buffer: Some(real_buffer_destroy),
+                hsm_client_crypto_sign_with_private_key: Some(fake_private_key_sign),
+                hsm_client_crypto_get_certificate: Some(fake_get_crypto_cert),
             },
         }
     }
@@ -1132,6 +1196,8 @@ mod tests {
                 hsm_client_decrypt_data: Some(fake_decrypt),
                 hsm_client_get_trust_bundle: Some(fake_trust_bundle),
                 hsm_client_free_buffer: Some(real_buffer_destroy),
+                hsm_client_crypto_sign_with_private_key: Some(fake_private_key_sign),
+                hsm_client_crypto_get_certificate: Some(fake_get_crypto_cert),
             },
         }
     }
