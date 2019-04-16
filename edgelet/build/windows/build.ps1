@@ -20,6 +20,9 @@ if(-Not $Arm)
 $cargo = Get-CargoCommand -Arm:$Arm
 $ManifestPath = Get-Manifest
 
+Write-Host "OPENSSL_DIR $env:OPENSSL_DIR"
+Write-Host "OPENSSL_ROOT_DIR $env:OPENSSL_ROOT_DIR"
+
 Write-Host "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
 Invoke-Expression "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
 if ($LastExitCode)
