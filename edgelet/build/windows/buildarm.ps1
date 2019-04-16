@@ -5,7 +5,7 @@ Write-Host "$env:OPENSSL_ROOT_DIR"
 Write-Host "cargo.exe build --target thumbv7a-pc-windows-msvc --release"
 
 Invoke-Expression "cargo.exe --help" | Write-Host
-Invoke-Expression "cargo.exe build --target thumbv7a-pc-windows-msvc --release -v" | Write-Host
+cmd /c "cargo.exe build --target thumbv7a-pc-windows-msvc --release -v" | Write-Host
 
 if ($LastExitCode)
 {
