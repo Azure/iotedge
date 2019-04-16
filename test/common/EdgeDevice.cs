@@ -133,5 +133,17 @@ namespace common
                 () => context.Registry.RemoveDeviceAsync(context.Device)
             );
         }
+
+        public Task DeployConfigurationAsync(EdgeConfiguration config)
+        {
+            DeviceContext context = this.context.Expect(
+                () => new InvalidOperationException(
+                    "Cannot deploy configuration to unknown device " +
+                    $"'{this.deviceId}'. Call [GetOr]CreateAsync() first."
+                )
+            );
+
+            return config.DeployAsync(context.Device.Id, context.Registry);
+        }
     }
 }

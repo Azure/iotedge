@@ -13,15 +13,35 @@ namespace common
 {
     public class EdgeConfiguration
     {
-        string deviceId;
-        string hubConnectionString;
         ConfigurationContent config;
 
-        public EdgeConfiguration(string deviceId, string hubConnectionString)
+        IReadOnlyCollection<string> Modules
         {
-            this.deviceId = deviceId;
-            this.hubConnectionString = hubConnectionString;
-            this.config = GetBaseConfig();
+            get
+            {
+                var list = new List<string>();
+                JObject desired = JObject.FromObject(this.config.ModulesContent["$edgeAgent"]["properties.desired"]);
+                if (desired.TryGetValue("systemModules", StringComparison.OrdinalIgnoreCase, out JToken systemModules))
+                {
+                    foreach (var module in systemModules.Value<JObject>())
+                    {
+                        list.Add(module.Key);
+                    }
+                }
+                if (desired.TryGetValue("modules", StringComparison.OrdinalIgnoreCase, out JToken modules))
+                {
+                    foreach (var module in modules.Value<JObject>())
+                    {
+                        list.Add(module.Key);
+                    }
+                }
+                return new ReadOnlyCollection<string>(list);
+            }
+        }
+
+        public EdgeConfiguration()
+        {
+            this.config = _GetBaseConfig();
         }
 
         public void AddEdgeHub()
@@ -31,11 +51,11 @@ namespace common
             // { "modulesContent": { "$edgeAgent": { "properties.desired": { "systemModules": { "edgeHub": { ... } } } } } }
             JObject desired = JObject.FromObject(config.ModulesContent["$edgeAgent"]["properties.desired"]);
             JObject systemModules = desired.Get<JObject>("systemModules");
-            systemModules.Add("edgeHub", JToken.FromObject(GetBaseEdgeHubSystemModules()));
+            systemModules.Add("edgeHub", JToken.FromObject(_GetBaseEdgeHubSystemModules()));
             config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
 
             // { "modulesContent": { "$edgeHub": { ... } } }
-            config.ModulesContent["$edgeHub"] = GetBaseEdgeHubModulesContent();
+            config.ModulesContent["$edgeHub"] = _GetBaseEdgeHubModulesContent();
         }
 
         public void AddTempSensor()
@@ -54,28 +74,22 @@ namespace common
                 desired.Add("modules", new JObject());
                 modules = desired.Get<JObject>("modules");
             }
-            modules.Add("tempSensor", JToken.FromObject(GetBaseTempSensor()));
+            modules.Add("tempSensor", JToken.FromObject(_GetBaseTempSensor()));
             config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
         }
 
-        public Task DeployAsync()
+        public Task DeployAsync(string deviceId, RegistryManager rm)
         {
-            IReadOnlyCollection<string> modules = GetConfigModuleList(this.config);
+            string message = "Deploying edge configuration to device " +
+                $"'{deviceId}' with modules ({string.Join(", ", this.Modules)})";
 
             return Profiler.Run(
-                $"Deploying edge configuration to device '{this.deviceId}' with modules ({string.Join(", ", modules)})",
-                () => {
-                    var settings = new HttpTransportSettings();
-                    IotHubConnectionStringBuilder builder =
-                        IotHubConnectionStringBuilder.Create(this.hubConnectionString);
-                    RegistryManager rm =
-                        RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
-                    return rm.ApplyConfigurationContentOnDeviceAsync(this.deviceId, this.config);
-                }
+                message,
+                () => rm.ApplyConfigurationContentOnDeviceAsync(deviceId, this.config)
             );
         }
 
-        static ConfigurationContent GetBaseConfig() => new ConfigurationContent
+        static ConfigurationContent _GetBaseConfig() => new ConfigurationContent
         {
             ModulesContent = new Dictionary<string, IDictionary<string, object>>
             {
@@ -108,7 +122,7 @@ namespace common
             }
         };
 
-        static Dictionary<string, object> GetBaseEdgeHubModulesContent() => new Dictionary<string, object>
+        static Dictionary<string, object> _GetBaseEdgeHubModulesContent() => new Dictionary<string, object>
         {
             ["properties.desired"] = new
             {
@@ -124,7 +138,7 @@ namespace common
             }
         };
 
-        static Object GetBaseEdgeHubSystemModules() => new
+        static Object _GetBaseEdgeHubSystemModules() => new
         {
             type = "docker",
             status = "running",
@@ -136,7 +150,7 @@ namespace common
             }
         };
 
-        static Object GetBaseTempSensor() => new
+        static Object _GetBaseTempSensor() => new
         {
             type = "docker",
             status = "running",
@@ -146,26 +160,5 @@ namespace common
                 image = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0"
             }
         };
-
-        static IReadOnlyCollection<string> GetConfigModuleList(ConfigurationContent config)
-        {
-            var list = new List<string>();
-            JObject desired = JObject.FromObject(config.ModulesContent["$edgeAgent"]["properties.desired"]);
-            if (desired.TryGetValue("systemModules", StringComparison.OrdinalIgnoreCase, out JToken systemModules))
-            {
-                foreach (var module in systemModules.Value<JObject>())
-                {
-                    list.Add(module.Key);
-                }
-            }
-            if (desired.TryGetValue("modules", StringComparison.OrdinalIgnoreCase, out JToken modules))
-            {
-                foreach (var module in modules.Value<JObject>())
-                {
-                    list.Add(module.Key);
-                }
-            }
-            return new ReadOnlyCollection<string>(list);
-        }
     }
 }
