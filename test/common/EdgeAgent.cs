@@ -9,9 +9,9 @@ namespace common
 {
     public class EdgeAgent : EdgeModule
     {
-        public EdgeAgent() : base("edgeAgent") {}
+        public EdgeAgent(EdgeDevice device) : base("edgeAgent", device) {}
 
-        public Task PingAsync(string hubConnectionString, string deviceId, CancellationToken token)
+        public Task PingAsync(CancellationToken token)
         {
             Exception savedException = null;
 
@@ -20,7 +20,7 @@ namespace common
                 {
                     var settings = new ServiceClientTransportSettings();
                     ServiceClient client = ServiceClient.CreateFromConnectionString(
-                        hubConnectionString,
+                        this.context.ConnectionString,
                         TransportType.Amqp_WebSocket_Only,
                         settings);
 
@@ -29,7 +29,7 @@ namespace common
                         try
                         {
                             CloudToDeviceMethodResult result = await client.InvokeDeviceMethodAsync(
-                                deviceId,
+                                this.context.Device.Id,
                                 "$edgeAgent",
                                 new CloudToDeviceMethod("ping"),
                                 token);

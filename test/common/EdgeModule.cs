@@ -20,10 +20,12 @@ namespace common
 
     public class EdgeModule
     {
+        protected DeviceContext context;
         string name;
 
-        public EdgeModule(string name)
+        public EdgeModule(string name, EdgeDevice device)
         {
+            this.context = device.Context;
             this.name = name;
         }
 
@@ -91,12 +93,14 @@ namespace common
             );
         }
 
-        public Task ReceiveEventsAsync(string eventHubConnectionString, string deviceId, CancellationToken token)
+        public Task ReceiveEventsAsync(string eventHubConnectionString, CancellationToken token)
         {
             var builder = new EventHubsConnectionStringBuilder(eventHubConnectionString)
             {
                 TransportType = EventHubTransportType.AmqpWebSockets
             };
+
+            string deviceId = this.context.Device.Id;
 
             async Task _ReceiveEventsAsync()
             {

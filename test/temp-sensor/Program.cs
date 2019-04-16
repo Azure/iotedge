@@ -28,9 +28,9 @@ namespace temp_sensor
                 await daemon.InstallAsync(token);
                 await daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
 
-                var agent = new EdgeAgent();
+                var agent = new EdgeAgent(device);
                 await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
-                await agent.PingAsync(args[1], args[0], token);
+                await agent.PingAsync(token);
 
                 // ** test
                 var config = new EdgeConfiguration(device);
@@ -38,11 +38,11 @@ namespace temp_sensor
                 config.AddTempSensor();
                 await config.DeployAsync(token);
 
-                var hub = new EdgeModule("edgeHub");
-                var sensor = new EdgeModule("tempSensor");
+                var hub = new EdgeModule("edgeHub", device);
+                var sensor = new EdgeModule("tempSensor", device);
                 await EdgeModule.WaitForStatusAsync(
                     new []{hub, sensor}, EdgeModuleStatus.Running, token);
-                await sensor.ReceiveEventsAsync(args[2], args[0], token);
+                await sensor.ReceiveEventsAsync(args[2], token);
                 await device.UpdateModuleTwinAsync("tempSensor", new {
                     properties = new {
                         desired = new {
