@@ -7,6 +7,9 @@ const char* const ENV_DEVICE_CA_PATH = "IOTEDGE_DEVICE_CA_CERT";
 const char* const ENV_DEVICE_PK_PATH = "IOTEDGE_DEVICE_CA_PK";
 const char* const ENV_TRUSTED_CA_CERTS_PATH = "IOTEDGE_TRUSTED_CA_CERTS";
 const char* const ENV_TPM_SELECT = "IOTEDGE_USE_TPM_DEVICE";
+const char* const ENV_REGISTRATION_ID = "IOTEDGE_REGISTRATION_ID";
+const char* const ENV_DEVICE_CERTIFICATE_PATH = "IOTEDGE_DEVICE_IDENTITY_CERT";
+const char* const ENV_DEVICE_PRIVATE_KEY_PATH = "IOTEDGE_DEVICE_IDENTITY_PK";
 
 /* HSM directory name under IOTEDGE_HOMEDIR */
 const char* const DEFAULT_EDGE_HOME_DIR_UNIX = "/var/lib/iotedge"; // note MacOS is included
@@ -26,4 +29,6 @@ const char* const OWNER_CA_COMMON_NAME = "Test Edge Owner CA";
 const char* const DEVICE_CA_COMMON_NAME = "Test Edge Device CA";
 const char* const EDGE_CA_ALIAS = "iotedged_ca";
 const char* const EDGE_CA_COMMON_NAME = "Test Iotedge CA";
+const char* const EDGE_DEVICE_ALIAS = "edgelet_device";
+
 const uint64_t CA_VALIDITY = 90 * 24 * 3600; // 90 days
