@@ -53,16 +53,17 @@ $($OFS="`r`n"; $Files)
 Function New-Package([string] $Name, [string] $Version)
 {
     $pkggen = "${Env:ProgramFiles(x86)}\Windows Kits\10\tools\bin\i386\pkggen.exe"
-    $ProjectRoot = Join-Path -Path $PSScriptRoot -ChildPath "../../.."    
+    $ProjectRoot = Join-Path -Path $PSScriptRoot -ChildPath "../../.."
     $manifest = Join-Path -Path $ProjectRoot -ChildPath "edgelet/build/windows/iotedge.wm.xml"
+    $mobyroot = if($Arm) {Join-Path -Path $ProjectRoot -ChildPath ".."} else {$ProjectRoot}
     $cwd = "."
     $arch = if($Arm) { 'thumbv7a-pc-windows-msvc'} else { '' }
     $cpu = if($Arm) {'arm'} else { 'amd64' }
     Write-Host "manifest $manifest"
     Write-Host "arch $arch"
     Write-Host "cpu $cpu"
-    Write-Host "Build.SourcesDirectory $(Build.SourcesDirectory)"
-    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_IOTEDGE_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR;_Arch=$arch;_MOBY_ROOT=$(Build.SourcesDirectory)' /cpu:$cpu /version:$Version"
+    Write-Host "mobyroot $mobyroot"
+    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_IOTEDGE_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR;_Arch=$arch;_MOBY_ROOT=$mobyroot' /cpu:$cpu /version:$Version"
     if ($LASTEXITCODE) {
         Throw "Failed to package cab"
     }
