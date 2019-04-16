@@ -47,7 +47,7 @@ int hsm_client_crypto_init(void)
         }
         else
         {
-            g_is_x509_initialized = true;
+            g_is_crypto_initialized = true;
             g_hsm_store_if = store_if;
             g_hsm_key_if = key_if;
 			srand((unsigned int)time(NULL));
@@ -64,7 +64,7 @@ int hsm_client_crypto_init(void)
 
 void hsm_client_crypto_deinit(void)
 {
-    if (!g_is_x509_initialized)
+    if (!g_is_crypto_initialized)
     {
         LOG_ERROR("hsm_client_tpm_init not called");
     }
@@ -97,7 +97,7 @@ static HSM_CLIENT_HANDLE edge_hsm_client_crypto_create(void)
     HSM_CLIENT_HANDLE result;
     EDGE_CRYPTO* edge_crypto;
 
-    if (!g_is_x509_initialized)
+    if (!g_is_crypto_initialized)
     {
         LOG_ERROR("hsm_client_crypto_init not called");
         result = NULL;
@@ -123,7 +123,7 @@ static HSM_CLIENT_HANDLE edge_hsm_client_crypto_create(void)
 
 static void edge_hsm_client_crypto_destroy(HSM_CLIENT_HANDLE handle)
 {
-    if (!g_is_x509_initialized)
+    if (!g_is_crypto_initialized)
     {
         LOG_ERROR("hsm_client_crypto_init not called");
     }

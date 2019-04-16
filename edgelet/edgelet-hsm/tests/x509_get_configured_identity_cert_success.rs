@@ -20,7 +20,7 @@ const DEVICE_IDENTITY_PK: &str = "ABCD";
 #[test]
 fn x509_get_identity_cert_success() {
     // arrange
-    let home_dir = TempDir::new_in("/mnt/c/temp/msr").unwrap();
+    let home_dir = TempDir::new().unwrap();
     env::set_var(HOMEDIR_KEY, &home_dir.path());
     println!("IOTEDGE_HOMEDIR set to {:#?}", home_dir.path());
 
