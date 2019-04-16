@@ -8,25 +8,25 @@
   owner="Microsoft"
   >
   <files>
-    <file source="$(_REPO_ROOT)\edgelet\contrib\config\windows\config.yaml" destinationDir="$(runtime.programFiles)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedge.exe" destinationDir="$(runtime.programFiles)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged.exe" destinationDir="$(runtime.programFiles)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged.pdb" destinationDir="$(runtime.programFiles)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged_eventlog_messages.dll" destinationDir="$(runtime.programFiles)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\hsm-sys\azure-iot-hsm-c\build\Release\iothsm.dll" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_IOTEDGE_ROOT)\edgelet\contrib\config\windows\config.yaml" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_IOTEDGE_ROOT)\edgelet\target\$(_Arch)\release\iotedge.exe" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_IOTEDGE_ROOT)\edgelet\target\$(_Arch)\release\iotedged.exe" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_IOTEDGE_ROOT)\edgelet\target\$(_Arch)\release\iotedged.pdb" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_IOTEDGE_ROOT)\edgelet\target\$(_Arch)\release\iotedged_eventlog_messages.dll" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_IOTEDGE_ROOT)\edgelet\hsm-sys\azure-iot-hsm-c\build\Release\iothsm.dll" destinationDir="$(runtime.programFiles)\iotedge" />
     <file source="$(_OPENSSL_ROOT_DIR)\bin\libeay32.dll" destinationDir="$(runtime.programFiles)\iotedge" />
     <file source="$(_OPENSSL_ROOT_DIR)\bin\ssleay32.dll" destinationDir="$(runtime.programFiles)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\contrib\docs\LICENSE" destinationDir="$(runtime.programFiles)\iotedge\LICENSE" />
-    <file source="$(_REPO_ROOT)\edgelet\contrib\docs\ThirdPartyNotices" destinationDir="$(runtime.programFiles)\iotedge\LICENSE" />
-    <file source="$(_REPO_ROOT)\edgelet\contrib\docs\trademark" destinationDir="$(runtime.programFiles)\iotedge\LICENSE" />
+    <file source="$(_IOTEDGE_ROOT)\edgelet\contrib\docs\LICENSE" destinationDir="$(runtime.programFiles)\iotedge\LICENSE" />
+    <file source="$(_IOTEDGE_ROOT)\edgelet\contrib\docs\ThirdPartyNotices" destinationDir="$(runtime.programFiles)\iotedge\LICENSE" />
+    <file source="$(_IOTEDGE_ROOT)\edgelet\contrib\docs\trademark" destinationDir="$(runtime.programFiles)\iotedge\LICENSE" />
 
-    <file source="$(_REPO_ROOT)\moby-engine\dockerd.exe" destinationDir="$(runtime.programFiles)\iotedge-moby" />
-    <file source="$(_REPO_ROOT)\moby-engine\LICENSE" destinationDir="$(runtime.programFiles)\iotedge-moby\legal-engine" />
-    <file source="$(_REPO_ROOT)\moby-engine\ThirdPartyNotices" destinationDir="$(runtime.programFiles)\iotedge-moby\legal-engine" />
+    <file source="$(_MOBY_ROOT)\moby-engine\dockerd.exe" destinationDir="$(runtime.programFiles)\iotedge-moby" />
+    <file source="$(_MOBY_ROOT)\moby-engine\LICENSE" destinationDir="$(runtime.programFiles)\iotedge-moby\legal-engine" />
+    <file source="$(_MOBY_ROOT)\moby-engine\ThirdPartyNotices" destinationDir="$(runtime.programFiles)\iotedge-moby\legal-engine" />
 
-    <file source="$(_REPO_ROOT)\moby-cli\docker.exe" destinationDir="$(runtime.programFiles)\iotedge-moby" />
-    <file source="$(_REPO_ROOT)\moby-cli\LICENSE" destinationDir="$(runtime.programFiles)\iotedge-moby\legal-cli" />
-    <file source="$(_REPO_ROOT)\moby-cli\ThirdPartyNotices" destinationDir="$(runtime.programFiles)\iotedge-moby\legal-cli" />
+    <file source="$(_MOBY_ROOT)\moby-cli\docker.exe" destinationDir="$(runtime.programFiles)\iotedge-moby" />
+    <file source="$(_MOBY_ROOT)\moby-cli\LICENSE" destinationDir="$(runtime.programFiles)\iotedge-moby\legal-cli" />
+    <file source="$(_MOBY_ROOT)\moby-cli\ThirdPartyNotices" destinationDir="$(runtime.programFiles)\iotedge-moby\legal-cli" />
   </files>
   <regKeys>
     <regKey keyName="$(hklm.system)\CurrentControlSet\Services\EventLog\Application\iotedged">

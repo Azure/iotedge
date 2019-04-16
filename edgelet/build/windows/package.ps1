@@ -1,4 +1,4 @@
-Param([Switch] $CreateTemplate, [Switch] $CreateCab, [Switch] $SkipInstallCerts)
+Param([Switch] $CreateTemplate, [Switch] $CreateCab, [Switch] $SkipInstallCerts, [Switch] $Arm)
 
 $EdgeCab = "Microsoft-Azure-IoTEdge.cab"
 $EdgeTemplate = "Package-Template"
@@ -56,7 +56,13 @@ Function New-Package([string] $Name, [string] $Version)
     $ProjectRoot = Join-Path -Path $PSScriptRoot -ChildPath "../../.."    
     $manifest = Join-Path -Path $ProjectRoot -ChildPath "edgelet/build/windows/iotedge.wm.xml"
     $cwd = "."
-    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_REPO_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR' /cpu:amd64 /version:$Version"
+    $arch = if($Arm) { 'thumbv7a-pc-windows-msvc'} else { '' }
+    $cpu = if($Arm) {'arm'} else { 'amd64' }
+    Wr-te-Host "manifest $manifest"
+    Wr-te-Host "arch $arch"
+    Wr-te-Host "cpu $cpu"
+    Wr-te-Host "Build.SourcesDirectory $(Build.SourcesDirectory)"
+    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_IOTEDGE_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR;_Arch=$arch;_MOBY_ROOT=$(Build.SourcesDirectory)' /cpu:$cpu /version:$Version"
     if ($LASTEXITCODE) {
         Throw "Failed to package cab"
     }
