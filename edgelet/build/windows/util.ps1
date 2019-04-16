@@ -35,6 +35,12 @@ function Get-Manifest
     Join-Path -Path $ProjectRoot -ChildPath "edgelet/Cargo.toml"
 }
 
+function Get-EdgeletFolder
+{
+    $ProjectRoot = Join-Path -Path $PSScriptRoot -ChildPath "../../.."
+    Join-Path -Path $ProjectRoot -ChildPath "edgelet"
+}
+
 function Assert-Rust
 {
     Write-Host "Validating Rust (stable-x86_64-pc-windows-msvc) is installed and up to date."
