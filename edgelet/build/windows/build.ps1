@@ -21,9 +21,12 @@ $cargo = Get-CargoCommand -Arm:$Arm
 $ManifestPath = Get-Manifest
 $EdgeletPath = Get-EdgeletFolder
 
-Write-Host "$EdgeletPath"
+Write-Host "EdgeletPath $EdgeletPath"
 Write-Host "OPENSSL_DIR $env:OPENSSL_DIR"
 Write-Host "OPENSSL_ROOT_DIR $env:OPENSSL_ROOT_DIR"
+
+Write-Host (Get-Command cargo.exe).Path
+Write-Host (Get-Command cl.exe).Path
 
 Set-Location -Path $EdgeletPath
 
