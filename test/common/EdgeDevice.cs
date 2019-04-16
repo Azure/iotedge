@@ -33,7 +33,7 @@ namespace common
             this.hubConnectionString = hubConnectionString;
         }
 
-        public Task<string> CreateIdentityAsync(CancellationToken token)
+        public Task CreateIdentityAsync(CancellationToken token)
         {
             var settings = new HttpTransportSettings();
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.hubConnectionString);
@@ -42,7 +42,7 @@ namespace common
             return this._CreateIdentityAsync(rm, builder.HostName, token);
         }
 
-        public async Task<string> GetOrCreateIdentityAsync(CancellationToken token)
+        public async Task GetOrCreateIdentityAsync(CancellationToken token)
         {
             var settings = new HttpTransportSettings();
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.hubConnectionString);
@@ -62,15 +62,14 @@ namespace common
                 this.context = Option.Some(context);
 
                 Console.WriteLine($"Device '{device.Id}' already exists on hub '{builder.HostName}'");
-                return context.ConnectionString;
             }
             else
             {
-                return await this._CreateIdentityAsync(rm, builder.HostName, token);
+                await this._CreateIdentityAsync(rm, builder.HostName, token);
             }
         }
 
-        Task<string> _CreateIdentityAsync(RegistryManager rm, string hub, CancellationToken token)
+        Task _CreateIdentityAsync(RegistryManager rm, string hub, CancellationToken token)
         {
             return Profiler.Run(
                 $"Creating edge device '{this.deviceId}' on hub '{hub}'",
@@ -84,7 +83,6 @@ namespace common
 
                     var context = new DeviceContext(device, hub, true, rm);
                     this.context = Option.Some(context);
-                    return context.ConnectionString;
                 }
             );
         }
