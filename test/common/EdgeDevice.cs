@@ -15,16 +15,22 @@ namespace common
 {
     public class EdgeDevice
     {
-        DeviceContext context;
-        IotHub iotHub;
+        readonly Device device;
+        readonly IotHub iotHub;
+        readonly bool owned;
 
-        public string ConnectionString => this.context.ConnectionString;
-        public string Id => this.context.Device.Id;
+        public string ConnectionString =>
+            $"HostName={this.iotHub.Hostname};" +
+            $"DeviceId={this.device.Id};" +
+            $"SharedAccessKey={this.device.Authentication.SymmetricKey.PrimaryKey}";
 
-        EdgeDevice(DeviceContext context, IotHub iotHub)
+        public string Id => this.device.Id;
+
+        EdgeDevice(Device device, bool owned, IotHub iotHub)
         {
-            this.context = context;
+            this.device = device;
             this.iotHub = iotHub;
+            this.owned = owned;
         }
 
         public static Task<EdgeDevice> CreateIdentityAsync(
@@ -37,8 +43,7 @@ namespace common
                 $"Creating edge device '{deviceId}' on hub '{iotHub.Hostname}'",
                 async () => {
                     Device device = await iotHub.CreateEdgeDeviceIdentity(deviceId, token);
-                    var context = new DeviceContext(device, true, iotHub.Hostname);
-                    return new EdgeDevice(context, iotHub);
+                    return new EdgeDevice(device, true, iotHub);
                 }
             );
         }
@@ -60,8 +65,7 @@ namespace common
                 }
 
                 Console.WriteLine($"Device '{device.Id}' already exists on hub '{iotHub.Hostname}'");
-                var context = new DeviceContext(device, false, iotHub.Hostname);
-                return new EdgeDevice(context, iotHub);
+                return new EdgeDevice(device, false, iotHub);
             }
             else
             {
@@ -73,13 +77,13 @@ namespace common
         {
             return Profiler.Run(
                 $"Deleting device '{this.Id}'",
-                () => this.iotHub.DeleteDeviceIdentityAsync(this.context.Device, token)
+                () => this.iotHub.DeleteDeviceIdentityAsync(this.device, token)
             );
         }
 
         public async Task MaybeDeleteIdentityAsync(CancellationToken token)
         {
-            if (this.context.Owned)
+            if (this.owned)
             {
                 await DeleteIdentityAsync(token);
             }
