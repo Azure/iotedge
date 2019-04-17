@@ -62,6 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string sasKey = ConnectionStringHelper.GetSharedAccessKey(deviceConnStr);
             var signatureProvider = new SharedAccessKeySignatureProvider(sasKey);
             var credentialsCache = Mock.Of<ICredentialsCache>();
+            var productInfoStore = Mock.Of<IProductInfoStore>();
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
                 1,
@@ -74,7 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
-                Option.None<IWebProxy>());
+                Option.None<IWebProxy>(),
+                productInfoStore);
             var connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), identityProvider);
 
             try

@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 {
                     var storeProvider = c.Resolve<IStoreProvider>();
                     IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ProductInfo");
-                    return new ProductInfoStore(entityStore);
+                    return new ProductInfoStore(entityStore, this.productInfo);
                 })
                 .As<IProductInfoStore>()
                 .SingleInstance();

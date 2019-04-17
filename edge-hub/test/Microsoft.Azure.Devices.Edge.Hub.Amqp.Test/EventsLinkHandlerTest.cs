@@ -33,9 +33,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var boundVariables = new Dictionary<string, string> { { "deviceid", "d1" } };
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var identity = Mock.Of<IIdentity>(d => d.Id == "d1");
+            var productInfoStore = Mock.Of<IProductInfoStore>();
 
             // Act
-            ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler.Object, messageConverter);
+            ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler.Object, messageConverter, productInfoStore);
 
             // Assert
             Assert.NotNull(linkHandler);
@@ -70,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             Mock.Get(amqpLink).Setup(l => l.RegisterMessageListener(It.IsAny<Action<AmqpMessage>>())).Callback<Action<AmqpMessage>>(a => onMessageCallback = a);
             Mock.Get(amqpLink).SetupGet(l => l.Settings).Returns(new AmqpLinkSettings());
             Mock.Get(amqpLink).Setup(l => l.SafeAddClosed(It.IsAny<EventHandler>()));
-
+            var productInfoStore = Mock.Of<IProductInfoStore>();
             var requestUri = new Uri("amqps://foo.bar/devices/d1/messages/events");
             var boundVariables = new Dictionary<string, string> { { "deviceid", "d1" } };
             var messageConverter = new AmqpMessageConverter();
@@ -82,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 amqpMessage.Properties.ContentType = "application/json";
                 amqpMessage.Properties.ContentEncoding = "utf-8";
 
-                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter);
+                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore);
 
                 // Act
                 await linkHandler.OpenAsync(TimeSpan.FromSeconds(30));
@@ -139,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                     c.FindExtension<ICbsNode>() == cbsNode);
             var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
             var amqpLink = Mock.Of<IReceivingAmqpLink>(l => l.Session == amqpSession && l.IsReceiver && l.Settings == new AmqpLinkSettings() && l.State == AmqpObjectState.Opened);
-
+            var productInfoStore = Mock.Of<IProductInfoStore>();
             Action<AmqpMessage> onMessageCallback = null;
             Mock.Get(amqpLink).Setup(l => l.RegisterMessageListener(It.IsAny<Action<AmqpMessage>>())).Callback<Action<AmqpMessage>>(a => onMessageCallback = a);
             Mock.Get(amqpLink).SetupGet(l => l.Settings).Returns(new AmqpLinkSettings());
@@ -164,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             using (AmqpMessage amqpMessage = GetBatchedMessage(contents))
             {
                 amqpMessage.MessageFormat = AmqpConstants.AmqpBatchedMessageFormat;
-                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter);
+                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore);
 
                 // Act
                 await linkHandler.OpenAsync(TimeSpan.FromSeconds(30));
@@ -234,6 +235,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             Mock.Get(amqpLink).Setup(l => l.DisposeMessage(It.IsAny<AmqpMessage>(), It.IsAny<Outcome>(), It.IsAny<bool>(), It.IsAny<bool>()))
                 .Callback(() => disposeMessageCalled = true);
 
+            var productInfoStore = Mock.Of<IProductInfoStore>();
             var requestUri = new Uri("amqps://foo.bar/devices/d1/messages/events");
             var boundVariables = new Dictionary<string, string> { { "deviceid", "d1" } };
             var messageConverter = new AmqpMessageConverter();
@@ -241,7 +243,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             using (AmqpMessage amqpMessage = AmqpMessage.Create(new MemoryStream(new byte[800000]), false))
             {
                 amqpMessage.ApplicationProperties.Map["LargeProp"] = new int[600000];
-                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter);
+                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore);
 
                 // Act
                 await linkHandler.OpenAsync(TimeSpan.FromSeconds(30));

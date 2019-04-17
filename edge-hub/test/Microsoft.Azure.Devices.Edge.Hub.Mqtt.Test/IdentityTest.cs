@@ -318,9 +318,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
         static async Task<IClientCredentials> GetClientCredentials(string iotHubHostName, string deviceId, string userName, string token, bool isCertAuthAllowed = false, string productInfo = "", X509Certificate2 certificate = null, IList<X509Certificate2> chain = null)
         {
+            var productInfoStore = Mock.Of<IProductInfoStore>();
             var authenticator = Mock.Of<IAuthenticator>(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(true));
             var factory = new ClientCredentialsFactory(new IdentityProvider(iotHubHostName), productInfo);
-            var credentialIdentityProvider = new DeviceIdentityProvider(authenticator, factory, isCertAuthAllowed);
+            var credentialIdentityProvider = new DeviceIdentityProvider(authenticator, factory, productInfoStore, isCertAuthAllowed);
             if (certificate != null && chain != null)
             {
                 credentialIdentityProvider.RegisterConnectionCertificate(certificate, chain);
