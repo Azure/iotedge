@@ -10,7 +10,7 @@ namespace common
 {
     public class IotHub
     {
-        private string hubConnectionString;
+        string hubConnectionString;
 
         public string Hostname =>
             IotHubConnectionStringBuilder
