@@ -18,22 +18,20 @@ namespace common
 
     public class EdgeDaemon
     {
-        private string deviceConnectionString;
         private string scriptDir;
 
-        public EdgeDaemon(string deviceConnectionString, string scriptDir)
+        public EdgeDaemon(string scriptDir)
         {
-            this.deviceConnectionString = deviceConnectionString;
             this.scriptDir = scriptDir;
         }
 
-        public Task InstallAsync(CancellationToken token)
+        public Task InstallAsync(string deviceConnectionString, CancellationToken token)
         {
             var commands = new string[]
             {
                 "$ProgressPreference='SilentlyContinue'",
                 $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1",
-                $"Install-IoTEdge -Manual -ContainerOs Windows -DeviceConnectionString '{this.deviceConnectionString}'"
+                $"Install-IoTEdge -Manual -ContainerOs Windows -DeviceConnectionString '{deviceConnectionString}'"
             };
             return Profiler.Run(
                 "Installing edge daemon",
