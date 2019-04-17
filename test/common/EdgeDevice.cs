@@ -26,11 +26,11 @@ namespace common
             )
         );
 
-        public EdgeDevice(string deviceId, string hubConnectionString)
+        public EdgeDevice(string deviceId, IotHub iotHub)
         {
-            this.iotHub = new IotHub(hubConnectionString);
             this.context = Option.None<DeviceContext>();
             this.deviceId = deviceId;
+            this.iotHub = iotHub;
         }
 
         public Task CreateIdentityAsync(CancellationToken token)
@@ -39,7 +39,7 @@ namespace common
                 $"Creating edge device '{this.deviceId}' on hub '{this.iotHub.Hostname}'",
                 async () => {
                     Device device = await this.iotHub.CreateEdgeDeviceIdentity(this.deviceId, token);
-                    var context = new DeviceContext(device, true, this.iotHub);
+                    var context = new DeviceContext(device, true, this.iotHub.Hostname);
                     this.context = Option.Some(context);
                 }
             );
@@ -57,7 +57,7 @@ namespace common
                     );
                 }
 
-                var context = new DeviceContext(device, false, this.iotHub);
+                var context = new DeviceContext(device, false, this.iotHub.Hostname);
                 this.context = Option.Some(context);
 
                 Console.WriteLine($"Device '{device.Id}' already exists on hub '{this.iotHub.Hostname}'");
@@ -87,11 +87,11 @@ namespace common
             }
         }
 
-        static Task _DeleteIdentityAsync(DeviceContext context, CancellationToken token)
+        Task _DeleteIdentityAsync(DeviceContext context, CancellationToken token)
         {
             return Profiler.Run(
                 $"Deleting device '{context.Device.Id}'",
-                () => context.IotHub.DeleteDeviceIdentityAsync(context.Device, token)
+                () => this.iotHub.DeleteDeviceIdentityAsync(context.Device, token)
             );
         }
 

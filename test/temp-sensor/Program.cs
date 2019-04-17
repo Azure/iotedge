@@ -20,7 +20,9 @@ namespace temp_sensor
                 CancellationToken token = cts.Token;
 
                 // ** setup
-                var device = new EdgeDevice(args[0], args[1]);
+                var iotHub = new IotHub(args[1]);
+
+                var device = new EdgeDevice(args[0], iotHub);
                 await device.GetOrCreateIdentityAsync(token);
 
                 var daemon = new EdgeDaemon(device.Context.ConnectionString, args[3]);
@@ -28,20 +30,18 @@ namespace temp_sensor
                 await daemon.InstallAsync(token);
                 await daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
 
-                var agent = new EdgeAgent(device.Context.Device.Id, device.Context.IotHub);
+                var agent = new EdgeAgent(device.Context.Device.Id, iotHub);
                 await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
                 await agent.PingAsync(token);
 
                 // ** test
-                var config = new EdgeConfiguration(device.Context.Device.Id, device.Context.IotHub);
+                var config = new EdgeConfiguration(device.Context.Device.Id, iotHub);
                 config.AddEdgeHub();
                 config.AddTempSensor();
                 await config.DeployAsync(token);
 
-                var hub = new EdgeModule(
-                    "edgeHub", device.Context.Device.Id, device.Context.IotHub);
-                var sensor = new EdgeModule(
-                    "tempSensor", device.Context.Device.Id, device.Context.IotHub);
+                var hub = new EdgeModule("edgeHub", device.Context.Device.Id, iotHub);
+                var sensor = new EdgeModule("tempSensor", device.Context.Device.Id, iotHub);
                 await EdgeModule.WaitForStatusAsync(
                     new []{hub, sensor}, EdgeModuleStatus.Running, token);
                 await sensor.ReceiveEventsAsync(args[2], token);
