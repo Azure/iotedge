@@ -42,11 +42,11 @@ namespace common
             }
         }
 
-        public EdgeConfiguration(EdgeDevice device)
+        public EdgeConfiguration(string deviceId, CloudContext context)
         {
             this.config = _GetBaseConfig();
-            this.context = device.Context.CloudContext;
-            this.deviceId = device.Context.Device.Id;
+            this.context = context;
+            this.deviceId = deviceId;
         }
 
         public void AddEdgeHub()

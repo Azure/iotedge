@@ -21,9 +21,9 @@ namespace common
         private string deviceConnectionString;
         private string scriptDir;
 
-        public EdgeDaemon(EdgeDevice device, string scriptDir)
+        public EdgeDaemon(string deviceConnectionString, string scriptDir)
         {
-            this.deviceConnectionString = device.Context.ConnectionString;
+            this.deviceConnectionString = deviceConnectionString;
             this.scriptDir = scriptDir;
         }
 

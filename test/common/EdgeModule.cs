@@ -24,10 +24,10 @@ namespace common
         public string DeviceId { get; }
         public string Id { get; }
 
-        public EdgeModule(string id, EdgeDevice device)
+        public EdgeModule(string id, string deviceId, CloudContext context)
         {
-            this.CloudContext = device.Context.CloudContext;
-            this.DeviceId = device.Context.Device.Id;
+            this.CloudContext = context;
+            this.DeviceId = deviceId;
             this.Id = id;
         }
 

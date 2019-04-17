@@ -10,15 +10,18 @@ namespace common
 {
     public class EdgeAgent : EdgeModule
     {
-        public EdgeAgent(EdgeDevice device) : base("edgeAgent", device) {}
+        public EdgeAgent(string deviceId, CloudContext context)
+            : base("edgeAgent", deviceId, context) { }
 
         public Task PingAsync(CancellationToken token)
         {
             return Profiler.Run(
                 "Pinging module 'edgeAgent' from the cloud",
-                () => {
+                () =>
+                {
                     return Retry.Do(
-                        () => {
+                        () =>
+                        {
                             return this.CloudContext.InvokeMethodAsync(
                                 this.DeviceId,
                                 "$edgeAgent",
