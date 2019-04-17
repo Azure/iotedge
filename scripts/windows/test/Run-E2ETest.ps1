@@ -27,7 +27,7 @@
     .PARAMETER TestName
         Name of E2E test to be run
         Note: Valid values are:
-            "All", "DirectMethodAmqp", "DirectMethodMqtt", "QuickstartCerts", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway"
+            "All", "DirectMethodAmqp", "DirectMethodMqtt", "LongHaul", "QuickstartCerts", "Stress", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway"
 
     .PARAMETER ContainerRegistry
         Host address of container registry. It could be azure container registry, docker hub, or your own hosted container registry.
@@ -46,6 +46,51 @@
 
     .PARAMETER ProxyUri
         (Optional) The URI of an HTTPS proxy server; if specified, all communications to IoT Hub will go through this proxy.
+
+    .PARAMETER LoadGenTransportType
+        Transport type for LoadGen for long haul test. Default is mqtt.
+
+    .PARAMETER LoadGenMessageFrequency
+        Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.
+
+    .PARAMETER SnitchAlertUrl
+        Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.
+
+    .PARAMETER SnitchBuildNumber
+        Build number for snitcher docker image for long haul and stress test. Default is 1.1.
+
+    .PARAMETER SnitchReportingIntervalInSecs
+        Reporting frequency in seconds to send status email for long hual and stress test. Default is 86400 (1 day) for long haul and 1700000 for stress test.
+
+    .PARAMETER SnitchStorageAccount
+        Azure blob Sstorage account for store logs used in status email for long haul and stress test.
+
+    .PARAMETER SnitchStorageMasterKey
+        Master key of snitch storage account for long haul and stress test.
+
+    .PARAMETER SnitchTestDurationInSecs
+        Test duration in seconds for long haul and stress test.
+
+    .PARAMETER LoadGen1TransportType
+        Transport type for LoadGen1 for stress test. Default is amqp.
+
+    .PARAMETER LoadGen2TransportType
+        Transport type for LoadGen2 for stress test. Default is amqp.
+
+    .PARAMETER LoadGen3TransportType
+        Transport type for LoadGen3 for stress test. Default is mqtt.
+
+    .PARAMETER LoadGen4TransportType
+        Transport type for LoadGen4 for stress test. Default is mqtt.
+
+    .PARAMETER AmqpSettingsEnabled
+        Enable amqp protocol head in Edge Hub.
+
+    .PARAMETER MqttSettingsEnabled
+        Enable mqtt protocol head in Edge Hub.
+
+    .PARAMETER LongHaulProtocolHead
+        Specify which protocol head is used to run long haul test for ARM32v7 device. Valid values are amqp (default) and mqtt.  
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -94,7 +139,7 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $ArtifactImageBuildNumber = $(Throw "Artifact image build number is required"),
 
-    [ValidateSet("All", "DirectMethodAmqp", "DirectMethodMqtt", "QuickstartCerts", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway")]
+    [ValidateSet("All", "DirectMethodAmqp", "DirectMethodMqtt", "LongHaul", "QuickstartCerts", "Stress", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway")]
     [string] $TestName = "All",
 
     [ValidateNotNullOrEmpty()]
@@ -122,7 +167,51 @@ Param (
     [string] $EdgeE2ETestRootCAPassword = $null,
 
     [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
-    [string] $ProxyUri = $null
+    [string] $ProxyUri = $null,
+
+    [ValidateSet("mqtt", "amqp")]
+    [string] $LoadGenTransportType = "mqtt",
+
+    [ValidateNotNullOrEmpty()]
+    [string] $LoadGenMessageFrequency = $null,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $SnitchAlertUrl = $null,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $SnitchBuildNumber,
+
+    [ValidateNotNullOrEmpty()]
+    [int] $SnitchReportingIntervalInSecs,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $SnitchStorageAccount = $null,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $SnitchStorageMasterKey = $null,
+
+    [ValidateNotNullOrEmpty()]
+    [int] $SnitchTestDurationInSecs,
+
+    [ValidateSet("mqtt", "amqp")]
+    [string] $LoadGen1TransportType = "amqp",
+
+    [ValidateSet("mqtt", "amqp")]
+    [string] $LoadGen2TransportType = "amqp",
+
+    [ValidateSet("mqtt", "amqp")]
+    [string] $LoadGen3TransportType = "mqtt",
+
+    [ValidateSet("mqtt", "amqp")]
+    [string] $LoadGen4TransportType = "mqtt",
+
+    [switch] $AmqpSettingsEnabled,
+
+    [switch] $MqttSettingsEnabled,
+
+    [ValidateSet("mqtt", "amqp")]
+    [string] $LongHaulProtocolHead = "amqp"
+
 )
 
 Set-StrictMode -Version "Latest"
@@ -235,6 +324,8 @@ Function PrepareTestFromArtifacts
     # Deployment file
     If (($TestName -eq "DirectMethodAmqp") -Or
         ($TestName -eq "DirectMethodMqtt") -Or
+        ($TestName -eq "LongHaul") -Or
+        ($TestName -eq "Stress") -Or
         ($TestName -eq "TempFilter") -Or
         ($TestName -eq "TempFilterFunctions") -Or
         (($ProxyUri) -and ($TestName -in "TempSensor", "QuickstartCerts", "TransparentGateway")))
@@ -254,6 +345,24 @@ Function PrepareTestFromArtifacts
                 Copy-Item $DirectMethodModuleToModuleDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
                 (Get-Content $DeploymentWorkingFilePath).replace('<UpstreamProtocol>','Mqtt') | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<ClientTransportType>','Mqtt_Tcp_Only') | Set-Content $DeploymentWorkingFilePath
+            }
+            "LongHaul"
+            {
+                Write-Host "Copy deployment file from $LongHaulDeploymentArtifactFilePath"
+                Copy-Item $LongHaulDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
+                (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.TransportType>',$LoadGenTransportType) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
+            }
+            "Stress"
+            {
+                Write-Host "Copy deployment file from $StressDeploymentArtifactFilePath"
+                Copy-Item $StressDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
+                (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen1.TransportType>',$LoadGen1TransportType) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen2.TransportType>',$LoadGen2TransportType) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen3.TransportType>',$LoadGen3TransportType) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen4.TransportType>',$LoadGen4TransportType) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<amqpSettings__enabled>',$AmqpSettingsEnabledString) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<mqttSettings__enabled>',$MqttSettingsEnabledString) | Set-Content $DeploymentWorkingFilePath
             }
             "TempFilter"
             {
@@ -960,6 +1069,8 @@ $DirectMethodModuleToModuleDeploymentFilename = "dm_module_to_module_deployment.
 $RuntimeOnlyDeploymentFilename = 'runtime_only_deployment.template.json'
 $QuickstartDeploymentFilename = 'quickstart_deployment.template.json'
 $TwinTestFilename = "twin_test_tempSensor.json"
+$LongHaulDeploymentFilename = "long_haul_deployment.template.json"
+$StressDeplymentFilename = "stress_deployment.template"
 
 $IotEdgeQuickstartArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\IotEdgeQuickstart\$Architecture"
 $LeafDeviceArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\LeafDevice\$Architecture"
@@ -973,6 +1084,8 @@ $RuntimeOnlyDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $Runti
 $QuickstartDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $QuickstartDeploymentFilename
 $TwinTestFileArtifactFilePath = Join-Path $TestFileFolder $TwinTestFilename
 $DirectMethodModuleToModuleDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $DirectMethodModuleToModuleDeploymentFilename
+$LongHaulDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $LongHaulDeploymentFilename
+$StressDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $StressDeplymentFilename
 
 $TestWorkingFolder = Join-Path $E2ETestFolder "working"
 $QuickstartWorkingFolder = (Join-Path $TestWorkingFolder "quickstart")
@@ -982,6 +1095,9 @@ $PackagesWorkingFolder = (Join-Path $TestWorkingFolder "packages")
 $IotEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuickstart.exe")
 $LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
 $DeploymentWorkingFilePath = Join-Path $QuickstartWorkingFolder "deployment.json"
+
+$AmqpSettingsEnabledString = if ($AmqpSettingsEnabled) {"true"} else {"false"}
+$MqttSettingsEnabledString = if ($MqttSettingsEnabled) {"true"} else {"false"}
 
 &$InstallationScriptPath
 
