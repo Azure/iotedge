@@ -20,14 +20,15 @@ namespace common
 
     public class EdgeModule
     {
-        public IotHub IotHub { get; }
-        public string DeviceId { get; }
+        protected string deviceId;
+        protected IotHub iotHub;
+
         public string Id { get; }
 
         public EdgeModule(string id, string deviceId, IotHub iotHub)
         {
-            this.IotHub = iotHub;
-            this.DeviceId = deviceId;
+            this.deviceId = deviceId;
+            this.iotHub = iotHub;
             this.Id = id;
         }
 
@@ -95,7 +96,7 @@ namespace common
             );
         }
 
-        public Task ReceiveEventsAsync(string eventHubConnectionString, CancellationToken token)
+        public Task WaitForEventsReceivedAsync(string eventHubConnectionString, CancellationToken token)
         {
             var builder = new EventHubsConnectionStringBuilder(eventHubConnectionString)
             {
@@ -106,7 +107,7 @@ namespace common
             {
                 EventHubClient client = EventHubClient.CreateFromConnectionString(builder.ToString());
                 int count = (await client.GetRuntimeInformationAsync()).PartitionCount;
-                string partition = EventHubPartitionKeyResolver.ResolveToPartition(this.DeviceId, count);
+                string partition = EventHubPartitionKeyResolver.ResolveToPartition(this.deviceId, count);
                 PartitionReceiver receiver = client.CreateReceiver("$Default", partition, EventPosition.FromEnd());
 
                 var result = new TaskCompletionSource<bool>();
@@ -119,7 +120,7 @@ namespace common
                                 data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
                                 data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
 
-                                if (devId != null && devId.ToString().Equals(this.DeviceId) &&
+                                if (devId != null && devId.ToString().Equals(this.deviceId) &&
                                     modId != null && modId.ToString().Equals(this.Id))
                                 {
                                     result.TrySetResult(true);
@@ -137,7 +138,7 @@ namespace common
             }
 
             return Profiler.Run(
-                $"Receiving events from device '{this.DeviceId}' on Event Hub '{builder.EntityPath}'",
+                $"Receiving events from device '{this.deviceId}' on Event Hub '{builder.EntityPath}'",
                 _ReceiveEventsAsync
             );
         }

@@ -18,11 +18,11 @@ namespace common
         IotHub iotHub;
         string moduleId;
 
-        public ModuleTwin(EdgeModule module)
+        public ModuleTwin(string moduleId, string deviceId, IotHub iotHub)
         {
-            this.iotHub = module.IotHub;
-            this.deviceId = module.DeviceId;
-            this.moduleId = module.Id;
+            this.deviceId = deviceId;
+            this.iotHub = iotHub;
+            this.moduleId = moduleId;
         }
 
         public Task UpdateDesiredPropertiesAsync(object patch, CancellationToken token)
