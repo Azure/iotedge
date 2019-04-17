@@ -1,21 +1,29 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.Devices;
+using Microsoft.Azure.Devices.Common;
 using Microsoft.Azure.Devices.Shared;
+using Microsoft.Azure.EventHubs;
 using Newtonsoft.Json;
+
+using DeviceTransportType = Microsoft.Azure.Devices.TransportType;
+using EventHubTransportType = Microsoft.Azure.EventHubs.TransportType;
 
 namespace common
 {
     public class IotHub
     {
-        string hubConnectionString;
+        readonly string eventHubEndpoint;
+        readonly string hubConnectionString;
 
         public string Hostname =>
-            IotHubConnectionStringBuilder
-                .Create(this.hubConnectionString)
-                .HostName;
+            IotHubConnectionStringBuilder.Create(this.hubConnectionString).HostName;
+        public string EntityPath =>
+            (new EventHubsConnectionStringBuilder(this.eventHubEndpoint)).EntityPath;
+
         RegistryManager RegistryManager =>
             RegistryManager.CreateFromConnectionString(
                 this.hubConnectionString,
@@ -24,12 +32,13 @@ namespace common
         ServiceClient ServiceClient =>
             ServiceClient.CreateFromConnectionString(
                 this.hubConnectionString,
-                TransportType.Amqp_WebSocket_Only,
+                DeviceTransportType.Amqp_WebSocket_Only,
                 new ServiceClientTransportSettings()
             );
 
-        public IotHub(string hubConnectionString)
+        public IotHub(string hubConnectionString, string eventHubEndpoint)
         {
+            this.eventHubEndpoint = eventHubEndpoint;
             this.hubConnectionString = hubConnectionString;
         }
 
@@ -82,6 +91,46 @@ namespace common
         )
         {
             return this.ServiceClient.InvokeDeviceMethodAsync(deviceId, moduleId, method, token);
+        }
+
+        public async Task ReceiveEventsAsync(
+            string deviceId,
+            Func<EventData, bool> onEventReceived,
+            CancellationToken token
+        )
+        {
+            var builder = new EventHubsConnectionStringBuilder(this.eventHubEndpoint)
+            {
+                TransportType = EventHubTransportType.AmqpWebSockets
+            };
+
+            EventHubClient client = EventHubClient.CreateFromConnectionString(builder.ToString());
+            int count = (await client.GetRuntimeInformationAsync()).PartitionCount;
+            string partition = EventHubPartitionKeyResolver.ResolveToPartition(deviceId, count);
+            PartitionReceiver receiver = client.CreateReceiver("$Default", partition, EventPosition.FromEnd());
+
+            var result = new TaskCompletionSource<bool>();
+            using (token.Register(() => result.TrySetCanceled()))
+            {
+                receiver.SetReceiveHandler(
+                    new PartitionReceiveHandler(
+                        data =>
+                        {
+                            bool done = onEventReceived(data);
+                            if (done)
+                            {
+                                result.TrySetResult(true);
+                            }
+                            return done;
+                        }
+                    )
+                );
+
+                await result.Task;
+            }
+
+            await receiver.CloseAsync();
+            await client.CloseAsync();
         }
    }
 }
