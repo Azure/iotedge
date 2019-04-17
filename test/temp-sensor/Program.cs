@@ -13,63 +13,75 @@ namespace temp_sensor
         // args[1] - IoT Hub connection string (TODO: should not be passed on command line?)
         // args[2] - Event Hub-compatible endpoint connection string (TODO: should not be passed on command line?)
         // args[3] - path to IotEdgeSecurityDaemon.ps1
-        static async Task<int> Main(string[] args)
+        static Task<int> Main(string[] args)
         {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
-            {
-                CancellationToken token = cts.Token;
+            return Profiler.Run(
+                "Running tempSensor test",
+                async () => {
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
+                    {
+                        CancellationToken token = cts.Token;
 
-                // ** setup
-                var iotHub = new IotHub(args[1]);
+                        // ** setup
+                        var iotHub = new IotHub(args[1]);
 
-                var device = new EdgeDevice(args[0], iotHub);
-                await device.GetOrCreateIdentityAsync(token);
+                        var device = new EdgeDevice(args[0], iotHub);
+                        await device.GetOrCreateIdentityAsync(token);
 
-                var daemon = new EdgeDaemon(device.Context.ConnectionString, args[3]);
-                await daemon.UninstallAsync(token);
-                await daemon.InstallAsync(token);
-                await daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
+                        var daemon = new EdgeDaemon(device.Context.ConnectionString, args[3]);
+                        await daemon.UninstallAsync(token);
+                        await daemon.InstallAsync(token);
+                        await daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
 
-                var agent = new EdgeAgent(device.Context.Device.Id, iotHub);
-                await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
-                await agent.PingAsync(token);
+                        var agent = new EdgeAgent(device.Context.Device.Id, iotHub);
+                        await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+                        await agent.PingAsync(token);
 
-                // ** test
-                var config = new EdgeConfiguration(device.Context.Device.Id, iotHub);
-                config.AddEdgeHub();
-                config.AddTempSensor();
-                await config.DeployAsync(token);
+                        // ** test
+                        var config = new EdgeConfiguration(device.Context.Device.Id, iotHub);
+                        config.AddEdgeHub();
+                        config.AddTempSensor();
+                        await config.DeployAsync(token);
 
-                var hub = new EdgeModule("edgeHub", device.Context.Device.Id, iotHub);
-                var sensor = new EdgeModule("tempSensor", device.Context.Device.Id, iotHub);
-                await EdgeModule.WaitForStatusAsync(
-                    new []{hub, sensor}, EdgeModuleStatus.Running, token);
-                await sensor.ReceiveEventsAsync(args[2], token);
+                        var hub = new EdgeModule("edgeHub", device.Context.Device.Id, iotHub);
+                        var sensor = new EdgeModule("tempSensor", device.Context.Device.Id, iotHub);
+                        await EdgeModule.WaitForStatusAsync(
+                            new[] { hub, sensor }, EdgeModuleStatus.Running, token);
+                        await sensor.ReceiveEventsAsync(args[2], token);
 
-                var sensorTwin = new ModuleTwin(sensor);
-                await sensorTwin.UpdateDesiredPropertiesAsync(new {
-                    properties = new {
-                        desired = new {
-                            SendData = true,
-                            SendInterval = 10
-                        }
+                        var sensorTwin = new ModuleTwin(sensor);
+                        await sensorTwin.UpdateDesiredPropertiesAsync(new
+                        {
+                            properties = new
+                            {
+                                desired = new
+                                {
+                                    SendData = true,
+                                    SendInterval = 10
+                                }
+                            }
+                        }, token);
+                        await sensorTwin.WaitForReportedPropertyUpdatesAsync(new
+                        {
+                            properties = new
+                            {
+                                reported = new
+                                {
+                                    SendData = true,
+                                    SendInterval = 10
+                                }
+                            }
+                        }, token);
+
+                        // ** teardown
+                        await daemon.StopAsync(token);
+                        await device.MaybeDeleteIdentityAsync(token);
                     }
-                }, token);
-                await sensorTwin.WaitForReportedPropertyUpdatesAsync(new {
-                    properties = new {
-                        reported = new {
-                            SendData = true,
-                            SendInterval = 10
-                        }
-                    }
-                }, token);
 
-                // ** teardown
-                await daemon.StopAsync(token);
-                await device.MaybeDeleteIdentityAsync(token);
-            }
-
-            return 0;
+                    return 0;
+                },
+                "Completed tempSensor test"
+            );
         }
     }
 }

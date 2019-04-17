@@ -9,17 +9,18 @@ namespace common
 {
     public class Profiler
     {
-        public static Task Run(string startMessage, Func<Task> func) => Run(
+        public static Task Run(string startMessage, Func<Task> func, string endMessage = "") => Run(
             startMessage,
             async () => {
                 await func();
                 return true;
-            }
+            },
+            endMessage
         );
 
-        public static async Task<T> Run<T>(string startMessage, Func<Task<T>> func)
+        public static async Task<T> Run<T>(string startMessage, Func<Task<T>> func, string endMessage = "")
         {
-            Console.Write($"{startMessage}...");
+            Console.Write(startMessage + (string.IsNullOrEmpty(endMessage) ? "..." : "\n"));
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
@@ -27,7 +28,8 @@ namespace common
 
             stopwatch.Stop();
             TimeSpan ts = stopwatch.Elapsed;
-            Console.WriteLine($"done. [{ts}]");
+            Console.WriteLine(
+                (string.IsNullOrEmpty(endMessage) ? "done" : endMessage) + $" [{ts}]");
             return t;
         }
     }
