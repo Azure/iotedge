@@ -179,10 +179,10 @@ Param (
     [string] $SnitchAlertUrl = $null,
 
     [ValidateNotNullOrEmpty()]
-    [string] $SnitchBuildNumber,
+    [string] $SnitchBuildNumber = "1.1",
 
     [ValidateNotNullOrEmpty()]
-    [int] $SnitchReportingIntervalInSecs,
+    [string] $SnitchReportingIntervalInSecs = $null,
 
     [ValidateNotNullOrEmpty()]
     [string] $SnitchStorageAccount = $null,
@@ -191,7 +191,7 @@ Param (
     [string] $SnitchStorageMasterKey = $null,
 
     [ValidateNotNullOrEmpty()]
-    [int] $SnitchTestDurationInSecs,
+    [string] $SnitchTestDurationInSecs = $null,
 
     [ValidateSet("mqtt", "amqp")]
     [string] $LoadGen1TransportType = "amqp",
@@ -1039,11 +1039,28 @@ Function ValidateTestParameters
         $validatingItems += $EdgeE2ERootCAKeyRSAFile
     }
 
+    If ($TestName -eq "LongHaul")
+    {
+        $validatingItems += $LongHaulDeploymentArtifactFilePath
+    }
+
+    If ($TestName -eq "Stress")
+    {
+        $validatingItems += $StressDeploymentArtifactFilePath
+    }
+
     $validatingItems | ForEach-Object {
         If (-Not (Test-Path -Path $_))
         {
             Throw "$_ is not found or it is empty"
         }
+    }
+
+    If ($TestName -eq "LongHaul" -Or $TestName -eq "Stress")
+    {
+        If ([string]::IsNullOrEmpty($SnitchAlertUrl)) {Throw "Required snith alert URL."}
+        If ([string]::IsNullOrEmpty($SnitchStorageAccount)) {Throw "Required snitch storage account."}
+        If ([string]::IsNullOrEmpty($SnitchStorageMasterKey)) {Throw "Required snitch storage master key."}
     }
 }
 
@@ -1096,10 +1113,22 @@ $IotEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuic
 $LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
 $DeploymentWorkingFilePath = Join-Path $QuickstartWorkingFolder "deployment.json"
 
-$AmqpSettingsEnabledString = if ($AmqpSettingsEnabled) {"true"} else {"false"}
-$MqttSettingsEnabledString = if ($MqttSettingsEnabled) {"true"} else {"false"}
+$AmqpSettingsEnabledString = If ($AmqpSettingsEnabled) {"true"} Else {"false"}
+$MqttSettingsEnabledString = If ($MqttSettingsEnabled) {"true"} Else {"false"}
 
-&$InstallationScriptPath
+If ($TestName -eq "LongHaul")
+{
+    If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:01"}
+    If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "86400"}
+    If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "604800"}
+}
+
+If ($TestName -eq "Stress")
+{
+    If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:00.03"}
+    If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "1700000"}
+    If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "14400"}
+}
 
 $retCode = RunTest
 Write-Host "Exit test with code $retCode"
