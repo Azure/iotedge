@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-using System;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace common
 {
+    using System;
+    using System.Diagnostics;
+    using System.Threading.Tasks;
+
     public class Profiler
     {
         public static Task Run(string startMessage, Func<Task> func, string endMessage = "") => Run(

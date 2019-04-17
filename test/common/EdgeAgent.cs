@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Azure.Devices;
-using Microsoft.Azure.Devices.Edge.Util;
-
 namespace common
 {
+    using System;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Edge.Util;
+
     public class EdgeAgent : EdgeModule
     {
         public EdgeAgent(string deviceId, IotHub iotHub)

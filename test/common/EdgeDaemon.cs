@@ -1,15 +1,11 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
-using System;
-using System.Linq;
-using System.ServiceProcess;
-using System.Threading;
-using System.Threading.Tasks;
-using common;
-using Microsoft.Azure.Devices.Edge.Util;
-
 namespace common
 {
+    using System.ServiceProcess;
+    using System.Threading;
+    using System.Threading.Tasks;
+
     public enum EdgeDaemonStatus
     {
         Running = ServiceControllerStatus.Running,

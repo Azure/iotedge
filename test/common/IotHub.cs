@@ -1,19 +1,19 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Azure.Devices;
-using Microsoft.Azure.Devices.Common;
-using Microsoft.Azure.Devices.Shared;
-using Microsoft.Azure.EventHubs;
-using Newtonsoft.Json;
-
-using DeviceTransportType = Microsoft.Azure.Devices.TransportType;
-using EventHubTransportType = Microsoft.Azure.EventHubs.TransportType;
-
 namespace common
 {
+    using System;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Common;
+    using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Azure.EventHubs;
+    using Newtonsoft.Json;
+
+    using DeviceTransportType = Microsoft.Azure.Devices.TransportType;
+    using EventHubTransportType = Microsoft.Azure.EventHubs.TransportType;
+
     public class IotHub
     {
         readonly string eventHubEndpoint;

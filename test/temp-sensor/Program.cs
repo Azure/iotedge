@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using common;
-
 namespace temp_sensor
 {
+    using System;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using common;
+
     class Program
     {
         // args[0] - device ID

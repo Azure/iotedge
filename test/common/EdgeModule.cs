@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Azure.Devices.Edge.Util;
-
 namespace common
 {
+    using System;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
+
     public enum EdgeModuleStatus
     {
         Running,
@@ -37,7 +37,7 @@ namespace common
         {
             string FormatModulesList() => modules.Length == 1
                 ? $"module '{modules.First().Id}'"
-                : $"modules ({String.Join(", ", modules.Select(module => module.Id))})";
+                : $"modules ({string.Join(", ", modules.Select(module => module.Id))})";
 
             async Task _WaitForStatusAsync() {
                 try

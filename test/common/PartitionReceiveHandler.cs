@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.Azure.EventHubs;
-
 namespace common
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.EventHubs;
+
     class PartitionReceiveHandler : IPartitionReceiveHandler
     {
         readonly Func<EventData, bool> onEventReceived;
