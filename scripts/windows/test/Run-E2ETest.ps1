@@ -701,16 +701,19 @@ Function RunLongHaulTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilter"
     PrintHighlightedMessage "Run Long Haul test with -d ""$deviceId"" started at $testStartAt"
 
-    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
+    $testCommand = "&$DeploymentWorkingFilePath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
             -n `"$env:computername`" ``
             -r `"$ContainerRegistry`" ``
             -u `"$ContainerRegistryUsername`" ``
-            -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilter`" ``
+            -p `"$ContainerRegistryPassword`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-            -l `"$DeploymentWorkingFilePath`""
+            --leave-running=All ``
+            -l `"$DeploymentWorkingFilePath`" ``
+            --runtime-log-level `"Info`" ``
+            --no-verify"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             --upstream-protocol 'AmqpWs' ``
@@ -728,6 +731,35 @@ Function RunStressTest
 {
     PrintHighlightedMessage "Run Stress test for $Architecture"
     TestSetup
+
+    $testStartAt = Get-Date
+    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilter"
+    PrintHighlightedMessage "Run Stress test with -d ""$deviceId"" started at $testStartAt"
+
+    $testCommand = "&$DeploymentWorkingFilePath ``
+            -d `"$deviceId`" ``
+            -c `"$IoTHubConnectionString`" ``
+            -e `"doesNotNeed`" ``
+            -n `"$env:computername`" ``
+            -r `"$ContainerRegistry`" ``
+            -u `"$ContainerRegistryUsername`" ``
+            -p `"$ContainerRegistryPassword`" ``
+            -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+            --leave-running=All ``
+            -l `"$DeploymentWorkingFilePath`" ``
+            --runtime-log-level `"Info`" ``
+            --no-verify"
+    If ($ProxyUri) {
+        $testCommand = "$testCommand ``
+            --upstream-protocol 'AmqpWs' ``
+            --proxy `"$ProxyUri`""
+    }
+    $testCommand = AppendInstallationOption($testCommand)
+    Invoke-Expression $testCommand | Out-Host
+    $testExitCode = $LastExitCode
+
+    PrintLogs $testStartAt $testExitCode
+    Return $testExitCode
 }
 
 Function RunTempFilterTest
