@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.cloudProxy = Option.None<ICloudProxy>();
             this.operationTimeout = operationTimeout;
-            this.productInfo = Preconditions.CheckNotNull(productInfo, nameof(productInfo));
+            this.productInfo = productInfo;
         }
 
         public Option<ICloudProxy> CloudProxy => this.GetCloudProxy().Filter(cp => cp.IsActive);
