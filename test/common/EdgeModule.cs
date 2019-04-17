@@ -20,13 +20,15 @@ namespace common
 
     public class EdgeModule
     {
-        protected DeviceContext context;
-        string name;
+        public CloudContext CloudContext { get; }
+        public string DeviceId { get; }
+        public string Id { get; }
 
-        public EdgeModule(string name, EdgeDevice device)
+        public EdgeModule(string id, EdgeDevice device)
         {
-            this.context = device.Context;
-            this.name = name;
+            this.CloudContext = device.Context.CloudContext;
+            this.DeviceId = device.Context.Device.Id;
+            this.Id = id;
         }
 
         public Task WaitForStatusAsync(EdgeModuleStatus desired, CancellationToken token)
@@ -37,8 +39,8 @@ namespace common
         public static Task WaitForStatusAsync(EdgeModule[] modules, EdgeModuleStatus desired, CancellationToken token)
         {
             string FormatModulesList() => modules.Length == 1
-                ? $"module '{modules.First().name}'"
-                : $"modules ({String.Join(", ", modules.Select(module => module.name))})";
+                ? $"module '{modules.First().Id}'"
+                : $"modules ({String.Join(", ", modules.Select(module => module.Id))})";
 
             async Task _WaitForStatusAsync() {
                 try
@@ -54,7 +56,7 @@ namespace common
                                     foreach (var module in modules)
                                     {
                                         // each line is "name status"
-                                        if (columns[0] == module.name &&
+                                        if (columns[0] == module.Id &&
                                             columns[1].Equals(desired.ToString(), StringComparison.OrdinalIgnoreCase))
                                         {
                                             return true;
@@ -100,13 +102,11 @@ namespace common
                 TransportType = EventHubTransportType.AmqpWebSockets
             };
 
-            string deviceId = this.context.Device.Id;
-
             async Task _ReceiveEventsAsync()
             {
                 EventHubClient client = EventHubClient.CreateFromConnectionString(builder.ToString());
                 int count = (await client.GetRuntimeInformationAsync()).PartitionCount;
-                string partition = EventHubPartitionKeyResolver.ResolveToPartition(deviceId, count);
+                string partition = EventHubPartitionKeyResolver.ResolveToPartition(this.DeviceId, count);
                 PartitionReceiver receiver = client.CreateReceiver("$Default", partition, EventPosition.FromEnd());
 
                 var result = new TaskCompletionSource<bool>();
@@ -119,8 +119,8 @@ namespace common
                                 data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
                                 data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
 
-                                if (devId != null && devId.ToString().Equals(deviceId) &&
-                                    modId != null && modId.ToString().Equals(this.name))
+                                if (devId != null && devId.ToString().Equals(this.DeviceId) &&
+                                    modId != null && modId.ToString().Equals(this.Id))
                                 {
                                     result.TrySetResult(true);
                                     return true;
@@ -137,7 +137,7 @@ namespace common
             }
 
             return Profiler.Run(
-                $"Receiving events from device '{deviceId}' on Event Hub '{builder.EntityPath}'",
+                $"Receiving events from device '{this.DeviceId}' on Event Hub '{builder.EntityPath}'",
                 _ReceiveEventsAsync
             );
         }

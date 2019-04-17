@@ -8,23 +8,19 @@ namespace common
 {
     public class DeviceContext
     {
+        public CloudContext CloudContext { get; }
         public string ConnectionString { get; }
         public bool Owned { get; }
         public Device Device { get; }
-        public RegistryManager Registry { get; }
-
-        public DeviceContext(Device device, string hostname, bool owned, RegistryManager rm)
+        public DeviceContext(Device device, bool owned, CloudContext cloud)
         {
+            this.CloudContext = cloud;
             this.ConnectionString = 
-                $"HostName={hostname};" +
+                $"HostName={cloud.Hostname};" +
                 $"DeviceId={device.Id};" +
                 $"SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}";
             this.Owned = owned;
             this.Device = device;
-            this.Registry = rm;
         }
-
-        public Task DeployConfigurationAsync(ConfigurationContent config, CancellationToken token) =>
-            this.Registry.ApplyConfigurationContentOnDeviceAsync(this.Device.Id, config, token);
     }
 }

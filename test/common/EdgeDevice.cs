@@ -15,9 +15,9 @@ namespace common
 {
     public class EdgeDevice
     {
+        CloudContext cloudContext;
         Option<DeviceContext> context;
         string deviceId;
-        string hubConnectionString;
 
         public DeviceContext Context => this.context.Expect(
             () => new InvalidOperationException(
@@ -28,27 +28,26 @@ namespace common
 
         public EdgeDevice(string deviceId, string hubConnectionString)
         {
+            this.cloudContext = new CloudContext(hubConnectionString);
             this.context = Option.None<DeviceContext>();
             this.deviceId = deviceId;
-            this.hubConnectionString = hubConnectionString;
         }
 
         public Task CreateIdentityAsync(CancellationToken token)
         {
-            var settings = new HttpTransportSettings();
-            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.hubConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
-
-            return this._CreateIdentityAsync(rm, builder.HostName, token);
+            return Profiler.Run(
+                $"Creating edge device '{this.deviceId}' on hub '{this.cloudContext.Hostname}'",
+                async () => {
+                    Device device = await this.cloudContext.CreateEdgeDeviceIdentity(this.deviceId, token);
+                    var context = new DeviceContext(device, true, this.cloudContext);
+                    this.context = Option.Some(context);
+                }
+            );
         }
 
         public async Task GetOrCreateIdentityAsync(CancellationToken token)
         {
-            var settings = new HttpTransportSettings();
-            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.hubConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
-
-            Device device = await rm.GetDeviceAsync(this.deviceId, token);
+            Device device = await this.cloudContext.GetDeviceIdentityAsync(this.deviceId, token);
             if (device != null)
             {
                 if (!device.Capabilities.IotEdge)
@@ -58,39 +57,21 @@ namespace common
                     );
                 }
 
-                var context = new DeviceContext(device, builder.HostName, false, rm);
+                var context = new DeviceContext(device, false, this.cloudContext);
                 this.context = Option.Some(context);
 
-                Console.WriteLine($"Device '{device.Id}' already exists on hub '{builder.HostName}'");
+                Console.WriteLine($"Device '{device.Id}' already exists on hub '{this.cloudContext.Hostname}'");
             }
             else
             {
-                await this._CreateIdentityAsync(rm, builder.HostName, token);
+                await this.CreateIdentityAsync(token);
             }
-        }
-
-        Task _CreateIdentityAsync(RegistryManager rm, string hub, CancellationToken token)
-        {
-            return Profiler.Run(
-                $"Creating edge device '{this.deviceId}' on hub '{hub}'",
-                async () => {
-                    var device = new Device(this.deviceId)
-                    {
-                        Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
-                        Capabilities = new DeviceCapabilities() { IotEdge = true }
-                    };
-                    device = await rm.AddDeviceAsync(device, token);
-
-                    var context = new DeviceContext(device, hub, true, rm);
-                    this.context = Option.Some(context);
-                }
-            );
         }
 
         public Task DeleteIdentityAsync(CancellationToken token)
         {
             DeviceContext context = _GetContext("Cannot delete");
-            return this._DeleteIdentityAsync(context, token);
+            return _DeleteIdentityAsync(context, token);
         }
 
         public async Task MaybeDeleteIdentityAsync(CancellationToken token)
@@ -98,7 +79,7 @@ namespace common
             DeviceContext context = _GetContext("Cannot delete");
             if (context.Owned)
             {
-                await this._DeleteIdentityAsync(context, token);
+                await _DeleteIdentityAsync(context, token);
             }
             else
             {
@@ -106,56 +87,11 @@ namespace common
             }
         }
 
-        Task _DeleteIdentityAsync(DeviceContext context, CancellationToken token)
+        static Task _DeleteIdentityAsync(DeviceContext context, CancellationToken token)
         {
             return Profiler.Run(
                 $"Deleting device '{context.Device.Id}'",
-                () => context.Registry.RemoveDeviceAsync(context.Device)
-            );
-        }
-
-        public Task UpdateModuleTwinAsync(string moduleId, object twinPatch, CancellationToken token)
-        {
-            DeviceContext context = _GetContext("Cannot update module twin for");
-            return Profiler.Run(
-                $"Updating twin for module '{moduleId}'",
-                async () => {
-                    Twin twin = await context.Registry.GetTwinAsync(context.Device.Id, moduleId, token);
-                    string patch = JsonConvert.SerializeObject(twinPatch);
-                    await context.Registry.UpdateTwinAsync(context.Device.Id, moduleId, patch, twin.ETag, token);
-                }
-            );
-        }
-
-        public Task WaitForTwinUpdatesAsync(string moduleId, object twinPatch, CancellationToken token)
-        {
-            DeviceContext context = _GetContext("Cannot get module twin updates for");
-            return Profiler.Run(
-                $"Waiting for expected twin updates for module '{moduleId}'",
-                () => {
-                    return Retry.Do(
-                        async () => {
-                            Twin twin = await context.Registry.GetTwinAsync(context.Device.Id, moduleId, token);
-                            // TODO: Only newer versions of tempSensor mirror certain desired properties
-                            //       to reported (e.g. 1.0.7-rc2). So return desired properties until
-                            //       the temp-sensor e2e test can pull docker images other than the
-                            //       default 'mcr...:1.0'.
-                            // return twin.Properties.Reported;
-                            return twin.Properties.Desired;
-                        },
-                        reported => {
-                            JObject expected = JObject.FromObject(twinPatch)
-                                .Value<JObject>("properties")
-                                .Value<JObject>("reported");
-                            return expected.Value<JObject>().All<KeyValuePair<string, JToken>>(
-                                prop => reported.Contains(prop.Key) && reported[prop.Key] == prop.Value
-                            );
-                        },
-                        null,
-                        TimeSpan.FromSeconds(5),
-                        token
-                    );
-                }
+                () => context.CloudContext.DeleteDeviceIdentityAsync(context.Device, token)
             );
         }
 

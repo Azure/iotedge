@@ -43,7 +43,9 @@ namespace temp_sensor
                 await EdgeModule.WaitForStatusAsync(
                     new []{hub, sensor}, EdgeModuleStatus.Running, token);
                 await sensor.ReceiveEventsAsync(args[2], token);
-                await device.UpdateModuleTwinAsync("tempSensor", new {
+
+                var sensorTwin = new ModuleTwin(sensor);
+                await sensorTwin.UpdateDesiredPropertiesAsync(new {
                     properties = new {
                         desired = new {
                             SendData = true,
@@ -51,7 +53,7 @@ namespace temp_sensor
                         }
                     }
                 }, token);
-                await device.WaitForTwinUpdatesAsync("tempSensor", new {
+                await sensorTwin.WaitForReportedPropertyUpdatesAsync(new {
                     properties = new {
                         reported = new {
                             SendData = true,

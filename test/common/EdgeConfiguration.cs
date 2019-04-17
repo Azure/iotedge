@@ -15,7 +15,8 @@ namespace common
     public class EdgeConfiguration
     {
         ConfigurationContent config;
-        DeviceContext context;
+        CloudContext context;
+        string deviceId;
 
         IReadOnlyCollection<string> Modules
         {
@@ -44,7 +45,8 @@ namespace common
         public EdgeConfiguration(EdgeDevice device)
         {
             this.config = _GetBaseConfig();
-            this.context = device.Context;
+            this.context = device.Context.CloudContext;
+            this.deviceId = device.Context.Device.Id;
         }
 
         public void AddEdgeHub()
@@ -84,11 +86,11 @@ namespace common
         public Task DeployAsync(CancellationToken token)
         {
             string message = "Deploying edge configuration to device " +
-                $"'{this.context.Device.Id}' with modules ({string.Join(", ", this.Modules)})";
+                $"'{this.deviceId}' with modules ({string.Join(", ", this.Modules)})";
 
             return Profiler.Run(
                 message,
-                () => this.context.DeployConfigurationAsync(this.config, token)
+                () => this.context.DeployDeviceConfigurationAsync(this.deviceId, this.config, token)
             );
         }
 
