@@ -24,8 +24,8 @@ namespace temp_sensor
 
                         // ** setup
                         var iotHub = new IotHub(args[1], args[2]);
-
-                        var device = await EdgeDevice.GetOrCreateIdentityAsync(args[0], iotHub, token);
+                        var device = await EdgeDevice.GetOrCreateIdentityAsync(
+                            args[0], iotHub, token);
 
                         var daemon = new EdgeDaemon(args[3]);
                         await daemon.UninstallAsync(token);
@@ -46,7 +46,6 @@ namespace temp_sensor
                         var sensor = new EdgeModule("tempSensor", device.Id, iotHub);
                         await EdgeModule.WaitForStatusAsync(
                             new[] { hub, sensor }, EdgeModuleStatus.Running, token);
-
                         await sensor.WaitForEventsReceivedAsync(token);
 
                         var sensorTwin = new ModuleTwin(sensor.Id, device.Id, iotHub);
