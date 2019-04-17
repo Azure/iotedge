@@ -15,39 +15,39 @@ namespace common
 {
     public class EdgeDevice
     {
-        Option<DeviceContext> context;
-        string deviceId;
         IotHub iotHub;
 
-        public DeviceContext Context => this.context.Expect(
-            () => new InvalidOperationException(
-                $"No context for unknown device '{this.deviceId}'. Call " +
-                "[GetOr]CreateAsync() first."
-            )
-        );
+        public DeviceContext Context { get; }
 
-        public EdgeDevice(string deviceId, IotHub iotHub)
+        EdgeDevice(DeviceContext context, IotHub iotHub)
         {
-            this.context = Option.None<DeviceContext>();
-            this.deviceId = deviceId;
+            this.Context = context;
             this.iotHub = iotHub;
         }
 
-        public Task CreateIdentityAsync(CancellationToken token)
+        public static Task<EdgeDevice> CreateIdentityAsync(
+            string deviceId,
+            IotHub iotHub,
+            CancellationToken token
+        )
         {
             return Profiler.Run(
-                $"Creating edge device '{this.deviceId}' on hub '{this.iotHub.Hostname}'",
+                $"Creating edge device '{deviceId}' on hub '{iotHub.Hostname}'",
                 async () => {
-                    Device device = await this.iotHub.CreateEdgeDeviceIdentity(this.deviceId, token);
-                    var context = new DeviceContext(device, true, this.iotHub.Hostname);
-                    this.context = Option.Some(context);
+                    Device device = await iotHub.CreateEdgeDeviceIdentity(deviceId, token);
+                    var context = new DeviceContext(device, true, iotHub.Hostname);
+                    return new EdgeDevice(context, iotHub);
                 }
             );
         }
 
-        public async Task GetOrCreateIdentityAsync(CancellationToken token)
+        public static async Task<EdgeDevice> GetOrCreateIdentityAsync(
+            string deviceId,
+            IotHub iotHub,
+            CancellationToken token
+        )
         {
-            Device device = await this.iotHub.GetDeviceIdentityAsync(this.deviceId, token);
+            Device device = await iotHub.GetDeviceIdentityAsync(deviceId, token);
             if (device != null)
             {
                 if (!device.Capabilities.IotEdge)
@@ -57,52 +57,34 @@ namespace common
                     );
                 }
 
-                var context = new DeviceContext(device, false, this.iotHub.Hostname);
-                this.context = Option.Some(context);
-
-                Console.WriteLine($"Device '{device.Id}' already exists on hub '{this.iotHub.Hostname}'");
+                Console.WriteLine($"Device '{device.Id}' already exists on hub '{iotHub.Hostname}'");
+                var context = new DeviceContext(device, false, iotHub.Hostname);
+                return new EdgeDevice(context, iotHub);
             }
             else
             {
-                await this.CreateIdentityAsync(token);
+                return await CreateIdentityAsync(deviceId, iotHub, token);
             }
         }
 
         public Task DeleteIdentityAsync(CancellationToken token)
         {
-            DeviceContext context = _GetContext("Cannot delete");
-            return _DeleteIdentityAsync(context, token);
+            return Profiler.Run(
+                $"Deleting device '{this.Context.Device.Id}'",
+                () => this.iotHub.DeleteDeviceIdentityAsync(this.Context.Device, token)
+            );
         }
 
         public async Task MaybeDeleteIdentityAsync(CancellationToken token)
         {
-            DeviceContext context = _GetContext("Cannot delete");
-            if (context.Owned)
+            if (this.Context.Owned)
             {
-                await _DeleteIdentityAsync(context, token);
+                await DeleteIdentityAsync(token);
             }
             else
             {
-                Console.WriteLine($"Pre-existing device '{context.Device.Id}' was not deleted");
+                Console.WriteLine($"Pre-existing device '{this.Context.Device.Id}' was not deleted");
             }
-        }
-
-        Task _DeleteIdentityAsync(DeviceContext context, CancellationToken token)
-        {
-            return Profiler.Run(
-                $"Deleting device '{context.Device.Id}'",
-                () => this.iotHub.DeleteDeviceIdentityAsync(context.Device, token)
-            );
-        }
-
-        DeviceContext _GetContext(string errorPrefix)
-        {
-            return this.context.Expect(
-                () => new InvalidOperationException(
-                    $"{errorPrefix} unknown device '{this.deviceId}'. Call " +
-                    "[GetOr]CreateAsync() first."
-                )
-            );
         }
     }
 }
