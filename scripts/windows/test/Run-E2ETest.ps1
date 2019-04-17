@@ -346,23 +346,41 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<UpstreamProtocol>','Mqtt') | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<ClientTransportType>','Mqtt_Tcp_Only') | Set-Content $DeploymentWorkingFilePath
             }
-            "LongHaul"
+            "LongHaul|Stress"
             {
-                Write-Host "Copy deployment file from $LongHaulDeploymentArtifactFilePath"
-                Copy-Item $LongHaulDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
-                (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.TransportType>',$LoadGenTransportType) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
-            }
-            "Stress"
-            {
-                Write-Host "Copy deployment file from $StressDeploymentArtifactFilePath"
-                Copy-Item $StressDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
-                (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen1.TransportType>',$LoadGen1TransportType) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen2.TransportType>',$LoadGen2TransportType) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen3.TransportType>',$LoadGen3TransportType) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen4.TransportType>',$LoadGen4TransportType) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<amqpSettings__enabled>',$AmqpSettingsEnabledString) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<mqttSettings__enabled>',$MqttSettingsEnabledString) | Set-Content $DeploymentWorkingFilePath
+                If ($TestName -eq "LongHaul")
+                {
+                    Write-Host "Copy deployment file from $LongHaulDeploymentArtifactFilePath"
+                    Copy-Item $LongHaulDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
+                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.TransportType>',$LoadGenTransportType) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
+                }
+                Else
+                {
+                    Write-Host "Copy deployment file from $StressDeploymentArtifactFilePath"
+                    Copy-Item $StressDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
+                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen1.TransportType>',$LoadGen1TransportType) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen2.TransportType>',$LoadGen2TransportType) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen3.TransportType>',$LoadGen3TransportType) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen4.TransportType>',$LoadGen4TransportType) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<amqpSettings__enabled>',$AmqpSettingsEnabledString) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<mqttSettings__enabled>',$MqttSettingsEnabledString) | Set-Content $DeploymentWorkingFilePath
+                }
+
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EventHubConnectionString>',$EventHubConnectionString) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
+                $escapedSnitchAlertURL = $SnitchAlertUrl -replace "&","\\&"
+                $escapedBuildId= $ArtifactImageBuildNumber -replace ".",""
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$escapedSnitchAlertURL) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildNumber>',$SnitchBuildNumber) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$SnitchBuildNumber-$(GetImageArchitectureLabel)-linux-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.ReportingIntervalInSecs>',$SnitchReportingIntervalInSecs) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.StorageAccount>',$SnitchStorageAccount) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.StorageMasterKey>',$SnitchStorageMasterKey) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.TestDurationInSecs>',$SnitchTestDurationInSecs) | Set-Content $DeploymentWorkingFilePath
+
+                $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilter"
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
             }
             "TempFilter"
             {
@@ -674,6 +692,44 @@ Function RunQuickstartCertsTest
     Return $testExitCode
 }
 
+Function RunLongHaulTest
+{
+    PrintHighlightedMessage "Run Long Haul test for $Architecture"
+    TestSetup
+
+    $testStartAt = Get-Date
+    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilter"
+    PrintHighlightedMessage "Run Long Haul test with -d ""$deviceId"" started at $testStartAt"
+
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
+            -d `"$deviceId`" ``
+            -c `"$IoTHubConnectionString`" ``
+            -e `"$EventHubConnectionString`" ``
+            -n `"$env:computername`" ``
+            -r `"$ContainerRegistry`" ``
+            -u `"$ContainerRegistryUsername`" ``
+            -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilter`" ``
+            -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+            -l `"$DeploymentWorkingFilePath`""
+    If ($ProxyUri) {
+        $testCommand = "$testCommand ``
+            --upstream-protocol 'AmqpWs' ``
+            --proxy `"$ProxyUri`""
+    }
+    $testCommand = AppendInstallationOption($testCommand)
+    Invoke-Expression $testCommand | Out-Host
+    $testExitCode = $LastExitCode
+
+    PrintLogs $testStartAt $testExitCode
+    Return $testExitCode
+}
+
+Function RunStressTest
+{
+    PrintHighlightedMessage "Run Stress test for $Architecture"
+    TestSetup
+}
+
 Function RunTempFilterTest
 {
     PrintHighlightedMessage "Run TempFilter test for $Architecture"
@@ -959,6 +1015,8 @@ Function RunTest
         "DirectMethodAmqp" { $testExitCode = RunDirectMethodAmqpTest; break }
         "DirectMethodMqtt" { $testExitCode = RunDirectMethodMqttTest; break }
         "QuickstartCerts" { $testExitCode = RunQuickstartCertsTest; break }
+        "LongHaul" { $testExitCode = RunLongHaulTest; break }
+        "Stress" { $testExitCode = RunStressTest; break }
         "TempFilter" { $testExitCode = RunTempFilterTest; break }
         "TempFilterFunctions" { $testExitCode = RunTempFilterFunctionsTest; break }
         "TempSensor" { $testExitCode = RunTempSensorTest; break }
