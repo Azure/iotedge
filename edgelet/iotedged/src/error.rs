@@ -19,6 +19,9 @@ pub enum ErrorKind {
     #[fail(display = "The symmetric key string could not be activated")]
     ActivateSymmetricKey,
 
+    #[fail(display = "The certificate management expiration timer encountered a failure.")]
+    CertificateExpirationManagement,
+
     #[fail(display = "The daemon could not start up successfully: {}", _0)]
     Initialize(InitializeErrorReason),
 

@@ -538,16 +538,16 @@ where
     )
     .with_issuer(CertificateIssuer::DeviceCa);
 
-    let (restart_tx, _restart_rx) = oneshot::channel();
+    let cert_manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).context(
+        ErrorKind::Initialize(InitializeErrorReason::CreateCertificateManager),
+    )?;
 
-    let cert_manager = CertificateManager::new(
-        crypto.clone(),
-        edgelet_cert_props,
-        Some(move || restart_tx.send(()).unwrap_or(())),
-    )
-    .context(ErrorKind::Initialize(
-        InitializeErrorReason::CreateCertificateManager,
-    ))?;
+    // Create the certificate management timer and channel
+    let (restart_tx, _restart_rx) = oneshot::channel();
+    let expiration_timer = cert_manager
+        .schedule_expiration_timer(move || restart_tx.send(()).unwrap_or(()))
+        .map_err(|err| Error::from(err.context(ErrorKind::CertificateExpirationManagement)));
+
     let cert_manager = Arc::new(cert_manager);
 
     let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, cert_manager.clone());
@@ -586,9 +586,9 @@ where
     // Re-call the function recursive style
 
     let services = mgmt
-        .join3(workload, edge_rt_with_cleanup)
+        .join4(workload, edge_rt_with_cleanup, expiration_timer)
         .then(|result| match result {
-            Ok(((), (), ())) => Ok(()),
+            Ok(((), (), (), ())) => Ok(()),
             Err(err) => Err(err),
         });
     tokio_runtime.block_on(services)?;

@@ -27,6 +27,7 @@ pub struct CertificateManager<C: CreateCertificate + Clone> {
     certificate: Arc<RwLock<Option<Certificate>>>,
     crypto: C,
     props: CertificateProperties,
+    creation_time: Instant,
 }
 
 #[derive(Clone)]
@@ -36,18 +37,12 @@ struct Certificate {
 }
 
 impl<C: CreateCertificate + Clone> CertificateManager<C> {
-    pub fn new<F>(
-        crypto: C,
-        props: CertificateProperties,
-        expiration_callback: Option<F>,
-    ) -> Result<Self, Error>
-    where
-        F: FnOnce() + Sync + Send + 'static,
-    {
+    pub fn new(crypto: C, props: CertificateProperties) -> Result<Self, Error> {
         let cert_manager = Self {
             certificate: Arc::new(RwLock::new(None)),
             crypto,
             props,
+            creation_time: Instant::now(),
         };
 
         {
@@ -56,7 +51,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
                 .write()
                 .expect("Locking the certificate for write failed.");
 
-            let created_certificate = cert_manager.create_cert(expiration_callback)?;
+            let created_certificate = cert_manager.create_cert()?;
 
             cert.get_or_insert(created_certificate);
         }
@@ -104,6 +99,30 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
         Ok(stored_cert.cert)
     }
 
+    pub fn schedule_expiration_timer<F>(
+        &self,
+        expiration_callback: F,
+    ) -> impl Future<Item = (), Error = Error>
+    where
+        F: FnOnce() + Sync + Send + 'static,
+    {
+        // Now, let's set a timer to expire this certificate
+        // Expire the certificate at 5% of it's remaining lifetime
+        let when = self.creation_time
+            + Duration::from_secs((*self.props.validity_in_secs() as f64 * 0.05) as u64);
+
+        if when < (Instant::now() + Duration::from_secs(1)) {
+            panic!("Unable to schedule expiration when certificate is already expired")
+        }
+
+        Delay::new(when)
+            .and_then(move |_| {
+                expiration_callback();
+                Ok(())
+            })
+            .map_err(|e| panic!("delay errored; err={:?}", e))
+    }
+
     fn get_certificate(&self) -> Result<Certificate, Error> {
         // Try to directly read
         let stored_cert = self
@@ -117,10 +136,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
         }
     }
 
-    fn create_cert<F>(&self, expiration_callback: Option<F>) -> Result<Certificate, Error>
-    where
-        F: FnOnce() + Sync + Send + 'static,
-    {
+    fn create_cert(&self) -> Result<Certificate, Error> {
         let cert = self
             .crypto
             .create_certificate(&self.props)
@@ -154,26 +170,6 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
         let key_str = String::from_utf8(pk_bytes.as_bytes().to_vec())
             .with_context(|_| ErrorKind::CertificateCreationError)?;
 
-        // Now, let's set a timer to expire this certificate
-        // Expire the certificate at 5% of it's remaining lifetime
-        match expiration_callback {
-            Some(expiration_callback) => {
-                let when = Instant::now()
-                    + Duration::from_secs((*self.props.validity_in_secs() as f64 * 0.05) as u64);
-
-                let update_task = Delay::new(when)
-                    .and_then(move |_| {
-                        expiration_callback();
-                        Ok(())
-                    })
-                    .map_err(|e| panic!("delay errored; err={:?}", e));
-
-                tokio::run(update_task);
-            }
-            // The use of an expiration timer is an optional feature, so no-op here.
-            None => {}
-        };
-
         Ok(Certificate {
             cert: cert_str,
             private_key: key_str,
@@ -205,22 +201,6 @@ mod tests {
     };
 
     #[test]
-    pub fn test_new_manager_has_no_cert() {
-        let crypto = TestCrypto::new().unwrap();
-
-        let edgelet_cert_props = CertificateProperties::new(
-            123_456,
-            "IOTEDGED_TLS_COMMONNAME".to_string(),
-            CertificateType::Server,
-            "iotedge-tls".to_string(),
-        );
-
-        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props);
-
-        assert_eq!(manager.has_certificate(), false);
-    }
-
-    #[test]
     pub fn test_manager_cert_pem_has_cert() {
         let crypto = TestCrypto::new().unwrap();
 
@@ -231,7 +211,7 @@ mod tests {
             "iotedge-tls".to_string(),
         );
 
-        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props);
+        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
 
         let cert = manager.get_certificate().unwrap();
 
