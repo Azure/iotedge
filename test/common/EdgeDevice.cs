@@ -15,13 +15,15 @@ namespace common
 {
     public class EdgeDevice
     {
+        DeviceContext context;
         IotHub iotHub;
 
-        public DeviceContext Context { get; }
+        public string ConnectionString => this.context.ConnectionString;
+        public string Id => this.context.Device.Id;
 
         EdgeDevice(DeviceContext context, IotHub iotHub)
         {
-            this.Context = context;
+            this.context = context;
             this.iotHub = iotHub;
         }
 
@@ -70,20 +72,20 @@ namespace common
         public Task DeleteIdentityAsync(CancellationToken token)
         {
             return Profiler.Run(
-                $"Deleting device '{this.Context.Device.Id}'",
-                () => this.iotHub.DeleteDeviceIdentityAsync(this.Context.Device, token)
+                $"Deleting device '{this.Id}'",
+                () => this.iotHub.DeleteDeviceIdentityAsync(this.context.Device, token)
             );
         }
 
         public async Task MaybeDeleteIdentityAsync(CancellationToken token)
         {
-            if (this.Context.Owned)
+            if (this.context.Owned)
             {
                 await DeleteIdentityAsync(token);
             }
             else
             {
-                Console.WriteLine($"Pre-existing device '{this.Context.Device.Id}' was not deleted");
+                Console.WriteLine($"Pre-existing device '{this.Id}' was not deleted");
             }
         }
     }
