@@ -15,9 +15,9 @@ namespace common
 {
     public class EdgeDevice
     {
-        CloudContext cloudContext;
         Option<DeviceContext> context;
         string deviceId;
+        IotHub iotHub;
 
         public DeviceContext Context => this.context.Expect(
             () => new InvalidOperationException(
@@ -28,7 +28,7 @@ namespace common
 
         public EdgeDevice(string deviceId, string hubConnectionString)
         {
-            this.cloudContext = new CloudContext(hubConnectionString);
+            this.iotHub = new IotHub(hubConnectionString);
             this.context = Option.None<DeviceContext>();
             this.deviceId = deviceId;
         }
@@ -36,10 +36,10 @@ namespace common
         public Task CreateIdentityAsync(CancellationToken token)
         {
             return Profiler.Run(
-                $"Creating edge device '{this.deviceId}' on hub '{this.cloudContext.Hostname}'",
+                $"Creating edge device '{this.deviceId}' on hub '{this.iotHub.Hostname}'",
                 async () => {
-                    Device device = await this.cloudContext.CreateEdgeDeviceIdentity(this.deviceId, token);
-                    var context = new DeviceContext(device, true, this.cloudContext);
+                    Device device = await this.iotHub.CreateEdgeDeviceIdentity(this.deviceId, token);
+                    var context = new DeviceContext(device, true, this.iotHub);
                     this.context = Option.Some(context);
                 }
             );
@@ -47,7 +47,7 @@ namespace common
 
         public async Task GetOrCreateIdentityAsync(CancellationToken token)
         {
-            Device device = await this.cloudContext.GetDeviceIdentityAsync(this.deviceId, token);
+            Device device = await this.iotHub.GetDeviceIdentityAsync(this.deviceId, token);
             if (device != null)
             {
                 if (!device.Capabilities.IotEdge)
@@ -57,10 +57,10 @@ namespace common
                     );
                 }
 
-                var context = new DeviceContext(device, false, this.cloudContext);
+                var context = new DeviceContext(device, false, this.iotHub);
                 this.context = Option.Some(context);
 
-                Console.WriteLine($"Device '{device.Id}' already exists on hub '{this.cloudContext.Hostname}'");
+                Console.WriteLine($"Device '{device.Id}' already exists on hub '{this.iotHub.Hostname}'");
             }
             else
             {
@@ -91,7 +91,7 @@ namespace common
         {
             return Profiler.Run(
                 $"Deleting device '{context.Device.Id}'",
-                () => context.CloudContext.DeleteDeviceIdentityAsync(context.Device, token)
+                () => context.IotHub.DeleteDeviceIdentityAsync(context.Device, token)
             );
         }
 

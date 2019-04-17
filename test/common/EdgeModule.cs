@@ -20,13 +20,13 @@ namespace common
 
     public class EdgeModule
     {
-        public CloudContext CloudContext { get; }
+        public IotHub IotHub { get; }
         public string DeviceId { get; }
         public string Id { get; }
 
-        public EdgeModule(string id, string deviceId, CloudContext context)
+        public EdgeModule(string id, string deviceId, IotHub iotHub)
         {
-            this.CloudContext = context;
+            this.IotHub = iotHub;
             this.DeviceId = deviceId;
             this.Id = id;
         }

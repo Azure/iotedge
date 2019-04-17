@@ -10,8 +10,8 @@ namespace common
 {
     public class EdgeAgent : EdgeModule
     {
-        public EdgeAgent(string deviceId, CloudContext context)
-            : base("edgeAgent", deviceId, context) { }
+        public EdgeAgent(string deviceId, IotHub iotHub)
+            : base("edgeAgent", deviceId, iotHub) { }
 
         public Task PingAsync(CancellationToken token)
         {
@@ -22,7 +22,7 @@ namespace common
                     return Retry.Do(
                         () =>
                         {
-                            return this.CloudContext.InvokeMethodAsync(
+                            return this.IotHub.InvokeMethodAsync(
                                 this.DeviceId,
                                 "$edgeAgent",
                                 new CloudToDeviceMethod("ping"),

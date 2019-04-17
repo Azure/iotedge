@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 
 namespace common
 {
-    public class CloudContext
+    public class IotHub
     {
         private string hubConnectionString;
 
@@ -28,7 +28,7 @@ namespace common
                 new ServiceClientTransportSettings()
             );
 
-        public CloudContext(string hubConnectionString)
+        public IotHub(string hubConnectionString)
         {
             this.hubConnectionString = hubConnectionString;
         }

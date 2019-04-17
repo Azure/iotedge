@@ -28,21 +28,20 @@ namespace temp_sensor
                 await daemon.InstallAsync(token);
                 await daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
 
-                var agent = new EdgeAgent(device.Context.Device.Id, device.Context.CloudContext);
+                var agent = new EdgeAgent(device.Context.Device.Id, device.Context.IotHub);
                 await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
                 await agent.PingAsync(token);
 
                 // ** test
-                var config = new EdgeConfiguration(
-                    device.Context.Device.Id, device.Context.CloudContext);
+                var config = new EdgeConfiguration(device.Context.Device.Id, device.Context.IotHub);
                 config.AddEdgeHub();
                 config.AddTempSensor();
                 await config.DeployAsync(token);
 
                 var hub = new EdgeModule(
-                    "edgeHub", device.Context.Device.Id, device.Context.CloudContext);
+                    "edgeHub", device.Context.Device.Id, device.Context.IotHub);
                 var sensor = new EdgeModule(
-                    "tempSensor", device.Context.Device.Id, device.Context.CloudContext);
+                    "tempSensor", device.Context.Device.Id, device.Context.IotHub);
                 await EdgeModule.WaitForStatusAsync(
                     new []{hub, sensor}, EdgeModuleStatus.Running, token);
                 await sensor.ReceiveEventsAsync(args[2], token);

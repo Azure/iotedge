@@ -15,8 +15,8 @@ namespace common
     public class EdgeConfiguration
     {
         ConfigurationContent config;
-        CloudContext context;
         string deviceId;
+        IotHub iotHub;
 
         IReadOnlyCollection<string> Modules
         {
@@ -42,10 +42,10 @@ namespace common
             }
         }
 
-        public EdgeConfiguration(string deviceId, CloudContext context)
+        public EdgeConfiguration(string deviceId, IotHub iotHub)
         {
             this.config = _GetBaseConfig();
-            this.context = context;
+            this.iotHub = iotHub;
             this.deviceId = deviceId;
         }
 
@@ -90,7 +90,7 @@ namespace common
 
             return Profiler.Run(
                 message,
-                () => this.context.DeployDeviceConfigurationAsync(this.deviceId, this.config, token)
+                () => this.iotHub.DeployDeviceConfigurationAsync(this.deviceId, this.config, token)
             );
         }
 

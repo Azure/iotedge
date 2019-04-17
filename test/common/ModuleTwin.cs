@@ -14,13 +14,13 @@ namespace common
 {
     public class ModuleTwin
     {
-        CloudContext context;
         string deviceId;
+        IotHub iotHub;
         string moduleId;
 
         public ModuleTwin(EdgeModule module)
         {
-            this.context = module.CloudContext;
+            this.iotHub = module.IotHub;
             this.deviceId = module.DeviceId;
             this.moduleId = module.Id;
         }
@@ -29,7 +29,7 @@ namespace common
         {
             return Profiler.Run(
                 $"Updating twin for module '{this.moduleId}'",
-                () => this.context.UpdateTwinAsync(this.deviceId, this.moduleId, patch, token)
+                () => this.iotHub.UpdateTwinAsync(this.deviceId, this.moduleId, patch, token)
             );
         }
 
@@ -40,7 +40,7 @@ namespace common
                 () => {
                     return Retry.Do(
                         async () => {
-                            Twin twin = await this.context.GetTwinAsync(this.deviceId, this.moduleId, token);
+                            Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, this.moduleId, token);
                             // TODO: Only newer versions of tempSensor mirror certain desired properties
                             //       to reported (e.g. 1.0.7-rc2). So return desired properties until
                             //       the temp-sensor e2e test can pull docker images other than the

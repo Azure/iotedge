@@ -8,15 +8,15 @@ namespace common
 {
     public class DeviceContext
     {
-        public CloudContext CloudContext { get; }
+        public IotHub IotHub { get; }
         public string ConnectionString { get; }
         public bool Owned { get; }
         public Device Device { get; }
-        public DeviceContext(Device device, bool owned, CloudContext cloud)
+        public DeviceContext(Device device, bool owned, IotHub iotHub)
         {
-            this.CloudContext = cloud;
+            this.IotHub = iotHub;
             this.ConnectionString = 
-                $"HostName={cloud.Hostname};" +
+                $"HostName={iotHub.Hostname};" +
                 $"DeviceId={device.Id};" +
                 $"SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}";
             this.Owned = owned;
