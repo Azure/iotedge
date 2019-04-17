@@ -9,6 +9,8 @@ use crate::error::{Error, ErrorKind};
 use crate::module::{ModuleRuntime, ModuleRuntimeErrorReason};
 use crate::pid::Pid;
 
+use std::fmt;
+
 #[derive(Debug)]
 pub enum Policy {
     Anonymous,
@@ -16,31 +18,51 @@ pub enum Policy {
     Module(&'static str),
 }
 
-pub struct Authorization<M> {
-    runtime: M,
-    policy: Policy,
+#[derive(Clone, Debug)]
+#[allow(dead_code)] //todo remove
+pub enum AuthId {
+    None,
+    Any,
+    Value(String),
 }
 
+impl fmt::Display for AuthId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AuthId::None => write!(f, "none"),
+            AuthId::Any => write!(f, "any"),
+            AuthId::Value(auth_id) => write!(f, "{}", auth_id),
+        }
+    }
+}
+
+pub struct Authorization<M> {
+    runtime: M,
+    _policy: Policy,
+}
+
+#[allow(dead_code)] //todo remove
 impl<M> Authorization<M>
 where
     M: 'static + ModuleRuntime,
     for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
-    pub fn new(runtime: M, policy: Policy) -> Self {
-        Authorization { runtime, policy }
+    pub fn new(runtime: M, _policy: Policy) -> Self {
+        Authorization { runtime, _policy }
     }
 
     pub fn authorize(
         &self,
-        name: Option<String>,
-        pid: Pid,
+        _name: Option<String>,
+        _auth_id: AuthId,
     ) -> impl Future<Item = bool, Error = Error> {
-        let name = name.map(|n| n.trim_start_matches('$').to_string());
-        match self.policy {
-            Policy::Anonymous => Either::A(Either::A(self.auth_anonymous())),
-            Policy::Caller => Either::A(Either::B(self.auth_caller(name, pid))),
-            Policy::Module(ref expected_name) => Either::B(self.auth_module(expected_name, pid)),
-        }
+        //        let name = name.map(|n| n.trim_start_matches('$').to_string());
+        //        match self.policy {
+        //            Policy::Anonymous => Either::A(Either::A(self.auth_anonymous())),
+        //            Policy::Caller => Either::A(Either::B(self.auth_caller(name, pid))),
+        //            Policy::Module(ref expected_name) => Either::B(self.auth_module(expected_name, pid)),
+        //        }
+        future::ok(false)
     }
 
     fn auth_anonymous(&self) -> impl Future<Item = bool, Error = Error> {

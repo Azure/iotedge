@@ -6,7 +6,7 @@ use failure::ResultExt;
 use futures::{future, Future};
 use hyper::{Body, Request, Response};
 
-use edgelet_core::pid::Pid;
+use edgelet_core::AuthId;
 use edgelet_core::{Authorization as CoreAuth, ModuleRuntime, ModuleRuntimeErrorReason, Policy};
 
 use crate::error::{Error, ErrorKind};
@@ -46,9 +46,9 @@ where
         let (name, pid) = (
             params.name("name").map(ToString::to_string),
             req.extensions()
-                .get::<Pid>()
+                .get::<AuthId>()
                 .cloned()
-                .unwrap_or_else(|| Pid::None),
+                .unwrap_or_else(|| AuthId::None),
         );
         let inner = self.inner.clone();
 
@@ -94,6 +94,7 @@ mod tests {
 
     use super::*;
     use crate::error::Error as HttpError;
+    use edgelet_core::pid::Pid;
 
     #[test]
     fn handler_calls_inner_handler() {

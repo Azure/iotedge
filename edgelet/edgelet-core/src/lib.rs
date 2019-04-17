@@ -20,7 +20,7 @@ pub mod pid;
 pub mod watchdog;
 pub mod workload;
 
-pub use authorization::{Authorization, Policy};
+pub use authorization::{AuthId, Authorization, Policy};
 pub use certificate_properties::{CertificateIssuer, CertificateProperties, CertificateType};
 pub use crypto::{
     Certificate, CreateCertificate, Decrypt, Encrypt, GetDeviceIdentityCertificate, GetTrustBundle,

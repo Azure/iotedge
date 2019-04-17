@@ -54,7 +54,7 @@ use edgelet_core::{
     CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime, ModuleSpec, UrlExt,
     WorkloadConfig, UNIX_SCHEME,
 };
-use edgelet_docker::{DockerConfig, DockerModuleRuntime};
+use edgelet_docker::{DockerConfig, DockerModuleRuntime, DockerNewIdService};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
 use edgelet_http::certificate_manager::CertificateManager;
@@ -75,6 +75,7 @@ use provisioning::provisioning::{
 use crate::workload::WorkloadData;
 
 pub use self::error::{Error, ErrorKind, InitializeErrorReason};
+use hyper::service::Service;
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
@@ -922,7 +923,7 @@ where
             let service = LoggingService::new(label, service);
             info!("Listening on {} with 1 thread for management API.", url);
             let run = Http::new()
-                .bind_url(url.clone(), service, Some(&cert_manager))
+                .bind_url(url.clone(), service, create_new_id_service(), Some(&cert_manager))
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,
@@ -970,7 +971,7 @@ where
             ))?;
             let service = LoggingService::new(label, service);
             let run = Http::new()
-                .bind_url(url.clone(), service, Some(&cert_manager))
+                .bind_url(url.clone(), service, create_new_id_service(), Some(&cert_manager))
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::WorkloadService,
@@ -982,6 +983,11 @@ where
             Ok(run)
         })
         .flatten()
+}
+
+fn create_new_id_service<T: Service>() -> DockerNewIdService<T>
+{
+    DockerNewIdService::<T>::new()
 }
 
 #[cfg(test)]
