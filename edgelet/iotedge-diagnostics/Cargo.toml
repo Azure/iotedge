@@ -20,4 +20,4 @@ management = { path = "../management" }
 hyperlocal = "0.6"
 
 [target.'cfg(windows)'.dependencies]
-hyperlocal-windows = { path = "../../../hyperlocal-windows" }
+hyperlocal-windows = "0.1.0"
