@@ -50,9 +50,9 @@ namespace common
 
         public void AddRegistryCredentials(string address, string username, string password)
         {
-            // { "modulesContent": { "$edgeAgent": { "properties.desired": { "runtime": { "settings": {
+            // { "modulesContent": { "$edgeAgent": { "properties": { "desired": { "runtime": { "settings": {
             //   "registryCredentials": { ... }
-            // } } } } } }
+            // } } } } } } }
             JObject desired = JObject.FromObject(config.ModulesContent["$edgeAgent"]["properties.desired"]);
             JObject settings = desired.Get<JObject>("runtime").Get<JObject>("settings");
             settings.Add("registryCredentials", JToken.FromObject(_GetBaseRegistryCredentials(
@@ -65,7 +65,9 @@ namespace common
         {
             ConfigurationContent config = this.config;
 
-            // { "modulesContent": { "$edgeAgent": { "properties.desired": { "systemModules": { "edgeHub": { ... } } } } } }
+            // { "modulesContent": { "$edgeAgent": { "properties": { "desired": { "systemModules": {
+            //   "edgeHub": { ... }
+            // } } } } } }
             JObject desired = JObject.FromObject(config.ModulesContent["$edgeAgent"]["properties.desired"]);
             JObject systemModules = desired.Get<JObject>("systemModules");
             systemModules.Add("edgeHub", JToken.FromObject(_GetBaseEdgeHubSystemModules()));
@@ -79,7 +81,9 @@ namespace common
         {
             ConfigurationContent config = this.config;
 
-            // { "modulesContent": { "$edgeAgent": { "properties.desired": { "modules": { "tempSensor": { ... } } } } } }
+            // { "modulesContent": { "$edgeAgent": { "properties": { "desired": { "modules": {
+            //   "tempSensor": { ... }
+            // } } } } } }
             JObject desired = JObject.FromObject(config.ModulesContent["$edgeAgent"]["properties.desired"]);
             JObject modules;
             if (desired.TryGetValue("modules", StringComparison.OrdinalIgnoreCase, out JToken token))
