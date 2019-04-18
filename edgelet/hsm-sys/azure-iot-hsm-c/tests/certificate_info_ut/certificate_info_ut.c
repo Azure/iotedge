@@ -70,11 +70,6 @@ extern "C" {
 static const int64_t RSA_CERT_VALID_FROM_TIME = 1484940333;
 static const int64_t RSA_CERT_VALID_TO_TIME = 1800300333;
 
-static const char* CN_TEST =
-"-----BEGIN CERTIFICATE-----""\r\n"
-"MIIF4DCCBMigAwIBAgIQDACTENIG2-M3VTWAEY3chzANBgkqhkiG9w0BAQsFADB1MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3d3cuZGlnaWNlcnQuY29tMTQwMgYDVQQDEytEaWdpQ2VydCBTSEEyIEV4dGVuZGVkIFZhbGlkYXRpb24gU2VydmVyIENBMB4XDTE0MDQwODAwMDAwMFoXDTE2MDQxMjEyMDAwMFowgfAxHTAbBgNVBA8MFFByaXZhdGUgT3JnYW5pemF0aW9uMRMwEQYLKwYBBAGCNzwCAQMTAlVTMRkwFwYLKwYBBAGCNzwCAQITCERlbGF3YXJlMRAwDgYDVQQFEwc1MTU3NTUwMRcwFQYDVQQJEw41NDggNHRoIFN0cmVldDEOMAwGA1UEERMFOTQxMDcxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRUwEwYDVQQKEwxHaXRIdWIsIEluYy4xEzARBgNVBAMTCmdpdGh1Yi5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCx1Nw8r_3zTu3BZ63myyLot-KrKPL33GJwCNEMr9YWaiGwNksXDTZjBK6_6iBRlWVm8r-5TaQMKev1FbHoNbNwEJTVG1m0Jg_Wg1dZneF8Cd3gE8pNb0Obzc-HOhWnhd1mg-2TDP4rbTgceYiQz61YGC1R0cKj8keMbzgJubjvTJMLy4OUh-rgo7XZe5trD0P5yu6ADSindvEl9ME1PPZ0rd5qM4J73P1LdqfC7vJqv6kkpl_nLnwO28N0c_p-xtjPYOs2ViG2wYq4JIJNeCS66R2hiqeHvmYlab--O3JuT-DkhSUIsZGJuNZ0ZXabLE9iH6H6Or6cJL-fyrDFwGeNAgMBAAGjggHuMIIB6jAfBgNVHSMEGDAWgBQ901Cl1qCt7vNKYApl0yHU-PjWDzAdBgNVHQ4EFgQUakOQfTuYFHJSlTqqKApD-FF-06YwJQYDVR0RBB4wHIIKZ2l0aHViLmNvbYIOd3d3LmdpdGh1Yi5jb20wDgYDVR0PAQH_BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEFBQcDAjB1BgNVHR8EbjBsMDSgMqAwhi5odHRwOi8vY3JsMy5kaWdpY2VydC5jb20vc2hhMi1ldi1zZXJ2ZXItZzEuY3JsMDSgMqAwhi5odHRwOi8vY3JsNC5kaWdpY2VydC5jb20vc2hhMi1ldi1zZXJ2ZXItZzEuY3JsMEIGA1UdIAQ7MDkwNwYJYIZIAYb9bAIBMCowKAYIKwYBBQUHAgEWHGh0dHBzOi8vd3d3LmRpZ2ljZXJ0LmNvbS9DUFMwgYgGCCsGAQUFBwEBBHwwejAkBggrBgEFBQcwAYYYaHR0cDovL29jc3AuZGlnaWNlcnQuY29tMFIGCCsGAQUFBzAChkZodHRwOi8vY2FjZXJ0cy5kaWdpY2VydC5jb20vRGlnaUNlcnRTSEEyRXh0ZW5kZWRWYWxpZGF0aW9uU2VydmVyQ0EuY3J0MAwGA1UdEwEB_wQCMAAwDQYJKoZIhvcNAQELBQADggEBAG_nbcuC8--QhwnXDxUiLIz-06scipbbXRJd0XjAMbD_RciJ9wiYUhcfTEsgZGpt21DXEL5-q_4vgNipSlhBaYFyGQiDm5IQTmIte0ZwQ26jUxMf4pOmI1v3kj43FHU7uUskQS6lPUgND5nqHkKXxv6V2qtHmssrA9YNQMEK93ga2rWDpK21mUkgLviTPB5sPdE7IzprOCp-Ynpf3RcFddAkXb6NqJoQRPrStMrv19C1dqUmJRwIQdhkkqevff6IQDlhC8BIMKmCNK33cEYDfDWROtW7JNgBvBTwww8jO1gyug8SbGZ6bZ3k8OV8XX4C2NesiZcLYbc2n7B9O-63M2k"
-"-----END CERTIFICATE-----\r\n";
-
 static const char* TEST_RSA_CERT_WIN_EOL =
 "-----BEGIN CERTIFICATE-----""\r\n"
 "MIICpDCCAYwCCQCgAJQdOd6dNzANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwHhcNMTcwMTIwMTkyNTMzWhcNMjcwMTE4MTkyNTMzWjAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDlJ3fRNWm05BRAhgUY7cpzaxHZIORomZaOp2Uua5yv+psdkpv35ExLhKGrUIK1AJLZylnue0ohZfKPFTnoxMHOecnaaXZ9RA25M7XGQvw85ePlGOZKKf3zXw3Ds58GFY6Sr1SqtDopcDuMmDSg/afYVvGHDjb2Fc4hZFip350AADcmjH5SfWuxgptCY2Jl6ImJoOpxt+imWsJCJEmwZaXw+eZBb87e/9PH4DMXjIUFZebShowAfTh/sinfwRkaLVQ7uJI82Ka/icm6Hmr56j7U81gDaF0DhC03ds5lhN7nMp5aqaKeEJiSGdiyyHAescfxLO/SMunNc/eG7iAirY7BAgMBAAEwDQYJKoZIhvcNAQELBQADggEBACU7TRogb8sEbv+SGzxKSgWKKbw+FNgC4Zi6Fz59t+4jORZkoZ8W87NM946wvkIpxbLKuc4F+7nTGHHksyHIiGC3qPpi4vWpqVeNAP+kfQptFoWEOzxD7jQTWIcqYhvssKZGwDk06c/WtvVnhZOZW+zzJKXA7mbwJrfp8VekOnN5zPwrOCumDiRX7BnEtMjqFDgdMgs9ohR5aFsI7tsqp+dToLKaZqBLTvYwCgCJCxdg3QvMhVD8OxcEIFJtDEwm3h9WFFO3ocabCmcMDyXUL354yaZ7RphCBLd06XXdaUU/eV6fOjY6T5ka4ZRJcYDJtjxSG04XPtxswQfrPGGoFhk=""\r\n"
@@ -129,6 +124,30 @@ static const char* EXPECTED_TEST_CERT_CHAIN_WIN_EOL =
 static const char* EXPECTED_TEST_CERT_CHAIN_NIX_EOL =
 "-----BEGIN CERTIFICATE-----\n"
 "MIIFuzCCA6OgAwIBAgICA+gwDQYJKoZIhvcNAQELBQAwgZUxCzAJBgNVBAYTAlVTMRcwFQYDVQQDDA5FZGdlIERldmljZSBDQTEQMA4GA1UEBwwHUmVkbW9uZDEiMCAGA1UECgwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjETMBEGA1UECAwKV2FzaGluZ3RvbjEiMCAGA1UECwwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjAeFw0xODA0MjQwMzU1NTdaFw0xOTA0MjQwMzU1NTdaMIGVMQswCQYDVQQGEwJVUzEXMBUGA1UEAwwORWRnZSBEZXZpY2UgQ0ExEDAOBgNVBAcMB1JlZG1vbmQxIjAgBgNVBAoMGURlZmF1bHQgRWRnZSBPcmdhbml6YXRpb24xEzARBgNVBAgMCldhc2hpbmd0b24xIjAgBgNVBAsMGURlZmF1bHQgRWRnZSBPcmdhbml6YXRpb24wggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCxqFOTRC1in4Kjhgba62GYYTZnDLsFk/Y9YqyhHr0+VMLEyZrwLRMyKS5V2nmt7lFMZsMDuoU+uISo+i+Wvx8aNjyalF8vQfVwQtRfFbSAVEzmEZMfff80SMdo31uN9KcmjTqrn1ULLHBEhmiOgW+V+gizAkcmCpCHWEv1MexlQ2t5RSM0BF2AIwA4I3DyT0OuVyAtC3UUxPDQb5KqUChBGexej/Y1JxcLDo7evxEH5eZtepXeVIO/yzn2a7PaplxEh2vStLsZVUuso1e8bghjREVp4OzHmce2Fss46XFTlah7gCTlCe7f03OVQOBS7IOxrPnm1xizmI4aNECa+HqkPoM83/fLUzjAYi3DFzwY+Y8kzt5tIq1jt5oXSAu+W/K3t1w9EMDn0BcKjvEMoJKiX2ZAD/PhLT+0GgGzyYenqwXLv9a0oh245rv/dD3Q+uL5sSuS9U+UF4j8NYVqXxRmU340/WQdfDyrL/IiRDrp+oelm3ddKX6qQ9ZqrlK31H1FAJrJH/6mf0auOdkumAHoGwL+vIzaezW52CuQDtNmRi3IoDoObdzSfW0aTeKoljr9/fq3jri7BI5GwWAhDBM+tiYPaMCaSxBI547SAFlla1xScI22a04L5ec3KHZleb6Rsfvd1ybWlSOjXOGqHcnGz9uUCwM/cYHcLQpnsroHxQIDAQABoxMwETAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQBkNRKg/xeJ2/n/KckHxCXv9QsPnnEFQu0Z2w2nw5GPi0Y9cSQHgwL1EwPvAsjQ7WBbe2e44DkwssbGnLO4kE0CkLgbTVbBPybrWeOcl3Ei173CBSwPOQxJZ14voquSFxglaYoVABaLpmsME4ZYn9W1occhoLKaZ7jGZAbLo/ZsigO1u/mSf6ZgaBSd1GdBeTfzLxu1IdnorYlKWudi9pQ/6TW/yT+mNq3iuMWNeqUJps2sgWkaaaqzvHx4dAOb6rzBC/4vuxIc2X2z6NgSjdddr1V3yCyjpX54TgM/q/00BhSaRluqQAn/QHqIrDbeExUbGSFfb9Ma1aiUMNuxgYGiF/v72P7Nq+WhOLa9mucoO293abq0SOAup4RdqOj9QnyJ91s1Lwe07bn3huF1ScYkOAQxmzA3rS8JZ2z6snJigI/Kb70Ba2rVdFjVDRuNEC5xhK6hFkLsk+quPKubNpHOQLSkXHf7sVGFT714j0JSoBa8OKMY3HErWGP1qBdp8HtfV1rtrYzesWvfPj4sAqLpvgq9cd2GXhoDlxKjZam9RkbdkdIVi59125y/qhqMpQF5uRKyDFx6GWkY+MgOMk0BbvUSVjH9bSdZZzupUvYpRodI92fYZWnlKNavPxi0bbJ/WcFDb/rbn83UtaFt3xnejuutm6RjKPSbQGLceR7O4A==\n"
+"-----END CERTIFICATE-----\n";
+
+// generated using the following commands
+// openssl genrsa -out private.pem 2048
+// openssl req -new -x509 -key private.pem -subj "/ST=WA" -days 365 -sha256 -out cert.pem
+// cert.pem contents were copied into TEST_CERT_WITH_NO_COMMON_NAME below
+static const char* TEST_CERT_WITH_NO_COMMON_NAME =
+"-----BEGIN CERTIFICATE-----\n"
+"MIIC7TCCAdWgAwIBAgIJALlpHh5eq4zmMA0GCSqGSIb3DQEBCwUAMA0xCzAJBgNV\n"
+"BAgMAldBMB4XDTE5MDQxODIwNTUxOVoXDTIwMDQxNzIwNTUxOVowDTELMAkGA1UE\n"
+"CAwCV0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC+D3CIZAcWXXzh\n"
+"gZMKJLUFZ14cl0APyMabZAGjXLfNxVJrJvnZFfYWggQJrc9eCE8sGHi2nIvtjLsW\n"
+"vKXllN2bRSaG1qdyr5sTiTGX0IdTdgBefbLBn4eTvfjDTzBSJQ7CxEB5QHnJIk+1\n"
+"nemMSP0dhS4oSDn26AjjvY5V3+OMP3oDyIWDSFINNxU3e58GMUJskdVVe8NlRe9c\n"
+"CQqwPLWUEGI/KDAcvX3/ImUvkWerVKUIHc5YgF7i3wM5mYCEiR8WG6te6KPURGwR\n"
+"LYjXmibD3AEzxHLRV0N7rOYtXPYk5f0WW4/VL+D5e6aEP/mdDDadbH5jVViIzjVP\n"
+"cn1CcgkvAgMBAAGjUDBOMB0GA1UdDgQWBBQkwYLPquBcWsSqkoUpn7yD5Qk65TAf\n"
+"BgNVHSMEGDAWgBQkwYLPquBcWsSqkoUpn7yD5Qk65TAMBgNVHRMEBTADAQH/MA0G\n"
+"CSqGSIb3DQEBCwUAA4IBAQA7svnm431R5E8wpAPS3MIXBIjQd6zXS6WFR5vft0z8\n"
+"gv/7lpJASlcUZBiGCYWyWQb6Gll2gVrUaDhSiNTwPNto+o3rAC9UDXcTwiT1/BIv\n"
+"mTr+WSlM2+oYBEPEFRdWndH3CH31R66SAi2fFZIbCRi2UYl2E70F0LtpuTR5MFsG\n"
+"kTjWJxNT53afMdFSm3ZYW3euxRjeun3jxoKi2KgWpHfnmww3naEy+OEwCxbR2l42\n"
+"cUMPym59Xzi0gy0PLTt1pNJnw7B+KOtrs7U4B6EWh1K1QP0HHB59liaNluLYhf4e\n"
+"0PSMyC15UO0EK39kBxfab+2CnVZt+OQfr8QO1FJLapdS\n"
 "-----END CERTIFICATE-----\n";
 
 static const unsigned char TEST_PRIVATE_KEY[] = { 0x32, 0x03, 0x33, 0x34, 0x35, 0x36 };
@@ -211,7 +230,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     {
         TEST_MUTEX_RELEASE(g_testByTest);
     }
-#if 0
+
     static int should_skip_index(size_t current_index, const size_t skip_array[], size_t length)
     {
         int result = 0;
@@ -240,6 +259,8 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
         STRICT_EXPECTED_CALL(BUFFER_u_char(IGNORED_PTR_ARG));
         STRICT_EXPECTED_CALL(BUFFER_length(IGNORED_PTR_ARG));
+        // allocator for common name
+        STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_NUM_ARG));
         STRICT_EXPECTED_CALL(BUFFER_delete(IGNORED_PTR_ARG));
         // allocator for the first certificate which includes /r/n ending
         STRICT_EXPECTED_CALL(gballoc_malloc(cert_len));
@@ -548,7 +569,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
         umock_c_negative_tests_snapshot();
 
-        size_t calls_cannot_fail[] = { 6, 7, 8, 9, 10 };
+        size_t calls_cannot_fail[] = { 6, 7, 8, 9, 11 };
 
         //act
         size_t count = umock_c_negative_tests_call_count();
@@ -584,6 +605,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
         STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
         STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
 
         //act
         certificate_info_destroy(cert_handle);
@@ -599,6 +621,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //arrange
         CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, NULL, 0, PRIVATE_KEY_UNKNOWN);
         umock_c_reset_all_calls();
+        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
         STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
         STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
         STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
@@ -946,10 +969,103 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //cleanup
     }
 
-#endif
-    TEST_FUNCTION(get_common_name_test)
+    TEST_FUNCTION(get_common_name_test_mulitple_rsa_success)
     {
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        //arrange
+        const char* cert_list[] = {
+            TEST_RSA_CERT_WIN_EOL,
+            TEST_RSA_CERT_NIX_EOL,
+        };
+
+        for (size_t i = 0; i < sizeof(cert_list)/sizeof(cert_list[0]); i++)
+        {
+            CERT_INFO_HANDLE cert_handle = certificate_info_create(cert_list[i],
+                                                                   TEST_PRIVATE_KEY,
+                                                                   TEST_PRIVATE_KEY_LEN,
+                                                                   PRIVATE_KEY_PAYLOAD);
+            ASSERT_IS_NOT_NULL(cert_handle);
+
+            // act
+            const char* result = certificate_info_get_common_name(cert_handle);
+
+            // assert
+            ASSERT_IS_NOT_NULL(result);
+            int cmp = strcmp("localhost", result);
+            ASSERT_ARE_EQUAL(int, 0, cmp);
+
+            //cleanup
+            certificate_info_destroy(cert_handle);
+        }
+    }
+
+    TEST_FUNCTION(get_common_name_test_mulitple_ecc_success)
+    {
+        //arrange
+        const char* cert_list[] = {
+            TEST_ECC_CERT_WIN_EOL,
+            TEST_ECC_CERT_NIX_EOL
+        };
+
+        for (size_t i = 0; i < sizeof(cert_list)/sizeof(cert_list[0]); i++)
+        {
+            CERT_INFO_HANDLE cert_handle = certificate_info_create(cert_list[i],
+                                                                   TEST_PRIVATE_KEY,
+                                                                   TEST_PRIVATE_KEY_LEN,
+                                                                   PRIVATE_KEY_PAYLOAD);
+            ASSERT_IS_NOT_NULL(cert_handle);
+
+            // act
+            const char* result = certificate_info_get_common_name(cert_handle);
+
+            // assert
+            ASSERT_IS_NOT_NULL(result);
+            int cmp = strcmp("riot-root", result);
+            ASSERT_ARE_EQUAL(int, 0, cmp);
+
+            //cleanup
+            certificate_info_destroy(cert_handle);
+        }
+    }
+
+    TEST_FUNCTION(get_common_name_test_mulitple_chain_success)
+    {
+        //arrange
+        const char* cert_list[] = {
+            TEST_CERT_CHAIN_WIN_EOL,
+            TEST_CERT_CHAIN_NIX_EOL
+        };
+
+        for (size_t i = 0; i < sizeof(cert_list)/sizeof(cert_list[0]); i++)
+        {
+            CERT_INFO_HANDLE cert_handle = certificate_info_create(cert_list[i],
+                                                                   TEST_PRIVATE_KEY,
+                                                                   TEST_PRIVATE_KEY_LEN,
+                                                                   PRIVATE_KEY_PAYLOAD);
+            ASSERT_IS_NOT_NULL(cert_handle);
+
+            // act
+            const char* result = certificate_info_get_common_name(cert_handle);
+
+            // assert
+            ASSERT_IS_NOT_NULL(result);
+            int cmp = strcmp("Edge Agent CA", result);
+            ASSERT_ARE_EQUAL(int, 0, cmp);
+
+            //cleanup
+            certificate_info_destroy(cert_handle);
+        }
+    }
+
+    TEST_FUNCTION(get_common_name_test_failed)
+    {
+        //arrange
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WITH_NO_COMMON_NAME, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+
+        // act
+        const char* result = certificate_info_get_common_name(cert_handle);
+
+        // assert
+        ASSERT_IS_NULL(result);
     }
 
     END_TEST_SUITE(certificate_info_ut)

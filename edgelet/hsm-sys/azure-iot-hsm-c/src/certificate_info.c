@@ -20,13 +20,11 @@ typedef struct CERT_DATA_INFO_TAG
     uint8_t version;
     time_t not_before;
     time_t not_after;
-    char* subject;
-    char* issuer;
     const char* cert_chain;
     const char* first_cert_start;
     const char* first_cert_end;
     char* first_certificate;
-    char *common_name;
+    char* common_name;
 } CERT_DATA_INFO;
 
 typedef enum X509_ASN1_STATE_TAG
@@ -93,8 +91,21 @@ static const int month_day[] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 30
 #define END_HEADER_LENGTH   25 // length of end header string -----END CERTIFICATE-----
 #define INVALID_TIME        -1
 
+// todo add RFC
+#define MAX_LEN_COMMON_NAME 64
 #define COMMON_NAME_OID_SIZE 5
-static const unsigned char COMMON_NAME_OID[COMMON_NAME_OID_SIZE] = {  0x6, 0x03, 0x55, 0x04, 0x03 };
+static const unsigned char COMMON_NAME_OID[COMMON_NAME_OID_SIZE] = {  0x06, 0x03, 0x55, 0x04, 0x03 };
+
+#define FREEIF(x) \
+    do { \
+        if ((x != NULL)) { \
+            free(x); \
+            x = NULL; \
+        } \
+    } while(0)
+
+// Forward declaration(s)
+static char *get_common_name(const unsigned char *input);
 
 static BUFFER_HANDLE decode_certificate(CERT_DATA_INFO* cert_info)
 {
@@ -344,8 +355,7 @@ static size_t parse_asn1_object(const unsigned char* tbs_info, ASN1_OBJECT* asn1
     return pos_change;
 }
 
-static char *get_common_name(const unsigned char *input);
-static void print_buffer(const char* field, const unsigned char *s, size_t size);
+static void print_buffer(const char* field, const unsigned char *s, size_t size, size_t offset);
 
 static int parse_tbs_cert_info(unsigned char* tbs_info, size_t len, CERT_DATA_INFO* cert_info)
 {
@@ -407,9 +417,7 @@ static int parse_tbs_cert_info(unsigned char* tbs_info, size_t len, CERT_DATA_IN
             tbs_field = FIELD_VALIDITY;   // Go to the next field
             break;
         case FIELD_VALIDITY:
-            printf("Subject Validity\n");
             parse_asn1_object(iterator, &target_obj);
-            print_buffer("Validity", iterator, LENGTH_OF_VALIDITY);
             if (target_obj.length != LENGTH_OF_VALIDITY)
             {
                 result = __LINE__;
@@ -428,18 +436,24 @@ static int parse_tbs_cert_info(unsigned char* tbs_info, size_t len, CERT_DATA_IN
                 else
                 {
                     iterator += target_obj.length;
-                    printf("Goto subject\n");
                     tbs_field = FIELD_SUBJECT;   // Go to the next field
                 }
             }
             break;
         case FIELD_SUBJECT:
             cert_info->common_name = get_common_name(iterator);
-            size_len = parse_asn1_object(iterator, &target_obj);
-			// adding additional OVERHEAD_SIZE on the value due to the size value not being included in the length
-            iterator += target_obj.length + TLV_OVERHEAD_SIZE + (size_len - 1);
-            tbs_field = FIELD_SUBJECT_PUBLIC_KEY_INFO;   // Go to the next field
-            continue_loop = 1;
+            if (cert_info->common_name == NULL)
+            {
+                result = __LINE__;
+            }
+            else
+            {
+                size_len = parse_asn1_object(iterator, &target_obj);
+                // adding additional OVERHEAD_SIZE on the value due to the size value not being included in the length
+                iterator += target_obj.length + TLV_OVERHEAD_SIZE + (size_len - 1);
+                tbs_field = FIELD_SUBJECT_PUBLIC_KEY_INFO;   // Go to the next field
+                continue_loop = 1;
+            }
             break;
         case FIELD_SUBJECT_PUBLIC_KEY_INFO:
         case FIELD_ISSUER_UNIQUE_ID:
@@ -451,65 +465,83 @@ static int parse_tbs_cert_info(unsigned char* tbs_info, size_t len, CERT_DATA_IN
     return result;
 }
 
-// typedef enum ASN1_TYPE_TAG
-// {
-//     ASN1_BOOLEAN = 0x1,
-//     ASN1_INTEGER = 0x2,
-//     ASN1_BIT_STRING = 0x3,
-//     ASN1_OCTET_STRING = 0x4,
-//     ASN1_NULL = 0x5,
-//     ASN1_OBJECT_ID = 0x6,
-//     ASN1_UTF8_STRING = 0xC,
-//     ASN1_PRINTABLE_STRING = 0x13,
-//     ASN1_T61_STRING = 0x16,
-//     ASN1_UTCTIME = 0x17,
-//     ASN1_GENERALIZED_STRING = 0x18,
-//     ASN1_SEQUENCE = 0x30,
-//     ASN1_SET = 0x31,
-//     ASN1_INVALID
-// } ASN1_TYPE;
-
 static char *get_common_name(const unsigned char *input)
 {
-    size_t size_len, overall_size;
+    char *result;
+    bool done = false, found = false;
     const unsigned char* iterator = input;
-    ASN1_OBJECT target_obj;
-    size_len = parse_asn1_object(iterator, &target_obj);
-    print_buffer("Subject", target_obj.value, target_obj.length);
+    size_t overall_size;
+    ASN1_OBJECT target_obj, data_obj;
+    parse_asn1_object(iterator, &target_obj);
     overall_size = target_obj.length;
-    while (iterator < input + overall_size)
+    while ((!done) && (iterator < input + overall_size))
     {
-        iterator += TLV_OVERHEAD_SIZE + (size_len - 1);
-        size_len = parse_asn1_object(iterator, &target_obj);
-        if ((target_obj.type == ASN1_SEQUENCE) || (target_obj.type == ASN1_SET))
+        unsigned char * oid_start = memchr(iterator, ASN1_OBJECT_ID, overall_size);
+        if (!oid_start)
         {
-            print_buffer("ASN Marker", target_obj.value, target_obj.length);
-            iterator += TLV_OVERHEAD_SIZE + (size_len - 1);
-        }
-        else if (target_obj.type == ASN1_OBJECT_ID)
-        {
-            print_buffer("OID", target_obj.value, target_obj.length);
-            if (memcmp(COMMON_NAME_OID, target_obj.value, COMMON_NAME_OID_SIZE) == 0)
-            {
-                printf("Found CN\n");
-            }
-            iterator += target_obj.length;
+            done = true;
         }
         else
         {
-            print_buffer("Parsed:", target_obj.value, target_obj.length);
-            iterator += TLV_OVERHEAD_SIZE + (size_len - 1);
+            ASN1_OBJECT seq_obj;
+            if (memcmp(COMMON_NAME_OID, oid_start, COMMON_NAME_OID_SIZE) == 0)
+            {
+                // back up 2 bytes to ensure we are at a ASN1_SEQUENCE boundary
+                // note it will be 2 bytes because the CN is 64 characters which
+                // and its oid is 5 chars which and their sum is less than 127
+                // and thus will have length expressed in 1 byte
+                const unsigned char * seq_start = oid_start - 2;
+                size_t oid_size_len = parse_asn1_object(seq_start, &seq_obj);
+                print_buffer("ASN Marker", seq_obj.value, seq_obj.length, 0);
+                if ((seq_obj.type == ASN1_SEQUENCE) &&
+                    (seq_start + seq_obj.length <= input + overall_size) &&
+                    (oid_size_len == 1))
+                {
+                    const unsigned char * data_start = oid_start + COMMON_NAME_OID_SIZE;
+                    parse_asn1_object(data_start, &data_obj);
+                    print_buffer("CN", data_obj.value, data_obj.length, 0);
+                    if (data_obj.length <= MAX_LEN_COMMON_NAME)
+                    {
+                        found = true;
+                    }
+                }
+                done = true;
+            }
+            else
+            {
+                iterator = oid_start + 1;
+            }
         }
-
     }
 
-    return "name";
+    if (!found)
+    {
+        LogError("Could not find CN in certificate");
+        result = NULL;
+    }
+    else
+    {
+        // add 1 for null term
+        size_t cn_size = data_obj.length + 1;
+        result = malloc(cn_size);
+        if (!result)
+        {
+            LogError("Could not allocate memory for the common name");
+        }
+        else
+        {
+            memset(result, 0, cn_size);
+            memcpy(result, data_obj.value, data_obj.length);
+        }
+    }
+
+    return result;
 }
 
-static void print_buffer(const char* field, const unsigned char *s, size_t size)
+static void print_buffer(const char* field, const unsigned char *s, size_t size, size_t offset)
 {
     size_t i;
-    printf("Len:%zu, %s[\n", size, field);
+    printf("Offset:%zu Len:%zu, %s[\n", offset, size, field);
     for (i = 0; i < size; i++)
     {
         printf("%02x ", s[i]);
@@ -618,7 +650,7 @@ CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* pr
         if (cert_len == 0 || (result->certificate_pem = (char*)malloc(cert_len + 1)) == NULL)
         {
             LogError("Failure allocating certificate");
-            free(result);
+            certificate_info_destroy(result);
             result = NULL;
         }
         else
@@ -629,8 +661,7 @@ CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* pr
             if (parse_certificate(result) != 0)
             {
                 LogError("Failure parsing certificate");
-                free(result->certificate_pem);
-                free(result);
+                certificate_info_destroy(result);
                 result = NULL;
             }
             else
@@ -639,8 +670,7 @@ CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* pr
                 if ((result->first_certificate = (char*)malloc(num_bytes_first_cert + 1)) == NULL)
                 {
                     LogError("Failure allocating memory to hold the main certificate");
-                    free(result->certificate_pem);
-                    free(result);
+                    certificate_info_destroy(result);
                     result = NULL;
                 }
                 else
@@ -653,9 +683,7 @@ CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* pr
                         if ((result->private_key = malloc(priv_key_len)) == NULL)
                         {
                             LogError("Failure allocating private key");
-                            free(result->first_certificate);
-                            free(result->certificate_pem);
-                            free(result);
+                            certificate_info_destroy(result);
                             result = NULL;
                         }
                         else
@@ -677,15 +705,10 @@ void certificate_info_destroy(CERT_INFO_HANDLE handle)
     CERT_DATA_INFO* cert_info = (CERT_DATA_INFO*)handle;
     if (cert_info != NULL)
     {
-        free(cert_info->first_certificate);
-        cert_info->first_certificate = NULL;
-        free(cert_info->certificate_pem);
-        cert_info->certificate_pem = NULL;
-        if (cert_info->private_key != NULL)
-        {
-            free(cert_info->private_key);
-            cert_info->private_key = NULL;
-        }
+        FREEIF(cert_info->first_certificate);
+        FREEIF(cert_info->certificate_pem);
+        FREEIF(cert_info->private_key);
+        FREEIF(cert_info->common_name);
         free(cert_info);
     }
 }
