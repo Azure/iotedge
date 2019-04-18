@@ -48,6 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string serviceAccountName;
         readonly Uri workloadUri;
         readonly Uri managementUri;
+        readonly bool serviceInClusterOnly;
         readonly TypeSpecificSerDe<EdgeDeploymentDefinition> deploymentSerde;
         readonly JsonSerializerSettings crdSerializerSettings;
         readonly AsyncLock watchLock;
@@ -62,6 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string serviceAccountName,
             Uri workloadUri,
             Uri managementUri,
+            bool serviceInClusterOnly,
             IKubernetes client)
         {
             this.iotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
@@ -73,6 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.serviceAccountName = Preconditions.CheckNonWhiteSpace(serviceAccountName, nameof(serviceAccountName));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
+            this.serviceInClusterOnly = Preconditions.CheckNotNull(serviceInClusterOnly, nameof(serviceInClusterOnly));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.moduleRuntimeInfos = new Dictionary<string, ModuleRuntimeInfo>();
             this.moduleLock = new AsyncLock();
@@ -281,6 +284,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 // Handle ExposedPorts entries
                 if (moduleWithDockerConfig.Config?.CreateOptions?.ExposedPorts != null)
                 {
+                    // Entries in the Exposed Port list just tell Docker that this container wants to listen on that port.
+                    // We interpret this as a "ClusterIP" service type
                     this.GetExposedPorts(moduleWithDockerConfig.Config.CreateOptions.ExposedPorts)
                         .ForEach(exposedList =>
                             exposedList.ForEach((item) => portList.Add(new V1ServicePort(item.Port, name: $"{item.Port}-{item.Protocol.ToLower()}", protocol: item.Protocol))));
@@ -298,13 +303,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                             string protocol;
                             if (int.TryParse(portProtocol[0], out port) && this.ValidateProtocol(portProtocol[1], out protocol))
                             {
-                                // k8s requires HostPort to be above 30000, and I am ignoring HostIP
+                                // Entries in Docker portMap wants to expose a port on the host (hostPort) and map it to the container's port (port)
+                                // We interpret that as the pod wants the cluster to expose a port on a public IP (hostPort), and target it to the container's port (port)
                                 foreach (DockerModels.PortBinding hostBinding in portBinding.Value)
                                 {
                                     int hostPort;
                                     if (int.TryParse(hostBinding.HostPort, out hostPort))
                                     {
-                                        portList.Add(new V1ServicePort(port, name: $"{port}-{protocol.ToLower()}", protocol: protocol, targetPort: hostPort));
+                                        portList.Add(new V1ServicePort(hostPort, name: $"{port}-{protocol.ToLower()}", protocol: protocol, targetPort: port));
                                         onlyExposedPorts = false;
                                     }
                                     else
@@ -323,14 +329,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 // Selector: by module name and device name, also how we will label this puppy.
                 var objectMeta = new V1ObjectMeta(labels: labels, name: KubeUtils.SanitizeDNSValue(module.ModuleIdentity.ModuleId));
                 // How we manage this service is dependent on the port mappings user asks for.
+                // If the user tells us to only use ClusterIP ports, we will always set the type to ClusterIP.
+                // If all we had were exposed ports, we will assume ClusterIP.
+                // If we have mapped ports, we are going to use "LoadBalancer" service Type - to tell the ingress controller we want this port exposed.
+                //
+                // If the user wants to expose the ClusterIPs port externally, they should manually create a service to expose it.
+                // This gives the user more control as to how they want this to work.
                 string serviceType;
-                if (onlyExposedPorts)
+                if (onlyExposedPorts || this.serviceInClusterOnly)
                 {
                     serviceType = "ClusterIP";
                 }
                 else
                 {
-                    serviceType = "NodePort";
+                    serviceType = "LoadBalancer";
                 }
                 return Option.Some(new V1Service(metadata: objectMeta, spec: new V1ServiceSpec(type: serviceType, ports: portList, selector: labels)));
             }

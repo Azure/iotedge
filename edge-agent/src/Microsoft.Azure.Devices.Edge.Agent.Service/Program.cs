@@ -132,6 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string proxyConfigPath = configuration.GetValue<string>(CoreConstant.ProxyConfigPathEnvKey);
                         string proxyConfigVolumeName = configuration.GetValue<string>(CoreConstant.ProxyConfigVolumeEnvKey);
                         string serviceAccountName = configuration.GetValue<string>(CoreConstant.EdgeAgentServiceAccountName);
+                        bool servicesInClusterOnly = configuration.GetValue<bool>(CoreConstant.SetAllServicesToClusterIP);
                         bool enableServiceCallTracing = configuration.GetValue<bool>(CoreConstant.EnableK8sServiceCallTracingName);
 
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), moduleId, Option.Some(moduleGenerationId)));
@@ -148,6 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             dockerAuthConfig,
                             upstreamProtocol,
                             productInfo,
+                            servicesInClusterOnly,
                             enableServiceCallTracing));
                         break;
 

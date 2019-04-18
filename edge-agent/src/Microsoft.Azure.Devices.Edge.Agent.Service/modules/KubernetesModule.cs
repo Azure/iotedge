@@ -38,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly Option<string> productInfo;
+        readonly bool servicesInClusterOnly;
         readonly bool enableServiceCallTracing;
 
         public KubernetesModule(
@@ -53,6 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             IEnumerable<AuthConfig> dockerAuthConfig,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<string> productInfo,
+            bool servicesInClusterOnly,
             bool enableServiceCallTracing)
         {
             this.iotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
@@ -67,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
             this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
             this.productInfo = productInfo;
+            this.servicesInClusterOnly = servicesInClusterOnly;
             this.enableServiceCallTracing = enableServiceCallTracing;
         }
 
@@ -168,6 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         this.serviceAccountName,
                         this.workloadUri,
                         this.managementUri,
+                        this.servicesInClusterOnly,
                         c.Resolve<IKubernetes>()) as IRuntimeInfoProvider))
                 .As<Task<IRuntimeInfoProvider>>()
                 .SingleInstance();

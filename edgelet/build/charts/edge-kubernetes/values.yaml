@@ -52,6 +52,10 @@ edgeAgent:
     # This variable isn't really used in k8s mode.
     networkId: 'azure-iot-edge'
     authScheme: 'sasToken'
+    # We assume that if the user has mapped a container port to the host, they want 
+    # it exposed on a public IP on the cluster (Service type is LoadBalancer). 
+    # Set this to true if you want to define your own external services.
+    servicesInClusterOnly: false
     # Set this to false if you want to turn off verbose k8s call tracing
     enableK8sServiceCallTracing: false
     # Configure edge agent log verbosity
