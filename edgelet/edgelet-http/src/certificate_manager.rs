@@ -4,6 +4,7 @@
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
+use futures::future::Either;
 #[cfg(unix)]
 use openssl::pkcs12::Pkcs12;
 #[cfg(unix)]
@@ -112,15 +113,20 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
             + Duration::from_secs((*self.props.validity_in_secs() as f64 * 0.05) as u64);
 
         if when < (Instant::now() + Duration::from_secs(1)) {
-            panic!("Unable to schedule expiration when certificate is already expired")
+            Either::A(future::err(Error::from(
+                ErrorKind::CertificateTimerCreationError,
+            )))
+        } else {
+            Either::B(
+                Delay::new(when)
+                    .and_then(move |_| {
+                        expiration_callback();
+                        Ok(())
+                    })
+                    .map_err(|e| panic!("delay errored; err={:?}", e))
+                    //.map_err(|_| Error::from(ErrorKind::CertificateTimerCreationError)),
+            )
         }
-
-        Delay::new(when)
-            .and_then(move |_| {
-                expiration_callback();
-                Ok(())
-            })
-            .map_err(|e| panic!("delay errored; err={:?}", e))
     }
 
     fn get_certificate(&self) -> Result<Certificate, Error> {
@@ -201,7 +207,7 @@ mod tests {
     };
 
     #[test]
-    pub fn test_manager_cert_pem_has_cert() {
+    pub fn test_cert_manager_pem_has_cert() {
         let crypto = TestCrypto::new().unwrap();
 
         let edgelet_cert_props = CertificateProperties::new(
@@ -218,6 +224,51 @@ mod tests {
         assert_eq!(cert.cert, "test".to_string());
 
         assert_eq!(manager.has_certificate(), true);
+    }
+
+    #[test]
+    pub fn test_cert_manager_expired_timer_creation() {
+        let crypto = TestCrypto::new().unwrap();
+
+        let edgelet_cert_props = CertificateProperties::new(
+            100, // 100 second validity
+            "IOTEDGED_TLS_COMMONNAME".to_string(),
+            CertificateType::Server,
+            "iotedge-tls".to_string(),
+        );
+
+        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
+        let _timer = manager.schedule_expiration_timer(|| {});
+    }
+
+    #[test]
+    pub fn test_cert_manager_expired_timer_creation_fails() {
+        let crypto = TestCrypto::new().unwrap();
+
+        let edgelet_cert_props = CertificateProperties::new(
+            1, // 1 second validity
+            "IOTEDGED_TLS_COMMONNAME".to_string(),
+            CertificateType::Server,
+            "iotedge-tls".to_string(),
+        );
+
+        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
+
+        let timer = manager.schedule_expiration_timer(|| {}).wait();
+
+        match timer {
+            Ok(_) => panic!("Should not be okay to create this timer..."),
+            Err(err) => {
+                if let ErrorKind::CertificateTimerCreationError = err.kind() {
+                    assert_eq!(true, true);
+                } else {
+                    panic!(
+                        "Expected a CertificteTimerCreationError type, but got {:?}",
+                        err
+                    );
+                }
+            }
+        }
     }
 
     #[derive(Clone)]

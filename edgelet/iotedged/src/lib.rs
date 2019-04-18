@@ -247,17 +247,20 @@ impl Main {
                     IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                     IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                 );
-                start_api(
-                    &settings,
-                    hyper_client,
-                    &runtime,
-                    &key_store,
-                    cfg,
-                    root_key,
-                    shutdown_signal,
-                    &crypto,
-                    tokio_runtime,
-                )?;
+                while {
+                    let code = start_api(
+                        &settings,
+                        hyper_client.clone(),
+                        &runtime,
+                        &key_store,
+                        cfg.clone(),
+                        root_key.clone(),
+                        signal::shutdown(),
+                        &crypto,
+                        &mut tokio_runtime,
+                    )?;
+                    code == 3
+                } {}
             }
             Provisioning::Dps(dps) => {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
@@ -281,7 +284,7 @@ impl Main {
                             $root_key,
                             shutdown_signal,
                             &crypto,
-                            tokio_runtime,
+                            &mut tokio_runtime,
                         )?;
                     }};
                 }
@@ -495,8 +498,8 @@ fn start_api<HC, K, F, C, W>(
     root_key: K,
     shutdown_signal: F,
     crypto: &C,
-    mut tokio_runtime: tokio::runtime::Runtime,
-) -> Result<(), Error>
+    tokio_runtime: &mut tokio::runtime::Runtime,
+) -> Result<u32, Error>
 where
     F: Future<Item = (), Error = ()> + Send + 'static,
     HC: ClientImpl + 'static,
@@ -543,7 +546,7 @@ where
     )?;
 
     // Create the certificate management timer and channel
-    let (restart_tx, _restart_rx) = oneshot::channel();
+    let (restart_tx, restart_rx) = oneshot::channel();
     let expiration_timer = cert_manager
         .schedule_expiration_timer(move || restart_tx.send(()).unwrap_or(()))
         .map_err(|err| Error::from(err.context(ErrorKind::CertificateExpirationManagement)));
@@ -568,11 +571,24 @@ where
     // Wait for the watchdog to finish, and then send signal to the workload and management services.
     // This way the edgeAgent can finish shutting down all modules.
 
-    let edge_rt_with_cleanup = edge_rt.map_err(Into::into).and_then(|_| {
-        mgmt_tx.send(()).unwrap_or(());
-        work_tx.send(()).unwrap_or(());
-        future::ok(())
-    });
+    let edge_rt_with_cleanup = edge_rt.select2(restart_rx).then(
+        move |res| -> Box<dyn Future<Item = _, Error = _> + Send + Sync> {
+            match res {
+                Ok(Either::A((_, _))) => {
+                    mgmt_tx.send(()).unwrap_or(());
+                    work_tx.send(()).unwrap_or(());
+                    Box::new(future::ok(1))
+                }
+                Ok(Either::B((_, _))) => {
+                    mgmt_tx.send(()).unwrap_or(());
+                    work_tx.send(()).unwrap_or(());
+                    Box::new(future::ok(2))
+                }
+                Err(Either::A((_, _))) => Box::new(future::ok(3)),
+                Err(Either::B((_, _))) => Box::new(future::ok(3)),
+            }
+        },
+    );
 
     let shutdown = shutdown_signal.map(move |_| {
         debug!("shutdown signaled");
@@ -581,19 +597,15 @@ where
     });
     tokio_runtime.spawn(shutdown);
 
-    // Restart signaled
-    // Shutdown mgmt_tx and work_tx
-    // Re-call the function recursive style
-
     let services = mgmt
         .join4(workload, edge_rt_with_cleanup, expiration_timer)
         .then(|result| match result {
-            Ok(((), (), (), ())) => Ok(()),
+            Ok(((), (), code, ())) => Ok(code),
             Err(err) => Err(err),
         });
-    tokio_runtime.block_on(services)?;
+    let restart_code = tokio_runtime.block_on(services)?;
 
-    Ok(())
+    Ok(restart_code)
 }
 
 fn init_docker_runtime(
