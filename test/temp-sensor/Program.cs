@@ -3,6 +3,7 @@
 namespace temp_sensor
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
     using System.Threading;
     using System.Threading.Tasks;
     using common;
@@ -22,15 +23,18 @@ If you specify `--registry` and `--user`, the following variable must also be se
 "
     )]
     [HelpOption]
+    [RegistryAndUserOptionsMustBeSpecifiedTogether()]
     class Program
     {
         const string DefaultAgentImage = "mcr.microsoft.com/azureiotedge-agent:1.0";
         const string DefaultHubImage = "mcr.microsoft.com/azureiotedge-hub:1.0";
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
 
+        [Required]
         [Argument(0, Name = "device-id", Description = "Device ID")]
         public string DeviceId { get; }
 
+        [Required]
         [Argument(1, Name = "installer-path", Description = "Path to IotEdgeSecurityDaemon.ps1")]
         public string InstallerPath { get; }
 
@@ -136,5 +140,21 @@ If you specify `--registry` and `--user`, the following variable must also be se
         }
 
         static Task<int> Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args);
+    }
+
+    [AttributeUsage(AttributeTargets.Class)]
+    public class RegistryAndUserOptionsMustBeSpecifiedTogether : ValidationAttribute
+    {
+        protected override ValidationResult IsValid(object value, ValidationContext context)
+        {
+            if (value is Program obj)
+            {
+                if (obj.RegistryAddress == null ^ obj.RegistryUser == null)
+                {
+                    return new ValidationResult("--registry and --user must be specified together");
+                }
+            }
+            return ValidationResult.Success;
+        }
     }
 }
