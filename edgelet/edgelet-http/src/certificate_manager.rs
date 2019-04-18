@@ -255,7 +255,6 @@ mod tests {
         let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
 
         let timer = manager.schedule_expiration_timer(|| {}).wait();
-
         match timer {
             Ok(_) => panic!("Should not be okay to create this timer..."),
             Err(err) => {
