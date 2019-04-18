@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var client = new Mock<IClient>();
             client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).ThrowsAsync(Activator.CreateInstance(thrownException, "msg str") as Exception);
             var deviceConnectivityManager = new Mock<IDeviceConnectivityManager>();
-            deviceConnectivityManager.Setup(d => d.CallTimedOut());
+            deviceConnectivityManager.Setup(d => d.CallTimedOut()).Returns(Task.CompletedTask);
             var connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager.Object, Mock.Of<IIdentity>(i => i.Id == "d1"));
             var message = new Message();
 
@@ -174,13 +174,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             public event EventHandler DeviceDisconnected;
 
-            public void CallSucceeded()
-            {
-            }
+            public Task CallSucceeded() => Task.CompletedTask;
 
-            public void CallTimedOut()
-            {
-            }
+            public Task CallTimedOut() => Task.CompletedTask;
 
             public void InvokeDeviceConnected() => this.DeviceConnected?.Invoke(null, null);
 

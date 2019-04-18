@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
+    using System.Threading.Tasks;
 
     public interface IDeviceConnectivityManager
     {
@@ -9,8 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         event EventHandler DeviceDisconnected;
 
-        void CallSucceeded();
+        Task CallSucceeded();
 
-        void CallTimedOut();
+        Task CallTimedOut();
     }
 }
