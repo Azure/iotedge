@@ -6,11 +6,18 @@ namespace temp_sensor
     using System.Threading;
     using System.Threading.Tasks;
     using common;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     class Program
     {
+        const string IotHubConnectionStringName = "E2E_IOT_HUB_CONNECTION_STRING";
+        const string EventHubEndpointName = "E2E_EVENT_HUB_ENDPOINT";
+        const string ContainerRegistryPasswordName = "E2E_CONTAINER_REGISTRY_PASSWORD";
+
         // args[0] - device ID
         // args[1] - path to IotEdgeSecurityDaemon.ps1
+        // args[2] - container registry address
+        // args[3] - container registry username
         static Task<int> Main(string[] args)
         {
             return Profiler.Run(
@@ -21,10 +28,18 @@ namespace temp_sensor
                         CancellationToken token = cts.Token;
 
                         // ** setup
-                        string iotHubConnectionString =
-                            Environment.GetEnvironmentVariable("E2E_IOT_HUB_CONNECTION_STRING");
-                        string eventHubEndpoint =
-                            Environment.GetEnvironmentVariable("E2E_EVENT_HUB_ENDPOINT");
+                        string iotHubConnectionString = Preconditions.CheckNonWhiteSpace(
+                            Environment.GetEnvironmentVariable(IotHubConnectionStringName),
+                            IotHubConnectionStringName
+                        );
+                        string eventHubEndpoint = Preconditions.CheckNonWhiteSpace(
+                            Environment.GetEnvironmentVariable(EventHubEndpointName),
+                            EventHubEndpointName
+                        );
+                        string containerRegistryPassword = Preconditions.CheckNonWhiteSpace(
+                            Environment.GetEnvironmentVariable(ContainerRegistryPasswordName),
+                            ContainerRegistryPasswordName
+                        );
 
                         var iotHub = new IotHub(iotHubConnectionString, eventHubEndpoint);
                         var device = await EdgeDevice.GetOrCreateIdentityAsync(
@@ -41,6 +56,7 @@ namespace temp_sensor
 
                         // ** test
                         var config = new EdgeConfiguration(device.Id, iotHub);
+                        config.AddRegistryCredentials(args[2], args[3], containerRegistryPassword);
                         config.AddEdgeHub();
                         config.AddTempSensor();
                         await config.DeployAsync(token);

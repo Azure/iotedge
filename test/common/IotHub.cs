@@ -7,7 +7,6 @@ namespace common
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Common;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
@@ -39,10 +38,8 @@ namespace common
 
         public IotHub(string iotHubConnectionString, string eventHubEndpoint)
         {
-            this.eventHubEndpoint =
-                Preconditions.CheckNonWhiteSpace(eventHubEndpoint, nameof(eventHubEndpoint));
-            this.iotHubConnectionString =
-                Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
+            this.eventHubEndpoint = eventHubEndpoint;
+            this.iotHubConnectionString = iotHubConnectionString;
         }
 
         public Task<Device> GetDeviceIdentityAsync(string deviceId, CancellationToken token) =>

@@ -48,6 +48,19 @@ namespace common
             this.deviceId = deviceId;
         }
 
+        public void AddRegistryCredentials(string address, string username, string password)
+        {
+            // { "modulesContent": { "$edgeAgent": { "properties.desired": { "runtime": { "settings": {
+            //   "registryCredentials": { ... }
+            // } } } } } }
+            JObject desired = JObject.FromObject(config.ModulesContent["$edgeAgent"]["properties.desired"]);
+            JObject settings = desired.Get<JObject>("runtime").Get<JObject>("settings");
+            settings.Add("registryCredentials", JToken.FromObject(_GetBaseRegistryCredentials(
+                address, username, password
+            )));
+            config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
+        }
+
         public void AddEdgeHub()
         {
             ConfigurationContent config = this.config;
@@ -123,6 +136,20 @@ namespace common
                         }
                     }
                 }
+            }
+        };
+
+        static Object _GetBaseRegistryCredentials(
+            string address,
+            string username,
+            string password
+        ) => new
+        {
+            reg1 = new
+            {
+                username = username,
+                password = password,
+                address = address
             }
         };
 
