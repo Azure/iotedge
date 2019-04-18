@@ -26,6 +26,7 @@ typedef struct CERT_DATA_INFO_TAG
     const char* first_cert_start;
     const char* first_cert_end;
     char* first_certificate;
+    char *common_name;
 } CERT_DATA_INFO;
 
 typedef enum X509_ASN1_STATE_TAG
@@ -91,6 +92,9 @@ static const int month_day[] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 30
 #define TIME_FIELD_LENGTH   0x0D
 #define END_HEADER_LENGTH   25 // length of end header string -----END CERTIFICATE-----
 #define INVALID_TIME        -1
+
+#define COMMON_NAME_OID_SIZE 5
+static const unsigned char COMMON_NAME_OID[COMMON_NAME_OID_SIZE] = {  0x6, 0x03, 0x55, 0x04, 0x03 };
 
 static BUFFER_HANDLE decode_certificate(CERT_DATA_INFO* cert_info)
 {
@@ -329,7 +333,7 @@ static size_t calculate_size(const unsigned char* buff, size_t* pos_change)
     return result;
 }
 
-static size_t parse_asn1_object(unsigned char* tbs_info, ASN1_OBJECT* asn1_obj)
+static size_t parse_asn1_object(const unsigned char* tbs_info, ASN1_OBJECT* asn1_obj)
 {
     size_t idx = 0;
     size_t pos_change;
@@ -339,6 +343,9 @@ static size_t parse_asn1_object(unsigned char* tbs_info, ASN1_OBJECT* asn1_obj)
     asn1_obj->value = &tbs_info[idx + pos_change];
     return pos_change;
 }
+
+static char *get_common_name(const unsigned char *input);
+static void print_buffer(const char* field, const unsigned char *s, size_t size);
 
 static int parse_tbs_cert_info(unsigned char* tbs_info, size_t len, CERT_DATA_INFO* cert_info)
 {
@@ -400,7 +407,9 @@ static int parse_tbs_cert_info(unsigned char* tbs_info, size_t len, CERT_DATA_IN
             tbs_field = FIELD_VALIDITY;   // Go to the next field
             break;
         case FIELD_VALIDITY:
+            printf("Subject Validity\n");
             parse_asn1_object(iterator, &target_obj);
+            print_buffer("Validity", iterator, LENGTH_OF_VALIDITY);
             if (target_obj.length != LENGTH_OF_VALIDITY)
             {
                 result = __LINE__;
@@ -418,17 +427,18 @@ static int parse_tbs_cert_info(unsigned char* tbs_info, size_t len, CERT_DATA_IN
                 }
                 else
                 {
-                    iterator += target_obj.length + TLV_OVERHEAD_SIZE;
+                    iterator += target_obj.length;
+                    printf("Goto subject\n");
                     tbs_field = FIELD_SUBJECT;   // Go to the next field
-                    continue_loop = 1;
                 }
             }
             break;
         case FIELD_SUBJECT:
+            cert_info->common_name = get_common_name(iterator);
             size_len = parse_asn1_object(iterator, &target_obj);
 			// adding additional OVERHEAD_SIZE on the value due to the size value not being included in the length
             iterator += target_obj.length + TLV_OVERHEAD_SIZE + (size_len - 1);
-            tbs_field = FIELD_VALIDITY;   // Go to the next field
+            tbs_field = FIELD_SUBJECT_PUBLIC_KEY_INFO;   // Go to the next field
             continue_loop = 1;
             break;
         case FIELD_SUBJECT_PUBLIC_KEY_INFO:
@@ -439,6 +449,72 @@ static int parse_tbs_cert_info(unsigned char* tbs_info, size_t len, CERT_DATA_IN
         }
     }
     return result;
+}
+
+// typedef enum ASN1_TYPE_TAG
+// {
+//     ASN1_BOOLEAN = 0x1,
+//     ASN1_INTEGER = 0x2,
+//     ASN1_BIT_STRING = 0x3,
+//     ASN1_OCTET_STRING = 0x4,
+//     ASN1_NULL = 0x5,
+//     ASN1_OBJECT_ID = 0x6,
+//     ASN1_UTF8_STRING = 0xC,
+//     ASN1_PRINTABLE_STRING = 0x13,
+//     ASN1_T61_STRING = 0x16,
+//     ASN1_UTCTIME = 0x17,
+//     ASN1_GENERALIZED_STRING = 0x18,
+//     ASN1_SEQUENCE = 0x30,
+//     ASN1_SET = 0x31,
+//     ASN1_INVALID
+// } ASN1_TYPE;
+
+static char *get_common_name(const unsigned char *input)
+{
+    size_t size_len, overall_size;
+    const unsigned char* iterator = input;
+    ASN1_OBJECT target_obj;
+    size_len = parse_asn1_object(iterator, &target_obj);
+    print_buffer("Subject", target_obj.value, target_obj.length);
+    overall_size = target_obj.length;
+    while (iterator < input + overall_size)
+    {
+        iterator += TLV_OVERHEAD_SIZE + (size_len - 1);
+        size_len = parse_asn1_object(iterator, &target_obj);
+        if ((target_obj.type == ASN1_SEQUENCE) || (target_obj.type == ASN1_SET))
+        {
+            print_buffer("ASN Marker", target_obj.value, target_obj.length);
+            iterator += TLV_OVERHEAD_SIZE + (size_len - 1);
+        }
+        else if (target_obj.type == ASN1_OBJECT_ID)
+        {
+            print_buffer("OID", target_obj.value, target_obj.length);
+            if (memcmp(COMMON_NAME_OID, target_obj.value, COMMON_NAME_OID_SIZE) == 0)
+            {
+                printf("Found CN\n");
+            }
+            iterator += target_obj.length;
+        }
+        else
+        {
+            print_buffer("Parsed:", target_obj.value, target_obj.length);
+            iterator += TLV_OVERHEAD_SIZE + (size_len - 1);
+        }
+
+    }
+
+    return "name";
+}
+
+static void print_buffer(const char* field, const unsigned char *s, size_t size)
+{
+    size_t i;
+    printf("Len:%zu, %s[\n", size, field);
+    for (i = 0; i < size; i++)
+    {
+        printf("%02x ", s[i]);
+    }
+    printf("]\n");
 }
 
 static int parse_asn1_data(unsigned char* section, size_t len, X509_ASN1_STATE state, CERT_DATA_INFO* cert_info)
@@ -745,7 +821,7 @@ const char* certificate_info_get_common_name(CERT_INFO_HANDLE handle)
     }
     else
     {
-        result = NULL;
+        result = handle->common_name;
     }
     return result;
 }
