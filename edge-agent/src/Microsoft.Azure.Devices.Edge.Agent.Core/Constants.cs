@@ -69,6 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeAgentServiceAccountName = "ServiceAccountName";
 
+        public const string SetAllServicesToClusterIP = "ServicesInClusterOnly";
+
         public const string EnableK8sServiceCallTracingName = "EnableK8sServiceCallTracing";
 
         public const string EdgeletAuthSchemeVariableName = "IOTEDGE_AUTHSCHEME";
