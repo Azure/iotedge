@@ -369,7 +369,7 @@ Function PrepareTestFromArtifacts
 
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EventHubConnectionString>',$EventHubConnectionString) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
-                $escapedSnitchAlertURL = $SnitchAlertUrl -replace "&","\\&"
+                $escapedSnitchAlertURL = $SnitchAlertUrl -replace "&","\&"
                 $escapedBuildId= $ArtifactImageBuildNumber -replace ".",""
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$escapedSnitchAlertURL) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildNumber>',$SnitchBuildNumber) | Set-Content $DeploymentWorkingFilePath
@@ -714,11 +714,6 @@ Function RunLongHaulTest
             -l `"$DeploymentWorkingFilePath`" ``
             --runtime-log-level `"Info`" ``
             --no-verify"
-    If ($ProxyUri) {
-        $testCommand = "$testCommand ``
-            --upstream-protocol 'AmqpWs' ``
-            --proxy `"$ProxyUri`""
-    }
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
     $testExitCode = $LastExitCode
@@ -749,11 +744,6 @@ Function RunStressTest
             -l `"$DeploymentWorkingFilePath`" ``
             --runtime-log-level `"Info`" ``
             --no-verify"
-    If ($ProxyUri) {
-        $testCommand = "$testCommand ``
-            --upstream-protocol 'AmqpWs' ``
-            --proxy `"$ProxyUri`""
-    }
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
     $testExitCode = $LastExitCode
