@@ -7,6 +7,7 @@ namespace common
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Common;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
@@ -17,29 +18,31 @@ namespace common
     public class IotHub
     {
         readonly string eventHubEndpoint;
-        readonly string hubConnectionString;
+        readonly string iotHubConnectionString;
 
         public string Hostname =>
-            IotHubConnectionStringBuilder.Create(this.hubConnectionString).HostName;
+            IotHubConnectionStringBuilder.Create(this.iotHubConnectionString).HostName;
         public string EntityPath =>
             (new EventHubsConnectionStringBuilder(this.eventHubEndpoint)).EntityPath;
 
         RegistryManager RegistryManager =>
             RegistryManager.CreateFromConnectionString(
-                this.hubConnectionString,
+                this.iotHubConnectionString,
                 new HttpTransportSettings()
             );
         ServiceClient ServiceClient =>
             ServiceClient.CreateFromConnectionString(
-                this.hubConnectionString,
+                this.iotHubConnectionString,
                 DeviceTransportType.Amqp_WebSocket_Only,
                 new ServiceClientTransportSettings()
             );
 
-        public IotHub(string hubConnectionString, string eventHubEndpoint)
+        public IotHub(string iotHubConnectionString, string eventHubEndpoint)
         {
-            this.eventHubEndpoint = eventHubEndpoint;
-            this.hubConnectionString = hubConnectionString;
+            this.eventHubEndpoint =
+                Preconditions.CheckNonWhiteSpace(eventHubEndpoint, nameof(eventHubEndpoint));
+            this.iotHubConnectionString =
+                Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
         }
 
         public Task<Device> GetDeviceIdentityAsync(string deviceId, CancellationToken token) =>

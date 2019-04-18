@@ -10,9 +10,7 @@ namespace temp_sensor
     class Program
     {
         // args[0] - device ID
-        // args[1] - IoT Hub connection string (TODO: should not be passed on command line?)
-        // args[2] - Event Hub-compatible endpoint connection string (TODO: should not be passed on command line?)
-        // args[3] - path to IotEdgeSecurityDaemon.ps1
+        // args[1] - path to IotEdgeSecurityDaemon.ps1
         static Task<int> Main(string[] args)
         {
             return Profiler.Run(
@@ -23,11 +21,16 @@ namespace temp_sensor
                         CancellationToken token = cts.Token;
 
                         // ** setup
-                        var iotHub = new IotHub(args[1], args[2]);
+                        string iotHubConnectionString =
+                            Environment.GetEnvironmentVariable("E2E_IOT_HUB_CONNECTION_STRING");
+                        string eventHubEndpoint =
+                            Environment.GetEnvironmentVariable("E2E_EVENT_HUB_ENDPOINT");
+
+                        var iotHub = new IotHub(iotHubConnectionString, eventHubEndpoint);
                         var device = await EdgeDevice.GetOrCreateIdentityAsync(
                             args[0], iotHub, token);
 
-                        var daemon = new EdgeDaemon(args[3]);
+                        var daemon = new EdgeDaemon(args[1]);
                         await daemon.UninstallAsync(token);
                         await daemon.InstallAsync(device.ConnectionString, token);
                         await daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
