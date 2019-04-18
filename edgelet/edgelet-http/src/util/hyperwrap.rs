@@ -6,6 +6,7 @@ use hyper::client::HttpConnector;
 use hyper::{Body, Client as HyperClient, Error as HyperError, Request, Response, StatusCode, Uri};
 use hyper_proxy::{Intercept, Proxy, ProxyConnector};
 use hyper_tls::HttpsConnector;
+use native_tls::TlsConnector;
 use typed_headers::Credentials;
 use url::percent_encoding::percent_decode;
 use url::Url;
@@ -37,8 +38,18 @@ impl Config {
             Ok(Client::Null)
         } else {
             let config = self.clone();
-            let https =
-                HttpsConnector::new(DNS_WORKER_THREADS).context(ErrorKind::Initialization)?;
+
+            // suppress tls server cert validation to workaround azure devices cert validation issue
+            // TODO revert after work done
+            //            let https =
+            //                HttpsConnector::new(DNS_WORKER_THREADS).context(ErrorKind::Initialization)?;
+            let tls_connector = TlsConnector::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .context(ErrorKind::Initialization)?;
+            let mut http = HttpConnector::new(DNS_WORKER_THREADS);
+            http.enforce_http(false);
+            let https = From::from((http, tls_connector));
             match config.proxy_uri {
                 None => Ok(Client::NoProxy(HyperClient::builder().build(https))),
                 Some(uri) => {

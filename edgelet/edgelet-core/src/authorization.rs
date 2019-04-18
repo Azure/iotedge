@@ -115,7 +115,7 @@ mod tests {
             true,
             auth.authorize(
                 Some("$edgeAgent".to_string()),
-                AuthId::Value("edgeAgent".to_string())
+                AuthId::Value("edgeAgent".to_string()),
             )
             .wait()
             .unwrap()

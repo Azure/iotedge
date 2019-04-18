@@ -900,7 +900,7 @@ fn build_env(
 
 fn start_management<C, K, HC>(
     settings: &Settings<DockerConfig>,
-    mgmt: &DockerModuleRuntime,
+    runtime: &DockerModuleRuntime,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
     cert_manager: Arc<CertificateManager<C>>,
@@ -914,8 +914,9 @@ where
 
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
+    let module_runtime = runtime.clone();
 
-    ManagementService::new(mgmt, id_man)
+    ManagementService::new(runtime, id_man)
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
                 InitializeErrorReason::ManagementService,
@@ -923,7 +924,12 @@ where
             let service = LoggingService::new(label, service);
             info!("Listening on {} with 1 thread for management API.", url);
             let run = Http::new()
-                .bind_url(url.clone(), service, create_new_id_service(), Some(&cert_manager))
+                .bind_url(
+                    url.clone(),
+                    service,
+                    create_new_id_service(module_runtime),
+                    Some(&cert_manager),
+                )
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,
@@ -963,6 +969,7 @@ where
 
     let label = "work".to_string();
     let url = settings.listen().workload_uri().clone();
+    let module_runtime = runtime.clone();
 
     WorkloadService::new(key_store, crypto.clone(), runtime, config)
         .then(move |service| -> Result<_, Error> {
@@ -971,7 +978,12 @@ where
             ))?;
             let service = LoggingService::new(label, service);
             let run = Http::new()
-                .bind_url(url.clone(), service, create_new_id_service(), Some(&cert_manager))
+                .bind_url(
+                    url.clone(),
+                    service,
+                    create_new_id_service(module_runtime),
+                    Some(&cert_manager),
+                )
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::WorkloadService,
@@ -985,9 +997,11 @@ where
         .flatten()
 }
 
-fn create_new_id_service<T: Service>() -> DockerNewIdService<T>
+fn create_new_id_service<S>(runtime: DockerModuleRuntime) -> DockerNewIdService<S>
+where
+    S: Service,
 {
-    DockerNewIdService::<T>::new()
+    DockerNewIdService::<S>::new(runtime)
 }
 
 #[cfg(test)]

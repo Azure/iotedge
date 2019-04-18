@@ -43,23 +43,23 @@ impl ManagementService {
         I::Identity: Serialize,
     {
         let router = router!(
-            get     Version2018_06_28,  "/modules"                         => Authorization::new(ListModules::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
-            post    Version2018_06_28,  "/modules"                         => Authorization::new(CreateModule::new(runtime.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
-            get     Version2018_06_28,  "/modules/(?P<name>[^/]+)"         => Authorization::new(GetModule, Policy::Anonymous, runtime.clone()),
-            put     Version2018_06_28,  "/modules/(?P<name>[^/]+)"         => Authorization::new(UpdateModule::new(runtime.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
-            post    Version2019_01_30,  "/modules/(?P<name>[^/]+)/prepareupdate"        => Authorization::new(PrepareUpdateModule::new(runtime.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
-            delete  Version2018_06_28,  "/modules/(?P<name>[^/]+)"         => Authorization::new(DeleteModule::new(runtime.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
-            post    Version2018_06_28,  "/modules/(?P<name>[^/]+)/start"   => Authorization::new(StartModule::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
-            post    Version2018_06_28,  "/modules/(?P<name>[^/]+)/stop"    => Authorization::new(StopModule::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
-            post    Version2018_06_28,  "/modules/(?P<name>[^/]+)/restart" => Authorization::new(RestartModule::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
-            get     Version2018_06_28,  "/modules/(?P<name>[^/]+)/logs"    => Authorization::new(ModuleLogs::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
+            get     Version2018_06_28,  "/modules"                         => Authorization::new(ListModules::new(runtime.clone()), Policy::Anonymous),
+            post    Version2018_06_28,  "/modules"                         => Authorization::new(CreateModule::new(runtime.clone()), Policy::Module(&*AGENT_NAME)),
+            get     Version2018_06_28,  "/modules/(?P<name>[^/]+)"         => Authorization::new(GetModule, Policy::Anonymous),
+            put     Version2018_06_28,  "/modules/(?P<name>[^/]+)"         => Authorization::new(UpdateModule::new(runtime.clone()), Policy::Module(&*AGENT_NAME)),
+            post    Version2019_01_30,  "/modules/(?P<name>[^/]+)/prepareupdate"        => Authorization::new(PrepareUpdateModule::new(runtime.clone()), Policy::Module(&*AGENT_NAME)),
+            delete  Version2018_06_28,  "/modules/(?P<name>[^/]+)"         => Authorization::new(DeleteModule::new(runtime.clone()), Policy::Module(&*AGENT_NAME)),
+            post    Version2018_06_28,  "/modules/(?P<name>[^/]+)/start"   => Authorization::new(StartModule::new(runtime.clone()), Policy::Anonymous),
+            post    Version2018_06_28,  "/modules/(?P<name>[^/]+)/stop"    => Authorization::new(StopModule::new(runtime.clone()), Policy::Anonymous),
+            post    Version2018_06_28,  "/modules/(?P<name>[^/]+)/restart" => Authorization::new(RestartModule::new(runtime.clone()), Policy::Anonymous),
+            get     Version2018_06_28,  "/modules/(?P<name>[^/]+)/logs"    => Authorization::new(ModuleLogs::new(runtime.clone()), Policy::Anonymous),
 
-            get     Version2018_06_28,  "/identities"                      => Authorization::new(ListIdentities::new(identity.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
-            post    Version2018_06_28,  "/identities"                      => Authorization::new(CreateIdentity::new(identity.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
-            put     Version2018_06_28,  "/identities/(?P<name>[^/]+)"      => Authorization::new(UpdateIdentity::new(identity.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
-            delete  Version2018_06_28,  "/identities/(?P<name>[^/]+)"      => Authorization::new(DeleteIdentity::new(identity.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
+            get     Version2018_06_28,  "/identities"                      => Authorization::new(ListIdentities::new(identity.clone()), Policy::Module(&*AGENT_NAME)),
+            post    Version2018_06_28,  "/identities"                      => Authorization::new(CreateIdentity::new(identity.clone()), Policy::Module(&*AGENT_NAME)),
+            put     Version2018_06_28,  "/identities/(?P<name>[^/]+)"      => Authorization::new(UpdateIdentity::new(identity.clone()), Policy::Module(&*AGENT_NAME)),
+            delete  Version2018_06_28,  "/identities/(?P<name>[^/]+)"      => Authorization::new(DeleteIdentity::new(identity.clone()), Policy::Module(&*AGENT_NAME)),
 
-            get     Version2018_06_28,  "/systeminfo"                      => Authorization::new(GetSystemInfo::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
+            get     Version2018_06_28,  "/systeminfo"                      => Authorization::new(GetSystemInfo::new(runtime.clone()), Policy::Anonymous),
         );
 
         router.new_service().then(|inner| {
