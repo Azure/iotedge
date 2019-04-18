@@ -4,7 +4,6 @@ namespace temp_sensor
 {
     using System;
     using System.ComponentModel.DataAnnotations;
-    using System.Threading;
     using System.Threading.Tasks;
     using common;
     using McMaster.Extensions.CommandLineUtils;
@@ -60,83 +59,25 @@ If you specify `--registry` and `--user`, the following variable must also be se
 
             Option<(string address, string username, string password)> registry =
                 this.RegistryAddress != null && this.RegistryUser != null
-                ? Option.Some((
-                    this.RegistryAddress,
-                    this.RegistryUser,
-                    EnvironmentVariable.Expect("E2E_CONTAINER_REGISTRY_PASSWORD")
-                  ))
-                : Option.None<(string, string, string)>();
+                    ? Option.Some((
+                        this.RegistryAddress,
+                        this.RegistryUser,
+                        EnvironmentVariable.Expect("E2E_CONTAINER_REGISTRY_PASSWORD")
+                    ))
+                    : Option.None<(string, string, string)>();
 
-            return Profiler.Run(
-                "Running tempSensor test",
-                async () =>
-                {
-                    using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
-                    {
-                        CancellationToken token = cts.Token;
-
-                        // ** setup
-                        var iotHub = new IotHub(connectionString, endpoint);
-                        var device = await EdgeDevice.GetOrCreateIdentityAsync(
-                            this.DeviceId, iotHub, token);
-
-                        var daemon = new EdgeDaemon(this.InstallerPath);
-                        await daemon.UninstallAsync(token);
-                        await daemon.InstallAsync(device.ConnectionString, token);
-                        await daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
-
-                        var agent = new EdgeAgent(device.Id, iotHub);
-                        await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
-                        await agent.PingAsync(token);
-
-                        // ** test
-                        var config = new EdgeConfiguration(device.Id, this.AgentImage, iotHub);
-                        registry.ForEach(
-                            r => config.AddRegistryCredentials(r.address, r.username, r.password)
-                        );
-                        config.AddEdgeHub(this.HubImage);
-                        config.AddTempSensor(this.SensorImage);
-                        await config.DeployAsync(token);
-
-                        var hub = new EdgeModule("edgeHub", device.Id, iotHub);
-                        var sensor = new EdgeModule("tempSensor", device.Id, iotHub);
-                        await EdgeModule.WaitForStatusAsync(
-                            new[] { hub, sensor }, EdgeModuleStatus.Running, token);
-                        await sensor.WaitForEventsReceivedAsync(token);
-
-                        var sensorTwin = new ModuleTwin(sensor.Id, device.Id, iotHub);
-                        await sensorTwin.UpdateDesiredPropertiesAsync(new
-                        {
-                            properties = new
-                            {
-                                desired = new
-                                {
-                                    SendData = true,
-                                    SendInterval = 10
-                                }
-                            }
-                        }, token);
-                        await sensorTwin.WaitForReportedPropertyUpdatesAsync(new
-                        {
-                            properties = new
-                            {
-                                reported = new
-                                {
-                                    SendData = true,
-                                    SendInterval = 10
-                                }
-                            }
-                        }, token);
-
-                        // ** teardown
-                        await daemon.StopAsync(token);
-                        await device.MaybeDeleteIdentityAsync(token);
-                    }
-
-                    return 0;
-                },
-                "Completed tempSensor test"
+            var test = new Test(
+                this.DeviceId,
+                connectionString,
+                endpoint,
+                this.InstallerPath,
+                this.AgentImage,
+                this.HubImage,
+                this.SensorImage,
+                registry
             );
+
+            return test.RunAsync();
         }
 
         static Task<int> Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args);
