@@ -6,6 +6,7 @@ namespace temp_sensor
     using System.Threading;
     using System.Threading.Tasks;
     using common;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     class Program
     {
@@ -15,6 +16,13 @@ namespace temp_sensor
         // args[3] - container registry username
         static Task<int> Main(string[] args)
         {
+            string connectionString = EnvironmentVariable.Expect("E2E_IOT_HUB_CONNECTION_STRING");
+            string endpoint = EnvironmentVariable.Expect("E2E_EVENT_HUB_ENDPOINT");
+
+            Option<(string address, string username, string password)> registry = args.Length >= 4
+                ? Option.Some((args[2], args[3], EnvironmentVariable.Expect("E2E_CONTAINER_REGISTRY_PASSWORD")))
+                : Option.None<(string, string, string)>();
+
             return Profiler.Run(
                 "Running tempSensor test",
                 async () => {
@@ -23,14 +31,7 @@ namespace temp_sensor
                         CancellationToken token = cts.Token;
 
                         // ** setup
-                        string iotHubConnectionString =
-                            EnvironmentVariable.Expect("E2E_IOT_HUB_CONNECTION_STRING");
-                        string eventHubEndpoint =
-                            EnvironmentVariable.Expect("E2E_EVENT_HUB_ENDPOINT");
-                        string registryPassword =
-                            EnvironmentVariable.Expect("E2E_CONTAINER_REGISTRY_PASSWORD");
-
-                        var iotHub = new IotHub(iotHubConnectionString, eventHubEndpoint);
+                        var iotHub = new IotHub(connectionString, endpoint);
                         var device = await EdgeDevice.GetOrCreateIdentityAsync(
                             args[0], iotHub, token);
 
@@ -45,7 +46,9 @@ namespace temp_sensor
 
                         // ** test
                         var config = new EdgeConfiguration(device.Id, iotHub);
-                        config.AddRegistryCredentials(args[2], args[3], registryPassword);
+                        registry.ForEach(
+                            r => config.AddRegistryCredentials(r.address, r.username, r.password)
+                        );
                         config.AddEdgeHub();
                         config.AddTempSensor();
                         await config.DeployAsync(token);
