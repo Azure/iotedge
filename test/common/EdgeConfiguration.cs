@@ -41,9 +41,9 @@ namespace common
             }
         }
 
-        public EdgeConfiguration(string deviceId, IotHub iotHub)
+        public EdgeConfiguration(string deviceId, string agentImage, IotHub iotHub)
         {
-            this.config = _GetBaseConfig();
+            this.config = _GetBaseConfig(agentImage);
             this.iotHub = iotHub;
             this.deviceId = deviceId;
         }
@@ -55,13 +55,19 @@ namespace common
             // } } } } } } }
             JObject desired = JObject.FromObject(config.ModulesContent["$edgeAgent"]["properties.desired"]);
             JObject settings = desired.Get<JObject>("runtime").Get<JObject>("settings");
-            settings.Add("registryCredentials", JToken.FromObject(_GetBaseRegistryCredentials(
-                address, username, password
-            )));
+            settings.Add("registryCredentials", JToken.FromObject(new
+            {
+                reg1 = new
+                {
+                    username = username,
+                    password = password,
+                    address = address
+                }
+            }));
             config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
         }
 
-        public void AddEdgeHub()
+        public void AddEdgeHub(string image)
         {
             ConfigurationContent config = this.config;
 
@@ -70,14 +76,38 @@ namespace common
             // } } } } } }
             JObject desired = JObject.FromObject(config.ModulesContent["$edgeAgent"]["properties.desired"]);
             JObject systemModules = desired.Get<JObject>("systemModules");
-            systemModules.Add("edgeHub", JToken.FromObject(_GetBaseEdgeHubSystemModules()));
+            systemModules.Add("edgeHub", JToken.FromObject(new
+            {
+                type = "docker",
+                status = "running",
+                restartPolicy = "always",
+                settings = new
+                {
+                    image = image,
+                    createOptions = "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}]}}}"
+                }
+            }));
             config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
 
             // { "modulesContent": { "$edgeHub": { ... } } }
-            config.ModulesContent["$edgeHub"] = _GetBaseEdgeHubModulesContent();
+            config.ModulesContent["$edgeHub"] = new Dictionary<string, object>
+            {
+                ["properties.desired"] = new
+                {
+                    schemaVersion = "1.0",
+                    routes = new Dictionary<string, string>
+                    {
+                        ["route1"] = "from /* INTO $upstream",
+                    },
+                    storeAndForwardConfiguration = new
+                    {
+                        timeToLiveSecs = 7200
+                    }
+                }
+            };
         }
 
-        public void AddTempSensor()
+        public void AddTempSensor(string image)
         {
             ConfigurationContent config = this.config;
 
@@ -95,7 +125,16 @@ namespace common
                 desired.Add("modules", new JObject());
                 modules = desired.Get<JObject>("modules");
             }
-            modules.Add("tempSensor", JToken.FromObject(_GetBaseTempSensor()));
+            modules.Add("tempSensor", JToken.FromObject(new
+            {
+                type = "docker",
+                status = "running",
+                restartPolicy = "always",
+                settings = new
+                {
+                    image = image
+                }
+            }));
             config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
         }
 
@@ -110,7 +149,7 @@ namespace common
             );
         }
 
-        static ConfigurationContent _GetBaseConfig() => new ConfigurationContent
+        static ConfigurationContent _GetBaseConfig(string agentImage) => new ConfigurationContent
         {
             ModulesContent = new Dictionary<string, IDictionary<string, object>>
             {
@@ -134,7 +173,7 @@ namespace common
                                 type = "docker",
                                 settings = new
                                 {
-                                    image = "mcr.microsoft.com/azureiotedge-agent:1.0"
+                                    image = agentImage
                                 }
                             }
                         }
@@ -142,58 +181,5 @@ namespace common
                 }
             }
         };
-
-        static Object _GetBaseRegistryCredentials(
-            string address,
-            string username,
-            string password
-        ) => new
-        {
-            reg1 = new
-            {
-                username = username,
-                password = password,
-                address = address
-            }
-        };
-
-        static Dictionary<string, object> _GetBaseEdgeHubModulesContent() => new Dictionary<string, object>
-        {
-            ["properties.desired"] = new
-            {
-                schemaVersion = "1.0",
-                routes = new Dictionary<string, string>
-                {
-                    ["route1"] = "from /* INTO $upstream",
-                },
-                storeAndForwardConfiguration = new
-                {
-                    timeToLiveSecs = 7200
-                }
-            }
-        };
-
-        static Object _GetBaseEdgeHubSystemModules() => new
-        {
-            type = "docker",
-            status = "running",
-            restartPolicy = "always",
-            settings = new
-            {
-                image = "mcr.microsoft.com/azureiotedge-hub:1.0",
-                createOptions = "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}]}}}"
-            }
-        };
-
-        static Object _GetBaseTempSensor() => new
-        {
-            type = "docker",
-            status = "running",
-            restartPolicy = "always",
-            settings = new
-            {
-                image = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0"
-            }
-        };
-    }
+   }
 }
