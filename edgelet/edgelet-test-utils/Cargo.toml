@@ -21,8 +21,8 @@ edgelet-core = { path = "../edgelet-core" }
 hyperlocal = "0.6"
 
 [target.'cfg(windows)'.dependencies]
-hyperlocal-windows = "0.1.0"
+hyperlocal-windows = { git = "https://github.com/Azure/hyperlocal-windows" }
 mio = "0.6.14"
 mio-named-pipes = "0.1"
-mio-uds-windows = "0.1.0"
+mio-uds-windows = { git = "https://github.com/Azure/mio-uds-windows.git" }
 miow = "0.3.1"
