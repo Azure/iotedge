@@ -153,6 +153,12 @@ const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
 const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200; // 2 hours
 const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 7_776_000; // 90 days
 
+#[derive(PartialEq)]
+enum StartApiReturnStatus {
+    Restart,
+    Shutdown,
+}
+
 pub struct Main {
     settings: Settings<DockerConfig>,
 }
@@ -162,7 +168,7 @@ impl Main {
         Main { settings }
     }
 
-    pub fn run_until<F>(self, shutdown_signal: F) -> Result<(), Error>
+    pub fn run_until<F>(self, _shutdown_signal: F) -> Result<(), Error>
     where
         F: Future<Item = (), Error = ()> + Send + 'static,
     {
@@ -259,7 +265,7 @@ impl Main {
                         &crypto,
                         &mut tokio_runtime,
                     )?;
-                    code == 3
+                    code == StartApiReturnStatus::Restart
                 } {}
             }
             Provisioning::Dps(dps) => {
@@ -275,17 +281,20 @@ impl Main {
                             IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                             IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                         );
-                        start_api(
-                            &settings,
-                            hyper_client,
-                            &$runtime,
-                            &$key_store,
-                            cfg,
-                            $root_key,
-                            shutdown_signal,
-                            &crypto,
-                            &mut tokio_runtime,
-                        )?;
+                        while {
+                            let code = start_api(
+                                &settings,
+                                hyper_client.clone(),
+                                &$runtime,
+                                &$key_store,
+                                cfg.clone(),
+                                $root_key.clone(),
+                                signal::shutdown(),
+                                &crypto,
+                                &mut tokio_runtime,
+                            )?;
+                            code == StartApiReturnStatus::Restart
+                        } {}
                     }};
                 }
 
@@ -499,7 +508,7 @@ fn start_api<HC, K, F, C, W>(
     shutdown_signal: F,
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
-) -> Result<u32, Error>
+) -> Result<StartApiReturnStatus, Error>
 where
     F: Future<Item = (), Error = ()> + Send + 'static,
     HC: ClientImpl + 'static,
@@ -577,15 +586,15 @@ where
                 Ok(Either::A((_, _))) => {
                     mgmt_tx.send(()).unwrap_or(());
                     work_tx.send(()).unwrap_or(());
-                    Box::new(future::ok(1))
+                    Box::new(future::ok(StartApiReturnStatus::Shutdown))
                 }
                 Ok(Either::B((_, _))) => {
                     mgmt_tx.send(()).unwrap_or(());
                     work_tx.send(()).unwrap_or(());
-                    Box::new(future::ok(2))
+                    Box::new(future::ok(StartApiReturnStatus::Restart))
                 }
-                Err(Either::A((_, _))) => Box::new(future::ok(3)),
-                Err(Either::B((_, _))) => Box::new(future::ok(3)),
+                Err(Either::A((_, _))) => Box::new(future::ok(StartApiReturnStatus::Shutdown)),
+                Err(Either::B((_, _))) => Box::new(future::ok(StartApiReturnStatus::Shutdown)),
             }
         },
     );
