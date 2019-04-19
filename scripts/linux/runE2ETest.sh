@@ -198,6 +198,10 @@ function prepare_test_from_artifacts() {
         sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
         sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
         sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
+
+        if [[ $CONTAINER_REGISTRY != 'edgebuilds.azurecr.io' ]]; then
+            sed -i -e "s@edgebuilds.azurecr.io@$CONTAINER_REGISTRY@g" "$deployment_working_file"
+        fi
     fi
 }
 

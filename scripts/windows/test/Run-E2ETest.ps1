@@ -404,6 +404,11 @@ Function PrepareTestFromArtifacts
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Password>', $ContainerRegistryPassword) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('-linux-', '-windows-') | Set-Content $DeploymentWorkingFilePath
 
+        If ($ContainerRegistry -ne 'edgebuilds.azurecr.io') 
+        {
+            (Get-Content $DeploymentWorkingFilePath).replace('edgebuilds.azurecr.io', $ContainerRegistry) | Set-Content $DeploymentWorkingFilePath
+        }
+
         If ($ProxyUri)
         {
             # Add/remove/edit JSON values *after* replacing all the '<>' placeholders because
