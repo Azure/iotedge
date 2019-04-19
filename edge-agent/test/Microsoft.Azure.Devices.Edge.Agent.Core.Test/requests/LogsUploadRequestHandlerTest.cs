@@ -51,8 +51,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             var logsUploader = new Mock<ILogsUploader>();
             var logsProvider = new Mock<ILogsProvider>();
             var uploadBytes = new byte[100];
-            var moduleLogOptions = new ModuleLogOptions(id, contentEncoding, contentType, filter);
-            logsProvider.Setup(l => l.GetLogs(moduleLogOptions, It.IsAny<CancellationToken>()))
+            var moduleLogOptions = new ModuleLogOptions(contentEncoding, contentType, filter);
+            logsProvider.Setup(l => l.GetLogs(id, moduleLogOptions, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(uploadBytes);
             logsUploader.Setup(l => l.Upload(sasUrl, id, uploadBytes, contentEncoding, contentType))
                 .Returns(Task.CompletedTask);
@@ -93,23 +93,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             var logsUploader = new Mock<ILogsUploader>();
             var logsProvider = new Mock<ILogsProvider>();
 
-            var module1LogOptions = new ModuleLogOptions(mod1, contentEncoding, contentType, filter);
+            var module1LogOptions = new ModuleLogOptions(contentEncoding, contentType, filter);
             var mod1LogBytes = new byte[100];
-            logsProvider.Setup(l => l.GetLogs(module1LogOptions, It.IsAny<CancellationToken>()))
+            logsProvider.Setup(l => l.GetLogs(mod1, module1LogOptions, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(mod1LogBytes);
             logsUploader.Setup(l => l.Upload(sasUrl, mod1, mod1LogBytes, contentEncoding, contentType))
                 .Returns(Task.CompletedTask);
 
-            var module2LogOptions = new ModuleLogOptions(mod2, contentEncoding, contentType, filter);
+            var module2LogOptions = new ModuleLogOptions(contentEncoding, contentType, filter);
             var mod2LogBytes = new byte[80];
-            logsProvider.Setup(l => l.GetLogs(module2LogOptions, It.IsAny<CancellationToken>()))
+            logsProvider.Setup(l => l.GetLogs(mod2, module2LogOptions, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(mod2LogBytes);
             logsUploader.Setup(l => l.Upload(sasUrl, mod2, mod2LogBytes, contentEncoding, contentType))
                 .Returns(Task.CompletedTask);
 
-            var module3LogOptions = new ModuleLogOptions(mod3, contentEncoding, contentType, filter);
+            var module3LogOptions = new ModuleLogOptions(contentEncoding, contentType, filter);
             var mod3LogBytes = new byte[120];
-            logsProvider.Setup(l => l.GetLogs(module3LogOptions, It.IsAny<CancellationToken>()))
+            logsProvider.Setup(l => l.GetLogs(mod3, module3LogOptions, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(mod3LogBytes);
             logsUploader.Setup(l => l.Upload(sasUrl, mod3, mod3LogBytes, contentEncoding, contentType))
                 .Returns(Task.CompletedTask);
