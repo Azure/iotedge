@@ -19,6 +19,11 @@ namespace common
         public void AddHttpsProxy(string proxyUrl)
         {
             this.config.ReplaceOrAdd("agent.env.https_proxy", proxyUrl);
+            // TODO: When we allow the caller to specify an upstream protocol,
+            //       we'll need to honor that if it's WebSocket-based, otherwise
+            //       convert to an equivalent WebSocket-based protocol (e.g.,
+            //       Mqtt --> MqttWs)
+            this.config.ReplaceOrAdd("agent.env.UpstreamProtocol", "AmqpWs");
         }
 
         public void Update()
