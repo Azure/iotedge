@@ -21,7 +21,8 @@ if(-Not $Arm)
 # 2. restore a preconfigured cargo.lock to use these dependencies
 if($Arm)
 {
-    Set-Location -Path $(Build.SourcesDirectory)
+    $edgefolder = Get-EdgeletFolder
+    Set-Location -Path $edgefolder
 
     & copy /Y Cargo.WinArm.lock Cargo.lock
 
