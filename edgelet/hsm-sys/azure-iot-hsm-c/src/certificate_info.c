@@ -91,8 +91,9 @@ static const int month_day[] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 30
 #define END_HEADER_LENGTH   25 // length of end header string -----END CERTIFICATE-----
 #define INVALID_TIME        -1
 
-// todo add RFC
+// https://tools.ietf.org/html/rfc5280#appendix-A
 #define MAX_LEN_COMMON_NAME 64
+// Common name OID 2.5.4.3
 #define COMMON_NAME_OID_SIZE 5
 static const unsigned char COMMON_NAME_OID[COMMON_NAME_OID_SIZE] = {  0x06, 0x03, 0x55, 0x04, 0x03 };
 
