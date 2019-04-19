@@ -199,9 +199,11 @@ Param (
     [ValidateSet("mqtt", "amqp")]
     [string] $LoadGen4TransportType = "mqtt",
 
-    [switch] $AmqpSettingsEnabled,
+    [ValidateSet("true", "false")]
+    [string] $AmqpSettingsEnabled,
 
-    [switch] $MqttSettingsEnabled,
+    [ValidateSet("true", "false")]
+    [string] $MqttSettingsEnabled,
 
     [ValidateSet("mqtt", "amqp")]
     [string] $LongHaulProtocolHead = "amqp"
@@ -356,8 +358,8 @@ Function PrepareTestFromArtifacts
                     (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen2.TransportType>',$LoadGen2TransportType) | Set-Content $DeploymentWorkingFilePath
                     (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen3.TransportType>',$LoadGen3TransportType) | Set-Content $DeploymentWorkingFilePath
                     (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen4.TransportType>',$LoadGen4TransportType) | Set-Content $DeploymentWorkingFilePath
-                    (Get-Content $DeploymentWorkingFilePath).replace('<amqpSettings__enabled>',$AmqpSettingsEnabledString) | Set-Content $DeploymentWorkingFilePath
-                    (Get-Content $DeploymentWorkingFilePath).replace('<mqttSettings__enabled>',$MqttSettingsEnabledString) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<amqpSettings__enabled>',$AmqpSettingsEnabled) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<mqttSettings__enabled>',$MqttSettingsEnabled) | Set-Content $DeploymentWorkingFilePath
                 }
 
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EventHubConnectionString>',$EventHubConnectionString) | Set-Content $DeploymentWorkingFilePath
@@ -1191,9 +1193,6 @@ $PackagesWorkingFolder = (Join-Path $TestWorkingFolder "packages")
 $IotEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuickstart.exe")
 $LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
 $DeploymentWorkingFilePath = Join-Path $QuickstartWorkingFolder "deployment.json"
-
-$AmqpSettingsEnabledString = If ($AmqpSettingsEnabled) {"true"} Else {"false"}
-$MqttSettingsEnabledString = If ($MqttSettingsEnabled) {"true"} Else {"false"}
 
 If ($TestName -eq "LongHaul")
 {
