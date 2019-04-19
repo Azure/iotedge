@@ -21,9 +21,9 @@ namespace common
         readonly string eventHubEndpoint;
         readonly string iotHubConnectionString;
         readonly Option<IWebProxy> proxy;
-        Lazy<RegistryManager> registryManager;
-        Lazy<ServiceClient> serviceClient;
-        Lazy<EventHubClient> eventHubClient;
+        readonly Lazy<RegistryManager> registryManager;
+        readonly Lazy<ServiceClient> serviceClient;
+        readonly Lazy<EventHubClient> eventHubClient;
 
         public string Hostname =>
             IotHubConnectionStringBuilder.Create(this.iotHubConnectionString).HostName;
