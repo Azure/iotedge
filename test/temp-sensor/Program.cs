@@ -40,6 +40,9 @@ If you specify `--registry` and `--user`, the following variable must also be se
         [Option("--package-path", Description = "Path to installation packages")]
         public string PackagesPath { get; }
 
+        [Option("--proxy", Description = "HTTPS proxy for communication with IoT Hub")]
+        public (bool use, string url) Proxy { get; }
+
         [Option("--agent", Description = "Edge Agent image name, default is '" + DefaultAgentImage + "'")]
         public string AgentImage { get; } = DefaultAgentImage;
 
