@@ -6,6 +6,8 @@ param(
 
 function Get-OpenSSL
 {
+    $ErrorActionPreference = 'Continue'
+
     if (!((Test-Path -Path $env:HOMEDRIVE\vcpkg) -and ((Test-Path -Path $env:HOMEDRIVE\vcpkg\vcpkg.exe))))
     {
         Write-Host "Installing vcpkg from github..."
@@ -73,4 +75,6 @@ function Get-OpenSSL
         [System.Environment]::SetEnvironmentVariable("OPENSSL_ROOT_DIR", "$env:HOMEDRIVE\vcpkg\installed\$(if($Arm){ "arm" }else{ "x64"})-windows", [System.EnvironmentVariableTarget]::User)
         [System.Environment]::SetEnvironmentVariable("OPENSSL_DIR", "$env:HOMEDRIVE\vcpkg\installed\$(if($Arm){ "arm" }else{ "x64"})-windows", [System.EnvironmentVariableTarget]::User)
     }
+    
+    $ErrorActionPreference = 'Stop'
 }
