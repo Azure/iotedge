@@ -24,7 +24,7 @@ if($Arm)
     $edgefolder = Get-EdgeletFolder
     Set-Location -Path $edgefolder
 
-    & copy "/Y Cargo.WinArm.lock Cargo.lock"
+    cmd /c copy /Y Cargo.WinArm.lock Cargo.lock
 
     $ForkedCrates = @"    
 [patch.crates-io]
