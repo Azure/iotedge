@@ -47,9 +47,6 @@
     .PARAMETER ProxyUri
         (Optional) The URI of an HTTPS proxy server; if specified, all communications to IoT Hub will go through this proxy.
 
-    .PARAMETER LoadGenTransportType
-        Transport type for LoadGen for long haul test. Default is mqtt.
-
     .PARAMETER LoadGenMessageFrequency
         Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.
 
@@ -168,9 +165,6 @@ Param (
 
     [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
     [string] $ProxyUri = $null,
-
-    [ValidateSet("mqtt", "amqp")]
-    [string] $LoadGenTransportType = "mqtt",
 
     [ValidateNotNullOrEmpty()]
     [string] $LoadGenMessageFrequency = $null,
@@ -352,7 +346,6 @@ Function PrepareTestFromArtifacts
                 {
                     Write-Host "Copy deployment file from $LongHaulDeploymentArtifactFilePath"
                     Copy-Item $LongHaulDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
-                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.TransportType>',$LoadGenTransportType) | Set-Content $DeploymentWorkingFilePath
                     (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
                 }
                 Else
@@ -411,7 +404,7 @@ Function PrepareTestFromArtifacts
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Password>', $ContainerRegistryPassword) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('-linux-', '-windows-') | Set-Content $DeploymentWorkingFilePath
 
-        If ($ProxyUri -and $TestName -ne "Stress" -and $TestName -ne "LongHaul")
+        If ($ProxyUri)
         {
             # Add/remove/edit JSON values *after* replacing all the '<>' placeholders because
             # ConvertTo-Json will encode angle brackets.
@@ -1141,6 +1134,7 @@ Function ValidateTestParameters
         If ([string]::IsNullOrEmpty($SnitchAlertUrl)) {Throw "Required snith alert URL."}
         If ([string]::IsNullOrEmpty($SnitchStorageAccount)) {Throw "Required snitch storage account."}
         If ([string]::IsNullOrEmpty($SnitchStorageMasterKey)) {Throw "Required snitch storage master key."}
+        If ($ProxyUri) {Throw "Proxy not supported for $TestName test"}
     }
 }
 
