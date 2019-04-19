@@ -289,7 +289,7 @@ jobs:
         inputs:
           workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
           cmakeArgs: '--build . --config Release'
-      - powershell: edgelet/build/windows/package.ps1 -CreateTemplate
+      - powershell: edgelet/build/windows/package.ps1 -CreateTemplate -Arm
         displayName: Prepare package template
       # - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
       #   displayName: 'ESRP Package Catalog CodeSigning Internal'
