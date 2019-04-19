@@ -63,7 +63,7 @@ Function New-Package([string] $Name, [string] $Version)
     $arch = if($Arm) { 'thumbv7a-pc-windows-msvc'} else { '' }
     $cpu = if($Arm) {'arm'} else { 'amd64' }
 
-    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_IOTEDGE_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR;_Arch=$arch;_MOBY_ROOT=$mobyroot' /cpu:$cpu /version:$Version"
+    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_IOTEDGE_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR;_Arch=$arch' /cpu:$cpu /version:$Version"
     if ($LASTEXITCODE) {
         Throw "Failed to package cab"
     }
@@ -80,8 +80,22 @@ Function New-Package([string] $Name, [string] $Version)
 }
 
 if ($CreateTemplate) {
-    $docker_cli_uri = "https://github.com/Azure/azure-iotedge/releases/download/1.0.5/moby-cli_3.0.2.zip"
-    $docker_engine_uri = "https://conteng.blob.core.windows.net/mby/moby-engine_3.0.3.zip"
+    $docker_cli_uri = if($Arm)
+    {
+        "https://iottools.blob.core.windows.net/iotedge-armtools/moby-cli.zip"
+    }
+    else
+    {
+        "https://github.com/Azure/azure-iotedge/releases/download/1.0.5/moby-cli_3.0.2.zip"
+    }
+    $docker_engine_uri = if($Arm)
+    {
+        "https://iottools.blob.core.windows.net/iotedge-armtools/moby-engine.zip"
+    }
+    else
+    {
+        "https://conteng.blob.core.windows.net/mby/moby-engine_3.0.3.zip"
+    }
 
     $env:PATH = "$env:PATH;C:\Program Files (x86)\Windows Kits\10\bin\x64;C:\Program Files (x86)\Windows Kits\10\tools\bin\i386"
     $env:SIGNTOOL_OEM_SIGN = '/a /s my /i "Windows OEM Intermediate 2017 (TEST ONLY)" /n "Windows OEM Test Cert 2017 (TEST ONLY)" /fd SHA256'
@@ -94,25 +108,18 @@ if ($CreateTemplate) {
         cmd /c installoemcerts.cmd
     }
 
-    if(-Not $Arm)
-    {
-        $ProgressPreference = 'SilentlyContinue'
-        Invoke-WebRequest $docker_cli_uri -out "moby-cli.zip" -UseBasicParsing
-        if (Test-Path "moby-cli") {
-            Remove-Item -Path "moby-cli" -Recurse -Force
-        }
-        Expand-Archive -Path "moby-cli.zip" -DestinationPath "moby-cli"
+    $ProgressPreference = 'SilentlyContinue'
+    Invoke-WebRequest $docker_cli_uri -out "moby-cli.zip" -UseBasicParsing
+    if (Test-Path "moby-cli") {
+        Remove-Item -Path "moby-cli" -Recurse -Force
+    }
+    Expand-Archive -Path "moby-cli.zip" -DestinationPath "moby-cli"
 
-        Invoke-WebRequest $docker_engine_uri -out "moby-engine.zip" -UseBasicParsing
-        if (Test-Path "moby-engine") {
-            Remove-Item -Path "moby-engine" -Recurse -Force
-        }
-        Expand-Archive -Path "moby-engine.zip" -DestinationPath "moby-engine"
+    Invoke-WebRequest $docker_engine_uri -out "moby-engine.zip" -UseBasicParsing
+    if (Test-Path "moby-engine") {
+        Remove-Item -Path "moby-engine" -Recurse -Force
     }
-    else
-    {
-        # Arm version docker and dockerd are stored locally on the build vm for now
-    }
+    Expand-Archive -Path "moby-engine.zip" -DestinationPath "moby-engine"
 
     #
     # IoTEdge

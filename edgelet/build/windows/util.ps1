@@ -16,8 +16,8 @@ function Get-CargoCommand
 
     if($Arm)
     {
-        # currently we have private rust toolchain to build arm on Windows, the path is fixed in $env:Path
-        'cargo'
+        # we have private rust arm tool chain downloaded and unzipped to <source root>\rust-windows-arm\cargo.exe
+        'rust-windows-arm\cargo.exe'
     }
     elseif (Test-RustUp)
     {
@@ -49,6 +49,9 @@ function Get-IotEdgeFolder
 
 function Assert-Rust
 {
+Param(
+    [Switch] $Arm
+)
     Write-Host "Validating Rust (stable-x86_64-pc-windows-msvc) is installed and up to date."
     if (-not (Test-RustUp))
     {
@@ -75,4 +78,16 @@ function Assert-Rust
             Throw "Failed to install rust with exit code $LastExitCode"
         }
     }
+}
+
+function InstallWinArmPrivateRustCompiler
+{
+    $link = "https://iottools.blob.core.windows.net/iotedge-armtools/rust-windows-arm.zip"
+
+    $ProgressPreference = 'SilentlyContinue'
+    Invoke-WebRequest $link -out "rust-windows-arm.zip" -UseBasicParsing
+    if (Test-Path "rust-windows-arm") {
+        Remove-Item -Path "rust-windows-arm" -Recurse -Force
+    }
+    Expand-Archive -Path "rust-windows-arm.zip" -DestinationPath "rust-windows-arm"
 }

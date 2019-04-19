@@ -9,12 +9,8 @@ param(
 $util = Join-Path -Path $PSScriptRoot -ChildPath "util.ps1"
 . $util
 
-# currently arm rust is private tool chain on the build machine with fixed path
-if(-Not $Arm)
-{
-    # Ensure rust is installed
-    Assert-Rust
-}
+# Ensure rust is installed
+Assert-Rust -Arm:$Arm
 
 # arm build has to use a few private forks of dependencies instead of the public ones, in order to to this, we have to 
 # 1. append a [patch] section in cargo.toml
