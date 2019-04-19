@@ -26,7 +26,8 @@ if($Arm)
 
     cmd /c copy /Y Cargo.WinArm.lock Cargo.lock
 
-    $ForkedCrates = @"    
+    $ForkedCrates = @"
+
 [patch.crates-io]
 backtrace = { git = "https://github.com/chandde/backtrace-rs", branch = "arm" }
 cmake = { git = "https://github.com/philipktlin/cmake-rs", branch = "arm" }
