@@ -58,7 +58,7 @@ Function New-Package([string] $Name, [string] $Version)
 {
     $pkggen = "${Env:ProgramFiles(x86)}\Windows Kits\10\tools\bin\i386\pkggen.exe"
     $manifest = "edgelet\build\windows\$Name.wm.xml"
-    $mobyroot = if($Arm) {"C:\dependencies\win-arm"} else { Get-IotEdgeFolder }
+    $mobyroot = if($Arm) {"C:\dependencies\win-arm"} else { "..\..\.." }
     $cwd = "."
     $arch = if($Arm) { 'thumbv7a-pc-windows-msvc'} else { '' }
     $cpu = if($Arm) {'arm'} else { 'amd64' }

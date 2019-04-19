@@ -277,8 +277,6 @@ jobs:
       #  displayName: Install Rust
       - powershell: edgelet/build/windows/build.ps1 -Release -Arm
         displayName: Build
-        ignoreLASTEXITCODE: true
-        errorActionPreference: silentlyContinue
       - task: CMake@1
         displayName: 'Setup libiothsm'
         inputs:
