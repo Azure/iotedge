@@ -439,11 +439,6 @@ static int parse_tbs_cert_info(unsigned char* tbs_info, size_t len, CERT_DATA_IN
             }
             break;
         case FIELD_SUBJECT:
-            printf("Input:0x%p, Iterator:0x%p, Offset:%zu\n", tbs_info, iterator, iterator - tbs_info);
-            printf("Subj:[");
-            for (size_t x = 0; x < 20; x++)
-                printf("%02x ", iterator[x]);
-            printf("], Offset %zu]\n", iterator - tbs_info);
             cert_info->common_name = get_common_name(iterator);
             if (cert_info->common_name == NULL)
             {
