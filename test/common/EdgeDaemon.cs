@@ -64,6 +64,22 @@ namespace common
             );
         }
 
+        public Task StartAsync(CancellationToken token)
+        {
+            var sc = new ServiceController("iotedge");
+            return Profiler.Run(
+                "Starting edge daemon",
+                async () =>
+                {
+                    if (sc.Status != ServiceControllerStatus.Running)
+                    {
+                        sc.Start();
+                        await this._WaitForStatusAsync(sc, ServiceControllerStatus.Running, token);
+                    }
+                }
+            );
+        }
+
         public Task StopAsync(CancellationToken token)
         {
             var sc = new ServiceController("iotedge");

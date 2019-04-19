@@ -43,7 +43,18 @@ namespace temp_sensor
                         await daemon.UninstallAsync(token);
                         await daemon.InstallAsync(
                             device.ConnectionString, args.PackagesPath, args.Proxy, token);
-                        await daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
+
+                        await args.Proxy.Match(
+                            async p =>
+                            {
+                                await daemon.StopAsync(token);
+                                var yaml = new DaemonConfiguration();
+                                yaml.AddHttpsProxy(p);
+                                yaml.Update();
+                                await daemon.StartAsync(token);
+                            },
+                            () => daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token)
+                        );
 
                         var agent = new EdgeAgent(device.Id, iotHub);
                         await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
