@@ -545,6 +545,7 @@ function run_quickstartcerts_test() {
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=Core \
+        --optimize_for_performance="$optimize_for_performance" \
         --no-verify && ret=$? || ret=$?
 
     declare -a certs=( /var/lib/iotedge/hsm/certs/edge_owner_ca*.pem )
@@ -681,6 +682,7 @@ function run_tempsensor_test() {
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
+        --optimize_for_performance="$optimize_for_performance" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -848,6 +850,11 @@ fi
 
 working_folder="$E2E_TEST_DIR/working"
 get_image_architecture_label
+optimize_for_performance=true
+if [ "$image_architecture_label" = 'arm32v7' ] ||
+   [ "$image_architecture_label" = 'arm64v8' ]; then
+	optimize_for_performance=false
+fi
 iotedged_artifact_folder="$(get_iotedged_artifact_folder)"
 iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file)"
 leafdevice_artifact_file="$(get_leafdevice_artifact_file)"
