@@ -355,8 +355,6 @@ static size_t parse_asn1_object(const unsigned char* tbs_info, ASN1_OBJECT* asn1
     return pos_change;
 }
 
-static void print_buffer(const char* field, const unsigned char *s, size_t size, size_t offset);
-
 static int parse_tbs_cert_info(unsigned char* tbs_info, size_t len, CERT_DATA_INFO* cert_info)
 {
     int result = 0;
@@ -441,11 +439,6 @@ static int parse_tbs_cert_info(unsigned char* tbs_info, size_t len, CERT_DATA_IN
             }
             break;
         case FIELD_SUBJECT:
-            printf("Input:0x%p, Iterator:0x%p, Offset:%zu\n", tbs_info, iterator, iterator - tbs_info);
-            printf("Subj:[");
-            for (size_t x = 0; x < 20; x++)
-                printf("%02x ", iterator[x]);
-            printf("], Offset %zu]\n", iterator - tbs_info);
             cert_info->common_name = get_common_name(iterator);
             if (cert_info->common_name == NULL)
             {
@@ -479,7 +472,6 @@ static char *get_common_name(const unsigned char *input)
     const unsigned char* iterator = input, *end_marker;
 
     size_t size_len = parse_asn1_object(iterator, &target_obj);
-    print_buffer("ASN Marker", target_obj.value, target_obj.length, 0);
     offset = target_obj.length + TLV_OVERHEAD_SIZE + (size_len - 1);
     end_marker = input + offset;
     while ((!done) && (iterator < end_marker))
@@ -501,15 +493,12 @@ static char *get_common_name(const unsigned char *input)
                 // and thus will have length expressed in 1 byte
                 const unsigned char * seq_start = oid_start - 2;
                 size_t oid_size_len = parse_asn1_object(seq_start, &seq_obj);
-                print_buffer("Found CN ASN Marker", seq_obj.value, seq_obj.length, 0);
-                printf("Type: %#02x, Len: %zu, Seq End: 0x%p Overall: 0x%p\n", seq_obj.type, seq_obj.length, seq_start, end_marker);
                 if ((seq_obj.type == ASN1_SEQUENCE) &&
                     (seq_start + seq_obj.length < end_marker) &&
                     (oid_size_len == 1))
                 {
                     const unsigned char * data_start = oid_start + COMMON_NAME_OID_SIZE;
                     parse_asn1_object(data_start, &data_obj);
-                    print_buffer("CN", data_obj.value, data_obj.length, 0);
                     if (data_obj.length <= MAX_LEN_COMMON_NAME)
                     {
                         found = true;
@@ -520,10 +509,6 @@ static char *get_common_name(const unsigned char *input)
             else
             {
                 // start scanning from next char after OID start
-                printf("OID:[");
-                for (size_t x = 0; x < COMMON_NAME_OID_SIZE; x++)
-                    printf("%02x ", oid_start[x]);
-                printf("], Offset %zu]\n", oid_start - input);
                 iterator = oid_start + 1;
             }
         }
@@ -551,17 +536,6 @@ static char *get_common_name(const unsigned char *input)
     }
 
     return result;
-}
-
-static void print_buffer(const char* field, const unsigned char *s, size_t size, size_t offset)
-{
-    size_t i;
-    printf("Offset:%zu Len:%zu, %s[\n", offset, size, field);
-    for (i = 0; i < size; i++)
-    {
-        printf("%02x ", s[i]);
-    }
-    printf("]\n");
 }
 
 static int parse_asn1_data(unsigned char* section, size_t len, X509_ASN1_STATE state, CERT_DATA_INFO* cert_info)
