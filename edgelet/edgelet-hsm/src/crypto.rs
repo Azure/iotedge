@@ -177,4 +177,11 @@ impl CoreCertificate for Certificate {
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
     }
+
+    fn get_common_name(&self) -> Result<String, CoreError> {
+        self.0
+            .get_common_name()
+            .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
+    }
 }
