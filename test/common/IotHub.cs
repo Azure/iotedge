@@ -21,15 +21,26 @@ namespace common
         readonly string eventHubEndpoint;
         readonly string iotHubConnectionString;
         readonly Option<IWebProxy> proxy;
+        Lazy<RegistryManager> registryManager;
+        Lazy<ServiceClient> serviceClient;
+        Lazy<EventHubClient> eventHubClient;
 
         public string Hostname =>
             IotHubConnectionStringBuilder.Create(this.iotHubConnectionString).HostName;
         public string EntityPath =>
             (new EventHubsConnectionStringBuilder(this.eventHubEndpoint)).EntityPath;
 
-        RegistryManager RegistryManager
+        RegistryManager RegistryManager => this.registryManager.Value;
+        ServiceClient ServiceClient => this.serviceClient.Value;
+        EventHubClient EventHubClient => this.eventHubClient.Value;
+
+        public IotHub(string iotHubConnectionString, string eventHubEndpoint, Option<string> proxy)
         {
-            get
+            this.eventHubEndpoint = eventHubEndpoint;
+            this.iotHubConnectionString = iotHubConnectionString;
+            this.proxy = proxy.Map(p => new WebProxy(p) as IWebProxy);
+
+            this.registryManager = new Lazy<RegistryManager>(() =>
             {
                 var settings = new HttpTransportSettings();
                 this.proxy.ForEach(p => settings.Proxy = p);
@@ -37,12 +48,9 @@ namespace common
                     this.iotHubConnectionString,
                     settings
                 );
-            }
-        }
+            });
 
-        ServiceClient ServiceClient
-        {
-            get
+            this.serviceClient = new Lazy<ServiceClient>(() =>
             {
                 var settings = new ServiceClientTransportSettings();
                 this.proxy.ForEach(p => settings.HttpProxy = p);
@@ -51,12 +59,9 @@ namespace common
                     DeviceTransportType.Amqp_WebSocket_Only,
                     settings
                 );
-            }
-        }
+            });
 
-        EventHubClient EventHubClient
-        {
-            get
+            this.eventHubClient = new Lazy<EventHubClient>(() =>
             {
                 var builder = new EventHubsConnectionStringBuilder(this.eventHubEndpoint)
                 {
@@ -65,14 +70,7 @@ namespace common
                 var client = EventHubClient.CreateFromConnectionString(builder.ToString());
                 this.proxy.ForEach(p => client.WebProxy = p);
                 return client;
-            }
-        }
-
-        public IotHub(string iotHubConnectionString, string eventHubEndpoint, Option<string> proxy)
-        {
-            this.eventHubEndpoint = eventHubEndpoint;
-            this.iotHubConnectionString = iotHubConnectionString;
-            this.proxy = proxy.Map(p => new WebProxy(p) as IWebProxy);
+            });
         }
 
         public Task<Device> GetDeviceIdentityAsync(string deviceId, CancellationToken token) =>
@@ -163,7 +161,6 @@ namespace common
             }
 
             await receiver.CloseAsync();
-            await client.CloseAsync();
         }
     }
 }
