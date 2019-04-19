@@ -23,11 +23,19 @@ namespace common
             this.scriptDir = scriptDir;
         }
 
-        public Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, CancellationToken token)
+        public Task InstallAsync(
+            string deviceConnectionString,
+            Option<string> packagesPath,
+            Option<string> proxy,
+            CancellationToken token
+        )
         {
-            string installCommand =
-                $"Install-IoTEdge -Manual -ContainerOs Windows -DeviceConnectionString '{deviceConnectionString}'";
-            packagesPath.ForEach(path => installCommand += $" -OfflineInstallationPath '{path}'");
+            string installCommand = "Install-IoTEdge -Manual -ContainerOs Windows " +
+                $"-DeviceConnectionString '{deviceConnectionString}'";
+            packagesPath.ForEach(p => installCommand += $" -OfflineInstallationPath '{p}'");
+            proxy.ForEach(p =>
+                installCommand += $" -InvokeWebRequestParameters @{{ '-Proxy' = '{p}' }}"
+            );
 
             var commands = new string[]
             {
@@ -35,6 +43,7 @@ namespace common
                 $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1",
                 installCommand
             };
+
             return Profiler.Run(
                 "Installing edge daemon",
                 () => Process.RunAsync("powershell", string.Join(";", commands), token)
