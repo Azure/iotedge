@@ -20,7 +20,6 @@ namespace common
     {
         readonly string eventHubEndpoint;
         readonly string iotHubConnectionString;
-        readonly Option<IWebProxy> proxy;
         readonly Lazy<RegistryManager> registryManager;
         readonly Lazy<ServiceClient> serviceClient;
         readonly Lazy<EventHubClient> eventHubClient;
@@ -34,16 +33,16 @@ namespace common
         ServiceClient ServiceClient => this.serviceClient.Value;
         EventHubClient EventHubClient => this.eventHubClient.Value;
 
-        public IotHub(string iotHubConnectionString, string eventHubEndpoint, Option<string> proxy)
+        public IotHub(string iotHubConnectionString, string eventHubEndpoint, Option<string> proxyUrl)
         {
             this.eventHubEndpoint = eventHubEndpoint;
             this.iotHubConnectionString = iotHubConnectionString;
-            this.proxy = proxy.Map(p => new WebProxy(p) as IWebProxy);
+            Option<IWebProxy> proxy = proxyUrl.Map(p => new WebProxy(p) as IWebProxy);
 
             this.registryManager = new Lazy<RegistryManager>(() =>
             {
                 var settings = new HttpTransportSettings();
-                this.proxy.ForEach(p => settings.Proxy = p);
+                proxy.ForEach(p => settings.Proxy = p);
                 return RegistryManager.CreateFromConnectionString(
                     this.iotHubConnectionString,
                     settings
@@ -53,7 +52,7 @@ namespace common
             this.serviceClient = new Lazy<ServiceClient>(() =>
             {
                 var settings = new ServiceClientTransportSettings();
-                this.proxy.ForEach(p => settings.HttpProxy = p);
+                proxy.ForEach(p => settings.HttpProxy = p);
                 return ServiceClient.CreateFromConnectionString(
                     this.iotHubConnectionString,
                     DeviceTransportType.Amqp_WebSocket_Only,
@@ -68,7 +67,7 @@ namespace common
                     TransportType = EventHubTransportType.AmqpWebSockets
                 };
                 var client = EventHubClient.CreateFromConnectionString(builder.ToString());
-                this.proxy.ForEach(p => client.WebProxy = p);
+                proxy.ForEach(p => client.WebProxy = p);
                 return client;
             });
         }
