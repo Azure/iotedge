@@ -47,7 +47,7 @@ hyperlocal-windows = { git = "https://github.com/chandde/hyperlocal-windows", br
 tokio-uds-windows = { git = "https://github.com/chandde/tokio-uds-windows", branch = "arm" }
 "@
 
-    Add-Content -Path edgelet\cargo.toml -Value $ForkedCrates
+    Add-Content -Path cargo.toml -Value $ForkedCrates
 }
 
 # Run cargo build by specifying the manifest file
