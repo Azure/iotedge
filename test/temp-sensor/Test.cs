@@ -67,6 +67,7 @@ namespace temp_sensor
                         );
                         config.AddEdgeHub(args.HubImage);
                         config.AddTempSensor(args.SensorImage);
+                        args.Proxy.ForEach(p => config.AddProxy(p));
                         await config.DeployAsync(token);
 
                         var hub = new EdgeModule("edgeHub", device.Id, iotHub);

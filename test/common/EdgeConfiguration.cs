@@ -11,6 +11,14 @@ namespace common
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json.Linq;
 
+    public enum UpstreamProtocolType
+    {
+        Amqp,
+        AmqpWs,
+        Mqtt,
+        MqttWs
+    }
+
     public class EdgeConfiguration
     {
         ConfigurationContent config;
@@ -50,6 +58,8 @@ namespace common
 
         public void AddRegistryCredentials(string address, string username, string password)
         {
+            ConfigurationContent config = this.config;
+
             // { "modulesContent": { "$edgeAgent": { "properties": { "desired": { "runtime": { "settings": {
             //   "registryCredentials": { ... }
             // } } } } } } }
@@ -65,6 +75,63 @@ namespace common
                 }
             }));
             config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
+        }
+
+        public void AddProxy(string url)
+        {
+            JObject desired = JObject.FromObject(this.config.ModulesContent["$edgeAgent"]["properties.desired"]);
+            if (desired.TryGetValue("systemModules", StringComparison.OrdinalIgnoreCase, out JToken systemModules))
+            {
+                foreach (var module in systemModules.Values<JObject>())
+                {
+                    JObject env;
+                    if (module.TryGetValue("env", StringComparison.OrdinalIgnoreCase, out JToken token))
+                    {
+                        env = token.Value<JObject>();
+                    }
+                    else
+                    {
+                        module.Add("env", new JObject());
+                        env = module.Get<JObject>("env");
+                    }
+
+                    env.Add("https_proxy", JToken.FromObject(new
+                    {
+                        value = url
+                    }));
+                    env.Add("UpstreamProtocol", JToken.FromObject(new
+                    {
+                        value = UpstreamProtocolType.AmqpWs.ToString()
+                    }));
+                }
+            }
+            if (desired.TryGetValue("modules", StringComparison.OrdinalIgnoreCase, out JToken modules))
+            {
+                foreach (var module in modules.Values<JObject>())
+                {
+                    JObject env;
+                    if (module.TryGetValue("env", StringComparison.OrdinalIgnoreCase, out JToken token))
+                    {
+                        env = token.Value<JObject>();
+                    }
+                    else
+                    {
+                        module.Add("env", new JObject());
+                        env = module.Get<JObject>("env");
+                    }
+
+                    env.Add("https_proxy", JToken.FromObject(new
+                    {
+                        value = url
+                    }));
+                    env.Add("UpstreamProtocol", JToken.FromObject(new
+                    {
+                        value = UpstreamProtocolType.AmqpWs.ToString()
+                    }));
+                }
+            }
+
+            this.config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
         }
 
         public void AddEdgeHub(string image)
