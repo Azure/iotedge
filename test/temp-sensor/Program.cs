@@ -54,7 +54,8 @@ If you specify `--registry` and `--user`, the following variable must also be se
 
         Task<int> OnExecuteAsync()
         {
-            return (new Test()).RunAsync(new Args
+            var test = new Test();
+            return test.RunAsync(new Test.Args
             {
                 DeviceId = this.DeviceId,
                 ConnectionString = EnvironmentVariable.Expect("E2E_IOT_HUB_CONNECTION_STRING"),

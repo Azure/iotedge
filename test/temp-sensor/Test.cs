@@ -8,20 +8,20 @@ namespace temp_sensor
     using common;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class Args
-    {
-        public string DeviceId;
-        public string ConnectionString;
-        public string Endpoint;
-        public string InstallerPath;
-        public string AgentImage;
-        public string HubImage;
-        public string SensorImage;
-        public Option<(string address, string username, string password)> Registry;
-    }
-
     public class Test
     {
+        public class Args
+        {
+            public string DeviceId;
+            public string ConnectionString;
+            public string Endpoint;
+            public string InstallerPath;
+            public string AgentImage;
+            public string HubImage;
+            public string SensorImage;
+            public Option<(string address, string username, string password)> Registry;
+        }
+
         public Task<int> RunAsync(Args args)
         {
             return Profiler.Run(
