@@ -473,17 +473,18 @@ static int parse_tbs_cert_info(unsigned char* tbs_info, size_t len, CERT_DATA_IN
 static char *get_common_name(const unsigned char *input)
 {
     char *result;
-    bool done = false, found = false;
-    const unsigned char* iterator = input;
-    size_t overall_size;
+    size_t offset;
     ASN1_OBJECT target_obj, data_obj;
-    parse_asn1_object(iterator, &target_obj);
+    bool done = false, found = false;
+    const unsigned char* iterator = input, *end_marker;
+
+    size_t size_len = parse_asn1_object(iterator, &target_obj);
     print_buffer("ASN Marker", target_obj.value, target_obj.length, 0);
-    overall_size = target_obj.length;
-    printf("Overall Size: %zu\n", overall_size);
-    while ((!done) && (iterator <= input + overall_size + 1))
+    offset = target_obj.length + TLV_OVERHEAD_SIZE + (size_len - 1);
+    end_marker = input + offset;
+    while ((!done) && (iterator < end_marker))
     {
-        unsigned char * oid_start = memchr(iterator, ASN1_OBJECT_ID, overall_size);
+        unsigned char * oid_start = memchr(iterator, ASN1_OBJECT_ID, offset);
         if (oid_start == NULL)
         {
             // no oids found
@@ -501,9 +502,9 @@ static char *get_common_name(const unsigned char *input)
                 const unsigned char * seq_start = oid_start - 2;
                 size_t oid_size_len = parse_asn1_object(seq_start, &seq_obj);
                 print_buffer("Found CN ASN Marker", seq_obj.value, seq_obj.length, 0);
-                printf("Type: %#02x, Len: %zu, Seq End: 0x%p Overall: 0x%p\n", seq_obj.type, seq_obj.length, seq_start, input + overall_size);
+                printf("Type: %#02x, Len: %zu, Seq End: 0x%p Overall: 0x%p\n", seq_obj.type, seq_obj.length, seq_start, end_marker);
                 if ((seq_obj.type == ASN1_SEQUENCE) &&
-                    (seq_start + seq_obj.length <= input + overall_size + 1) &&
+                    (seq_start + seq_obj.length < end_marker) &&
                     (oid_size_len == 1))
                 {
                     const unsigned char * data_start = oid_start + COMMON_NAME_OID_SIZE;
