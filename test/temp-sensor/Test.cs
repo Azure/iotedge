@@ -17,6 +17,7 @@ namespace temp_sensor
             public string Endpoint;
             public string InstallerPath;
             public Option<string> PackagesPath;
+            public Option<string> Proxy;
             public string AgentImage;
             public string HubImage;
             public string SensorImage;
@@ -34,7 +35,7 @@ namespace temp_sensor
                         CancellationToken token = cts.Token;
 
                         // ** setup
-                        var iotHub = new IotHub(args.ConnectionString, args.Endpoint);
+                        var iotHub = new IotHub(args.ConnectionString, args.Endpoint, args.Proxy);
                         var device = await EdgeDevice.GetOrCreateIdentityAsync(
                             args.DeviceId, iotHub, token);
 

@@ -68,6 +68,7 @@ If you specify `--registry` and `--user`, the following variable must also be se
                 Endpoint = EnvironmentVariable.Expect("E2E_EVENT_HUB_ENDPOINT"),
                 InstallerPath = this.InstallerPath,
                 PackagesPath = Option.Maybe(this.PackagesPath),
+                Proxy = this.Proxy.use ? Option.Some(this.Proxy.url) : Option.None<string>(),
                 AgentImage = this.AgentImage,
                 HubImage = this.HubImage,
                 SensorImage = this.SensorImage,

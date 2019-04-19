@@ -3,10 +3,12 @@
 namespace common
 {
     using System;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Common;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
@@ -18,28 +20,59 @@ namespace common
     {
         readonly string eventHubEndpoint;
         readonly string iotHubConnectionString;
+        readonly Option<IWebProxy> proxy;
 
         public string Hostname =>
             IotHubConnectionStringBuilder.Create(this.iotHubConnectionString).HostName;
         public string EntityPath =>
             (new EventHubsConnectionStringBuilder(this.eventHubEndpoint)).EntityPath;
 
-        RegistryManager RegistryManager =>
-            RegistryManager.CreateFromConnectionString(
-                this.iotHubConnectionString,
-                new HttpTransportSettings()
-            );
-        ServiceClient ServiceClient =>
-            ServiceClient.CreateFromConnectionString(
-                this.iotHubConnectionString,
-                DeviceTransportType.Amqp_WebSocket_Only,
-                new ServiceClientTransportSettings()
-            );
+        RegistryManager RegistryManager
+        {
+            get
+            {
+                var settings = new HttpTransportSettings();
+                this.proxy.ForEach(p => settings.Proxy = p);
+                return RegistryManager.CreateFromConnectionString(
+                    this.iotHubConnectionString,
+                    settings
+                );
+            }
+        }
 
-        public IotHub(string iotHubConnectionString, string eventHubEndpoint)
+        ServiceClient ServiceClient
+        {
+            get
+            {
+                var settings = new ServiceClientTransportSettings();
+                this.proxy.ForEach(p => settings.HttpProxy = p);
+                return ServiceClient.CreateFromConnectionString(
+                    this.iotHubConnectionString,
+                    DeviceTransportType.Amqp_WebSocket_Only,
+                    settings
+                );
+            }
+        }
+
+        EventHubClient EventHubClient
+        {
+            get
+            {
+                var builder = new EventHubsConnectionStringBuilder(this.eventHubEndpoint)
+                {
+                    TransportType = EventHubTransportType.AmqpWebSockets
+                };
+                var client = EventHubClient.CreateFromConnectionString(builder.ToString());
+                this.proxy.ForEach(p => client.WebProxy = p);
+                return client;
+            }
+        }
+
+        public IotHub(string iotHubConnectionString, string eventHubEndpoint, Option<string> proxy)
         {
             this.eventHubEndpoint = eventHubEndpoint;
             this.iotHubConnectionString = iotHubConnectionString;
+            this.proxy = proxy.Map(p => new WebProxy(p) as IWebProxy);
         }
 
         public Task<Device> GetDeviceIdentityAsync(string deviceId, CancellationToken token) =>
@@ -57,11 +90,11 @@ namespace common
 
         public Task DeleteDeviceIdentityAsync(Device device, CancellationToken token) =>
             this.RegistryManager.RemoveDeviceAsync(device);
- 
-         public Task DeployDeviceConfigurationAsync(
-            string deviceId,
-            ConfigurationContent config,
-            CancellationToken token
+
+        public Task DeployDeviceConfigurationAsync(
+           string deviceId,
+           ConfigurationContent config,
+           CancellationToken token
         ) => this.RegistryManager.ApplyConfigurationContentOnDeviceAsync(deviceId, config, token);
 
         public Task<Twin> GetTwinAsync(
@@ -104,7 +137,7 @@ namespace common
                 TransportType = EventHubTransportType.AmqpWebSockets
             };
 
-            EventHubClient client = EventHubClient.CreateFromConnectionString(builder.ToString());
+            EventHubClient client = this.EventHubClient;
             int count = (await client.GetRuntimeInformationAsync()).PartitionCount;
             string partition = EventHubPartitionKeyResolver.ResolveToPartition(deviceId, count);
             PartitionReceiver receiver = client.CreateReceiver("$Default", partition, EventPosition.FromEnd());
@@ -132,5 +165,5 @@ namespace common
             await receiver.CloseAsync();
             await client.CloseAsync();
         }
-   }
+    }
 }
