@@ -41,6 +41,12 @@ function Get-EdgeletFolder
     Join-Path -Path $ProjectRoot -ChildPath "edgelet"
 }
 
+function Get-IotEdgeFolder
+{
+    # iotedge is parent folder of edgelet
+    Join-Path -Path Get-EdgeletFolder -ChildPath ".."
+}
+
 function Assert-Rust
 {
     Write-Host "Validating Rust (stable-x86_64-pc-windows-msvc) is installed and up to date."

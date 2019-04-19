@@ -3,6 +3,10 @@ Param([Switch] $CreateTemplate, [Switch] $CreateCab, [Switch] $SkipInstallCerts,
 $EdgeCab = "Microsoft-Azure-IoTEdge.cab"
 $EdgeTemplate = "Package-Template"
 
+# Bring in util functions
+$util = Join-Path -Path $PSScriptRoot -ChildPath "util.ps1"
+. $util
+
 Function New-Cabinet([String] $Destination, [String[]] $Files, [String] $Path)
 {
     $Ddf = [IO.Path]::GetTempFileName()
@@ -54,7 +58,7 @@ Function New-Package([string] $Name, [string] $Version)
 {
     $pkggen = "${Env:ProgramFiles(x86)}\Windows Kits\10\tools\bin\i386\pkggen.exe"
     $manifest = "edgelet\build\windows\$Name.wm.xml"
-    $mobyroot = if($Arm) {"C:\dependencies\win-arm"} else {Get-Location}
+    $mobyroot = if($Arm) {"C:\dependencies\win-arm"} else { Get-IotEdgeFolder }
     $cwd = "."
     $arch = if($Arm) { 'thumbv7a-pc-windows-msvc'} else { '' }
     $cpu = if($Arm) {'arm'} else { 'amd64' }
@@ -90,18 +94,25 @@ if ($CreateTemplate) {
         cmd /c installoemcerts.cmd
     }
 
-    $ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest $docker_cli_uri -out "moby-cli.zip" -UseBasicParsing
-    if (Test-Path "moby-cli") {
-        Remove-Item -Path "moby-cli" -Recurse -Force
-    }
-    Expand-Archive -Path "moby-cli.zip" -DestinationPath "moby-cli"
+    if(-Not $Arm)
+    {
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest $docker_cli_uri -out "moby-cli.zip" -UseBasicParsing
+        if (Test-Path "moby-cli") {
+            Remove-Item -Path "moby-cli" -Recurse -Force
+        }
+        Expand-Archive -Path "moby-cli.zip" -DestinationPath "moby-cli"
 
-    Invoke-WebRequest $docker_engine_uri -out "moby-engine.zip" -UseBasicParsing
-    if (Test-Path "moby-engine") {
-        Remove-Item -Path "moby-engine" -Recurse -Force
+        Invoke-WebRequest $docker_engine_uri -out "moby-engine.zip" -UseBasicParsing
+        if (Test-Path "moby-engine") {
+            Remove-Item -Path "moby-engine" -Recurse -Force
+        }
+        Expand-Archive -Path "moby-engine.zip" -DestinationPath "moby-engine"
     }
-    Expand-Archive -Path "moby-engine.zip" -DestinationPath "moby-engine"
+    else
+    {
+        # Arm version docker and dockerd are stored locally on the build vm for now
+    }
 
     #
     # IoTEdge
