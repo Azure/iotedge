@@ -123,8 +123,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
                         expiration_callback();
                         Ok(())
                     })
-                    .map_err(|e| panic!("delay errored; err={:?}", e))
-                    //.map_err(|_| Error::from(ErrorKind::CertificateTimerCreationError)),
+                    .map_err(|_| Error::from(ErrorKind::CertificateTimerCreationError)),
             )
         }
     }

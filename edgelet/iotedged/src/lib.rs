@@ -168,10 +168,7 @@ impl Main {
         Main { settings }
     }
 
-    pub fn run_until<F>(self, _shutdown_signal: F) -> Result<(), Error>
-    where
-        F: Future<Item = (), Error = ()> + Send + 'static,
-    {
+    pub fn run(self) -> Result<(), Error> {
         let Main { settings } = self;
 
         let mut tokio_runtime = tokio::runtime::Runtime::new()

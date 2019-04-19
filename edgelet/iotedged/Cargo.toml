@@ -38,6 +38,7 @@ provisioning = { path = "../provisioning" }
 
 [target.'cfg(windows)'.dependencies]
 windows-service = "0.1"
+winapi = { version = "0.3.5", features = ["shellapi"] }
 
 win-logger = { path = "../win-logger" }
 
