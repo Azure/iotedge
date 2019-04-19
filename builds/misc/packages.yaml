@@ -203,7 +203,9 @@ jobs:
     pool:
       vmImage: 'vs2017-win2016'
     steps:
-      - powershell: variable
+      - powershell: |
+          variable
+          Get-ChildItem Env:
         displayName: "dump all available variables in vs2017-win2016"
       # - powershell: |
       #     $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
