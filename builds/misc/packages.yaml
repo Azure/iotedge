@@ -203,8 +203,8 @@ jobs:
     pool:
       vmImage: 'vs2017-win2016'
     steps:
-      - powershell: variable
-        displayname: dump all available variables in vs2017-win2016
+      - powershell: Write-Host variable
+        displayname: "dump all available variables in vs2017-win2016"
       # - powershell: |
       #     $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
       #     $version = ("{0}{1}" -f $base_version, $(Build.BuildNumber))
