@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft. All rights reserved.
 
-param(
-    [switch]$Arm
-)
-
 function Get-OpenSSL
 {
+    param(
+        [switch]$Arm
+    )
+
     $ErrorActionPreference = 'Continue'
 
     if (!((Test-Path -Path $env:HOMEDRIVE\vcpkg) -and ((Test-Path -Path $env:HOMEDRIVE\vcpkg\vcpkg.exe))))

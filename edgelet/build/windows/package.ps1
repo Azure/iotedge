@@ -1,4 +1,9 @@
-Param([Switch] $CreateTemplate, [Switch] $CreateCab, [Switch] $SkipInstallCerts, [Switch] $Arm)
+Param(
+    [Switch] $CreateTemplate, 
+    [Switch] $CreateCab, 
+    [Switch] $SkipInstallCerts, 
+    [Switch] $Arm
+)
 
 $EdgeCab = "Microsoft-Azure-IoTEdge.cab"
 $EdgeTemplate = "Package-Template"
@@ -62,6 +67,12 @@ Function New-Package([string] $Name, [string] $Version)
     $cwd = "."
     $arch = if($Arm) { 'thumbv7a-pc-windows-msvc'} else { '' }
     $cpu = if($Arm) {'arm'} else { 'amd64' }
+
+    if($Arm)
+    {
+        # pkggen cannot find makecat.exe from below folder at runtime
+        $env:PATH = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x64;" + $env:PATH
+    }
 
     Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_IOTEDGE_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR;_Arch=$arch' /cpu:$cpu /version:$Version"
     if ($LASTEXITCODE) {
