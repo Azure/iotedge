@@ -16,6 +16,7 @@ namespace temp_sensor
             public string ConnectionString;
             public string Endpoint;
             public string InstallerPath;
+            public Option<string> PackagesPath;
             public string AgentImage;
             public string HubImage;
             public string SensorImage;
@@ -39,7 +40,7 @@ namespace temp_sensor
 
                         var daemon = new EdgeDaemon(args.InstallerPath);
                         await daemon.UninstallAsync(token);
-                        await daemon.InstallAsync(device.ConnectionString, token);
+                        await daemon.InstallAsync(device.ConnectionString, args.PackagesPath, token);
                         await daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
 
                         var agent = new EdgeAgent(device.Id, iotHub);

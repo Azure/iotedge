@@ -37,6 +37,9 @@ If you specify `--registry` and `--user`, the following variable must also be se
         [Argument(1, Name = "installer-path", Description = "Path to IotEdgeSecurityDaemon.ps1")]
         public string InstallerPath { get; }
 
+        [Option("--package-path", Description = "Path to installation packages")]
+        public string PackagesPath { get; }
+
         [Option("--agent", Description = "Edge Agent image name, default is '" + DefaultAgentImage + "'")]
         public string AgentImage { get; } = DefaultAgentImage;
 
@@ -61,6 +64,7 @@ If you specify `--registry` and `--user`, the following variable must also be se
                 ConnectionString = EnvironmentVariable.Expect("E2E_IOT_HUB_CONNECTION_STRING"),
                 Endpoint = EnvironmentVariable.Expect("E2E_EVENT_HUB_ENDPOINT"),
                 InstallerPath = this.InstallerPath,
+                PackagesPath = Option.Maybe(this.PackagesPath),
                 AgentImage = this.AgentImage,
                 HubImage = this.HubImage,
                 SensorImage = this.SensorImage,

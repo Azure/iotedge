@@ -2,9 +2,11 @@
 
 namespace common
 {
+    using System;
     using System.ServiceProcess;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public enum EdgeDaemonStatus
     {
@@ -21,13 +23,17 @@ namespace common
             this.scriptDir = scriptDir;
         }
 
-        public Task InstallAsync(string deviceConnectionString, CancellationToken token)
+        public Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, CancellationToken token)
         {
+            string installCommand =
+                $"Install-IoTEdge -Manual -ContainerOs Windows -DeviceConnectionString '{deviceConnectionString}'";
+            packagesPath.ForEach(path => installCommand += $" -OfflineInstallationPath '{path}'");
+
             var commands = new string[]
             {
                 "$ProgressPreference='SilentlyContinue'",
                 $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1",
-                $"Install-IoTEdge -Manual -ContainerOs Windows -DeviceConnectionString '{deviceConnectionString}'"
+                installCommand
             };
             return Profiler.Run(
                 "Installing edge daemon",
