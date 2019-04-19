@@ -53,6 +53,8 @@ tokio-uds-windows = { git = "https://github.com/chandde/tokio-uds-windows", bran
 # Run cargo build by specifying the manifest file
 $cargo = Get-CargoCommand -Arm:$Arm
 
+$ManifestPath = Get-Manifest
+
 Write-Host "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
 Invoke-Expression "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
 if ($LastExitCode)
