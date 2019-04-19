@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 T result = await func();
                 if (useForConnectivityCheck)
                 {
-                    this.deviceConnectivityManager.CallSucceeded();
+                    await this.deviceConnectivityManager.CallSucceeded();
                 }
 
                 this.HandleDeviceConnectedEvent(this, EventArgs.Empty);
@@ -149,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     Events.OperationTimedOut(this.identity, operation);
                     if (useForConnectivityCheck)
                     {
-                        this.deviceConnectivityManager.CallTimedOut();
+                        await this.deviceConnectivityManager.CallTimedOut();
                     }
                 }
                 else

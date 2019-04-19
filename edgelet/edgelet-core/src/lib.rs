@@ -36,7 +36,9 @@ pub use module::{
 pub use workload::WorkloadConfig;
 
 lazy_static! {
-    static ref VERSION: String = option_env!("VERSION")
+    static ref VERSION: &'static str =
+        option_env!("VERSION").unwrap_or_else(|| include_str!("../../version.txt").trim());
+    static ref VERSION_WITH_SOURCE_VERSION: String = option_env!("VERSION")
         .map(|version| option_env!("BUILD_SOURCEVERSION")
             .map(|sha| format!("{} ({})", version, sha))
             .unwrap_or_else(|| version.to_string()))
@@ -45,6 +47,10 @@ lazy_static! {
 
 pub fn version() -> &'static str {
     &VERSION
+}
+
+pub fn version_with_source_version() -> &'static str {
+    &VERSION_WITH_SOURCE_VERSION
 }
 
 pub trait UrlExt {
