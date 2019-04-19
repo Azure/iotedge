@@ -9,7 +9,6 @@ use hyper::client::connect::Connect;
 use edgelet_utils::ensure_not_empty_with_context;
 
 use docker::models::InlineResponse200State;
-use edgelet_core::pid::Pid;
 use edgelet_core::{Module, ModuleOperation, ModuleRuntimeState, ModuleStatus};
 
 use crate::client::DockerClient;
@@ -78,7 +77,7 @@ pub fn runtime_state(
                     .and_then(|finished_at| DateTime::from_str(finished_at).ok()),
             )
             .with_image_id(id.map(ToOwned::to_owned))
-            .with_pid(state.pid().map_or(Pid::None, Pid::Value))
+            .with_process_ids(state.pid().map_or(None, |pid| Some(vec![pid]))) // todo expected list of process identifiers here
     })
 }
 

@@ -56,7 +56,7 @@ pub struct ModuleRuntimeState {
     started_at: Option<DateTime<Utc>>,
     finished_at: Option<DateTime<Utc>>,
     image_id: Option<String>,
-    pid: Pid,
+    process_ids: Option<Vec<i32>>
 }
 
 impl Default for ModuleRuntimeState {
@@ -68,7 +68,7 @@ impl Default for ModuleRuntimeState {
             started_at: None,
             finished_at: None,
             image_id: None,
-            pid: Pid::None,
+            process_ids: None,
         }
     }
 }
@@ -128,12 +128,12 @@ impl ModuleRuntimeState {
         self
     }
 
-    pub fn pid(&self) -> Pid {
-        self.pid
+    pub fn process_ids(&self) -> Option<&Vec<i32>> {
+        self.process_ids.as_ref()
     }
 
-    pub fn with_pid(mut self, pid: Pid) -> Self {
-        self.pid = pid;
+    pub fn with_process_ids(mut self, process_ids: Option<Vec<i32>>) -> Self {
+        self.process_ids = process_ids;
         self
     }
 }

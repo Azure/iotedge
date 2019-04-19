@@ -59,12 +59,9 @@ where
                     .list_with_details()
                     .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
                     .filter_map(move |(m, rs)| {
-                        // todo should check against the list of processes
-                        if rs.pid() == Pid::Value(pid) {
-                            Some(m)
-                        } else {
-                            None
-                        }
+                        rs.process_ids()
+                            .filter(|process_ids| process_ids.contains(&&pid))
+                            .map(|_| m)
                     })
                     .into_future()
                     .then(move |result| match result {
