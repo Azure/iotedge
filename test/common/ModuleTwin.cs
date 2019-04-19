@@ -40,12 +40,7 @@ namespace common
                     return Retry.Do(
                         async () => {
                             Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, this.moduleId, token);
-                            // TODO: Only newer versions of tempSensor mirror certain desired properties
-                            //       to reported (e.g. 1.0.7-rc2). So return desired properties until
-                            //       the temp-sensor e2e test can pull docker images other than the
-                            //       default 'mcr...:1.0'.
-                            // return twin.Properties.Reported;
-                            return twin.Properties.Desired;
+                            return twin.Properties.Reported;
                         },
                         reported => {
                             JObject expected = JObject.FromObject(expectedPatch)
