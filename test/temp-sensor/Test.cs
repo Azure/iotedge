@@ -8,39 +8,21 @@ namespace temp_sensor
     using common;
     using Microsoft.Azure.Devices.Edge.Util;
 
+    public class Args
+    {
+        public string DeviceId;
+        public string ConnectionString;
+        public string Endpoint;
+        public string InstallerPath;
+        public string AgentImage;
+        public string HubImage;
+        public string SensorImage;
+        public Option<(string address, string username, string password)> Registry;
+    }
+
     public class Test
     {
-        string deviceId;
-        string connectionString;
-        string endpoint;
-        string installerPath;
-        string agentImage;
-        string hubImage;
-        string sensorImage;
-        Option<(string address, string username, string password)> registry;
-
-        public Test(
-            string deviceId,
-            string connectionString,
-            string endpoint,
-            string installerPath,
-            string agentImage,
-            string hubImage,
-            string sensorImage,
-            Option<(string address, string username, string password)> registry
-        )
-        {
-            this.deviceId = deviceId;
-            this.connectionString = connectionString;
-            this.endpoint = endpoint;
-            this.installerPath = installerPath;
-            this.agentImage = agentImage;
-            this.hubImage = hubImage;
-            this.sensorImage = sensorImage;
-            this.registry = registry;
-        }
-
-        public Task<int> RunAsync()
+        public Task<int> RunAsync(Args args)
         {
             return Profiler.Run(
                 "Running tempSensor test",
@@ -51,11 +33,11 @@ namespace temp_sensor
                         CancellationToken token = cts.Token;
 
                         // ** setup
-                        var iotHub = new IotHub(connectionString, endpoint);
+                        var iotHub = new IotHub(args.ConnectionString, args.Endpoint);
                         var device = await EdgeDevice.GetOrCreateIdentityAsync(
-                            this.deviceId, iotHub, token);
+                            args.DeviceId, iotHub, token);
 
-                        var daemon = new EdgeDaemon(this.installerPath);
+                        var daemon = new EdgeDaemon(args.InstallerPath);
                         await daemon.UninstallAsync(token);
                         await daemon.InstallAsync(device.ConnectionString, token);
                         await daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
@@ -65,12 +47,12 @@ namespace temp_sensor
                         await agent.PingAsync(token);
 
                         // ** test
-                        var config = new EdgeConfiguration(device.Id, this.agentImage, iotHub);
-                        this.registry.ForEach(
+                        var config = new EdgeConfiguration(device.Id, args.AgentImage, iotHub);
+                        args.Registry.ForEach(
                             r => config.AddRegistryCredentials(r.address, r.username, r.password)
                         );
-                        config.AddEdgeHub(this.hubImage);
-                        config.AddTempSensor(this.sensorImage);
+                        config.AddEdgeHub(args.HubImage);
+                        config.AddTempSensor(args.SensorImage);
                         await config.DeployAsync(token);
 
                         var hub = new EdgeModule("edgeHub", device.Id, iotHub);

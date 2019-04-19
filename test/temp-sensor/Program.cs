@@ -54,30 +54,22 @@ If you specify `--registry` and `--user`, the following variable must also be se
 
         Task<int> OnExecuteAsync()
         {
-            string connectionString = EnvironmentVariable.Expect("E2E_IOT_HUB_CONNECTION_STRING");
-            string endpoint = EnvironmentVariable.Expect("E2E_EVENT_HUB_ENDPOINT");
-
-            Option<(string address, string username, string password)> registry =
-                this.RegistryAddress != null && this.RegistryUser != null
+            return (new Test()).RunAsync(new Args
+            {
+                DeviceId = this.DeviceId,
+                ConnectionString = EnvironmentVariable.Expect("E2E_IOT_HUB_CONNECTION_STRING"),
+                Endpoint = EnvironmentVariable.Expect("E2E_EVENT_HUB_ENDPOINT"),
+                InstallerPath = this.InstallerPath,
+                AgentImage = this.AgentImage,
+                HubImage = this.HubImage,
+                SensorImage = this.SensorImage,
+                Registry = this.RegistryAddress != null
                     ? Option.Some((
                         this.RegistryAddress,
                         this.RegistryUser,
-                        EnvironmentVariable.Expect("E2E_CONTAINER_REGISTRY_PASSWORD")
-                    ))
-                    : Option.None<(string, string, string)>();
-
-            var test = new Test(
-                this.DeviceId,
-                connectionString,
-                endpoint,
-                this.InstallerPath,
-                this.AgentImage,
-                this.HubImage,
-                this.SensorImage,
-                registry
-            );
-
-            return test.RunAsync();
+                        EnvironmentVariable.Expect("E2E_CONTAINER_REGISTRY_PASSWORD")))
+                    : Option.None<(string, string, string)>()
+            });
         }
 
         static Task<int> Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args);
