@@ -36,29 +36,16 @@ function Get-OpenSSL
         New-Item -Type Directory "$env:SystemDrive\vcpkg\Downloads" | Out-Null
     }
     
+    # strawberry perl is now being downloaded as part vcpkg setup, no need to manually set up
     # $strawberryPerlUri = "https://edgebuild.blob.core.windows.net/strawberry-perl/strawberry-perl-5.24.1.1-32bit-portable.zip"
     # $strawberryPerlPath = "$env:SystemDrive\vcpkg\Downloads\strawberry-perl-5.24.1.1-32bit-portable.zip"
     # Invoke-WebRequest -Uri $strawberryPerlUri -OutFile $strawberryPerlPath
 
-    Get-ChildItem Env:
-
-    if($Arm)
+    Write-Host "Installing OpenSSL for $(if($Arm) { 'arm' } else { 'x64' })..."
+    & $env:SystemDrive\\vcpkg\\vcpkg.exe install $(if($Arm) { 'openssl-windows:arm-windows' } else { 'openssl:x64-windows' } )
+    if ($LastExitCode)
     {
-        Write-Host "Installing OpenSSL for arm..."
-        & $env:SystemDrive\\vcpkg\\vcpkg.exe install openssl-windows:arm-windows
-        if ($LastExitCode)
-        {
-            Throw "Failed to install openssl vcpkg with exit code $LastExitCode"
-        }
-    }
-    else
-    {
-        Write-Host "Installing OpenSSL for x64..."
-        & $env:SystemDrive\\vcpkg\\vcpkg.exe install openssl:x64-windows
-        if ($LastExitCode)
-        {
-            Throw "Failed to install openssl vcpkg with exit code $LastExitCode"
-        }
+        Throw "Failed to install openssl vcpkg with exit code $LastExitCode"
     }
 
     Write-Host "Setting env variable OPENSSL_ROOT_DIR..."
