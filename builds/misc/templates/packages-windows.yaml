@@ -8,7 +8,7 @@ steps:
     Write-Host ("##vso[task.setvariable variable=VERSION;]$version")
     Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
   displayName: Set Version
-- powershell: edgelet/build/windows/install.ps1 $( if(${{ parameters.arm32v7 }} -eq 'true') { '-Arm'} )
+- powershell: ${{ format('edgelet/build/windows/install.ps1 {0}', $( if(${{ parameters.arm32v7 }} -eq 'true') { '-Arm'} else {''})) }}"
   displayName: Install Rust
 - powershell: edgelet/build/windows/build.ps1 -Release $( if(${{ parameters.arm32v7 }} -eq 'true') { '-Arm'} )
   displayName: Build
