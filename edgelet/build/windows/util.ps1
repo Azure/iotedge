@@ -44,7 +44,7 @@ function Get-EdgeletFolder
 function Get-IotEdgeFolder
 {
     # iotedge is parent folder of edgelet
-    Join-Path -Path Get-EdgeletFolder -ChildPath ".."
+    Join-Path -Path $(Get-EdgeletFolder) -ChildPath ".."
 }
 
 function Assert-Rust
