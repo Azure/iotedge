@@ -8,12 +8,7 @@ param(
 $util = Join-Path -Path $PSScriptRoot -ChildPath "util.ps1"
 . $util
 
-# Currently window arm rust compiler is using local version on the build machine
-# So we skip asserting rust for arm
-if(-Not $Arm)
-{
-    Assert-Rust
-}
+Assert-Rust -Arm:$Arm
 
 # Bring in openssl install function
 $openssl = Join-Path -Path $PSScriptRoot -ChildPath "openssl.ps1"
