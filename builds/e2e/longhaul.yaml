@@ -243,7 +243,6 @@ jobs:
           buildVersionToDownload: latestFromBranch
           artifactName: $(images.artifact.name)
           itemPattern: |
-            # $(images.artifact.name)/IotEdgeQuickstart.linux-x64.tar.gz
             $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.json
             $(images.artifact.name)/scripts/windows/test/runE2ETest.ps1
             $(images.artifact.name)/artifactInfo.txt
