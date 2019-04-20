@@ -20,6 +20,7 @@ if($Arm)
     $edgefolder = Get-EdgeletFolder
     Set-Location -Path $edgefolder
 
+    Write-Host "Overwrite Cargo.lock with Cargo.WinArm.lock"
     cmd /c copy /Y Cargo.WinArm.lock Cargo.lock
 
     $ForkedCrates = @"
@@ -44,6 +45,7 @@ hyperlocal-windows = { git = "https://github.com/chandde/hyperlocal-windows", br
 tokio-uds-windows = { git = "https://github.com/chandde/tokio-uds-windows", branch = "arm" }
 "@
 
+    Write-Host "Appen cargo.toml with $ForkedCrates"
     Add-Content -Path cargo.toml -Value $ForkedCrates
 }
 
@@ -62,6 +64,9 @@ if($Arm)
 
 Write-Host "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
 Invoke-Expression "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
+Write-Host $(Get-Content $(Join-Path -Path $(Get-EdgeletFolder) -ChildPath 'Cargo.toml'))
+Write-Host $(Get-Content $(Join-Path -Path $(Get-EdgeletFolder) -ChildPath 'Cargo.lock'))
+
 if ($LastExitCode)
 {
     Throw "cargo build failed with exit code $LastExitCode"

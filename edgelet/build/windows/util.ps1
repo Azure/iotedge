@@ -90,7 +90,12 @@ Param(
 function InstallWinArmPrivateRustCompiler
 {
     $link = "https://iottools.blob.core.windows.net/iotedge-armtools/rust-windows-arm.zip"
-    $ProgressPreference = 'SilentlyContinue'
+
+    Write-Host "Downloading $link"
+    $ProgressPreference = 'Continue'
     Invoke-WebRequest $link -out "rust-windows-arm.zip" -UseBasicParsing
+
+    Write-Host "Extracting $link"
     Expand-Archive -Path "rust-windows-arm.zip" -DestinationPath "rust-windows-arm"
+    $ProgressPreference = 'Stop'
 }
