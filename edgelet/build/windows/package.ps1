@@ -63,10 +63,6 @@ Function New-Package([string] $Name, [string] $Version)
 {
     $pkggen = "${Env:ProgramFiles(x86)}\Windows Kits\10\tools\bin\i386\pkggen.exe"
     $manifest = "edgelet\build\windows\$Name.wm.xml"
-    $mobyroot = if($Arm) {"C:\dependencies\win-arm"} else { "..\..\.." }
-    $cwd = "."
-    $arch = if($Arm) { 'thumbv7a-pc-windows-msvc'} else { '' }
-    $cpu = if($Arm) {'arm'} else { 'amd64' }
 
     if($Arm)
     {
@@ -74,7 +70,7 @@ Function New-Package([string] $Name, [string] $Version)
         $env:PATH = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x64;" + $env:PATH
     }
 
-    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_REPO_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR;_Arch=$arch' /cpu:$cpu /version:$Version"
+    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_REPO_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR;_Arch=$(if($Arm) { 'thumbv7a-pc-windows-msvc'} else { '' })' /cpu:$(if($Arm) {'arm'} else { 'amd64' }) /version:$Version"
     if ($LASTEXITCODE) {
         Throw "Failed to package cab"
     }
