@@ -68,6 +68,7 @@ Function New-Package([string] $Name, [string] $Version)
     {
         # pkggen cannot find makecat.exe from below folder at runtime
         $env:PATH = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x64;" + $env:PATH
+        Write-Host $(Get-Command makecat.exe).Path
     }
 
     Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_REPO_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR;_Arch=$(if($Arm) { 'thumbv7a-pc-windows-msvc'} else { '' })' /cpu:$(if($Arm) {'arm'} else { 'amd64' }) /version:$Version"

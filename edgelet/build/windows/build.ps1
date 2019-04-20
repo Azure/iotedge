@@ -60,6 +60,7 @@ if($Arm)
 {
     # arm build requires cl.exe from vc tools to expand a c file for openssl-sys
     $env:PATH = "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\vc\Tools\MSVC\14.16.27023\bin\Hostx64\x64;" + $env:PATH
+    Write-Host $(Get-Command cl.exe).Path
 }
 
 Write-Host "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
