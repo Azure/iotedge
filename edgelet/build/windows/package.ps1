@@ -120,16 +120,23 @@ if ($CreateTemplate) {
     }
 
     $ProgressPreference = 'SilentlyContinue'
+
+    Write-Host "Download $docker_cli_uri"
     Invoke-WebRequest $docker_cli_uri -out "moby-cli.zip" -UseBasicParsing
     if (Test-Path "moby-cli") {
         Remove-Item -Path "moby-cli" -Recurse -Force
     }
+    
+    Write-Host "Extract $docker_cli_uri"
     Expand-Archive -Path "moby-cli.zip" -DestinationPath "moby-cli"
-
+    
+    Write-Host "Download $docker_engine_uri"
     Invoke-WebRequest $docker_engine_uri -out "moby-engine.zip" -UseBasicParsing
     if (Test-Path "moby-engine") {
         Remove-Item -Path "moby-engine" -Recurse -Force
     }
+    
+    Write-Host "Extract $docker_engine_uri"
     Expand-Archive -Path "moby-engine.zip" -DestinationPath "moby-engine"
 
     #

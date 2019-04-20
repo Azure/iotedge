@@ -16,7 +16,7 @@ function Get-CargoCommand
 
     if($Arm)
     {
-        # we have private rust arm tool chain downloaded and unzipped to <source root>\rust-windows-arm\cargo.exe
+        # we have private rust arm tool chain downloaded and unzipped to <source root>\rust-windows-arm\rust-windows-arm\cargo.exe
         Join-Path -Path $(Get-IotEdgeFolder) -ChildPath "rust-windows-arm/rust-windows-arm/bin/cargo.exe"
     }
     elseif (Test-RustUp)
