@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var filter = ModuleLogFilter.Empty;
 
             // Act
-            IEnumerable<string> textLines = await logsProcessor.GetText(stream, moduleId, filter);
+            IEnumerable<string> textLines = await logsProcessor.GetText(moduleId, stream, filter);
 
             // Assert
             Assert.NotNull(textLines);
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var filter = ModuleLogFilter.Empty;
 
             // Act
-            IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(stream, moduleId, filter);
+            IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(moduleId, stream, filter);
 
             // Assert
             Assert.NotNull(logMessages);
@@ -129,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.None<int>(), Option.Some(regex));
 
             // Act
-            IEnumerable<string> textLines = await logsProcessor.GetText(stream, moduleId, filter);
+            IEnumerable<string> textLines = await logsProcessor.GetText(moduleId, stream, filter);
 
             // Assert
             Assert.NotNull(textLines);
@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.None<int>(), Option.Some(regex));
 
             // Act
-            IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(stream, moduleId, filter);
+            IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(moduleId, stream, filter);
 
             // Assert
             Assert.NotNull(logMessages);
@@ -188,7 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.None<string>());
 
             // Act
-            List<string> textLines = (await logsProcessor.GetText(stream, moduleId, filter)).ToList();
+            List<string> textLines = (await logsProcessor.GetText(moduleId, stream, filter)).ToList();
 
             // Assert
             Assert.NotNull(textLines);
@@ -213,7 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.None<string>());
 
             // Act
-            IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(stream, moduleId, filter);
+            IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(moduleId, stream, filter);
 
             // Assert
             Assert.NotNull(logMessages);
@@ -241,7 +241,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
 
             // Act
-            List<string> textLines = (await logsProcessor.GetText(stream, moduleId, filter)).ToList();
+            List<string> textLines = (await logsProcessor.GetText(moduleId, stream, filter)).ToList();
 
             // Assert
             Assert.NotNull(textLines);
@@ -266,7 +266,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
 
             // Act
-            IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(stream, moduleId, filter);
+            IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(moduleId, stream, filter);
 
             // Assert
             Assert.NotNull(logMessages);
@@ -293,7 +293,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
             var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
-            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.None, LogsContentType.Text, filter);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, filter);
 
             var receivedBytes = new List<byte>();
 
@@ -304,7 +304,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             }
 
             // Act
-            await logsProcessor.ProcessLogsStream(stream, logOptions, Callback);
+            await logsProcessor.ProcessLogsStream(moduleId, stream, logOptions, Callback);
             await Task.Delay(TimeSpan.FromSeconds(5));
 
             // Assert
@@ -329,7 +329,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
             var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
-            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.None, LogsContentType.Json, filter);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, filter);
 
             var receivedBytes = new List<byte>();
 
@@ -340,7 +340,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             }
 
             // Act
-            await logsProcessor.ProcessLogsStream(stream, logOptions, Callback);
+            await logsProcessor.ProcessLogsStream(moduleId, stream, logOptions, Callback);
             await Task.Delay(TimeSpan.FromSeconds(5));
 
             // Assert
@@ -366,7 +366,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
             var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
-            var logOptions = new ModuleLogOptions(moduleId, LogsContentEncoding.Gzip, LogsContentType.Text, filter);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter);
 
             var receivedBytes = new List<byte>();
 
@@ -377,7 +377,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             }
 
             // Act
-            await logsProcessor.ProcessLogsStream(stream, logOptions, Callback);
+            await logsProcessor.ProcessLogsStream(moduleId, stream, logOptions, Callback);
             await Task.Delay(TimeSpan.FromSeconds(5));
 
             // Assert
