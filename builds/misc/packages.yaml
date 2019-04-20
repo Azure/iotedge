@@ -205,7 +205,7 @@ jobs:
 #     steps:
 #       - template: templates/packages-windows.yaml
 #         parameters:
-#           arm32v7: 'true'
+#           arm32v7: 'false'
 
 ################################################################################
   - job: windows_arm32
