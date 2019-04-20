@@ -30,21 +30,10 @@ namespace common
             get
             {
                 var list = new List<string>();
-                JObject desired = JObject.FromObject(this.config.ModulesContent["$edgeAgent"]["properties.desired"]);
-                if (desired.TryGetValue("systemModules", StringComparison.OrdinalIgnoreCase, out JToken systemModules))
+                _ForEachModule((name, module) =>
                 {
-                    foreach (var module in systemModules.Value<JObject>())
-                    {
-                        list.Add(module.Key);
-                    }
-                }
-                if (desired.TryGetValue("modules", StringComparison.OrdinalIgnoreCase, out JToken modules))
-                {
-                    foreach (var module in modules.Value<JObject>())
-                    {
-                        list.Add(module.Key);
-                    }
-                }
+                    list.Add(name);
+                });
                 return new ReadOnlyCollection<string>(list);
             }
         }
@@ -79,85 +68,40 @@ namespace common
 
         public void AddProxy(string url)
         {
-            JObject desired = JObject.FromObject(this.config.ModulesContent["$edgeAgent"]["properties.desired"]);
-            if (desired.TryGetValue("systemModules", StringComparison.OrdinalIgnoreCase, out JToken systemModules))
+            _ForEachModule((name, module) =>
             {
-                foreach (var module in systemModules.Values<JObject>())
+                JObject env = _GetOrAddObject("env", module);
+                env.Add("https_proxy", JToken.FromObject(new
                 {
-                    JObject env;
-                    if (module.TryGetValue("env", StringComparison.OrdinalIgnoreCase, out JToken token))
-                    {
-                        env = token.Value<JObject>();
-                    }
-                    else
-                    {
-                        module.Add("env", new JObject());
-                        env = module.Get<JObject>("env");
-                    }
-
-                    env.Add("https_proxy", JToken.FromObject(new
-                    {
-                        value = url
-                    }));
-                    env.Add("UpstreamProtocol", JToken.FromObject(new
-                    {
-                        value = UpstreamProtocolType.AmqpWs.ToString()
-                    }));
-                }
-            }
-            if (desired.TryGetValue("modules", StringComparison.OrdinalIgnoreCase, out JToken modules))
-            {
-                foreach (var module in modules.Values<JObject>())
+                    value = url
+                }));
+                env.Add("UpstreamProtocol", JToken.FromObject(new
                 {
-                    JObject env;
-                    if (module.TryGetValue("env", StringComparison.OrdinalIgnoreCase, out JToken token))
-                    {
-                        env = token.Value<JObject>();
-                    }
-                    else
-                    {
-                        module.Add("env", new JObject());
-                        env = module.Get<JObject>("env");
-                    }
-
-                    env.Add("https_proxy", JToken.FromObject(new
-                    {
-                        value = url
-                    }));
-                    env.Add("UpstreamProtocol", JToken.FromObject(new
-                    {
-                        value = UpstreamProtocolType.AmqpWs.ToString()
-                    }));
-                }
-            }
-
-            this.config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
+                    value = UpstreamProtocolType.AmqpWs.ToString()
+                }));
+            });
         }
 
         public void AddEdgeHub(string image)
         {
-            ConfigurationContent config = this.config;
-
-            // { "modulesContent": { "$edgeAgent": { "properties": { "desired": { "systemModules": {
-            //   "edgeHub": { ... }
-            // } } } } } }
-            JObject desired = JObject.FromObject(config.ModulesContent["$edgeAgent"]["properties.desired"]);
-            JObject systemModules = desired.Get<JObject>("systemModules");
-            systemModules.Add("edgeHub", JToken.FromObject(new
+            _UpdateDesiredProperties(desired =>
             {
-                type = "docker",
-                status = "running",
-                restartPolicy = "always",
-                settings = new
+                JObject systemModules = desired.Get<JObject>("systemModules");
+                systemModules.Add("edgeHub", JToken.FromObject(new
                 {
-                    image = image,
-                    createOptions = "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}]}}}"
-                }
-            }));
-            config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
+                    type = "docker",
+                    status = "running",
+                    restartPolicy = "always",
+                    settings = new
+                    {
+                        image = image,
+                        createOptions = "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}]}}}"
+                    }
+                }));
+            });
 
             // { "modulesContent": { "$edgeHub": { ... } } }
-            config.ModulesContent["$edgeHub"] = new Dictionary<string, object>
+            this.config.ModulesContent["$edgeHub"] = new Dictionary<string, object>
             {
                 ["properties.desired"] = new
                 {
@@ -176,33 +120,20 @@ namespace common
 
         public void AddTempSensor(string image)
         {
-            ConfigurationContent config = this.config;
-
-            // { "modulesContent": { "$edgeAgent": { "properties": { "desired": { "modules": {
-            //   "tempSensor": { ... }
-            // } } } } } }
-            JObject desired = JObject.FromObject(config.ModulesContent["$edgeAgent"]["properties.desired"]);
-            JObject modules;
-            if (desired.TryGetValue("modules", StringComparison.OrdinalIgnoreCase, out JToken token))
+            _UpdateDesiredProperties(desired =>
             {
-                modules = token.Value<JObject>();
-            }
-            else
-            {
-                desired.Add("modules", new JObject());
-                modules = desired.Get<JObject>("modules");
-            }
-            modules.Add("tempSensor", JToken.FromObject(new
-            {
-                type = "docker",
-                status = "running",
-                restartPolicy = "always",
-                settings = new
+                JObject modules = _GetOrAddObject("modules", desired);
+                modules.Add("tempSensor", JToken.FromObject(new
                 {
-                    image = image
-                }
-            }));
-            config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
+                    type = "docker",
+                    status = "running",
+                    restartPolicy = "always",
+                    settings = new
+                    {
+                        image = image
+                    }
+                }));
+            });
         }
 
         public Task DeployAsync(CancellationToken token)
@@ -214,6 +145,41 @@ namespace common
                 message,
                 () => this.iotHub.DeployDeviceConfigurationAsync(this.deviceId, this.config, token)
             );
+        }
+
+        public JObject _GetOrAddObject(string name, JObject parent)
+        {
+            if (parent.TryGetValue(name, StringComparison.OrdinalIgnoreCase, out JToken token))
+            {
+                return token.Value<JObject>();
+            }
+
+            parent.Add(name, new JObject());
+            return parent.Get<JObject>(name);
+        }
+
+        void _ForEachModule(Action<string, JObject> action)
+        {
+            _UpdateDesiredProperties(desired =>
+            {
+                foreach (var key in new[] { "systemModules", "modules" })
+                {
+                    if (desired.TryGetValue(key, StringComparison.OrdinalIgnoreCase, out JToken modules))
+                    {
+                        foreach (var module in modules.Value<JObject>())
+                        {
+                            action(module.Key, module.Value.Value<JObject>());
+                        }
+                    }
+                }
+            });
+        }
+
+        void _UpdateDesiredProperties(Action<JObject> update)
+        {
+            JObject desired = JObject.FromObject(this.config.ModulesContent["$edgeAgent"]["properties.desired"]);
+            update(desired);
+            this.config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
         }
 
         static ConfigurationContent _GetBaseConfig(string agentImage) => new ConfigurationContent
