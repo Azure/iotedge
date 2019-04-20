@@ -17,7 +17,7 @@ lazy_static! {
 #[test]
 fn x509_get_identity_cert_fails() {
     // arrange
-    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK);
+    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
     let x509 = X509::new().unwrap();
 

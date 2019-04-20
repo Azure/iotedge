@@ -21,7 +21,7 @@ const REGISTRATION_ID_KEY: &str = "IOTEDGE_REGISTRATION_ID";
 #[test]
 fn x509_get_identity_cert_success() {
     // arrange
-    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK);
+    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
     env::set_var(REGISTRATION_ID_KEY, "TEST X509 DEVICE");
 

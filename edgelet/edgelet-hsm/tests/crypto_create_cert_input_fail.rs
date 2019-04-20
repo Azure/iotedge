@@ -20,7 +20,7 @@ lazy_static! {
 #[test]
 fn crypto_create_cert_input_fail() {
     // arrange
-    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK);
+    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
     let crypto = Crypto::new().unwrap();
 

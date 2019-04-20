@@ -40,7 +40,7 @@ pub fn test_helper_compute_hmac(key: &[u8], input: &[u8]) -> Vec<u8> {
 #[test]
 fn tpm_active_key_sign() {
     // arrange
-    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK);
+    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
     let key_store = TpmKeyStore::new().unwrap();
 

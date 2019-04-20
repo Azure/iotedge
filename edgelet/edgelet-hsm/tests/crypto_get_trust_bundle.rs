@@ -18,7 +18,7 @@ lazy_static! {
 #[test]
 fn crypto_get_trust_bundle() {
     // arrange
-    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK);
+    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
     let crypto = Crypto::new().unwrap();
 

@@ -1,5 +1,6 @@
 
-use std::{env};
+use std::env;
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard};
 use tempfile::TempDir;
 
@@ -8,18 +9,33 @@ const HOMEDIR_KEY: &str = "IOTEDGE_HOMEDIR";
 pub struct TestHSMEnvSetup<'a> {
     _guard: MutexGuard<'a, ()>,
     home_dir: Option<TempDir>,
+    path: PathBuf,
 }
 
 impl<'a> TestHSMEnvSetup<'a> {
-    pub fn new(m: &'a Mutex<()>) -> Self {
+    pub fn new(m: &'a Mutex<()>, home_dir: Option<&str>) -> Self {
         let guard = m.lock().unwrap();
-        let home_dir = TempDir::new().unwrap();
-        env::set_var(HOMEDIR_KEY, &home_dir.path());
-        println!("IOTEDGE_HOMEDIR set to {:#?}", home_dir.path());
+
+        let (temp_dir, path) = match home_dir {
+            Some(d) => (None, PathBuf::from(d)),
+            None => {
+                let td = TempDir::new().unwrap();
+                let p = td.path().to_path_buf();
+                (Some(td), p)
+            },
+        };
+        env::set_var(HOMEDIR_KEY, path.as_os_str());
+        println!("IOTEDGE_HOMEDIR set to {:#?}", &path);
         TestHSMEnvSetup {
             _guard: guard,
-            home_dir: Some(home_dir)
+            home_dir: temp_dir,
+            path: path,
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn get_path(&self) -> &Path {
+        self.path.as_path()
     }
 }
 

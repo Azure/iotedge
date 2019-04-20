@@ -28,7 +28,7 @@ const TEST_KEY_BASE64: &str = "D7PuplFy7vIr0349blOugqCxyfMscyVZDoV9Ii0EFnA=";
 #[test]
 fn tpm_input_tests() {
     // arrange
-    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK);
+    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
     let mut key_store = TpmKeyStore::new().unwrap();
 
