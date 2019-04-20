@@ -3,21 +3,23 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
-use std::env;
-use tempfile::TempDir;
+use std::sync::Mutex;
+use lazy_static::lazy_static;
 
 use edgelet_core::crypto::MasterEncryptionKey;
 use edgelet_hsm::Crypto;
+mod test_utils;
+use test_utils::TestHSMEnvSetup;
 
-const HOMEDIR_KEY: &str = "IOTEDGE_HOMEDIR";
+lazy_static! {
+    static ref LOCK: Mutex<()> = Mutex::new(());
+}
 
 /// Encryption master key tests
 #[test]
 fn crypto_master_key_success() {
     // arrange
-    let home_dir = TempDir::new().unwrap();
-    env::set_var(HOMEDIR_KEY, &home_dir.path());
-    println!("IOTEDGE_HOMEDIR set to {:#?}", home_dir.path());
+    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK);
 
     let crypto = Crypto::new().unwrap();
 
@@ -40,6 +42,4 @@ fn crypto_master_key_success() {
     crypto
         .destroy_key()
         .expect("Second destroy master key function returned error");
-
-    home_dir.close().unwrap();
 }

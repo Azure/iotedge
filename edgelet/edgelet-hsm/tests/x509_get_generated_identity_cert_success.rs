@@ -4,20 +4,25 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use std::env;
-use tempfile::TempDir;
+use std::sync::Mutex;
+use lazy_static::lazy_static;
 
 use edgelet_core::{Certificate, GetDeviceIdentityCertificate, KeyBytes, PrivateKey, Signature};
 use edgelet_hsm::X509;
+mod test_utils;
+use test_utils::TestHSMEnvSetup;
 
-const HOMEDIR_KEY: &str = "IOTEDGE_HOMEDIR";
+lazy_static! {
+    static ref LOCK: Mutex<()> = Mutex::new(());
+}
+
 const REGISTRATION_ID_KEY: &str = "IOTEDGE_REGISTRATION_ID";
 
 #[test]
 fn x509_get_identity_cert_success() {
     // arrange
-    let home_dir = TempDir::new().unwrap();
-    env::set_var(HOMEDIR_KEY, &home_dir.path());
-    println!("IOTEDGE_HOMEDIR set to {:#?}", home_dir.path());
+    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK);
+
     env::set_var(REGISTRATION_ID_KEY, "TEST X509 DEVICE");
 
     let x509 = X509::new().unwrap();
@@ -43,5 +48,5 @@ fn x509_get_identity_cert_success() {
     assert!(!buffer.as_bytes().is_empty());
 
     // cleanup
-    home_dir.close().unwrap();
+    env::remove_var(REGISTRATION_ID_KEY);
 }

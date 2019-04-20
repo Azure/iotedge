@@ -3,28 +3,32 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
-use std::env;
 use std::str;
+use std::sync::Mutex;
 
 use bytes::Bytes;
+use lazy_static::lazy_static;
+
 use edgelet_core::crypto::Activate;
 use edgelet_core::crypto::Sign;
 use edgelet_core::crypto::SignatureAlgorithm;
 use edgelet_core::KeyIdentity;
 use edgelet_core::KeyStore;
 use edgelet_hsm::TpmKeyStore;
-use tempfile::TempDir;
+mod test_utils;
+use test_utils::TestHSMEnvSetup;
 
-const HOMEDIR_KEY: &str = "IOTEDGE_HOMEDIR";
+lazy_static! {
+    static ref LOCK: Mutex<()> = Mutex::new(());
+}
+
 const TEST_KEY_BASE64: &str = "D7PuplFy7vIr0349blOugqCxyfMscyVZDoV9Ii0EFnA=";
 
 // The HSM implementation expects keys, identity and data to be non-zero length.
 #[test]
 fn tpm_input_tests() {
     // arrange
-    let home_dir = TempDir::new().unwrap();
-    env::set_var(HOMEDIR_KEY, &home_dir.path());
-    println!("IOTEDGE_HOMEDIR set to {:#?}", home_dir.path());
+    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK);
 
     let mut key_store = TpmKeyStore::new().unwrap();
 
@@ -78,6 +82,4 @@ fn tpm_input_tests() {
     key_with_id
         .sign(SignatureAlgorithm::HMACSHA256, empty_data)
         .expect_err("empty data is not allowed");
-
-    home_dir.close().unwrap();
 }
