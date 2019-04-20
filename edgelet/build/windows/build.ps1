@@ -65,8 +65,6 @@ if($Arm)
 
 Write-Host "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
 Invoke-Expression "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
-Write-Host $(Get-Content $(Join-Path -Path $(Get-EdgeletFolder) -ChildPath 'Cargo.toml'))
-Write-Host $(Get-Content $(Join-Path -Path $(Get-EdgeletFolder) -ChildPath 'Cargo.lock'))
 
 if ($LastExitCode)
 {
