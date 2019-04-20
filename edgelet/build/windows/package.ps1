@@ -74,7 +74,7 @@ Function New-Package([string] $Name, [string] $Version)
         $env:PATH = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x64;" + $env:PATH
     }
 
-    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_IOTEDGE_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR;_Arch=$arch' /cpu:$cpu /version:$Version"
+    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_REPO_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR;_Arch=$arch' /cpu:$cpu /version:$Version"
     if ($LASTEXITCODE) {
         Throw "Failed to package cab"
     }
