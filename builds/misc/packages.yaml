@@ -265,7 +265,7 @@ jobs:
 ################################################################################
     displayName: Windows arm32
     pool:
-      name: rustarm
+      vmImage: 'vs2017-win2016'
     steps:
       - powershell: |
           $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
