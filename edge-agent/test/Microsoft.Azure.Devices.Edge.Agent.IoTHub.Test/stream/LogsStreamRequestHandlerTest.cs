@@ -31,10 +31,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
             runtimeInfoProvider.Setup(r => r.GetModuleLogs(id, true, Option.None<int>(), Option.None<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new MemoryStream(buffer));
+            runtimeInfoProvider.Setup(r => r.GetModules(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new[] { new ModuleRuntimeInfo(id, "docker", ModuleStatus.Running, "foo", 0, Option.None<DateTime>(), Option.None<DateTime>()) });
 
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, Mock.Of<ILogsProcessor>());
-
-            var logsStreamRequest = new LogsStreamRequest("1.0", id, LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty);
+            var logRequestItem = new LogRequestItem(id, ModuleLogFilter.Empty);
+            var logsStreamRequest = new LogsStreamRequest("1.0", new List<LogRequestItem> { logRequestItem }, LogsContentEncoding.None, LogsContentType.Text);
             byte[] logsStreamRequestBytes = logsStreamRequest.ToBytes();
             var logsStreamRequestArraySeg = new ArraySegment<byte>(logsStreamRequestBytes);
             var clientWebSocket = new Mock<IClientWebSocket>();
@@ -74,10 +76,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
             runtimeInfoProvider.Setup(r => r.GetModuleLogs(id, true, Option.None<int>(), Option.None<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new MemoryStream(buffer));
+            runtimeInfoProvider.Setup(r => r.GetModules(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new[] { new ModuleRuntimeInfo(id, "docker", ModuleStatus.Running, "foo", 0, Option.None<DateTime>(), Option.None<DateTime>()) });
 
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, Mock.Of<ILogsProcessor>());
-
-            var logsStreamRequest = new LogsStreamRequest("1.0", id, LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty);
+            var logRequestItem = new LogRequestItem(id, ModuleLogFilter.Empty);
+            var logsStreamRequest = new LogsStreamRequest("1.0", new List<LogRequestItem> { logRequestItem }, LogsContentEncoding.None, LogsContentType.Text);
             byte[] logsStreamRequestBytes = logsStreamRequest.ToBytes();
             var logsStreamRequestArraySeg = new ArraySegment<byte>(logsStreamRequestBytes);
             var clientWebSocket = new Mock<IClientWebSocket>();
