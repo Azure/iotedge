@@ -265,7 +265,7 @@ jobs:
 ################################################################################
     displayName: Windows arm32
     pool:
-      vmImage: 'vs2017-win2016'
+      name: 'home'
     steps:
       - powershell: |
           $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
