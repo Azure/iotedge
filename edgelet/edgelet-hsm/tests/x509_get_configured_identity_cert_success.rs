@@ -57,7 +57,9 @@ fn x509_get_identity_cert_success() {
     // assert that the configured test key via env variable is received
     match pk {
         PrivateKey::Ref(_) => panic!("did not expect reference private key"),
-        PrivateKey::Key(KeyBytes::Pem(k)) => assert_eq!(DEVICE_IDENTITY_PK.as_bytes(), k.as_bytes()),
+        PrivateKey::Key(KeyBytes::Pem(k)) => {
+            assert_eq!(DEVICE_IDENTITY_PK.as_bytes(), k.as_bytes())
+        }
     }
 
     // cleanup

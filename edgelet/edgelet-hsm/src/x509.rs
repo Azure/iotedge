@@ -2,15 +2,17 @@ use std::sync::{Arc, Mutex};
 
 use failure::Fail;
 
-use hsm::{X509 as HsmX509, PrivateKeySignDigest as HsmPrivateKeySignDigest, GetDeviceIdentityCertificate as HsmGetDeviceIdentityCertificate};
+use hsm::{
+    GetDeviceIdentityCertificate as HsmGetDeviceIdentityCertificate,
+    PrivateKeySignDigest as HsmPrivateKeySignDigest, X509 as HsmX509,
+};
 
+use crate::crypto::Certificate;
 pub use crate::error::{Error, ErrorKind};
-use crate::crypto::{Certificate};
 
 use edgelet_core::{
+    Error as CoreError, ErrorKind as CoreErrorKind,
     GetDeviceIdentityCertificate as CoreGetDeviceIdentityCertificate,
-    Error as CoreError,
-    ErrorKind as CoreErrorKind,
 };
 
 /// The X.509 device identity HSM instance
@@ -43,7 +45,9 @@ impl CoreGetDeviceIdentityCertificate for X509 {
             .expect("Lock on X509 structure failed")
             .get_certificate_info()
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
-            .map_err(|err| CoreError::from(err.context(CoreErrorKind::DeviceIdentityCertificate)))?;
+            .map_err(|err| {
+                CoreError::from(err.context(CoreErrorKind::DeviceIdentityCertificate))
+            })?;
         Ok(Certificate::new(cert))
     }
 

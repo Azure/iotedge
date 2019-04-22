@@ -3,10 +3,10 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
-use std::sync::Mutex;
-use lazy_static::lazy_static;
-use edgelet_core::{GetDeviceIdentityCertificate};
+use edgelet_core::GetDeviceIdentityCertificate;
 use edgelet_hsm::X509;
+use lazy_static::lazy_static;
+use std::sync::Mutex;
 mod test_utils;
 use test_utils::TestHSMEnvSetup;
 

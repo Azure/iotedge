@@ -1,4 +1,3 @@
-
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard};
@@ -22,7 +21,7 @@ impl<'a> TestHSMEnvSetup<'a> {
                 let td = TempDir::new().unwrap();
                 let p = td.path().to_path_buf();
                 (Some(td), p)
-            },
+            }
         };
         env::set_var(HOMEDIR_KEY, path.as_os_str());
         println!("IOTEDGE_HOMEDIR set to {:#?}", &path);

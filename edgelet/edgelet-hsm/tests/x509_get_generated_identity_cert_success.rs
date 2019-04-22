@@ -3,9 +3,9 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
+use lazy_static::lazy_static;
 use std::env;
 use std::sync::Mutex;
-use lazy_static::lazy_static;
 
 use edgelet_core::{Certificate, GetDeviceIdentityCertificate, KeyBytes, PrivateKey, Signature};
 use edgelet_hsm::X509;

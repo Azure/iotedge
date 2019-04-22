@@ -3,8 +3,8 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
-use std::sync::Mutex;
 use lazy_static::lazy_static;
+use std::sync::Mutex;
 
 use edgelet_core::crypto::{Decrypt, Encrypt, MasterEncryptionKey};
 use edgelet_hsm::Crypto;
