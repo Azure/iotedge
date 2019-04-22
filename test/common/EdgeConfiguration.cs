@@ -25,7 +25,7 @@ namespace common
         string deviceId;
         IotHub iotHub;
 
-        IReadOnlyCollection<string> Modules
+        IReadOnlyCollection<string> _Modules
         {
             get
             {
@@ -47,23 +47,19 @@ namespace common
 
         public void AddRegistryCredentials(string address, string username, string password)
         {
-            ConfigurationContent config = this.config;
-
-            // { "modulesContent": { "$edgeAgent": { "properties": { "desired": { "runtime": { "settings": {
-            //   "registryCredentials": { ... }
-            // } } } } } } }
-            JObject desired = JObject.FromObject(config.ModulesContent["$edgeAgent"]["properties.desired"]);
-            JObject settings = desired.Get<JObject>("runtime").Get<JObject>("settings");
-            settings.Add("registryCredentials", JToken.FromObject(new
+            _UpdateAgentDesiredProperties(desired =>
             {
-                reg1 = new
+                JObject settings = desired.Get<JObject>("runtime").Get<JObject>("settings");
+                settings.Add("registryCredentials", JToken.FromObject(new
                 {
-                    username = username,
-                    password = password,
-                    address = address
-                }
-            }));
-            config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
+                    reg1 = new
+                    {
+                        username = username,
+                        password = password,
+                        address = address
+                    }
+                }));
+            });
         }
 
         public void AddProxy(string url)
@@ -84,7 +80,7 @@ namespace common
 
         public void AddEdgeHub(string image)
         {
-            _UpdateDesiredProperties(desired =>
+            _UpdateAgentDesiredProperties(desired =>
             {
                 JObject systemModules = desired.Get<JObject>("systemModules");
                 systemModules.Add("edgeHub", JToken.FromObject(new
@@ -120,7 +116,7 @@ namespace common
 
         public void AddTempSensor(string image)
         {
-            _UpdateDesiredProperties(desired =>
+            _UpdateAgentDesiredProperties(desired =>
             {
                 JObject modules = _GetOrAddObject("modules", desired);
                 modules.Add("tempSensor", JToken.FromObject(new
@@ -139,7 +135,7 @@ namespace common
         public Task DeployAsync(CancellationToken token)
         {
             string message = "Deploying edge configuration to device " +
-                $"'{this.deviceId}' with modules ({string.Join(", ", this.Modules)})";
+                $"'{this.deviceId}' with modules ({string.Join(", ", this._Modules)})";
 
             return Profiler.Run(
                 message,
@@ -160,7 +156,7 @@ namespace common
 
         void _ForEachModule(Action<string, JObject> action)
         {
-            _UpdateDesiredProperties(desired =>
+            _UpdateAgentDesiredProperties(desired =>
             {
                 foreach (var key in new[] { "systemModules", "modules" })
                 {
@@ -175,7 +171,7 @@ namespace common
             });
         }
 
-        void _UpdateDesiredProperties(Action<JObject> update)
+        void _UpdateAgentDesiredProperties(Action<JObject> update)
         {
             JObject desired = JObject.FromObject(this.config.ModulesContent["$edgeAgent"]["properties.desired"]);
             update(desired);
