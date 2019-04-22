@@ -822,7 +822,7 @@ static int load_encryption_key_from_file(CRYPTO_STORE* store, const char *key_na
                   (key_size == 0))
         {
             LOG_INFO("Could not read encryption key from file. "
-                     " No key file exists or permission error.", key_size);
+                     " No key file exists or is invalid or permission error.");
             result = __FAILURE__;
         }
         else
