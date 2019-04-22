@@ -44,8 +44,11 @@ namespace common
                 installCommand
             };
 
+            string message = "Installing edge daemon";
+            packagesPath.ForEach(p => message += $" from packages in '{p}'");
+
             return Profiler.Run(
-                "Installing edge daemon",
+                message,
                 () => Process.RunAsync("powershell", string.Join(";", commands), token)
             );
         }
