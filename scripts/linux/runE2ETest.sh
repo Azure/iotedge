@@ -160,7 +160,6 @@ function prepare_test_from_artifacts() {
                     echo "Copy deployment file from $long_haul_deployment_artifact_file"
                     cp "$long_haul_deployment_artifact_file" "$deployment_working_file"
 
-                    sed -i -e "s@<LoadGen.TransportType>@$LOADGEN_TRANSPORT_TYPE@g" "$deployment_working_file"
                     sed -i -e "s@<ServiceClientConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
                 else
                     echo "Copy deployment file from $stress_deployment_artifact_file"
@@ -294,48 +293,45 @@ function process_args() {
             EVENTHUB_CONNECTION_STRING="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 10 ]; then
-            LOADGEN_TRANSPORT_TYPE="$arg"
-            saveNextArg=0
-        elif [ $saveNextArg -eq 11 ]; then
             LOADGEN_MESSAGE_FREQUENCY="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 12 ]; then
+        elif [ $saveNextArg -eq 11 ]; then
             SNITCH_ALERT_URL="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 13 ]; then
+        elif [ $saveNextArg -eq 12 ]; then
             SNITCH_BUILD_NUMBER="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 14 ]; then
+        elif [ $saveNextArg -eq 13 ]; then
             SNITCH_REPORTING_INTERVAL_IN_SECS="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 15 ]; then
+        elif [ $saveNextArg -eq 14 ]; then
             SNITCH_STORAGE_ACCOUNT="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 16 ]; then
+        elif [ $saveNextArg -eq 15 ]; then
             SNITCH_STORAGE_MASTER_KEY="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 17 ]; then
+        elif [ $saveNextArg -eq 16 ]; then
             SNITCH_TEST_DURATION_IN_SECS="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 18 ]; then
+        elif [ $saveNextArg -eq 17 ]; then
             LOADGEN1_TRANSPORT_TYPE="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 19 ]; then
+        elif [ $saveNextArg -eq 18 ]; then
             LOADGEN2_TRANSPORT_TYPE="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 20 ]; then
+        elif [ $saveNextArg -eq 19 ]; then
             LOADGEN3_TRANSPORT_TYPE="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 21 ]; then
+        elif [ $saveNextArg -eq 20 ]; then
             LOADGEN4_TRANSPORT_TYPE="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 22 ]; then
+        elif [ $saveNextArg -eq 21 ]; then
             AMQP_SETTINGS_ENABLED="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 23 ]; then
+        elif [ $saveNextArg -eq 22 ]; then
             MQTT_SETTINGS_ENABLED="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 24 ]; then
+        elif [ $saveNextArg -eq 23 ]; then
             LONG_HAUL_PROTOCOL_HEAD="$arg"
             saveNextArg=0
         else
@@ -350,21 +346,20 @@ function process_args() {
                 '-containerRegistryPassword' ) saveNextArg=7;;
                 '-iotHubConnectionString' ) saveNextArg=8;;
                 '-eventHubConnectionString' ) saveNextArg=9;;
-                '-loadGenTransportType' ) saveNextArg=10;;
-                '-loadGenMessageFrequency' ) saveNextArg=11;;
-                '-snitchAlertUrl' ) saveNextArg=12;;
-                '-snitchBuildNumber' ) saveNextArg=13;;
-                '-snitchReportingIntervalInSecs' ) saveNextArg=14;;
-                '-snitchStorageAccount' ) saveNextArg=15;;
-                '-snitchStorageMasterKey' ) saveNextArg=16;;
-                '-snitchTestDurationInSecs' ) saveNextArg=17;;
-                '-loadGen1TransportType' ) saveNextArg=18;;
-                '-loadGen2TransportType' ) saveNextArg=19;;
-                '-loadGen3TransportType' ) saveNextArg=20;;
-                '-loadGen4TransportType' ) saveNextArg=21;;
-                '-amqpSettingsEnabled' ) saveNextArg=22;;
-                '-mqttSettingsEnabled' ) saveNextArg=23;;
-                '-longHaulProtocolHead' ) saveNextArg=24;;
+                '-loadGenMessageFrequency' ) saveNextArg=10;;
+                '-snitchAlertUrl' ) saveNextArg=11;;
+                '-snitchBuildNumber' ) saveNextArg=12;;
+                '-snitchReportingIntervalInSecs' ) saveNextArg=13;;
+                '-snitchStorageAccount' ) saveNextArg=14;;
+                '-snitchStorageMasterKey' ) saveNextArg=15;;
+                '-snitchTestDurationInSecs' ) saveNextArg=16;;
+                '-loadGen1TransportType' ) saveNextArg=17;;
+                '-loadGen2TransportType' ) saveNextArg=18;;
+                '-loadGen3TransportType' ) saveNextArg=19;;
+                '-loadGen4TransportType' ) saveNextArg=20;;
+                '-amqpSettingsEnabled' ) saveNextArg=21;;
+                '-mqttSettingsEnabled' ) saveNextArg=22;;
+                '-longHaulProtocolHead' ) saveNextArg=23;;
                 * ) usage;;
             esac
         fi
@@ -550,6 +545,7 @@ function run_quickstartcerts_test() {
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=Core \
+        --optimize_for_performance="$optimize_for_performance" \
         --no-verify && ret=$? || ret=$?
 
     declare -a certs=( /var/lib/iotedge/hsm/certs/edge_owner_ca*.pem )
@@ -686,6 +682,7 @@ function run_tempsensor_test() {
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
+        --optimize_for_performance="$optimize_for_performance" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -808,7 +805,6 @@ function usage() {
     echo ' -containerRegistryPassword      Password of given username for container registory.'
     echo ' -iotHubConnectionString         IoT hub connection string for creating edge device.'
     echo ' -eventHubConnectionString       Event hub connection string for receive D2C messages.'
-    echo ' -loadGenTransportType           Transport type for LoadGen for long haul test. Default is mqtt.'
     echo ' -loadGenMessageFrequency        Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.'
     echo ' -snitchAlertUrl                 Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.'
     echo ' -snitchBuildNumber              Build number for snitcher docker image for long haul and stress test. Default is 1.1.'
@@ -829,7 +825,6 @@ function usage() {
 process_args "$@"
 
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
-LOADGEN_TRANSPORT_TYPE="${LOADGEN_TRANSPORT_TYPE:-mqtt}"
 LONG_HAUL_PROTOCOL_HEAD="${LONG_HAUL_PROTOCOL_HEAD:-amqp}"
 SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.1}"
 LOADGEN1_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
@@ -855,6 +850,11 @@ fi
 
 working_folder="$E2E_TEST_DIR/working"
 get_image_architecture_label
+optimize_for_performance=true
+if [ "$image_architecture_label" = 'arm32v7' ] ||
+   [ "$image_architecture_label" = 'arm64v8' ]; then
+	optimize_for_performance=false
+fi
 iotedged_artifact_folder="$(get_iotedged_artifact_folder)"
 iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file)"
 leafdevice_artifact_file="$(get_leafdevice_artifact_file)"

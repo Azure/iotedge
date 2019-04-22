@@ -11,11 +11,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using Nito.AsyncEx;
     using DiffState = System.ValueTuple<
         // added modules
         System.Collections.Generic.IList<IModule>,
 
         // updated modules because of deployment
+        System.Collections.Generic.IList<IModule>,
+
+        // modules whose desired status changed because of deployment
         System.Collections.Generic.IList<IModule>,
 
         // update modules because runtime state changed
@@ -27,59 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         // modules that are running great
         System.Collections.Generic.IList<IRuntimeModule>
     >;
-
-    static class Events
-    {
-        const int IdStart = AgentEventIds.HealthRestartPlanner;
-        static readonly ILogger Log = Logger.Factory.CreateLogger<HealthRestartPlanner>();
-
-        enum EventIds
-        {
-            PlanCreated = IdStart,
-            ClearRestartStats,
-            DesiredModules,
-            CurrentModules,
-            UnableToUpdateEdgeAgent,
-            UnableToProcessModule
-        }
-
-        public static void PlanCreated(IList<ICommand> commands)
-        {
-            Log.LogDebug((int)EventIds.PlanCreated, $"HealthRestartPlanner created Plan, with {commands.Count} command(s).");
-        }
-
-        public static void ClearingRestartStats(IRuntimeModule module, TimeSpan intensiveCareTime)
-        {
-            Log.LogInformation((int)EventIds.ClearRestartStats, $"HealthRestartPlanner is clearing restart stats for module '{module.Name}' as it has been running healthy for {intensiveCareTime}.");
-        }
-
-        public static void UnableToUpdateEdgeAgent()
-        {
-            Log.LogInformation((int)EventIds.UnableToUpdateEdgeAgent, $"Unable to update EdgeAgent module as the EdgeAgent module identity could not be obtained");
-        }
-
-        public static void UnableToProcessModule(IModule module)
-        {
-            Log.LogInformation((int)EventIds.UnableToProcessModule, $"Unable to process module {module.Name} add or update as the module identity could not be obtained");
-        }
-
-        public static void ShutdownPlanCreated(ICommand[] stopCommands)
-        {
-            Log.LogDebug((int)EventIds.PlanCreated, $"HealthRestartPlanner created shutdown Plan, with {stopCommands.Length} command(s).");
-        }
-
-        internal static void LogDesired(ModuleSet desired)
-        {
-            IDictionary<string, IModule> modules = desired.Modules.ToImmutableDictionary();
-            Log.LogDebug((int)EventIds.DesiredModules, $"List of desired modules is - {JsonConvert.SerializeObject(modules)}");
-        }
-
-        internal static void LogCurrent(ModuleSet current)
-        {
-            IDictionary<string, IModule> modules = current.Modules.ToImmutableDictionary();
-            Log.LogDebug((int)EventIds.CurrentModules, $"List of current modules is - {JsonConvert.SerializeObject(modules)}");
-        }
-    }
 
     public class HealthRestartPlanner : IPlanner
     {
@@ -120,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             Events.LogDesired(desired);
             Events.LogCurrent(current);
             // extract list of modules that need attention
-            (IList<IModule> added, IList<IModule> updateDeployed, IList<IRuntimeModule> updateStateChanged, IList<IRuntimeModule> removed, IList<IRuntimeModule> runningGreat) = this.ProcessDiff(desired, current);
+            (IList<IModule> added, IList<IModule> updateDeployed, IList<IModule> desiredStatusChanged, IList<IRuntimeModule> updateStateChanged, IList<IRuntimeModule> removed, IList<IRuntimeModule> runningGreat) = this.ProcessDiff(desired, current);
 
             List<ICommand> updateRuntimeCommands = await this.GetUpdateRuntimeCommands(updateDeployed, moduleIdentities, runtimeInfo);
 
@@ -132,13 +83,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // create "remove" commands for modules that are being deleted in this deployment
             IEnumerable<Task<ICommand>> removeTasks = removed.Select(m => this.commandFactory.RemoveAsync(m));
             IEnumerable<ICommand> remove = await Task.WhenAll(removeTasks);
-
-            // remove any saved state we might have for modules that are being removed or
-            // are being updated because of a deployment
-            IEnumerable<Task<ICommand>> removeStateTasks = removed
-                .Concat(updateDeployed)
-                .Select(m => this.commandFactory.WrapAsync(new RemoveFromStoreCommand<ModuleState>(this.store, m.Name)));
-            IEnumerable<ICommand> removeState = await Task.WhenAll(removeStateTasks);
 
             // create pull, create, update and start commands for added/updated modules
             IEnumerable<ICommand> addedCommands = await this.ProcessAddedUpdatedModules(
@@ -158,9 +102,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                         runtimeInfo);
                 });
 
-            // apply restart policy for modules that are not in the deployment list and aren't running
-            IEnumerable<Task<ICommand>> restartTasks = this.ApplyRestartPolicy(updateStateChanged.Where(m => !m.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase)));
-            IEnumerable<ICommand> restart = await Task.WhenAll(restartTasks);
+            // Get commands to start / stop modules whose desired status has changed.
+            IList<(ICommand command, string module)> desiredStatedChangedCommands = await this.ProcessDesiredStatusChangedModules(desiredStatusChanged, current);
+
+            // Get commands for modules that have stopped/failed
+            IEnumerable<ICommand> stateChangedCommands = await this.ProcessStateChangedModules(updateStateChanged.Where(m => !m.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase)).ToList());
+
+            // remove any saved state we might have for modules that are being removed or
+            // are being updated because of a deployment
+            IEnumerable<Task<ICommand>> removeStateTasks = removed
+                .Concat(updateDeployed)
+                .Select(m => m.Name)
+                .Concat(desiredStatedChangedCommands.Select(d => d.module))
+                .Select(m => this.commandFactory.WrapAsync(new RemoveFromStoreCommand<ModuleState>(this.store, m)));
+            IEnumerable<ICommand> removeState = await Task.WhenAll(removeStateTasks);
 
             // clear the "restartCount" and "lastRestartTime" values for running modules that have been up
             // for more than "IntensiveCareTime" & still have an entry for them in the store
@@ -172,12 +127,71 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                 .Concat(removeState)
                 .Concat(addedCommands)
                 .Concat(updatedCommands)
-                .Concat(restart)
+                .Concat(stateChangedCommands)
+                .Concat(desiredStatedChangedCommands.Select(d => d.command))
                 .Concat(resetHealthStatus)
                 .ToList();
 
             Events.PlanCreated(commands);
             return new Plan(commands);
+        }
+
+        async Task<IList<(ICommand command, string module)>> ProcessDesiredStatusChangedModules(IList<IModule> desiredStatusChanged, ModuleSet current)
+        {
+            var commands = new List<(ICommand command, string module)>();
+            foreach (IModule module in desiredStatusChanged)
+            {
+                if (current.TryGetModule(module.Name, out IModule currentModule))
+                {
+                    if (module.DesiredStatus != ((IRuntimeModule)currentModule).RuntimeStatus)
+                    {
+                        if (module.DesiredStatus == ModuleStatus.Running)
+                        {
+                            ICommand startCommand = await this.commandFactory.StartAsync(currentModule);
+                            commands.Add((startCommand, module.Name));
+                        }
+                        else if (module.DesiredStatus == ModuleStatus.Stopped)
+                        {
+                            ICommand stopCommand = await this.commandFactory.StopAsync(currentModule);
+                            commands.Add((stopCommand, module.Name));
+                        }
+                        else
+                        {
+                            Events.InvalidDesiredState(module);
+                        }
+                    }
+                }
+                else
+                {
+                    Events.CurrentModuleNotFound(module.Name);
+                }
+            }
+
+            return commands;
+        }
+
+        async Task<IEnumerable<ICommand>> ProcessStateChangedModules(IList<IRuntimeModule> updateStateChangedModules)
+        {
+            var tasks = new List<Task<ICommand>>();
+            IEnumerable<IRuntimeModule> modulesToStop = updateStateChangedModules
+                .Where(m => m.DesiredStatus == ModuleStatus.Stopped);
+
+            IEnumerable<IRuntimeModule> modulesToRestart = updateStateChangedModules
+                .Where(m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus == ModuleStatus.Backoff);
+
+            // Start all the modules that are in Stopped state and have Restart policy > Never or have not been started before
+            IEnumerable<IRuntimeModule> modulesToStart = updateStateChangedModules
+                .Where(
+                    m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus == ModuleStatus.Stopped &&
+                         (m.RestartPolicy > RestartPolicy.Never || m.LastStartTimeUtc == DateTime.MinValue));
+
+            tasks.AddRange(modulesToStop.Select(this.commandFactory.StopAsync));
+            tasks.AddRange(modulesToStart.Select(this.commandFactory.StartAsync));
+
+            // apply restart policy for modules that are not in the deployment list and aren't running
+            tasks.AddRange(this.ApplyRestartPolicy(modulesToRestart));
+            ICommand[] commands = await tasks.WhenAll();
+            return commands;
         }
 
         IEnumerable<Task<ICommand>> ApplyRestartPolicy(IEnumerable<IRuntimeModule> modules)
@@ -270,28 +284,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         {
             Diff diff = desired.Diff(current);
 
-            IList<IModule> added = diff.Updated.Where(m => !current.TryGetModule(m.Name, out _)).ToList();
+            IList<IModule> added = diff.Added.ToList();
             IList<IRuntimeModule> removed = diff.Removed.Select(name => (IRuntimeModule)current.Modules[name]).ToList();
 
-            // We are interested in 2 kinds of "updated" modules:
+            // We are interested in 3 kinds of "updated" modules:
             //
             //  [1] someone pushed a new deployment for this device that changed something
             //      for an existing module
-            //  [2] something changed in the runtime state of the module - for example, it
+            //  [2] someone pushed a new deployment for this device that changed the desired
+            //      status of a module (running to stopped, or stopped to running)
+            //  [3] something changed in the runtime state of the module - for example, it
             //      had a tragic untimely death
-            //
-            // We need to be able to distinguish between the two cases because for the latter
-            // we want to apply the restart policy and for the former we want to simply
-            // re-deploy.
-            IList<IModule> updateDeployed = diff.Updated.Except(added).ToList(); // TODO: Should we do module name comparisons below instead of object comparisons? Faster?
+            // We need to be able to distinguish between the three cases because we handle them differently
+            IList<IModule> updateDeployed = diff.Updated.ToList();
+            IList<IModule> desiredStatusUpdated = diff.DesiredStatusUpdated.ToList();
+
+            // Get the list of modules unaffected by deployment
+            ISet<string> modulesInDeployment = diff.AddedOrUpdated
+                .Concat(diff.DesiredStatusUpdated)
+                .Select(m => m.Name)
+                .Concat(diff.Removed)
+                .ToImmutableHashSet();
 
             IList<IRuntimeModule> currentRuntimeModules = current.Modules.Values
                 .Select(m => (IRuntimeModule)m)
-                .Except(removed) // TODO: Should we do module name comparisons below instead of object comparisons? Faster?
+                .Where(m => !modulesInDeployment.Contains(m.Name))
                 .Except(updateDeployed.Select(m => current.Modules[m.Name] as IRuntimeModule)).ToList();
 
+            // Find the modules whose desired and runtime status are not the same
             IList<IRuntimeModule> updateStateChanged = currentRuntimeModules
-                .Where(m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus != ModuleStatus.Running).ToList();
+                .Where(m => m.DesiredStatus != m.RuntimeStatus).ToList();
 
             // Apart from all of the lists above, there can be modules in "current" where neither
             // the desired state has changed nor the runtime state has changed. For example, a module
@@ -305,7 +327,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IList<IRuntimeModule> runningGreat = currentRuntimeModules
                 .Where(m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus == ModuleStatus.Running).ToList();
 
-            return (added, updateDeployed, updateStateChanged, removed, runningGreat);
+            return (added, updateDeployed, desiredStatusUpdated, updateStateChanged, removed, runningGreat);
         }
 
         async Task<List<ICommand>> GetUpdateRuntimeCommands(IList<IModule> updateDeployed, IImmutableDictionary<string, IModuleIdentity> moduleIdentities, IRuntimeInfo runtimeInfo)
@@ -327,6 +349,71 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             }
 
             return updateRuntimeCommands;
+        }
+
+        static class Events
+        {
+            const int IdStart = AgentEventIds.HealthRestartPlanner;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<HealthRestartPlanner>();
+
+            enum EventIds
+            {
+                PlanCreated = IdStart,
+                ClearRestartStats,
+                DesiredModules,
+                CurrentModules,
+                UnableToUpdateEdgeAgent,
+                UnableToProcessModule,
+                CurrentModuleNotFound,
+                InvalidDesiredState
+            }
+
+            public static void PlanCreated(IList<ICommand> commands)
+            {
+                Log.LogDebug((int)EventIds.PlanCreated, $"HealthRestartPlanner created Plan, with {commands.Count} command(s).");
+            }
+
+            public static void ClearingRestartStats(IRuntimeModule module, TimeSpan intensiveCareTime)
+            {
+                Log.LogInformation((int)EventIds.ClearRestartStats, $"HealthRestartPlanner is clearing restart stats for module '{module.Name}' as it has been running healthy for {intensiveCareTime}.");
+            }
+
+            public static void UnableToUpdateEdgeAgent()
+            {
+                Log.LogInformation((int)EventIds.UnableToUpdateEdgeAgent, $"Unable to update EdgeAgent module as the EdgeAgent module identity could not be obtained");
+            }
+
+            public static void UnableToProcessModule(IModule module)
+            {
+                Log.LogInformation((int)EventIds.UnableToProcessModule, $"Unable to process module {module.Name} add or update as the module identity could not be obtained");
+            }
+
+            public static void ShutdownPlanCreated(ICommand[] stopCommands)
+            {
+                Log.LogDebug((int)EventIds.PlanCreated, $"HealthRestartPlanner created shutdown Plan, with {stopCommands.Length} command(s).");
+            }
+
+            public static void CurrentModuleNotFound(string moduleName)
+            {
+                Log.LogWarning((int)EventIds.CurrentModuleNotFound, $"Unable to process desired status change of module {moduleName} as the module was not found in the current list of modules");
+            }
+
+            public static void InvalidDesiredState(IModule module)
+            {
+                Log.LogWarning((int)EventIds.InvalidDesiredState, $"Desired status {module.DesiredStatus} of module {module.Name} is not valid");
+            }
+
+            internal static void LogDesired(ModuleSet desired)
+            {
+                IDictionary<string, IModule> modules = desired.Modules.ToImmutableDictionary();
+                Log.LogDebug((int)EventIds.DesiredModules, $"List of desired modules is - {JsonConvert.SerializeObject(modules)}");
+            }
+
+            internal static void LogCurrent(ModuleSet current)
+            {
+                IDictionary<string, IModule> modules = current.Modules.ToImmutableDictionary();
+                Log.LogDebug((int)EventIds.CurrentModules, $"List of current modules is - {JsonConvert.SerializeObject(modules)}");
+            }
         }
     }
 }

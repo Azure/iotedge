@@ -33,6 +33,10 @@ pub enum ErrorKind {
     PrivateKeyType(u32),
     #[fail(display = "Invalid certificate timestamp")]
     ToDateTime,
+    #[fail(display = "HSM API sign with private key failed")]
+    PrivateKeySignFn,
+    #[fail(display = "HSM certificate info get failed")]
+    HsmCertificateFailure,
 }
 
 impl Fail for Error {

@@ -1,8 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
+    using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.IO;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -189,6 +192,76 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             ISinkResult<IRoutingMessage> sinkResult = await moduleMessageProcessor.ProcessAsync(routingMessage, CancellationToken.None);
             Assert.True(sinkResult.Failed.Contains(routingMessage));
             Assert.Equal(FailureKind.None, sinkResult.SendFailureDetails.Map(x => x.FailureKind).GetOrElse(FailureKind.None));
+        }
+
+        [Theory]
+        [MemberData(nameof(GetRetryableExceptionsTestData))]
+        public async Task ModuleMessageProcessor_RetryableExceptionTest(Exception exception, bool isRetryable)
+        {
+            // Arrange
+            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
+            var deviceProxy = new Mock<IDeviceProxy>();
+            deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.IsAny<string>()))
+                .ThrowsAsync(exception);
+            deviceProxy.Setup(d => d.IsActive).Returns(true);
+            IReadOnlyDictionary<DeviceSubscription, bool> deviceSubscriptions = new ReadOnlyDictionary<DeviceSubscription, bool>(
+                new Dictionary<DeviceSubscription, bool>
+                {
+                    [DeviceSubscription.ModuleMessages] = true
+                });
+            var connectionManager = new Mock<IConnectionManager>();
+            connectionManager.Setup(c => c.GetDeviceConnection(It.IsAny<string>())).Returns(Option.Some(deviceProxy.Object));
+            connectionManager.Setup(c => c.GetSubscriptions(It.IsAny<string>())).Returns(Option.Some(deviceSubscriptions));
+            var routingMessage = Mock.Of<IRoutingMessage>();
+            string moduleId = "device1/module1";
+            string moduleEndpointAddress = "in1";
+
+            var moduleEndpoint = new ModuleEndpoint($"{moduleId}/{moduleEndpointAddress}", moduleId, moduleEndpointAddress, connectionManager.Object, routingMessageConverter);
+
+            // Act
+            IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
+            ISinkResult<IRoutingMessage> result = await moduleMessageProcessor.ProcessAsync(routingMessage, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(result);
+            if (isRetryable)
+            {
+                Assert.Equal(1, result.Failed.Count);
+                Assert.Equal(0, result.Succeeded.Count);
+                Assert.Equal(0, result.InvalidDetailsList.Count);
+                Assert.Equal(routingMessage, result.Failed.First());
+            }
+            else
+            {
+                Assert.Equal(1, result.InvalidDetailsList.Count);
+                Assert.Equal(0, result.Succeeded.Count);
+                Assert.Equal(0, result.Failed.Count);
+                Assert.Equal(routingMessage, result.InvalidDetailsList.First().Item);
+                Assert.Equal(FailureKind.InvalidInput, result.InvalidDetailsList.First().FailureKind);
+            }
+        }
+
+        public static IEnumerable<object[]> GetRetryableExceptionsTestData()
+        {
+            yield return new object[] { new TimeoutException("Dummy"), true };
+
+            yield return new object[] { new IOException("Dummy"), true };
+
+            yield return new object[] { new EdgeHubIOException("Dummy"), true };
+
+            yield return new object[] { new DummyEdgeHubIOException("Dummy"), true };
+
+            yield return new object[] { new ArgumentException("Dummy"), false };
+
+            yield return new object[] { new ArgumentNullException("dummy"), false };
+        }
+
+        public class DummyEdgeHubIOException : EdgeHubIOException
+        {
+            public DummyEdgeHubIOException(string message)
+                : base(message)
+            {
+            }
         }
     }
 }
