@@ -8,7 +8,7 @@
 use crate::runtime::DockerModuleRuntime;
 use crate::Error;
 use edgelet_core::pid::Pid;
-use edgelet_core::Authenticator;
+use edgelet_core::{AuthId, Authenticator};
 use failure::{Compat, Fail};
 use futures::future::Future;
 use hyper::service::{NewService, Service};
@@ -29,10 +29,11 @@ impl<S> AuthenticationService<S> {
 impl<S> Service for AuthenticationService<S>
 where
     S: Service<ReqBody = Body>,
+    S::Future: Send + 'static,
 {
     type ReqBody = S::ReqBody;
     type ResBody = S::ResBody;
-    type Error = Error;
+    type Error = S::Error;
     type Future = Box<dyn Future<Item = <S::Future as Future>::Item, Error = Self::Error> + Send>;
 
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
@@ -44,14 +45,11 @@ where
 
         let mut req = req;
 
-        Box::new(
-            self.runtime
-                .authenticate(pid)
-                .and_then(move |auth_id| {
-                    req.extensions_mut().insert(auth_id);
-                    self.inner.call(req)
-                }),
-        )
+        // todo Implement futures pipeline instead of waiting for response
+        let auth_id = self.runtime.authenticate(pid).wait().unwrap();
+
+        req.extensions_mut().insert(auth_id);
+        Box::new(self.inner.call(req))
     }
 }
 
