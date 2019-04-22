@@ -12,16 +12,18 @@ $util = Join-Path -Path $PSScriptRoot -ChildPath "util.ps1"
 # Ensure rust is installed
 Assert-Rust -Arm:$Arm
 
+$cargo = Get-CargoCommand -Arm:$Arm
+
+$ErrorActionPreference = 'Continue'
+
 # arm build has to use a few private forks of dependencies instead of the public ones, in order to to this, we have to 
-# 1. append a [patch] section in cargo.toml
-# 2. restore a preconfigured cargo.lock to use these dependencies
+# 1. append a [patch] section in cargo.toml to use crate forks
+# 2. run cargo update commands to force update cargo.lock to use the forked crates
+# after these two steps, running cargo build for arm should not show any warning such as "Patch 'crate-x' was not used in the crate graph"
 if($Arm)
 {
     $edgefolder = Get-EdgeletFolder
     Set-Location -Path $edgefolder
-
-    Write-Host "Overwrite Cargo.lock with Cargo.WinArm.lock"
-    cmd /c copy /Y Cargo.WinArm.lock Cargo.lock
 
     $ForkedCrates = @"
 
@@ -45,16 +47,20 @@ hyperlocal-windows = { git = "https://github.com/philipktlin/hyperlocal-windows"
 tokio-uds-windows = { git = "https://github.com/philipktlin/tokio-uds-windows", branch = "arm" }
 "@
 
-    Write-Host "Appen cargo.toml with $ForkedCrates"
+    Write-Host "Append cargo.toml with $ForkedCrates"
     Add-Content -Path cargo.toml -Value $ForkedCrates
+
+    Write-Host "Running cargo update to lock the crate forks required by arm build"
+    Invoke-Expression "$cargo update -p https://github.com/Azure/mio-uds-windows.git#mio-uds-windows:0.1.0"
+    Invoke-Expression "$cargo update -p mio --precise 0.6.14"
+    Invoke-Expression "$cargo update -p https://github.com/Azure/tokio-uds-windows.git#tokio-uds-windows:0.1.0"
+    Invoke-Expression "$cargo update -p winapi --precise 0.3.5"
 }
 
+
 # Run cargo build by specifying the manifest file
-$cargo = Get-CargoCommand -Arm:$Arm
 
 $ManifestPath = Get-Manifest
-
-$ErrorActionPreference = 'Continue'
 
 if($Arm)
 {
