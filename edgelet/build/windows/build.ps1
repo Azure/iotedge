@@ -69,8 +69,8 @@ if($Arm)
     Write-Host $(Get-Command cl.exe).Path
 }
 
-Write-Host "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
-Invoke-Expression "$cargo build $(if (-Not $Arm) { '--all'} else {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
+Write-Host "$cargo build --all $(if ($Arm) {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
+Invoke-Expression "$cargo build --all $(if ($Arm) {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
 
 if ($LastExitCode)
 {
