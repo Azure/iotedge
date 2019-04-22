@@ -1,8 +1,7 @@
 #!/bin/bash
 
 ###############################################################################
-# This script runs cargo clippy on your project. This script installs the
-# nightly toolchain as it is a dependency of clippy.
+# This script runs cargo clippy on your project. 
 ###############################################################################
 
 set -e
@@ -16,7 +15,7 @@ DIR=$(cd "$(dirname "$0")" && pwd)
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 SCRIPT_NAME=$(basename "$0")
-TOOLCHAIN='nightly-2018-09-12'
+TOOLCHAIN='stable'
 RUSTUP="$HOME/.cargo/bin/rustup"
 CARGO="$HOME/.cargo/bin/cargo"
 
@@ -73,6 +72,6 @@ else
     echo "Installing $TOOLCHAIN toolchain"
     $RUSTUP install "$TOOLCHAIN"
     echo "Installing clippy..."
-    $RUSTUP component add clippy-preview "--toolchain=$TOOLCHAIN"
+    $RUSTUP component add clippy "--toolchain=$TOOLCHAIN"
     run_clippy
 fi

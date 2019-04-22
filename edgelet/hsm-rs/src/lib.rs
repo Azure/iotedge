@@ -1,26 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
-#![cfg_attr(
-    feature = "cargo-clippy",
-    allow(
-        cyclomatic_complexity,
-        similar_names,
-        shadow_unrelated,
-        stutter,
-        use_self
-    )
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::cyclomatic_complexity,
+    clippy::module_name_repetitions,
+    clippy::similar_names,
+    clippy::shadow_unrelated,
+    clippy::use_self
 )]
-
-extern crate chrono;
-extern crate failure;
-extern crate hsm_sys;
 
 use hsm_sys::*;
 
@@ -29,12 +17,12 @@ mod error;
 pub mod tpm;
 mod x509;
 
-pub use crypto::{
+pub use crate::crypto::{
     Buffer, CertificateProperties, CertificateType, Crypto, HsmCertificate, KeyBytes, PrivateKey,
 };
-pub use error::{Error, ErrorKind};
-pub use tpm::{Tpm, TpmDigest, TpmKey};
-pub use x509::{X509Data, X509};
+pub use crate::error::{Error, ErrorKind};
+pub use crate::tpm::{Tpm, TpmDigest, TpmKey};
+pub use crate::x509::{PrivateKeySignDigest, X509Data, X509};
 
 // Traits
 
@@ -57,6 +45,8 @@ pub trait GetCerts {
     fn get_cert(&self) -> Result<X509Data, Error>;
     fn get_key(&self) -> Result<X509Data, Error>;
     fn get_common_name(&self) -> Result<String, Error>;
+    fn sign_with_private_key(&self, data: &[u8]) -> Result<PrivateKeySignDigest, Error>;
+    fn get_certificate_info(&self) -> Result<HsmCertificate, Error>;
 }
 
 pub trait MakeRandom {
@@ -78,6 +68,10 @@ pub trait CreateCertificate {
     ) -> Result<HsmCertificate, Error>;
 
     fn destroy_certificate(&self, alias: String) -> Result<(), Error>;
+}
+
+pub trait GetCertificate {
+    fn get(&self, alias: String) -> Result<HsmCertificate, Error>;
 }
 
 pub trait Encrypt {

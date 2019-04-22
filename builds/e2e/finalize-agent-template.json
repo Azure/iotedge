@@ -1,0 +1,28 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+    "parameters": {
+        "extension_command": {
+            "type": "securestring"
+        },
+        "vm_name": {
+            "type": "string"
+        }
+    },
+    "resources": [{
+        "type": "Microsoft.Compute/virtualMachines/extensions",
+        "name": "[concat(parameters('vm_name'), '/', 'setup')]",
+        "apiVersion": "2018-10-01",
+        "location": "[resourceGroup().location]",
+        "properties": {
+            "publisher": "Microsoft.Azure.Extensions",
+            "type": "CustomScript",
+            "typeHandlerVersion": "2.0",
+            "autoUpgradeMinorVersion": true,
+            "settings": {},
+            "protectedSettings": {
+                "commandToExecute": "[parameters('extension_command')]"
+            }
+        }
+    }]
+}

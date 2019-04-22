@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string gatewayHostName;
         readonly Uri managementUri;
         readonly Uri workloadUri;
+        readonly string apiVersion;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly Option<IWebProxy> proxy;
@@ -40,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string deviceId,
             Uri managementUri,
             Uri workloadUri,
+            string apiVersion,
             IEnumerable<AuthConfig> dockerAuthConfig,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
@@ -50,9 +52,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
+            this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
-            this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
-            this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
+            this.upstreamProtocol = upstreamProtocol;
+            this.proxy = proxy;
             this.productInfo = productInfo;
         }
 
@@ -64,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleManager
-            builder.Register(c => new ModuleManagementHttpClient(this.managementUri))
+            builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Constants.EdgeletClientApiVersion))
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
                 .SingleInstance();
@@ -98,9 +101,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<Task<ICommandFactory>>()
                 .SingleInstance();
 
-            // IModuleRuntimeInfoProvider
-            builder.Register(c => new RuntimeInfoProvider<DockerReportedConfig>(c.Resolve<IModuleManager>()))
-                .As<IRuntimeInfoProvider>()
+            // Task<IRuntimeInfoProvider>
+            builder.Register(c => Task.FromResult(new RuntimeInfoProvider<DockerReportedConfig>(c.Resolve<IModuleManager>()) as IRuntimeInfoProvider))
+                .As<Task<IRuntimeInfoProvider>>()
                 .SingleInstance();
 
             // Task<IEnvironmentProvider>
@@ -109,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     {
                         var moduleStateStore = c.Resolve<IEntityStore<string, ModuleState>>();
                         var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
-                        var runtimeInfoProvider = c.Resolve<IRuntimeInfoProvider>();
+                        IRuntimeInfoProvider runtimeInfoProvider = await c.Resolve<Task<IRuntimeInfoProvider>>();
                         IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager);
                         return dockerEnvironmentProvider;
                     })

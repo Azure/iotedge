@@ -10,7 +10,7 @@ use serde_json;
 use edgelet_core::{Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleStatus};
 use management::models::*;
 
-use error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind};
 
 mod create;
 mod delete;
@@ -45,7 +45,7 @@ where
     let name = spec.name().to_string();
     let type_ = spec.type_().to_string();
     let env = spec.config().env().map_or_else(HashMap::new, |vars| {
-        vars.into_iter()
+        vars.iter()
             .map(|var| (var.key().clone(), var.value().clone()))
             .collect()
     });
@@ -94,8 +94,8 @@ pub mod tests {
     use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
     use management::models::ErrorResponse;
 
-    use error::{Error as MgmtError, ErrorKind};
-    use IntoResponse;
+    use crate::error::{Error as MgmtError, ErrorKind};
+    use crate::IntoResponse;
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub enum Error {

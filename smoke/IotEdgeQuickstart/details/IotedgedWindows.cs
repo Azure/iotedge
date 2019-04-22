@@ -15,16 +15,19 @@ namespace IotEdgeQuickstart.Details
     {
         const string ConfigYamlFile = @"C:\ProgramData\iotedge\config.yaml";
 
-        readonly string archivePath;
+        readonly string offlineInstallationPath;
         readonly Option<RegistryCredentials> credentials;
+        readonly TimeSpan iotEdgeServiceOperationWaitTime = TimeSpan.FromMinutes(5);
         readonly Option<string> proxy;
+        readonly Option<UpstreamProtocolType> upstreamProtocol;
         string scriptDir;
 
-        public IotedgedWindows(string archivePath, Option<RegistryCredentials> credentials, Option<string> proxy)
+        public IotedgedWindows(string offlineInstallationPath, Option<RegistryCredentials> credentials, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol)
         {
-            this.archivePath = archivePath;
+            this.offlineInstallationPath = offlineInstallationPath;
             this.credentials = credentials;
             this.proxy = proxy;
+            this.upstreamProtocol = upstreamProtocol;
         }
 
         public async Task VerifyNotActive()
@@ -108,23 +111,24 @@ namespace IotEdgeQuickstart.Details
 
         public async Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
-            Console.WriteLine($"Installing iotedged from {this.archivePath ?? "default location"}");
+            const string HidePowerShellProgressBar = "$ProgressPreference='SilentlyContinue'";
+
             Console.WriteLine($"Setting up iotedged with agent image '{image}'");
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
             {
-                if (!string.IsNullOrEmpty(this.archivePath))
+                if (!string.IsNullOrEmpty(this.offlineInstallationPath))
                 {
-                    this.scriptDir = File.GetAttributes(this.archivePath).HasFlag(FileAttributes.Directory)
-                        ? this.archivePath
-                        : new FileInfo(this.archivePath).DirectoryName;
+                    this.scriptDir = File.GetAttributes(this.offlineInstallationPath).HasFlag(FileAttributes.Directory)
+                        ? this.offlineInstallationPath
+                        : new FileInfo(this.offlineInstallationPath).DirectoryName;
                 }
                 else
                 {
                     this.scriptDir = Path.GetTempPath();
                     await Process.RunAsync(
                         "powershell",
-                        $"iwr -useb -o '{this.scriptDir}\\IotEdgeSecurityDaemon.ps1' aka.ms/iotedge-win",
+                        $"{HidePowerShellProgressBar}; Invoke-WebRequest -UseBasicParsing -OutFile '{this.scriptDir}\\IotEdgeSecurityDaemon.ps1' aka.ms/iotedge-win",
                         cts.Token);
                 }
 
@@ -133,9 +137,9 @@ namespace IotEdgeQuickstart.Details
 
                 this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
 
-                if (this.archivePath != null)
+                if (!string.IsNullOrEmpty(this.offlineInstallationPath))
                 {
-                    args += $" -ArchivePath '{this.archivePath}'";
+                    args += $" -OfflineInstallationPath '{this.offlineInstallationPath}'";
                 }
 
                 string commandForDebug = args;
@@ -147,14 +151,14 @@ namespace IotEdgeQuickstart.Details
 
                 // note: ignore hostname for now
                 Console.WriteLine($"Run command to configure: {commandForDebug}");
-                string[] result = await Process.RunAsync("powershell", args, cts.Token);
+                string[] result = await Process.RunAsync("powershell", $"{HidePowerShellProgressBar}; {args}", cts.Token);
                 WriteToConsole("Output from Configure iotedge windows service", result);
 
                 // Stop service and update config file
                 await Task.Delay(TimeSpan.FromSeconds(5));
                 await this.Stop();
 
-                UpdateConfigYamlFile(deviceCaCert, deviceCaPk, deviceCaCerts, runtimeLogLevel);
+                this.UpdateConfigYamlFile(deviceCaCert, deviceCaPk, deviceCaCerts, runtimeLogLevel);
 
                 // Explicitly set IOTEDGE_HOST environment variable to current process
                 SetEnvironmentVariable();
@@ -174,7 +178,7 @@ namespace IotEdgeQuickstart.Details
                 if (iotedgeService.Status != ServiceControllerStatus.Running)
                 {
                     iotedgeService.Start();
-                    iotedgeService.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromMinutes(2));
+                    iotedgeService.WaitForStatus(ServiceControllerStatus.Running, this.iotEdgeServiceOperationWaitTime);
                     iotedgeService.Refresh();
 
                     if (iotedgeService.Status != ServiceControllerStatus.Running)
@@ -212,7 +216,7 @@ namespace IotEdgeQuickstart.Details
                     if (iotedgeService.Status != ServiceControllerStatus.Stopped)
                     {
                         iotedgeService.Stop();
-                        iotedgeService.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromMinutes(2));
+                        iotedgeService.WaitForStatus(ServiceControllerStatus.Stopped, this.iotEdgeServiceOperationWaitTime);
                         iotedgeService.Refresh();
 
                         if (iotedgeService.Status != ServiceControllerStatus.Stopped)
@@ -242,7 +246,7 @@ namespace IotEdgeQuickstart.Details
 
         public Task Reset() => Task.CompletedTask;
 
-        static void UpdateConfigYamlFile(string deviceCaCert, string deviceCaPk, string trustBundleCerts, LogLevel runtimeLogLevel)
+        void UpdateConfigYamlFile(string deviceCaCert, string deviceCaPk, string trustBundleCerts, LogLevel runtimeLogLevel)
         {
             string config = File.ReadAllText(ConfigYamlFile);
             var doc = new YamlDocument(config);
@@ -254,6 +258,10 @@ namespace IotEdgeQuickstart.Details
                 doc.ReplaceOrAdd("certificates.device_ca_pk", deviceCaPk);
                 doc.ReplaceOrAdd("certificates.trusted_ca_certs", trustBundleCerts);
             }
+
+            this.proxy.ForEach(proxy => doc.ReplaceOrAdd("agent.env.https_proxy", proxy));
+
+            this.upstreamProtocol.ForEach(upstreamProtocol => doc.ReplaceOrAdd("agent.env.UpstreamProtocol", upstreamProtocol.ToString()));
 
             FileAttributes attr = 0;
             attr = File.GetAttributes(ConfigYamlFile);

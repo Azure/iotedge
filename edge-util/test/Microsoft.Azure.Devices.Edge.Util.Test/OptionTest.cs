@@ -23,6 +23,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             Option<string> maybeNotNull = Option.Maybe("boo");
             Assert.True(maybeNotNull.HasValue);
+
+            Option<int> maybeIntNull = Option.Maybe<int>(null);
+            Assert.False(maybeIntNull.HasValue);
+
+            int? nullableInt = 2;
+            Option<int> maybeIntNotNull = Option.Maybe(nullableInt);
+            Assert.True(maybeIntNotNull.HasValue);
         }
 
         [Fact]
@@ -102,8 +109,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             Assert.Equal(0, count);
 
-            Assert.Equal(1, some.ToEnumerable().Count());
-            Assert.Equal(0, none.ToEnumerable().Count());
+            int someCount = some.ToEnumerable().Count();
+            Assert.Equal(1, someCount);
+            int noneCount = none.ToEnumerable().Count();
+            Assert.Equal(0, noneCount);
         }
 
         [Fact]
@@ -168,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             Assert.Equal(3, some.OrDefault());
             Assert.Equal(0, none.OrDefault());
-            Assert.Equal(null, none2.OrDefault());
+            Assert.Null(none2.OrDefault());
         }
 
         [Fact]

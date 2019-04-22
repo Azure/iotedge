@@ -1,16 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
-
-extern crate edgelet_http;
-extern crate futures;
-extern crate hyper;
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
 
 use futures::{future, Future, Stream};
 use hyper::service::{NewService, Service};
@@ -20,11 +11,11 @@ use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
 use edgelet_http::Error as HttpError;
 use edgelet_http::Version;
 
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn route1(
     _req: Request<Body>,
     params: Parameters,
-) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
     let response = params.name("name").map_or_else(
         || {
             Response::builder()
@@ -42,11 +33,11 @@ fn route1(
     Box::new(future::ok(response))
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn route2(
     _req: Request<Body>,
     params: Parameters,
-) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
     let response = params.name("name").map_or_else(
         || {
             Response::builder()

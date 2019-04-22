@@ -1,5 +1,8 @@
 # Copyright (c) Microsoft. All rights reserved.
 
+New-Item -Type Directory -Force '~/.cargo/bin'
+$env:PATH += ";$(Resolve-Path '~/.cargo/bin')"
+
 function Test-RustUp
 {
     (get-command -Name rustup.exe -ErrorAction SilentlyContinue) -ne $null
@@ -35,7 +38,7 @@ function Assert-Rust
             Throw "Failed to download rustup with exit code $LastExitCode"
         }
 
-        Write-Host "Running rustup.exe"
+        Write-Host "Running rustup-init.exe"
         ./rustup-init.exe -y --default-toolchain stable-x86_64-pc-windows-msvc
         if ($LastExitCode)
         {

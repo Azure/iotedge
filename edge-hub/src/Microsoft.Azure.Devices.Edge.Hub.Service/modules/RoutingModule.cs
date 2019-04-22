@@ -22,7 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Shared;
-    using Microsoft.Extensions.Logging;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using Message = Microsoft.Azure.Devices.Client.Message;
 
@@ -47,6 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly Option<TimeSpan> minTwinSyncPeriod;
         readonly Option<TimeSpan> reportedPropertiesSyncFrequency;
         readonly bool useV1TwinManager;
+        readonly int maxUpstreamBatchSize;
+        readonly int upstreamFanOutFactor;
 
         public RoutingModule(
             string iotHubName,
@@ -67,7 +68,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             TimeSpan operationTimeout,
             Option<TimeSpan> minTwinSyncPeriod,
             Option<TimeSpan> reportedPropertiesSyncFrequency,
-            bool useV1TwinManager)
+            bool useV1TwinManager,
+            int maxUpstreamBatchSize,
+            int upstreamFanOutFactor)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -88,6 +91,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.minTwinSyncPeriod = minTwinSyncPeriod;
             this.reportedPropertiesSyncFrequency = reportedPropertiesSyncFrequency;
             this.useV1TwinManager = useV1TwinManager;
+            this.maxUpstreamBatchSize = maxUpstreamBatchSize;
+            this.upstreamFanOutFactor = upstreamFanOutFactor;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -240,7 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         var messageConverter = c.Resolve<Core.IMessageConverter<IRoutingMessage>>();
                         IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                        return new EndpointFactory(connectionManager, messageConverter, this.edgeDeviceId) as IEndpointFactory;
+                        return new EndpointFactory(connectionManager, messageConverter, this.edgeDeviceId, this.maxUpstreamBatchSize, this.upstreamFanOutFactor) as IEndpointFactory;
                     })
                 .As<Task<IEndpointFactory>>()
                 .SingleInstance();
@@ -436,6 +441,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<IInvokeMethodHandler>>()
                 .SingleInstance();
 
+            // Task<ISubscriptionProcessor>
+            builder.Register(
+                    async c =>
+                    {
+                        var invokeMethodHandlerTask = c.Resolve<Task<IInvokeMethodHandler>>();
+                        var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
+                        var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
+                        IConnectionManager connectionManager = await connectionManagerTask;
+                        IInvokeMethodHandler invokeMethodHandler = await invokeMethodHandlerTask;
+                        return new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager) as ISubscriptionProcessor;
+                    })
+                .As<Task<ISubscriptionProcessor>>()
+                .SingleInstance();
+
             // Task<IEdgeHub>
             builder.Register(
                     async c =>
@@ -445,11 +464,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var twinManagerTask = c.Resolve<Task<ITwinManager>>();
                         var invokeMethodHandlerTask = c.Resolve<Task<IInvokeMethodHandler>>();
                         var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
-                        var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
+                        var subscriptionProcessorTask = c.Resolve<Task<ISubscriptionProcessor>>();
                         Router router = await routerTask;
                         ITwinManager twinManager = await twinManagerTask;
                         IConnectionManager connectionManager = await connectionManagerTask;
                         IInvokeMethodHandler invokeMethodHandler = await invokeMethodHandlerTask;
+                        ISubscriptionProcessor subscriptionProcessor = await subscriptionProcessorTask;
                         IEdgeHub hub = new RoutingEdgeHub(
                             router,
                             routingMessageConverter,
@@ -457,7 +477,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             twinManager,
                             this.edgeDeviceId,
                             invokeMethodHandler,
-                            deviceConnectivityManager);
+                            subscriptionProcessor);
                         return hub;
                     })
                 .As<Task<IEdgeHub>>()

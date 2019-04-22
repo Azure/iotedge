@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             // Assert
             Assert.NotNull(receivedMessage);
             Assert.Equal(messageToSend, receivedMessage);
-            Assert.Equal(systemProperties[SystemProperties.To], "/devices/d1");
+            Assert.Equal("/devices/d1", systemProperties[SystemProperties.To]);
         }
 
         [Fact]
@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             // Assert
             Assert.NotNull(receivedMessage);
             Assert.Equal(messageToSend, receivedMessage);
-            Assert.Equal(systemProperties[SystemProperties.InputName], "i1");
+            Assert.Equal("i1", systemProperties[SystemProperties.InputName]);
         }
 
         [Fact]

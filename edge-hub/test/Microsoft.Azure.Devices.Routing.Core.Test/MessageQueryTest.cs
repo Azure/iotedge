@@ -110,20 +110,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 new QueryValue(50, QueryValueType.Double),
                 BodyQueryMessageUtf32ValidJson.GetQueryValue("message.Weather.Temperature"));
 
-            Assert.Throws(
-                typeof(JsonReaderException),
+            Assert.Throws<JsonReaderException>(
                 () => BodyQueryMessageUtf8InvalidJson.GetQueryValue("message.Weather.Temperature"));
 
-            Assert.Throws(
-                typeof(JsonReaderException),
+            Assert.Throws<JsonReaderException>(
                 () => BodyQueryMessageInvalidEncoding.GetQueryValue("message.Weather.Temperature"));
 
-            Assert.Throws(
-                typeof(InvalidOperationException),
+            Assert.Throws<InvalidOperationException>(
                 () => BodyQueryMessageUtf8ValidJsonMissingEncodingProperty.GetQueryValue("message.Weather.Temperature"));
 
-            Assert.Throws(
-                typeof(InvalidOperationException),
+            Assert.Throws<InvalidOperationException>(
                 () => BodyQueryMessageUtf8ValidJsonMissingContentTypeProperty.GetQueryValue("message.Weather.Temperature"));
         }
     }

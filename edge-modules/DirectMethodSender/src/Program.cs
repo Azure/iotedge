@@ -2,24 +2,26 @@
 namespace DirectMethodSender
 {
     using System;
-    using System.Globalization;
     using System.IO;
     using System.Net;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
 
     class Program
     {
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("DirectMethodSender");
+
         public static int Main() => MainAsync().Result;
 
         static async Task<int> MainAsync()
         {
-            Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt", CultureInfo.InvariantCulture)}] Main()");
+            Logger.LogInformation("DirectMethodSender Main() started.");
 
             IConfiguration configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
@@ -27,92 +29,57 @@ namespace DirectMethodSender
                 .AddEnvironmentVariables()
                 .Build();
 
-            TimeSpan dmDelay = configuration.GetValue("DMDelay", TimeSpan.FromSeconds(5));
-
-            string targetModuleId = configuration.GetValue("TargetModuleId", "DirectMethodReceiver");
-
-            // Get deviced id of this device, exposed as a system variable by the iot edge runtime
+            TimeSpan dmDelay = configuration.GetValue("DirectMethodDelay", TimeSpan.FromSeconds(5));
+            // Get device id of this device, exposed as a system variable by the iot edge runtime
             string targetDeviceId = configuration.GetValue<string>("IOTEDGE_DEVICEID");
-
+            string targetModuleId = configuration.GetValue("TargetModuleId", "DirectMethodReceiver");
             TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
-            Console.WriteLine($"Using transport {transportType.ToString()}");
 
-            ModuleClient moduleClient = await InitModuleClient(transportType);
+            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                transportType,
+                ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                ModuleUtil.DefaultTransientRetryStrategy,
+                Logger);
 
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
-                = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
-            Console.WriteLine($"Target device Id = [{targetDeviceId}], Target module Id = [{targetModuleId}]");
-            await CallDirectMethod(moduleClient, dmDelay, targetDeviceId, targetModuleId, cts).ConfigureAwait(false);
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
+
+            await CallDirectMethod(moduleClient, dmDelay, targetDeviceId, targetModuleId, cts);
             await moduleClient.CloseAsync();
+
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
+            Logger.LogInformation("DirectMethodSender Main() finished.");
             return 0;
         }
 
-        static async Task<ModuleClient> InitModuleClient(TransportType transportType)
-        {
-            ITransportSettings[] GetTransportSettings()
-            {
-                switch (transportType)
-                {
-                    case TransportType.Mqtt:
-                    case TransportType.Mqtt_Tcp_Only:
-                    case TransportType.Mqtt_WebSocket_Only:
-                        return new ITransportSettings[] { new MqttTransportSettings(transportType) };
-                    default:
-                        return new ITransportSettings[] { new AmqpTransportSettings(transportType) };
-                }
-            }
-
-            ITransportSettings[] settings = GetTransportSettings();
-
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);
-            await moduleClient.OpenAsync().ConfigureAwait(false);
-
-            Console.WriteLine("Successfully initialized module client.");
-            return moduleClient;
-        }
-
-        /// <summary>
-        /// Module behavior:
-        ///        Call HelloWorld Direct Method every 5 seconds.
-        /// </summary>
-        /// <param name="moduleClient"></param>
-        /// <param name="dmDelay"></param>
-        /// <param name="targetModuleId"></param>
-        /// <param name="cts"></param>
-        /// <param name="targetDeviceId"></param>
-        /// <returns></returns>
         static async Task CallDirectMethod(
             ModuleClient moduleClient,
-            TimeSpan dmDelay,
-            string targetDeviceId,
-            string targetModuleId,
+            TimeSpan delay,
+            string deviceId,
+            string moduleId,
             CancellationTokenSource cts)
         {
+            var request = new MethodRequest("HelloWorldMethod", Encoding.UTF8.GetBytes("{ \"Message\": \"Hello\" }"));
+
             while (!cts.Token.IsCancellationRequested)
             {
-                Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Calling Direct Method on module.");
-
-                // Create the request
-                var request = new MethodRequest("HelloWorldMethod", Encoding.UTF8.GetBytes("{ \"Message\": \"Hello\" }"));
+                Logger.LogInformation($"Calling Direct Method on device [{deviceId}] module [{moduleId}].");
 
                 try
                 {
-                    // Ignore Exception. Keep trying.
-                    MethodResponse response = await moduleClient.InvokeMethodAsync(targetDeviceId, targetModuleId, request);
+                    MethodResponse response = await moduleClient.InvokeMethodAsync(deviceId, moduleId, request);
 
                     if (response.Status == (int)HttpStatusCode.OK)
                     {
-                        await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Method Call succeeded.")));
+                        await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method Call succeeded.")));
                     }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
+                    Logger.LogError($"Exception caught: {e}");
                 }
 
-                await Task.Delay(dmDelay, cts.Token).ConfigureAwait(false);
+                await Task.Delay(delay, cts.Token);
             }
         }
     }

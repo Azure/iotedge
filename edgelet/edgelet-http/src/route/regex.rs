@@ -7,9 +7,9 @@ use std::default::Default;
 use hyper::{Method, StatusCode};
 use percent_encoding::percent_decode;
 use regex::Regex;
-use version::Version;
 
 use super::{Builder, Handler, HandlerParamsPair, Recognizer};
+use crate::version::Version;
 
 pub trait IntoCaptures {
     fn into_captures(self) -> Vec<(Option<String>, String)>;
@@ -66,7 +66,7 @@ impl Default for Parameters {
 
 struct RegexRoute {
     pattern: Regex,
-    handler: Box<Handler<Parameters> + Sync>,
+    handler: Box<dyn Handler<Parameters> + Sync>,
     version: Version,
 }
 
@@ -116,7 +116,7 @@ impl Recognizer for RegexRecognizer {
         method: &Method,
         api_version: Version,
         path: &str,
-    ) -> Result<HandlerParamsPair<Self::Parameters>, StatusCode> {
+    ) -> Result<HandlerParamsPair<'_, Self::Parameters>, StatusCode> {
         let routes = self.routes.get(method).ok_or(StatusCode::NOT_FOUND)?;
         for route in routes {
             if api_version >= route.version {
@@ -141,18 +141,18 @@ fn match_route(re: &Regex, path: &str) -> Option<Parameters> {
                     || cap.get(i).expect("missing capture").as_str().to_owned(),
                     |v| v.to_string(),
                 );
-            captures.push((name.map(|s| s.to_owned()), val));
+            captures.push((name.map(ToOwned::to_owned), val));
         }
         Parameters { captures }
     })
 }
 
-fn normalize_pattern(pattern: &str) -> Cow<str> {
+fn normalize_pattern(pattern: &str) -> Cow<'_, str> {
     let pattern = pattern
         .trim()
-        .trim_left_matches('^')
-        .trim_right_matches('$')
-        .trim_right_matches('/');
+        .trim_start_matches('^')
+        .trim_end_matches('$')
+        .trim_end_matches('/');
     match pattern {
         "" => "^/$".into(),
         s => format!("^{}/?$", s).into(),

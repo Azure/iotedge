@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 PartitionReceiver partitionReceiver = this.eventHubClient.CreateReceiver(
                     PartitionReceiver.DefaultConsumerGroupName,
                     partition,
-                    startTime);
+                    EventPosition.FromEnqueuedTime(startTime));
 
                 // Retry a few times to make sure we get all expected messages.
                 for (int i = 0; i < 3; i++)

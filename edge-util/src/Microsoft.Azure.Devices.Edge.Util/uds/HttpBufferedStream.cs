@@ -59,8 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
             var builder = new StringBuilder();
             while (true)
             {
-                int length = await this.innerStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
-                    .ConfigureAwait(false);
+                int length = await this.innerStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
 
                 if (length == 0)
                 {

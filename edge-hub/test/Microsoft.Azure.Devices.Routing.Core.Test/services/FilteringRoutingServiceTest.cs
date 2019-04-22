@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Services
             underlying.Verify(s => s.RouteAsync("hub2", new[] { Message2 }), Times.Once);
 
             // change hub1
-            underlying.ResetCalls();
+            underlying.Invocations.Clear();
             store.Setup(s => s.GetRouterConfigAsync("hub1", It.IsAny<CancellationToken>())).ReturnsAsync(new RouterConfig(AllEndpoints, new[] { Route2 }, Option.None<Route>()));
             await notifier.Change("hub1");
 
@@ -123,7 +123,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Services
             underlying.Verify(s => s.RouteAsync("hub2", new[] { Message2 }), Times.Once);
 
             // change hub2
-            underlying.ResetCalls();
+            underlying.Invocations.Clear();
             store.Setup(s => s.GetRouterConfigAsync("hub2", It.IsAny<CancellationToken>())).ReturnsAsync(new RouterConfig(AllEndpoints, new[] { Route3 }, Option.None<Route>()));
             await notifier.Change("hub2");
 

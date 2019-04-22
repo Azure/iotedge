@@ -33,6 +33,8 @@ check_arch()
         ARCH="amd64"
     elif [ "$ARCH" == "armv7l" ]; then
         ARCH="arm32v7"
+    elif [ "$ARCH" == "aarch64" ]; then
+        ARCH="arm64v8"
     else
         echo "Unsupported architecture"
         exit 1
@@ -261,7 +263,7 @@ docker_build_and_tag_and_push \
     "$ARCH" \
     "$DOCKERFILE" \
     "$PUBLISH_DIR/$PROJECT" \
-    "${build_args[@]/#/--build-arg buildno=$BUILD_BUILDNUMBER --build-arg }"
+    "${build_args[@]/#/--build-arg }"
 [ $? -eq 0 ] || exit $?
 
 echo "Done building and pushing Docker image $DOCKER_IMAGENAME for $PROJECT"

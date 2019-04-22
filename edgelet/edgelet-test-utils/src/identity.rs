@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use failure::Fail;
 use futures::future::{self, FutureResult, IntoFuture};
+use serde_derive::{Deserialize, Serialize};
 
 use edgelet_core::{AuthType, Identity, IdentityManager, IdentitySpec};
 

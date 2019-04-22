@@ -67,6 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             return Task.CompletedTask;
         }
 
+        public Task PrepareUpdateModuleAsync(string api_version, string name, ModuleSpec module) => Task.CompletedTask;
+
         public Task<ModuleDetails> GetModuleAsync(string apiVersion, string name)
         {
             if (!this.modules.TryGetValue(name, out ModuleDetails module))
@@ -130,7 +132,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
                 throw new InvalidOperationException("Module not found");
             }
 
-            this.modules[module.Name] = GetModuleDetails(module);
+            var moduleDetails = GetModuleDetails(module);
+            if (start)
+            {
+                moduleDetails.Status.RuntimeStatus.Status = "Running";
+            }
+
+            this.modules[module.Name] = moduleDetails;
             return Task.FromResult(this.modules[module.Name]);
         }
 

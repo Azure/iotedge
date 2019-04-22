@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -60,14 +61,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
                 if (!moduleSet.Modules.TryGetValue(dockerRuntimeInfo.Name, out IModule configModule) || !(configModule is DockerModule dockerModule))
                 {
-                    dockerModule = new DockerModule(dockerRuntimeInfo.Name, string.Empty, ModuleStatus.Unknown, RestartPolicy.Unknown, new DockerConfig(string.Empty), new ConfigurationInfo(), null);
+                    dockerModule = new DockerModule(dockerRuntimeInfo.Name, string.Empty, ModuleStatus.Unknown, Core.RestartPolicy.Unknown, new DockerConfig(Constants.UnknownImage, new CreateContainerParameters()), new ConfigurationInfo(), null);
                 }
 
                 Option<ModuleState> moduleStateOption = await this.moduleStateStore.Get(moduleRuntimeInfo.Name);
                 ModuleState moduleState = moduleStateOption.GetOrElse(new ModuleState(0, moduleRuntimeInfo.ExitTime.GetOrElse(DateTime.MinValue)));
                 // compute module state based on restart policy
                 DateTime lastExitTime = moduleRuntimeInfo.ExitTime.GetOrElse(DateTime.MinValue);
-                ModuleStatus moduleRuntimeStatus = this.restartManager.ComputeModuleStatusFromRestartPolicy(moduleRuntimeInfo.ModuleStatus, dockerModule.RestartPolicy, moduleState.RestartCount, lastExitTime);
+                ModuleStatus moduleRuntimeStatus = dockerModule.DesiredStatus == ModuleStatus.Running
+                    ? this.restartManager.ComputeModuleStatusFromRestartPolicy(moduleRuntimeInfo.ModuleStatus, dockerModule.RestartPolicy, moduleState.RestartCount, lastExitTime)
+                    : moduleRuntimeInfo.ModuleStatus;
+
                 string image = !string.IsNullOrWhiteSpace(dockerRuntimeInfo.Config.Image) ? dockerRuntimeInfo.Config.Image : dockerModule.Config.Image;
                 var dockerReportedConfig = new DockerReportedConfig(image, dockerModule.Config.CreateOptions, dockerRuntimeInfo.Config.ImageHash);
                 IModule module;

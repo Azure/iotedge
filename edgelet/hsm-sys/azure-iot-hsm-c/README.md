@@ -31,6 +31,39 @@ tools/hsm_validator/hsm_validation_runner
 # On Windows: tools\hsm_validator\Debug\hsm_validation_runner.exe
 ```
 
+## Developer Notes
+
+Listed below are the instructions to build and validate the Edge HSM library implementation.
+The code style, guidelines and test framework have been adapted from
+https://github.com/Azure/azure-iot-sdk-c
+
+```
+cd $PWD
+mkdir build
+cd build
+```
+
+### Run the unit tests and in memory HSM tests
+To facilitate integration tests, an in memory HSM implementation provides a minimal implementation without the use of a hardware TPM. Cmake flag USE_TEST_TPM_INTERFACE_IN_MEM controls if this should be enabled or not.
+This flag should only be set to ON for testing and not for release variants of the HSM library. If USE_TEST_TPM_INTERFACE_IN_MEM is OFF the default implementation will use the hardware TPM.
+
+```
+- Static library variant
+cmake -Drun_unittests=ON -DUSE_TEST_TPM_INTERFACE_IN_MEM=ON -Duse_cppunittest=OFF ..
+cmake --build .
+ctest
+
+- Shared library variant
+cmake -Drun_unittests=ON -DUSE_TEST_TPM_INTERFACE_IN_MEM=ON -DBUILD_SHARED=ON -Duse_cppunittest=OFF ..
+cmake --build .
+ctest
+
+- Enable valgrind (applicable only to Linux/Unix)
+cmake -Drun_unittests=ON -DUSE_TEST_TPM_INTERFACE_IN_MEM=ON -Drun_valgrind=ON -Duse_cppunittest=OFF ..
+cmake --build .
+ctest
+```
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a

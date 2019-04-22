@@ -18,9 +18,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Unit]
         public void TestCheckNotNull()
         {
-            Assert.Throws(typeof(ArgumentNullException), () => Preconditions.CheckNotNull<string>(null, "param"));
-            Assert.Throws(typeof(ArgumentNullException), () => Preconditions.CheckNotNull<string>(null, "param", "message"));
-            Assert.Throws(typeof(ArgumentNullException), () => Preconditions.CheckNotNull<string>(null));
+            Assert.Throws<ArgumentNullException>(() => Preconditions.CheckNotNull<string>(null, "param"));
+            Assert.Throws<ArgumentNullException>(() => Preconditions.CheckNotNull<string>(null, "param", "message"));
+            Assert.Throws<ArgumentNullException>(() => Preconditions.CheckNotNull<string>(null));
 
             string message = Preconditions.CheckNotNull("my message");
             Assert.Equal("my message", message);
@@ -36,8 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Unit]
         public void TestCheckArgument()
         {
-            Assert.Throws(typeof(ArgumentException), () => Preconditions.CheckArgument(false));
-            Assert.Throws(typeof(ArgumentException), () => Preconditions.CheckArgument(false, "message"));
+            Assert.Throws<ArgumentException>(() => Preconditions.CheckArgument(false));
+            Assert.Throws<ArgumentException>(() => Preconditions.CheckArgument(false, "message"));
             Preconditions.CheckArgument(true);
         }
 
@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.Equal(MyEnum.Value1, Preconditions.CheckIsDefined(MyEnum.Value1));
             Assert.Equal(MyEnum.Value2, Preconditions.CheckIsDefined(MyEnum.Value2));
             Assert.Equal(MyEnum.Value3, Preconditions.CheckIsDefined(MyEnum.Value3));
-            Assert.Throws(typeof(ArgumentOutOfRangeException), () => Preconditions.CheckIsDefined((MyEnum)int.MaxValue));
+            Assert.Throws<ArgumentOutOfRangeException>(() => Preconditions.CheckIsDefined((MyEnum)int.MaxValue));
         }
 
         [Fact]

@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Net;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Exceptions;
@@ -24,11 +25,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
 
-        readonly Client.ModuleClient deviceClient;
+        readonly Client.ModuleClient moduleClient;
 
-        ModuleClient(Client.ModuleClient deviceClient)
+        ModuleClient(Client.ModuleClient moduleClient)
         {
-            this.deviceClient = deviceClient;
+            this.moduleClient = moduleClient;
         }
 
         public static Task<IModuleClient> Create(
@@ -41,16 +42,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             Create(upstreamProtocol, initialize, u => CreateAndOpenDeviceClient(u, connectionString, statusChangedHandler, proxy, productInfo));
 
         public Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyChanged) =>
-            this.deviceClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged, null);
+            this.moduleClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged, null);
 
         public Task SetMethodHandlerAsync(string methodName, MethodCallback callback) =>
-            this.deviceClient.SetMethodHandlerAsync(methodName, callback, null);
+            this.moduleClient.SetMethodHandlerAsync(methodName, callback, null);
 
-        public void Dispose() => this.deviceClient.Dispose();
+        public Task SetDefaultMethodHandlerAsync(MethodCallback callback) =>
+            this.moduleClient.SetMethodDefaultHandlerAsync(callback, null);
 
-        public Task<Twin> GetTwinAsync() => this.deviceClient.GetTwinAsync();
+        public void Dispose() => this.moduleClient.Dispose();
 
-        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) => this.deviceClient.UpdateReportedPropertiesAsync(reportedProperties);
+        public Task<Twin> GetTwinAsync() => this.moduleClient.GetTwinAsync();
+
+        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties)
+            => this.moduleClient.UpdateReportedPropertiesAsync(reportedProperties);
+
+        public Task<DeviceStreamRequest> WaitForDeviceStreamRequestAsync(CancellationToken cancellationToken)
+            => this.moduleClient.WaitForDeviceStreamRequestAsync(cancellationToken);
+
+        public async Task<IClientWebSocket> AcceptDeviceStreamingRequestAndConnect(DeviceStreamRequest deviceStreamRequest, CancellationToken cancellationToken)
+        {
+            await this.moduleClient.AcceptDeviceStreamRequestAsync(deviceStreamRequest, cancellationToken);
+            return await EdgeClientWebSocket.Connect(deviceStreamRequest.Url, deviceStreamRequest.AuthorizationToken, cancellationToken);
+        }
 
         internal static Task<Client.ModuleClient> CreateDeviceClientForUpstreamProtocol(
             Option<UpstreamProtocol> upstreamProtocol,

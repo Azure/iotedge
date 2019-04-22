@@ -129,7 +129,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 .Map(s => TimeSpan.FromSeconds(s));
             bool useV1TwinManager = this.GetConfigurationValueIfExists<string>("TwinManagerVersion")
                 .Map(v => v.Equals("v1", StringComparison.OrdinalIgnoreCase))
-                .GetOrElse(true);
+                .GetOrElse(false);
+            int maxUpstreamBatchSize = this.configuration.GetValue("MaxUpstreamBatchSize", 10);
+            int upstreamFanOutFactor = this.configuration.GetValue("UpstreamFanOutFactor", 10);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -151,7 +153,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     cloudOperationTimeout,
                     minTwinSyncPeriod,
                     reportedPropertiesSyncFrequency,
-                    useV1TwinManager));
+                    useV1TwinManager,
+                    maxUpstreamBatchSize,
+                    upstreamFanOutFactor));
         }
 
         void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)
@@ -159,6 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             string productInfo = VersionInfo.Get(Constants.VersionInfoFileName).ToString();
             bool cacheTokens = this.configuration.GetValue("CacheTokens", false);
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
+            Option<string> workloadApiVersion = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadAPiVersion);
             Option<string> moduleGenerationId = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.ModuleGenerationId);
 
             if (!Enum.TryParse(this.configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
@@ -186,6 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     storeAndForward.usePersistentStorage,
                     storeAndForward.storagePath,
                     workloadUri,
+                    workloadApiVersion,
                     scopeCacheRefreshRate,
                     cacheTokens,
                     this.trustBundle,

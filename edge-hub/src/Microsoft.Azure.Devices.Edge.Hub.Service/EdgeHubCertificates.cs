@@ -47,11 +47,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 string edgeHubHostname = configuration.GetValue<string>(Constants.ConfigKey.EdgeDeviceHostName);
                 string moduleId = configuration.GetValue<string>(Constants.ConfigKey.ModuleId);
                 string generationId = configuration.GetValue<string>(Constants.ConfigKey.ModuleGenerationId);
+                string edgeletApiVersion = configuration.GetValue<string>(Constants.ConfigKey.WorkloadAPiVersion);
                 DateTime expiration = DateTime.UtcNow.AddDays(Constants.CertificateValidityDays);
 
-                certificates = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, Constants.WorkloadApiVersion, moduleId, generationId, edgeHubHostname, expiration);
+                certificates = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId, edgeHubHostname, expiration);
                 InstallCertificates(certificates.CertificateChain);
-                IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(workloadUri, Constants.WorkloadApiVersion, moduleId, generationId);
+                IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId);
 
                 result = new EdgeHubCertificates(
                     certificates.ServerCertificate,

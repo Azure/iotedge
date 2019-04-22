@@ -62,8 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
         {
             var httpResponse = new HttpResponseMessage();
 
-            await this.SetResponseStatusLine(httpResponse, bufferedStream, cancellationToken).ConfigureAwait(false);
-            await this.SetHeadersAndContent(httpResponse, bufferedStream, cancellationToken).ConfigureAwait(false);
+            await this.SetResponseStatusLine(httpResponse, bufferedStream, cancellationToken);
+            await this.SetHeadersAndContent(httpResponse, bufferedStream, cancellationToken);
 
             return httpResponse;
         }
@@ -71,14 +71,15 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
         async Task SetHeadersAndContent(HttpResponseMessage httpResponse, HttpBufferedStream bufferedStream, CancellationToken cancellationToken)
         {
             IList<string> headers = new List<string>();
-            string line = await bufferedStream.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+            string line = await bufferedStream.ReadLineAsync(cancellationToken);
             while (!string.IsNullOrWhiteSpace(line))
             {
                 headers.Add(line);
-                line = await bufferedStream.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                line = await bufferedStream.ReadLineAsync(cancellationToken);
             }
 
             httpResponse.Content = new StreamContent(bufferedStream);
+            var contentHeaders = new Dictionary<string, string>();
             foreach (string header in headers)
             {
                 if (string.IsNullOrWhiteSpace(header))
@@ -99,24 +100,35 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
                 bool headerAdded = httpResponse.Headers.TryAddWithoutValidation(headerName, headerValue);
                 if (!headerAdded)
                 {
-                    if (string.Equals(headerName, ContentLengthHeaderName, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        if (!long.TryParse(headerValue, out long contentLength))
-                        {
-                            throw new HttpRequestException($"Header value is invalid for {headerName}.");
-                        }
+                    contentHeaders.Add(headerName, headerValue);
+                }
+            }
 
-                        await httpResponse.Content.LoadIntoBufferAsync(contentLength).ConfigureAwait(false);
+            bool isChunked = httpResponse.Headers.TransferEncodingChunked.HasValue
+                             && httpResponse.Headers.TransferEncodingChunked.Value;
+
+            httpResponse.Content = isChunked
+                    ? new StreamContent(new HttpChunkedStreamReader(bufferedStream))
+                    : new StreamContent(bufferedStream);
+
+            foreach (KeyValuePair<string, string> contentHeader in contentHeaders)
+            {
+                httpResponse.Content.Headers.TryAddWithoutValidation(contentHeader.Key, contentHeader.Value);
+                if (string.Equals(contentHeader.Key, ContentLengthHeaderName, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    if (!long.TryParse(contentHeader.Value, out long contentLength))
+                    {
+                        throw new HttpRequestException($"Header value {contentHeader.Value} is invalid for {ContentLengthHeaderName}.");
                     }
 
-                    httpResponse.Content.Headers.TryAddWithoutValidation(headerName, headerValue);
+                    await httpResponse.Content.LoadIntoBufferAsync(contentLength);
                 }
             }
         }
 
         async Task SetResponseStatusLine(HttpResponseMessage httpResponse, HttpBufferedStream bufferedStream, CancellationToken cancellationToken)
         {
-            string statusLine = await bufferedStream.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+            string statusLine = await bufferedStream.ReadLineAsync(cancellationToken);
             if (string.IsNullOrWhiteSpace(statusLine))
             {
                 throw new HttpRequestException("Response is empty.");
@@ -136,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
 
             httpResponse.Version = versionNumber;
 
-            if (!Enum.TryParse(statusLineParts[1], out HttpStatusCode statusCode))
+            if (!Enum.TryParse(statusLineParts[1], out HttpStatusCode statusCode) || !Enum.IsDefined(typeof(HttpStatusCode), statusCode))
             {
                 throw new HttpRequestException($"StatusCode is not valid {statusLineParts[1]}.");
             }

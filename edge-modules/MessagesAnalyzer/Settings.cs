@@ -17,7 +17,7 @@ namespace MessagesAnalyzer
         const string DefaultWebhostPort = "5001";
         const double DefaultToleranceInMilliseconds = 1000 * 60;
 
-        static readonly Lazy<Settings> setting = new Lazy<Settings>(
+        static readonly Lazy<Settings> Setting = new Lazy<Settings>(
             () =>
             {
                 IConfiguration configuration = new ConfigurationBuilder()
@@ -45,7 +45,7 @@ namespace MessagesAnalyzer
             this.ToleranceInMilliseconds = tolerance;
         }
 
-        public static Settings Current => setting.Value;
+        public static Settings Current => Setting.Value;
 
         public string EventHubConnectionString { get; }
 

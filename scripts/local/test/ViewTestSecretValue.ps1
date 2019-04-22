@@ -1,4 +1,7 @@
-﻿Param([Parameter(Mandatory=$true)] [string]$SecretName)
+﻿## Copyright (c) Microsoft. All rights reserved.
+
+Param([Parameter(Mandatory=$true)] [string]$SecretName,
+      [string]$OutputFilePath=$NULL)
 
 . .\Login.ps1
 Login
@@ -10,9 +13,17 @@ $secret = Get-AzureKeyVaultSecret -VaultName $vaultName -Name $SecretName
 
 if ($secret)
 {
-    Write-Host Secret $SecretName value $secret.SecretValueText -foregroundcolor "green"
+    if ($NULL -ne $OutputFilePath)
+    {
+        Set-Content -Path $OutputFilePath -Value $secret.SecretValueText
+        Write-Host Secret $SecretName output to file $OutputFilePath -foregroundcolor "green"
+    }
+    else
+    {
+        Write-Host Secret $SecretName value $secret.SecretValueText -foregroundcolor "green"
+    }
 }
-else 
+else
 {
     Write-Host Secret $SecretName does not exist. -foregroundcolor "red"
 }

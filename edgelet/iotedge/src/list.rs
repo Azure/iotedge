@@ -12,8 +12,8 @@ use tabwriter::TabWriter;
 
 use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, ModuleStatus};
 
-use error::{Error, ErrorKind};
-use Command;
+use crate::error::{Error, ErrorKind};
+use crate::Command;
 
 pub struct List<M, W> {
     runtime: M,
@@ -40,7 +40,7 @@ where
     M::Config: Display,
     W: 'static + Write + Send,
 {
-    type Future = Box<Future<Item = (), Error = Error> + Send>;
+    type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
 
     fn execute(&mut self) -> Self::Future {
         let write = self.output.clone();

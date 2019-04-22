@@ -1,29 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
-
-extern crate edgelet_http;
-extern crate edgelet_test_utils;
-extern crate futures;
-extern crate hyper;
-#[cfg(windows)]
-extern crate hyper_named_pipe;
-#[cfg(unix)]
-extern crate hyperlocal;
-#[cfg(windows)]
-extern crate hyperlocal_windows;
-#[cfg(windows)]
-extern crate rand;
-extern crate tempdir;
-extern crate tokio;
-extern crate typed_headers;
-extern crate url;
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
 
 use std::io;
 
@@ -128,6 +106,7 @@ fn make_url(path: &str) -> String {
 }
 
 #[cfg(windows)]
+#[allow(clippy::needless_pass_by_value)]
 fn pipe_get_handler(_req: Request<Body>) -> impl Future<Item = Response<Body>, Error = io::Error> {
     let response = Response::builder()
         .header(hyper::header::CONTENT_TYPE, "text/plain; charset=utf-8")
@@ -172,7 +151,7 @@ const POST_BODY: &str = r#"{"donuts":"yes"}"#;
 
 fn post_handler(
     req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = HyperError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> {
     // verify that the request body is what we expect
     Box::new(
         req.into_body()

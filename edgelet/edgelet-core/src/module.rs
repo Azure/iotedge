@@ -11,12 +11,13 @@ use std::time::Duration;
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
-use pid::Pid;
+use serde_derive::{Deserialize, Serialize};
 use serde_json;
 
 use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};
 
-use error::{Error, ErrorKind, Result};
+use crate::error::{Error, ErrorKind, Result};
+use crate::pid::Pid;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -36,7 +37,7 @@ impl FromStr for ModuleStatus {
 }
 
 impl fmt::Display for ModuleStatus {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             formatter,
             "{}",
@@ -266,6 +267,7 @@ impl ToString for LogTail {
 pub struct LogOptions {
     follow: bool,
     tail: LogTail,
+    since: i32,
 }
 
 impl LogOptions {
@@ -273,6 +275,7 @@ impl LogOptions {
         LogOptions {
             follow: false,
             tail: LogTail::All,
+            since: 0,
         }
     }
 
@@ -286,12 +289,21 @@ impl LogOptions {
         self
     }
 
+    pub fn with_since(mut self, since: i32) -> Self {
+        self.since = since;
+        self
+    }
+
     pub fn follow(&self) -> bool {
         self.follow
     }
 
     pub fn tail(&self) -> &LogTail {
         &self.tail
+    }
+
+    pub fn since(&self) -> i32 {
+        self.since
     }
 }
 
@@ -331,7 +343,7 @@ impl SystemInfo {
         SystemInfo {
             os_type,
             architecture,
-            version: super::version(),
+            version: super::version_with_source_version(),
         }
     }
 
@@ -348,6 +360,28 @@ impl SystemInfo {
     }
 }
 
+#[derive(Debug)]
+pub struct ModuleTop {
+    /// Name of the module. Example: tempSensor
+    name: String,
+    /// A vector of process IDs (PIDs) representing a snapshot of all processes running inside the module.
+    process_ids: Vec<Pid>,
+}
+
+impl ModuleTop {
+    pub fn new(name: String, process_ids: Vec<Pid>) -> Self {
+        ModuleTop { name, process_ids }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn process_ids(&self) -> &[Pid] {
+        &self.process_ids
+    }
+}
+
 pub trait ModuleRuntime {
     type Error: Fail;
 
@@ -358,6 +392,7 @@ pub trait ModuleRuntime {
     type Logs: Stream<Item = Self::Chunk, Error = Self::Error> + Send;
 
     type CreateFuture: Future<Item = (), Error = Self::Error> + Send;
+    type GetFuture: Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send;
     type InitFuture: Future<Item = (), Error = Self::Error> + Send;
     type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error> + Send;
     type ListWithDetailsStream: Stream<
@@ -371,9 +406,11 @@ pub trait ModuleRuntime {
     type StopFuture: Future<Item = (), Error = Self::Error> + Send;
     type SystemInfoFuture: Future<Item = SystemInfo, Error = Self::Error> + Send;
     type RemoveAllFuture: Future<Item = (), Error = Self::Error> + Send;
+    type TopFuture: Future<Item = ModuleTop, Error = Self::Error> + Send;
 
     fn init(&self) -> Self::InitFuture;
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
+    fn get(&self, id: &str) -> Self::GetFuture;
     fn start(&self, id: &str) -> Self::StartFuture;
     fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Self::StopFuture;
     fn restart(&self, id: &str) -> Self::RestartFuture;
@@ -384,6 +421,7 @@ pub trait ModuleRuntime {
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture;
     fn registry(&self) -> &Self::ModuleRegistry;
     fn remove_all(&self) -> Self::RemoveAllFuture;
+    fn top(&self, id: &str) -> Self::TopFuture;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -399,7 +437,7 @@ pub enum ModuleOperation {
 }
 
 impl fmt::Display for ModuleOperation {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ModuleOperation::RuntimeState => write!(f, "Could not query module runtime state"),
         }
@@ -414,7 +452,7 @@ pub enum RegistryOperation {
 }
 
 impl fmt::Display for RegistryOperation {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             RegistryOperation::PullImage(name) => write!(f, "Could not pull image {}", name),
             RegistryOperation::RemoveImage(name) => write!(f, "Could not remove image {}", name),
@@ -426,6 +464,7 @@ impl fmt::Display for RegistryOperation {
 #[derive(Clone, Debug)]
 pub enum RuntimeOperation {
     CreateModule(String),
+    GetModule(String),
     GetModuleLogs(String),
     Init,
     ListModules,
@@ -434,12 +473,14 @@ pub enum RuntimeOperation {
     StartModule(String),
     StopModule(String),
     SystemInfo,
+    TopModule(String),
 }
 
 impl fmt::Display for RuntimeOperation {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             RuntimeOperation::CreateModule(name) => write!(f, "Could not create module {}", name),
+            RuntimeOperation::GetModule(name) => write!(f, "Could not get module {}", name),
             RuntimeOperation::GetModuleLogs(name) => {
                 write!(f, "Could not get logs for module {}", name)
             }
@@ -450,6 +491,7 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::StartModule(name) => write!(f, "Could not start module {}", name),
             RuntimeOperation::StopModule(name) => write!(f, "Could not stop module {}", name),
             RuntimeOperation::SystemInfo => write!(f, "Could not query system info"),
+            RuntimeOperation::TopModule(name) => write!(f, "Could not top module {}", name),
         }
     }
 }
@@ -461,8 +503,8 @@ mod tests {
     use std::str::FromStr;
     use std::string::ToString;
 
-    use error::ErrorKind;
-    use module::ModuleStatus;
+    use crate::error::ErrorKind;
+    use crate::module::ModuleStatus;
 
     fn get_inputs() -> Vec<(&'static str, ModuleStatus)> {
         vec![

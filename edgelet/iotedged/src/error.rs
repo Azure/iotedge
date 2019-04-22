@@ -16,18 +16,24 @@ pub struct Error {
 
 #[derive(Clone, Debug, Fail, PartialEq)]
 pub enum ErrorKind {
+    #[fail(display = "The symmetric key string could not be activated")]
+    ActivateSymmetricKey,
+
     #[fail(display = "The daemon could not start up successfully: {}", _0)]
     Initialize(InitializeErrorReason),
 
     #[fail(display = "The management service encountered an error")]
     ManagementService,
 
-    #[fail(display = "The watchdog encountered an error")]
-    Watchdog,
+    #[fail(display = "The symmetric key string is malformed")]
+    SymmetricKeyMalformed,
 
     #[cfg(windows)]
     #[fail(display = "The daemon encountered an error while updating its Windows Service state")]
     UpdateWindowsServiceState,
+
+    #[fail(display = "The watchdog encountered an error")]
+    Watchdog,
 
     #[fail(display = "The workload service encountered an error")]
     WorkloadService,
@@ -40,7 +46,7 @@ impl Error {
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -50,7 +56,7 @@ impl Fail for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }
@@ -73,6 +79,7 @@ impl From<Context<ErrorKind>> for Error {
 pub enum InitializeErrorReason {
     CreateMasterEncryptionKey,
     CreateSettingsDirectory,
+    CreateTlsCertificate,
     DestroyWorkloadCa,
     DeviceClient,
     DpsProvisioningClient,
@@ -98,7 +105,7 @@ pub enum InitializeErrorReason {
 }
 
 impl fmt::Display for InitializeErrorReason {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             InitializeErrorReason::CreateMasterEncryptionKey => {
                 write!(f, "Could not create master encryption key")
@@ -106,6 +113,10 @@ impl fmt::Display for InitializeErrorReason {
 
             InitializeErrorReason::CreateSettingsDirectory => {
                 write!(f, "Could not create settings directory")
+            }
+
+            InitializeErrorReason::CreateTlsCertificate => {
+                write!(f, "Could not create TLS certificate")
             }
 
             InitializeErrorReason::DestroyWorkloadCa => {
@@ -199,7 +210,7 @@ impl From<WindowsServiceError> for ServiceError {
 
 #[cfg(windows)]
 impl Display for ServiceError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.lock().unwrap().fmt(f)
     }
 }

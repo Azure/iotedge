@@ -1,0 +1,14 @@
+{
+    "moduleId" : "tempSensor",
+    "properties" : {
+        "desired" : {
+            "SendInterval": 42,
+            "SendData": true,
+            "OtherType" : "test"
+        },
+        "reported" : {
+            "SendInterval": 42,
+            "SendData": true
+        }
+    }    
+}

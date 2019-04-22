@@ -37,6 +37,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer.Controllers
         /// <returns>Ok</returns>
         System.Threading.Tasks.Task<ModuleDetails> UpdateModuleAsync(string api_version, string name, bool start, ModuleSpec module);
 
+        /// <summary>Prepare to update a module.</summary>
+        /// <param name="api_version">The version of the API.</param>
+        /// <param name="name">The name of the module to update. (urlencoded)</param>
+        /// <returns>No Content</returns>
+        System.Threading.Tasks.Task PrepareUpdateModuleAsync(string api_version, string name, ModuleSpec module);
+
         /// <summary>Delete a module.</summary>
         /// <param name="api_version">The version of the API.</param>
         /// <param name="name">The name of the module to delete. (urlencoded)</param>
@@ -136,6 +142,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer.Controllers
         public System.Threading.Tasks.Task<ModuleDetails> UpdateModule(string api_version, string name, bool? start, [Microsoft.AspNetCore.Mvc.FromBody] ModuleSpec module)
         {
             return _implementation.UpdateModuleAsync(api_version, name, start ?? false, module);
+        }
+
+        /// <summary>Prepare to update a module.</summary>
+        /// <param name="api_version">The version of the API.</param>
+        /// <param name="name">The name of the module to update. (urlencoded)</param>
+        /// <returns>No Content</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("modules/{name}/prepareupdate")]
+        public System.Threading.Tasks.Task PrepareUpdateModule(string api_version, string name, [Microsoft.AspNetCore.Mvc.FromBody] ModuleSpec module)
+        {
+            return _implementation.PrepareUpdateModuleAsync(api_version, name, module);
         }
 
         /// <summary>Delete a module.</summary>

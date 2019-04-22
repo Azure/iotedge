@@ -295,7 +295,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             // Arrange
             var edgeHub = new Mock<IEdgeHub>();
-            edgeHub.Setup(e => e.RemoveSubscription("d1", DeviceSubscription.DesiredPropertyUpdates)).Returns(Task.CompletedTask);
+            edgeHub.Setup(e => e.RemoveSubscription("d1", DeviceSubscription.DesiredPropertyUpdates))
+                .Returns(Task.CompletedTask);
             var connMgr = Mock.Of<IConnectionManager>();
             var identity = Mock.Of<IDeviceIdentity>(i => i.Id == "d1");
             var deviceProxy = new Mock<IDeviceProxy>();

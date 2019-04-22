@@ -1,0 +1,154 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"admin_password": {
+			"type": "securestring"
+		},
+		"admin_user": {
+			"type": "string"
+		},
+		"extension_command": {
+			"type": "securestring"
+		},
+		"nic_name": {
+			"type": "string"
+		},
+		"nsg_id": {
+			"type": "string"
+		},
+		"ssh_public_key": {
+			"type": "string"
+		},
+		"vm_name": {
+			"type": "string"
+		},
+		"vm_size": {
+			"type": "string"
+		},
+		"vnet_subnet_id": {
+			"type": "string"
+		},
+		"ip_addr_name": {
+			"defaultValue": "!",
+			"metadata": {
+				"description": "The name of the Public IP Address resource to create. The default value is the string '!', which is an invalid Public IP Address name and signals that a Public IP Address resource will NOT be created."
+			},
+			"type": "string"
+		}
+	},
+	"variables": {
+        "ip_addr_id": {
+            "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('ip_addr_name'))]"
+        }
+	},
+	"resources": [{
+		"condition": "[not(equals(parameters('ip_addr_name'), '!'))]",
+		"type": "Microsoft.Network/publicIPAddresses",
+		"name": "[parameters('ip_addr_name')]",
+		"apiVersion": "2018-02-01",
+		"sku": {
+			"name": "Basic",
+			"tier": "Regional"
+		},
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"publicIPAddressVersion": "IPv4",
+			"publicIPAllocationMethod": "Dynamic"
+		},
+		"dependsOn": []
+	}, {
+		"type": "Microsoft.Network/networkInterfaces",
+		"name": "[parameters('nic_name')]",
+		"apiVersion": "2018-02-01",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"ipConfigurations": [{
+				"name": "ipconfig1",
+				"properties": {
+					"subnet": {
+						"id": "[parameters('vnet_subnet_id')]"
+					},
+					"privateIPAllocationMethod": "Dynamic",
+                    "publicIPAddress": "[if(equals(parameters('ip_addr_name'), '!'), json('null'), variables('ip_addr_id'))]"
+				}
+			}],
+			"networkSecurityGroup": {
+				"id": "[parameters('nsg_id')]"
+			},
+			"primary": true
+		},
+		"dependsOn": [
+			"[parameters('ip_addr_name')]"
+		]
+	}, {
+		"type": "Microsoft.Compute/virtualMachines",
+		"name": "[parameters('vm_name')]",
+		"apiVersion": "2017-12-01",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"osProfile": {
+				"computerName": "[parameters('vm_name')]",
+				"adminUsername": "[parameters('admin_user')]",
+				"adminPassword": "[parameters('admin_password')]",
+				"windowsConfiguration": {
+					"enableAutomaticUpdates": true
+				}
+			},
+			"hardwareProfile": {
+				"vmSize": "[parameters('vm_size')]"
+			},
+			"storageProfile": {
+				"imageReference": {
+					"publisher": "MicrosoftWindowsServer",
+					"offer": "WindowsServer",
+					"sku": "2019-Datacenter-Core",
+					"version": "latest"
+				},
+				"osDisk": {
+					"osType": "Windows",
+					"createOption": "FromImage",
+					"managedDisk": {
+						"storageAccountType": "Standard_LRS"
+					}
+				},
+				"dataDisks": []
+			},
+			"networkProfile": {
+				"networkInterfaces": [{
+					"id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('nic_name'))]",
+					"properties": {
+						"primary": true
+					}
+				}]
+			}
+		},
+		"dependsOn": [
+			"[resourceId('Microsoft.Network/networkInterfaces', parameters('nic_name'))]"
+		]
+	}, {
+		"type": "Microsoft.Compute/virtualMachines/extensions",
+		"name": "[concat(parameters('vm_name'), '/', 'setup')]",
+		"apiVersion": "2018-06-01",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"publisher": "Microsoft.Compute",
+			"type": "CustomScriptExtension",
+			"typeHandlerVersion": "1.9",
+			"autoUpgradeMinorVersion": true,
+			"settings": {},
+			"protectedSettings": {
+				"commandToExecute": "[parameters('extension_command')]"
+			}
+		},
+		"dependsOn": [
+			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vm_name'))]"
+		]
+	}],
+	"outputs": {
+		"hostkey": {
+			"type": "array",
+			"value": "[take(skip(split(string(reference(resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vm_name'), 'setup')).instanceView.substatuses[0].message), '#DATA#'), 1), 1)]"
+		}
+	}
+}

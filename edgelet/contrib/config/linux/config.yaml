@@ -19,17 +19,51 @@
 #     manual - using an iothub connection string
 #     dps    - using dps for provisioning
 #
+# DPS Settings
+#     scope_id - Required. Value of a specific DPS instance's ID scope
+#     registration_id - Required. Registration ID of a specific device in DPS
+#     symmetric_key - Optional. This entry should only be specified when
+#                     provisioning devices configured for symmetric key
+#                     attestation
 ###############################################################################
 
+# Manual provisioning configuration
 provisioning:
   source: "manual"
   device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
 
+# DPS TPM provisioning configuration
 # provisioning:
 #   source: "dps"
 #   global_endpoint: "https://global.azure-devices-provisioning.net"
 #   scope_id: "{scope_id}"
-#   registration_id: "{registration_id}"
+#   attestation:
+#     method: "tpm"
+#     registration_id: "{registration_id}"
+#     device_id: "<OPTIONAL DEVICE ID TO BE PROVISIONED IN IOTHUB>"
+
+# DPS symmetric key provisioning configuration
+# provisioning:
+#   source: "dps"
+#   global_endpoint: "https://global.azure-devices-provisioning.net"
+#   scope_id: "{scope_id}"
+#   attestation:
+#     method: "symmetric_key"
+#     registration_id: "{registration_id}"
+#     device_id: "<OPTIONAL DEVICE ID TO BE PROVISIONED IN IOTHUB>"
+#     symmetric_key: "{symmetric_key}"
+
+# DPS X.509 provisioning configuration
+# provisioning:
+#   source: "dps"
+#   global_endpoint: "https://global.azure-devices-provisioning.net"
+#   scope_id: "{scope_id}"
+#   attestation:
+#     method: "x509"
+#     registration_id: "<OPTIONAL REGISTRATION ID. IF UNSPECIFIED CAN BE OBTAINED FROM CN OF identity_cert"
+#     device_id: "<OPTIONAL DEVICE ID TO BE PROVISIONED IN IOTHUB>"
+#     identity_cert: "<OPTIONAL PATH TO DEVICE IDENTITY CERTIFICATE HERE. IF UNSPECIFIED, DEVICE CA WILL ISSUE ONE>"
+#     identity_pk: "<OPTIONAL PATH TO DEVICE IDENTITY PRIVATE KEY HERE. IF UNSPECIFIED, DEVICE CA WILL ISSUE ONE>"
 
 ###############################################################################
 # Certificate settings
@@ -64,6 +98,26 @@ provisioning:
 # then update itself based on the Edge Agent module definition present in the
 # deployment in IoT Hub.
 #
+# Settings:
+#     name     - name of the edge agent module. Expected to be "edgeAgent".
+#     type     - type of module. Always "docker".
+#     env      - Any environment variable that needs to be set for edge agent module.
+#     config   - type specific configuration for edge agent module.
+#       image  - (docker) Modules require a docker image tag.
+#       auth   - (docker) Modules may need authoriation to connect to container registry.
+#
+# Adding environment variables:
+# replace "env: {}" with
+#  env:
+#    key: "value"
+#
+# Adding container registry authorization:
+# replace "auth: {}" with
+#    auth:
+#      username: "username"
+#      password: "password"
+#      serveraddress: "serveraddress"
+#
 ###############################################################################
 
 agent:
@@ -95,7 +149,7 @@ hostname: "<ADD HOSTNAME HERE>"
 ###############################################################################
 #
 #
-#Configures URIs used by clients of the management and workload APIs
+# Configures URIs used by clients of the management and workload APIs
 #     management_uri - used by the Edge Agent and 'iotedge' CLI to start,
 #                      stop, and manage modules
 #     workload_uri   - used by modules to retrieve tokens and certificates
@@ -103,6 +157,11 @@ hostname: "<ADD HOSTNAME HERE>"
 # The following uri schemes are supported:
 #     http - connect over TCP
 #     unix - connect over Unix domain socket
+#
+# Note: When using the fd:// scheme for listen.management_uri or listen.workload_uri,
+# the path of connect.management_uri and connect.workload_uri must match
+# the path of the underlying socket in the systemd socket files
+# (iotedge.socket and iotedge.mgmt.socket).
 #
 ###############################################################################
 
@@ -128,6 +187,11 @@ connect:
 # using the fd:// scheme for systemd:
 #     listen address is fd://iotedge.workload,
 #     connect address is unix:///var/run/iotedge/workload.sock
+#
+# Note: When using the fd:// scheme for listen.management_uri or listen.workload_uri,
+# the path of connect.management_uri and connect.workload_uri must match
+# the path of the underlying socket in the systemd socket files
+# (iotedge.socket and iotedge.mgmt.socket).
 #
 ###############################################################################
 

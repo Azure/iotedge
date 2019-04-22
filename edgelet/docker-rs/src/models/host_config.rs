@@ -9,7 +9,7 @@
  */
 
 /// HostConfig : Container configuration that depends on the host we are running on
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -29,28 +29,28 @@ pub struct HostConfig {
     blkio_weight: Option<i32>,
     /// Block IO weight (relative device weight) in the form `[{\"Path\": \"device_path\", \"Weight\": weight}]`.
     #[serde(rename = "BlkioWeightDevice", skip_serializing_if = "Option::is_none")]
-    blkio_weight_device: Option<Vec<::models::ResourcesBlkioWeightDevice>>,
+    blkio_weight_device: Option<Vec<crate::models::ResourcesBlkioWeightDevice>>,
     /// Limit read rate (bytes per second) from a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
     #[serde(rename = "BlkioDeviceReadBps", skip_serializing_if = "Option::is_none")]
-    blkio_device_read_bps: Option<Vec<::models::ThrottleDevice>>,
+    blkio_device_read_bps: Option<Vec<crate::models::ThrottleDevice>>,
     /// Limit write rate (bytes per second) to a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
     #[serde(
         rename = "BlkioDeviceWriteBps",
         skip_serializing_if = "Option::is_none"
     )]
-    blkio_device_write_bps: Option<Vec<::models::ThrottleDevice>>,
+    blkio_device_write_bps: Option<Vec<crate::models::ThrottleDevice>>,
     /// Limit read rate (IO per second) from a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
     #[serde(
         rename = "BlkioDeviceReadIOps",
         skip_serializing_if = "Option::is_none"
     )]
-    blkio_device_read_i_ops: Option<Vec<::models::ThrottleDevice>>,
+    blkio_device_read_i_ops: Option<Vec<crate::models::ThrottleDevice>>,
     /// Limit write rate (IO per second) to a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
     #[serde(
         rename = "BlkioDeviceWriteIOps",
         skip_serializing_if = "Option::is_none"
     )]
-    blkio_device_write_i_ops: Option<Vec<::models::ThrottleDevice>>,
+    blkio_device_write_i_ops: Option<Vec<crate::models::ThrottleDevice>>,
     /// The length of a CPU period in microseconds.
     #[serde(rename = "CpuPeriod", skip_serializing_if = "Option::is_none")]
     cpu_period: Option<i64>,
@@ -71,7 +71,7 @@ pub struct HostConfig {
     cpuset_mems: Option<String>,
     /// A list of devices to add to the container.
     #[serde(rename = "Devices", skip_serializing_if = "Option::is_none")]
-    devices: Option<Vec<::models::DeviceMapping>>,
+    devices: Option<Vec<crate::models::DeviceMapping>>,
     /// a list of cgroup rules to apply to the container
     #[serde(rename = "DeviceCgroupRules", skip_serializing_if = "Option::is_none")]
     device_cgroup_rules: Option<Vec<String>>,
@@ -101,7 +101,7 @@ pub struct HostConfig {
     pids_limit: Option<i64>,
     /// A list of resource limits to set in the container. For example: `{\"Name\": \"nofile\", \"Soft\": 1024, \"Hard\": 2048}`\"
     #[serde(rename = "Ulimits", skip_serializing_if = "Option::is_none")]
-    ulimits: Option<Vec<::models::ResourcesUlimits>>,
+    ulimits: Option<Vec<crate::models::ResourcesUlimits>>,
     /// The number of usable CPUs (Windows only).  On Windows Server containers, the processor resource controls are mutually exclusive. The order of precedence is `CPUCount` first, then `CPUShares`, and `CPUPercent` last.
     #[serde(rename = "CpuCount", skip_serializing_if = "Option::is_none")]
     cpu_count: Option<i64>,
@@ -121,16 +121,16 @@ pub struct HostConfig {
     #[serde(rename = "ContainerIDFile", skip_serializing_if = "Option::is_none")]
     container_id_file: Option<String>,
     #[serde(rename = "LogConfig", skip_serializing_if = "Option::is_none")]
-    log_config: Option<::models::HostConfigLogConfig>,
+    log_config: Option<crate::models::HostConfigLogConfig>,
     /// Network mode to use for this container. Supported standard values are: `bridge`, `host`, `none`, and `container:<name|id>`. Any other value is taken as a custom network's name to which this container should connect to.
     #[serde(rename = "NetworkMode", skip_serializing_if = "Option::is_none")]
     network_mode: Option<String>,
     /// A map of exposed container ports and the host port they should map to.
     #[serde(rename = "PortBindings", skip_serializing_if = "Option::is_none")]
     port_bindings:
-        Option<::std::collections::HashMap<String, Vec<::models::HostConfigPortBindings>>>,
+        Option<::std::collections::HashMap<String, Vec<crate::models::HostConfigPortBindings>>>,
     #[serde(rename = "RestartPolicy", skip_serializing_if = "Option::is_none")]
-    restart_policy: Option<::models::RestartPolicy>,
+    restart_policy: Option<crate::models::RestartPolicy>,
     /// Automatically remove the container when the container's process exits. This has no effect if `RestartPolicy` is set.
     #[serde(rename = "AutoRemove", skip_serializing_if = "Option::is_none")]
     auto_remove: Option<bool>,
@@ -142,7 +142,7 @@ pub struct HostConfig {
     volumes_from: Option<Vec<String>>,
     /// Specification for mounts to be added to the container.
     #[serde(rename = "Mounts", skip_serializing_if = "Option::is_none")]
-    mounts: Option<Vec<::models::Mount>>,
+    mounts: Option<Vec<crate::models::Mount>>,
     /// A list of kernel capabilities to add to the container.
     #[serde(rename = "CapAdd", skip_serializing_if = "Option::is_none")]
     cap_add: Option<Vec<String>>,
@@ -362,20 +362,20 @@ impl HostConfig {
 
     pub fn set_blkio_weight_device(
         &mut self,
-        blkio_weight_device: Vec<::models::ResourcesBlkioWeightDevice>,
+        blkio_weight_device: Vec<crate::models::ResourcesBlkioWeightDevice>,
     ) {
         self.blkio_weight_device = Some(blkio_weight_device);
     }
 
     pub fn with_blkio_weight_device(
         mut self,
-        blkio_weight_device: Vec<::models::ResourcesBlkioWeightDevice>,
+        blkio_weight_device: Vec<crate::models::ResourcesBlkioWeightDevice>,
     ) -> Self {
         self.blkio_weight_device = Some(blkio_weight_device);
         self
     }
 
-    pub fn blkio_weight_device(&self) -> Option<&[::models::ResourcesBlkioWeightDevice]> {
+    pub fn blkio_weight_device(&self) -> Option<&[crate::models::ResourcesBlkioWeightDevice]> {
         self.blkio_weight_device.as_ref().map(AsRef::as_ref)
     }
 
@@ -385,20 +385,20 @@ impl HostConfig {
 
     pub fn set_blkio_device_read_bps(
         &mut self,
-        blkio_device_read_bps: Vec<::models::ThrottleDevice>,
+        blkio_device_read_bps: Vec<crate::models::ThrottleDevice>,
     ) {
         self.blkio_device_read_bps = Some(blkio_device_read_bps);
     }
 
     pub fn with_blkio_device_read_bps(
         mut self,
-        blkio_device_read_bps: Vec<::models::ThrottleDevice>,
+        blkio_device_read_bps: Vec<crate::models::ThrottleDevice>,
     ) -> Self {
         self.blkio_device_read_bps = Some(blkio_device_read_bps);
         self
     }
 
-    pub fn blkio_device_read_bps(&self) -> Option<&[::models::ThrottleDevice]> {
+    pub fn blkio_device_read_bps(&self) -> Option<&[crate::models::ThrottleDevice]> {
         self.blkio_device_read_bps.as_ref().map(AsRef::as_ref)
     }
 
@@ -408,20 +408,20 @@ impl HostConfig {
 
     pub fn set_blkio_device_write_bps(
         &mut self,
-        blkio_device_write_bps: Vec<::models::ThrottleDevice>,
+        blkio_device_write_bps: Vec<crate::models::ThrottleDevice>,
     ) {
         self.blkio_device_write_bps = Some(blkio_device_write_bps);
     }
 
     pub fn with_blkio_device_write_bps(
         mut self,
-        blkio_device_write_bps: Vec<::models::ThrottleDevice>,
+        blkio_device_write_bps: Vec<crate::models::ThrottleDevice>,
     ) -> Self {
         self.blkio_device_write_bps = Some(blkio_device_write_bps);
         self
     }
 
-    pub fn blkio_device_write_bps(&self) -> Option<&[::models::ThrottleDevice]> {
+    pub fn blkio_device_write_bps(&self) -> Option<&[crate::models::ThrottleDevice]> {
         self.blkio_device_write_bps.as_ref().map(AsRef::as_ref)
     }
 
@@ -431,20 +431,20 @@ impl HostConfig {
 
     pub fn set_blkio_device_read_i_ops(
         &mut self,
-        blkio_device_read_i_ops: Vec<::models::ThrottleDevice>,
+        blkio_device_read_i_ops: Vec<crate::models::ThrottleDevice>,
     ) {
         self.blkio_device_read_i_ops = Some(blkio_device_read_i_ops);
     }
 
     pub fn with_blkio_device_read_i_ops(
         mut self,
-        blkio_device_read_i_ops: Vec<::models::ThrottleDevice>,
+        blkio_device_read_i_ops: Vec<crate::models::ThrottleDevice>,
     ) -> Self {
         self.blkio_device_read_i_ops = Some(blkio_device_read_i_ops);
         self
     }
 
-    pub fn blkio_device_read_i_ops(&self) -> Option<&[::models::ThrottleDevice]> {
+    pub fn blkio_device_read_i_ops(&self) -> Option<&[crate::models::ThrottleDevice]> {
         self.blkio_device_read_i_ops.as_ref().map(AsRef::as_ref)
     }
 
@@ -454,20 +454,20 @@ impl HostConfig {
 
     pub fn set_blkio_device_write_i_ops(
         &mut self,
-        blkio_device_write_i_ops: Vec<::models::ThrottleDevice>,
+        blkio_device_write_i_ops: Vec<crate::models::ThrottleDevice>,
     ) {
         self.blkio_device_write_i_ops = Some(blkio_device_write_i_ops);
     }
 
     pub fn with_blkio_device_write_i_ops(
         mut self,
-        blkio_device_write_i_ops: Vec<::models::ThrottleDevice>,
+        blkio_device_write_i_ops: Vec<crate::models::ThrottleDevice>,
     ) -> Self {
         self.blkio_device_write_i_ops = Some(blkio_device_write_i_ops);
         self
     }
 
-    pub fn blkio_device_write_i_ops(&self) -> Option<&[::models::ThrottleDevice]> {
+    pub fn blkio_device_write_i_ops(&self) -> Option<&[crate::models::ThrottleDevice]> {
         self.blkio_device_write_i_ops.as_ref().map(AsRef::as_ref)
     }
 
@@ -577,16 +577,16 @@ impl HostConfig {
         self.cpuset_mems = None;
     }
 
-    pub fn set_devices(&mut self, devices: Vec<::models::DeviceMapping>) {
+    pub fn set_devices(&mut self, devices: Vec<crate::models::DeviceMapping>) {
         self.devices = Some(devices);
     }
 
-    pub fn with_devices(mut self, devices: Vec<::models::DeviceMapping>) -> Self {
+    pub fn with_devices(mut self, devices: Vec<crate::models::DeviceMapping>) -> Self {
         self.devices = Some(devices);
         self
     }
 
-    pub fn devices(&self) -> Option<&[::models::DeviceMapping]> {
+    pub fn devices(&self) -> Option<&[crate::models::DeviceMapping]> {
         self.devices.as_ref().map(AsRef::as_ref)
     }
 
@@ -747,16 +747,16 @@ impl HostConfig {
         self.pids_limit = None;
     }
 
-    pub fn set_ulimits(&mut self, ulimits: Vec<::models::ResourcesUlimits>) {
+    pub fn set_ulimits(&mut self, ulimits: Vec<crate::models::ResourcesUlimits>) {
         self.ulimits = Some(ulimits);
     }
 
-    pub fn with_ulimits(mut self, ulimits: Vec<::models::ResourcesUlimits>) -> Self {
+    pub fn with_ulimits(mut self, ulimits: Vec<crate::models::ResourcesUlimits>) -> Self {
         self.ulimits = Some(ulimits);
         self
     }
 
-    pub fn ulimits(&self) -> Option<&[::models::ResourcesUlimits]> {
+    pub fn ulimits(&self) -> Option<&[crate::models::ResourcesUlimits]> {
         self.ulimits.as_ref().map(AsRef::as_ref)
     }
 
@@ -866,16 +866,16 @@ impl HostConfig {
         self.container_id_file = None;
     }
 
-    pub fn set_log_config(&mut self, log_config: ::models::HostConfigLogConfig) {
+    pub fn set_log_config(&mut self, log_config: crate::models::HostConfigLogConfig) {
         self.log_config = Some(log_config);
     }
 
-    pub fn with_log_config(mut self, log_config: ::models::HostConfigLogConfig) -> Self {
+    pub fn with_log_config(mut self, log_config: crate::models::HostConfigLogConfig) -> Self {
         self.log_config = Some(log_config);
         self
     }
 
-    pub fn log_config(&self) -> Option<&::models::HostConfigLogConfig> {
+    pub fn log_config(&self) -> Option<&crate::models::HostConfigLogConfig> {
         self.log_config.as_ref()
     }
 
@@ -902,14 +902,20 @@ impl HostConfig {
 
     pub fn set_port_bindings(
         &mut self,
-        port_bindings: ::std::collections::HashMap<String, Vec<::models::HostConfigPortBindings>>,
+        port_bindings: ::std::collections::HashMap<
+            String,
+            Vec<crate::models::HostConfigPortBindings>,
+        >,
     ) {
         self.port_bindings = Some(port_bindings);
     }
 
     pub fn with_port_bindings(
         mut self,
-        port_bindings: ::std::collections::HashMap<String, Vec<::models::HostConfigPortBindings>>,
+        port_bindings: ::std::collections::HashMap<
+            String,
+            Vec<crate::models::HostConfigPortBindings>,
+        >,
     ) -> Self {
         self.port_bindings = Some(port_bindings);
         self
@@ -917,7 +923,8 @@ impl HostConfig {
 
     pub fn port_bindings(
         &self,
-    ) -> Option<&::std::collections::HashMap<String, Vec<::models::HostConfigPortBindings>>> {
+    ) -> Option<&::std::collections::HashMap<String, Vec<crate::models::HostConfigPortBindings>>>
+    {
         self.port_bindings.as_ref()
     }
 
@@ -925,16 +932,16 @@ impl HostConfig {
         self.port_bindings = None;
     }
 
-    pub fn set_restart_policy(&mut self, restart_policy: ::models::RestartPolicy) {
+    pub fn set_restart_policy(&mut self, restart_policy: crate::models::RestartPolicy) {
         self.restart_policy = Some(restart_policy);
     }
 
-    pub fn with_restart_policy(mut self, restart_policy: ::models::RestartPolicy) -> Self {
+    pub fn with_restart_policy(mut self, restart_policy: crate::models::RestartPolicy) -> Self {
         self.restart_policy = Some(restart_policy);
         self
     }
 
-    pub fn restart_policy(&self) -> Option<&::models::RestartPolicy> {
+    pub fn restart_policy(&self) -> Option<&crate::models::RestartPolicy> {
         self.restart_policy.as_ref()
     }
 
@@ -993,16 +1000,16 @@ impl HostConfig {
         self.volumes_from = None;
     }
 
-    pub fn set_mounts(&mut self, mounts: Vec<::models::Mount>) {
+    pub fn set_mounts(&mut self, mounts: Vec<crate::models::Mount>) {
         self.mounts = Some(mounts);
     }
 
-    pub fn with_mounts(mut self, mounts: Vec<::models::Mount>) -> Self {
+    pub fn with_mounts(mut self, mounts: Vec<crate::models::Mount>) -> Self {
         self.mounts = Some(mounts);
         self
     }
 
-    pub fn mounts(&self) -> Option<&[::models::Mount]> {
+    pub fn mounts(&self) -> Option<&[crate::models::Mount]> {
         self.mounts.as_ref().map(AsRef::as_ref)
     }
 

@@ -273,7 +273,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 ConnectionPoolSize,
                 new ClientProvider(),
                 Option.None<UpstreamProtocol>(),
-                Mock.Of<ITokenProvider>(),
+                Mock.Of<Util.ITokenProvider>(),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
                 credentialsCache,
                 Mock.Of<IIdentity>(i => i.Id == $"{deviceId}/$edgeHub"),

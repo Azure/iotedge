@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
     using System.Collections.Generic;
-    using System.Globalization;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
@@ -26,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public static int Main()
         {
-            Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt", CultureInfo.InvariantCulture)}] Edge Hub Main()");
+            Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Edge Hub Main()");
             IConfigurationRoot configuration = new ConfigurationBuilder()
                 .AddJsonFile(Constants.ConfigFileName)
                 .AddEnvironmentVariables()
@@ -46,16 +45,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 Routing.LoggerFactory = Logger.Factory;
             }
 
-            EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration).ConfigureAwait(false);
+            EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration);
             bool clientCertAuthEnabled = configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
             Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, new DependencyManager(configuration, certificates.ServerCertificate, certificates.TrustBundle), clientCertAuthEnabled);
             IContainer container = hosting.Container;
 
             ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
-            logger.LogInformation("Starting Edge Hub");
+            logger.LogInformation("Initializing Edge Hub");
             LogLogo(logger);
             LogVersionInfo(logger);
-
+            logger.LogInformation($"OptimizeForPerformance={configuration.GetValue("OptimizeForPerformance", true)}");
             logger.LogInformation("Loaded server certificate with expiration date of {0}", certificates.ServerCertificate.NotAfter.ToString("o"));
 
             // EdgeHub and CloudConnectionProvider have a circular dependency. So need to Bind the EdgeHub to the CloudConnectionProvider.
@@ -91,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             Metrics.BuildMetricsCollector(configuration);
 
-            using (IProtocolHead protocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting).ConfigureAwait(false))
+            using (IProtocolHead protocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting))
             using (var renewal = new CertificateRenewal(certificates, logger))
             {
                 await protocolHead.StartAsync();

@@ -9,7 +9,7 @@
  */
 
 /// ResourceObject : An object describing the resources which can be advertised by a node and requested by a task
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
@@ -20,7 +20,7 @@ pub struct ResourceObject {
     #[serde(rename = "MemoryBytes", skip_serializing_if = "Option::is_none")]
     memory_bytes: Option<i64>,
     #[serde(rename = "GenericResources", skip_serializing_if = "Option::is_none")]
-    generic_resources: Option<::models::GenericResources>,
+    generic_resources: Option<crate::models::GenericResources>,
 }
 
 impl ResourceObject {
@@ -67,16 +67,19 @@ impl ResourceObject {
         self.memory_bytes = None;
     }
 
-    pub fn set_generic_resources(&mut self, generic_resources: ::models::GenericResources) {
+    pub fn set_generic_resources(&mut self, generic_resources: crate::models::GenericResources) {
         self.generic_resources = Some(generic_resources);
     }
 
-    pub fn with_generic_resources(mut self, generic_resources: ::models::GenericResources) -> Self {
+    pub fn with_generic_resources(
+        mut self,
+        generic_resources: crate::models::GenericResources,
+    ) -> Self {
         self.generic_resources = Some(generic_resources);
         self
     }
 
-    pub fn generic_resources(&self) -> Option<&::models::GenericResources> {
+    pub fn generic_resources(&self) -> Option<&crate::models::GenericResources> {
         self.generic_resources.as_ref()
     }
 

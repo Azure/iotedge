@@ -12,9 +12,8 @@ RUN curl -SL %DOTNET_DOWNLOAD_URL% --output dotnet.zip \
 USER ContainerAdministrator
 # In order to set system PATH, ContainerAdministrator must be used
 RUN setx /M PATH "%PATH%;C:\Program Files\dotnet"
-# Add an unprivileged user account for running Edge Hub
-RUN net user /add edgehubuser
-USER edgehubuser
+
+USER ContainerUser
  
 # Configure Kestrel web server to bind to port 80 when present
 ENV ASPNETCORE_URLS=http://+:80

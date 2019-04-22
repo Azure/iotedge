@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
                 string returnedJson = serde.Serialize(config1);
 
-                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+                Assert.Equal(backupJson, returnedJson, ignoreCase: true);
 
                 DeploymentConfigInfo config2 = await configSource.GetDeploymentConfigInfoAsync();
                 Assert.NotNull(config2);
@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 // this should still be the JSON from the first config - config1
                 string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
                 string returnedJson = serde.Serialize(config1);
-                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+                Assert.Equal(backupJson, returnedJson, ignoreCase: true);
             }
         }
 
@@ -205,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 // this should still be the JSON from the first config - config1
                 string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
                 string returnedJson = serde.Serialize(config1);
-                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+                Assert.Equal(backupJson, returnedJson, ignoreCase: true);
             }
         }
 
@@ -256,7 +256,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             ISerde<DeploymentConfigInfo> serde = this.GetSerde();
             var encryptionProvider = new Mock<IEncryptionProvider>();
             encryptionProvider.Setup(ep => ep.EncryptAsync(It.IsAny<string>()))
-                .ThrowsAsync(new IoTEdgedException("failed", 404, string.Empty, null, null));
+                .ThrowsAsync(new WorkloadCommunicationException("failed", 404));
             using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, encryptionProvider.Object))
             {
                 DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
@@ -300,7 +300,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
                 string returnedJson = serde.Serialize(config1);
 
-                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+                Assert.Equal(backupJson, returnedJson, ignoreCase: true);
             }
 
             using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, encryptionProvider.Object))
@@ -332,7 +332,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             encryptionProvider.Setup(ep => ep.EncryptAsync(It.IsAny<string>()))
                 .ReturnsAsync(serde.Serialize(ValidConfigInfo1));
             encryptionProvider.Setup(ep => ep.DecryptAsync(It.IsAny<string>()))
-                .ThrowsAsync(new IoTEdgedException("failed", 404, string.Empty, null, null));
+                .ThrowsAsync(new WorkloadCommunicationException("failed", 404));
 
             using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, encryptionProvider.Object))
             {
@@ -343,7 +343,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
                 string returnedJson = serde.Serialize(config1);
 
-                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+                Assert.Equal(backupJson, returnedJson, ignoreCase: true);
             }
 
             using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, encryptionProvider.Object))
@@ -384,7 +384,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
                 string returnedJson = serde.Serialize(config1);
 
-                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+                Assert.Equal(backupJson, returnedJson, ignoreCase: true);
 
                 DateTime modifiedTime1 = File.GetLastWriteTimeUtc(this.tempFileName);
                 Assert.True(DateTime.UtcNow - modifiedTime1 < TimeSpan.FromSeconds(5));
@@ -404,7 +404,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
                 returnedJson = serde.Serialize(config3);
 
-                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+                Assert.Equal(backupJson, returnedJson, ignoreCase: true);
 
                 DateTime modifiedTime3 = File.GetLastWriteTimeUtc(this.tempFileName);
                 Assert.True(DateTime.UtcNow - modifiedTime1 < TimeSpan.FromSeconds(5));
@@ -449,7 +449,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
                 string returnedJson = serde.Serialize(config1);
 
-                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+                Assert.Equal(backupJson, returnedJson, ignoreCase: true);
                 File.Delete(this.tempFileName);
 
                 DeploymentConfigInfo config2 = await configSource.GetDeploymentConfigInfoAsync();
@@ -472,7 +472,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
                 string returnedJson = serde.Serialize(config1);
 
-                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+                Assert.Equal(backupJson, returnedJson, ignoreCase: true);
             }
 
             using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, NullEncryptionProvider.Instance))

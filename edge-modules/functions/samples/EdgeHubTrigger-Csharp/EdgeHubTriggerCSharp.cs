@@ -21,7 +21,7 @@ namespace Functions.Samples
             byte[] messageBytes = messageReceived.GetBytes();
             var messageString = Encoding.UTF8.GetString(messageBytes);
 
-            // Get message body, containing the Temperature data         
+            // Get message body, containing the Temperature data
             var messageBody = JsonConvert.DeserializeObject<MessageBody>(messageString);
 
             if (messageBody != null && messageBody.Machine.Temperature > defaultTemperatureThreshold)
@@ -33,7 +33,7 @@ namespace Functions.Samples
                 }
 
                 filteredMessage.Properties.Add("MessageType", "Alert");
-                await output.AddAsync(filteredMessage).ConfigureAwait(false);
+                await output.AddAsync(filteredMessage);
             }
         }
 

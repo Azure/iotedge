@@ -177,6 +177,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
   ]
 }");
 
+        public static IEnumerable<object[]> GetValidJsonInputs()
+        {
+            return GetJsonTestCases("validJson").Select(s => new object[] { s });
+        }
+
+        public static IEnumerable<object[]> GetExceptionJsonInputs()
+        {
+            return GetJsonTestCases("throwsException").Select(s => new object[] { s });
+        }
+
         [Fact]
         [Unit]
         public void TestConstructor()
@@ -278,16 +288,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         {
             var val = (JArray)TestJsonInputs.GetValue(subset);
             return val.Children().Select(token => token.ToString());
-        }
-
-        static IEnumerable<object[]> GetValidJsonInputs()
-        {
-            return GetJsonTestCases("validJson").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetExceptionJsonInputs()
-        {
-            return GetJsonTestCases("throwsException").Select(s => new object[] { s });
         }
     }
 }

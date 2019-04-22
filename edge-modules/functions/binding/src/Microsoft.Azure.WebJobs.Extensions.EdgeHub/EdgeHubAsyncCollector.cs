@@ -76,7 +76,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
                 }
             }
 
-            await this.SendBatchAsync(batch).ConfigureAwait(false);
+            await this.SendBatchAsync(batch);
         }
 
         /// <summary>
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         public async Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             IList<Message> batch = this.TakeSnapshot();
-            await this.SendBatchAsync(batch).ConfigureAwait(false);
+            await this.SendBatchAsync(batch);
         }
 
         /// <summary>
@@ -102,15 +102,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
                 return;
             }
 
-            ModuleClient client = await ModuleClientCache.Instance.GetOrCreateAsync().ConfigureAwait(false);
+            ModuleClient client = await ModuleClientCache.Instance.GetOrCreateAsync();
 
             if (string.IsNullOrEmpty(this.attribute.OutputName))
             {
-                await client.SendEventBatchAsync(batch).ConfigureAwait(false);
+                await client.SendEventBatchAsync(batch);
             }
             else
             {
-                await client.SendEventBatchAsync(this.attribute.OutputName, batch).ConfigureAwait(false);
+                await client.SendEventBatchAsync(this.attribute.OutputName, batch);
             }
         }
 

@@ -1,22 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![cfg(windows)]
-#![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
-
-extern crate futures;
-extern crate hyper;
-extern crate rand;
-extern crate tokio;
-extern crate typed_headers;
-
-extern crate edgelet_test_utils;
-extern crate hyper_named_pipe;
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
 
 use std::io;
 
@@ -36,6 +22,7 @@ fn make_url(path: &str) -> Uri {
     Uri::new(&format!("npipe:{}", path.replace("\\", "/")), "/").unwrap()
 }
 
+#[allow(clippy::needless_pass_by_value)]
 fn get_handler(_req: Request<Body>) -> impl Future<Item = Response<Body>, Error = io::Error> {
     future::ok(Response::new(Body::default()))
 }
@@ -60,6 +47,7 @@ fn get() {
 
 const GET_RESPONSE: &str = "The answer is 42";
 
+#[allow(clippy::needless_pass_by_value)]
 fn get_with_body_handler(
     _req: Request<Body>,
 ) -> impl Future<Item = Response<Body>, Error = io::Error> {

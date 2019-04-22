@@ -4,6 +4,7 @@ use failure::ResultExt;
 use futures::Future;
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
+use log::debug;
 use serde::Serialize;
 use serde_json;
 
@@ -12,8 +13,8 @@ use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use management::models::*;
 
-use error::{Error, ErrorKind};
-use IntoResponse;
+use crate::error::{Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct GetSystemInfo<M> {
     runtime: M,
@@ -34,7 +35,7 @@ where
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         debug!("Get System Information");
 
         let response = self
@@ -74,9 +75,9 @@ mod tests {
     use edgelet_test_utils::module::*;
     use futures::Stream;
     use management::models::SystemInfo;
-    use server::module::tests::Error;
 
     use super::*;
+    use crate::server::module::tests::Error;
 
     #[test]
     fn system_info_success() {
@@ -105,7 +106,10 @@ mod tests {
 
                 assert_eq!("os_type_sample", os_type);
                 assert_eq!("architecture_sample", architecture);
-                assert_eq!(edgelet_core::version(), system_info.version());
+                assert_eq!(
+                    edgelet_core::version_with_source_version(),
+                    system_info.version(),
+                );
 
                 Ok(())
             })

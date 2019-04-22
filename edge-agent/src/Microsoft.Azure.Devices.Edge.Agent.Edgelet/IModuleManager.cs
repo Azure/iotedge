@@ -2,9 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 {
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public interface IModuleManager
     {
@@ -24,6 +27,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         Task<SystemInfo> GetSystemInfoAsync();
 
-        Task<IEnumerable<ModuleDetails>> GetModules(CancellationToken token);
+        Task<IEnumerable<ModuleRuntimeInfo>> GetModules<T>(CancellationToken token);
+
+        Task PrepareUpdateAsync(ModuleSpec moduleSpec);
+
+        Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<int> since, CancellationToken cancellationToken);
     }
 }

@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
-    using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
     using Microsoft.Extensions.Logging;
     using Org.BouncyCastle.Crypto;
     using Org.BouncyCastle.Crypto.Parameters;
@@ -240,21 +239,21 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 .Select(c => new X509Certificate2(c))
                 .ToList();
 
-        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
+        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
         {
             if (string.IsNullOrEmpty(edgeHubHostname))
             {
                 throw new InvalidOperationException($"{nameof(edgeHubHostname)} is required.");
             }
 
-            CertificateResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, moduleId, moduleGenerationId).CreateServerCertificateAsync(edgeHubHostname, expiration);
+            ServerCertificateResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, workloadClientApiVersion, moduleId, moduleGenerationId).CreateServerCertificateAsync(edgeHubHostname, expiration);
             return ParseCertificateResponse(response);
         }
 
-        public static async Task<IEnumerable<X509Certificate2>> GetTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string moduleId, string moduleGenerationId)
+        public static async Task<IEnumerable<X509Certificate2>> GetTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId)
         {
-            TrustBundleResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, moduleId, moduleGenerationId).GetTrustBundleAsync();
-            return ParseTrustBundleResponse(response);
+            string response = await new WorkloadClient(workloadUri, workloadClientApiVersion, workloadApiVersion, moduleId, moduleGenerationId).GetTrustBundleAsync();
+            return ParseTrustedBundleCerts(response);
         }
 
         public static (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) GetServerCertificateAndChainFromFile(string serverWithChainFilePath, string serverPrivateKeyFilePath)
@@ -324,17 +323,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return ParseTrustedBundleCerts(certs);
         }
 
-        internal static IEnumerable<X509Certificate2> ParseTrustBundleResponse(TrustBundleResponse response)
+        internal static IEnumerable<X509Certificate2> ParseTrustedBundleCerts(string trustedCACerts)
         {
-            Preconditions.CheckNotNull(response, nameof(response));
-            return ParseTrustedBundleCerts(response.Certificate);
+            Preconditions.CheckNotNull(trustedCACerts, nameof(trustedCACerts));
+            return GetCertificatesFromPem(ParsePemCerts(trustedCACerts));
         }
 
-        internal static IEnumerable<X509Certificate2> ParseTrustedBundleCerts(string trustedCACerts) =>
-            GetCertificatesFromPem(ParsePemCerts(trustedCACerts));
-
-        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(CertificateResponse response) =>
-            ParseCertificateAndKey(response.Certificate, response.PrivateKey.Bytes);
+        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(ServerCertificateResponse response) =>
+            ParseCertificateAndKey(response.Certificate, response.PrivateKey);
 
         internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey)
         {

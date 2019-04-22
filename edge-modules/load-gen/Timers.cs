@@ -3,6 +3,7 @@ namespace LoadGen
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading.Tasks;
     using System.Timers;
 
     public class Timers : IDisposable
@@ -11,7 +12,7 @@ namespace LoadGen
 
         bool disposedValue = false; // To detect redundant calls
 
-        public void Add(TimeSpan interval, double jitterFactor, Action callback)
+        public void Add(TimeSpan interval, double jitterFactor, Func<Task> callback)
         {
             this.timerTasks.Add(new TimerTask(interval, jitterFactor, callback));
         }
@@ -59,7 +60,7 @@ namespace LoadGen
 
     class TimerTask
     {
-        public TimerTask(TimeSpan interval, double jitterFactor, Action callback)
+        public TimerTask(TimeSpan interval, double jitterFactor, Func<Task> callback)
         {
             this.Callback = callback;
             this.Quit = false;
@@ -69,10 +70,10 @@ namespace LoadGen
             this.Timer.Enabled = false;
 
             var random = new Random();
-            this.Timer.Elapsed += (source, args) =>
+            this.Timer.Elapsed += async (source, args) =>
             {
                 // invoke callback
-                this.Callback();
+                await this.Callback();
 
                 // schedule next callback adding jitter if necessary
                 if (this.Quit == false)
@@ -84,7 +85,7 @@ namespace LoadGen
             };
         }
 
-        public Action Callback { get; }
+        public Func<Task> Callback { get; }
 
         public Timer Timer { get; }
 

@@ -55,7 +55,7 @@ Defaults:
   --deployment               deployment json file
   --runtime-log-level        debug
   --clean_up_existing_device false
-  --proxy                    No proxy is used
+  --proxy                    no proxy is used
 ")]
     [HelpOption]
     class Program
@@ -114,6 +114,9 @@ Defaults:
         [Option("-l|--deployment <filename>", Description = "Deployment json file")]
         public string DeploymentFileName { get; } = Environment.GetEnvironmentVariable("deployment");
 
+        [Option("-tw|--twin_test <filename>", Description = "A file with Json content to set desired property and check reported property in a module.")]
+        public string TwinTestFileName { get; } = null;
+
         [Option("--device_ca_cert", Description = "path to the device ca certificate and its chain")]
         public string DeviceCaCert { get; } = string.Empty;
 
@@ -131,6 +134,9 @@ Defaults:
 
         [Option("--upstream-protocol <value>", CommandOptionType.SingleValue, Description = "Upstream protocol for IoT Hub connections.")]
         public (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) UpstreamProtocol { get; } = (false, UpstreamProtocolType.Amqp);
+
+        [Option("--offline-installation-path <path>", Description = "Packages folder for offline installation")]
+        public string OfflineInstallationPath { get; } = string.Empty;
 
         // ReSharper disable once UnusedMember.Local
         static int Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args).Result;
@@ -153,18 +159,24 @@ Defaults:
                     ? Option.Some(new RegistryCredentials(address, user, password))
                     : Option.None<RegistryCredentials>();
 
+                (bool useProxy, string proxyUrl) = this.Proxy;
+                Option<string> proxy = useProxy
+                    ? Option.Some(proxyUrl)
+                    : Option.Maybe(Environment.GetEnvironmentVariable("https_proxy"));
+
+                (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) = this.UpstreamProtocol;
+                Option<UpstreamProtocolType> upstreamProtocolOption = overrideUpstreamProtocol
+                    ? Option.Some(upstreamProtocol)
+                    : Option.None<UpstreamProtocolType>();
+
                 IBootstrapper bootstrapper;
                 switch (this.BootstrapperType)
                 {
                     case BootstrapperType.Iotedged:
-                        (bool useProxy, string proxyUrl) = this.Proxy;
-                        Option<string> proxy = useProxy
-                            ? Option.Some(proxyUrl)
-                            : Option.Maybe(Environment.GetEnvironmentVariable("https_proxy"));
-
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
-                            bootstrapper = new IotedgedWindows(this.BootstrapperArchivePath, credentials, proxy);
+                            string offlineInstallationPath = string.IsNullOrEmpty(this.OfflineInstallationPath) ? this.BootstrapperArchivePath : this.OfflineInstallationPath;
+                            bootstrapper = new IotedgedWindows(offlineInstallationPath, credentials, proxy, upstreamProtocolOption);
                         }
                         else
                         {
@@ -172,11 +184,6 @@ Defaults:
                             Option<HttpUris> uris = useHttp
                                 ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
                                 : Option.None<HttpUris>();
-
-                            (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) = this.UpstreamProtocol;
-                            Option<UpstreamProtocolType> upstreamProtocolOption = overrideUpstreamProtocol
-                                ? Option.Some(upstreamProtocol)
-                                : Option.None<UpstreamProtocolType>();
 
                             bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, proxy, upstreamProtocolOption);
                         }
@@ -197,6 +204,8 @@ Defaults:
 
                 Option<string> deployment = this.DeploymentFileName != null ? Option.Some(this.DeploymentFileName) : Option.None<string>();
 
+                Option<string> twinTest = this.TwinTestFileName != null ? Option.Some(this.TwinTestFileName) : Option.None<string>();
+
                 string tag = this.ImageTag ?? "1.0";
 
                 var test = new Quickstart(
@@ -205,6 +214,7 @@ Defaults:
                     connectionString,
                     endpoint,
                     this.UpstreamProtocol.Item2,
+                    proxy,
                     tag,
                     this.DeviceId,
                     this.EdgeHostname,
@@ -213,6 +223,7 @@ Defaults:
                     this.NoVerify,
                     this.VerifyDataFromModule,
                     deployment,
+                    twinTest,
                     this.DeviceCaCert,
                     this.DeviceCaPk,
                     this.DeviceCaCerts,

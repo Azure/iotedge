@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -46,20 +46,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff)
         {
-            IList<string> updatedModuleNames = diff.Updated.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m.Name)).ToList();
-            IEnumerable<string> removedModuleNames = diff.Removed.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m));
+            IList<string> addedOrUpdatedModuleNames = diff.AddedOrUpdated.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m.Name)).ToList();
+            IEnumerable<string> removedModuleNames = diff.Removed.Select(ModuleIdentityHelper.GetModuleIdentityName);
 
             IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
 
             // Create identities for all modules that are in the deployment but aren't in iotedged.
-            IEnumerable<string> createIdentities = updatedModuleNames.Where(m => !identities.ContainsKey(m));
+            IEnumerable<string> createIdentities = addedOrUpdatedModuleNames.Where(m => !identities.ContainsKey(m));
 
             // Update identities for all modules that are in the deployment and are in iotedged (except for Edge Agent which gets special
             // treatment in iotedged).
             //
             // NOTE: This update can potentiatlly be made more efficient by checking that an update is actually needed, i.e. if auth type
             // is not SAS and/or if the credentials are not what iotedged expects it to be.
-            IEnumerable<Identity> updateIdentities = updatedModuleNames
+            IEnumerable<Identity> updateIdentities = addedOrUpdatedModuleNames
                 .Where(m => identities.ContainsKey(m) && m != Constants.EdgeAgentModuleIdentityName)
                 .Select(m => identities[m]);
 

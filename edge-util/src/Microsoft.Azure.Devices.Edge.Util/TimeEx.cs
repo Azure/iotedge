@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
+    using System.Globalization;
 
     public static class TimeEx
     {
@@ -12,5 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static long ToUnixMillis(this DateTime value) =>
             (long)value.ToUniversalTime().Subtract(Epoch).TotalMilliseconds;
+
+        public static string ToLogString(this DateTime value) => value.ToString("yyyy-MM-dd HH:mm:ss.fff zzz", CultureInfo.InvariantCulture);
     }
 }

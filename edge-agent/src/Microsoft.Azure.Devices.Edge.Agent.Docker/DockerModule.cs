@@ -78,6 +78,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                    EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
+        public virtual bool OnlyModuleStatusChanged(IModule other)
+        {
+            return other is DockerModule dockerModule &&
+                string.Equals(this.Name, other.Name) &&
+                string.Equals(this.Version, other.Version) &&
+                string.Equals(this.Type, other.Type) &&
+                this.DesiredStatus != other.DesiredStatus &&
+                this.Config.Equals(dockerModule.Config) &&
+                this.RestartPolicy == other.RestartPolicy &&
+                EnvDictionaryComparer.Equals(this.Env, other.Env);
+        }
+
         public override int GetHashCode()
         {
             unchecked

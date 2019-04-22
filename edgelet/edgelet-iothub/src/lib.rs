@@ -1,37 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
-// Remove this when clippy stops warning about old-style `allow()`,
-// which can only be silenced by enabling a feature and thus requires nightly
-//
-// Ref: https://github.com/rust-lang-nursery/rust-clippy/issues/3159#issuecomment-420530386
-#![allow(renamed_and_removed_lints)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy, clippy_pedantic))]
-#![cfg_attr(feature = "cargo-clippy", allow(stutter, use_self))]
-
-extern crate base64;
-#[cfg(test)]
-extern crate bytes;
-extern crate chrono;
-extern crate failure;
-extern crate futures;
-#[cfg(test)]
-extern crate hyper;
-#[macro_use]
-extern crate percent_encoding;
-#[macro_use]
-extern crate serde_derive;
-#[cfg(test)]
-extern crate serde_json;
-#[cfg(test)]
-extern crate tokio;
-#[cfg(test)]
-extern crate typed_headers;
-extern crate url;
-
-extern crate edgelet_core;
-extern crate edgelet_http;
-extern crate iothubservice;
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::module_name_repetitions, clippy::use_self)]
 
 mod error;
 
@@ -43,7 +14,8 @@ use chrono::{DateTime, Utc};
 use failure::{Fail, ResultExt};
 use futures::future::{self, Either};
 use futures::Future;
-use percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};
+use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
+use serde_derive::Serialize;
 use url::form_urlencoded::Serializer as UrlSerializer;
 
 use edgelet_core::crypto::{KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};
@@ -54,7 +26,7 @@ use iothubservice::{
     ModuleOperationReason as HubReason, SymmetricKey,
 };
 
-pub use error::{Error, ErrorKind, IdentityOperationReason};
+pub use crate::error::{Error, ErrorKind, IdentityOperationReason};
 
 const KEY_PRIMARY: &str = "primary";
 const KEY_SECONDARY: &str = "secondary";
@@ -94,7 +66,7 @@ impl Identity for HubIdentity {
     fn auth_type(&self) -> AuthType {
         self.hub_module
             .authentication()
-            .and_then(|auth_mechanism| auth_mechanism.type_())
+            .and_then(AuthMechanism::type_)
             .map_or(AuthType::None, convert_auth_type)
     }
 }
@@ -255,11 +227,11 @@ where
 {
     type Identity = HubIdentity;
     type Error = Error;
-    type CreateFuture = Box<Future<Item = Self::Identity, Error = Self::Error> + Send>;
-    type UpdateFuture = Box<Future<Item = Self::Identity, Error = Self::Error> + Send>;
-    type ListFuture = Box<Future<Item = Vec<Self::Identity>, Error = Self::Error> + Send>;
-    type GetFuture = Box<Future<Item = Option<Self::Identity>, Error = Self::Error> + Send>;
-    type DeleteFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type CreateFuture = Box<dyn Future<Item = Self::Identity, Error = Self::Error> + Send>;
+    type UpdateFuture = Box<dyn Future<Item = Self::Identity, Error = Self::Error> + Send>;
+    type ListFuture = Box<dyn Future<Item = Vec<Self::Identity>, Error = Self::Error> + Send>;
+    type GetFuture = Box<dyn Future<Item = Option<Self::Identity>, Error = Self::Error> + Send>;
+    type DeleteFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
     fn create(&mut self, id: IdentitySpec) -> Self::CreateFuture {
         // This code first creates a module in the hub with the auth type

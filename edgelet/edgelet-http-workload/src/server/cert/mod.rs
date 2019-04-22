@@ -12,7 +12,7 @@ use edgelet_core::{Certificate, CertificateProperties, CreateCertificate, KeyByt
 use edgelet_utils::ensure_not_empty_with_context;
 use workload::models::{CertificateResponse, PrivateKey as PrivateKeyResponse};
 
-use error::{Error, ErrorKind, Result};
+use crate::error::{Error, ErrorKind, Result};
 
 mod identity;
 mod server;

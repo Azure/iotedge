@@ -9,7 +9,7 @@
  */
 
 /// VolumeUsageData : Usage details about the volume. This information is used by the `GET /system/df` endpoint, and omitted in other endpoints.
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
