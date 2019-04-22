@@ -7,6 +7,7 @@ use std::env;
 use std::fs::File;
 use std::io::Write;
 use std::sync::Mutex;
+use std::path::Path;
 
 use lazy_static::lazy_static;
 
@@ -24,20 +25,25 @@ lazy_static! {
     static ref LOCK: Mutex<()> = Mutex::new(());
 }
 
+fn setup_configured_id_cert(home_dir: &Path) {
+    let file_path = home_dir.join("temp_cert.pem");
+    let mut cert_file = File::create(file_path.clone()).unwrap();
+    write!(cert_file, "{}", DEVICE_IDENTITY_CERT).unwrap();
+    env::set_var(DEVICE_IDENTITY_CERT_KEY, file_path);
+    cert_file.sync_all().unwrap();
+
+    let file_path = home_dir.join("temp_key.pem");
+    let mut key_file = File::create(file_path.clone()).unwrap();
+    write!(key_file, "{}", DEVICE_IDENTITY_PK).unwrap();
+    env::set_var(DEVICE_IDENTITY_PK_KEY, file_path);
+    key_file.sync_all().unwrap();
+}
+
 #[test]
 fn x509_get_identity_cert_success() {
     // arrange
     let home_dir = TestHSMEnvSetup::new(&LOCK, None);
-
-    let file_path = home_dir.get_path().join("temp_cert.pem");
-    let mut cert_file = File::create(file_path.clone()).unwrap();
-    write!(cert_file, "{}", DEVICE_IDENTITY_CERT).unwrap();
-    env::set_var(DEVICE_IDENTITY_CERT_KEY, file_path);
-
-    let file_path = home_dir.get_path().join("temp_key.pem");
-    let mut key_file = File::create(file_path.clone()).unwrap();
-    write!(key_file, "{}", DEVICE_IDENTITY_PK).unwrap();
-    env::set_var(DEVICE_IDENTITY_PK_KEY, file_path);
+    setup_configured_id_cert(home_dir.get_path());
 
     let x509 = X509::new().unwrap();
 
@@ -61,8 +67,4 @@ fn x509_get_identity_cert_success() {
             assert_eq!(DEVICE_IDENTITY_PK.as_bytes(), k.as_bytes())
         }
     }
-
-    // cleanup
-    drop(cert_file);
-    drop(key_file);
 }
