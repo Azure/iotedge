@@ -95,6 +95,19 @@ static CRYPTO_STORE* g_crypto_store = NULL;
 static int g_store_ref_count = 0;
 
 //##############################################################################
+// Helpers
+//##############################################################################
+
+#define FREEIF(x) \
+    do { \
+        if ((x != NULL)) { \
+            free(x); \
+            x = NULL; \
+        } \
+    } while(0)
+
+
+//##############################################################################
 // Forward declarations
 //##############################################################################
 static int edge_hsm_client_store_create_pki_cert_internal
@@ -1696,22 +1709,22 @@ static int get_tg_env_vars(char **trusted_certs_path, char **device_ca_path, cha
     if (hsm_get_env(ENV_TRUSTED_CA_CERTS_PATH, &tb_path) != 0)
     {
         LOG_ERROR("Failed to read env variable %s", ENV_TRUSTED_CA_CERTS_PATH);
+        FREEIF(tb_path);
         result = __FAILURE__;
     }
     else if (hsm_get_env(ENV_DEVICE_CA_PATH, &cert_path) != 0)
     {
         LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_CA_PATH);
-        free(tb_path);
-        tb_path = NULL;
+        FREEIF(tb_path);
+        FREEIF(cert_path);
         result = __FAILURE__;
     }
     else if (hsm_get_env(ENV_DEVICE_PK_PATH, &pk_path) != 0)
     {
         LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_PK_PATH);
-        free(tb_path);
-        tb_path = NULL;
-        free(cert_path);
-        cert_path = NULL;
+        FREEIF(tb_path);
+        FREEIF(cert_path);
+        FREEIF(pk_path);
         result = __FAILURE__;
     }
     else
@@ -1739,8 +1752,8 @@ static int get_device_id_env_vars(char **device_id_cert_path, char **device_id_p
     else if (hsm_get_env(ENV_DEVICE_PRIVATE_KEY_PATH, &pk_path) != 0)
     {
         LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_PK_PATH);
-        free(pk_path);
-        pk_path = NULL;
+        FREEIF(cert_path);
+        FREEIF(pk_path);
         result = __FAILURE__;
     }
     else
