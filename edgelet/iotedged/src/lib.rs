@@ -54,7 +54,7 @@ use edgelet_core::{
     CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime, ModuleSpec, UrlExt,
     WorkloadConfig, UNIX_SCHEME,
 };
-use edgelet_docker::{DockerConfig, DockerModuleRuntime, DockerNewIdService};
+use edgelet_docker::{DockerConfig, DockerModuleRuntime, AuthenticationService};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
 use edgelet_http::certificate_manager::CertificateManager;
@@ -75,7 +75,6 @@ use provisioning::provisioning::{
 use crate::workload::WorkloadData;
 
 pub use self::error::{Error, ErrorKind, InitializeErrorReason};
-use hyper::service::Service;
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
@@ -922,12 +921,12 @@ where
                 InitializeErrorReason::ManagementService,
             ))?;
             let service = LoggingService::new(label, service);
+            let service = AuthenticationService::new(module_runtime, service);
             info!("Listening on {} with 1 thread for management API.", url);
             let run = Http::new()
                 .bind_url(
                     url.clone(),
                     service,
-                    create_new_id_service(module_runtime),
                     Some(&cert_manager),
                 )
                 .map_err(|err| {
@@ -977,11 +976,11 @@ where
                 InitializeErrorReason::WorkloadService,
             ))?;
             let service = LoggingService::new(label, service);
+            let service = AuthenticationService::new(module_runtime, service);
             let run = Http::new()
                 .bind_url(
                     url.clone(),
                     service,
-                    create_new_id_service(module_runtime),
                     Some(&cert_manager),
                 )
                 .map_err(|err| {
@@ -995,13 +994,6 @@ where
             Ok(run)
         })
         .flatten()
-}
-
-fn create_new_id_service<S>(runtime: DockerModuleRuntime) -> DockerNewIdService<S>
-where
-    S: Service,
-{
-    DockerNewIdService::<S>::new(runtime)
 }
 
 #[cfg(test)]

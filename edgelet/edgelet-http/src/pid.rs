@@ -3,10 +3,43 @@
 use std::io;
 
 use edgelet_core::pid::Pid;
+use futures::prelude::*;
+use hyper::service::Service;
+use hyper::{Body, Error as HyperError, Request};
 #[cfg(unix)]
 use tokio_uds::UnixStream;
 #[cfg(windows)]
 use tokio_uds_windows::UnixStream;
+
+#[derive(Clone)]
+pub struct PidService<T> {
+    pid: Pid,
+    inner: T,
+}
+
+impl<T> PidService<T> {
+    pub fn new(pid: Pid, inner: T) -> Self {
+        PidService { pid, inner }
+    }
+}
+
+impl<T> Service for PidService<T>
+where
+    T: Service<ReqBody = Body>,
+    <T as Service>::ResBody: Stream<Error = HyperError> + 'static,
+    <<T as Service>::ResBody as Stream>::Item: AsRef<[u8]>,
+{
+    type ReqBody = T::ReqBody;
+    type ResBody = T::ResBody;
+    type Error = T::Error;
+    type Future = T::Future;
+
+    fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
+        let mut req = req;
+        req.extensions_mut().insert(self.pid);
+        self.inner.call(req)
+    }
+}
 
 pub trait UnixStreamExt {
     fn pid(&self) -> io::Result<Pid>;

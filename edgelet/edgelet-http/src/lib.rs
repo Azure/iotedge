@@ -56,7 +56,7 @@ pub use self::util::UrlConnector;
 pub use self::version::{Version, API_VERSION};
 
 use self::util::incoming::Incoming;
-use edgelet_core::pid::Pid;
+use crate::pid::PidService;
 
 const HTTP_SCHEME: &str = "http";
 #[cfg(unix)]
@@ -88,23 +88,19 @@ impl Future for Run {
     }
 }
 
-pub struct Server<S, I> {
+pub struct Server<S> {
     protocol: Http,
     new_service: S,
-    new_id_service: I,
     incoming: Incoming,
 }
 
-impl<S, I> Server<S, I>
+impl<S> Server<S>
 where
     S: NewService<ReqBody = Body, ResBody = Body> + Send + 'static,
     S::Future: Send + 'static,
     S::Service: Send + 'static,
     S::InitError: Fail,
     <S::Service as Service>::Future: Send + 'static,
-    I: NewIdService<InnerService = S::Service> + Send + Clone + 'static,
-    I::IdService: Service<ReqBody = Body> + Send,
-    <I::IdService as Service>::Future: Send,
 {
     pub fn run(self) -> Run {
         self.run_until(future::empty())
@@ -117,7 +113,6 @@ where
         let Server {
             protocol,
             new_service,
-            new_id_service,
             incoming,
         } = self;
 
@@ -125,7 +120,6 @@ where
 
         let srv = incoming.for_each(move |(socket, addr)| {
             let protocol = protocol.clone();
-            let new_id_service = new_id_service.clone();
 
             debug!("accepted new connection ({})", addr);
             let pid = socket.pid()?;
@@ -140,7 +134,7 @@ where
                     }
                 })
                 .and_then(move |(srv, addr)| {
-                    let service = new_id_service.new_service(pid, srv);
+                    let service = PidService::new(pid, srv);
                     protocol
                         .serve_connection(socket, service)
                         .then(move |result| match result {
@@ -174,33 +168,29 @@ where
 }
 
 pub trait HyperExt {
-    fn bind_url<C, S, I>(
+    fn bind_url<C, S>(
         &self,
         url: Url,
         new_service: S,
-        new_id_service: I,
         cert_manager: Option<&CertificateManager<C>>,
-    ) -> Result<Server<S, I>, Error>
+    ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
-        S: NewService<ReqBody = Body>,
-        I: NewIdService;
+        S: NewService<ReqBody = Body>;
 }
 
 // This variable is used on Unix but not Windows
 #[allow(unused_variables)]
 impl HyperExt for Http {
-    fn bind_url<C, S, I>(
+    fn bind_url<C, S>(
         &self,
         url: Url,
         new_service: S,
-        new_id_service: I,
         cert_manager: Option<&CertificateManager<C>>,
-    ) -> Result<Server<S, I>, Error>
+    ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
         S: NewService<ReqBody = Body>,
-        I: NewIdService,
     {
         let incoming = match url.scheme() {
             HTTP_SCHEME | TCP_SCHEME => {
@@ -308,15 +298,7 @@ impl HyperExt for Http {
         Ok(Server {
             protocol: self.clone(),
             new_service,
-            new_id_service,
             incoming,
         })
     }
-}
-
-pub trait NewIdService {
-    type IdService: Service;
-    type InnerService: Service;
-
-    fn new_service(&self, pid: Pid, inner: Self::InnerService) -> Self::IdService;
 }

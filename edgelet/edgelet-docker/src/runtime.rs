@@ -19,8 +19,9 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, InlineResponse2001, NetworkConfig};
 use edgelet_core::{
-    pid::Pid, LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    ModuleTop, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
+    pid::Pid, AuthId, Authenticator, LogOptions, Module, ModuleRegistry, ModuleRuntime,
+    ModuleRuntimeState, ModuleSpec, ModuleTop, RegistryOperation, RuntimeOperation,
+    SystemInfo as CoreSystemInfo, UrlExt,
 };
 use edgelet_http::UrlConnector;
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -29,6 +30,7 @@ use crate::client::DockerClient;
 use crate::config::DockerConfig;
 use crate::error::{Error, ErrorKind, Result};
 use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
+use futures::future::Either;
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -740,6 +742,37 @@ impl ModuleRuntime for DockerModuleRuntime {
                     }
                 }),
         )
+    }
+}
+
+impl Authenticator for DockerModuleRuntime {
+    type Error = Error;
+    type Credentials = Pid;
+    type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error>>;
+
+    fn authenticate(&self, credentials: Self::Credentials) -> Self::AuthenticateFuture {
+        let fut = match credentials {
+            Pid::None => Either::B(future::ok(AuthId::None)),
+            Pid::Any => Either::B(future::ok(AuthId::Any)),
+            Pid::Value(pid) => Either::A(
+                self.list_with_details()
+                    .filter_map(move |(m, rs)| {
+                        rs.process_ids()
+                            .filter(|process_ids| process_ids.contains(&&pid))
+                            .map(|_| m)
+                    })
+                    .into_future()
+                    .then(move |result| match result {
+                        Ok((Some(m), _)) => Ok(AuthId::Value(m.name().to_string())),
+                        Ok((None, _)) => {
+                            info!("Unable to find a module for caller pid: {}", pid);
+                            Ok(AuthId::None)
+                        }
+                        Err((err, _)) => Err(err),
+                    }),
+            ),
+        };
+        Box::new(fut)
     }
 }
 
