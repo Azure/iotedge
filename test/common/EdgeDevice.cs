@@ -36,7 +36,7 @@ namespace common
             return Profiler.Run(
                 $"Creating edge device '{deviceId}' on hub '{iotHub.Hostname}'",
                 async () => {
-                    Device device = await iotHub.CreateEdgeDeviceIdentity(deviceId, token);
+                    Device device = await iotHub.CreateEdgeDeviceIdentityAsync(deviceId, token);
                     return new EdgeDevice(device, true, iotHub);
                 }
             );

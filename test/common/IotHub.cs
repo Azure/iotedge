@@ -75,7 +75,7 @@ namespace common
         public Task<Device> GetDeviceIdentityAsync(string deviceId, CancellationToken token) =>
             this.RegistryManager.GetDeviceAsync(deviceId, token);
 
-        public Task<Device> CreateEdgeDeviceIdentity(string deviceId, CancellationToken token)
+        public Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, CancellationToken token)
         {
             var device = new Device(deviceId)
             {
