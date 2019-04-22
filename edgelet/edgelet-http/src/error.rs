@@ -35,6 +35,9 @@ pub enum ErrorKind {
     #[fail(display = "Unable to create a certificate expiration timer")]
     CertificateTimerCreationError,
 
+    #[fail(display = "The certificate timer callback failed")]
+    CertificateTimerRuntimeError,
+
     #[fail(display = "A valid certificate was not found")]
     CertificateNotFound,
 

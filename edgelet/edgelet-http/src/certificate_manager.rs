@@ -105,7 +105,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
         expiration_callback: F,
     ) -> impl Future<Item = (), Error = Error>
     where
-        F: FnOnce() + Sync + Send + 'static,
+        F: FnOnce() -> Result<(), ()> + Sync + Send + 'static,
     {
         // Now, let's set a timer to expire this certificate
         // expire the certificate with 2 minutes remaining in it's lifetime
@@ -118,11 +118,11 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
         } else {
             Either::B(
                 Delay::new(when)
-                    .and_then(move |_| {
-                        expiration_callback();
-                        Ok(())
-                    })
-                    .map_err(|_| Error::from(ErrorKind::CertificateTimerCreationError)),
+                    .map_err(|_| Error::from(ErrorKind::CertificateTimerCreationError))
+                    .and_then(move |_| match expiration_callback() {
+                        Ok(_) => Ok(()),
+                        Err(_) => Err(Error::from(ErrorKind::CertificateTimerRuntimeError)),
+                    }),
             )
         }
     }

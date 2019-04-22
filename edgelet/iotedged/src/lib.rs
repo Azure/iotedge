@@ -30,7 +30,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use failure::{Fail, ResultExt};
-use futures::future::Either;
+use futures::future::{Either, IntoFuture};
 use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future};
 use hyper::server::conn::Http;
@@ -554,7 +554,7 @@ where
     // Create the certificate management timer and channel
     let (restart_tx, restart_rx) = oneshot::channel();
     let expiration_timer = cert_manager
-        .schedule_expiration_timer(move || restart_tx.send(()).unwrap_or(()))
+        .schedule_expiration_timer(move || restart_tx.send(()))
         .map_err(|err| Error::from(err.context(ErrorKind::CertificateExpirationManagement)));
 
     let cert_manager = Arc::new(cert_manager);
@@ -577,25 +577,15 @@ where
     // Wait for the watchdog to finish, and then send signal to the workload and management services.
     // This way the edgeAgent can finish shutting down all modules.
 
-    let edge_rt_with_cleanup = edge_rt.select2(restart_rx).then(
-        move |res| -> Box<dyn Future<Item = _, Error = _> + Send + Sync> {
-            match res {
-                Ok(Either::A((_, _))) => {
-                    mgmt_tx.send(()).unwrap_or(());
-                    work_tx.send(()).unwrap_or(());
-                    Box::new(future::ok(StartApiReturnStatus::Shutdown))
-                }
-                Ok(Either::B((_, _))) => {
-                    mgmt_tx.send(()).unwrap_or(());
-                    work_tx.send(()).unwrap_or(());
-                    Box::new(future::ok(StartApiReturnStatus::Restart))
-                }
-                Err(Either::A((_, _))) | Err(Either::B((_, _))) => {
-                    Box::new(future::ok(StartApiReturnStatus::Shutdown))
-                }
-            }
-        },
-    );
+    let edge_rt_with_cleanup = edge_rt.select2(restart_rx).then(move |res| {
+        mgmt_tx.send(()).unwrap_or(());
+        work_tx.send(()).unwrap_or(());
+
+        match res {
+            Ok(Either::B(_)) => Ok(StartApiReturnStatus::Restart).into_future(),
+            _ => Ok(StartApiReturnStatus::Shutdown).into_future(),
+        }
+    });
 
     let shutdown = shutdown_signal.map(move |_| {
         debug!("shutdown signaled");
