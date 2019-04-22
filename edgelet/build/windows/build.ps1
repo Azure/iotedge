@@ -26,11 +26,11 @@ if($Arm)
     $ForkedCrates = @"
 
 [patch.crates-io]
-backtrace = { git = "https://github.com/chandde/backtrace-rs", branch = "arm" }
+backtrace = { git = "https://github.com/philipktlin/backtrace-rs", branch = "arm" }
 cmake = { git = "https://github.com/philipktlin/cmake-rs", branch = "arm" }
 dtoa = { git = "https://github.com/philipktlin/dtoa", branch = "arm" }
 iovec = { git = "https://github.com/philipktlin/iovec", branch = "arm" }
-mio = { git = "https://github.com/chandde/mio", branch = "arm" }
+mio = { git = "https://github.com/philipktlin/mio", branch = "arm" }
 miow = { git = "https://github.com/philipktlin/miow", branch = "arm" }
 serde-hjson = { git = "https://github.com/philipktlin/hjson-rust", branch = "arm" }
 winapi = { git = "https://github.com/philipktlin/winapi-rs", branch = "arm/v0.3.5" }
@@ -39,10 +39,10 @@ winapi = { git = "https://github.com/philipktlin/winapi-rs", branch = "arm/v0.3.
 mio-uds-windows = { git = "https://github.com/philipktlin/mio-uds-windows", branch = "arm" }
 
 [patch."https://github.com/Azure/hyperlocal-windows"]
-hyperlocal-windows = { git = "https://github.com/chandde/hyperlocal-windows", branch = "arm" }
+hyperlocal-windows = { git = "https://github.com/philipktlin/hyperlocal-windows", branch = "arm" }
 
 [patch."https://github.com/Azure/tokio-uds-windows"]
-tokio-uds-windows = { git = "https://github.com/chandde/tokio-uds-windows", branch = "arm" }
+tokio-uds-windows = { git = "https://github.com/philipktlin/tokio-uds-windows", branch = "arm" }
 "@
 
     Write-Host "Appen cargo.toml with $ForkedCrates"
