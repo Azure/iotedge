@@ -33,6 +33,7 @@ steps:
       targetType: inline
       script: |
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
+        set -x
         testName="LongHaul"
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
