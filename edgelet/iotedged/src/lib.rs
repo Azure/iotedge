@@ -590,8 +590,9 @@ where
                     work_tx.send(()).unwrap_or(());
                     Box::new(future::ok(StartApiReturnStatus::Restart))
                 }
-                Err(Either::A((_, _))) => Box::new(future::ok(StartApiReturnStatus::Shutdown)),
-                Err(Either::B((_, _))) => Box::new(future::ok(StartApiReturnStatus::Shutdown)),
+                Err(Either::A((_, _))) | Err(Either::B((_, _))) => {
+                    Box::new(future::ok(StartApiReturnStatus::Shutdown))
+                }
             }
         },
     );

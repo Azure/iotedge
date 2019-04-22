@@ -108,11 +108,10 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
         F: FnOnce() + Sync + Send + 'static,
     {
         // Now, let's set a timer to expire this certificate
-        // Expire the certificate at 5% of it's remaining lifetime
-        let when = self.creation_time
-            + Duration::from_secs((*self.props.validity_in_secs() as f64 * 0.05) as u64);
+        // expire the certificate with 2 minutes remaining in it's lifetime
+        let when = self.creation_time + Duration::from_secs(*self.props.validity_in_secs() - 120);
 
-        if when < (Instant::now() + Duration::from_secs(1)) {
+        if when < (Instant::now() + Duration::from_secs(120)) {
             Either::A(future::err(Error::from(
                 ErrorKind::CertificateTimerCreationError,
             )))
