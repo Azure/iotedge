@@ -62,6 +62,8 @@ namespace common
             });
         }
 
+        // Adds proxy information to each module in Edge Agent's desired properties. Call this
+        // method after you've added all the modules that need proxy information.
         public void AddProxy(string url)
         {
             _ForEachModule((name, module) =>
