@@ -118,10 +118,7 @@ namespace common
             string moduleId,
             CloudToDeviceMethod method,
             CancellationToken token
-        )
-        {
-            return this.ServiceClient.InvokeDeviceMethodAsync(deviceId, moduleId, method, token);
-        }
+        ) => this.ServiceClient.InvokeDeviceMethodAsync(deviceId, moduleId, method, token);
 
         public async Task ReceiveEventsAsync(
             string deviceId,
