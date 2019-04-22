@@ -203,7 +203,7 @@ where
     Ok(name)
 }
 
-fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> std::result::Result<Vec<Pid>, D::Error>
+fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> std::result::Result<Vec<i32>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -237,7 +237,7 @@ where
                     &"a process ID number",
                 )
             })?;
-            Ok(Pid::Value(pid))
+            Ok(pid)
         })
         .collect();
     Ok(pids?)
@@ -755,22 +755,31 @@ impl Authenticator for DockerModuleRuntime {
             Pid::None => Either::B(future::ok(AuthId::None)),
             Pid::Any => Either::B(future::ok(AuthId::Any)),
             Pid::Value(pid) => Either::A(
-                self.list_with_details()
-                    .filter_map(move |(m, rs)| {
-                        rs.process_ids()
-                            .filter(|process_ids| process_ids.contains(&&pid))
-                            .map(|_| m)
+                self.list()
+                    .into_stream()
+                    .map(|list| {
+                        stream::futures_unordered(list.into_iter()
+                            .map(|module|module.top())
+                        )
+                    })
+                    .flatten()
+                    .filter_map(move |top| {
+                        if top.process_ids().contains(&pid) {
+                            Some(top.name().to_string())
+                        } else {
+                            None
+                        }
                     })
                     .into_future()
                     .then(move |result| match result {
-                        Ok((Some(m), _)) => Ok(AuthId::Value(m.name().to_string())),
+                        Ok((Some(m), _)) => Ok(AuthId::Value(m.to_string())),
                         Ok((None, _)) => {
                             info!("Unable to find a module for caller pid: {}", pid);
                             Ok(AuthId::None)
                         }
                         Err((err, _)) => Err(err),
                     }),
-            ),
+            )
         };
         Box::new(fut)
     }

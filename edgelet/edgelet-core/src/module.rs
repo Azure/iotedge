@@ -17,7 +17,6 @@ use serde_json;
 use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};
 
 use crate::error::{Error, ErrorKind, Result};
-use crate::pid::Pid;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -56,7 +55,7 @@ pub struct ModuleRuntimeState {
     started_at: Option<DateTime<Utc>>,
     finished_at: Option<DateTime<Utc>>,
     image_id: Option<String>,
-    process_ids: Option<Vec<i32>>
+    pid: Option<i32>
 }
 
 impl Default for ModuleRuntimeState {
@@ -68,7 +67,7 @@ impl Default for ModuleRuntimeState {
             started_at: None,
             finished_at: None,
             image_id: None,
-            process_ids: None,
+            pid: None,
         }
     }
 }
@@ -128,12 +127,12 @@ impl ModuleRuntimeState {
         self
     }
 
-    pub fn process_ids(&self) -> Option<&Vec<i32>> {
-        self.process_ids.as_ref()
+    pub fn pid(&self) -> Option<i32> {
+        self.pid
     }
 
-    pub fn with_process_ids(mut self, process_ids: Option<Vec<i32>>) -> Self {
-        self.process_ids = process_ids;
+    pub fn with_pid(mut self, pid: Option<i32>) -> Self {
+        self.pid = pid;
         self
     }
 }
@@ -365,11 +364,11 @@ pub struct ModuleTop {
     /// Name of the module. Example: tempSensor
     name: String,
     /// A vector of process IDs (PIDs) representing a snapshot of all processes running inside the module.
-    process_ids: Vec<Pid>,
+    process_ids: Vec<i32>,
 }
 
 impl ModuleTop {
-    pub fn new(name: String, process_ids: Vec<Pid>) -> Self {
+    pub fn new(name: String, process_ids: Vec<i32>) -> Self {
         ModuleTop { name, process_ids }
     }
 
@@ -377,7 +376,7 @@ impl ModuleTop {
         &self.name
     }
 
-    pub fn process_ids(&self) -> &[Pid] {
+    pub fn process_ids(&self) -> &[i32] {
         &self.process_ids
     }
 }

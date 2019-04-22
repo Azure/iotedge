@@ -8,12 +8,15 @@ use hyper::client::connect::Connect;
 
 use edgelet_utils::ensure_not_empty_with_context;
 
-use docker::models::InlineResponse200State;
-use edgelet_core::{Module, ModuleOperation, ModuleRuntimeState, ModuleStatus};
+use docker::models::{InlineResponse200State, InlineResponse2001};
+use edgelet_core::{Module, ModuleOperation, ModuleRuntimeState, ModuleStatus, ModuleTop, RuntimeOperation};
 
 use crate::client::DockerClient;
 use crate::config::DockerConfig;
 use crate::error::{Error, ErrorKind, Result};
+use failure::{ResultExt};
+
+type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
 pub const MODULE_TYPE: &str = "docker";
 pub const MIN_DATE: &str = "0001-01-01T00:00:00Z";
@@ -24,7 +27,7 @@ pub struct DockerModule<C: Connect> {
     config: DockerConfig,
 }
 
-impl<C: Connect> DockerModule<C> {
+impl<C: 'static + Connect> DockerModule<C> {
     pub fn new(client: DockerClient<C>, name: String, config: DockerConfig) -> Result<Self> {
         ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
 
@@ -34,6 +37,70 @@ impl<C: Connect> DockerModule<C> {
             config,
         })
     }
+
+    pub fn top(&self) -> Box<dyn Future<Item = ModuleTop, Error = Error> + Send> {
+        let id = self.name.to_string();
+        Box::new(
+            self.client
+                .container_api()
+                .container_top(&id, "")
+                .then(|result| match result {
+                    Ok(resp) => {
+                        let p = parse_top_response::<Deserializer>(&resp).with_context(|_| {
+                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.clone()))
+                        })?;
+                        Ok(ModuleTop::new(id, p))
+                    }
+                    Err(err) => {
+                        let err = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id)),
+                        );
+                        Err(err)
+                    }
+                }),
+        )
+    }
+}
+
+fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> std::result::Result<Vec<i32>, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+{
+    let titles = resp
+        .titles()
+        .ok_or_else(|| serde::de::Error::missing_field("Titles"))?;
+    let pid_index = titles
+        .iter()
+        .position(|ref s| s.as_str() == "PID")
+        .ok_or_else(|| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Seq,
+                &"array including the column title 'PID'",
+            )
+        })?;
+    let processes = resp
+        .processes()
+        .ok_or_else(|| serde::de::Error::missing_field("Processes"))?;
+    let pids: std::result::Result<_, _> = processes
+        .iter()
+        .map(|ref p| {
+            let val = p.get(pid_index).ok_or_else(|| {
+                serde::de::Error::invalid_length(
+                    p.len(),
+                    &&*format!("at least {} columns", pid_index + 1),
+                )
+            })?;
+            let pid = val.parse::<i32>().map_err(|_| {
+                serde::de::Error::invalid_value(
+                    serde::de::Unexpected::Str(val),
+                    &"a process ID number",
+                )
+            })?;
+            Ok(pid)
+        })
+        .collect();
+    Ok(pids?)
 }
 
 fn status_from_exit_code(exit_code: Option<i64>) -> Option<ModuleStatus> {
@@ -77,15 +144,14 @@ pub fn runtime_state(
                     .and_then(|finished_at| DateTime::from_str(finished_at).ok()),
             )
             .with_image_id(id.map(ToOwned::to_owned))
-            .with_process_ids(state.pid().map_or(None, |pid| Some(vec![pid]))) // todo expected list of process identifiers here
+            .with_pid(state.pid())
     })
 }
 
 impl<C: 'static + Connect> Module for DockerModule<C> {
     type Config = DockerConfig;
     type Error = Error;
-    type RuntimeStateFuture =
-        Box<dyn Future<Item = ModuleRuntimeState, Error = Self::Error> + Send>;
+    type RuntimeStateFuture = Box<dyn Future<Item = ModuleRuntimeState, Error = Self::Error> + Send>;
 
     fn name(&self) -> &str {
         &self.name
