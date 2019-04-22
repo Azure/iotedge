@@ -21,7 +21,6 @@ set(${theseTestsName}_test_files
     ../../src/constants.c
     ../../src/certificate_info.c
     ../../src/edge_hsm_client_x509.c
-    ../../src/edge_hsm_client_crypto.c
     ../../src/edge_openssl_common.c
     ../../src/edge_pki_openssl.c
     ../../src/hsm_log.c
