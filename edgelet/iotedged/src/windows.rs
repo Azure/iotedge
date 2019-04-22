@@ -80,7 +80,7 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
     info!("Starting {} service.", IOTEDGED_SERVICE_NAME);
     main.run()?;
 
-    // This will only happen if a shutdown class event happens and main returns. 
+    // This will only happen if a shutdown class event happens and main returns.
     info!("Stopping {} service.", IOTEDGED_SERVICE_NAME);
     update_service_state(status_handle, ServiceState::StopPending)?;
 
