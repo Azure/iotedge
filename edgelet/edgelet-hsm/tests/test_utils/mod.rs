@@ -15,20 +15,19 @@ impl<'a> TestHSMEnvSetup<'a> {
     pub fn new(m: &'a Mutex<()>, home_dir: Option<&str>) -> Self {
         let guard = m.lock().unwrap();
 
-        let (temp_dir, path) = match home_dir {
-            Some(d) => (None, PathBuf::from(d)),
-            None => {
-                let td = TempDir::new().unwrap();
-                let p = td.path().to_path_buf();
-                (Some(td), p)
-            }
+        let (temp_dir, path) = if let Some(d) = home_dir {
+            (None, PathBuf::from(d))
+        } else {
+            let td = TempDir::new().unwrap();
+            let p = td.path().to_path_buf();
+            (Some(td), p)
         };
         env::set_var(HOMEDIR_KEY, path.as_os_str());
         println!("IOTEDGE_HOMEDIR set to {:#?}", &path);
         TestHSMEnvSetup {
             _guard: guard,
             home_dir: temp_dir,
-            path: path,
+            path,
         }
     }
 

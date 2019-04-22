@@ -469,14 +469,14 @@ mod tests {
         if let Ok(x509_buffer) = result4 {
             assert_eq!(x509_buffer.as_ref(), DEFAULT_DIGEST);
         } else {
-            assert!(false);
+            unreachable!("Sign with device id private key failed");
         }
 
         let result5 = hsm_x509.get_certificate_info();
         if let Ok(cert_handle) = result5 {
             assert_eq!(TEST_RSA_CERT, cert_handle.pem().unwrap());
         } else {
-            assert!(false);
+            unreachable!("Get device id certificate info failed");
         }
     }
 
