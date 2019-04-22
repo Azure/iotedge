@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::cell::RefCell;
 use std::env;
 use std::ffi::OsString;
 use std::process;
@@ -8,8 +7,6 @@ use std::time::Duration;
 
 use clap::crate_name;
 use failure::ResultExt;
-use futures::prelude::*;
-use futures::sync::oneshot;
 use log::{error, info};
 use winapi::shared::minwindef::DWORD;
 use winapi::um::wincon::{GenerateConsoleCtrlEvent, CTRL_C_EVENT};
@@ -72,6 +69,9 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
     .context(ErrorKind::Initialize(
         InitializeErrorReason::RegisterWindowsService,
     ))?;
+
+    let settings = app::init_win_svc()?;
+    let main = super::Main::new(settings);
 
     // tell Windows we're all set
     update_service_state(status_handle, ServiceState::Running)?;
