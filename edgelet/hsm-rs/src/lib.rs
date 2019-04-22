@@ -41,7 +41,7 @@ pub trait SignWithTpm {
     ) -> Result<TpmDigest, Error>;
 }
 
-pub trait GetCerts {
+pub trait GetDeviceIdentityCertificate {
     fn get_cert(&self) -> Result<X509Data, Error>;
     fn get_key(&self) -> Result<X509Data, Error>;
     fn get_common_name(&self) -> Result<String, Error>;

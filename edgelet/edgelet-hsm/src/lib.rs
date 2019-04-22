@@ -8,7 +8,9 @@ mod certificate_properties;
 mod crypto;
 mod error;
 pub mod tpm;
+pub mod x509;
 
 pub use crypto::{Certificate, Crypto};
 pub use error::{Error, ErrorKind};
 pub use tpm::{TpmKey, TpmKeyStore};
+pub use x509::X509;
