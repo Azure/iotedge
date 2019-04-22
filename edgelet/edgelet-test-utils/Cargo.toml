@@ -22,7 +22,7 @@ hyperlocal = "0.6"
 
 [target.'cfg(windows)'.dependencies]
 hyperlocal-windows = { git = "https://github.com/Azure/hyperlocal-windows" }
-mio = "0.6.14"
+mio = "0.6"
 mio-named-pipes = "0.1"
 mio-uds-windows = { git = "https://github.com/Azure/mio-uds-windows" }
-miow = "0.3.1"
+miow = "0.3"
