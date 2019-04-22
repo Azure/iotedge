@@ -6,8 +6,8 @@
 use std::env;
 use std::fs::File;
 use std::io::Write;
-use std::sync::Mutex;
 use std::path::Path;
+use std::sync::Mutex;
 
 use lazy_static::lazy_static;
 
