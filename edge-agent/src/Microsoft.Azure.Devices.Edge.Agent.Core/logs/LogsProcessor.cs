@@ -42,13 +42,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             this.materializer = this.system.Materializer();
         }
 
-        public async Task<IReadOnlyList<ModuleLogMessage>> GetMessages(Stream stream, string moduleId, ModuleLogFilter filter)
+        public async Task<IReadOnlyList<ModuleLogMessage>> GetMessages(string id, Stream stream, ModuleLogFilter filter)
         {
             Preconditions.CheckNotNull(stream, nameof(stream));
             Preconditions.CheckNotNull(filter, nameof(filter));
-            Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
 
-            GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, moduleId));
+            GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, id));
             filter.LogLevel.ForEach(l => graphBuilder.AddFilter(m => m.LogLevel == l));
             filter.Regex.ForEach(r => graphBuilder.AddFilter(m => r.IsMatch(m.Text)));
             IRunnableGraph<Task<IImmutableList<ModuleLogMessage>>> graph = graphBuilder.GetMaterializingGraph(m => (ModuleLogMessage)m);
@@ -57,17 +57,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             return result;
         }
 
-        public async Task<IReadOnlyList<string>> GetText(Stream stream, string moduleId, ModuleLogFilter filter)
+        public async Task<IReadOnlyList<string>> GetText(string id, Stream stream, ModuleLogFilter filter)
         {
             Preconditions.CheckNotNull(stream, nameof(stream));
             Preconditions.CheckNotNull(filter, nameof(filter));
-            Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
 
             IRunnableGraph<Task<IImmutableList<string>>> GetGraph()
             {
                 if (filter.Regex.HasValue || filter.LogLevel.HasValue)
                 {
-                    GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, moduleId));
+                    GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, id));
                     filter.LogLevel.ForEach(l => graphBuilder.AddFilter(m => m.LogLevel == l));
                     filter.Regex.ForEach(r => graphBuilder.AddFilter(m => r.IsMatch(m.Text)));
                     return graphBuilder.GetMaterializingGraph(m => m.FullText);
@@ -83,9 +83,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             return result;
         }
 
-        public async Task ProcessLogsStream(Stream stream, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback)
+        public async Task ProcessLogsStream(string id, Stream stream, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback)
         {
-            string id = logOptions.Id;
             GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, id));
             logOptions.Filter.LogLevel.ForEach(l => graphBuilder.AddFilter(m => m.LogLevel == l));
             logOptions.Filter.Regex.ForEach(r => graphBuilder.AddFilter(m => r.IsMatch(m.Text)));
