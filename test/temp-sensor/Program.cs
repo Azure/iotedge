@@ -41,7 +41,7 @@ If you specify `--registry` and `--user`, the following variable must also be se
         public string PackagesPath { get; }
 
         [Option("--proxy", Description = "HTTPS proxy for communication with IoT Hub")]
-        public (bool use, string url) Proxy { get; }
+        public string Proxy { get; }
 
         [Option("--agent", Description = "Edge Agent image name, default is '" + DefaultAgentImage + "'")]
         public string AgentImage { get; } = DefaultAgentImage;
@@ -68,7 +68,7 @@ If you specify `--registry` and `--user`, the following variable must also be se
                 Endpoint = EnvironmentVariable.Expect("E2E_EVENT_HUB_ENDPOINT"),
                 InstallerPath = this.InstallerPath,
                 PackagesPath = Option.Maybe(this.PackagesPath),
-                Proxy = this.Proxy.use ? Option.Some(this.Proxy.url) : Option.None<string>(),
+                Proxy = Option.Maybe(this.Proxy),
                 AgentImage = this.AgentImage,
                 HubImage = this.HubImage,
                 SensorImage = this.SensorImage,
