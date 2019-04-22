@@ -18,7 +18,7 @@ extern "C" {
 
 /** @file */
 
-#define AZURE_IOT_HSM_VERSION "1.0.1"
+#define AZURE_IOT_HSM_VERSION "1.0.2"
 
 typedef void* HSM_CLIENT_HANDLE;
 
@@ -107,6 +107,20 @@ typedef int (*HSM_CLIENT_GET_STORAGE_ROOT_KEY)(HSM_CLIENT_HANDLE handle, unsigne
 typedef int (*HSM_CLIENT_SIGN_WITH_IDENTITY)(HSM_CLIENT_HANDLE handle, const unsigned char* data, size_t data_size, unsigned char** digest, size_t* digest_size);
 
 /**
+* @brief                    Hashes the data with the device private key stored in the HSM
+*
+* @param handle             ::HSM_CLIENT_HANDLE that was created by the ::HSM_CLIENT_CREATE call
+* @param data               Data that will need to be hashed
+* @param data_size          The size of the data parameter
+* @param[out] digest        The returned digest. This function allocates memory for a buffer
+*                           which must be freed by a call to ::HSM_CLIENT_FREE_BUFFER.
+* @param[out] digest_size   The size of the returned digest
+*
+* @return                   On success 0 on. Non-zero on failure
+*/
+typedef int (*HSM_CLIENT_SIGN_WITH_PRIVATE_KEY)(HSM_CLIENT_HANDLE handle, const unsigned char* data, size_t data_size, unsigned char** digest, size_t* digest_size);
+
+/**
 * @brief    Derives the SAS key and uses it to sign the data. The key
 *           should never leave the HSM.
 *
@@ -155,6 +169,16 @@ typedef char* (*HSM_CLIENT_GET_CERT_KEY)(HSM_CLIENT_HANDLE handle);
 * @return       On success the value of the common name. NULL on failure
 */
 typedef char* (*HSM_CLIENT_GET_COMMON_NAME)(HSM_CLIENT_HANDLE handle);
+
+/**
+* @brief    Retrieves the certificate info handle which can be used for X509 communication.
+*           This serves as the IoT device's identity.
+*
+* @param handle A valid HSM client handle
+*
+* @return       On success a valid CERT_INFO_HANDLE. NULL on failure.
+*/
+typedef CERT_INFO_HANDLE (*HSM_CLIENT_GET_CERTIFICATE_INFO)(HSM_CLIENT_HANDLE handle);
 
 // Cryptographic utilities not tied to a specific hardware implementation
 /**
@@ -205,6 +229,17 @@ typedef int (*HSM_CLIENT_GET_RANDOM_BYTES)(HSM_CLIENT_HANDLE handle, unsigned ch
 typedef CERT_INFO_HANDLE (*HSM_CLIENT_CREATE_CERTIFICATE)(HSM_CLIENT_HANDLE handle, CERT_PROPS_HANDLE certificate_props);
 
 /**
+* @brief    Obtains an X.509 certificate info handle fir the supplied alias.
+*           If the alias is invalid or does not exists a NULL is returned.
+*
+* @param handle       A valid HSM client handle
+* @param alias        The alias to certificate and private key to
+*
+* @return CERT_INFO_HANDLE -- Valid non NULL handle on success, NULL on error
+*/
+typedef CERT_INFO_HANDLE (*HSM_CLIENT_CRYPTO_GET_CERTIFICATE)(HSM_CLIENT_HANDLE handle, const char *alias);
+
+/**
 * @brief    Deletes any crypto assets associated with the handle
 *           returned by ::HSM_CLIENT_CREATE_CERTIFICATE.
 *
@@ -249,6 +284,22 @@ typedef int (*HSM_CLIENT_ENCRYPT_DATA)(HSM_CLIENT_HANDLE handle, const SIZED_BUF
 */
 typedef int (*HSM_CLIENT_DECRYPT_DATA)(HSM_CLIENT_HANDLE handle, const SIZED_BUFFER* identity, const SIZED_BUFFER* ciphertext, const SIZED_BUFFER* init_vector, SIZED_BUFFER* plaintext);
 
+
+/**
+* @brief                    Hashes the data with the device private key stored in the HSM
+*
+* @param handle             ::HSM_CLIENT_HANDLE that was created by the ::HSM_CLIENT_CREATE call
+* @param alias              Private key associated with the alias used to sign the data
+* @param data               Data that will need to be hashed
+* @param data_size          The size of the data parameter
+* @param[out] digest        The returned digest. This function allocates memory for a buffer
+*                           which must be freed by a call to ::HSM_CLIENT_FREE_BUFFER.
+* @param[out] digest_size   The size of the returned digest
+*
+* @return                   On success 0 on. Non-zero on failure
+*/
+typedef int (*HSM_CLIENT_CRYPTO_SIGN_WITH_PRIVATE_KEY)(HSM_CLIENT_HANDLE handle, const char* alias, const unsigned char* data, size_t data_size, unsigned char** digest, size_t* digest_size);
+
 /**
 * @brief    Retrieves the trusted certificate bundle used to authenticate the server.
 *
@@ -281,6 +332,8 @@ typedef struct HSM_CLIENT_X509_INTERFACE_TAG
     HSM_CLIENT_GET_CERT_KEY hsm_client_get_key;
     HSM_CLIENT_GET_COMMON_NAME hsm_client_get_common_name;
     HSM_CLIENT_FREE_BUFFER hsm_client_free_buffer;
+    HSM_CLIENT_SIGN_WITH_PRIVATE_KEY hsm_client_sign_with_private_key;
+    HSM_CLIENT_GET_CERTIFICATE_INFO hsm_client_get_cert_info;
 } HSM_CLIENT_X509_INTERFACE;
 
 typedef struct HSM_CLIENT_CRYPTO_INTERFACE_TAG
@@ -297,6 +350,8 @@ typedef struct HSM_CLIENT_CRYPTO_INTERFACE_TAG
     HSM_CLIENT_DECRYPT_DATA hsm_client_decrypt_data;
     HSM_CLIENT_GET_TRUST_BUNDLE hsm_client_get_trust_bundle;
     HSM_CLIENT_FREE_BUFFER hsm_client_free_buffer;
+    HSM_CLIENT_CRYPTO_SIGN_WITH_PRIVATE_KEY hsm_client_crypto_sign_with_private_key;
+    HSM_CLIENT_CRYPTO_GET_CERTIFICATE hsm_client_crypto_get_certificate;
 } HSM_CLIENT_CRYPTO_INTERFACE;
 
 extern const HSM_CLIENT_TPM_INTERFACE* hsm_client_tpm_interface();
