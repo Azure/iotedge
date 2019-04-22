@@ -1744,14 +1744,15 @@ static int get_device_id_env_vars(char **device_id_cert_path, char **device_id_p
     int result;
     char *cert_path = NULL, *pk_path = NULL;
 
-    if (hsm_get_env(ENV_DEVICE_CERTIFICATE_PATH, &cert_path) != 0)
+    if (hsm_get_env(ENV_DEVICE_ID_CERTIFICATE_PATH, &cert_path) != 0)
     {
-        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_CA_PATH);
+        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_ID_CERTIFICATE_PATH);
+        FREEIF(cert_path);
         result = __FAILURE__;
     }
-    else if (hsm_get_env(ENV_DEVICE_PRIVATE_KEY_PATH, &pk_path) != 0)
+    else if (hsm_get_env(ENV_DEVICE_ID_PRIVATE_KEY_PATH, &pk_path) != 0)
     {
-        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_PK_PATH);
+        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_ID_PRIVATE_KEY_PATH);
         FREEIF(cert_path);
         FREEIF(pk_path);
         result = __FAILURE__;
@@ -1790,15 +1791,15 @@ static int hsm_provision_edge_id_certificate(void)
             else
             {
                 LOG_ERROR("Path set in env variable %s is invalid or cannot be accessed: '%s'",
-                          ENV_DEVICE_CERTIFICATE_PATH, device_id_cert_path);
+                          ENV_DEVICE_ID_CERTIFICATE_PATH, device_id_cert_path);
 
             }
             env_set = true;
-            LOG_DEBUG("Env %s set to %s", ENV_DEVICE_CERTIFICATE_PATH, device_id_cert_path);
+            LOG_DEBUG("Env %s set to %s", ENV_DEVICE_ID_CERTIFICATE_PATH, device_id_cert_path);
         }
         else
         {
-            LOG_DEBUG("Env %s is NULL", ENV_DEVICE_CERTIFICATE_PATH);
+            LOG_DEBUG("Env %s is NULL", ENV_DEVICE_ID_CERTIFICATE_PATH);
         }
 
         if (device_id_pk_path != NULL)
@@ -1810,24 +1811,24 @@ static int hsm_provision_edge_id_certificate(void)
             else
             {
                 LOG_ERROR("Path set in env variable %s is invalid or cannot be accessed: '%s'",
-                          ENV_DEVICE_PRIVATE_KEY_PATH, device_id_pk_path);
+                          ENV_DEVICE_ID_PRIVATE_KEY_PATH, device_id_pk_path);
 
             }
             env_set = true;
-            LOG_DEBUG("Env %s set to %s", ENV_DEVICE_PRIVATE_KEY_PATH, device_id_pk_path);
+            LOG_DEBUG("Env %s set to %s", ENV_DEVICE_ID_PRIVATE_KEY_PATH, device_id_pk_path);
         }
         else
         {
-            LOG_DEBUG("Env %s is NULL", ENV_DEVICE_PRIVATE_KEY_PATH);
+            LOG_DEBUG("Env %s is NULL", ENV_DEVICE_ID_PRIVATE_KEY_PATH);
         }
 
         LOG_DEBUG("Device identity certificate setup mask 0x%02x", mask);
 
-        if (env_set && (mask != 0x4))
+        if (env_set && (mask != 0x3))
         {
             LOG_ERROR("To setup the Edge device certificates, set "
                       "env variables with valid values:\n  %s\n  %s",
-                      ENV_DEVICE_CERTIFICATE_PATH, ENV_DEVICE_PRIVATE_KEY_PATH);
+                      ENV_DEVICE_ID_CERTIFICATE_PATH, ENV_DEVICE_ID_PRIVATE_KEY_PATH);
             result = __FAILURE__;
         }
         // since we don't know the issuer, we treat the device certificate as the issuer

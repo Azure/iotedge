@@ -11,13 +11,11 @@
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/crt_abstractions.h"
 #include "hsm_client_data.h"
+#include "hsm_constants.h"
 #include "hsm_log.h"
 #include "hsm_utils.h"
 
 extern const char* const EDGE_DEVICE_ALIAS;
-extern const char* const ENV_DEVICE_CERTIFICATE_PATH;
-extern const char* const ENV_DEVICE_PRIVATE_KEY_PATH;
-extern const char* const ENV_REGISTRATION_ID;
 
 static bool g_is_x509_initialized = false;
 static unsigned int g_ref_cnt = 0;
@@ -256,17 +254,28 @@ static int get_device_id_cert_env_vars(char **device_cert_file_path, char **devi
     char *cert_path = NULL;
     char *key_path = NULL;
 
-    if (hsm_get_env(ENV_DEVICE_CERTIFICATE_PATH, &cert_path) != 0)
+    if (hsm_get_env(ENV_DEVICE_ID_CERTIFICATE_PATH, &cert_path) != 0)
     {
-        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_CERTIFICATE_PATH);
-        result = __FAILURE__;
-    }
-    else if (hsm_get_env(ENV_DEVICE_PRIVATE_KEY_PATH, &key_path) != 0)
-    {
-        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_PRIVATE_KEY_PATH);
+        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_ID_CERTIFICATE_PATH);
         if (cert_path != NULL)
         {
             free(cert_path);
+            cert_path = NULL;
+        }
+        result = __FAILURE__;
+    }
+    else if (hsm_get_env(ENV_DEVICE_ID_PRIVATE_KEY_PATH, &key_path) != 0)
+    {
+        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_ID_PRIVATE_KEY_PATH);
+        if (cert_path != NULL)
+        {
+            free(cert_path);
+            cert_path = NULL;
+        }
+        if (key_path != NULL)
+        {
+            free(key_path);
+            key_path = NULL;
         }
         result = __FAILURE__;
     }

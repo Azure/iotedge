@@ -9,8 +9,8 @@ extern const char* const ENV_DEVICE_CA_PATH;
 extern const char* const ENV_DEVICE_PK_PATH;
 extern const char* const ENV_TRUSTED_CA_CERTS_PATH;
 extern const char* const ENV_REGISTRATION_ID;
-extern const char* const ENV_DEVICE_CERTIFICATE_PATH;
-extern const char* const ENV_DEVICE_PRIVATE_KEY_PATH;
+extern const char* const ENV_DEVICE_ID_CERTIFICATE_PATH;
+extern const char* const ENV_DEVICE_ID_PRIVATE_KEY_PATH;
 
 /* HSM directory name under IOTEDGE_HOMEDIR */
 extern const char* const DEFAULT_EDGE_HOME_DIR_UNIX;
