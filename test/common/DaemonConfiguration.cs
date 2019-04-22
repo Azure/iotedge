@@ -2,6 +2,7 @@
 
 namespace common
 {
+    using System;
     using System.IO;
 
     public class DaemonConfiguration
@@ -38,6 +39,8 @@ namespace common
             {
                 File.SetAttributes(ConfigYamlFile, attr);
             }
+
+            Console.WriteLine($"Updated daemon configuration file '{ConfigYamlFile}'");
         }
     }
 }
