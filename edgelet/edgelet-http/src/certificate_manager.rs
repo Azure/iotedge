@@ -229,14 +229,14 @@ mod tests {
         let crypto = TestCrypto::new().unwrap();
 
         let edgelet_cert_props = CertificateProperties::new(
-            100, // 100 second validity
+            150, // 150 second validity
             "IOTEDGED_TLS_COMMONNAME".to_string(),
             CertificateType::Server,
             "iotedge-tls".to_string(),
         );
 
         let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
-        let _timer = manager.schedule_expiration_timer(|| {});
+        let _timer = manager.schedule_expiration_timer(|| Ok(()));
     }
 
     #[test]
@@ -244,7 +244,7 @@ mod tests {
         let crypto = TestCrypto::new().unwrap();
 
         let edgelet_cert_props = CertificateProperties::new(
-            1, // 1 second validity
+            120, // 120 second validity
             "IOTEDGED_TLS_COMMONNAME".to_string(),
             CertificateType::Server,
             "iotedge-tls".to_string(),
@@ -252,7 +252,7 @@ mod tests {
 
         let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
 
-        let timer = manager.schedule_expiration_timer(|| {}).wait();
+        let timer = manager.schedule_expiration_timer(|| Ok(())).wait();
         match timer {
             Ok(_) => panic!("Should not be okay to create this timer..."),
             Err(err) => {
