@@ -149,8 +149,12 @@ mio-uds-windows = { git = "https://github.com/philipktlin/mio-uds-windows.git", 
 
     $cargo = Get-CargoCommand -Arm
 
+    $ErrorActionPreference = 'Continue'
+
     Write-Host "$cargo update -p winapi:0.3.5 --precise 0.3.5"
     Invoke-Expression "$cargo update -p winapi:0.3.5 --precise 0.3.5"
     Write-Host "$cargo update -p mio-uds-windows"
     Invoke-Expression "$cargo update -p mio-uds-windows"
+
+    $ErrorActionPreference = 'Stop'
 }
