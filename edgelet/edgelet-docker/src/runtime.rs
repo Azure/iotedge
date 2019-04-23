@@ -748,7 +748,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 impl Authenticator for DockerModuleRuntime {
     type Error = Error;
     type Request = Request<Body>;
-    type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error>>;
+    type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
 
     fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
         let pid = req
@@ -758,9 +758,9 @@ impl Authenticator for DockerModuleRuntime {
             .unwrap_or_else(|| Pid::None);
 
         let fut = match pid {
-            Pid::None => Either::B(future::ok(AuthId::None)),
-            Pid::Any => Either::B(future::ok(AuthId::Any)),
-            Pid::Value(pid) => Either::A(
+            Pid::None => Either::A(future::ok(AuthId::None)),
+            Pid::Any => Either::A(future::ok(AuthId::Any)),
+            Pid::Value(pid) => Either::B(
                 self.list()
                     .into_stream()
                     .map(|list| {

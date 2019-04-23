@@ -8,9 +8,11 @@
 use edgelet_core::pid::Pid;
 use edgelet_core::{AuthId, Authenticator};
 use failure::{Compat, Fail};
-use futures::future::Future;
+use futures::{future, Future};
 use hyper::service::{NewService, Service};
-use hyper::{Body, Request};
+use hyper::{Body, Request, Response};
+
+use crate::{Error, ErrorKind, IntoResponse};
 
 #[derive(Clone)]
 pub struct AuthenticationService<M, S> {
@@ -27,9 +29,11 @@ impl<M, S> AuthenticationService<M, S> {
 impl<M, S> Service for AuthenticationService<M, S>
 where
     M: Authenticator<Request = Request<S::ReqBody>> + Send + Clone + 'static,
-    M::AuthenticateFuture: Future<Item = AuthId, Error = S::Error> + Send + 'static,
-    S: Service<ReqBody = Body> + Send + Clone + 'static,
+    M::AuthenticateFuture: Future<Item = AuthId> + Send + 'static,
+    <M::AuthenticateFuture as Future>::Error: Fail,
+    S: Service<ReqBody = Body, ResBody = Body> + Send + Clone + 'static,
     S::Future: Send + 'static,
+    S::Error: Send,
 {
     type ReqBody = S::ReqBody;
     type ResBody = S::ResBody;
@@ -41,10 +45,20 @@ where
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
         let mut req = req;
         let mut inner = self.inner.clone();
-        Box::new(self.runtime.authenticate(&req).and_then(move |auth_id| {
-            req.extensions_mut().insert(auth_id);
-            inner.call(req)
-        }))
+        Box::new(
+            self.runtime
+                .authenticate(&req)
+                .then(move |auth_id| match auth_id {
+                    Ok(auth_id) => {
+                        req.extensions_mut().insert(auth_id);
+                        future::Either::A(inner.call(req))
+                    }
+
+                    Err(err) => future::Either::B(future::ok(
+                        Error::from(err.context(ErrorKind::Authorization)).into_response(),
+                    )),
+                }),
+        )
     }
 }
 

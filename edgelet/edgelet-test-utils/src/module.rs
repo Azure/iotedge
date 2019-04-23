@@ -271,7 +271,7 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
             Ok(ref m) => {
                 assert_eq!(id, m.name());
                 match m.state {
-                    Ok(ref s) => future::ok(ModuleTop::new(m.name.clone(), vec![s.pid()])),
+                    Ok(ref s) => future::ok(ModuleTop::new(m.name.clone(), vec![s.pid().unwrap()])),
                     Err(ref e) => future::err(e.clone()),
                 }
             }

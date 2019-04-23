@@ -35,7 +35,7 @@ use futures::future::Either;
 use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future};
 use hyper::server::conn::Http;
-use hyper::{Body, Uri};
+use hyper::{Body, Uri, Request};
 use log::{debug, info};
 use sha2::{Digest, Sha256};
 use url::Url;
@@ -51,10 +51,7 @@ use edgelet_core::crypto::{
     KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
-use edgelet_core::{
-    CertificateIssuer, CertificateProperties, CertificateType, Module, ModuleRuntime,
-    ModuleRuntimeErrorReason, ModuleSpec, UrlExt, WorkloadConfig, UNIX_SCHEME,
-};
+use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType, Module, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, UrlExt, WorkloadConfig, UNIX_SCHEME, Authenticator, AuthId};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
@@ -79,6 +76,7 @@ pub use self::error::{Error, ErrorKind, InitializeErrorReason};
 use edgelet_http::authentication::AuthenticationService;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use hyper::service::Service;
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
@@ -912,7 +910,9 @@ where
     C: CreateCertificate + Clone,
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl + Send + Sync,
-    M: ModuleRuntime + Clone + Send + Sync + 'static,
+    M: ModuleRuntime + Authenticator<Request = Request<<LoggingService<ManagementService> as Service>::ReqBody>> + Send + Sync + Clone + 'static,
+    M::AuthenticateFuture: Future<Item = AuthId> + Send + 'static,
+    <M::AuthenticateFuture as Future>::Error: Fail,
     for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
     <M::Module as Module>::Config: DeserializeOwned + Serialize,
     M::Logs: Into<Body>,
