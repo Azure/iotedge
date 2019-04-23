@@ -83,3 +83,138 @@ where
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::authentication::AuthenticationService;
+    use edgelet_core::{AuthId, Authenticator, Error, ErrorKind};
+    use futures::{future, Future, Stream};
+    use hyper::service::Service;
+    use hyper::{Body, Request, Response, StatusCode};
+    use tokio::io;
+
+    #[test]
+    fn service_calls_inner_service_when_module_authenticated() {
+        let req = Request::default();
+        let runtime = TestAuthenticator::authenticated(Some("abc".to_string()));
+        let mut auth = AuthenticationService::new(runtime, TestService);
+
+        let response = auth.call(req).wait().unwrap();
+        let body = response
+            .into_body()
+            .concat2()
+            .and_then(|body| Ok(String::from_utf8(body.to_vec()).unwrap()))
+            .wait()
+            .unwrap();
+
+        assert_eq!("from TestService", body);
+    }
+
+    #[test]
+    fn service_calls_inner_service_when_any_authenticated() {
+        let req = Request::default();
+        let runtime = TestAuthenticator::authenticated(None);
+        let mut auth = AuthenticationService::new(runtime, TestService);
+
+        let response = auth.call(req).wait().unwrap();
+        let body = response
+            .into_body()
+            .concat2()
+            .and_then(|body| Ok(String::from_utf8(body.to_vec()).unwrap()))
+            .wait()
+            .unwrap();
+
+        assert_eq!("from TestService", body);
+    }
+
+    #[test]
+    fn service_responds_with_not_found_when_not_authenticated() {
+        let runtime = TestAuthenticator::not_authenticated();
+        let req = Request::default();
+        let inner = TestService;
+        let mut auth = AuthenticationService::new(runtime, inner);
+
+        let response = auth.call(req).wait().unwrap();
+
+        assert_eq!(404, response.status());
+    }
+
+    #[test]
+    fn service_responds_with_not_found_when_error() {
+        let runtime = TestAuthenticator::error();
+        let req = Request::default();
+        let inner = TestService;
+        let mut auth = AuthenticationService::new(runtime, inner);
+
+        let response = auth.call(req).wait().unwrap();
+
+        assert_eq!(404, response.status());
+    }
+
+    #[derive(Clone)]
+    struct TestAuthenticator {
+        auth: Option<AuthId>,
+        error: Option<String>,
+    }
+
+    impl TestAuthenticator {
+        fn authenticated(name: Option<String>) -> Self {
+            let auth = match name {
+                Some(name) => AuthId::Value(name),
+                None => AuthId::Any,
+            };
+            TestAuthenticator {
+                auth: Some(auth),
+                error: None,
+            }
+        }
+
+        fn not_authenticated() -> Self {
+            TestAuthenticator {
+                auth: Some(AuthId::None),
+                error: None,
+            }
+        }
+
+        fn error() -> Self {
+            TestAuthenticator {
+                auth: None,
+                error: Some("unexpected error".to_string()),
+            }
+        }
+    }
+
+    impl Authenticator for TestAuthenticator {
+        type Error = Error;
+        type Request = Request<Body>;
+        type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
+
+        fn authenticate(&self, _req: &Self::Request) -> Self::AuthenticateFuture {
+            let auth = self.auth.clone();
+            let fut = match auth {
+                Some(auth_id) => future::ok(auth_id),
+                None => {future::err(Error::from(ErrorKind::ModuleRuntime))},
+            };
+
+            Box::new(fut)
+        }
+    }
+
+    #[derive(Clone)]
+    struct TestService;
+
+    impl Service for TestService {
+        type ReqBody = Body;
+        type ResBody = Body;
+        type Error = io::Error;
+        type Future = Box<dyn Future<Item = Response<Body>, Error = Self::Error> + Send>;
+
+        fn call(&mut self, _req: Request<Self::ReqBody>) -> Self::Future {
+            let response = Response::builder()
+                .status(StatusCode::OK)
+                .body("from TestService".into())
+                .unwrap();
+            Box::new(future::ok(response))
+        }
+    }
+}

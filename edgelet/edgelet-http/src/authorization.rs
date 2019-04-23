@@ -39,7 +39,7 @@ where
         req: Request<Body>,
         params: Parameters,
     ) -> Box<dyn Future<Item = Response<Body>, Error = Error> + Send> {
-        let (name, pid) = (
+        let (name, auth_id) = (
             params.name("name").map(ToString::to_string),
             req.extensions()
                 .get::<AuthId>()
@@ -50,7 +50,7 @@ where
 
         let response =
             self.auth
-                .authorize(name.clone(), pid)
+                .authorize(name.clone(), auth_id)
                 .then(|authorized| {
                     authorized
                         .context(ErrorKind::Authorization)
