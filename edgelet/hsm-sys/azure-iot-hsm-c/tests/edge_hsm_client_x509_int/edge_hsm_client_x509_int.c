@@ -374,4 +374,92 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         hsm_client_x509_deinit();
     }
 
+    TEST_FUNCTION(hsm_client_x509_e2e_with_invalid_device_cert_fails)
+    {
+        //arrange
+        hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, "blah.txt");
+        hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, TEST_DEVICE_ID_PK_RSA_FILE);
+        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        hsm_client_x509_init();
+        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
+
+        // act
+        CERT_INFO_HANDLE result = interface->hsm_client_get_cert_info(hsm_handle);
+
+        // assert
+        ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        certificate_info_destroy(result);
+        hsm_test_util_unsetenv(ENV_DEVICE_ID_CERTIFICATE_PATH);
+        hsm_test_util_unsetenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH);
+        interface->hsm_client_x509_destroy(hsm_handle);
+        hsm_client_x509_deinit();
+    }
+
+    TEST_FUNCTION(hsm_client_x509_e2e_with_empty_device_cert_fails)
+    {
+        //arrange
+        hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, TEST_DEVICE_ID_PK_RSA_FILE);
+        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        hsm_client_x509_init();
+        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
+
+        // act
+        CERT_INFO_HANDLE result = interface->hsm_client_get_cert_info(hsm_handle);
+
+        // assert
+        ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        certificate_info_destroy(result);
+        hsm_test_util_unsetenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH);
+        interface->hsm_client_x509_destroy(hsm_handle);
+        hsm_client_x509_deinit();
+    }
+
+    TEST_FUNCTION(hsm_client_x509_e2e_with_invalid_device_pk_fails)
+    {
+        //arrange
+        hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, TEST_DEVICE_ID_CERT_RSA_FILE);
+        hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, "blah.txt");
+        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        hsm_client_x509_init();
+        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
+
+        // act
+        CERT_INFO_HANDLE result = interface->hsm_client_get_cert_info(hsm_handle);
+
+        // assert
+        ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        certificate_info_destroy(result);
+        hsm_test_util_unsetenv(ENV_DEVICE_ID_CERTIFICATE_PATH);
+        hsm_test_util_unsetenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH);
+        interface->hsm_client_x509_destroy(hsm_handle);
+        hsm_client_x509_deinit();
+    }
+
+    TEST_FUNCTION(hsm_client_x509_e2e_with_empty_device_pk_fails)
+    {
+        //arrange
+        hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, TEST_DEVICE_ID_CERT_RSA_FILE);
+        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        hsm_client_x509_init();
+        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
+
+        // act
+        CERT_INFO_HANDLE result = interface->hsm_client_get_cert_info(hsm_handle);
+
+        // assert
+        ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        certificate_info_destroy(result);
+        hsm_test_util_unsetenv(TEST_DEVICE_ID_CERT_RSA_FILE);
+        interface->hsm_client_x509_destroy(hsm_handle);
+        hsm_client_x509_deinit();
+    }
+
 END_TEST_SUITE(edge_hsm_client_x509_int)

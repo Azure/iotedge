@@ -32,6 +32,12 @@ static unsigned int g_ref_cnt = 0;
         } \
     } while(0)
 
+
+//##############################################################################
+// Forward declarations
+//##############################################################################
+static CERT_INFO_HANDLE edge_x509_hsm_get_cert_info(HSM_CLIENT_HANDLE hsm_handle);
+
 //##############################################################################
 // Interface implementation
 //##############################################################################
@@ -379,6 +385,7 @@ static int edge_x509_sign_with_private_key
 )
 {
     int result;
+    CERT_INFO_HANDLE cert_info;
 
     if (!g_is_x509_initialized)
     {
@@ -390,6 +397,11 @@ static int edge_x509_sign_with_private_key
         LOG_ERROR("hsm_handle parameter is null");
         result = __FAILURE__;
     }
+    else if ((cert_info = edge_x509_hsm_get_cert_info(hsm_handle)) == NULL)
+    {
+        LOG_ERROR("Device certificate info could not be obtained");
+        result = __FAILURE__;
+    }
     else
     {
         const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
@@ -399,6 +411,7 @@ static int edge_x509_sign_with_private_key
                                                                     data_size,
                                                                     digest,
                                                                     digest_size);
+        certificate_info_destroy(cert_info);
     }
 
     return result;
