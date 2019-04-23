@@ -37,14 +37,9 @@ miow = { git = "https://github.com/philipktlin/miow", branch = "arm" }
 serde-hjson = { git = "https://github.com/philipktlin/hjson-rust", branch = "arm" }
 winapi = { git = "https://github.com/philipktlin/winapi-rs", branch = "arm/v0.3.5" }
 
-[patch."https://github.com/Azure/mio-uds-windows"]
-mio-uds-windows = { git = "https://github.com/philipktlin/mio-uds-windows", branch = "arm" }
+[patch."https://github.com/Azure/mio-uds-windows.git"]
+mio-uds-windows = { git = "https://github.com/philipktlin/mio-uds-windows.git", branch = "arm" }
 
-[patch."https://github.com/Azure/hyperlocal-windows"]
-hyperlocal-windows = { git = "https://github.com/philipktlin/hyperlocal-windows", branch = "arm" }
-
-[patch."https://github.com/Azure/tokio-uds-windows"]
-tokio-uds-windows = { git = "https://github.com/philipktlin/tokio-uds-windows", branch = "arm" }
 "@
 
     Write-Host "Append cargo.toml with $ForkedCrates"
