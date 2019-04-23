@@ -58,8 +58,8 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
     Write-Host $env:Path
     Write-Host "$cargo clean"
     Invoke-Expression "$cargo clean"
-    Write-Host "$cargo build -p iotedge-diagnostics $(if($Arm) {'--target thumbv7a-pc-windows-msvc'}) $BuildConfigOption --manifest-path $ManifestPath"
-    Invoke-Expression "$cargo build -p iotedge-diagnostics $(if($Arm) {'--target thumbv7a-pc-windows-msvc'}) $BuildConfigOption --manifest-path $ManifestPath"
+    Write-Host "$cargo build -p iotedge-diagnostics $(if($Arm) {'--target thumbv7a-pc-windows-msvc'}) $BuildConfigOption --manifest-path $ManifestPath --verbose"
+    Invoke-Expression "$cargo build -p iotedge-diagnostics $(if($Arm) {'--target thumbv7a-pc-windows-msvc'}) $BuildConfigOption --manifest-path $ManifestPath --verbose"
     if ($originalRustflags -eq '') {
         Remove-Item Env:\RUSTFLAGS
     }
