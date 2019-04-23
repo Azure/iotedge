@@ -170,5 +170,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Func<CancellationToken, Task> testCode = c => operation.TimeoutAfter(cts.Token, TimeSpan.FromSeconds(3));
             await Assert.ThrowsAsync<TimeoutException>(() => testCode(cts.Token));
         }
+
+        [Fact]
+        [Unit]
+        public async Task TimeoutAfterTest()
+        {
+            Task longTask = Task.Delay(TimeSpan.FromHours(1));
+
+            await Assert.ThrowsAsync<TimeoutException>(() => longTask.TimeoutAfter(TimeSpan.FromSeconds(10)));
+        }
     }
 }

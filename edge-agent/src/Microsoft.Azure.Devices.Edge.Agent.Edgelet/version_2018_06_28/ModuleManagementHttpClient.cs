@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_06_28
     using System.Collections.ObjectModel;
     using System.Linq;
     using System.Net.Http;
+    using System.Runtime.ExceptionServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -194,7 +195,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_06_28
                     }
 
                 default:
-                    throw exception;
+                    ExceptionDispatchInfo.Capture(exception).Throw();
+                    break;
             }
         }
 

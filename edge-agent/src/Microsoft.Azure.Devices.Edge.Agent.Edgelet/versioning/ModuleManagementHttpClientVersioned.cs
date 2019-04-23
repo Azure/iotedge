@@ -5,9 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
-    using System.Linq;
     using System.Net.Http;
-    using System.Net.Http.Headers;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -113,8 +111,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
             }
             catch (Exception ex)
             {
+                Events.ErrorExecutingOperation(ex, operation, this.ManagementUri.ToString());
                 this.HandleException(ex, operation);
-                Events.SuccessfullyExecutedOperation(operation, this.ManagementUri.ToString());
                 return default(T);
             }
         }
@@ -135,7 +133,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
             {
                 ExecutingOperation = IdStart,
                 SuccessfullyExecutedOperation,
-                RetryingOperation
+                RetryingOperation,
+                ErrorExecutingOperation
+            }
+
+            public static void ErrorExecutingOperation(Exception ex, string operation, string url)
+            {
+                Log.LogDebug((int)EventIds.ErrorExecutingOperation, ex, $"Error when getting an Http response from {url} for {operation}");
             }
 
             internal static void RetryingOperation(string operation, string url, RetryingEventArgs r)
