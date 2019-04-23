@@ -57,6 +57,9 @@ function Assert-Rust
 Param(
     [Switch] $Arm
 )
+
+    $ErrorActionPreference = 'Continue'
+
     if($Arm)
     {
         if(-NOT (Test-Path "rust-windows-arm"))
@@ -90,6 +93,8 @@ Param(
             Throw "Failed to install rust with exit code $LastExitCode"
         }
     }
+    
+    $ErrorActionPreference = 'Stop'
 }
 
 function InstallWinArmPrivateRustCompiler
