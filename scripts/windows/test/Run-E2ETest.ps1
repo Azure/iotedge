@@ -701,7 +701,7 @@ Function RunLongHaulTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilter"
     PrintHighlightedMessage "Run Long Haul test with -d ""$deviceId"" started at $testStartAt"
 
-    $testCommand = "&$DeploymentWorkingFilePath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
@@ -731,7 +731,7 @@ Function RunStressTest
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilter"
     PrintHighlightedMessage "Run Stress test with -d ""$deviceId"" started at $testStartAt"
 
-    $testCommand = "&$DeploymentWorkingFilePath ``
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"doesNotNeed`" ``
