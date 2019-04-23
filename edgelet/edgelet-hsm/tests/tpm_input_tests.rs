@@ -4,20 +4,32 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use std::str;
+use std::sync::Mutex;
 
 use bytes::Bytes;
+use lazy_static::lazy_static;
+
 use edgelet_core::crypto::Activate;
 use edgelet_core::crypto::Sign;
 use edgelet_core::crypto::SignatureAlgorithm;
 use edgelet_core::KeyIdentity;
 use edgelet_core::KeyStore;
 use edgelet_hsm::TpmKeyStore;
+mod test_utils;
+use test_utils::TestHSMEnvSetup;
+
+lazy_static! {
+    static ref LOCK: Mutex<()> = Mutex::new(());
+}
 
 const TEST_KEY_BASE64: &str = "D7PuplFy7vIr0349blOugqCxyfMscyVZDoV9Ii0EFnA=";
 
 // The HSM implementation expects keys, identity and data to be non-zero length.
 #[test]
 fn tpm_input_tests() {
+    // arrange
+    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
+
     let mut key_store = TpmKeyStore::new().unwrap();
 
     let decoded_key = base64::decode(TEST_KEY_BASE64).unwrap();
