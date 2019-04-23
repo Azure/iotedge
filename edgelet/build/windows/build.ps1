@@ -13,6 +13,7 @@ $util = Join-Path -Path $PSScriptRoot -ChildPath "util.ps1"
 Assert-Rust -Arm:$Arm
 
 $cargo = Get-CargoCommand -Arm:$Arm
+Write-Host $cargo
 
 $ErrorActionPreference = 'Continue'
 
