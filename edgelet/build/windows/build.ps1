@@ -22,45 +22,13 @@ $ErrorActionPreference = 'Continue'
 # after these two steps, running cargo build for arm should not show any warning such as "Patch 'crate-x' was not used in the crate graph"
 if($Arm)
 {
-    $edgefolder = Get-EdgeletFolder
-    Set-Location -Path $edgefolder
-
-    $ForkedCrates = @"
-
-[patch.crates-io]
-backtrace = { git = "https://github.com/philipktlin/backtrace-rs", branch = "arm" }
-cmake = { git = "https://github.com/philipktlin/cmake-rs", branch = "arm" }
-dtoa = { git = "https://github.com/philipktlin/dtoa", branch = "arm" }
-iovec = { git = "https://github.com/philipktlin/iovec", branch = "arm" }
-mio = { git = "https://github.com/philipktlin/mio", branch = "arm" }
-miow = { git = "https://github.com/philipktlin/miow", branch = "arm" }
-serde-hjson = { git = "https://github.com/philipktlin/hjson-rust", branch = "arm" }
-winapi = { git = "https://github.com/philipktlin/winapi-rs", branch = "arm/v0.3.5" }
-
-[patch."https://github.com/Azure/mio-uds-windows.git"]
-mio-uds-windows = { git = "https://github.com/philipktlin/mio-uds-windows.git", branch = "arm" }
-
-"@
-
-    Write-Host "Append cargo.toml with $ForkedCrates"
-    Add-Content -Path cargo.toml -Value $ForkedCrates
-
-    Write-Host "Running cargo update to lock the crate forks required by arm build"
-    Invoke-Expression "$cargo update -p winapi:0.3.5 --precise 0.3.5"
-    Invoke-Expression "$cargo update -p mio-uds-windows"
+    PatchRustForArm
 }
 
 
 # Run cargo build by specifying the manifest file
 
 $ManifestPath = Get-Manifest
-
-if($Arm)
-{
-    # arm build requires cl.exe from vc tools to expand a c file for openssl-sys
-    $env:PATH = "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\vc\Tools\MSVC\14.16.27023\bin\Hostx64\x64;" + $env:PATH
-    Write-Host $(Get-Command cl.exe).Path
-}
 
 Write-Host "$cargo build --all $(if ($Arm) {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
 Invoke-Expression "$cargo build --all $(if ($Arm) {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"

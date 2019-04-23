@@ -99,3 +99,37 @@ function InstallWinArmPrivateRustCompiler
     Expand-Archive -Path "rust-windows-arm.zip" -DestinationPath "rust-windows-arm"
     $ProgressPreference = 'Stop'
 }
+
+function PatchRustForArm
+{        
+    # arm build requires cl.exe from vc tools to expand a c file for openssl-sys, append x64-x64 cl.exe folder to PATH
+    $env:PATH = "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\vc\Tools\MSVC\14.16.27023\bin\Hostx64\x64;" + $env:PATH
+    Write-Host $(Get-Command cl.exe).Path
+
+    $edgefolder = Get-EdgeletFolder
+    Set-Location -Path $edgefolder
+
+    $ForkedCrates = @"
+
+[patch.crates-io]
+backtrace = { git = "https://github.com/philipktlin/backtrace-rs", branch = "arm" }
+cmake = { git = "https://github.com/philipktlin/cmake-rs", branch = "arm" }
+dtoa = { git = "https://github.com/philipktlin/dtoa", branch = "arm" }
+iovec = { git = "https://github.com/philipktlin/iovec", branch = "arm" }
+mio = { git = "https://github.com/philipktlin/mio", branch = "arm" }
+miow = { git = "https://github.com/philipktlin/miow", branch = "arm" }
+serde-hjson = { git = "https://github.com/philipktlin/hjson-rust", branch = "arm" }
+winapi = { git = "https://github.com/philipktlin/winapi-rs", branch = "arm/v0.3.5" }
+
+[patch."https://github.com/Azure/mio-uds-windows.git"]
+mio-uds-windows = { git = "https://github.com/philipktlin/mio-uds-windows.git", branch = "arm" }
+
+"@
+
+    Write-Host "Append cargo.toml with $ForkedCrates"
+    Add-Content -Path cargo.toml -Value $ForkedCrates
+
+    Write-Host "Running cargo update to lock the crate forks required by arm build"
+    Invoke-Expression "$cargo update -p winapi:0.3.5 --precise 0.3.5"
+    Invoke-Expression "$cargo update -p mio-uds-windows"
+}
