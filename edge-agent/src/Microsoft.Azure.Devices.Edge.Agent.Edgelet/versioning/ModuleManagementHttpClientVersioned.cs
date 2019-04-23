@@ -106,7 +106,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
             try
             {
                 Events.ExecutingOperation(operation, this.ManagementUri.ToString());
-                T result = await ExecuteWithRetry(func, r => Events.RetryingOperation(operation, this.ManagementUri.ToString(), r), this.transientErrorDetectionStrategy);
+                T result = await ExecuteWithRetry(func, r => Events.RetryingOperation(operation, this.ManagementUri.ToString(), r), this.transientErrorDetectionStrategy)
+                    .TimeoutAfter(TimeSpan.FromSeconds(60));
                 Events.SuccessfullyExecutedOperation(operation, this.ManagementUri.ToString());
                 return result;
             }
