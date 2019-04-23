@@ -757,16 +757,14 @@ impl Authenticator for DockerModuleRuntime {
             .cloned()
             .unwrap_or_else(|| Pid::None);
 
-        let fut = match pid {
+        Box::new(match pid {
             Pid::None => Either::A(future::ok(AuthId::None)),
             Pid::Any => Either::A(future::ok(AuthId::Any)),
             Pid::Value(pid) => Either::B(
                 self.list()
                     .into_stream()
                     .map(|list| {
-                        stream::futures_unordered(list.into_iter()
-                            .map(|module|module.top())
-                        )
+                        stream::futures_unordered(list.into_iter().map(|module| module.top()))
                     })
                     .flatten()
                     .filter_map(move |top| {
@@ -785,9 +783,8 @@ impl Authenticator for DockerModuleRuntime {
                         }
                         Err((err, _)) => Err(err),
                     }),
-            )
-        };
-        Box::new(fut)
+            ),
+        })
     }
 }
 
@@ -889,7 +886,6 @@ mod tests {
     use url::Url;
 
     use docker::models::ContainerCreateBody;
-    use edgelet_core::pid::Pid;
     use edgelet_core::ModuleRegistry;
 
     use crate::error::{Error, ErrorKind};
@@ -1306,14 +1302,14 @@ mod tests {
                         name: "a".to_string(),
                         runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
                     },
-                    ModuleRuntimeState::default().with_pid(Pid::Any)
+                    ModuleRuntimeState::default().with_pid(None)
                 ),
                 (
                     TestModule {
                         name: "d".to_string(),
                         runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
                     },
-                    ModuleRuntimeState::default().with_pid(Pid::Any)
+                    ModuleRuntimeState::default().with_pid(None)
                 ),
             ]
         );
@@ -1390,7 +1386,7 @@ mod tests {
             .with_processes(vec![vec!["123".to_string()]]);
         let pids = parse_top_response::<Deserializer>(&response);
         assert!(pids.is_ok());
-        assert_eq!(vec![Pid::Value(123)], pids.unwrap());
+        assert_eq!(vec![123], pids.unwrap());
     }
 
     #[test]
@@ -1483,7 +1479,7 @@ mod tests {
         fn runtime_state(&self) -> Self::RuntimeStateFuture {
             match self.runtime_state_behavior {
                 TestModuleRuntimeStateBehavior::Default => {
-                    future::ok(ModuleRuntimeState::default().with_pid(Pid::Any))
+                    future::ok(ModuleRuntimeState::default().with_pid(None))
                 }
                 TestModuleRuntimeStateBehavior::NotFound => {
                     future::err(ErrorKind::NotFound(String::new()).into())

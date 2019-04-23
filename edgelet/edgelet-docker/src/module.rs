@@ -195,7 +195,6 @@ mod tests {
     use docker::apis::client::APIClient;
     use docker::apis::configuration::Configuration;
     use docker::models::{ContainerCreateBody, InlineResponse200, InlineResponse200State};
-    use edgelet_core::pid::Pid;
     use edgelet_core::{Module, ModuleStatus};
     use edgelet_test_utils::JsonConnector;
 
@@ -325,7 +324,7 @@ mod tests {
             finished_at,
             runtime_state.finished_at().unwrap().to_rfc3339()
         );
-        assert_eq!(Pid::Value(1234), runtime_state.pid());
+        assert_eq!(Some(1234), runtime_state.pid());
     }
 
     #[test]

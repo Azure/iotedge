@@ -26,7 +26,6 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::prelude::*;
 
 use edgelet_core::crypto::MemoryKeyStore;
-use edgelet_core::pid::Pid;
 use edgelet_core::{
     Certificate, CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate,
     ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleStatus, WorkloadConfig, IOTEDGED_CA_ALIAS,
@@ -151,7 +150,7 @@ fn generate_server_cert(
         .unwrap();
 
     // set the correct Pid value on the request so that authorization works
-    req.extensions_mut().insert(Pid::Value(MODULE_PID));
+    req.extensions_mut().insert(Some(MODULE_PID));
 
     request(service, req)
 }
@@ -164,7 +163,7 @@ fn create_workload_service(module_id: &str) -> (WorkloadService, Crypto) {
         TestConfig::new("img1".to_string()),
         Ok(ModuleRuntimeState::default()
             .with_status(ModuleStatus::Running)
-            .with_pid(Pid::Value(MODULE_PID))),
+            .with_pid(Some(MODULE_PID))),
     )));
     let config = Config {
         hub_name: "hub1".to_string(),
