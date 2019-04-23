@@ -4,7 +4,10 @@ use error::{Error, ErrorKind};
 use futures::prelude::*;
 use hyper::client::connect::{Connect, Connected, Destination};
 use std::path::PathBuf;
+#[cfg(unix)]
 use tokio_uds::UnixStream;
+#[cfg(windows)]
+use tokio_uds_windows::UnixStream;
 
 mod uri;
 pub use self::uri::Uri;

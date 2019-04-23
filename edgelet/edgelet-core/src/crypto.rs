@@ -113,6 +113,14 @@ where
     }
 }
 
+pub trait GetDeviceIdentityCertificate {
+    type Certificate: Certificate;
+    type Buffer: AsRef<[u8]>;
+
+    fn get(&self) -> Result<Self::Certificate, Error>;
+    fn sign_with_private_key(&self, data: &[u8]) -> Result<Self::Buffer, Error>;
+}
+
 pub trait CreateCertificate {
     type Certificate: Certificate;
 

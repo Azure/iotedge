@@ -146,6 +146,12 @@ impl CoreGetTrustBundle for Crypto {
 #[derive(Debug)]
 pub struct Certificate(HsmCertificate);
 
+impl Certificate {
+    pub fn new(cert: HsmCertificate) -> Certificate {
+        Certificate(cert)
+    }
+}
+
 impl CoreCertificate for Certificate {
     type Buffer = String;
     type KeyBuffer = Vec<u8>;
