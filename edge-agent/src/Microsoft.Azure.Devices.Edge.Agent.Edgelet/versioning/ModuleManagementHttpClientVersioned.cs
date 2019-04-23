@@ -22,6 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
         const string LogsUrlTailParameter = "tail";
         const string LogsUrlSinceParameter = "since";
 
+        static readonly TimeSpan OperationTimeout = TimeSpan.FromMinutes(5);
+
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
 
@@ -105,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
             {
                 Events.ExecutingOperation(operation, this.ManagementUri.ToString());
                 T result = await ExecuteWithRetry(func, r => Events.RetryingOperation(operation, this.ManagementUri.ToString(), r), this.transientErrorDetectionStrategy)
-                    .TimeoutAfter(TimeSpan.FromSeconds(60));
+                    .TimeoutAfter(OperationTimeout);
                 Events.SuccessfullyExecutedOperation(operation, this.ManagementUri.ToString());
                 return result;
             }
