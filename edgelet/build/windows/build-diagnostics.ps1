@@ -18,6 +18,8 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
 
     $Arm = ($targetArchs[$i] -eq "arm32v7")
 
+    Assert-Rust -Arm:$Arm
+
     if($Arm)
     {
         if ($BuildConfiguration -eq "debug")
@@ -30,8 +32,6 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
     }
 
     $ErrorActionPreference = 'Continue'
-
-    Assert-Rust -Arm:$Arm
 
     If ($BuildConfiguration -eq 'release') {
         $BuildConfiguration = 'release'
