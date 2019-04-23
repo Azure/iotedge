@@ -3,14 +3,12 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::module_name_repetitions, clippy::use_self)]
-#![allow(unused)] // todo remove
 
-use edgelet_core::pid::Pid;
 use edgelet_core::{AuthId, Authenticator};
-use failure::{Compat, Fail};
+use failure::Fail;
 use futures::{future, Future};
 use hyper::service::{NewService, Service};
-use hyper::{Body, Request, Response};
+use hyper::{Body, Request};
 
 use crate::{Error, ErrorKind, IntoResponse};
 

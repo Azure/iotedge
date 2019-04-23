@@ -8,7 +8,6 @@
     clippy::shadow_unrelated,
     clippy::use_self,
 )]
-#![allow(unused)] // todo remove
 
 pub mod app;
 mod error;
@@ -977,11 +976,11 @@ where
     CE: CreateCertificate + Clone,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
     M: ModuleRuntime
-    + Authenticator<Request = Request<<LoggingService<ManagementService> as Service>::ReqBody>>
-    + Send
-    + Sync
-    + Clone
-    + 'static,
+        + Authenticator<Request = Request<<LoggingService<ManagementService> as Service>::ReqBody>>
+        + Send
+        + Sync
+        + Clone
+        + 'static,
     M::AuthenticateFuture: Future<Item = AuthId> + Send + 'static,
     <M::AuthenticateFuture as Future>::Error: Fail,
     for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,

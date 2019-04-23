@@ -8,13 +8,15 @@ use hyper::client::connect::Connect;
 
 use edgelet_utils::ensure_not_empty_with_context;
 
-use docker::models::{InlineResponse200State, InlineResponse2001};
-use edgelet_core::{Module, ModuleOperation, ModuleRuntimeState, ModuleStatus, ModuleTop, RuntimeOperation};
+use docker::models::{InlineResponse2001, InlineResponse200State};
+use edgelet_core::{
+    Module, ModuleOperation, ModuleRuntimeState, ModuleStatus, ModuleTop, RuntimeOperation,
+};
 
 use crate::client::DockerClient;
 use crate::config::DockerConfig;
 use crate::error::{Error, ErrorKind, Result};
-use failure::{ResultExt};
+use failure::ResultExt;
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -64,8 +66,8 @@ impl<C: 'static + Connect> DockerModule<C> {
 }
 
 fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> std::result::Result<Vec<i32>, D::Error>
-    where
-        D: serde::Deserializer<'de>,
+where
+    D: serde::Deserializer<'de>,
 {
     let titles = resp
         .titles()
@@ -151,7 +153,8 @@ pub fn runtime_state(
 impl<C: 'static + Connect> Module for DockerModule<C> {
     type Config = DockerConfig;
     type Error = Error;
-    type RuntimeStateFuture = Box<dyn Future<Item = ModuleRuntimeState, Error = Self::Error> + Send>;
+    type RuntimeStateFuture =
+        Box<dyn Future<Item = ModuleRuntimeState, Error = Self::Error> + Send>;
 
     fn name(&self) -> &str {
         &self.name

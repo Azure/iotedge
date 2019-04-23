@@ -55,7 +55,7 @@ pub struct ModuleRuntimeState {
     started_at: Option<DateTime<Utc>>,
     finished_at: Option<DateTime<Utc>>,
     image_id: Option<String>,
-    pid: Option<i32>
+    pid: Option<i32>,
 }
 
 impl Default for ModuleRuntimeState {
