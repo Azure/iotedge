@@ -8,6 +8,7 @@
     clippy::shadow_unrelated,
     clippy::use_self,
 )]
+#![allow(unused)] // todo remove
 
 pub mod app;
 mod error;
@@ -34,7 +35,7 @@ use futures::future::Either;
 use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future};
 use hyper::server::conn::Http;
-use hyper::Uri;
+use hyper::{Body, Uri};
 use log::{debug, info};
 use sha2::{Digest, Sha256};
 use url::Url;
@@ -51,8 +52,8 @@ use edgelet_core::crypto::{
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
-    CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime, ModuleSpec, UrlExt,
-    WorkloadConfig, UNIX_SCHEME,
+    CertificateIssuer, CertificateProperties, CertificateType, Module, ModuleRuntime,
+    ModuleRuntimeErrorReason, ModuleSpec, UrlExt, WorkloadConfig, UNIX_SCHEME,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
@@ -76,6 +77,8 @@ use crate::workload::WorkloadData;
 
 pub use self::error::{Error, ErrorKind, InitializeErrorReason};
 use edgelet_http::authentication::AuthenticationService;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
@@ -541,12 +544,12 @@ where
 
     let cert_manager = Arc::new(CertificateManager::new(crypto.clone(), edgelet_cert_props));
 
-    let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, cert_manager.clone());
+    let mgmt = start_management(&settings, runtime, &id_man, mgmt_rx, cert_manager.clone());
 
     let workload = start_workload(
         &settings,
         key_store,
-        &runtime,
+        runtime,
         work_rx,
         crypto,
         cert_manager,
@@ -898,9 +901,9 @@ fn build_env(
     env
 }
 
-fn start_management<C, K, HC>(
+fn start_management<C, K, HC, M>(
     settings: &Settings<DockerConfig>,
-    runtime: &DockerModuleRuntime,
+    runtime: &M,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
     cert_manager: Arc<CertificateManager<C>>,
@@ -909,6 +912,10 @@ where
     C: CreateCertificate + Clone,
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl + Send + Sync,
+    M: ModuleRuntime + Clone + Send + Sync + 'static,
+    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <M::Module as Module>::Config: DeserializeOwned + Serialize,
+    M::Logs: Into<Body>,
 {
     info!("Starting management API...");
 
@@ -923,18 +930,16 @@ where
             ))?;
             let service = LoggingService::new(label, service);
             let service = AuthenticationService::new(module_runtime, service);
+
             info!("Listening on {} with 1 thread for management API.", url);
-            let run = Http::new()
-                .bind_url(
-                    url.clone(),
-                    service,
-                    Some(&cert_manager),
-                )
+            let server = Http::new()
+                .bind_url(url.clone(), service, Some(&cert_manager))
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,
                     ))
-                })?
+                })?;
+            let run = server
                 .run_until(shutdown.map_err(|_| ()))
                 .map_err(|err| Error::from(err.context(ErrorKind::ManagementService)));
             Ok(run)
@@ -977,18 +982,15 @@ where
                 InitializeErrorReason::WorkloadService,
             ))?;
             let service = LoggingService::new(label, service);
-            let service = AuthenticationService::new(module_runtime, service);
-            let run = Http::new()
-                .bind_url(
-                    url.clone(),
-                    service,
-                    Some(&cert_manager),
-                )
+            //            let service = AuthenticationService::new(module_runtime, service); // todo uncomment
+            let server = Http::new()
+                .bind_url(url.clone(), service, Some(&cert_manager))
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::WorkloadService,
                     ))
-                })?
+                })?;
+            let run = server
                 .run_until(shutdown.map_err(|_| ()))
                 .map_err(|err| Error::from(err.context(ErrorKind::WorkloadService)));
             info!("Listening on {} with 1 thread for workload API.", url);

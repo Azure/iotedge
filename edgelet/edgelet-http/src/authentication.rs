@@ -34,13 +34,14 @@ where
     type ReqBody = S::ReqBody;
     type ResBody = S::ResBody;
     type Error = S::Error;
-    type Future = Box<dyn Future<Item = <S::Future as Future>::Item, Error = Self::Error> + Send>;
+    type Future = Box<
+        dyn Future<Item = <S::Future as Future>::Item, Error = <S::Future as Future>::Error> + Send,
+    >;
 
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
         let mut req = req;
         let mut inner = self.inner.clone();
-        Box::new(self.runtime.authenticate(&req)
-            .and_then(move |auth_id| {
+        Box::new(self.runtime.authenticate(&req).and_then(move |auth_id| {
             req.extensions_mut().insert(auth_id);
             inner.call(req)
         }))
