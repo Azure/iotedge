@@ -26,7 +26,10 @@ extern crate serde_json;
 extern crate serde_yaml;
 extern crate tar;
 extern crate tokio;
+#[cfg(unix)]
 extern crate tokio_uds;
+#[cfg(windows)]
+extern crate tokio_uds_windows;
 extern crate url;
 extern crate url_serde;
 
