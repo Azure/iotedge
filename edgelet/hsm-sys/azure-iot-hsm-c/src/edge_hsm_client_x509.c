@@ -397,6 +397,8 @@ static int edge_x509_sign_with_private_key
         LOG_ERROR("hsm_handle parameter is null");
         result = __FAILURE__;
     }
+    // check if the device certificate exists and valid before performing
+    // any sign operations
     else if ((cert_info = edge_x509_hsm_get_cert_info(hsm_handle)) == NULL)
     {
         LOG_ERROR("Device certificate info could not be obtained");
