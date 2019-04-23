@@ -147,7 +147,10 @@ mio-uds-windows = { git = "https://github.com/philipktlin/mio-uds-windows.git", 
     Write-Host "Append cargo.toml with $ForkedCrates"
     Add-Content -Path cargo.toml -Value $ForkedCrates
 
-    Write-Host "Running cargo update to lock the crate forks required by arm build"
+    $cargo = Get-CargoCommand -Arm
+
+    Write-Host "$cargo update -p winapi:0.3.5 --precise 0.3.5"
     Invoke-Expression "$cargo update -p winapi:0.3.5 --precise 0.3.5"
+    Write-Host "$cargo update -p mio-uds-windows"
     Invoke-Expression "$cargo update -p mio-uds-windows"
 }
