@@ -8,10 +8,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
     public interface ILogsProcessor
     {
-        Task<IReadOnlyList<ModuleLogMessage>> GetMessages(Stream stream, string moduleId, ModuleLogFilter filter);
+        Task<IReadOnlyList<ModuleLogMessage>> GetMessages(string id, Stream stream, ModuleLogFilter filter);
 
-        Task<IReadOnlyList<string>> GetText(Stream stream, string moduleId, ModuleLogFilter filter);
+        Task<IReadOnlyList<string>> GetText(string id, Stream stream, ModuleLogFilter filter);
 
-        Task ProcessLogsStream(Stream stream, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback);
+        Task ProcessLogsStream(string id, Stream stream, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback);
     }
 }
