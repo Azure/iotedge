@@ -15,6 +15,8 @@ Assert-Rust -Arm:$Arm
 $cargo = Get-CargoCommand -Arm:$Arm
 Write-Host $cargo
 
+$oldPath = $(if($Arm){ ReplacePrivateRustInPath } else {""})
+
 $ErrorActionPreference = 'Continue'
 
 # arm build has to use a few private forks of dependencies instead of the public ones, in order to to this, we have to 
@@ -40,3 +42,8 @@ if ($LastExitCode)
 }
 
 $ErrorActionPreference = 'Stop'
+
+if($Arm -and (-NOT [string]::IsNullOrEmpty($oldPath)))
+{
+    $env:path = $oldPath
+}

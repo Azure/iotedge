@@ -8,6 +8,11 @@ function Test-RustUp
     (get-command -Name rustup.exe -ErrorAction SilentlyContinue) -ne $null
 }
 
+function GetPrivateRustPath
+{
+    Join-Path -Path $(Get-IotEdgeFolder) -ChildPath "rust-windows-arm/rust-windows-arm/bin/"
+}
+
 function Get-CargoCommand
 {
     Param(
@@ -17,7 +22,7 @@ function Get-CargoCommand
     if($Arm)
     {
         # we have private rust arm tool chain downloaded and unzipped to <source root>\rust-windows-arm\rust-windows-arm\cargo.exe
-        Join-Path -Path $(Get-IotEdgeFolder) -ChildPath "rust-windows-arm/rust-windows-arm/bin/cargo.exe"
+        Join-Path -Path $(GetPrivateRustPath) -ChildPath "cargo.exe"
     }
     elseif (Test-RustUp)
     {
@@ -162,4 +167,28 @@ mio-uds-windows = { git = "https://github.com/philipktlin/mio-uds-windows.git", 
     Invoke-Expression "$cargo update -p mio-uds-windows"
 
     $ErrorActionPreference = 'Stop'
+}
+
+function ReplacePrivateRustInPath
+{
+    $oldPath = $env:Path
+    $paths = $env:Path.Split(";")
+    $newPaths = @()
+    for($i = 0; $i -lt $paths.length; $i++)
+    {
+        if(-NOT $paths[$i].Contains(".cargo"))
+        {
+            # only append path if it does not contain .cargo
+            $newPaths += $paths[$i]
+        }
+    }
+    $newPaths += $(GetPrivateRustPath)
+
+    $env:path = ""
+    for($i = 0; $i -lt $newPaths.length; $i++)
+    {
+        $env:path += $newPaths[$i] + ";"
+    }
+
+    return $oldPath
 }

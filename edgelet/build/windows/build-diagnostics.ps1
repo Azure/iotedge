@@ -12,13 +12,15 @@ param(
 
 . (Join-Path $PSScriptRoot 'util.ps1')
 
-$targetArchs = @("arm32v7", "amd64")
+$targetArchs = @("amd64", "arm32v7")
 
 for ($i=0; $i -lt $targetArchs.length; $i++) {
 
     $Arm = ($targetArchs[$i] -eq "arm32v7")
 
     Assert-Rust -Arm:$Arm
+
+    $oldPath = ""
 
     if($Arm)
     {
@@ -27,6 +29,8 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
             # Arm rust compiler does not support debug build
             continue
         }
+
+        $oldPath = ReplacePrivateRustInPath
 
         PatchRustForArm
     }
@@ -78,4 +82,8 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
         ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', $(if($Arm){'\thumbv7a-pc-windows-msvc\'}) + $BuildConfiguration, 'iotedge-diagnostics.exe')) `
         ([IO.Path]::Combine($publishFolder, 'docker', 'windows', $targetArchs[$i]))
 
+    if($Arm -and (-NOT [string]::IsNullOrEmpty($oldPath)))
+    {
+        $env:path = $oldPath
+    }
 }
