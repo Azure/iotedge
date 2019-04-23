@@ -15,11 +15,26 @@
 #include "hsm_log.h"
 #include "hsm_utils.h"
 
-extern const char* const EDGE_DEVICE_ALIAS;
-
+//##############################################################################
+// Global static data members
+//##############################################################################
 static bool g_is_x509_initialized = false;
 static unsigned int g_ref_cnt = 0;
 
+//##############################################################################
+// Helpers
+//##############################################################################
+#define FREEIF(x) \
+    do { \
+        if ((x != NULL)) { \
+            free(x); \
+            x = NULL; \
+        } \
+    } while(0)
+
+//##############################################################################
+// Interface implementation
+//##############################################################################
 int hsm_client_x509_init()
 {
     int result;
@@ -257,26 +272,14 @@ static int get_device_id_cert_env_vars(char **device_cert_file_path, char **devi
     if (hsm_get_env(ENV_DEVICE_ID_CERTIFICATE_PATH, &cert_path) != 0)
     {
         LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_ID_CERTIFICATE_PATH);
-        if (cert_path != NULL)
-        {
-            free(cert_path);
-            cert_path = NULL;
-        }
+        FREEIF(cert_path);
         result = __FAILURE__;
     }
     else if (hsm_get_env(ENV_DEVICE_ID_PRIVATE_KEY_PATH, &key_path) != 0)
     {
         LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_ID_PRIVATE_KEY_PATH);
-        if (cert_path != NULL)
-        {
-            free(cert_path);
-            cert_path = NULL;
-        }
-        if (key_path != NULL)
-        {
-            free(key_path);
-            key_path = NULL;
-        }
+        FREEIF(cert_path);
+        FREEIF(key_path);
         result = __FAILURE__;
     }
     else
@@ -327,14 +330,8 @@ static CERT_INFO_HANDLE get_or_create_device_certificate(HSM_CLIENT_HANDLE hsm_h
         }
     }
 
-    if (device_cert_file_path != NULL)
-    {
-        free(device_cert_file_path);
-    }
-    if (device_pk_file_path != NULL)
-    {
-        free(device_pk_file_path);
-    }
+    FREEIF(device_cert_file_path);
+    FREEIF(device_pk_file_path);
 
     return result;
 }
@@ -417,7 +414,7 @@ static CERT_INFO_HANDLE edge_x509_hsm_get_cert_info(HSM_CLIENT_HANDLE hsm_handle
         result = get_or_create_device_certificate(hsm_handle);
         if (result == NULL)
         {
-            LOG_ERROR("Could not create device identity certificate info handle");
+            LOG_ERROR("Could not get or create device identity certificate info handle");
         }
     }
 

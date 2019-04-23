@@ -834,7 +834,8 @@ static int load_encryption_key_from_file(CRYPTO_STORE* store, const char *key_na
         else if (((key = read_file_into_buffer(key_file, &key_size)) == NULL) ||
                   (key_size == 0))
         {
-            LOG_ERROR("Could not read key from file. Key size %zu", key_size);
+            LOG_INFO("Could not read encryption key from file. "
+                     " No key file exists or is invalid or permission error.");
             result = __FAILURE__;
         }
         else
@@ -2875,7 +2876,7 @@ static int edge_hsm_client_store_insert_encryption_key
     }
     else if (load_encryption_key_from_file(g_crypto_store, key_name) == 0)
     {
-        LOG_DEBUG("HSM store already has encryption key set %s", key_name);
+        LOG_DEBUG("Loaded encryption key %s from file", key_name);
         result = 0;
     }
     else

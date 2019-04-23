@@ -7,7 +7,7 @@ use std::ptr;
 use std::slice;
 use std::string::String;
 
-use super::GetCerts;
+use super::GetDeviceIdentityCertificate;
 use super::*;
 use crate::error::{Error, ErrorKind};
 
@@ -55,7 +55,7 @@ impl X509 {
     }
 }
 
-impl GetCerts for X509 {
+impl GetDeviceIdentityCertificate for X509 {
     /// Retrieves the certificate to be used for x509 communication.
     fn get_cert(&self) -> Result<X509Data, Error> {
         let key_fn = self
@@ -128,6 +128,7 @@ impl GetCerts for X509 {
         }
     }
 
+    /// Retrieves the certificate to be used for x509 communication.
     fn get_certificate_info(&self) -> Result<HsmCertificate, Error> {
         let if_fn = self
             .interface
@@ -236,7 +237,7 @@ mod tests {
     use std::ptr;
     use std::slice;
 
-    use super::super::GetCerts;
+    use super::super::GetDeviceIdentityCertificate;
     use super::{X509Data, X509};
     use hsm_sys::*;
 
@@ -462,6 +463,20 @@ mod tests {
             assert_eq!(TEST_RSA_CERT, cert_handle.pem().unwrap());
         } else {
             panic!("Unexpected result");
+        }
+
+        let result4 = hsm_x509.sign_with_private_key(b"aabbcc");
+        if let Ok(x509_buffer) = result4 {
+            assert_eq!(x509_buffer.as_ref(), DEFAULT_DIGEST);
+        } else {
+            unreachable!("Sign with device id private key failed");
+        }
+
+        let result5 = hsm_x509.get_certificate_info();
+        if let Ok(cert_handle) = result5 {
+            assert_eq!(TEST_RSA_CERT, cert_handle.pem().unwrap());
+        } else {
+            unreachable!("Get device id certificate info failed");
         }
     }
 
