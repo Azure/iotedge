@@ -40,5 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string ModuleConfigMap = "moduleconfigmap";
 
+        public const PortMapServiceType DefaultPortMapServiceType = PortMapServiceType.ClusterIP;
+
     }
 }

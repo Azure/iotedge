@@ -24,6 +24,21 @@ iotedged:
     # persistentVolumeClaim:
     #   name: <CLAIM NAME HERE>
     #   storageClassName: <STORAGE CLASS NAME HERE>
+  ###############################################################################
+  # Certificate settings
+  ###############################################################################
+  #
+  # Configures the certificates required to operate the IoT Edge
+  # runtime as a gateway which enables external leaf devices to securely
+  # communicate with the Edge Hub. If not specified, the required certificates
+  # are auto generated for quick start scenarios which are not intended for
+  # production environments.
+  #
+  # certificates:
+  #   device_ca_cert: "<ADD PATH TO DEVICE CA CERTIFICATE HERE>"
+  #   device_ca_pk: "<ADD PATH TO DEVICE CA PRIVATE KEY HERE>"
+  #   trusted_ca_certs: "<ADD PATH TO TRUSTED CA CERTIFICATES HERE>"
+
 
 iotedgedProxy:
   image:
@@ -52,10 +67,9 @@ edgeAgent:
     # This variable isn't really used in k8s mode.
     networkId: 'azure-iot-edge'
     authScheme: 'sasToken'
-    # We assume that if the user has mapped a container port to the host, they want 
-    # it exposed on a public IP on the cluster (Service type is LoadBalancer). 
-    # Set this to true if you want to define your own external services.
-    servicesInClusterOnly: false
+    # Set this to one of "LoadBalancer", "NodePort", or "ClusterIP" to tell the 
+    # IoT Edge runtime how you want to expose mapped ports as Services.
+    portMappingServiceType: 'ClusterIP'
     # Set this to false if you want to turn off verbose k8s call tracing
     enableK8sServiceCallTracing: false
     # Configure edge agent log verbosity

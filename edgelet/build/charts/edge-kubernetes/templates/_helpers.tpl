@@ -36,6 +36,12 @@ Create chart name and version as used by the chart label.
 provisioning:
   source: "manual"
   device_connection_string: {{ .Values.deviceConnectionString | quote }}
+{{- if .Values.iotedged.certificates }}
+certificates:
+  device_ca_cert: "/etc/edgecerts/device_ca_cert"
+  device_ca_pk: "/etc/edgecerts/device_ca_pk"
+  trusted_ca_certs: "/etc/edgecerts/trusted_ca_certs"
+{{ end }}
 agent:
   name: "edgeAgent"
   type: "docker"

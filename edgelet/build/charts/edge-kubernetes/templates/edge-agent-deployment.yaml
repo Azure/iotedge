@@ -67,8 +67,8 @@ spec:
             value: {{ include "edge-kubernetes.fullname" . }}-iotedged-proxy-config
           - name: "ServiceAccountName"
             value: "{{.Release.Name}}-service-account"
-          - name: "ServicesInClusterOnly"
-            value: {{ .Values.edgeAgent.env.servicesInClusterOnly | quote }}
+          - name: "PortMappingServiceType"
+            value: {{ .Values.edgeAgent.env.portMappingServiceType | quote }}
           - name: "EnableK8sServiceCallTracing"
             value: {{ .Values.edgeAgent.env.enableK8sServiceCallTracing | quote }}
           - name: "K8sNamespaceBaseName"

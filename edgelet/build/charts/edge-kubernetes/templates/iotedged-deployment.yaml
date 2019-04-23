@@ -32,6 +32,11 @@ spec:
             readOnly: true
           - name: edge-home
             mountPath: {{ .Values.iotedged.data.targetPath | quote }}
+          {{- if .Values.iotedged.certificates }}
+          - name: edge-certs
+            mountPath: "/etc/edgecerts"
+            readOnly: true
+          {{end}}
           ports:
             - name: management
               containerPort: {{ .Values.iotedged.ports.management }}
@@ -56,11 +61,20 @@ spec:
       - name: config
         secret:
           secretName: {{ include "edge-kubernetes.fullname" . }}-iotedged-config
+      {{- if .Values.iotedged.certificates }}
+      {{- /*
+        NOTE: This sets up iotedged with a volume "/etc/edgecerts" populated with the given CA certs.
+      */}}
+      - name: edge-certs
+        secret:
+          secretName: {{ include "edge-kubernetes.fullname" . }}-edgecerts
+      {{else}}
       {{- /*
         NOTE: This sets up iotedged in the "quickstart" mode which is NOT meant
         for production use. For PoCs though, its wonderful! For production, this
         volume should probably be populated with proper CA certs.
       */}}
+      {{end}}
       - name: edge-home
         {{- if .Values.iotedged.data.persistentVolumeClaim }}
         persistentVolumeClaim:

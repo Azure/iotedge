@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string serviceAccountName;
         readonly Uri workloadUri;
         readonly Uri managementUri;
-        readonly bool serviceInClusterOnly;
+        readonly string defaultMapServiceType;
         readonly TypeSpecificSerDe<EdgeDeploymentDefinition> deploymentSerde;
         readonly JsonSerializerSettings crdSerializerSettings;
         readonly AsyncLock watchLock;
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string serviceAccountName,
             Uri workloadUri,
             Uri managementUri,
-            bool serviceInClusterOnly,
+            PortMapServiceType defaultMapServiceType,
             IKubernetes client)
         {
             this.iotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.serviceAccountName = Preconditions.CheckNonWhiteSpace(serviceAccountName, nameof(serviceAccountName));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
-            this.serviceInClusterOnly = Preconditions.CheckNotNull(serviceInClusterOnly, nameof(serviceInClusterOnly));
+            this.defaultMapServiceType = Preconditions.CheckNotNull(defaultMapServiceType, nameof(defaultMapServiceType)).ToString();
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.moduleRuntimeInfos = new Dictionary<string, ModuleRuntimeInfo>();
             this.moduleLock = new AsyncLock();
@@ -336,13 +336,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 // If the user wants to expose the ClusterIPs port externally, they should manually create a service to expose it.
                 // This gives the user more control as to how they want this to work.
                 string serviceType;
-                if (onlyExposedPorts || this.serviceInClusterOnly)
+                if (onlyExposedPorts)
                 {
                     serviceType = "ClusterIP";
                 }
                 else
                 {
-                    serviceType = "LoadBalancer";
+                    serviceType = this.defaultMapServiceType;
                 }
                 return Option.Some(new V1Service(metadata: objectMeta, spec: new V1ServiceSpec(type: serviceType, ports: portList, selector: labels)));
             }
@@ -427,7 +427,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
         }
 
-        Dictionary<string,string> GetCurrentServiceConfig(V1ServiceList currentServices)
+        Dictionary<string, string> GetCurrentServiceConfig(V1ServiceList currentServices)
         {
             return currentServices.Items.ToDictionary(
                 service =>
@@ -630,7 +630,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
                         // If configuration matches, or this is edgeAgent deployment and the images match,
                         // no need to do update deployment
-                        if (string.Equals(currentFromAnnotation,creationString) ||
+                        if (string.Equals(currentFromAnnotation, creationString) ||
                             (string.Equals(d.Metadata.Name, this.DeploymentName(CoreConstants.EdgeAgentModuleName)) && V1DeploymentEx.ImageEquals(current, d)))
                         {
                             return;
@@ -926,7 +926,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     using (await this.moduleLock.LockAsync())
                     {
                         ModuleRuntimeInfo removedRuntimeInfo;
-                        if (! this.moduleRuntimeInfos.TryRemove(podName, out removedRuntimeInfo))
+                        if (!this.moduleRuntimeInfos.TryRemove(podName, out removedRuntimeInfo))
                         {
                             Events.PodStatusRemoveError(podName);
                         }

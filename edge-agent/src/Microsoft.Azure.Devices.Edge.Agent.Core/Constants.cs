@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeAgentServiceAccountName = "ServiceAccountName";
 
-        public const string SetAllServicesToClusterIP = "ServicesInClusterOnly";
+        public const string PortMappingServiceType = "PortMappingServiceType";
 
         public const string EnableK8sServiceCallTracingName = "EnableK8sServiceCallTracing";
 
