@@ -468,7 +468,8 @@ static char *get_common_name(const unsigned char *input)
 {
     char *result;
     size_t offset;
-    ASN1_OBJECT target_obj, data_obj;
+    ASN1_OBJECT data_obj = { ASN1_INVALID, 0, NULL };
+    ASN1_OBJECT target_obj;
     bool done = false, found = false;
     const unsigned char* iterator = input, *end_marker;
 
