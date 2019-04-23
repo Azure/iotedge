@@ -3,7 +3,8 @@ pr: none
 
 variables:
   Build.SyncSources: false
-  images.artifact.name: 'core-linux'
+  images.artifact.name.linux: 'core-linux'
+  images.artifact.name.windows : 'core-windows'
   vsts.project: $(System.TeamProjectId)
   # Variable defined in VSTS
   #azure.keyVault: ''
@@ -61,18 +62,18 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          artifactName: $(images.artifact.name)
+          artifactName: $(images.artifact.name.linux)
           itemPattern: |
-            $(images.artifact.name)/IotEdgeQuickstart.linux-x64.tar.gz
-            $(images.artifact.name)/e2e_deployment_files/stress_deployment.template.json
-            $(images.artifact.name)/scripts/linux/runE2ETest.sh
-            $(images.artifact.name)/artifactInfo.txt
+            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
+            $(images.artifact.name.linux)/e2e_deployment_files/stress_deployment.template.json
+            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
           release.label: 'st'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(images.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
           container.registry.credential: '$(edgebuilds-azurecr-io)'
           iotHub.connectionString: '$(IotHubStressConnString)'
@@ -121,18 +122,18 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          artifactName: $(images.artifact.name)
+          artifactName: $(images.artifact.name.linux)
           itemPattern: |
-            $(images.artifact.name)/IotEdgeQuickstart.linux-arm.tar.gz
-            $(images.artifact.name)/e2e_deployment_files/stress_deployment.template.json
-            $(images.artifact.name)/scripts/linux/runE2ETest.sh
-            $(images.artifact.name)/artifactInfo.txt
+            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
+            $(images.artifact.name.linux)/e2e_deployment_files/stress_deployment.template.json
+            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
           release.label: 'st-amqp'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(images.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
           container.registry.credential: '$(edgebuilds-azurecr-io)'
           iotHub.connectionString: '$(IotHubStressConnString)'
@@ -187,18 +188,18 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          artifactName: $(images.artifact.name)
+          artifactName: $(images.artifact.name.linux)
           itemPattern: |
-            $(images.artifact.name)/IotEdgeQuickstart.linux-arm.tar.gz
-            $(images.artifact.name)/e2e_deployment_files/stress_deployment.template.json
-            $(images.artifact.name)/scripts/linux/runE2ETest.sh
-            $(images.artifact.name)/artifactInfo.txt
+            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
+            $(images.artifact.name.linux)/e2e_deployment_files/stress_deployment.template.json
+            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
           release.label: 'st-mqtt'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(images.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
           container.registry.credential: '$(edgebuilds-azurecr-io)'
           iotHub.connectionString: '$(IotHubStressConnString)'
@@ -252,17 +253,17 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          artifactName: $(images.artifact.name)
+          artifactName: $(images.artifact.name.linux)
           itemPattern: |
-            $(images.artifact.name)/e2e_deployment_files/stress_deployment.template.json
-            $(images.artifact.name)/scripts/windows/test/runE2ETest.sh
-            $(images.artifact.name)/artifactInfo.txt
+            $(images.artifact.name.linux)/e2e_deployment_files/stress_deployment.template.json
+            $(images.artifact.name.linux)/scripts/windows/test/runE2ETest.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy stress test
       - template: templates/stresstest-deploy-windows.yaml
         parameters:
           release.label: 'st'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(images.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'

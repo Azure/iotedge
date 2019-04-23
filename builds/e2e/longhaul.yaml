@@ -3,7 +3,8 @@ pr: none
 
 variables:
   Build.SyncSources: false
-  images.artifact.name: 'core-linux'
+  images.artifact.name.linux: 'core-linux'
+  images.artifact.name.windows : 'core-windows'
   vsts.project: $(System.TeamProjectId)
   # Variable defined in VSTS
   #azure.keyVault: ''
@@ -60,18 +61,18 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          artifactName: $(images.artifact.name)
+          artifactName: $(images.artifact.name.linux)
           itemPattern: |
-            $(images.artifact.name)/IotEdgeQuickstart.linux-x64.tar.gz
-            $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.json
-            $(images.artifact.name)/scripts/linux/runE2ETest.sh
-            $(images.artifact.name)/artifactInfo.txt
+            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
+            $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.json
+            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(images.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
           container.registry.credential: '$(edgebuilds-azurecr-io)'
           iotHub.connectionString: '$(IotHubStressConnString)'
@@ -120,18 +121,18 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          artifactName: $(images.artifact.name)
+          artifactName: $(images.artifact.name.linux)
           itemPattern: |
-            $(images.artifact.name)/IotEdgeQuickstart.linux-arm.tar.gz
-            $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.arm32v7.amqp.json
-            $(images.artifact.name)/scripts/linux/runE2ETest.sh
-            $(images.artifact.name)/artifactInfo.txt
+            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
+            $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.arm32v7.amqp.json
+            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh-amqp'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(images.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
           container.registry.credential: '$(edgebuilds-azurecr-io)'
           iotHub.connectionString: '$(IotHubStressConnString)'
@@ -181,18 +182,18 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          artifactName: $(images.artifact.name)
+          artifactName: $(images.artifact.name.linux)
           itemPattern: |
-            $(images.artifact.name)/IotEdgeQuickstart.linux-arm.tar.gz
-            $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.arm32v7.mqtt.json
-            $(images.artifact.name)/scripts/linux/runE2ETest.sh
-            $(images.artifact.name)/artifactInfo.txt
+            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
+            $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.arm32v7.mqtt.json
+            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh-mqtt'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(images.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
           container.registry.credential: '$(edgebuilds-azurecr-io)'
           iotHub.connectionString: '$(IotHubStressConnString)'
@@ -241,17 +242,17 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          artifactName: $(images.artifact.name)
+          artifactName: $(images.artifact.name.windows)
           itemPattern: |
-            $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.json
-            $(images.artifact.name)/scripts/windows/test/runE2ETest.ps1
-            $(images.artifact.name)/artifactInfo.txt
+            $(images.artifact.name.windows)/e2e_deployment_files/long_haul_deployment.template.json
+            $(images.artifact.name.windows)/scripts/windows/test/runE2ETest.ps1
+            $(images.artifact.name.windows)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy-windows.yaml
         parameters:
           release.label: 'lh'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(images.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
