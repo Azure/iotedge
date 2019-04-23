@@ -46,10 +46,8 @@ mio-uds-windows = { git = "https://github.com/philipktlin/mio-uds-windows.git", 
     Add-Content -Path cargo.toml -Value $ForkedCrates
 
     Write-Host "Running cargo update to lock the crate forks required by arm build"
-    Invoke-Expression "$cargo update -p https://github.com/Azure/mio-uds-windows.git#mio-uds-windows:0.1.0"
-    Invoke-Expression "$cargo update -p mio --precise 0.6.14"
-    Invoke-Expression "$cargo update -p https://github.com/Azure/tokio-uds-windows.git#tokio-uds-windows:0.1.0"
-    Invoke-Expression "$cargo update -p winapi --precise 0.3.5"
+    Invoke-Expression "$cargo update -p winapi:0.3.5 --precise 0.3.5"
+    Invoke-Expression "$cargo update -p mio-uds-windows"
 }
 
 
