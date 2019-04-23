@@ -145,11 +145,11 @@ static CERT_PROPS_HANDLE create_edge_device_properties
 (
     const char* common_name,
     uint64_t validity_seconds,
+    const char* alias,
     const char* issuer_alias
 )
 {
     CERT_PROPS_HANDLE certificate_props = cert_properties_create();
-    const char* alias = EDGE_DEVICE_ALIAS;
 
     if (certificate_props == NULL)
     {
@@ -222,7 +222,7 @@ static CERT_INFO_HANDLE create_device_certificate(HSM_CLIENT_HANDLE hsm_handle)
     }
     else
     {
-        CERT_PROPS_HANDLE certificate_props;
+        CERT_PROPS_HANDLE cert_props;
 
         if ((validity_seconds = certificate_info_get_valid_to(issuer)) == 0)
         {
@@ -239,21 +239,30 @@ static CERT_INFO_HANDLE create_device_certificate(HSM_CLIENT_HANDLE hsm_handle)
                 LOG_ERROR("Issuer certificate has expired");
                 result = NULL;
             }
-            else if ((certificate_props = create_edge_device_properties(common_name,
-                                                                        (uint64_t)floor(seconds_left),
-                                                                        issuer_alias)) == NULL)
+            else if ((cert_props = create_edge_device_properties(common_name,
+                                                                 (uint64_t)floor(seconds_left),
+                                                                 EDGE_DEVICE_ALIAS,
+                                                                 issuer_alias)) == NULL)
             {
                 LOG_ERROR("Error creating certificate properties for device certificate");
                 result = NULL;
             }
             else
             {
-                result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
+                result = interface->hsm_client_create_certificate(hsm_handle, cert_props);
                 if (result == NULL)
                 {
-                    LOG_ERROR("Failed to create device certificate with CN %s", common_name);
+                    LOG_INFO("Create device certificate with CN %s. "
+                             "This could be due to a new CA certificate "
+                             "or expired device certificate.", common_name);
+                    interface->hsm_client_destroy_certificate(hsm_handle, EDGE_DEVICE_ALIAS);
+                    result = interface->hsm_client_create_certificate(hsm_handle, cert_props);
+                    if (result == NULL)
+                    {
+                        LOG_ERROR("Create device certificate failed for CN %s", common_name);
+                    }
                 }
-                cert_properties_destroy(certificate_props);
+                cert_properties_destroy(cert_props);
             }
         }
         free(common_name);
