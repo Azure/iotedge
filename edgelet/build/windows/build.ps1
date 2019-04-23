@@ -28,7 +28,6 @@ if($Arm)
     PatchRustForArm
 }
 
-
 # Run cargo build by specifying the manifest file
 
 $ManifestPath = Get-Manifest

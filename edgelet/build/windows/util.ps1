@@ -125,7 +125,7 @@ function PatchRustForArm
         for ($i= 0; $i -lt $cls.length; $i++) {
 
             $cl = $cls[$i]
-            # Write-Host $cl.DirectoryName
+            Write-Host $cl.DirectoryName
             if($cl.DirectoryName.ToLower().Contains("hostx64\x64"))
             {
                 $clPath = $cl.DirectoryName
