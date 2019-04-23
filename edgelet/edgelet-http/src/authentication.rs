@@ -5,8 +5,6 @@
 #![allow(clippy::module_name_repetitions, clippy::use_self)]
 #![allow(unused)] // todo remove
 
-use crate::runtime::DockerModuleRuntime;
-use crate::Error;
 use edgelet_core::pid::Pid;
 use edgelet_core::{AuthId, Authenticator};
 use failure::{Compat, Fail};
@@ -15,20 +13,22 @@ use hyper::service::{NewService, Service};
 use hyper::{Body, Request};
 
 #[derive(Clone)]
-pub struct AuthenticationService<S> {
-    runtime: DockerModuleRuntime,
+pub struct AuthenticationService<M, S> {
+    runtime: M,
     inner: S,
 }
 
-impl<S> AuthenticationService<S> {
-    pub fn new(runtime: DockerModuleRuntime, inner: S) -> Self {
+impl<M, S> AuthenticationService<M, S> {
+    pub fn new(runtime: M, inner: S) -> Self {
         AuthenticationService { runtime, inner }
     }
 }
 
-impl<S> Service for AuthenticationService<S>
+impl<M, S> Service for AuthenticationService<M, S>
 where
-    S: Service<ReqBody = Body>,
+    M: Authenticator<Request = Request<S::ReqBody>> + Send + Clone + 'static,
+    M::AuthenticateFuture: Future<Item = AuthId, Error = S::Error> + Send + 'static,
+    S: Service<ReqBody = Body> + Send + Clone + 'static,
     S::Future: Send + 'static,
 {
     type ReqBody = S::ReqBody;
@@ -37,32 +37,27 @@ where
     type Future = Box<dyn Future<Item = <S::Future as Future>::Item, Error = Self::Error> + Send>;
 
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
-        let pid = req
-            .extensions()
-            .get::<Pid>()
-            .cloned()
-            .unwrap_or_else(|| Pid::None);
-
         let mut req = req;
-
-        // todo Implement futures pipeline instead of waiting for response
-        let auth_id = self.runtime.authenticate(pid).wait().unwrap();
-
-        req.extensions_mut().insert(auth_id);
-        Box::new(self.inner.call(req))
+        let mut inner = self.inner.clone();
+        Box::new(self.runtime.authenticate(&req)
+            .and_then(move |auth_id| {
+            req.extensions_mut().insert(auth_id);
+            inner.call(req)
+        }))
     }
 }
 
-impl<S> NewService for AuthenticationService<S>
+impl<M, S> NewService for AuthenticationService<M, S>
 where
+    M: Authenticator + Send + Clone + 'static,
     S: NewService,
     S::Future: Send + 'static,
-    AuthenticationService<<S as NewService>::Service>: Service,
+    AuthenticationService<M, <S as NewService>::Service>: Service,
 {
-    type ReqBody = <AuthenticationService<<S as NewService>::Service> as Service>::ReqBody;
-    type ResBody = <AuthenticationService<<S as NewService>::Service> as Service>::ResBody;
-    type Error = <AuthenticationService<<S as NewService>::Service> as Service>::Error;
-    type Service = AuthenticationService<<S as NewService>::Service>;
+    type ReqBody = <AuthenticationService<M, <S as NewService>::Service> as Service>::ReqBody;
+    type ResBody = <AuthenticationService<M, <S as NewService>::Service> as Service>::ResBody;
+    type Error = <AuthenticationService<M, <S as NewService>::Service> as Service>::Error;
+    type Service = AuthenticationService<M, <S as NewService>::Service>;
     type Future = Box<dyn Future<Item = Self::Service, Error = Self::InitError> + Send>;
     type InitError = <S as NewService>::InitError;
 

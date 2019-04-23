@@ -54,7 +54,7 @@ use edgelet_core::{
     CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime, ModuleSpec, UrlExt,
     WorkloadConfig, UNIX_SCHEME,
 };
-use edgelet_docker::{DockerConfig, DockerModuleRuntime, AuthenticationService};
+use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
 use edgelet_http::certificate_manager::CertificateManager;
@@ -75,6 +75,7 @@ use provisioning::provisioning::{
 use crate::workload::WorkloadData;
 
 pub use self::error::{Error, ErrorKind, InitializeErrorReason};
+use edgelet_http::authentication::AuthenticationService;
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";

@@ -33,10 +33,10 @@ impl fmt::Display for AuthId {
 
 pub trait Authenticator {
     type Error;
-    type Credentials;
+    type Request;
     type AuthenticateFuture;
 
-    fn authenticate(&self, credentials: Self::Credentials) -> Self::AuthenticateFuture;
+    fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture;
 }
 
 pub struct Authorization {

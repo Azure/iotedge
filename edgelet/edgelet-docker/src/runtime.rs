@@ -9,7 +9,7 @@ use base64;
 use failure::{Fail, ResultExt};
 use futures::prelude::*;
 use futures::{future, stream, Async, Stream};
-use hyper::{Body, Chunk as HyperChunk, Client};
+use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
 use serde_json;
@@ -747,11 +747,17 @@ impl ModuleRuntime for DockerModuleRuntime {
 
 impl Authenticator for DockerModuleRuntime {
     type Error = Error;
-    type Credentials = Pid;
+    type Request = Request<Body>;
     type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error>>;
 
-    fn authenticate(&self, credentials: Self::Credentials) -> Self::AuthenticateFuture {
-        let fut = match credentials {
+    fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
+        let pid = req
+            .extensions()
+            .get::<Pid>()
+            .cloned()
+            .unwrap_or_else(|| Pid::None);
+
+        let fut = match pid {
             Pid::None => Either::B(future::ok(AuthId::None)),
             Pid::Any => Either::B(future::ok(AuthId::Any)),
             Pid::Value(pid) => Either::A(

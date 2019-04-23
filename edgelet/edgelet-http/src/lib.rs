@@ -38,6 +38,7 @@ use edgelet_utils::log_failure;
 #[cfg(unix)]
 use native_tls::{Identity, TlsAcceptor};
 
+pub mod authentication;
 pub mod authorization;
 pub mod certificate_manager;
 pub mod client;
