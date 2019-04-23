@@ -53,7 +53,13 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
     $env:NO_VALGRIND = 'true'
 
     $originalRustflags = $env:RUSTFLAGS
-    $env:RUSTFLAGS += ' -C target-feature=+crt-static'
+    if(-NOT $Arm)
+    {
+        # only set RUSTFLAGS once for AMD64 and skip setting it in ARM so we don't do it twice
+        $env:RUSTFLAGS += ' -C target-feature=+crt-static'
+    }
+    Write-Host $env:RUSTFLAGS
+    Write-Host $env:Path
     Write-Host "$cargo clean"
     Invoke-Expression "$cargo clean"
     Write-Host "$cargo build -p iotedge-diagnostics $(if($Arm) {'--target thumbv7a-pc-windows-msvc'}) $BuildConfigOption --manifest-path $ManifestPath"
