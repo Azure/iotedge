@@ -35,7 +35,7 @@ use futures::future::Either;
 use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future};
 use hyper::server::conn::Http;
-use hyper::{Body, Uri, Request};
+use hyper::{Body, Request, Uri};
 use log::{debug, info};
 use sha2::{Digest, Sha256};
 use url::Url;
@@ -51,7 +51,10 @@ use edgelet_core::crypto::{
     KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
-use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType, Module, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, UrlExt, WorkloadConfig, UNIX_SCHEME, Authenticator, AuthId};
+use edgelet_core::{
+    AuthId, Authenticator, CertificateIssuer, CertificateProperties, CertificateType, Module,
+    ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, UrlExt, WorkloadConfig, UNIX_SCHEME,
+};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
@@ -74,9 +77,9 @@ use crate::workload::WorkloadData;
 
 pub use self::error::{Error, ErrorKind, InitializeErrorReason};
 use edgelet_http::authentication::AuthenticationService;
+use hyper::service::Service;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use hyper::service::Service;
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
@@ -910,7 +913,12 @@ where
     C: CreateCertificate + Clone,
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl + Send + Sync,
-    M: ModuleRuntime + Authenticator<Request = Request<<LoggingService<ManagementService> as Service>::ReqBody>> + Send + Sync + Clone + 'static,
+    M: ModuleRuntime
+        + Authenticator<Request = Request<<LoggingService<ManagementService> as Service>::ReqBody>>
+        + Send
+        + Sync
+        + Clone
+        + 'static,
     M::AuthenticateFuture: Future<Item = AuthId> + Send + 'static,
     <M::AuthenticateFuture as Future>::Error: Fail,
     for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
@@ -931,26 +939,25 @@ where
             let service = LoggingService::new(label, service);
             let service = AuthenticationService::new(module_runtime, service);
 
-            info!("Listening on {} with 1 thread for management API.", url);
-            let server = Http::new()
+            let run = Http::new()
                 .bind_url(url.clone(), service, Some(&cert_manager))
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,
                     ))
-                })?;
-            let run = server
+                })?
                 .run_until(shutdown.map_err(|_| ()))
                 .map_err(|err| Error::from(err.context(ErrorKind::ManagementService)));
+            info!("Listening on {} with 1 thread for management API.", url);
             Ok(run)
         })
         .flatten()
 }
 
-fn start_workload<K, C, CE, W>(
+fn start_workload<K, C, CE, W, M>(
     settings: &Settings<DockerConfig>,
     key_store: &K,
-    runtime: &DockerModuleRuntime,
+    runtime: &M,
     shutdown: Receiver<()>,
     crypto: &C,
     cert_manager: Arc<CertificateManager<CE>>,
@@ -969,6 +976,17 @@ where
         + 'static,
     CE: CreateCertificate + Clone,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
+    M: ModuleRuntime
+    + Authenticator<Request = Request<<LoggingService<ManagementService> as Service>::ReqBody>>
+    + Send
+    + Sync
+    + Clone
+    + 'static,
+    M::AuthenticateFuture: Future<Item = AuthId> + Send + 'static,
+    <M::AuthenticateFuture as Future>::Error: Fail,
+    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <M::Module as Module>::Config: DeserializeOwned + Serialize,
+    M::Logs: Into<Body>,
 {
     info!("Starting workload API...");
 
@@ -982,15 +1000,15 @@ where
                 InitializeErrorReason::WorkloadService,
             ))?;
             let service = LoggingService::new(label, service);
-            //            let service = AuthenticationService::new(module_runtime, service); // todo uncomment
-            let server = Http::new()
+            let service = AuthenticationService::new(module_runtime, service);
+
+            let run = Http::new()
                 .bind_url(url.clone(), service, Some(&cert_manager))
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::WorkloadService,
                     ))
-                })?;
-            let run = server
+                })?
                 .run_until(shutdown.map_err(|_| ()))
                 .map_err(|err| Error::from(err.context(ErrorKind::WorkloadService)));
             info!("Listening on {} with 1 thread for workload API.", url);
