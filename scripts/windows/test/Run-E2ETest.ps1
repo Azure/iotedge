@@ -240,7 +240,7 @@ Function CleanUp
     }
 
     Write-Host "Uninstall iotedged"
-    Uninstall-SecurityDaemon -Force
+    Uninstall-IoTEdge -Force
 
     # This may require once IoT Edge created its only bridge network
     #Write-Host "Remove nat VM switch"
