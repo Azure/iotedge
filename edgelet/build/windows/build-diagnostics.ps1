@@ -53,8 +53,9 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
     $env:NO_VALGRIND = 'true'
 
     $originalRustflags = $env:RUSTFLAGS
-    $env:RUSTFLAGS += ' -C target-feature=+crt-static -Z print-link-args'
-    Write-Host $env:RUSTFLAGS
+    Write-Host "Original rust flag: $originalRustflags"
+    $env:RUSTFLAGS += ' -C target-feature=+crt-static -Z print-link-args'    
+    Write-Host "New rust flag: $env:RUSTFLAGS"
     Write-Host $env:Path
     Write-Host "$cargo clean"
     Invoke-Expression "$cargo clean"
