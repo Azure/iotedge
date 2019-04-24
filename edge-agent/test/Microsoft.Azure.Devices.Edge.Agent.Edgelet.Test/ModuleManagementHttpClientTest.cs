@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json.Linq;
     using Xunit;
@@ -237,26 +238,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
                 new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
             IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
             await client.PrepareUpdateAsync(moduleSpec);
-        }
-
-        [Theory]
-        [InlineData("2018-06-28", "2018-06-28")]
-        [InlineData("2018-06-28", "2019-01-30")]
-        [InlineData("2019-01-30", "2018-06-28")]
-        [InlineData("2019-01-30", "2019-01-30")]
-        public async Task ModuleLogsTest(string serverApiVersion, string clientApiVersion)
-        {
-            // Arrange
-            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-
-            // Act
-            Stream logsStream = await client.GetModuleLogs("edgeHub", false, Option.None<int>(), Option.None<int>(), CancellationToken.None);
-
-            // Assert
-            Assert.NotNull(logsStream);
-            byte[] buffer = new byte[1024];
-            int bytesRead = await logsStream.ReadAsync(buffer, 0, buffer.Length);
-            Assert.Equal(buffer.Length, bytesRead);
         }
 
         [Fact]
