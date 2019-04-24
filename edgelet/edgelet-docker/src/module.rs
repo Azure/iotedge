@@ -449,4 +449,70 @@ mod tests {
         assert_eq!(None, runtime_state.started_at());
         assert_eq!(None, runtime_state.finished_at());
     }
+
+    #[test]
+    fn parse_top_response_returns_pid_array() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["PID".to_string()])
+            .with_processes(vec![vec!["123".to_string()]]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_ok());
+        assert_eq!(vec![123], pids.unwrap());
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_titles_is_missing() {
+        let response = InlineResponse2001::new().with_processes(vec![vec!["123".to_string()]]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_err());
+        assert_eq!("missing field `Titles`", format!("{}", pids.unwrap_err()));
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_pid_title_is_missing() {
+        let response = InlineResponse2001::new().with_titles(vec!["Command".to_string()]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_err());
+        assert_eq!(
+            "invalid value: sequence, expected array including the column title \'PID\'",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_processes_is_missing() {
+        let response = InlineResponse2001::new().with_titles(vec!["PID".to_string()]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_err());
+        assert_eq!(
+            "missing field `Processes`",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_process_pid_is_missing() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["Command".to_string(), "PID".to_string()])
+            .with_processes(vec![vec!["sh".to_string()]]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_err());
+        assert_eq!(
+            "invalid length 1, expected at least 2 columns",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_process_pid_is_not_i32() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["PID".to_string()])
+            .with_processes(vec![vec!["xyz".to_string()]]);
+        let pids = parse_top_response::<Deserializer>(&response);
+        assert!(pids.is_err());
+        assert_eq!(
+            "invalid value: string \"xyz\", expected a process ID number",
+            format!("{}", pids.unwrap_err())
+        );
+    }
 }

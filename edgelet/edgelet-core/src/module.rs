@@ -405,7 +405,6 @@ pub trait ModuleRuntime {
     type StopFuture: Future<Item = (), Error = Self::Error> + Send;
     type SystemInfoFuture: Future<Item = SystemInfo, Error = Self::Error> + Send;
     type RemoveAllFuture: Future<Item = (), Error = Self::Error> + Send;
-    type TopFuture: Future<Item = ModuleTop, Error = Self::Error> + Send;
 
     fn init(&self) -> Self::InitFuture;
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
@@ -420,7 +419,6 @@ pub trait ModuleRuntime {
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture;
     fn registry(&self) -> &Self::ModuleRegistry;
     fn remove_all(&self) -> Self::RemoveAllFuture;
-    fn top(&self, id: &str) -> Self::TopFuture;
 }
 
 #[derive(Clone, Copy, Debug)]

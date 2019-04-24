@@ -9,8 +9,8 @@ use crate::convert::{auth_to_image_pull_secret, pod_to_module, spec_to_deploymen
 use crate::error::{Error, ErrorKind, Result};
 use crate::module::KubeModule;
 use edgelet_core::{
-    LogOptions, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ModuleTop,
-    RuntimeOperation, SystemInfo,
+    LogOptions, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, RuntimeOperation,
+    SystemInfo,
 };
 use edgelet_docker::DockerConfig;
 use edgelet_utils::{ensure_not_empty_with_context, sanitize_dns_label};
@@ -300,7 +300,6 @@ where
     type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<dyn Future<Item = SystemInfo, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type TopFuture = Box<dyn Future<Item = ModuleTop, Error = Self::Error> + Send>;
 
     fn init(&self) -> Self::InitFuture {
         Box::new(future::ok(()))
@@ -431,10 +430,6 @@ where
 
     fn remove_all(&self) -> Self::RemoveAllFuture {
         Box::new(future::ok(()))
-    }
-
-    fn top(&self, id: &str) -> Self::TopFuture {
-        Box::new(future::ok(ModuleTop::new(id.to_string(), Vec::new())))
     }
 }
 

@@ -17,10 +17,10 @@ use url::Url;
 
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
-use docker::models::{ContainerCreateBody, InlineResponse200, InlineResponse2001, NetworkConfig};
+use docker::models::{ContainerCreateBody, InlineResponse200, NetworkConfig};
 use edgelet_core::{
     AuthId, Authenticator, LogOptions, Module, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeState, ModuleSpec, ModuleTop, RegistryOperation, RuntimeOperation,
+    ModuleRuntimeState, ModuleSpec, RegistryOperation, RuntimeOperation,
     SystemInfo as CoreSystemInfo, UrlExt,
 };
 use edgelet_http::{UrlConnector, Pid};
@@ -203,46 +203,6 @@ where
     Ok(name)
 }
 
-fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> std::result::Result<Vec<i32>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let titles = resp
-        .titles()
-        .ok_or_else(|| serde::de::Error::missing_field("Titles"))?;
-    let pid_index = titles
-        .iter()
-        .position(|ref s| s.as_str() == "PID")
-        .ok_or_else(|| {
-            serde::de::Error::invalid_value(
-                serde::de::Unexpected::Seq,
-                &"array including the column title 'PID'",
-            )
-        })?;
-    let processes = resp
-        .processes()
-        .ok_or_else(|| serde::de::Error::missing_field("Processes"))?;
-    let pids: std::result::Result<_, _> = processes
-        .iter()
-        .map(|ref p| {
-            let val = p.get(pid_index).ok_or_else(|| {
-                serde::de::Error::invalid_length(
-                    p.len(),
-                    &&*format!("at least {} columns", pid_index + 1),
-                )
-            })?;
-            let pid = val.parse::<i32>().map_err(|_| {
-                serde::de::Error::invalid_value(
-                    serde::de::Unexpected::Str(val),
-                    &"a process ID number",
-                )
-            })?;
-            Ok(pid)
-        })
-        .collect();
-    Ok(pids?)
-}
-
 impl ModuleRuntime for DockerModuleRuntime {
     type Error = Error;
     type Config = DockerConfig;
@@ -265,7 +225,6 @@ impl ModuleRuntime for DockerModuleRuntime {
     type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type TopFuture = Box<dyn Future<Item = ModuleTop, Error = Self::Error> + Send>;
 
     fn init(&self) -> Self::InitFuture {
         info!("Initializing module runtime...");
@@ -718,30 +677,6 @@ impl ModuleRuntime for DockerModuleRuntime {
             });
             future::join_all(n).map(|_| ())
         }))
-    }
-
-    fn top(&self, id: &str) -> Self::TopFuture {
-        let id = id.to_string();
-        Box::new(
-            self.client
-                .container_api()
-                .container_top(&id, "")
-                .then(|result| match result {
-                    Ok(resp) => {
-                        let p = parse_top_response::<Deserializer>(&resp).with_context(|_| {
-                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.clone()))
-                        })?;
-                        Ok(ModuleTop::new(id, p))
-                    }
-                    Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id)),
-                        );
-                        Err(err)
-                    }
-                }),
-        )
     }
 }
 
@@ -1316,54 +1251,6 @@ mod tests {
     }
 
     #[test]
-    fn top_fails_for_empty_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "";
-
-        let task = ModuleRuntime::top(&mri, name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(TopModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn top_fails_for_white_space_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "    ";
-
-        let task = ModuleRuntime::top(&mri, name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(TopModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
     fn parse_get_response_returns_the_name() {
         let response = InlineResponse200::new().with_name("hello".to_string());
         let name = parse_get_response::<Deserializer>(&response);
@@ -1377,72 +1264,6 @@ mod tests {
         let name = parse_get_response::<Deserializer>(&response);
         assert!(name.is_err());
         assert_eq!("missing field `Name`", format!("{}", name.unwrap_err()));
-    }
-
-    #[test]
-    fn parse_top_response_returns_pid_array() {
-        let response = InlineResponse2001::new()
-            .with_titles(vec!["PID".to_string()])
-            .with_processes(vec![vec!["123".to_string()]]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_ok());
-        assert_eq!(vec![123], pids.unwrap());
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_titles_is_missing() {
-        let response = InlineResponse2001::new().with_processes(vec![vec!["123".to_string()]]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_err());
-        assert_eq!("missing field `Titles`", format!("{}", pids.unwrap_err()));
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_pid_title_is_missing() {
-        let response = InlineResponse2001::new().with_titles(vec!["Command".to_string()]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_err());
-        assert_eq!(
-            "invalid value: sequence, expected array including the column title \'PID\'",
-            format!("{}", pids.unwrap_err())
-        );
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_processes_is_missing() {
-        let response = InlineResponse2001::new().with_titles(vec!["PID".to_string()]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_err());
-        assert_eq!(
-            "missing field `Processes`",
-            format!("{}", pids.unwrap_err())
-        );
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_process_pid_is_missing() {
-        let response = InlineResponse2001::new()
-            .with_titles(vec!["Command".to_string(), "PID".to_string()])
-            .with_processes(vec![vec!["sh".to_string()]]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_err());
-        assert_eq!(
-            "invalid length 1, expected at least 2 columns",
-            format!("{}", pids.unwrap_err())
-        );
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_process_pid_is_not_i32() {
-        let response = InlineResponse2001::new()
-            .with_titles(vec!["PID".to_string()])
-            .with_processes(vec![vec!["xyz".to_string()]]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_err());
-        assert_eq!(
-            "invalid value: string \"xyz\", expected a process ID number",
-            format!("{}", pids.unwrap_err())
-        );
     }
 
     struct TestConfig;
@@ -1529,7 +1350,6 @@ mod tests {
         type StopFuture = FutureResult<(), Self::Error>;
         type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
         type RemoveAllFuture = FutureResult<(), Self::Error>;
-        type TopFuture = FutureResult<ModuleTop, Self::Error>;
 
         fn init(&self) -> Self::InitFuture {
             unimplemented!()
@@ -1580,10 +1400,6 @@ mod tests {
         }
 
         fn remove_all(&self) -> Self::RemoveAllFuture {
-            unimplemented!()
-        }
-
-        fn top(&self, _id: &str) -> Self::TopFuture {
             unimplemented!()
         }
     }

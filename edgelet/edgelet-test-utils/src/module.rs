@@ -173,7 +173,6 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     type StopFuture = FutureResult<(), Self::Error>;
     type SystemInfoFuture = FutureResult<SystemInfo, Self::Error>;
     type RemoveAllFuture = FutureResult<(), Self::Error>;
-    type TopFuture = FutureResult<ModuleTop, Self::Error>;
 
     fn system_info(&self) -> Self::SystemInfoFuture {
         match self.module {
@@ -264,18 +263,5 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
 
     fn remove_all(&self) -> Self::RemoveAllFuture {
         future::ok(())
-    }
-
-    fn top(&self, id: &str) -> Self::TopFuture {
-        match self.module {
-            Ok(ref m) => {
-                assert_eq!(id, m.name());
-                match m.state {
-                    Ok(ref s) => future::ok(ModuleTop::new(m.name.clone(), vec![s.pid().unwrap()])),
-                    Err(ref e) => future::err(e.clone()),
-                }
-            }
-            Err(ref e) => future::err(e.clone()),
-        }
     }
 }
