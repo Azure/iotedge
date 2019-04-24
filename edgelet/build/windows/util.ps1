@@ -141,10 +141,10 @@ function PatchRustForArm
             $env:PATH = $clPath + ";" + $env:PATH
             Write-Host $env:PATH
         }
-    }
 
-    # test cl.exe command again to make sure we really have it in PATH
-    Write-Host $(Get-Command cl.exe).Path
+        # test cl.exe command again to make sure we really have it in PATH
+        Write-Host $(Get-Command cl.exe).Path
+    }
 
     Write-Host "temporary test to find out advapi32.libs on build machines, which currently is missing when linking iotedge-diagnotstics"
     $advapi32 = Get-ChildItem -Path ${env:ProgramFiles(x86)} -Filter advapi32.lib -Recurse -ErrorAction SilentlyContinue -Force
