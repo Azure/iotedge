@@ -5,7 +5,7 @@ Param(
     [Switch] $Arm
 )
 
-$EdgeCab = "Microsoft-Azure-IoTEdge.cab"
+$EdgeCab = "Microsoft-Azure-IoTEdge$(if($Arm) {'-Arm'}).cab"
 $EdgeTemplate = "Package-Template"
 
 # Bring in util functions
