@@ -22,6 +22,7 @@ variables:
   #loadGen.transportType: ''
   #run.linux.amd64.moby: 'true/false'
   #run.linux.arm32v7.moby: 'true/false'
+  #run.windows.amd64.moby: 'true/false'
 
 jobs:
 ################################################################################
@@ -205,61 +206,61 @@ jobs:
           loadGen.message.frequency: '$(loadGen.message.frequency.arm32v7)'
           longHaul.protocolHead: 'mqtt'
 
-# ################################################################################
-#   - job: windows_amd64_moby
-# ################################################################################
-#     displayName: Windows AMD64 Moby
-#     condition: eq(variables['run.windows.amd64.moby'], 'true')
-#     pool:
-#       name: $(pool.name)
-#       demands:
-#         - run-long-haul -equals true
-#         - Agent.OS -equals Windows_NT
-#         - Agent.OSArchitecture -equals X64
-#     variables:
-#       edgelet.artifact.name: 'iotedged-windows'
-#     steps:
-#       - task: AzureKeyVault@1
-#         displayName: 'Azure Key Vault'
-#         inputs:
-#           azureSubscription: $(azure.subscription)
-#           KeyVaultName: $(azure.keyVault)
-#           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
-#       - task: DownloadBuildArtifacts@0
-#         displayName: 'Download Edgelet Artifacts'
-#         inputs:
-#           buildType: specific
-#           project: $(vsts.project)
-#           pipeline: $(edgelet.package.build)
-#           branchName: $(edgelet.package.branchName)
-#           buildVersionToDownload: latestFromBranch
-#           artifactName: $(edgelet.artifact.name)
-#       - task: DownloadBuildArtifacts@0
-#         displayName: 'Download Images Artifacts'
-#         inputs:
-#           buildType: specific
-#           project: $(vsts.project)
-#           pipeline: $(images.build)
-#           branchName: $(images.branchName)
-#           buildVersionToDownload: latestFromBranch
-#           artifactName: $(images.artifact.name.windows)
-#           itemPattern: |
-#             $(images.artifact.name.windows)/e2e_deployment_files/long_haul_deployment.template.json
-#             $(images.artifact.name.windows)/scripts/windows/test/runE2ETest.ps1
-#             $(images.artifact.name.windows)/artifactInfo.txt
-#       # Deploy long haul
-#       - template: templates/longhaul-deploy-windows.yaml
-#         parameters:
-#           release.label: 'lh'
-#           edgelet.artifact.name: '$(edgelet.artifact.name)'
-#           images.artifact.name: '$(images.artifact.name.windows)'
-#           container.registry: '$(container.registry)'
-#           container.registry.username: '$(edgebuilds-azurecr-io-username)'
-#           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-#           iotHub.connectionString: '$(IotHubStressConnString)'
-#           eventHub.connectionString: '$(EventHubStressConnStr)'
-#           snitch.build.number: '$(snitch.build.number)'
-#           snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
-#           snitch.storage.account: '$(snitch.storage.account)'
-#           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
-#           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+################################################################################
+  - job: windows_amd64_moby
+################################################################################
+    displayName: Windows AMD64 Moby
+    condition: eq(variables['run.windows.amd64.moby'], 'true')
+    pool:
+      name: $(pool.name)
+      demands:
+        - run-long-haul -equals true
+        - Agent.OS -equals Windows_NT
+        - Agent.OSArchitecture -equals X64
+    variables:
+      edgelet.artifact.name: 'iotedged-windows'
+    steps:
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Edgelet Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          branchName: $(edgelet.package.branchName)
+          buildVersionToDownload: latestFromBranch
+          artifactName: $(edgelet.artifact.name)
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Images Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(images.build)
+          branchName: $(images.branchName)
+          buildVersionToDownload: latestFromBranch
+          artifactName: $(images.artifact.name.windows)
+          itemPattern: |
+            $(images.artifact.name.windows)/e2e_deployment_files/long_haul_deployment.template.json
+            $(images.artifact.name.windows)/scripts/windows/test/runE2ETest.ps1
+            $(images.artifact.name.windows)/artifactInfo.txt
+      # Deploy long haul
+      - template: templates/longhaul-deploy-windows.yaml
+        parameters:
+          release.label: 'lh'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.windows)'
+          container.registry: '$(container.registry)'
+          container.registry.username: '$(edgebuilds-azurecr-io-username)'
+          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+          iotHub.connectionString: '$(IotHubStressConnString)'
+          eventHub.connectionString: '$(EventHubStressConnStr)'
+          snitch.build.number: '$(snitch.build.number)'
+          snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
+          snitch.storage.account: '$(snitch.storage.account)'
+          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
+          loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'

@@ -22,6 +22,7 @@ variables:
   #run.linux.amd64.moby: 'true/false'
   #run.linux.arm32v7.moby.amqp: 'true/false'
   #run.linux.arm32v7.moby.mqtt: 'true/false'
+  #run.windows.amd64.moby: 'true/false'
   #snitch.build.number: '1.1'
 
 jobs:
