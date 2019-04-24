@@ -4,7 +4,7 @@ pr: none
 variables:
   Build.SyncSources: false
   images.artifact.name.linux: 'core-linux'
-  images.artifact.name.windows : 'core-windows'
+  images.artifact.name.windows: 'core-windows'
   vsts.project: $(System.TeamProjectId)
   # Variable defined in VSTS
   #azure.keyVault: ''
@@ -253,17 +253,17 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          artifactName: $(images.artifact.name.linux)
+          artifactName: $(images.artifact.name.windows)
           itemPattern: |
-            $(images.artifact.name.linux)/e2e_deployment_files/stress_deployment.template.json
-            $(images.artifact.name.linux)/scripts/windows/test/runE2ETest.sh
-            $(images.artifact.name.linux)/artifactInfo.txt
+            $(images.artifact.name.windows)/e2e_deployment_files/stress_deployment.template.json
+            $(images.artifact.name.windows)/scripts/windows/test/runE2ETest.sh
+            $(images.artifact.name.windows)/artifactInfo.txt
       # Deploy stress test
       - template: templates/stresstest-deploy-windows.yaml
         parameters:
           release.label: 'st'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(images.artifact.name.linux)'
+          images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
