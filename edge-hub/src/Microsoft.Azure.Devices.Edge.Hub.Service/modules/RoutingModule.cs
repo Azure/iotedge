@@ -551,41 +551,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             base.Load(builder);
         }
 
-        static async Task<IEntityStore<TK, TV>> GetUpdatableEncryptedEntityStoreIfSupported<TK, TV>(IComponentContext context, string entityName)
+        async Task<IEntityStore<string, TwinStoreEntity>> GetTwinStore(IComponentContext context)
         {
+            string entityName = "EdgeTwin";
+            Option<IEntityStore<string, TwinStoreEntity>> twinStoreOption = Option.None<IEntityStore<string, TwinStoreEntity>>();
             var storeProvider = context.Resolve<IStoreProvider>();
-            Option<IEncryptionProvider> encryptionProvider = await context.Resolve<Task<Option<IEncryptionProvider>>>();
-            IEntityStore<TK, TV> entityStore = encryptionProvider.Map(
+            if (this.encryptTwinStore)
+            {
+                Option<IEncryptionProvider> encryptionProvider = await context.Resolve<Task<Option<IEncryptionProvider>>>();
+                twinStoreOption = encryptionProvider.Map(
                     e =>
                     {
                         IEntityStore<string, string> underlyingEntityStore = storeProvider.GetEntityStore<string, string>($"underlying{entityName}");
                         IKeyValueStore<string, string> es = new UpdatableEncryptedStore<string, string>(underlyingEntityStore, e);
-                        ITypeMapper<TK, string> keyMapper = new JsonMapper<TK>();
-                        ITypeMapper<TV, string> valueMapper = new JsonMapper<TV>();
-                        IKeyValueStore<TK, TV> dbStoreMapper = new KeyValueStoreMapper<TK, string, TV, string>(es, keyMapper, valueMapper);
-                        IEntityStore<TK, TV> tes = new EntityStore<TK, TV>(dbStoreMapper, entityName);
+                        ITypeMapper<string, string> keyMapper = new JsonMapper<string>();
+                        ITypeMapper<TwinStoreEntity, string> valueMapper = new JsonMapper<TwinStoreEntity>();
+                        IKeyValueStore<string, TwinStoreEntity> dbStoreMapper = new KeyValueStoreMapper<string, string, TwinStoreEntity, string>(es, keyMapper, valueMapper);
+                        IEntityStore<string, TwinStoreEntity> tes = new EntityStore<string, TwinStoreEntity>(dbStoreMapper, entityName);
                         return tes;
-                    })
-                .GetOrElse(
-                    () => storeProvider.GetEntityStore<TK, TV>(entityName));
-
-            return entityStore;
-        }
-
-        async Task<IEntityStore<string, TwinStoreEntity>> GetTwinStore(IComponentContext context)
-        {
-            string entityName = "EdgeTwin";
-            IEntityStore<string, TwinStoreEntity> twinStore;
-            if (this.encryptTwinStore)
-            {
-                twinStore = await GetUpdatableEncryptedEntityStoreIfSupported<string, TwinStoreEntity>(context, entityName);
-            }
-            else
-            {
-                var storeProvider = context.Resolve<IStoreProvider>();
-                twinStore = storeProvider.GetEntityStore<string, TwinStoreEntity>(entityName);
+                    });
             }
 
+            IEntityStore<string, TwinStoreEntity> twinStore = twinStoreOption.GetOrElse(
+                () => storeProvider.GetEntityStore<string, TwinStoreEntity>(entityName));
             return twinStore;
         }
     }

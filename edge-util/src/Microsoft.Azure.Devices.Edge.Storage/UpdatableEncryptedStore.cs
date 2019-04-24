@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
-    using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
+    // UpdatableEncryptedStore allows updating an un-encrypted store to an encrypted store.
+    // For example, this allows upgrading existing Edge deployments,
+    // where the Twin store is not encrypted to using an Encrypted twin store.
     public class UpdatableEncryptedStore<TK, TV> : EncryptedStore<TK, TV>
     {
         public UpdatableEncryptedStore(IKeyValueStore<TK, string> entityStore, IEncryptionProvider encryptionProvider)
@@ -38,6 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
             catch (JsonSerializationException)
             {
+                // If the json serialization fails, then assume the stored value
+                // was unencrypted and return it.
                 decryptedValue = value;
             }
 
