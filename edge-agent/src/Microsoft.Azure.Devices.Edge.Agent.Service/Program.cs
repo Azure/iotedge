@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         const string EdgeAgentStorageFolder = "edgeAgent";
         const string VersionInfoFileName = "versionInfo.json";
         static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromMinutes(1);
+        static readonly TimeSpan ReconcileTimeout = TimeSpan.FromMinutes(10);
 
         public static int Main()
         {
@@ -182,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     {
                         try
                         {
-                            await agent.ReconcileAsync(cts.Token);
+                            await agent.ReconcileAsync(cts.Token).TimeoutAfter(ReconcileTimeout);
                         }
                         catch (Exception ex) when (!ex.IsFatal())
                         {
