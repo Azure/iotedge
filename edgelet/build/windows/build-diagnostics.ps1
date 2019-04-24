@@ -87,5 +87,5 @@ Copy-Item `
     ([IO.Path]::Combine($publishFolder, 'docker', 'windows', 'amd64'))
 
 Copy-Item `
-    ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', 'thumbv7a-pc-windows-msvc' + $BuildConfiguration, 'iotedge-diagnostics.exe')) `
+    ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', 'thumbv7a-pc-windows-msvc', $BuildConfiguration, 'iotedge-diagnostics.exe')) `
     ([IO.Path]::Combine($publishFolder, 'docker', 'windows', 'arm32v7'))
