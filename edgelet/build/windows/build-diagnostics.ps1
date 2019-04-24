@@ -78,14 +78,14 @@ $publishFolder = [IO.Path]::Combine($env:BUILD_BINARIESDIRECTORY, 'publish', 'az
 
 New-Item -Type Directory $publishFolder
 
-Copy-Item -Recurse `
+Copy-Item -Recurse -Verbose `
     ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'iotedge-diagnostics', 'docker')) `
     ([IO.Path]::Combine($publishFolder, 'docker'))
 
-Copy-Item `
+Copy-Item -Verbose `
     ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', $BuildConfiguration, 'iotedge-diagnostics.exe')) `
     ([IO.Path]::Combine($publishFolder, 'docker', 'windows', 'amd64'))
 
-Copy-Item `
+Copy-Item -Verbose `
     ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', 'thumbv7a-pc-windows-msvc', $BuildConfiguration, 'iotedge-diagnostics.exe')) `
     ([IO.Path]::Combine($publishFolder, 'docker', 'windows', 'arm32v7'))
