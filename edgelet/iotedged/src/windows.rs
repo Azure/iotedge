@@ -2,7 +2,6 @@
 
 use std::env;
 use std::ffi::OsString;
-use std::process;
 use std::time::Duration;
 
 use clap::crate_name;
