@@ -96,9 +96,23 @@ mod tests {
     use tokio::io;
 
     #[test]
-    fn service_calls_inner_service_when_module_authenticated() {
+    fn call_forward_to_inner_service_when_module_authenticated() {
+        call_forward_to_inner_service_when_authenticated_with(AuthId::Value("abc".to_string()));
+    }
+
+    #[test]
+    fn call_forward_to_inner_service_when_any_authenticated() {
+        call_forward_to_inner_service_when_authenticated_with(AuthId::Any);
+    }
+
+    #[test]
+    fn call_forward_to_inner_service_when_not_authenticated() {
+        call_forward_to_inner_service_when_authenticated_with(AuthId::None);
+    }
+
+    fn call_forward_to_inner_service_when_authenticated_with(auth_id: AuthId) {
         let req = Request::default();
-        let runtime = TestAuthenticator::authenticated(Some("abc".to_string()));
+        let runtime = TestAuthenticator::authenticated(auth_id);
         let mut auth = AuthenticationService::new(runtime, TestService);
 
         let response = auth.call(req).wait().unwrap();
@@ -110,35 +124,6 @@ mod tests {
             .unwrap();
 
         assert_eq!("from TestService", body);
-    }
-
-    #[test]
-    fn service_calls_inner_service_when_any_authenticated() {
-        let req = Request::default();
-        let runtime = TestAuthenticator::authenticated(None);
-        let mut auth = AuthenticationService::new(runtime, TestService);
-
-        let response = auth.call(req).wait().unwrap();
-        let body = response
-            .into_body()
-            .concat2()
-            .and_then(|body| Ok(String::from_utf8(body.to_vec()).unwrap()))
-            .wait()
-            .unwrap();
-
-        assert_eq!("from TestService", body);
-    }
-
-    #[test]
-    fn service_responds_with_not_found_when_not_authenticated() {
-        let runtime = TestAuthenticator::not_authenticated();
-        let req = Request::default();
-        let inner = TestService;
-        let mut auth = AuthenticationService::new(runtime, inner);
-
-        let response = auth.call(req).wait().unwrap();
-
-        assert_eq!(404, response.status());
     }
 
     #[test]
@@ -160,20 +145,9 @@ mod tests {
     }
 
     impl TestAuthenticator {
-        fn authenticated(name: Option<String>) -> Self {
-            let auth = match name {
-                Some(name) => AuthId::Value(name),
-                None => AuthId::Any,
-            };
+        fn authenticated(auth_id: AuthId) -> Self {
             TestAuthenticator {
-                auth: Some(auth),
-                error: None,
-            }
-        }
-
-        fn not_authenticated() -> Self {
-            TestAuthenticator {
-                auth: Some(AuthId::None),
+                auth: Some(auth_id),
                 error: None,
             }
         }
