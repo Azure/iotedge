@@ -19,11 +19,11 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, InlineResponse2001, NetworkConfig};
 use edgelet_core::{
-    pid::Pid, AuthId, Authenticator, LogOptions, Module, ModuleRegistry, ModuleRuntime,
+    AuthId, Authenticator, LogOptions, Module, ModuleRegistry, ModuleRuntime,
     ModuleRuntimeState, ModuleSpec, ModuleTop, RegistryOperation, RuntimeOperation,
     SystemInfo as CoreSystemInfo, UrlExt,
 };
-use edgelet_http::UrlConnector;
+use edgelet_http::{UrlConnector, Pid};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 
 use crate::client::DockerClient;

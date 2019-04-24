@@ -55,6 +55,7 @@ pub use self::error::{BindListenerType, Error, ErrorKind, InvalidUrlReason};
 pub use self::util::proxy::MaybeProxyClient;
 pub use self::util::UrlConnector;
 pub use self::version::{Version, API_VERSION};
+pub use pid::Pid;
 
 use self::util::incoming::Incoming;
 use crate::pid::PidService;

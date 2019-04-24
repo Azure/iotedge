@@ -17,7 +17,6 @@ pub mod crypto;
 mod error;
 mod identity;
 mod module;
-pub mod pid;
 pub mod watchdog;
 pub mod workload;
 

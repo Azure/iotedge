@@ -441,6 +441,7 @@ dependencies = [
  "regex 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "scopeguard 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.84 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "systemd 0.1.0",
  "tempdir 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",

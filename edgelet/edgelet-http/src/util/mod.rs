@@ -8,7 +8,6 @@ use std::os::unix::net::SocketAddr as UnixSocketAddr;
 use std::path::Path;
 
 use bytes::{Buf, BufMut};
-use edgelet_core::pid::Pid;
 use futures::Poll;
 #[cfg(windows)]
 use mio_uds_windows::net::SocketAddr as UnixSocketAddr;
@@ -22,7 +21,7 @@ use tokio_uds::UnixStream;
 #[cfg(windows)]
 use tokio_uds_windows::UnixStream;
 
-use crate::pid::UnixStreamExt;
+use crate::pid::{UnixStreamExt, Pid};
 
 pub mod connector;
 mod hyperwrap;

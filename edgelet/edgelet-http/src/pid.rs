@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::io;
+use std::{cmp, fmt, io};
 
-use edgelet_core::pid::Pid;
 use futures::prelude::*;
 use hyper::service::Service;
 use hyper::{Body, Error as HyperError, Request};
@@ -10,6 +9,64 @@ use hyper::{Body, Error as HyperError, Request};
 use tokio_uds::UnixStream;
 #[cfg(windows)]
 use tokio_uds_windows::UnixStream;
+
+use serde_derive::{Deserialize, Serialize};
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub enum Pid {
+    None,
+    Any,
+    Value(i32),
+}
+
+impl fmt::Display for Pid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Pid::None => write!(f, "none"),
+            Pid::Any => write!(f, "any"),
+            Pid::Value(pid) => write!(f, "{}", pid),
+        }
+    }
+}
+
+/// Pids are considered not equal when compared against
+/// None, or equal when compared against Any. None takes
+/// precedence, so Any is not equal to None.
+impl cmp::PartialEq for Pid {
+    fn eq(&self, other: &Pid) -> bool {
+        match *self {
+            Pid::None => false,
+            Pid::Any => match *other {
+                Pid::None => false,
+                _ => true,
+            },
+            Pid::Value(pid1) => match *other {
+                Pid::None => false,
+                Pid::Any => true,
+                Pid::Value(pid2) => pid1 == pid2,
+            },
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_eq() {
+        assert_ne!(Pid::None, Pid::None);
+        assert_ne!(Pid::None, Pid::Any);
+        assert_ne!(Pid::None, Pid::Value(42));
+        assert_ne!(Pid::Any, Pid::None);
+        assert_eq!(Pid::Any, Pid::Any);
+        assert_eq!(Pid::Any, Pid::Value(42));
+        assert_ne!(Pid::Value(42), Pid::None);
+        assert_eq!(Pid::Value(42), Pid::Any);
+        assert_eq!(Pid::Value(42), Pid::Value(42));
+        assert_ne!(Pid::Value(0), Pid::Value(42));
+    }
+}
 
 #[derive(Clone)]
 pub struct PidService<T> {
@@ -101,11 +158,11 @@ pub use self::impl_macos::get_pid;
 
 #[cfg(target_os = "macos")]
 pub mod impl_macos {
-    use edgelet_core::pid::Pid;
     use libc::getpeereid;
     use std::os::unix::io::AsRawFd;
     use std::{io, mem};
     use tokio_uds::{UCred, UnixStream};
+    use crate::pid::Pid;
 
     pub fn get_pid(sock: &UnixStream) -> io::Result<Pid> {
         unsafe {
