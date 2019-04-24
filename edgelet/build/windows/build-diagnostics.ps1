@@ -53,7 +53,7 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
     $env:NO_VALGRIND = 'true'
 
     $originalRustflags = $env:RUSTFLAGS
-    $env:RUSTFLAGS += " -C target-feature=+crt-static link-arg='C:\Program Files (x86)\Windows Kits\10\Lib\10.0.17763.0\um\arm'"
+    $env:RUSTFLAGS += ' -C target-feature=+crt-static -Z print-link-args'
     Write-Host $env:RUSTFLAGS
     Write-Host $env:Path
     Write-Host "$cargo clean"
