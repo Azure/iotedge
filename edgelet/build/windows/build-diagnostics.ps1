@@ -12,7 +12,7 @@ param(
 
 . (Join-Path $PSScriptRoot 'util.ps1')
 
-$targetArchs = @("amd64", "arm32v7")
+$targetArchs = @("arm32v7", "amd64")
 
 for ($i=0; $i -lt $targetArchs.length; $i++) {
 
