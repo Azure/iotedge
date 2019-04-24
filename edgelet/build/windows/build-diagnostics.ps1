@@ -54,8 +54,8 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
 
     $originalRustflags = $env:RUSTFLAGS
     $env:RUSTFLAGS += ' -C target-feature=+crt-static'
-    Write-Host "$cargo build -p iotedge-diagnostics $(if($Arm) {'--target thumbv7a-pc-windows-msvc'}) $BuildConfigOption --manifest-path $ManifestPath --verbose"
-    Invoke-Expression "$cargo build -p iotedge-diagnostics $(if($Arm) {'--target thumbv7a-pc-windows-msvc'}) $BuildConfigOption --manifest-path $ManifestPath --verbose"
+    Write-Host "$cargo build -p iotedge-diagnostics $(if($Arm) {'--target thumbv7a-pc-windows-msvc'}) $BuildConfigOption --manifest-path $ManifestPath"
+    Invoke-Expression "$cargo build -p iotedge-diagnostics $(if($Arm) {'--target thumbv7a-pc-windows-msvc'}) $BuildConfigOption --manifest-path $ManifestPath"
     if ($originalRustflags -eq '') {
         Remove-Item Env:\RUSTFLAGS
     }
@@ -77,7 +77,7 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
         ([IO.Path]::Combine($publishFolder, 'docker'))
 
     Copy-Item `
-        ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', $(if($Arm){'\thumbv7a-pc-windows-msvc\'}) + $BuildConfiguration, 'iotedge-diagnostics.exe')) `
+        ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', $(if($Arm){'thumbv7a-pc-windows-msvc'}) + $BuildConfiguration, 'iotedge-diagnostics.exe')) `
         ([IO.Path]::Combine($publishFolder, 'docker', 'windows', $targetArchs[$i]))
 
     if($Arm -and (-NOT [string]::IsNullOrEmpty($oldPath)))
