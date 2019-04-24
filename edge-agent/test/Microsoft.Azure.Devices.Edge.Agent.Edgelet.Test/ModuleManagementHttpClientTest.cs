@@ -238,5 +238,65 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
             await client.PrepareUpdateAsync(moduleSpec);
         }
+
+        [Theory]
+        [InlineData("2018-06-28", "2018-06-28")]
+        [InlineData("2018-06-28", "2019-01-30")]
+        [InlineData("2019-01-30", "2018-06-28")]
+        [InlineData("2019-01-30", "2019-01-30")]
+        public async Task ModuleLogsTest(string serverApiVersion, string clientApiVersion)
+        {
+            // Arrange
+            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
+
+            // Act
+            Stream logsStream = await client.GetModuleLogs("edgeHub", false, Option.None<int>(), Option.None<int>(), CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(logsStream);
+            byte[] buffer = new byte[1024];
+            int bytesRead = await logsStream.ReadAsync(buffer, 0, buffer.Length);
+            Assert.Equal(buffer.Length, bytesRead);
+        }
+
+        [Fact]
+        public async Task ExecuteTimeoutTest_Version_2018_06_28()
+        {
+            // Arrange
+            var client = new Version_2018_06_28.ModuleManagementHttpClient(this.serverUrl, Option.Some(TimeSpan.FromSeconds(10)));
+
+            async Task<int> LongOperation()
+            {
+                await Task.Delay(TimeSpan.FromHours(1));
+                return 10;
+            }
+
+            // Act
+            Task assertTask = Assert.ThrowsAsync<TimeoutException>(() => client.Execute<int>(LongOperation, "Dummy"));
+            Task delayTask = Task.Delay(TimeSpan.FromSeconds(20));
+
+            Task completedTask = await Task.WhenAny(assertTask, delayTask);
+            Assert.Equal(assertTask, completedTask);
+        }
+
+        [Fact]
+        public async Task ExecuteTimeoutTest_Version_2019_01_30()
+        {
+            // Arrange
+            var client = new Version_2019_01_30.ModuleManagementHttpClient(this.serverUrl, Option.Some(TimeSpan.FromSeconds(10)));
+
+            async Task<int> LongOperation()
+            {
+                await Task.Delay(TimeSpan.FromHours(1));
+                return 10;
+            }
+
+            // Act
+            Task assertTask = Assert.ThrowsAsync<TimeoutException>(() => client.Execute<int>(LongOperation, "Dummy"));
+            Task delayTask = Task.Delay(TimeSpan.FromSeconds(20));
+
+            Task completedTask = await Task.WhenAny(assertTask, delayTask);
+            Assert.Equal(assertTask, completedTask);
+        }
     }
 }

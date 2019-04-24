@@ -14,16 +14,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
     abstract class ModuleManagementHttpClientVersioned
     {
+        static readonly TimeSpan DefaultOperationTimeout = TimeSpan.FromMinutes(5);
+
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
 
         readonly ITransientErrorDetectionStrategy transientErrorDetectionStrategy;
+        readonly TimeSpan operationTimeout;
 
-        protected ModuleManagementHttpClientVersioned(Uri managementUri, ApiVersion version, ITransientErrorDetectionStrategy transientErrorDetectionStrategy)
+        protected ModuleManagementHttpClientVersioned(
+            Uri managementUri,
+            ApiVersion version,
+            ITransientErrorDetectionStrategy transientErrorDetectionStrategy,
+            Option<TimeSpan> operationTimeout)
         {
             this.ManagementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.Version = Preconditions.CheckNotNull(version, nameof(version));
             this.transientErrorDetectionStrategy = transientErrorDetectionStrategy;
+            this.operationTimeout = operationTimeout.GetOrElse(DefaultOperationTimeout);
         }
 
         protected Uri ManagementUri { get; }
@@ -69,19 +77,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 },
                 operation);
 
-        protected async Task<T> Execute<T>(Func<Task<T>> func, string operation)
+        protected internal async Task<T> Execute<T>(Func<Task<T>> func, string operation)
         {
             try
             {
                 Events.ExecutingOperation(operation, this.ManagementUri.ToString());
-                T result = await ExecuteWithRetry(func, r => Events.RetryingOperation(operation, this.ManagementUri.ToString(), r), this.transientErrorDetectionStrategy);
+                T result = await ExecuteWithRetry(func, r => Events.RetryingOperation(operation, this.ManagementUri.ToString(), r), this.transientErrorDetectionStrategy)
+                    .TimeoutAfter(this.operationTimeout);
                 Events.SuccessfullyExecutedOperation(operation, this.ManagementUri.ToString());
                 return result;
             }
             catch (Exception ex)
             {
+                Events.ErrorExecutingOperation(ex, operation, this.ManagementUri.ToString());
                 this.HandleException(ex, operation);
-                Events.SuccessfullyExecutedOperation(operation, this.ManagementUri.ToString());
                 return default(T);
             }
         }
@@ -102,7 +111,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
             {
                 ExecutingOperation = IdStart,
                 SuccessfullyExecutedOperation,
-                RetryingOperation
+                RetryingOperation,
+                ErrorExecutingOperation
+            }
+
+            public static void ErrorExecutingOperation(Exception ex, string operation, string url)
+            {
+                Log.LogDebug((int)EventIds.ErrorExecutingOperation, ex, $"Error when getting an Http response from {url} for {operation}");
             }
 
             internal static void RetryingOperation(string operation, string url, RetryingEventArgs r)
