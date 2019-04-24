@@ -66,18 +66,6 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
         Throw "cargo build failed with exit code $LastExitCode"
     }
 
-    $publishFolder = [IO.Path]::Combine($env:BUILD_BINARIESDIRECTORY, 'publish', 'azureiotedge-diagnostics')
-
-    New-Item -Type Directory $publishFolder
-
-    Copy-Item -Recurse `
-        ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'iotedge-diagnostics', 'docker')) `
-        ([IO.Path]::Combine($publishFolder, 'docker'))
-
-    Copy-Item `
-        ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', $(if($Arm){'thumbv7a-pc-windows-msvc\'}) + $BuildConfiguration, 'iotedge-diagnostics.exe')) `
-        ([IO.Path]::Combine($publishFolder, 'docker', 'windows', $targetArchs[$i]))
-
     if($Arm -and (-NOT [string]::IsNullOrEmpty($oldPath)))
     {
         $env:path = $oldPath
@@ -85,3 +73,19 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
 
     $ErrorActionPreference = 'Stop'
 }
+
+$publishFolder = [IO.Path]::Combine($env:BUILD_BINARIESDIRECTORY, 'publish', 'azureiotedge-diagnostics')
+
+New-Item -Type Directory $publishFolder
+
+Copy-Item -Recurse `
+    ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'iotedge-diagnostics', 'docker')) `
+    ([IO.Path]::Combine($publishFolder, 'docker'))
+
+Copy-Item `
+    ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', $BuildConfiguration, 'iotedge-diagnostics.exe')) `
+    ([IO.Path]::Combine($publishFolder, 'docker', 'windows', 'amd64'))
+
+Copy-Item `
+    ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', 'thumbv7a-pc-windows-msvc' + $BuildConfiguration, 'iotedge-diagnostics.exe')) `
+    ([IO.Path]::Combine($publishFolder, 'docker', 'windows', 'arm32v7')

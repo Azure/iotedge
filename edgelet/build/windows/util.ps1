@@ -119,6 +119,8 @@ function PatchRustForArm
     $vspath = Join-Path -Path ${env:ProgramFiles(x86)} -ChildPath "Microsoft Visual Studio"
     Write-Host $vspath
 
+    AssertVCToolsForArm
+
     # arm build requires cl.exe from vc tools to expand a c file for openssl-sys, append x64-x64 cl.exe folder to PATH
     if($OpenSSL)
     {
@@ -145,16 +147,6 @@ function PatchRustForArm
         # test cl.exe command again to make sure we really have it in PATH
         Write-Host $(Get-Command cl.exe).Path
     }
-
-    Write-Host "temporary test to find out advapi32.libs on build machines, which currently is missing when linking iotedge-diagnotstics"
-    $advapi32 = Get-ChildItem -Path ${env:ProgramFiles(x86)} -Filter advapi32.lib -Recurse -ErrorAction SilentlyContinue -Force
-    for($i = 0; $i -lt $advapi32.Length; $i++) {
-        Write-Host $advapi32[$i].DirectoryName
-    }
-
-    Write-Host "Test VS Installer, we might need to call vsinstaller to silently install Windows SDK for ARM"
-    $vsinstaller = Join-Path -Path $vspath -ChildPath "Installer"
-    Write-Host $(Get-ChildItem -Path $vsinstaller)
 
     $edgefolder = Get-EdgeletFolder
     Set-Location -Path $edgefolder
@@ -218,4 +210,18 @@ function ReplacePrivateRustInPath
     }
 
     return $oldPath
+}
+
+function AssertVCToolsForArm
+{
+    # it's possible VC tools for arm is not installed, which is required by rust arm compiler
+    $vsinstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
+    $vstoolsinstallpath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2017\BuildTools"
+    $vcarmtools = "Microsoft.VisualStudio.Component.VC.Tools.ARM"
+
+    Write-Host "$vsinstaller --installpath $vstoolsinstallpath modify --add $vcarmtools --quiet --norestart"
+    & $vsinstaller --installpath $vstoolsinstallpath modify --add $vcarmtools --quiet --norestart
+
+    $vsinstallerprocessid = (Get-Process vs_installer).id
+    Wait-Process -Id $vsinstallerprocessid -Timeout 600 -ErrorAction Stop
 }
