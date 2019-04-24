@@ -145,17 +145,6 @@ namespace common
             );
         }
 
-        public JObject _GetOrAddObject(string name, JObject parent)
-        {
-            if (parent.TryGetValue(name, StringComparison.OrdinalIgnoreCase, out JToken token))
-            {
-                return token.Value<JObject>();
-            }
-
-            parent.Add(name, new JObject());
-            return parent.Get<JObject>(name);
-        }
-
         void _ForEachModule(Action<string, JObject> action)
         {
             _UpdateAgentDesiredProperties(desired =>
@@ -178,6 +167,17 @@ namespace common
             JObject desired = JObject.FromObject(this.config.ModulesContent["$edgeAgent"]["properties.desired"]);
             update(desired);
             this.config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
+        }
+
+        static JObject _GetOrAddObject(string name, JObject parent)
+        {
+            if (parent.TryGetValue(name, StringComparison.OrdinalIgnoreCase, out JToken token))
+            {
+                return token.Value<JObject>();
+            }
+
+            parent.Add(name, new JObject());
+            return parent.Get<JObject>(name);
         }
 
         static ConfigurationContent _GetBaseConfig(string agentImage) => new ConfigurationContent
