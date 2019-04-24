@@ -27,7 +27,7 @@ steps:
       SourceFolder: '$(System.ArtifactsDirectory)/$(images.artifact.name)'
       TargetFolder: '$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name)'
       CleanTargetFolder: true
-  - task: PowerShell@3
+  - task: PowerShell@2
     displayName: 'Run Long Haul Deployment'
     inputs:
       targetType: inline
