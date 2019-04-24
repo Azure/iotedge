@@ -1839,7 +1839,7 @@ static int hsm_provision_edge_id_certificate(void)
                                                                    device_id_cert_path,
                                                                    device_id_pk_path) != 0))
         {
-            LOG_ERROR("Failure inserting device identity certificate and key into the HSM store`");
+            LOG_ERROR("Failure inserting device identity certificate and key into the HSM store");
             result = __FAILURE__;
         }
         else
@@ -1860,7 +1860,7 @@ static int hsm_provision_edge_id_certificate(void)
     return result;
 }
 
-static int hsm_provision_edge_certificates(void)
+static int hsm_provision_edge_ca_certificates(void)
 {
     int result;
     unsigned int mask = 0, i = 0;
@@ -1956,7 +1956,7 @@ static int hsm_provision_edge_certificates(void)
                                                                    device_ca_path,
                                                                    device_ca_pk_path) != 0))
         {
-            LOG_ERROR("Failure inserting device CA certificate and key into the HSM store`");
+            LOG_ERROR("Failure inserting device CA certificate and key into the HSM store");
             result = __FAILURE__;
         }
         else
@@ -2018,7 +2018,7 @@ static int hsm_provision(void)
                   "Set environment variable IOTEDGE_HOMEDIR to a valid path.");
         result = __FAILURE__;
     }
-    else if (hsm_provision_edge_certificates() != 0)
+    else if (hsm_provision_edge_ca_certificates() != 0)
     {
         result = __FAILURE__;
     }

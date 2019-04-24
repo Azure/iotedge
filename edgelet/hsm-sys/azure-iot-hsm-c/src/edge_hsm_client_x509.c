@@ -16,7 +16,7 @@
 #include "hsm_utils.h"
 
 //##############################################################################
-// Global static data members
+// Static data variables
 //##############################################################################
 static bool g_is_x509_initialized = false;
 static unsigned int g_ref_cnt = 0;
