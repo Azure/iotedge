@@ -79,7 +79,7 @@ namespace common
         {
             if (this.owned)
             {
-                await DeleteIdentityAsync(token);
+                await this.DeleteIdentityAsync(token);
             }
             else
             {

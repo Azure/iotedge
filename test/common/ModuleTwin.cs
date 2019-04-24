@@ -35,7 +35,7 @@ namespace common
         public Task WaitForReportedPropertyUpdatesAsync(object expectedPatch, CancellationToken token)
         {
             return Profiler.Run(
-                $"Waiting for expected twin updates for module '{moduleId}'",
+                $"Waiting for expected twin updates for module '{this.moduleId}'",
                 () => {
                     return Retry.Do(
                         async () => {

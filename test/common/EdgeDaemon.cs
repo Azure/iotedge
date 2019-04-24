@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace common
 {
@@ -37,7 +37,7 @@ namespace common
                 installCommand += $" -InvokeWebRequestParameters @{{ '-Proxy' = '{p}' }}"
             );
 
-            var commands = new string[]
+            var commands = new[]
             {
                 "$ProgressPreference='SilentlyContinue'",
                 $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1",
@@ -55,7 +55,7 @@ namespace common
 
         public Task UninstallAsync(CancellationToken token)
         {
-            var commands = new string[]
+            var commands = new[]
             {
                 "$ProgressPreference='SilentlyContinue'",
                 $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1",

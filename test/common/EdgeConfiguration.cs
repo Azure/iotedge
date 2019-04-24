@@ -25,12 +25,12 @@ namespace common
         string deviceId;
         IotHub iotHub;
 
-        IReadOnlyCollection<string> _Modules
+        IReadOnlyCollection<string> Modules
         {
             get
             {
                 var list = new List<string>();
-                _ForEachModule((name, module) =>
+                this.ForEachModule((name, module) =>
                 {
                     list.Add(name);
                 });
@@ -40,23 +40,23 @@ namespace common
 
         public EdgeConfiguration(string deviceId, string agentImage, IotHub iotHub)
         {
-            this.config = _GetBaseConfig(agentImage);
+            this.config = GetBaseConfig(agentImage);
             this.iotHub = iotHub;
             this.deviceId = deviceId;
         }
 
         public void AddRegistryCredentials(string address, string username, string password)
         {
-            _UpdateAgentDesiredProperties(desired =>
+            this.UpdateAgentDesiredProperties(desired =>
             {
                 JObject settings = desired.Get<JObject>("runtime").Get<JObject>("settings");
                 settings.Add("registryCredentials", JToken.FromObject(new
                 {
                     reg1 = new
                     {
-                        username = username,
-                        password = password,
-                        address = address
+                        username,
+                        password,
+                        address
                     }
                 }));
             });
@@ -66,9 +66,9 @@ namespace common
         // method after you've added all the modules that need proxy information.
         public void AddProxy(Uri proxy)
         {
-            _ForEachModule((name, module) =>
+            this.ForEachModule((name, module) =>
             {
-                JObject env = _GetOrAddObject("env", module);
+                JObject env = GetOrAddObject("env", module);
                 env.Add("https_proxy", JToken.FromObject(new
                 {
                     value = proxy.ToString()
@@ -82,7 +82,7 @@ namespace common
 
         public void AddEdgeHub(string image)
         {
-            _UpdateAgentDesiredProperties(desired =>
+            this.UpdateAgentDesiredProperties(desired =>
             {
                 JObject systemModules = desired.Get<JObject>("systemModules");
                 systemModules.Add("edgeHub", JToken.FromObject(new
@@ -92,7 +92,7 @@ namespace common
                     restartPolicy = "always",
                     settings = new
                     {
-                        image = image,
+                        image,
                         createOptions = "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}]}}}"
                     }
                 }));
@@ -118,9 +118,9 @@ namespace common
 
         public void AddTempSensor(string image)
         {
-            _UpdateAgentDesiredProperties(desired =>
+            this.UpdateAgentDesiredProperties(desired =>
             {
-                JObject modules = _GetOrAddObject("modules", desired);
+                JObject modules = GetOrAddObject("modules", desired);
                 modules.Add("tempSensor", JToken.FromObject(new
                 {
                     type = "docker",
@@ -128,7 +128,7 @@ namespace common
                     restartPolicy = "always",
                     settings = new
                     {
-                        image = image
+                        image
                     }
                 }));
             });
@@ -137,7 +137,7 @@ namespace common
         public Task DeployAsync(CancellationToken token)
         {
             string message = "Deploying edge configuration to device " +
-                $"'{this.deviceId}' with modules ({string.Join(", ", this._Modules)})";
+                $"'{this.deviceId}' with modules ({string.Join(", ", this.Modules)})";
 
             return Profiler.Run(
                 message,
@@ -145,9 +145,9 @@ namespace common
             );
         }
 
-        void _ForEachModule(Action<string, JObject> action)
+        void ForEachModule(Action<string, JObject> action)
         {
-            _UpdateAgentDesiredProperties(desired =>
+            this.UpdateAgentDesiredProperties(desired =>
             {
                 foreach (var key in new[] { "systemModules", "modules" })
                 {
@@ -162,14 +162,14 @@ namespace common
             });
         }
 
-        void _UpdateAgentDesiredProperties(Action<JObject> update)
+        void UpdateAgentDesiredProperties(Action<JObject> update)
         {
             JObject desired = JObject.FromObject(this.config.ModulesContent["$edgeAgent"]["properties.desired"]);
             update(desired);
             this.config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
         }
 
-        static JObject _GetOrAddObject(string name, JObject parent)
+        static JObject GetOrAddObject(string name, JObject parent)
         {
             if (parent.TryGetValue(name, StringComparison.OrdinalIgnoreCase, out JToken token))
             {
@@ -180,7 +180,7 @@ namespace common
             return parent.Get<JObject>(name);
         }
 
-        static ConfigurationContent _GetBaseConfig(string agentImage) => new ConfigurationContent
+        static ConfigurationContent GetBaseConfig(string agentImage) => new ConfigurationContent
         {
             ModulesContent = new Dictionary<string, IDictionary<string, object>>
             {

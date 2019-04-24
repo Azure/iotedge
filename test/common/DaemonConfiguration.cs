@@ -29,8 +29,7 @@ namespace common
 
         public void Update()
         {
-            FileAttributes attr = 0;
-            attr = File.GetAttributes(ConfigYamlFile);
+            var attr = File.GetAttributes(ConfigYamlFile);
             File.SetAttributes(ConfigYamlFile, attr & ~FileAttributes.ReadOnly);
 
             File.WriteAllText(ConfigYamlFile, this.config.ToString());

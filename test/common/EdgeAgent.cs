@@ -22,8 +22,8 @@ namespace common
                     return Retry.Do(
                         () =>
                         {
-                            return this.iotHub.InvokeMethodAsync(
-                                this.deviceId,
+                            return this.IotHub.InvokeMethodAsync(
+                                this.DeviceId,
                                 "$edgeAgent",
                                 new CloudToDeviceMethod("ping"),
                                 token

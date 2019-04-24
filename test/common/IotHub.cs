@@ -126,11 +126,6 @@ namespace common
             CancellationToken token
         )
         {
-            var builder = new EventHubsConnectionStringBuilder(this.eventHubEndpoint)
-            {
-                TransportType = EventHubTransportType.AmqpWebSockets
-            };
-
             EventHubClient client = this.EventHubClient;
             int count = (await client.GetRuntimeInformationAsync()).PartitionCount;
             string partition = EventHubPartitionKeyResolver.ResolveToPartition(deviceId, count);
