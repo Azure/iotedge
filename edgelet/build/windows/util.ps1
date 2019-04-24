@@ -145,6 +145,10 @@ function PatchRustForArm
         Write-Host $advapi32[$i].DirectoryName
     }
 
+    Write-Host "Test VS Installer, we might need to call vsinstaller to silently install Windows SDK for ARM"
+    $vsinstaller = Join-Path -Path $vspath -ChildPath "Installer"
+    Write-Host $(Get-ChildItem -Path $vsinstaller)
+
     $edgefolder = Get-EdgeletFolder
     Set-Location -Path $edgefolder
 
