@@ -5,7 +5,8 @@ Param(
     [Switch] $Arm
 )
 
-$EdgeCab = "Microsoft-Azure-IoTEdge$(if($Arm) {'-Arm'}).cab"
+$EdgeCabTemp = "Microsoft-Azure-IoTEdge.cab"
+$EdgeCabFinal = "Microsoft-Azure-IoTEdge$(if($Arm){'-Arm'}).cab"
 $EdgeTemplate = "Package-Template"
 
 # Bring in util functions
@@ -80,11 +81,11 @@ Function New-Package([string] $Name, [string] $Version)
         Remove-Item -Path $EdgeTemplate -Recurse -Force
     }
     New-Item -ItemType Directory -Path $EdgeTemplate
-    Invoke-Expression "& ${Env:SystemRoot}\system32\Expand.exe $EdgeCab -f:* $EdgeTemplate"
+    Invoke-Expression "& ${Env:SystemRoot}\system32\Expand.exe $EdgeCabTemp -f:* $EdgeTemplate"
     if ($LASTEXITCODE) {
         Throw "Failed to expand cab"
     }
-    Remove-Item -Path $EdgeCab
+    Remove-Item -Path $EdgeCabTemp
 }
 
 if ($CreateTemplate) {
@@ -182,5 +183,5 @@ elseif ($CreateCab) {
     $Files = Get-ChildItem -Path $EdgeTemplate -Recurse | Where-Object { -not $_.PSIsContainer } | ForEach-Object {
         return $_.FullName.Remove(0, $TemplateDirLength)
     }
-    New-Cabinet -Destination $EdgeCab -Files $Files -Path $EdgeTemplate
+    New-Cabinet -Destination $EdgeCabFinal -Files $Files -Path $EdgeTemplate
 }
