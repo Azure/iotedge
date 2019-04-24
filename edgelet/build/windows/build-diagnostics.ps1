@@ -66,8 +66,6 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
         Throw "cargo build failed with exit code $LastExitCode"
     }
 
-    $ErrorActionPreference = 'Stop'
-
     $publishFolder = [IO.Path]::Combine($env:BUILD_BINARIESDIRECTORY, 'publish', 'azureiotedge-diagnostics')
 
     New-Item -Type Directory $publishFolder
@@ -84,4 +82,6 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
     {
         $env:path = $oldPath
     }
+
+    $ErrorActionPreference = 'Stop'
 }
