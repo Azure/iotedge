@@ -322,4 +322,4 @@ jobs:
         displayName: 'Publish Artifact: iotedged-windows'
         inputs:
           PathtoPublish: '$(build.artifactstagingdirectory)'
-          ArtifactName: 'iotedged-windows'
+          ArtifactName: 'iotedged-windows-arm32v7'
