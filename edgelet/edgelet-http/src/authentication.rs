@@ -47,11 +47,13 @@ where
             self.runtime
                 .authenticate(&req)
                 .then(move |auth_id| match auth_id {
+                    Ok(AuthId::None) => future::Either::B(future::ok(
+                        Error::from(ErrorKind::Authorization).into_response(),
+                    )),
                     Ok(auth_id) => {
                         req.extensions_mut().insert(auth_id);
                         future::Either::A(inner.call(req))
                     }
-
                     Err(err) => future::Either::B(future::ok(
                         Error::from(err.context(ErrorKind::Authorization)).into_response(),
                     )),
@@ -193,7 +195,7 @@ mod tests {
             let auth = self.auth.clone();
             let fut = match auth {
                 Some(auth_id) => future::ok(auth_id),
-                None => {future::err(Error::from(ErrorKind::ModuleRuntime))},
+                None => future::err(Error::from(ErrorKind::ModuleRuntime)),
             };
 
             Box::new(fut)
