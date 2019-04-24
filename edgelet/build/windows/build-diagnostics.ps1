@@ -75,7 +75,7 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
         ([IO.Path]::Combine($publishFolder, 'docker'))
 
     Copy-Item `
-        ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', $(if($Arm){'thumbv7a-pc-windows-msvc'}) + $BuildConfiguration, 'iotedge-diagnostics.exe')) `
+        ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', $(if($Arm){'thumbv7a-pc-windows-msvc\'}) + $BuildConfiguration, 'iotedge-diagnostics.exe')) `
         ([IO.Path]::Combine($publishFolder, 'docker', 'windows', $targetArchs[$i]))
 
     if($Arm -and (-NOT [string]::IsNullOrEmpty($oldPath)))
