@@ -109,9 +109,11 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
     {
         // Now, let's set a timer to expire this certificate
         // expire the certificate with 2 minutes remaining in it's lifetime
-        let when = self.creation_time + Duration::from_secs(*self.props.validity_in_secs() - 120);
+        let when = self.compute_certificate_alarm_time();
 
-        if when < (Instant::now() + Duration::from_secs(120)) {
+        // Fail if the cert has already been expired when the call to create
+        // a timer happens.
+        if when < (Instant::now() + Duration::from_secs(1)) {
             Either::A(future::err(Error::from(
                 ErrorKind::CertificateTimerCreationError,
             )))
@@ -180,6 +182,15 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
         })
     }
 
+    // Determine when to sound the alarm and renew the certificate.
+    #[allow(clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_sign_loss)]
+    #[allow(clippy::cast_precision_loss)]
+    fn compute_certificate_alarm_time(&self) -> Instant {
+        self.creation_time
+            + Duration::from_secs((*self.props.validity_in_secs() as f64 * 0.95) as u64)
+    }
+
     #[cfg(test)]
     fn has_certificate(&self) -> bool {
         !self
@@ -229,7 +240,7 @@ mod tests {
         let crypto = TestCrypto::new().unwrap();
 
         let edgelet_cert_props = CertificateProperties::new(
-            150, // 150 second validity
+            1, // 150 second validity
             "IOTEDGED_TLS_COMMONNAME".to_string(),
             CertificateType::Server,
             "iotedge-tls".to_string(),
@@ -244,7 +255,7 @@ mod tests {
         let crypto = TestCrypto::new().unwrap();
 
         let edgelet_cert_props = CertificateProperties::new(
-            120, // 120 second validity
+            50, // 50 second validity
             "IOTEDGED_TLS_COMMONNAME".to_string(),
             CertificateType::Server,
             "iotedge-tls".to_string(),

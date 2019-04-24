@@ -54,9 +54,11 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
 
                 // We were told by windows to shutdown :(
                 // Let's generate a CTRL_C event to trigger the shutdown sequence
-                let process_id = process::id();
+                // https://docs.microsoft.com/en-us/windows/console/generateconsolectrlevent
+                // 0 is used as the process group id since CTRL C is passed to all processes
+                // that share a console, but doesn't actually target a process group
                 unsafe {
-                    GenerateConsoleCtrlEvent(CTRL_C_EVENT, process_id as DWORD);
+                    GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0 as DWORD);
                 }
 
                 ServiceControlHandlerResult::NoError
