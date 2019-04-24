@@ -53,12 +53,18 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
     $env:NO_VALGRIND = 'true'
 
     $originalRustflags = $env:RUSTFLAGS
-    Write-Host "Original rust flag: $originalRustflags"
-    $env:RUSTFLAGS += ' -C target-feature=+crt-static -Z print-link-args'
-    Write-Host "New rust flag: $env:RUSTFLAGS"
-    Write-Host $env:Path
-    Write-Host "$cargo clean"
-    Invoke-Expression "$cargo clean"
+    $env:RUSTFLAGS += ' -C target-feature=+crt-static'
+    
+    Write-Host "Dump all environment varibles"
+    $envs = Get-ChildItem Env:
+    for($i = 0; $i -lt $envs.Length; $i++)
+    {
+        Write-Host "`n"
+        Write-Host $envs[$i].Name
+        Write-Host $envs[$i].Value
+        Write-Host "`n"
+    }
+
     Write-Host "$cargo build -p iotedge-diagnostics $(if($Arm) {'--target thumbv7a-pc-windows-msvc'}) $BuildConfigOption --manifest-path $ManifestPath --verbose"
     Invoke-Expression "$cargo build -p iotedge-diagnostics $(if($Arm) {'--target thumbv7a-pc-windows-msvc'}) $BuildConfigOption --manifest-path $ManifestPath --verbose"
     if ($originalRustflags -eq '') {

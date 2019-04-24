@@ -112,28 +112,35 @@ function InstallWinArmPrivateRustCompiler
 
 function PatchRustForArm
 {
+    Param(
+        [Switch] $OpenSSL
+    )
+
     $vspath = Join-Path -Path ${env:ProgramFiles(x86)} -ChildPath "Microsoft Visual Studio"
     Write-Host $vspath
 
     # arm build requires cl.exe from vc tools to expand a c file for openssl-sys, append x64-x64 cl.exe folder to PATH
-    try{
-        Get-Command cl.exe -ErrorAction Stop
-    }
-    catch{
-        $cls = (Get-ChildItem -Path $vspath -Filter cl.exe -Recurse -ErrorAction Continue -Force | Sort-Object -Property DirectoryName -Descending)
-        $clPath = ""
-        for ($i= 0; $i -lt $cls.length; $i++) {
-
-            $cl = $cls[$i]
-            Write-Host $cl.DirectoryName
-            if($cl.DirectoryName.ToLower().Contains("hostx64\x64"))
-            {
-                $clPath = $cl.DirectoryName
-                break
-            }
+    if($OpenSSL)
+    {
+        try{
+            Get-Command cl.exe -ErrorAction Stop
         }
-        $env:PATH = $clPath + ";" + $env:PATH
-        Write-Host $env:PATH
+        catch{
+            $cls = (Get-ChildItem -Path $vspath -Filter cl.exe -Recurse -ErrorAction Continue -Force | Sort-Object -Property DirectoryName -Descending)
+            $clPath = ""
+            for ($i= 0; $i -lt $cls.length; $i++) {
+
+                $cl = $cls[$i]
+                Write-Host $cl.DirectoryName
+                if($cl.DirectoryName.ToLower().Contains("hostx64\x64"))
+                {
+                    $clPath = $cl.DirectoryName
+                    break
+                }
+            }
+            $env:PATH = $clPath + ";" + $env:PATH
+            Write-Host $env:PATH
+        }
     }
 
     # test cl.exe command again to make sure we really have it in PATH

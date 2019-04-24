@@ -25,7 +25,7 @@ $ErrorActionPreference = 'Continue'
 # after these two steps, running cargo build for arm should not show any warning such as "Patch 'crate-x' was not used in the crate graph"
 if($Arm)
 {
-    PatchRustForArm
+    PatchRustForArm -OpenSSL
 }
 
 # Run cargo build by specifying the manifest file
