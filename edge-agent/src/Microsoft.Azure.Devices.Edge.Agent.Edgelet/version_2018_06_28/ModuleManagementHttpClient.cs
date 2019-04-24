@@ -27,8 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_06_28
         {
         }
 
-        internal ModuleManagementHttpClient(Uri managementUri, Option<TimeSpan> timeSpan)
-            : base(managementUri, ApiVersion.Version20180628, new ErrorDetectionStrategy(), timeSpan)
+        internal ModuleManagementHttpClient(Uri managementUri, Option<TimeSpan> operationTimeout)
+            : base(managementUri, ApiVersion.Version20180628, new ErrorDetectionStrategy(), operationTimeout)
         {
         }
 
