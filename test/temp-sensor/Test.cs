@@ -17,7 +17,7 @@ namespace temp_sensor
             public string Endpoint;
             public string InstallerPath;
             public Option<string> PackagesPath;
-            public Option<string> Proxy;
+            public Option<Uri> Proxy;
             public string AgentImage;
             public string HubImage;
             public string SensorImage;

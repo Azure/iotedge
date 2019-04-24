@@ -64,15 +64,15 @@ namespace common
 
         // Adds proxy information to each module in Edge Agent's desired properties. Call this
         // method after you've added all the modules that need proxy information.
-        public void AddProxy(string url)
+        public void AddProxy(Uri proxy)
         {
             _ForEachModule((name, module) =>
             {
                 JObject env = _GetOrAddObject("env", module);
                 env.Add("https_proxy", JToken.FromObject(new
                 {
-                    value = url
-                }));
+                    value = proxy.ToString()
+            }));
                 env.Add("UpstreamProtocol", JToken.FromObject(new
                 {
                     value = UpstreamProtocolType.AmqpWs.ToString()

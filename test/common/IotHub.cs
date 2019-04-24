@@ -33,11 +33,11 @@ namespace common
         ServiceClient ServiceClient => this.serviceClient.Value;
         EventHubClient EventHubClient => this.eventHubClient.Value;
 
-        public IotHub(string iotHubConnectionString, string eventHubEndpoint, Option<string> proxyUrl)
+        public IotHub(string iotHubConnectionString, string eventHubEndpoint, Option<Uri> proxyUri)
         {
             this.eventHubEndpoint = eventHubEndpoint;
             this.iotHubConnectionString = iotHubConnectionString;
-            Option<IWebProxy> proxy = proxyUrl.Map(p => new WebProxy(p) as IWebProxy);
+            Option<IWebProxy> proxy = proxyUri.Map(p => new WebProxy(p) as IWebProxy);
 
             this.registryManager = new Lazy<RegistryManager>(() =>
             {

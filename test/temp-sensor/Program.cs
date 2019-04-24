@@ -34,14 +34,16 @@ If you specify `--registry` and `--user`, the following variable must also be se
         public string DeviceId { get; }
 
         [Required]
+        [DirectoryExists]
         [Argument(1, Name = "installer-path", Description = "Path to IotEdgeSecurityDaemon.ps1")]
         public string InstallerPath { get; }
 
+        [DirectoryExists]
         [Option("--package-path", Description = "Path to installation packages")]
         public string PackagesPath { get; }
 
         [Option("--proxy", Description = "HTTPS proxy for communication with IoT Hub")]
-        public string Proxy { get; }
+        public Uri Proxy { get; }
 
         [Option("--agent", Description = "Edge Agent image name, default is '" + DefaultAgentImage + "'")]
         public string AgentImage { get; } = DefaultAgentImage;

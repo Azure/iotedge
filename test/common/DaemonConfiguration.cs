@@ -17,9 +17,9 @@ namespace common
             this.config = new YamlDocument(contents);
         }
 
-        public void AddHttpsProxy(string proxyUrl)
+        public void AddHttpsProxy(Uri proxy)
         {
-            this.config.ReplaceOrAdd("agent.env.https_proxy", proxyUrl);
+            this.config.ReplaceOrAdd("agent.env.https_proxy", proxy.ToString());
             // TODO: When we allow the caller to specify an upstream protocol,
             //       we'll need to honor that if it's WebSocket-based, otherwise
             //       convert to an equivalent WebSocket-based protocol (e.g.,

@@ -26,7 +26,7 @@ namespace common
         public Task InstallAsync(
             string deviceConnectionString,
             Option<string> packagesPath,
-            Option<string> proxy,
+            Option<Uri> proxy,
             CancellationToken token
         )
         {
