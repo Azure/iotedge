@@ -54,17 +54,6 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
 
     $originalRustflags = $env:RUSTFLAGS
     $env:RUSTFLAGS += ' -C target-feature=+crt-static'
-    
-    Write-Host "Dump all environment varibles"
-    $envs = Get-ChildItem Env:
-    for($i = 0; $i -lt $envs.Length; $i++)
-    {
-        Write-Host "`n"
-        Write-Host $envs[$i].Name
-        Write-Host $envs[$i].Value
-        Write-Host "`n"
-    }
-
     Write-Host "$cargo build -p iotedge-diagnostics $(if($Arm) {'--target thumbv7a-pc-windows-msvc'}) $BuildConfigOption --manifest-path $ManifestPath --verbose"
     Invoke-Expression "$cargo build -p iotedge-diagnostics $(if($Arm) {'--target thumbv7a-pc-windows-msvc'}) $BuildConfigOption --manifest-path $ManifestPath --verbose"
     if ($originalRustflags -eq '') {
