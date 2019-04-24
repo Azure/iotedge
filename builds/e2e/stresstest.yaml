@@ -259,7 +259,7 @@ jobs:
             $(images.artifact.name.windows)/scripts/windows/test/runE2ETest.sh
             $(images.artifact.name.windows)/artifactInfo.txt
       # Deploy stress test
-      - template: templates/stresstest-deploy-windows.yaml
+      - template: templates/stresstest-deploy.yaml
         parameters:
           release.label: 'st'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
