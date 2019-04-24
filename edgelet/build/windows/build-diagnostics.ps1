@@ -54,7 +54,7 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
 
     $originalRustflags = $env:RUSTFLAGS
     Write-Host "Original rust flag: $originalRustflags"
-    $env:RUSTFLAGS += ' -C target-feature=+crt-static -Z print-link-args'    
+    $env:RUSTFLAGS += ' -C target-feature=+crt-static -Z print-link-args'
     Write-Host "New rust flag: $env:RUSTFLAGS"
     Write-Host $env:Path
     Write-Host "$cargo clean"
