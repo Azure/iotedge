@@ -187,16 +187,16 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $SnitchTestDurationInSecs = $null,
 
-    [ValidateSet("mqtt", "amqp")]
+    [ValidateNotNullOrEmpty()]
     [string] $LoadGen1TransportType = "amqp",
 
-    [ValidateSet("mqtt", "amqp")]
+    [ValidateNotNullOrEmpty()]
     [string] $LoadGen2TransportType = "amqp",
 
-    [ValidateSet("mqtt", "amqp")]
+    [ValidateNotNullOrEmpty()]
     [string] $LoadGen3TransportType = "mqtt",
 
-    [ValidateSet("mqtt", "amqp")]
+    [ValidateNotNullOrEmpty()]
     [string] $LoadGen4TransportType = "mqtt",
 
     [ValidateSet("true", "false")]
@@ -205,7 +205,7 @@ Param (
     [ValidateSet("true", "false")]
     [string] $MqttSettingsEnabled,
 
-    [ValidateSet("mqtt", "amqp")]
+    [ValidateNotNullOrEmpty()]
     [string] $LongHaulProtocolHead = "amqp"
 
 )

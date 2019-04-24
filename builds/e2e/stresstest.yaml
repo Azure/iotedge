@@ -273,4 +273,10 @@ jobs:
           snitch.alert.url: '$(SnitchStressAlertUrl)'
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
-          loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+          amqp.settings.enabled: 'false'
+          mqtt.settings.enabled: 'true'
+          loadGen.message.frequency: $(loadGen.message.frequency.arm32v7)
+          loadGen1.transportType: 'Mqtt_Tcp_Only'
+          loadGen2.transportType: 'Mqtt_WebSocket_Only'
+          loadGen3.transportType: 'Mqtt_Tcp_Only'
+          loadGen4.transportType: 'Mqtt_WebSocket_Only'

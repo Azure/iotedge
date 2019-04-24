@@ -12,7 +12,6 @@ parameters:
   snitch.storage.account: ''
   snitch.storage.masterKey: ''
   loadGen.message.frequency: ''
-  loadGen.transportType: 'mqtt'
   longHaul.protocolHead: ''
 
 steps:
