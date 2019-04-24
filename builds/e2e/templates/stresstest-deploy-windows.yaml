@@ -32,7 +32,7 @@ steps:
       SourceFolder: "$(System.ArtifactsDirectory)/${{ parameters['images.artifact.name'] }}"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
       CleanTargetFolder: true
-  - task: PowerShell@3
+  - task: PowerShell@2
     displayName: 'Run Stress Test Deployment'
     inputs:
       targetType: inline
