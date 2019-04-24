@@ -111,15 +111,15 @@ function InstallWinArmPrivateRustCompiler
 }
 
 function PatchRustForArm
-{        
-    # arm build requires cl.exe from vc tools to expand a c file for openssl-sys, append x64-x64 cl.exe folder to PATH
+{
+    $vspath = Join-Path -Path ${env:ProgramFiles(x86)} -ChildPath "Microsoft Visual Studio"
+    Write-Host $vspath
 
+    # arm build requires cl.exe from vc tools to expand a c file for openssl-sys, append x64-x64 cl.exe folder to PATH
     try{
         Get-Command cl.exe -ErrorAction Stop
     }
     catch{
-        $vspath = Join-Path -Path ${env:ProgramFiles(x86)} -ChildPath "Microsoft Visual Studio"
-        Write-Host $vspath
         $cls = (Get-ChildItem -Path $vspath -Filter cl.exe -Recurse -ErrorAction Continue -Force | Sort-Object -Property DirectoryName -Descending)
         $clPath = ""
         for ($i= 0; $i -lt $cls.length; $i++) {
@@ -138,6 +138,12 @@ function PatchRustForArm
 
     # test cl.exe command again to make sure we really have it in PATH
     Write-Host $(Get-Command cl.exe).Path
+
+    Write-Host "temporary test to find out advapi32.libs on build machines, which currently is missing when linking iotedge-diagnotstics"
+    $advapi32 = Get-ChildItem -Path ${env:ProgramFiles(x86)} -Filter advapi32.lib -Recurse -ErrorAction SilentlyContinue -Force
+    for($i = 0; $i -lt $advapi32.Length; $i++) {
+        Write-Host $advapi32[$i].DirectoryName
+    }
 
     $edgefolder = Get-EdgeletFolder
     Set-Location -Path $edgefolder
