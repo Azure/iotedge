@@ -47,9 +47,6 @@ where
             self.runtime
                 .authenticate(&req)
                 .then(move |auth_id| match auth_id {
-                    Ok(AuthId::None) => future::Either::B(future::ok(
-                        Error::from(ErrorKind::Authorization).into_response(),
-                    )),
                     Ok(auth_id) => {
                         req.extensions_mut().insert(auth_id);
                         future::Either::A(inner.call(req))
@@ -116,13 +113,13 @@ mod tests {
         let mut auth = AuthenticationService::new(runtime, TestService);
 
         let response = auth.call(req).wait().unwrap();
+
         let body = response
             .into_body()
             .concat2()
             .and_then(|body| Ok(String::from_utf8(body.to_vec()).unwrap()))
             .wait()
             .unwrap();
-
         assert_eq!("from TestService", body);
     }
 
@@ -167,12 +164,11 @@ mod tests {
 
         fn authenticate(&self, _req: &Self::Request) -> Self::AuthenticateFuture {
             let auth = self.auth.clone();
-            let fut = match auth {
+
+            Box::new(match auth {
                 Some(auth_id) => future::ok(auth_id),
                 None => future::err(Error::from(ErrorKind::ModuleRuntime)),
-            };
-
-            Box::new(fut)
+            })
         }
     }
 

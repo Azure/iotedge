@@ -19,17 +19,18 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, NetworkConfig};
 use edgelet_core::{
-    AuthId, Authenticator, LogOptions, Module, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeState, ModuleSpec, RegistryOperation, RuntimeOperation,
-    SystemInfo as CoreSystemInfo, UrlExt,
+    AuthId, Authenticator, LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
+    ModuleSpec, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
 };
-use edgelet_http::{UrlConnector, Pid};
+use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 
 use crate::client::DockerClient;
 use crate::config::DockerConfig;
 use crate::error::{Error, ErrorKind, Result};
-use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
+use crate::module::{
+    runtime_state, DockerModule, DockerModuleTop, MODULE_TYPE as DOCKER_MODULE_TYPE,
+};
 use futures::future::Either;
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
@@ -686,40 +687,7 @@ impl Authenticator for DockerModuleRuntime {
     type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
 
     fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
-        let pid = req
-            .extensions()
-            .get::<Pid>()
-            .cloned()
-            .unwrap_or_else(|| Pid::None);
-
-        Box::new(match pid {
-            Pid::None => Either::A(future::ok(AuthId::None)),
-            Pid::Any => Either::A(future::ok(AuthId::Any)),
-            Pid::Value(pid) => Either::B(
-                self.list()
-                    .into_stream()
-                    .map(|list| {
-                        stream::futures_unordered(list.into_iter().map(|module| module.top()))
-                    })
-                    .flatten()
-                    .filter_map(move |top| {
-                        if top.process_ids().contains(&pid) {
-                            Some(top.name().to_string())
-                        } else {
-                            None
-                        }
-                    })
-                    .into_future()
-                    .then(move |result| match result {
-                        Ok((Some(m), _)) => Ok(AuthId::Value(m.to_string())),
-                        Ok((None, _)) => {
-                            info!("Unable to find a module for caller pid: {}", pid);
-                            Ok(AuthId::None)
-                        }
-                        Err((err, _)) => Err(err),
-                    }),
-            ),
-        })
+        authenticate(self, req)
     }
 }
 
@@ -809,6 +777,62 @@ where
     )
 }
 
+fn authenticate<MR>(
+    runtime: &MR,
+    req: &Request<Body>,
+) -> Box<dyn Future<Item = AuthId, Error = Error> + Send>
+where
+    MR: ModuleRuntime<Error = Error>,
+    <MR as ModuleRuntime>::ListFuture: 'static,
+    MR::Module: DockerModuleTop<Error = Error>,
+{
+    let pid = req
+        .extensions()
+        .get::<Pid>()
+        .cloned()
+        .unwrap_or_else(|| Pid::None);
+
+    Box::new(match pid {
+        Pid::None => Either::A(future::ok(AuthId::None)),
+        Pid::Any => Either::A(future::ok(AuthId::Any)),
+        Pid::Value(pid) => {
+            Either::B(
+                runtime
+                    .list()
+                    .into_stream()
+                    .map(|list| {
+                        stream::futures_unordered(list.into_iter().map(|module| module.top()))
+                    })
+                    .flatten()
+                    .then(Ok::<_, Error>) // wrap error into a result to ignore Module::NotFound error
+                    .filter_map(move |top| match top {
+                        Ok(top) => {
+                            if top.process_ids().contains(&pid) {
+                                Some(Ok(top.name().to_string()))
+                            } else {
+                                None
+                            }
+                        }
+                        Err(err) => match err.kind() {
+                            ErrorKind::NotFound(_) => None,
+                            _ => Some(Err(err)),
+                        },
+                    })
+                    .then(Result::unwrap) // unwrap unknown error to emit error
+                    .into_future()
+                    .then(move |result| match result {
+                        Ok((Some(m), _)) => Ok(AuthId::Value(m.to_string())),
+                        Ok((None, _)) => {
+                            info!("Unable to find a module for caller pid: {}", pid);
+                            Ok(AuthId::None)
+                        }
+                        Err((err, _)) => Err(err),
+                    }),
+            )
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -821,7 +845,7 @@ mod tests {
     use url::Url;
 
     use docker::models::ContainerCreateBody;
-    use edgelet_core::ModuleRegistry;
+    use edgelet_core::{ModuleRegistry, ModuleTop};
 
     use crate::error::{Error, ErrorKind};
 
@@ -1208,46 +1232,102 @@ mod tests {
 
     #[test]
     fn list_with_details_filters_out_deleted_containers() {
-        let runtime = TestModuleList {
-            modules: vec![
-                TestModule {
-                    name: "a".to_string(),
-                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-                },
-                TestModule {
-                    name: "b".to_string(),
-                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
-                },
-                TestModule {
-                    name: "c".to_string(),
-                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
-                },
-                TestModule {
-                    name: "d".to_string(),
-                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-                },
-            ],
-        };
+        let runtime = prepare_module_runtime_with_known_modules();
 
         assert_eq!(
             runtime.list_with_details().collect().wait().unwrap(),
             vec![
                 (
-                    TestModule {
-                        name: "a".to_string(),
-                        runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-                    },
-                    ModuleRuntimeState::default().with_pid(None)
+                    runtime.modules[0].clone(),
+                    ModuleRuntimeState::default().with_pid(Some(1000))
                 ),
                 (
-                    TestModule {
-                        name: "d".to_string(),
-                        runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-                    },
-                    ModuleRuntimeState::default().with_pid(None)
+                    runtime.modules[3].clone(),
+                    ModuleRuntimeState::default().with_pid(Some(4000))
                 ),
             ]
         );
+    }
+
+    #[test]
+    fn authenticate_returns_none_when_no_pid_provided() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let req = Request::default();
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_none_when_unknown_pid_provided() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Value(1));
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_any_when_any_provided() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Any);
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::Any, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_any_when_module_pid_provided() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Value(1000));
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::Value("a".to_string()), auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_any_when_any_pid_of_module_provided() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Value(4001));
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::Value("d".to_string()), auth_id);
+    }
+
+    fn prepare_module_runtime_with_known_modules() -> TestModuleList {
+        TestModuleList {
+            modules: vec![
+                TestModule {
+                    name: "a".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
+                    process_ids: vec![1000],
+                },
+                TestModule {
+                    name: "b".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
+                    process_ids: vec![2000, 2001],
+                },
+                TestModule {
+                    name: "c".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
+                    process_ids: vec![3000],
+                },
+                TestModule {
+                    name: "d".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
+                    process_ids: vec![4000, 4001],
+                },
+            ],
+        }
     }
 
     #[test]
@@ -1278,6 +1358,7 @@ mod tests {
     struct TestModule {
         name: String,
         runtime_state_behavior: TestModuleRuntimeStateBehavior,
+        process_ids: Vec<i32>,
     }
 
     impl Module for TestModule {
@@ -1300,7 +1381,8 @@ mod tests {
         fn runtime_state(&self) -> Self::RuntimeStateFuture {
             match self.runtime_state_behavior {
                 TestModuleRuntimeStateBehavior::Default => {
-                    future::ok(ModuleRuntimeState::default().with_pid(None))
+                    let top_pid = self.process_ids.first().map(|x| *x);
+                    future::ok(ModuleRuntimeState::default().with_pid(top_pid))
                 }
                 TestModuleRuntimeStateBehavior::NotFound => {
                     future::err(ErrorKind::NotFound(String::new()).into())
@@ -1326,6 +1408,22 @@ mod tests {
 
         fn remove(&self, _name: &str) -> Self::RemoveFuture {
             unimplemented!()
+        }
+    }
+
+    impl DockerModuleTop for TestModule {
+        type Error = Error;
+        type ModuleTopFuture = FutureResult<ModuleTop, Self::Error>;
+
+        fn top(&self) -> Self::ModuleTopFuture {
+            match self.runtime_state_behavior {
+                TestModuleRuntimeStateBehavior::Default => {
+                    future::ok(ModuleTop::new(self.name.clone(), self.process_ids.clone()))
+                }
+                TestModuleRuntimeStateBehavior::NotFound => {
+                    future::err(ErrorKind::NotFound(String::new()).into())
+                }
+            }
         }
     }
 
@@ -1401,6 +1499,16 @@ mod tests {
 
         fn remove_all(&self) -> Self::RemoveAllFuture {
             unimplemented!()
+        }
+    }
+
+    impl Authenticator for TestModuleList {
+        type Error = Error;
+        type Request = Request<Body>;
+        type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
+
+        fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
+            authenticate(self, req)
         }
     }
 }

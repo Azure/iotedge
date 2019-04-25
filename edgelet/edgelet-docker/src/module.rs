@@ -16,7 +16,7 @@ use edgelet_core::{
 use crate::client::DockerClient;
 use crate::config::DockerConfig;
 use crate::error::{Error, ErrorKind, Result};
-use failure::ResultExt;
+use failure::{ResultExt};
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -39,8 +39,13 @@ impl<C: 'static + Connect> DockerModule<C> {
             config,
         })
     }
+}
 
-    pub fn top(&self) -> Box<dyn Future<Item = ModuleTop, Error = Error> + Send> {
+impl<C: 'static + Connect> DockerModuleTop for DockerModule<C> {
+    type Error = Error;
+    type ModuleTopFuture = Box<dyn Future<Item = ModuleTop, Error = Self::Error> + Send>;
+
+    fn top(&self) -> Self::ModuleTopFuture {
         let id = self.name.to_string();
         Box::new(
             self.client
@@ -182,6 +187,13 @@ impl<C: 'static + Connect> Module for DockerModule<C> {
                 }),
         )
     }
+}
+
+pub trait DockerModuleTop {
+    type Error;
+    type ModuleTopFuture: Future<Item = ModuleTop, Error = Self::Error> + Send;
+
+    fn top(&self) -> Self::ModuleTopFuture;
 }
 
 #[cfg(test)]

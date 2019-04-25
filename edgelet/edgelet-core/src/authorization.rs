@@ -14,7 +14,7 @@ pub enum Policy {
     Module(&'static str),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum AuthId {
     None,
     Any,
