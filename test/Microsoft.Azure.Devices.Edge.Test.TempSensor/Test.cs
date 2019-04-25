@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using common;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class Test

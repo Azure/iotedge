@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace common
+namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
     using System.Net;

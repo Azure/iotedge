@@ -5,8 +5,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
     using System;
     using System.ComponentModel.DataAnnotations;
     using System.Threading.Tasks;
-    using common;
     using McMaster.Extensions.CommandLineUtils;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
 
     [Command(
