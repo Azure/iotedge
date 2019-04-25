@@ -110,6 +110,11 @@ function InstallWinArmPrivateRustCompiler
     $ProgressPreference = 'Stop'
 }
 
+# arm build has to use a few private forks of dependencies instead of the public ones, in order to to this, we have to 
+# 1. append a [patch] section in cargo.toml to use crate forks
+# 2. run cargo update commands to force update cargo.lock to use the forked crates
+# 3 (optional). when building openssl-sys, cl.exe is called to expand a c file, we need to put the hostx64\x64 cl.exe folder to PATH so cl.exe can be found
+#   this is optional because when building iotedge-diagnostics project, openssl is not required
 function PatchRustForArm
 {
     Param(
@@ -118,8 +123,6 @@ function PatchRustForArm
 
     $vspath = Join-Path -Path ${env:ProgramFiles(x86)} -ChildPath "Microsoft Visual Studio"
     Write-Host $vspath
-
-    AssertVCToolsForArm
 
     # arm build requires cl.exe from vc tools to expand a c file for openssl-sys, append x64-x64 cl.exe folder to PATH
     if($OpenSSL)
@@ -210,21 +213,4 @@ function ReplacePrivateRustInPath
     }
 
     return $oldPath
-}
-
-function AssertVCToolsForArm
-{
-    # it's possible VC tools for arm is not installed, which is required by rust arm compiler
-    # patch VC tools for arm for both build tools and enterprise, as we don't know which one the build agent has
-    $vsinstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
-    $vsinstallpath = @("${env:ProgramFiles(x86)}\Microsoft Visual Studio\2017\BuildTools", "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2017\Enterprise")
-    $vcarmtools = "Microsoft.VisualStudio.Component.VC.Tools.ARM"
-
-    for($i = 0; $i -lt $vsinstallpath.length; $i++)
-    {
-        Write-Host "$vsinstaller --installpath $vsinstallpath[$i] modify --add $vcarmtools --quiet --norestart"
-        & $vsinstaller --installpath $vsinstallpath[$i] modify --add $vcarmtools --quiet --norestart
-        $vsinstallerprocessid = (Get-Process vs_installer).id
-        Wait-Process -Id $vsinstallerprocessid -Timeout 600 -ErrorAction Stop
-    }
 }

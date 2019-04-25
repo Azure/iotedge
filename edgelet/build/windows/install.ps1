@@ -4,8 +4,6 @@ param(
     [switch]$Arm
 )
 
-Write-Host $args
-
 # Bring in util functions
 $util = Join-Path -Path $PSScriptRoot -ChildPath "util.ps1"
 . $util

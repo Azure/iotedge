@@ -19,10 +19,6 @@ $oldPath = $(if($Arm){ ReplacePrivateRustInPath } else {""})
 
 $ErrorActionPreference = 'Continue'
 
-# arm build has to use a few private forks of dependencies instead of the public ones, in order to to this, we have to 
-# 1. append a [patch] section in cargo.toml to use crate forks
-# 2. run cargo update commands to force update cargo.lock to use the forked crates
-# after these two steps, running cargo build for arm should not show any warning such as "Patch 'crate-x' was not used in the crate graph"
 if($Arm)
 {
     PatchRustForArm -OpenSSL

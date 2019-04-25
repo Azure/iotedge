@@ -9,10 +9,11 @@ param(
     [string]$BuildConfiguration = 'release'
 )
 
+$ErrorActionPreference = 'Continue'
 
 . (Join-Path $PSScriptRoot 'util.ps1')
 
-$targetArchs = @("arm32v7", "amd64")
+$targetArchs = @("amd64", "arm32v7")
 
 for ($i=0; $i -lt $targetArchs.length; $i++) {
 
@@ -34,8 +35,6 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
 
         PatchRustForArm
     }
-
-    $ErrorActionPreference = 'Continue'
 
     If ($BuildConfiguration -eq 'release') {
         $BuildConfiguration = 'release'
@@ -70,8 +69,6 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
     {
         $env:path = $oldPath
     }
-
-    $ErrorActionPreference = 'Stop'
 }
 
 $publishFolder = [IO.Path]::Combine($env:BUILD_BINARIESDIRECTORY, 'publish', 'azureiotedge-diagnostics')
@@ -89,3 +86,5 @@ Copy-Item -Verbose `
 Copy-Item -Verbose `
     ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', 'thumbv7a-pc-windows-msvc', $BuildConfiguration, 'iotedge-diagnostics.exe')) `
     ([IO.Path]::Combine($publishFolder, 'docker', 'windows', 'arm32v7'))
+    
+$ErrorActionPreference = 'Stop'
