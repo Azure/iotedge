@@ -3,6 +3,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 {
     public class SequentialStoreTest : SequentialStoreTestBase
     {
-        protected override IEntityStore<byte[], TV> GetEntityStore<TV>(string entityName) => new EntityStore<byte[], TV>(new InMemoryDbStore(), entityName);
+        readonly IStoreProvider storeProvider;
+
+        public SequentialStoreTest()
+        {
+            this.storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
+        }
+
+        protected override IEntityStore<byte[], TV> GetEntityStore<TV>(string entityName)
+            => this.storeProvider.GetEntityStore<byte[], TV>(entityName);
     }
 }

@@ -25,7 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName)
         {
             IDbStore entityDbStore = this.dbStoreProvider.GetDbStore(Preconditions.CheckNonWhiteSpace(entityName, nameof(entityName)));
-            IEntityStore<TK, TV> entityStore = new EntityStore<TK, TV>(entityDbStore, entityName, 12);
+            IKeyValueStore<TK, TV> dbStoreMapper = new KeyValueStoreMapper<TK, byte[], TV, byte[]>(entityDbStore, new BytesMapper<TK>(), new BytesMapper<TV>());
+            IEntityStore<TK, TV> entityStore = new EntityStore<TK, TV>(dbStoreMapper, entityName, 12);
             IEntityStore<TK, TV> timedEntityStore = new TimedEntityStore<TK, TV>(entityStore, this.operationTimeout);
             return timedEntityStore;
         }
@@ -33,14 +34,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public async Task<ISequentialStore<T>> GetSequentialStore<T>(string entityName)
         {
             IEntityStore<byte[], T> underlyingStore = this.GetEntityStore<byte[], T>(entityName);
-            ISequentialStore<T> sequentialStore = await SequentialStore<T>.Create(underlyingStore);
+            ISequentialStore<T> sequentialStore = await SequentialStore<T>.Create(underlyingStore, entityName);
             return sequentialStore;
         }
 
         public async Task<ISequentialStore<T>> GetSequentialStore<T>(string entityName, long defaultHeadOffset)
         {
             IEntityStore<byte[], T> underlyingStore = this.GetEntityStore<byte[], T>(entityName);
-            ISequentialStore<T> sequentialStore = await SequentialStore<T>.Create(underlyingStore, defaultHeadOffset);
+            ISequentialStore<T> sequentialStore = await SequentialStore<T>.Create(underlyingStore, entityName, defaultHeadOffset);
             return sequentialStore;
         }
 
