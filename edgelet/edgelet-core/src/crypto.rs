@@ -139,6 +139,7 @@ pub trait Certificate {
     fn pem(&self) -> Result<Self::Buffer, Error>;
     fn get_private_key(&self) -> Result<Option<PrivateKey<Self::KeyBuffer>>, Error>;
     fn get_valid_to(&self) -> Result<DateTime<Utc>, Error>;
+    fn get_common_name(&self) -> Result<String, Error>;
 }
 
 pub trait GetTrustBundle {

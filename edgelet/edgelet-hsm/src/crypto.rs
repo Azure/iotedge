@@ -160,7 +160,7 @@ impl CoreCertificate for Certificate {
         self.0
             .pem()
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
-            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateContent)))
     }
 
     fn get_private_key(&self) -> Result<Option<CorePrivateKey<Self::KeyBuffer>>, CoreError> {
@@ -174,13 +174,20 @@ impl CoreCertificate for Certificate {
                 None => None,
             })
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
-            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateKey)))
     }
 
     fn get_valid_to(&self) -> Result<DateTime<Utc>, CoreError> {
         self.0
             .get_valid_to()
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
-            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateDetail)))
+    }
+
+    fn get_common_name(&self) -> Result<String, CoreError> {
+        self.0
+            .get_common_name()
+            .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateDetail)))
     }
 }

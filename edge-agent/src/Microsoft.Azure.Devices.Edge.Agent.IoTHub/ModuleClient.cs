@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Net;
+    using System.Runtime.ExceptionServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -82,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                         if (!result.Success)
                         {
                             Events.DeviceConnectionError(result.Exception);
-                            throw result.Exception;
+                            ExceptionDispatchInfo.Capture(result.Exception).Throw();
                         }
 
                         return result.Value;
