@@ -34,6 +34,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             K8sNamespace = $"{nsBaseName}-{hubName.ToLower()}-{deviceId.ToLower()}";
         }
 
+        // Valid annotation keys have two segments: an optional prefix and name, separated by a slash (/). 
+        // The name segment is required and must be 63 characters or less, beginning and ending with an 
+        // alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between. 
+        // The prefix is optional. If specified, the prefix must be a DNS subdomain
+        public static string SanitizeAnnotationKey(string key)
+        {
+            char[] annotationSplit = { '/' };
+            string[] keySegments = key.Split(annotationSplit, 2);
+            if (keySegments.Count() == 2)
+            {
+                return SanitizeNameValue(keySegments[0]) + "/" + SanitizeNameValue(keySegments[1]);
+            }
+            else
+            {
+                return SanitizeNameValue(key);
+            }
+        }
+
         public static string SanitizeK8sValue(string name)
         {
             name = name.ToLower();
@@ -90,15 +108,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return output.ToString();
         }
 
-        public static string SanitizeLabelValue(string name)
+        private static string SanitizeNameValue(string name)
         {
             // The name returned from here must conform to following rules:
             //  - length must be <= 63 characters
-            //  - must be all lower case alphanumeric characters or ['-','.','_']
+            //  - must be all alphanumeric characters or ['-','.','_']
             //  - must start with an alphabet
             //  - must end with an alphanumeric character
-
-            name = name.ToLower();
 
             // get index of first character from the left that is an alphabet
             int start = 0;
@@ -127,6 +143,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
 
             return output.ToString();
+        }
+
+        public static string SanitizeLabelValue(string name)
+        {
+            // The name returned from here must conform to following rules:
+            //  - length must be <= 63 characters
+            //  - must be all lower case alphanumeric characters or ['-','.','_']
+            //  - must start with an alphabet
+            //  - must end with an alphanumeric character
+
+            return SanitizeNameValue(name.ToLower());
         }
     }
 }

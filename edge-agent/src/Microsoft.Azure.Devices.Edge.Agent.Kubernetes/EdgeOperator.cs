@@ -278,9 +278,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         Option<V1Service> GetServiceFromModule(Dictionary<string, string> labels, KubernetesModule module)
         {
             var portList = new List<V1ServicePort>();
+            Option<Dictionary<string, string>> serviceAnnotations = Option.None<Dictionary<string, string>>();
             bool onlyExposedPorts = true;
             if (module.Module is IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig)
             {
+                if (moduleWithDockerConfig.Config.CreateOptions?.Labels != null)
+                {
+                    // Add annotations from Docker labels. This provides the customer a way to assign annotations to services if they want
+                    // to tie backend services to load balancers via an Ingress Controller.
+                    var annotations = new Dictionary<string, string>();
+                    foreach (KeyValuePair<string, string> label in moduleWithDockerConfig.Config.CreateOptions?.Labels)
+                    {
+                        annotations.Add(KubeUtils.SanitizeAnnotationKey(label.Key), label.Value);
+                    }
+
+                    serviceAnnotations = Option.Some(annotations);
+                }
+
                 // Handle ExposedPorts entries
                 if (moduleWithDockerConfig.Config?.CreateOptions?.ExposedPorts != null)
                 {
@@ -327,7 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             if (portList.Count > 0)
             {
                 // Selector: by module name and device name, also how we will label this puppy.
-                var objectMeta = new V1ObjectMeta(labels: labels, name: KubeUtils.SanitizeDNSValue(module.ModuleIdentity.ModuleId));
+                var objectMeta = new V1ObjectMeta(annotations: serviceAnnotations.GetOrElse(() => null), labels: labels, name: KubeUtils.SanitizeDNSValue(module.ModuleIdentity.ModuleId));
                 // How we manage this service is dependent on the port mappings user asks for.
                 // If the user tells us to only use ClusterIP ports, we will always set the type to ClusterIP.
                 // If all we had were exposed ports, we will assume ClusterIP.
@@ -580,25 +594,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             desiredServices.ForEach(
                 s =>
                 {
+                    string creationString = JsonConvert.SerializeObject(s);
+
                     if (currentV1ServicesFromAnnotations.ContainsKey(s.Metadata.Name))
                     {
                         string serviceAnnotation = currentV1ServicesFromAnnotations[s.Metadata.Name];
-                        string creationString = JsonConvert.SerializeObject(s);
                         // If configuration matches, no need to update service
                         if (string.Equals(serviceAnnotation, creationString))
+                        {
                             return;
+                        }
+
                         if (s.Metadata.Annotations == null)
                         {
-                            var annotations = new Dictionary<string, string>
-                            {
-                                [Constants.CreationString] = creationString
-                            };
-                            s.Metadata.Annotations = annotations;
+                            s.Metadata.Annotations = new Dictionary<string, string>();
                         }
-                        else
-                        {
-                            s.Metadata.Annotations[Constants.CreationString] = creationString;
-                        }
+                        s.Metadata.Annotations[Constants.CreationString] = creationString;
 
                         servicesRemoved.Add(s);
                         newServices.Add(s);
@@ -606,12 +617,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     }
                     else
                     {
-                        string creationString = JsonConvert.SerializeObject(s);
-                        var annotations = new Dictionary<string, string>
+                        if (s.Metadata.Annotations == null)
                         {
-                            [Constants.CreationString] = creationString
-                        };
-                        s.Metadata.Annotations = annotations;
+                            s.Metadata.Annotations = new Dictionary<string, string>();
+                        }
+                        s.Metadata.Annotations[Constants.CreationString] = creationString;
+
                         newServices.Add(s);
                         Events.CreateService(s.Metadata.Name);
                     }
@@ -708,17 +719,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 //pod labels
                 var podLabels = new Dictionary<string, string>(labels);
-                if (moduleWithDockerConfig.Config.CreateOptions?.Labels != null)
-                {
-                    foreach (KeyValuePair<string, string> label in moduleWithDockerConfig.Config.CreateOptions?.Labels)
-                    {
-                        podLabels.Add(label.Key, label.Value);
-                    }
-                }
 
                 // pod annotations
                 var podAnnotations = new Dictionary<string, string>();
                 podAnnotations.Add(Constants.k8sEdgeOriginalModuleId, module.ModuleIdentity.ModuleId);
+                // Convert docker labels to annotations because docker labels don't have the same restrictions as
+                // Kuberenetes labels.
+                if (moduleWithDockerConfig.Config.CreateOptions?.Labels != null)
+                {
+                    foreach (KeyValuePair<string, string> label in moduleWithDockerConfig.Config.CreateOptions?.Labels)
+                    {
+                        podAnnotations.Add(KubeUtils.SanitizeAnnotationKey(label.Key), label.Value);
+                    }
+                }
 
                 // Per container settings:
                 // exposed ports
