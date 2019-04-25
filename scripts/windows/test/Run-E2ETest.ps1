@@ -240,7 +240,6 @@ Function CleanUp
     }
 
     Write-Host "Uninstall iotedged"
-    Invoke-Expression $InstallationScriptPath
     Uninstall-IoTEdge -Force
 
     # This may require once IoT Edge created its only bridge network
