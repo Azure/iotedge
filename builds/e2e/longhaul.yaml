@@ -245,6 +245,7 @@ jobs:
           buildVersionToDownload: latestFromBranch
           artifactName: $(images.artifact.name.windows)
           itemPattern: |
+            $(images.artifact.name.windows)/IotEdgeQuickstart/x64/*
             $(images.artifact.name.windows)/e2e_deployment_files/long_haul_deployment.template.json
             $(images.artifact.name.windows)/scripts/windows/test/Run-E2ETest.ps1
             $(images.artifact.name.windows)/artifactInfo.txt
