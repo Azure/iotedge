@@ -246,7 +246,7 @@ jobs:
           artifactName: $(images.artifact.name.windows)
           itemPattern: |
             $(images.artifact.name.windows)/e2e_deployment_files/long_haul_deployment.template.json
-            $(images.artifact.name.windows)/scripts/windows/test/runE2ETest.ps1
+            $(images.artifact.name.windows)/scripts/windows/test/Run-E2ETest.ps1
             $(images.artifact.name.windows)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy-windows.yaml
