@@ -173,9 +173,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodCloudSender", "
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{2300ED4C-1D5A-460F-8691-7C85E1162E0C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "common", "test\common\common.csproj", "{950DACB0-B011-41AF-B0FB-245F749B01AB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Test.Common", "test\Microsoft.Azure.Devices.Edge.Test.Common\Microsoft.Azure.Devices.Edge.Test.Common.csproj", "{950DACB0-B011-41AF-B0FB-245F749B01AB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "temp-sensor", "test\temp-sensor\temp-sensor.csproj", "{FCF94FF4-A608-4CC1-8D1D-215B6F88F203}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Test.TempSensor", "test\Microsoft.Azure.Devices.Edge.Test.TempSensor\Microsoft.Azure.Devices.Edge.Test.TempSensor.csproj", "{FCF94FF4-A608-4CC1-8D1D-215B6F88F203}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
