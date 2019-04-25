@@ -21,7 +21,7 @@ use tokio_uds::UnixStream;
 #[cfg(windows)]
 use tokio_uds_windows::UnixStream;
 
-use crate::pid::{UnixStreamExt, Pid};
+use crate::pid::{Pid, UnixStreamExt};
 
 pub mod connector;
 mod hyperwrap;

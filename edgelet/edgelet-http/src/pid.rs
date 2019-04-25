@@ -158,11 +158,11 @@ pub use self::impl_macos::get_pid;
 
 #[cfg(target_os = "macos")]
 pub mod impl_macos {
+    use crate::pid::Pid;
     use libc::getpeereid;
     use std::os::unix::io::AsRawFd;
     use std::{io, mem};
     use tokio_uds::{UCred, UnixStream};
-    use crate::pid::Pid;
 
     pub fn get_pid(sock: &UnixStream) -> io::Result<Pid> {
         unsafe {
@@ -173,6 +173,7 @@ pub mod impl_macos {
             let ret = getpeereid(raw_fd, &mut ucred.uid, &mut ucred.gid);
 
             if ret == 0 {
+                #[allow(clippy::cast_possible_truncation)]
                 Ok(Pid::Value(ucred.uid as _))
             } else {
                 Err(io::Error::last_os_error())

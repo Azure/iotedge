@@ -16,7 +16,7 @@ use edgelet_core::{
 use crate::client::DockerClient;
 use crate::config::DockerConfig;
 use crate::error::{Error, ErrorKind, Result};
-use failure::{ResultExt};
+use failure::ResultExt;
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -236,6 +236,7 @@ mod tests {
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
         )
         .unwrap();
+
         assert_eq!("mod1", docker_module.name());
         assert_eq!("docker", docker_module.type_());
         assert_eq!("ubuntu", docker_module.config().image());
@@ -331,6 +332,7 @@ mod tests {
             .unwrap()
             .block_on(docker_module.runtime_state())
             .unwrap();
+
         assert_eq!(ModuleStatus::Running, *runtime_state.status());
         assert_eq!(10, runtime_state.exit_code().unwrap());
         assert_eq!(&"running", &runtime_state.status_description().unwrap());
@@ -367,6 +369,7 @@ mod tests {
             .unwrap()
             .block_on(docker_module.runtime_state())
             .unwrap();
+
         assert_eq!(ModuleStatus::Failed, *runtime_state.status());
         assert_eq!(10, runtime_state.exit_code().unwrap());
         assert_eq!(&"dead", &runtime_state.status_description().unwrap());
@@ -402,6 +405,7 @@ mod tests {
             .unwrap()
             .block_on(docker_module.runtime_state())
             .unwrap();
+
         assert_eq!(None, runtime_state.started_at());
     }
 
@@ -430,6 +434,7 @@ mod tests {
             .unwrap()
             .block_on(docker_module.runtime_state())
             .unwrap();
+
         assert_eq!(None, runtime_state.finished_at());
     }
 
@@ -458,6 +463,7 @@ mod tests {
             .unwrap()
             .block_on(docker_module.runtime_state())
             .unwrap();
+
         assert_eq!(None, runtime_state.started_at());
         assert_eq!(None, runtime_state.finished_at());
     }
@@ -467,7 +473,9 @@ mod tests {
         let response = InlineResponse2001::new()
             .with_titles(vec!["PID".to_string()])
             .with_processes(vec![vec!["123".to_string()]]);
+
         let pids = parse_top_response::<Deserializer>(&response);
+
         assert!(pids.is_ok());
         assert_eq!(vec![123], pids.unwrap());
     }
@@ -475,7 +483,9 @@ mod tests {
     #[test]
     fn parse_top_response_returns_error_when_titles_is_missing() {
         let response = InlineResponse2001::new().with_processes(vec![vec!["123".to_string()]]);
+
         let pids = parse_top_response::<Deserializer>(&response);
+
         assert!(pids.is_err());
         assert_eq!("missing field `Titles`", format!("{}", pids.unwrap_err()));
     }
@@ -483,7 +493,9 @@ mod tests {
     #[test]
     fn parse_top_response_returns_error_when_pid_title_is_missing() {
         let response = InlineResponse2001::new().with_titles(vec!["Command".to_string()]);
+
         let pids = parse_top_response::<Deserializer>(&response);
+
         assert!(pids.is_err());
         assert_eq!(
             "invalid value: sequence, expected array including the column title \'PID\'",
@@ -494,7 +506,9 @@ mod tests {
     #[test]
     fn parse_top_response_returns_error_when_processes_is_missing() {
         let response = InlineResponse2001::new().with_titles(vec!["PID".to_string()]);
+
         let pids = parse_top_response::<Deserializer>(&response);
+
         assert!(pids.is_err());
         assert_eq!(
             "missing field `Processes`",
@@ -507,7 +521,9 @@ mod tests {
         let response = InlineResponse2001::new()
             .with_titles(vec!["Command".to_string(), "PID".to_string()])
             .with_processes(vec![vec!["sh".to_string()]]);
+
         let pids = parse_top_response::<Deserializer>(&response);
+
         assert!(pids.is_err());
         assert_eq!(
             "invalid length 1, expected at least 2 columns",
@@ -520,7 +536,9 @@ mod tests {
         let response = InlineResponse2001::new()
             .with_titles(vec!["PID".to_string()])
             .with_processes(vec![vec!["xyz".to_string()]]);
+
         let pids = parse_top_response::<Deserializer>(&response);
+
         assert!(pids.is_err());
         assert_eq!(
             "invalid value: string \"xyz\", expected a process ID number",
