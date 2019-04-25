@@ -121,41 +121,30 @@ function prepare_test_from_artifacts() {
        [[ "${TEST_NAME,,}" == 'tempfilter' ]] ||
        [[ "${TEST_NAME,,}" == 'tempfilterfunctions' ]]; then
         case "${TEST_NAME,,}" in
-            'directmethodamqp')
+            directmethod*)
                 echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
                 cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
 
-                sed -i -e "s@<UpstreamProtocol>@Amqp@g" "$deployment_working_file"
-                sed -i -e "s@<ClientTransportType>@Amqp_Tcp_Only@g" "$deployment_working_file";;
-            'directmethodamqpws')
-                echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
-                cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
-
-                sed -i -e "s@<UpstreamProtocol>@Amqpws@g" "$deployment_working_file"
-                sed -i -e "s@<ClientTransportType>@Amqp_WebSocket_Only@g" "$deployment_working_file";;
-            'directmethodmqtt')
-                echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
-                cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
-
-                # Temporarily fix to avoid edgeHub fail when running on RPi, bug is created (https://msazure.visualstudio.com/One/_workitems/edit/4396517)
-                if [[ "$image_architecture_label" == 'arm32v7' ]]; then
-                    sed -i -e "s@<UpstreamProtocol>@Amqp@g" "$deployment_working_file"
-                else
-                    sed -i -e "s@<UpstreamProtocol>@Mqtt@g" "$deployment_working_file"
-                fi
-                sed -i -e "s@<UpstreamProtocol>@Mqtt@g" "$deployment_working_file"
-                sed -i -e "s@<ClientTransportType>@Mqtt_Tcp_Only@g" "$deployment_working_file";;
-            'directmethodmqttws')
-                echo "Copy deployment file from $dm_module_to_module_deployment_artifact_file"
-                cp "$dm_module_to_module_deployment_artifact_file" "$deployment_working_file"
-
-                # Temporarily fix to avoid edgeHub fail when running on RPi, bug is created (https://msazure.visualstudio.com/One/_workitems/edit/4396517)
-                if [[ "$image_architecture_label" == 'arm32v7' ]]; then
-                    sed -i -e "s@<UpstreamProtocol>@AmqpWs@g" "$deployment_working_file"
-                else
-                    sed -i -e "s@<UpstreamProtocol>@MqttWs@g" "$deployment_working_file"
-                fi
-                sed -i -e "s@<ClientTransportType>@Mqtt_WebSocket_Only@g" "$deployment_working_file";;
+                case "${TEST_NAME,,}" in
+                    'directmethodamqp')
+                        sed -i -e "s@<UpstreamProtocol>@Amqp@g" "$deployment_working_file"
+                        sed -i -e "s@<ClientTransportType>@Amqp_Tcp_Only@g" "$deployment_working_file";;
+                    'directmethodamqpmqtt')
+                        sed -i -e "s@<UpstreamProtocol>@Amqp@g" "$deployment_working_file"
+                        sed -i -e "s@<ClientTransportType>@Mqtt_Tcp_Only@g" "$deployment_working_file";;
+                    'directmethodamqpws')
+                        sed -i -e "s@<UpstreamProtocol>@Amqpws@g" "$deployment_working_file"
+                        sed -i -e "s@<ClientTransportType>@Amqp_WebSocket_Only@g" "$deployment_working_file";;
+                    'directmethodmqtt')
+                        sed -i -e "s@<UpstreamProtocol>@Mqtt@g" "$deployment_working_file"
+                        sed -i -e "s@<ClientTransportType>@Mqtt_Tcp_Only@g" "$deployment_working_file";;
+                    'directmethodmqttamqp')
+                        sed -i -e "s@<UpstreamProtocol>@Mqtt@g" "$deployment_working_file"
+                        sed -i -e "s@<ClientTransportType>@Amqp_Tcp_Only@g" "$deployment_working_file";;
+                    'directmethodmqttws')
+                        sed -i -e "s@<UpstreamProtocol>@MqttWs@g" "$deployment_working_file"
+                        sed -i -e "s@<ClientTransportType>@Mqtt_WebSocket_Only@g" "$deployment_working_file";;
+                esac;;
             'longhaul' | 'stress')
                 if [[ "${TEST_NAME,,}" == 'longhaul' ]]; then
                     echo "Copy deployment file from $long_haul_deployment_artifact_file"
@@ -387,12 +376,20 @@ function run_all_tests()
     TEST_NAME='DirectMethodAmqp'
     run_directmethodamqp_test && funcRet=$? || funcRet=$?
 
+    TEST_NAME='DirectMethodAmqpMqtt'
+    run_directmethodamqpmqtt_test && testRet=$? || testRet=$?
+    if (( funcRet = 0 )); then funcRet=$testRet; fi
+
     TEST_NAME='DirectMethodAmqpws'
     run_directmethodamqpws_test && testRet=$? || testRet=$?
     if (( funcRet = 0 )); then funcRet=$testRet; fi
 
     TEST_NAME='DirectMethodMqtt'
     run_directmethodmqtt_test && testRet=$? || testRet=$?
+    if (( funcRet = 0 )); then funcRet=$testRet; fi
+
+    TEST_NAME='DirectMethodMqttAmqp'
+    run_directmethodmqttamqp_test && testRet=$? || testRet=$?
     if (( funcRet = 0 )); then funcRet=$testRet; fi
 
     TEST_NAME='DirectMethodMqttws'
@@ -439,12 +436,25 @@ function run_directmethod_test()
 }
 
 function run_directmethodamqp_test() {
-    print_highlighted_message "Run DirectMethod Amqp test on $image_architecture_label"
+    print_highlighted_message "Run DirectMethod test with Amqp upstream protocol and Amqp client transport type for $image_architecture_label"
     test_setup
 
     device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-DMAmqp"
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
-    print_highlighted_message "Run DirectMethod Amqp test with -d '$device_id' started at $test_start_time"
+    print_highlighted_message "Run DirectMethod test with Amqp upstream protocol and Amqp client transport type on '$device_id' started at $test_start_time"
+
+    run_directmethod_test && ret=$? || ret=$?
+
+    return $ret
+}
+
+function run_directmethodamqpmqtt_test() {
+    print_highlighted_message "Run DirectMethod test with Amqp upstream protocol and Mqtt client transport type for $image_architecture_label"
+    test_setup
+
+    device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-DMAmqpMqtt"
+    test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
+    print_highlighted_message "Run DirectMethod test with Amqp upstream protocol and Mqtt client transport type on '$device_id' started at $test_start_time"
 
     run_directmethod_test && ret=$? || ret=$?
 
@@ -452,12 +462,12 @@ function run_directmethodamqp_test() {
 }
 
 function run_directmethodamqpws_test() {
-    print_highlighted_message "Run DirectMethod Amqpws test on $image_architecture_label"
+    print_highlighted_message "Run DirectMethod test with AmqpWs upstream protocol and AmqpWs client transport type for $image_architecture_label"
     test_setup
 
     device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-DMAmqpws"
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
-    print_highlighted_message "Run DirectMethod Amqpws test with -d '$device_id' started at $test_start_time"
+    print_highlighted_message "Run DirectMethod  test with AmqpWs upstream protocol and AmqpWs client transport type on '$device_id' started at $test_start_time"
 
     run_directmethod_test && ret=$? || ret=$?
 
@@ -465,12 +475,25 @@ function run_directmethodamqpws_test() {
 }
 
 function run_directmethodmqtt_test() {
-    print_highlighted_message "Run DirectMethod Mqtt test on $image_architecture_label"
+    print_highlighted_message "Run DirectMethod test with Mqtt upstream protocol and Mqtt client transport type for $image_architecture_label"
     test_setup
 
     device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-DMMqtt"
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
-    print_highlighted_message "Run DirectMethod Mqtt test with -d '$device_id' started at $test_start_time"
+    print_highlighted_message "Run DirectMethod test with Mqtt upstream protocol and Mqtt client transport type on '$device_id' started at $test_start_time"
+
+    run_directmethod_test && ret=$? || ret=$?
+
+    return $ret
+}
+
+function run_directmethodmqttamqp_test() {
+    print_highlighted_message "Run DirectMethod test with Mqtt upstream protocol and Amqp client transport type for $image_architecture_label"
+    test_setup
+
+    device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-DMMqttAmqp"
+    test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
+    print_highlighted_message "Run DirectMethod test with Mqtt upstream protocol and Amqp client transport type on '$device_id' started at $test_start_time"
 
     run_directmethod_test && ret=$? || ret=$?
 
@@ -478,12 +501,12 @@ function run_directmethodmqtt_test() {
 }
 
 function run_directmethodmqttws_test() {
-    print_highlighted_message "Run DirectMethod Mqttws test on $image_architecture_label"
+    print_highlighted_message "Run DirectMethod test with MqttWs upstream protocol and MqttWs client transport type for $image_architecture_label"
     test_setup
 
     device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-DMMqttws"
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
-    print_highlighted_message "Run DirectMethod Mqttws test with -d '$device_id' started at $test_start_time"
+    print_highlighted_message "Run DirectMethod test with MqttWs upstream protocol and MqttWs client transport type on '$device_id' started at $test_start_time"
 
     run_directmethod_test && ret=$? || ret=$?
 
@@ -491,7 +514,7 @@ function run_directmethodmqttws_test() {
 }
 
 function run_longhaul_test() {
-    print_highlighted_message "Run Long Haul test on $image_architecture_label"
+    print_highlighted_message "Run Long Haul test for $image_architecture_label"
     test_setup
 
     local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul"
@@ -526,7 +549,7 @@ function run_longhaul_test() {
 }
 
 function run_quickstartcerts_test() {
-    print_highlighted_message "Run Quickstart Certs test on $image_architecture_label"
+    print_highlighted_message "Run Quickstart Certs test for $image_architecture_label"
     test_setup
 
     local device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-QuickstartCert"
@@ -569,7 +592,7 @@ function run_quickstartcerts_test() {
 }
 
 function run_stress_test() {
-    print_highlighted_message "Run Stress test on $image_architecture_label"
+    print_highlighted_message "Run Stress test for $image_architecture_label"
     test_setup
 
     local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-stress"
@@ -604,7 +627,7 @@ function run_stress_test() {
 }
 
 function run_tempfilter_test() {
-    print_highlighted_message "Run TempFilter test on $image_architecture_label"
+    print_highlighted_message "Run TempFilter test for $image_architecture_label"
     test_setup
 
     local device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-tempFilter"
@@ -634,7 +657,7 @@ function run_tempfilter_test() {
 }
 
 function run_tempfilterfunctions_test() {
-    print_highlighted_message "Run TempFilterFunctions test on $image_architecture_label"
+    print_highlighted_message "Run TempFilterFunctions test for $image_architecture_label"
     test_setup
 
     local device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-tempFilterFunc"
@@ -664,7 +687,7 @@ function run_tempfilterfunctions_test() {
 }
 
 function run_tempsensor_test() {
-    print_highlighted_message "Run TempSensor test on $image_architecture_label"
+    print_highlighted_message "Run TempSensor test for $image_architecture_label"
     test_setup
 
     local device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-tempSensor"
@@ -699,8 +722,10 @@ function run_test()
     case "${TEST_NAME,,}" in
         'all') run_all_tests && ret=$? || ret=$?;;
         'directmethodamqp') run_directmethodamqp_test && ret=$? || ret=$?;;
+        'directmethodamqpmqtt') run_directmethodamqpmqtt_test && ret=$? || ret=$?;;
         'directmethodamqpws') run_directmethodamqpws_test && ret=$? || ret=$?;;
         'directmethodmqtt') run_directmethodmqtt_test && ret=$? || ret=$?;;
+        'directmethodmqttamqp') run_directmethodmqttamqp_test && ret=$? || ret=$?;;
         'directmethodmqttws') run_directmethodmqttws_test && ret=$? || ret=$?;;
         'quickstartcerts') run_quickstartcerts_test && ret=$? || ret=$?;;
         'longhaul') run_longhaul_test && ret=$? || ret=$?;;
@@ -797,8 +822,8 @@ function usage() {
     echo ' -testDir                        Path of E2E test directory which contains artifacts and certs folders; defaul to current directory.'
     echo ' -releaseLabel                   Release label can be uniquely identify the build (e.g <ReleaseName>-<ReleaseAttempt>); which is used as part of Edge device name.'
     echo ' -testName                       Name of E2E test to be run.'
-    echo "                                 Values are 'All', 'DirectMethodAmqp', 'DirectMethodAmqpWs', 'DirectMethodMqtt', 'DirectMethodMqttWs', 'LongHaul', 'QuickstartCerts', "
-    echo "                                 'Stress', 'TempFilter', 'TempFilterFunctions', 'TempSensor'"
+    echo "                                 Values are 'All', 'DirectMethodAmqp', 'DirectMethodAmqpMqtt', 'DirectMethodAmqpWs', 'DirectMethodMqtt', 'DirectMethodMqttAmqp', "
+    echo "                                 'DirectMethodMqttWs', 'LongHaul', 'QuickstartCerts', 'Stress', 'TempFilter', 'TempFilterFunctions', 'TempSensor'"
     echo "                                 Note: 'All' option doesn't include long hual and stress test."
     echo ' -artifactImageBuildNumber       Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
     echo " -containerRegistry              Host address of container registry."
@@ -854,7 +879,7 @@ get_image_architecture_label
 optimize_for_performance=true
 if [ "$image_architecture_label" = 'arm32v7' ] ||
    [ "$image_architecture_label" = 'arm64v8' ]; then
-	optimize_for_performance=false
+    optimize_for_performance=false
 fi
 iotedged_artifact_folder="$(get_iotedged_artifact_folder)"
 iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file)"
