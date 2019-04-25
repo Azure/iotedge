@@ -215,13 +215,16 @@ function ReplacePrivateRustInPath
 function AssertVCToolsForArm
 {
     # it's possible VC tools for arm is not installed, which is required by rust arm compiler
+    # patch VC tools for arm for both build tools and enterprise, as we don't know which one the build agent has
     $vsinstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
-    $vstoolsinstallpath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2017\BuildTools"
+    $vsinstallpath = @("${env:ProgramFiles(x86)}\Microsoft Visual Studio\2017\BuildTools", "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2017\Enterprise")
     $vcarmtools = "Microsoft.VisualStudio.Component.VC.Tools.ARM"
 
-    Write-Host "$vsinstaller --installpath $vstoolsinstallpath modify --add $vcarmtools --quiet --norestart"
-    & $vsinstaller --installpath $vstoolsinstallpath modify --add $vcarmtools --quiet --norestart
-
-    $vsinstallerprocessid = (Get-Process vs_installer).id
-    Wait-Process -Id $vsinstallerprocessid -Timeout 600 -ErrorAction Stop
+    for($i = 0; $i -lt $vsinstallpath.length; $i++)
+    {
+        Write-Host "$vsinstaller --installpath $vsinstallpath[$i] modify --add $vcarmtools --quiet --norestart"
+        & $vsinstaller --installpath $vsinstallpath[$i] modify --add $vcarmtools --quiet --norestart
+        $vsinstallerprocessid = (Get-Process vs_installer).id
+        Wait-Process -Id $vsinstallerprocessid -Timeout 600 -ErrorAction Stop
+    }
 }
