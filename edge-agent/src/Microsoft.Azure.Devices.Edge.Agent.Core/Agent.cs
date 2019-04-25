@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
+    using System.Runtime.ExceptionServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
@@ -113,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     moduleSetToReport = current;
                     if (exception != null)
                     {
-                        throw exception;
+                        ExceptionDispatchInfo.Capture(exception).Throw();
                     }
 
                     DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
@@ -295,7 +296,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 (ModuleSet modules, Exception ex) = await this.GetCurrentModuleSetAsync(token);
                 if (ex != null)
                 {
-                    throw ex;
+                    ExceptionDispatchInfo.Capture(ex).Throw();
                 }
 
                 Plan plan = await this.planner.CreateShutdownPlanAsync(modules);
