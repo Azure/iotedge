@@ -17,33 +17,35 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     class SequentialStore<T> : ISequentialStore<T>
     {
         const long DefaultHeadOffset = 0;
-        readonly IEntityStore<byte[], T> entityStore;
+        readonly IKeyValueStore<byte[], T> entityStore;
         readonly AsyncLock headLockObject = new AsyncLock();
         readonly AsyncLock tailLockObject = new AsyncLock();
         long tailOffset;
         long headOffset;
 
-        SequentialStore(IEntityStore<byte[], T> entityStore, long headOffset, long tailOffset)
+        SequentialStore(IKeyValueStore<byte[], T> entityStore, string entityName, long headOffset, long tailOffset)
         {
             this.entityStore = entityStore;
             this.headOffset = headOffset;
             this.tailOffset = tailOffset;
+            this.EntityName = entityName;
         }
 
-        public string EntityName => this.entityStore.EntityName;
+        public string EntityName { get; }
 
-        public static Task<ISequentialStore<T>> Create(IEntityStore<byte[], T> entityStore)
-            => Create(entityStore, DefaultHeadOffset);
+        public static Task<ISequentialStore<T>> Create(IKeyValueStore<byte[], T> entityStore, string entityName)
+            => Create(entityStore, entityName, DefaultHeadOffset);
 
-        public static async Task<ISequentialStore<T>> Create(IEntityStore<byte[], T> entityStore, long defaultHeadOffset)
+        public static async Task<ISequentialStore<T>> Create(IKeyValueStore<byte[], T> entityStore, string entityName, long defaultHeadOffset)
         {
             Preconditions.CheckNotNull(entityStore, nameof(entityStore));
+            Preconditions.CheckNonWhiteSpace(entityName, nameof(entityName));
             Option<(byte[] key, T value)> firstEntry = await entityStore.GetFirstEntry(CancellationToken.None);
             Option<(byte[] key, T value)> lastEntry = await entityStore.GetLastEntry(CancellationToken.None);
             long MapLocalFunction((byte[] key, T) e) => StoreUtils.GetOffsetFromKey(e.key);
             long headOffset = firstEntry.Map(MapLocalFunction).GetOrElse(defaultHeadOffset);
             long tailOffset = lastEntry.Map(MapLocalFunction).GetOrElse(defaultHeadOffset - 1);
-            var sequentialStore = new SequentialStore<T>(entityStore, headOffset, tailOffset);
+            var sequentialStore = new SequentialStore<T>(entityStore, entityName, headOffset, tailOffset);
             return sequentialStore;
         }
 
