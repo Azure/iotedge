@@ -815,6 +815,7 @@ where
                         }
                         Err(err) => match err.kind() {
                             ErrorKind::NotFound(_) => None,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(_)) => None,
                             _ => Some(Err(err)),
                         },
                     })
@@ -826,7 +827,10 @@ where
                             info!("Unable to find a module for caller pid: {}", pid);
                             Ok(AuthId::None)
                         }
-                        Err((err, _)) => Err(err),
+                        Err((err, _)) => {
+                            log_failure(Level::Warn, &err);
+                            Err(err)
+                        }
                     }),
             )
         }

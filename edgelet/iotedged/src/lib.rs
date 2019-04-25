@@ -976,7 +976,7 @@ where
     CE: CreateCertificate + Clone,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
     M: ModuleRuntime
-        + Authenticator<Request = Request<<LoggingService<ManagementService> as Service>::ReqBody>>
+        + Authenticator<Request = Request<<LoggingService<WorkloadService> as Service>::ReqBody>>
         + Send
         + Sync
         + Clone
