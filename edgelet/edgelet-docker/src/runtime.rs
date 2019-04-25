@@ -814,8 +814,8 @@ where
                             }
                         }
                         Err(err) => match err.kind() {
-                            ErrorKind::NotFound(_) => None,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(_)) => None,
+                            ErrorKind::NotFound(_)
+                            | ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(_)) => None,
                             _ => Some(Err(err)),
                         },
                     })
