@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static int GetBatchSize(int batchSize, long messageSize) =>
                 Math.Min((int)(Constants.MaxMessageSize / messageSize), batchSize);
 
-            static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Contains(ex.GetType());
+            static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Any(re => re.IsInstanceOfType(ex));
 
             static ISinkResult HandleNoIdentity(List<IRoutingMessage> routingMessages)
             {

@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         [Fact]
         public async Task BasicTest()
         {
-            IDbStore columnFamilyDbStore = this.rocksDbStoreProvider.GetColumnStoreFamily("test");
+            IDbStore columnFamilyDbStore = this.rocksDbStoreProvider.GetDbStore("test");
 
             string key = "key1";
             string value = "value1";
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         [Fact]
         public async Task FirstLastTest()
         {
-            IDbStore columnFamilyDbStore = this.rocksDbStoreProvider.GetColumnStoreFamily("firstLastTest");
+            IDbStore columnFamilyDbStore = this.rocksDbStoreProvider.GetDbStore("firstLastTest");
 
             string firstKey = "firstKey";
             string firstValue = "firstValue";

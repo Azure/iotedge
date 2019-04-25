@@ -162,6 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 if (link is FaultedLink faultedLink)
                 {
+                    // Don't preserve stack trace by design.
                     throw faultedLink.Exception;
                 }
 

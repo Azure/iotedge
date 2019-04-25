@@ -20,16 +20,16 @@ pub struct HealthConfig {
     test: Option<Vec<String>>,
     /// The time to wait between checks in nanoseconds. It should be 0 or at least 1000000 (1 ms). 0 means inherit.
     #[serde(rename = "Interval", skip_serializing_if = "Option::is_none")]
-    interval: Option<i32>,
+    interval: Option<i64>,
     /// The time to wait before considering the check to have hung. It should be 0 or at least 1000000 (1 ms). 0 means inherit.
     #[serde(rename = "Timeout", skip_serializing_if = "Option::is_none")]
-    timeout: Option<i32>,
+    timeout: Option<i64>,
     /// The number of consecutive failures needed to consider a container as unhealthy. 0 means inherit.
     #[serde(rename = "Retries", skip_serializing_if = "Option::is_none")]
     retries: Option<i32>,
     /// Start period for the container to initialize before starting health-retries countdown in nanoseconds. It should be 0 or at least 1000000 (1 ms). 0 means inherit.
     #[serde(rename = "StartPeriod", skip_serializing_if = "Option::is_none")]
-    start_period: Option<i32>,
+    start_period: Option<i64>,
 }
 
 impl HealthConfig {
@@ -61,16 +61,16 @@ impl HealthConfig {
         self.test = None;
     }
 
-    pub fn set_interval(&mut self, interval: i32) {
+    pub fn set_interval(&mut self, interval: i64) {
         self.interval = Some(interval);
     }
 
-    pub fn with_interval(mut self, interval: i32) -> Self {
+    pub fn with_interval(mut self, interval: i64) -> Self {
         self.interval = Some(interval);
         self
     }
 
-    pub fn interval(&self) -> Option<i32> {
+    pub fn interval(&self) -> Option<i64> {
         self.interval
     }
 
@@ -78,16 +78,16 @@ impl HealthConfig {
         self.interval = None;
     }
 
-    pub fn set_timeout(&mut self, timeout: i32) {
+    pub fn set_timeout(&mut self, timeout: i64) {
         self.timeout = Some(timeout);
     }
 
-    pub fn with_timeout(mut self, timeout: i32) -> Self {
+    pub fn with_timeout(mut self, timeout: i64) -> Self {
         self.timeout = Some(timeout);
         self
     }
 
-    pub fn timeout(&self) -> Option<i32> {
+    pub fn timeout(&self) -> Option<i64> {
         self.timeout
     }
 
@@ -112,16 +112,16 @@ impl HealthConfig {
         self.retries = None;
     }
 
-    pub fn set_start_period(&mut self, start_period: i32) {
+    pub fn set_start_period(&mut self, start_period: i64) {
         self.start_period = Some(start_period);
     }
 
-    pub fn with_start_period(mut self, start_period: i32) -> Self {
+    pub fn with_start_period(mut self, start_period: i64) -> Self {
         self.start_period = Some(start_period);
         self
     }
 
-    pub fn start_period(&self) -> Option<i32> {
+    pub fn start_period(&self) -> Option<i64> {
         self.start_period
     }
 

@@ -106,7 +106,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             Assert.Equal(devices["d9"].GenId, last.OrDefault().value.GenId);
         }
 
-        static IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName) => new EntityStore<TK, TV>(new InMemoryDbStore(), entityName);
+        static IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName)
+            => new EntityStore<TK, TV>(new KeyValueStoreMapper<TK, byte[], TV, byte[]>(new InMemoryDbStore(), new BytesMapper<TK>(), new BytesMapper<TV>()), entityName);
 
         public class KeyAuth
         {
