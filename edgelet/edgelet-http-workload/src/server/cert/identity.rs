@@ -154,6 +154,13 @@ mod tests {
         fn destroy_certificate(&self, _alias: String) -> StdResult<(), CoreError> {
             Ok(())
         }
+
+        fn get_certificate(
+            &self,
+            _alias: String,
+        ) -> StdResult<Self::Certificate, CoreError> {
+            Err(CoreError::from(CoreErrorKind::KeyStore))
+        }
     }
 
     struct TestWorkloadConfig {

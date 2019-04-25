@@ -14,7 +14,7 @@ use edgelet_core::{
 };
 pub use hsm::{
     Buffer, Decrypt, Encrypt, GetTrustBundle, HsmCertificate, KeyBytes as HsmKeyBytes,
-    PrivateKey as HsmPrivateKey,
+    PrivateKey as HsmPrivateKey, GetCertificate as HsmGetCertificate
 };
 use hsm::{
     CreateCertificate as HsmCreateCertificate,
@@ -89,6 +89,16 @@ impl CoreCreateCertificate for Crypto {
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))?;
         Ok(())
+    }
+
+    fn get_certificate(&self, alias: String) -> Result<Self::Certificate, CoreError> {
+        let cert = self.crypto
+            .lock()
+            .expect("Lock on crypto structure failed")
+            .get(alias)
+            .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))?;
+        Ok(Certificate(cert))
     }
 }
 

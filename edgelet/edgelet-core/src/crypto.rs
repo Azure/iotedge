@@ -130,6 +130,8 @@ pub trait CreateCertificate {
     ) -> Result<Self::Certificate, Error>;
 
     fn destroy_certificate(&self, alias: String) -> Result<(), Error>;
+
+    fn get_certificate(&self, alias: String) -> Result<Self::Certificate, Error>;
 }
 
 pub trait Certificate {
