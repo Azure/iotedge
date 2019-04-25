@@ -12,7 +12,6 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <Configurations>Debug;Release;CodeCoverage;CheckInBuild</Configurations>
-    <RootNamespace>temp_sensor</RootNamespace>
     <LangVersion>7.1</LangVersion>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
   </PropertyGroup>

@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
-namespace temp_sensor
+namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
 {
     using System;
     using System.ComponentModel.DataAnnotations;
