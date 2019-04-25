@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json.Linq;
     using Xunit;
@@ -237,6 +238,46 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
                 new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
             IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
             await client.PrepareUpdateAsync(moduleSpec);
+        }
+
+        [Fact]
+        public async Task ExecuteTimeoutTest_Version_2018_06_28()
+        {
+            // Arrange
+            var client = new Version_2018_06_28.ModuleManagementHttpClient(this.serverUrl, Option.Some(TimeSpan.FromSeconds(10)));
+
+            async Task<int> LongOperation()
+            {
+                await Task.Delay(TimeSpan.FromHours(1));
+                return 10;
+            }
+
+            // Act
+            Task assertTask = Assert.ThrowsAsync<TimeoutException>(() => client.Execute<int>(LongOperation, "Dummy"));
+            Task delayTask = Task.Delay(TimeSpan.FromSeconds(20));
+
+            Task completedTask = await Task.WhenAny(assertTask, delayTask);
+            Assert.Equal(assertTask, completedTask);
+        }
+
+        [Fact]
+        public async Task ExecuteTimeoutTest_Version_2019_01_30()
+        {
+            // Arrange
+            var client = new Version_2019_01_30.ModuleManagementHttpClient(this.serverUrl, Option.Some(TimeSpan.FromSeconds(10)));
+
+            async Task<int> LongOperation()
+            {
+                await Task.Delay(TimeSpan.FromHours(1));
+                return 10;
+            }
+
+            // Act
+            Task assertTask = Assert.ThrowsAsync<TimeoutException>(() => client.Execute<int>(LongOperation, "Dummy"));
+            Task delayTask = Task.Delay(TimeSpan.FromSeconds(20));
+
+            Task completedTask = await Task.WhenAny(assertTask, delayTask);
+            Assert.Equal(assertTask, completedTask);
         }
     }
 }
