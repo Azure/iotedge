@@ -490,8 +490,8 @@ static char *get_common_name(const unsigned char *input)
             if (memcmp(COMMON_NAME_OID, oid_start, COMMON_NAME_OID_SIZE) == 0)
             {
                 // back up 2 bytes to ensure we are at a ASN1_SEQUENCE boundary
-                // note it will be 2 bytes because the CN is 64 characters which
-                // and its oid is 5 chars which and their sum is less than 127
+                // note it will be 2 bytes because the CN is 64 characters and
+                // its oid is 5 chars which and their sum is less than 127
                 // and thus will have length expressed in 1 byte
                 const unsigned char * seq_start = oid_start - 2;
                 size_t oid_size_len = parse_asn1_object(seq_start, &seq_obj);
