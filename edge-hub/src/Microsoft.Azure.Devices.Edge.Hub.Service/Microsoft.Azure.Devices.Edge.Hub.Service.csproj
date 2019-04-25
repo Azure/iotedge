@@ -6,6 +6,16 @@
   <PropertyGroup Condition="'$(OS)|$(DotNet_Runtime)' == 'Unix|netcoreapp3.0'">
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <RuntimeIdentifier>linux-arm64</RuntimeIdentifier>
+    <!--
+    MVC requires compilation context to be available. Compilation context tells it if 
+    a library references MVC which is used as a filter to skip assemblies that are deemed 
+    unlikely to have controllers. Microsoft.NET.Sdk does not set 
+    <PreserveCompilationContext>true</PreserveCompilationContext> by default. So we need
+    to set it. We should check with the asp.net core team why this seems to be needed
+    only with dotnet core 3.0 on Arm64.
+    https://github.com/aspnet/Mvc/issues/8388 
+    -->
+    <PreserveCompilationContext>true</PreserveCompilationContext>
   </PropertyGroup>
 
   <PropertyGroup>
