@@ -99,7 +99,7 @@ Param(
 
 function InstallWinArmPrivateRustCompiler
 {
-    $link = "https://iottools.blob.core.windows.net/iotedge-armtools/rust-windows-arm.zip"
+    $link = "https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/rust-windows-arm.zip"
 
     Write-Host "Downloading $link"
     $ProgressPreference = 'SilentlyContinue'

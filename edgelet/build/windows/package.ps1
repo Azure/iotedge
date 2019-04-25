@@ -90,7 +90,7 @@ Function New-Package([string] $Name, [string] $Version)
 if ($CreateTemplate) {
     $docker_cli_uri = if($Arm)
     {
-        "https://iottools.blob.core.windows.net/iotedge-armtools/moby-cli.zip"
+        "https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/moby-cli-arm.zip"
     }
     else
     {
@@ -98,7 +98,7 @@ if ($CreateTemplate) {
     }
     $docker_engine_uri = if($Arm)
     {
-        "https://iottools.blob.core.windows.net/iotedge-armtools/moby-engine.zip"
+        "https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/moby-engine-arm.zip"
     }
     else
     {
