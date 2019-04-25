@@ -295,7 +295,7 @@ jobs:
   - job: linux_arm64v8_docker_mqtt
 ################################################################################
     displayName: Linux ARM64v8 Docker MQTT
-    condition: eq(variables['run.linux.arm64v8.dcoker.mqtt'], 'true')
+    condition: eq(variables['run.linux.arm64v8.docker.mqtt'], 'true')
     pool:
       name: $(pool.name)
       demands:
