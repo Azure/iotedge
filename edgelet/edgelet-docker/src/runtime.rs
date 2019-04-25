@@ -1381,7 +1381,7 @@ mod tests {
         fn runtime_state(&self) -> Self::RuntimeStateFuture {
             match self.runtime_state_behavior {
                 TestModuleRuntimeStateBehavior::Default => {
-                    let top_pid = self.process_ids.first().map(|x| *x);
+                    let top_pid = self.process_ids.first().cloned();
                     future::ok(ModuleRuntimeState::default().with_pid(top_pid))
                 }
                 TestModuleRuntimeStateBehavior::NotFound => {

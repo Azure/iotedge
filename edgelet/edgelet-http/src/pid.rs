@@ -173,7 +173,7 @@ pub mod impl_macos {
             let ret = getpeereid(raw_fd, &mut ucred.uid, &mut ucred.gid);
 
             if ret == 0 {
-                #[allow(clippy::cast_possible_truncation)]
+                #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
                 Ok(Pid::Value(ucred.uid as _))
             } else {
                 Err(io::Error::last_os_error())
