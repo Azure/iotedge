@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
 {
     using System;
@@ -10,20 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
 
     public class Test
     {
-        public class Args
-        {
-            public string DeviceId;
-            public string ConnectionString;
-            public string Endpoint;
-            public string InstallerPath;
-            public Option<string> PackagesPath;
-            public Option<Uri> Proxy;
-            public string AgentImage;
-            public string HubImage;
-            public string SensorImage;
-            public Option<(string address, string username, string password)> Registry;
-        }
-
         public Task<int> RunAsync(Args args) => Profiler.Run(
             "Running tempSensor test",
             async () =>
@@ -56,8 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
                             yaml.Update();
                             await daemon.StartAsync(token);
                         },
-                        () => daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token)
-                    );
+                        () => daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token));
 
                     var agent = new EdgeAgent(device.Id, iotHub);
                     await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
@@ -66,8 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
                     // ** test
                     var config = new EdgeConfiguration(device.Id, args.AgentImage, iotHub);
                     args.Registry.ForEach(
-                        r => config.AddRegistryCredentials(r.address, r.username, r.password)
-                    );
+                        r => config.AddRegistryCredentials(r.address, r.username, r.password));
                     config.AddEdgeHub(args.HubImage);
                     args.Proxy.ForEach(p => config.AddProxy(p));
                     config.AddTempSensor(args.SensorImage);
@@ -116,7 +99,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
 
                 return 0;
             },
-            "Completed tempSensor test"
-        );
+            "Completed tempSensor test");
+
+        public class Args
+        {
+            public string DeviceId;
+            public string ConnectionString;
+            public string Endpoint;
+            public string InstallerPath;
+            public Option<string> PackagesPath;
+            public Option<Uri> Proxy;
+            public string AgentImage;
+            public string HubImage;
+            public string SensorImage;
+            public Option<(string address, string username, string password)> Registry;
+        }
     }
 }

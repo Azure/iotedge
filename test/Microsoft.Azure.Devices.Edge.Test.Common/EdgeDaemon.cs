@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
@@ -16,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class EdgeDaemon
     {
-        private string scriptDir;
+        readonly string scriptDir;
 
         public EdgeDaemon(string scriptDir)
         {
@@ -27,15 +26,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string deviceConnectionString,
             Option<string> packagesPath,
             Option<Uri> proxy,
-            CancellationToken token
-        )
+            CancellationToken token)
         {
             string installCommand = "Install-IoTEdge -Manual -ContainerOs Windows " +
-                $"-DeviceConnectionString '{deviceConnectionString}'";
+                                    $"-DeviceConnectionString '{deviceConnectionString}'";
             packagesPath.ForEach(p => installCommand += $" -OfflineInstallationPath '{p}'");
-            proxy.ForEach(p =>
-                installCommand += $" -InvokeWebRequestParameters @{{ '-Proxy' = '{p}' }}"
-            );
+            proxy.ForEach(
+                p => installCommand += $" -InvokeWebRequestParameters @{{ '-Proxy' = '{p}' }}");
 
             var commands = new[]
             {
@@ -49,8 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             return Profiler.Run(
                 message,
-                () => Process.RunAsync("powershell", string.Join(";", commands), token)
-            );
+                () => Process.RunAsync("powershell", string.Join(";", commands), token));
         }
 
         public Task UninstallAsync(CancellationToken token)
@@ -63,8 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             };
             return Profiler.Run(
                 "Uninstalling edge daemon",
-                () => Process.RunAsync("powershell", string.Join(";", commands), token)
-            );
+                () => Process.RunAsync("powershell", string.Join(";", commands), token));
         }
 
         public Task StartAsync(CancellationToken token)
@@ -77,10 +72,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     if (sc.Status != ServiceControllerStatus.Running)
                     {
                         sc.Start();
-                        await this._WaitForStatusAsync(sc, ServiceControllerStatus.Running, token);
+                        await this.WaitForStatusAsync(sc, ServiceControllerStatus.Running, token);
                     }
-                }
-            );
+                });
         }
 
         public Task StopAsync(CancellationToken token)
@@ -88,14 +82,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             var sc = new ServiceController("iotedge");
             return Profiler.Run(
                 "Stopping edge daemon",
-                async () => {
+                async () =>
+                {
                     if (sc.Status != ServiceControllerStatus.Stopped)
                     {
                         sc.Stop();
-                        await this._WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
+                        await this.WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
                     }
-                }
-            );
+                });
         }
 
         public Task WaitForStatusAsync(EdgeDaemonStatus desired, CancellationToken token)
@@ -103,11 +97,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             var sc = new ServiceController("iotedge");
             return Profiler.Run(
                 $"Waiting for edge daemon to enter the '{desired.ToString().ToLower()}' state",
-                () => this._WaitForStatusAsync(sc, (ServiceControllerStatus)desired, token)
-            );
+                () => this.WaitForStatusAsync(sc, (ServiceControllerStatus)desired, token));
         }
 
-        async Task _WaitForStatusAsync(ServiceController sc, ServiceControllerStatus desired, CancellationToken token)
+        async Task WaitForStatusAsync(ServiceController sc, ServiceControllerStatus desired, CancellationToken token)
         {
             while (sc.Status != desired)
             {

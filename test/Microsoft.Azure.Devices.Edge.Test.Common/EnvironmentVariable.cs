@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
@@ -8,8 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     public class EnvironmentVariable
     {
         public static string Expect(string name) => Preconditions.CheckNonWhiteSpace(
-                Environment.GetEnvironmentVariable(name),
-                name
-            );
+            Environment.GetEnvironmentVariable(name),
+            name);
     }
 }

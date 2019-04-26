@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
@@ -13,9 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class ModuleTwin
     {
-        string deviceId;
-        IotHub iotHub;
-        string moduleId;
+        readonly string deviceId;
+        readonly IotHub iotHub;
+        readonly string moduleId;
 
         public ModuleTwin(string moduleId, string deviceId, IotHub iotHub)
         {
@@ -28,34 +27,33 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             return Profiler.Run(
                 $"Updating twin for module '{this.moduleId}'",
-                () => this.iotHub.UpdateTwinAsync(this.deviceId, this.moduleId, patch, token)
-            );
+                () => this.iotHub.UpdateTwinAsync(this.deviceId, this.moduleId, patch, token));
         }
 
         public Task WaitForReportedPropertyUpdatesAsync(object expectedPatch, CancellationToken token)
         {
             return Profiler.Run(
                 $"Waiting for expected twin updates for module '{this.moduleId}'",
-                () => {
+                () =>
+                {
                     return Retry.Do(
-                        async () => {
+                        async () =>
+                        {
                             Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, this.moduleId, token);
                             return twin.Properties.Reported;
                         },
-                        reported => {
+                        reported =>
+                        {
                             JObject expected = JObject.FromObject(expectedPatch)
                                 .Value<JObject>("properties")
                                 .Value<JObject>("reported");
                             return expected.Value<JObject>().All<KeyValuePair<string, JToken>>(
-                                prop => reported.Contains(prop.Key) && reported[prop.Key] == prop.Value
-                            );
+                                prop => reported.Contains(prop.Key) && reported[prop.Key] == prop.Value);
                         },
                         null,
                         TimeSpan.FromSeconds(5),
-                        token
-                    );
-                }
-            );
+                        token);
+                });
         }
     }
 }
