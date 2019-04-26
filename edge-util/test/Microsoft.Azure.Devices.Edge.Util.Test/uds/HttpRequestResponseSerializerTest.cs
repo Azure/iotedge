@@ -348,7 +348,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
             using (MemoryStream ms = new MemoryStream())
             {
                 int read;
-                while ((read = await s.Read(buffer, 0, buffer.Length)) > 0)
+                while ((read = await s.ReadAsync(buffer, 0, buffer.Length)) > 0)
                 {
                     ms.Write(buffer, 0, read);
                 }
