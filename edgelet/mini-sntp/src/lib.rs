@@ -198,7 +198,9 @@ fn parse_server_response(
     }
 
     if packet.mode != 4 {
-        return Err(ErrorKind::BadServerResponse(BadServerResponseReason::Mode(packet.mode)).into());
+        return Err(
+            ErrorKind::BadServerResponse(BadServerResponseReason::Mode(packet.mode)).into(),
+        );
     }
 
     if packet.originate_timestamp != request_transmit_timestamp {
