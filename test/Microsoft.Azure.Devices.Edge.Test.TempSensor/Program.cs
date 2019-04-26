@@ -1,5 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
 {
     using System;
@@ -18,11 +17,9 @@ The following variables must be set in your environment:
     E2E_IOT_HUB_CONNECTION_STRING
     E2E_EVENT_HUB_ENDPOINT
 If you specify `--registry` and `--user`, the following variable must also be set:
-    E2E_CONTAINER_REGISTRY_PASSWORD
-"
-    )]
+    E2E_CONTAINER_REGISTRY_PASSWORD")]
     [HelpOption]
-    [RegistryAndUserOptionsMustBeSpecifiedTogether()]
+    [RegistryAndUserOptionsMustBeSpecifiedTogether]
     class Program
     {
         const string DefaultAgentImage = "mcr.microsoft.com/azureiotedge-agent:1.0";
@@ -60,30 +57,32 @@ If you specify `--registry` and `--user`, the following variable must also be se
         [Option("--user", Description = "Username for container registry login")]
         public string RegistryUser { get; }
 
+        static Task<int> Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args);
+
         Task<int> OnExecuteAsync()
         {
             var test = new Test();
-            return test.RunAsync(new Test.Args
-            {
-                DeviceId = this.DeviceId,
-                ConnectionString = EnvironmentVariable.Expect("E2E_IOT_HUB_CONNECTION_STRING"),
-                Endpoint = EnvironmentVariable.Expect("E2E_EVENT_HUB_ENDPOINT"),
-                InstallerPath = this.InstallerPath,
-                PackagesPath = Option.Maybe(this.PackagesPath),
-                Proxy = Option.Maybe(this.Proxy),
-                AgentImage = this.AgentImage,
-                HubImage = this.HubImage,
-                SensorImage = this.SensorImage,
-                Registry = this.RegistryAddress != null
-                    ? Option.Some((
-                        this.RegistryAddress,
-                        this.RegistryUser,
-                        EnvironmentVariable.Expect("E2E_CONTAINER_REGISTRY_PASSWORD")))
-                    : Option.None<(string, string, string)>()
-            });
+            return test.RunAsync(
+                new Test.Args
+                {
+                    DeviceId = this.DeviceId,
+                    ConnectionString = EnvironmentVariable.Expect("E2E_IOT_HUB_CONNECTION_STRING"),
+                    Endpoint = EnvironmentVariable.Expect("E2E_EVENT_HUB_ENDPOINT"),
+                    InstallerPath = this.InstallerPath,
+                    PackagesPath = Option.Maybe(this.PackagesPath),
+                    Proxy = Option.Maybe(this.Proxy),
+                    AgentImage = this.AgentImage,
+                    HubImage = this.HubImage,
+                    SensorImage = this.SensorImage,
+                    Registry = this.RegistryAddress != null
+                        ? Option.Some(
+                            (
+                                this.RegistryAddress,
+                                this.RegistryUser,
+                                EnvironmentVariable.Expect("E2E_CONTAINER_REGISTRY_PASSWORD")))
+                        : Option.None<(string, string, string)>()
+                });
         }
-
-        static Task<int> Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args);
     }
 
     [AttributeUsage(AttributeTargets.Class)]
@@ -93,11 +92,12 @@ If you specify `--registry` and `--user`, the following variable must also be se
         {
             if (value is Program obj)
             {
-                if (obj.RegistryAddress == null ^ obj.RegistryUser == null)
+                if ((obj.RegistryAddress == null) ^ (obj.RegistryUser == null))
                 {
                     return new ValidationResult("--registry and --user must be specified together");
                 }
             }
+
             return ValidationResult.Success;
         }
     }
