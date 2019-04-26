@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
@@ -10,12 +9,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     {
         public static Task Run(string startMessage, Func<Task> func, string endMessage = "") => Run(
             startMessage,
-            async () => {
+            async () =>
+            {
                 await func();
                 return true;
             },
-            endMessage
-        );
+            endMessage);
 
         public static async Task<T> Run<T>(string startMessage, Func<Task<T>> func, string endMessage = "")
         {
