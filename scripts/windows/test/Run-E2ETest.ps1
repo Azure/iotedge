@@ -238,9 +238,9 @@ Function PrepareTestFromArtifacts
         ($TestName -eq "TempFilterFunctions") -Or
         (($ProxyUri) -and ($TestName -in "TempSensor", "QuickstartCerts", "TransparentGateway")))
     {
-        Switch -Wildcard ($TestName)
+        Switch -regex ($TestName)
         {
-            "DirectMethod*"
+            "DirectMethod.*"
             {
                 Write-Host "Copy deployment file from $DirectMethodModuleToModuleDeploymentArtifactFilePath"
                 Copy-Item $DirectMethodModuleToModuleDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
