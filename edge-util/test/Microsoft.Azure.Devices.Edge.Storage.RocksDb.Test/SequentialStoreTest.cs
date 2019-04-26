@@ -6,13 +6,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
     public class SequentialStoreTest : SequentialStoreTestBase, IClassFixture<TestRocksDbStoreProvider>
     {
-        readonly TestRocksDbStoreProvider rocksDbStoreProvider;
+        readonly IStoreProvider storeProvider;
 
         public SequentialStoreTest(TestRocksDbStoreProvider rocksDbStoreProvider)
         {
-            this.rocksDbStoreProvider = rocksDbStoreProvider;
+            this.storeProvider = new StoreProvider(rocksDbStoreProvider);
         }
 
-        protected override IEntityStore<byte[], TV> GetEntityStore<TV>(string entityName) => new EntityStore<byte[], TV>(this.rocksDbStoreProvider.GetColumnStoreFamily(entityName), entityName);
+        protected override IEntityStore<byte[], TV> GetEntityStore<TV>(string entityName)
+            => this.storeProvider.GetEntityStore<byte[], TV>(entityName);
     }
 }
