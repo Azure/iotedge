@@ -3,10 +3,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.Immutable;
     using System.IO;
     using System.Linq;
-    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -56,47 +54,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             return Task.WhenAll(streamingTasks);
         }
 
-        internal static IDictionary<string, ModuleLogOptions> GetIdsToProcess(IList<(string id, ModuleLogOptions logOptions)> idList, IList<string> allIds)
-        {
-            var idsToProcess = new Dictionary<string, ModuleLogOptions>(StringComparer.OrdinalIgnoreCase);
-            foreach ((string regex, ModuleLogOptions logOptions) in idList)
-            {
-                ISet<string> ids = GetMatchingIds(regex, allIds);
-                if (ids.Count == 0)
-                {
-                    Events.NoMatchingModule(regex, allIds);
-                }
-                else
-                {
-                    foreach (string id in ids)
-                    {
-                        if (!idsToProcess.ContainsKey(id))
-                        {
-                            idsToProcess[id] = logOptions;
-                        }
-                    }
-                }
-            }
-
-            return idsToProcess;
-        }
-
-        internal static ISet<string> GetMatchingIds(string id, IEnumerable<string> ids)
-        {
-            if (!id.Equals(Constants.AllModulesIdentifier, StringComparison.OrdinalIgnoreCase))
-            {
-                var regex = new Regex(id, RegexOptions.IgnoreCase);
-                ids = ids.Where(m => regex.IsMatch(m));
-            }
-
-            return ids.ToImmutableHashSet();
-        }
-
         internal static bool NeedToProcessStream(ModuleLogOptions logOptions) =>
             logOptions.Filter.LogLevel.HasValue
             || logOptions.Filter.Regex.HasValue
             || logOptions.ContentEncoding != LogsContentEncoding.None
-            || logOptions.ContentType != LogsContentType.Text;
+            || logOptions.ContentType != LogsContentType.Text
+            || logOptions.OutputFraming == LogOutputFraming.SimpleLength;
 
         internal async Task GetLogsStreamInternal(string id, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
         {

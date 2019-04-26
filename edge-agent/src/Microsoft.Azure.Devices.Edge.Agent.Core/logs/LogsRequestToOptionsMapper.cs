@@ -84,10 +84,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
             return ids.ToImmutableHashSet();
         }
-    }
-
-    public interface ILogsRequestToOptionsMapper
-    {
-        Task<IList<(string id, ModuleLogOptions logOptions)>> MapToLogOptions(IEnumerable<LogRequestItem> requestItems, CancellationToken cancellationToken);
-    }
+    }    
 }
