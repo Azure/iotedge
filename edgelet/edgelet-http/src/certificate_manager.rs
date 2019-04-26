@@ -256,5 +256,9 @@ mod tests {
                 .unwrap()
                 .with_timezone(&Utc))
         }
+
+        fn get_common_name(&self) -> Result<String, CoreError> {
+            Ok("IOTEDGED_TLS_COMMONNAME".to_string())
+        }
     }
 }

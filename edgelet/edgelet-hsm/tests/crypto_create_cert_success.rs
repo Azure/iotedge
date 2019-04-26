@@ -3,15 +3,26 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
+use lazy_static::lazy_static;
+use std::sync::Mutex;
+
 use edgelet_core::{
     Certificate, CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate,
     KeyBytes, PrivateKey, Signature, IOTEDGED_CA_ALIAS,
 };
 use edgelet_hsm::Crypto;
+mod test_utils;
+use test_utils::TestHSMEnvSetup;
+
+lazy_static! {
+    static ref LOCK: Mutex<()> = Mutex::new(());
+}
 
 #[test]
 fn crypto_create_cert_success() {
     // arrange
+    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
+
     let crypto = Crypto::new().unwrap();
 
     // create the default issuing CA cert properties
@@ -49,6 +60,7 @@ fn crypto_create_cert_success() {
     assert!(cert_info.get_valid_to().is_ok());
 
     let buffer = cert_info.pem().unwrap();
+    let cn = cert_info.get_common_name().unwrap();
 
     let pk = match cert_info.get_private_key().unwrap() {
         Some(pk) => pk,
@@ -61,6 +73,7 @@ fn crypto_create_cert_success() {
         PrivateKey::Ref(_) => panic!("did not expect reference private key"),
         PrivateKey::Key(KeyBytes::Pem(k)) => assert!(!k.as_bytes().is_empty()),
     }
+    assert_eq!(cn, "Common Name".to_string());
 
     // cleanup
     crypto.destroy_certificate("Alias".to_string()).unwrap();

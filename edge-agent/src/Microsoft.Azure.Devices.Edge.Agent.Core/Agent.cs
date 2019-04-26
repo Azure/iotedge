@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
+    using System.Runtime.ExceptionServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
@@ -108,11 +109,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             {
                 try
                 {
+                    Events.StartingReconcile();
                     (ModuleSet current, DeploymentConfigInfo deploymentConfigInfo, Exception exception) = await this.GetReconcileData(token);
                     moduleSetToReport = current;
                     if (exception != null)
                     {
-                        throw exception;
+                        ExceptionDispatchInfo.Capture(exception).Throw();
                     }
 
                     DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
@@ -176,6 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 }
 
                 await this.reporter.ReportAsync(token, moduleSetToReport, await this.environment.GetRuntimeInfoAsync(), this.currentConfig.Version, status);
+                Events.FinishedReconcile();
             }
         }
 
@@ -293,7 +296,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 (ModuleSet modules, Exception ex) = await this.GetCurrentModuleSetAsync(token);
                 if (ex != null)
                 {
-                    throw ex;
+                    ExceptionDispatchInfo.Capture(ex).Throw();
                 }
 
                 Plan plan = await this.planner.CreateShutdownPlanAsync(modules);
@@ -328,7 +331,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 CompletedShutdown,
                 StopModulesCompleted,
                 InitiatingStopModules,
-                StopModulesFailed
+                StopModulesFailed,
+                FinishedReconcile,
+                StartingReconcile
             }
 
             public static void AgentCreated()
@@ -417,6 +422,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             internal static void ErrorDeserializingConfig(Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorDeserializingConfig, ex, "There was an error deserializing stored deployment configuration information");
+            }
+
+            public static void FinishedReconcile()
+            {
+                Log.LogDebug((int)EventIds.FinishedReconcile, "Finished reconcile operation");
+            }
+
+            public static void StartingReconcile()
+            {
+                Log.LogDebug((int)EventIds.StartingReconcile, "Starting reconcile operation");
             }
         }
     }

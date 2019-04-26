@@ -19,6 +19,21 @@ pub enum ErrorKind {
     #[fail(display = "Identity error")]
     Certificate,
 
+    #[fail(display = "A error occurred obtaining the certificate")]
+    CertificateContent,
+
+    #[fail(display = "A error occurred obtaining the certificate's details")]
+    CertificateDetail,
+
+    #[fail(display = "A error occurred obtaining the certificate's key")]
+    CertificateKey,
+
+    #[fail(display = "A error occurred when obtaining the device identity certificate.")]
+    DeviceIdentityCertificate,
+
+    #[fail(display = "A error occurred when signing using the device identity private key.")]
+    DeviceIdentitySign,
+
     #[fail(
         display = "Edge runtime module has not been created in IoT Hub. Please make sure this device is an IoT Edge capable device."
     )]

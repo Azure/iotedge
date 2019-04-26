@@ -821,7 +821,8 @@ static int load_encryption_key_from_file(CRYPTO_STORE* store, const char *key_na
         else if (((key = read_file_into_buffer(key_file, &key_size)) == NULL) ||
                   (key_size == 0))
         {
-            LOG_ERROR("Could not read key from file. Key size %zu", key_size);
+            LOG_INFO("Could not read encryption key from file. "
+                     " No key file exists or is invalid or permission error.");
             result = __FAILURE__;
         }
         else
@@ -895,7 +896,7 @@ static CERT_INFO_HANDLE prepare_cert_info_handle
         LOG_ERROR("Private key file path is NULL");
         result = NULL;
     }
-    else if ((private_key_contents = read_file_into_cstring(pk_file, &private_key_size)) == NULL)
+    else if ((private_key_contents = read_file_into_buffer(pk_file, &private_key_size)) == NULL)
     {
         LOG_ERROR("Could not load private key into buffer %s", pk_file);
         result = NULL;
@@ -2103,6 +2104,91 @@ static int edge_hsm_client_store_remove_key
     return result;
 }
 
+static KEY_HANDLE open_key
+(
+    CRYPTO_STORE *store,
+    HSM_KEY_T key_type,
+    const char* key_name
+)
+{
+    KEY_HANDLE result;
+    bool do_key_create = true;
+
+    if (key_type == HSM_KEY_ENCRYPTION)
+    {
+        if (!key_exists(store, HSM_KEY_ENCRYPTION, key_name) &&
+            (load_encryption_key_from_file(store, key_name) != 0))
+        {
+            LOG_ERROR("HSM store could not load encryption key %s", key_name);
+            do_key_create = false;
+        }
+    }
+
+    if (!do_key_create)
+    {
+        result = NULL;
+    }
+    else
+    {
+        STORE_ENTRY_KEY* key_entry;
+        size_t buffer_size = 0;
+        const unsigned char *buffer_ptr = NULL;
+        if ((key_entry = get_key(store, key_type, key_name)) == NULL)
+        {
+            LOG_ERROR("Could not find key name %s", key_name);
+            result = NULL;
+        }
+        else if (((buffer_ptr = BUFFER_u_char(key_entry->key)) == NULL) ||
+                    (BUFFER_size(key_entry->key, &buffer_size) != 0) ||
+                    (buffer_size == 0))
+        {
+            LOG_ERROR("Invalid key buffer for %s", key_name);
+            result = NULL;
+        }
+        else
+        {
+            if (key_type == HSM_KEY_ENCRYPTION)
+            {
+                result = create_encryption_key(buffer_ptr, buffer_size);
+            }
+            else
+            {
+                result = create_sas_key(buffer_ptr, buffer_size);
+            }
+        }
+    }
+
+    return result;
+}
+
+static KEY_HANDLE open_certificate_private_key
+(
+    CRYPTO_STORE *store,
+    const char* alias
+)
+{
+    KEY_HANDLE result;
+    STORE_ENTRY_PKI_CERT *cert_entry;
+    const char *pk_file_path;
+
+    if ((cert_entry = get_pki_cert(store, alias)) == NULL)
+    {
+        LOG_ERROR("Could not find certificate and key for alias %s", alias);
+        result = NULL;
+    }
+    else if ((pk_file_path = STRING_c_str(cert_entry->private_key_file)) == NULL)
+    {
+        LOG_ERROR("Invalid private key file path buffer for %s", alias);
+        result = NULL;
+    }
+    else
+    {
+        result = create_cert_key(pk_file_path);
+    }
+
+    return result;
+}
+
 static KEY_HANDLE edge_hsm_client_open_key
 (
     HSM_CLIENT_STORE_HANDLE handle,
@@ -2117,11 +2203,6 @@ static KEY_HANDLE edge_hsm_client_open_key
         LOG_ERROR("Invalid handle parameter");
         result = NULL;
     }
-    else if ((key_type != HSM_KEY_SAS) && (key_type != HSM_KEY_ENCRYPTION))
-    {
-        LOG_ERROR("Invalid key type parameter");
-        result = NULL;
-    }
     else if ((key_name == NULL) || (strlen(key_name) == 0))
     {
         LOG_ERROR("Invalid key name parameter");
@@ -2134,51 +2215,19 @@ static KEY_HANDLE edge_hsm_client_open_key
     }
     else
     {
-        bool do_key_create = true;
         CRYPTO_STORE *store = (CRYPTO_STORE*)handle;
-
-        if (key_type == HSM_KEY_ENCRYPTION)
+        if ((key_type == HSM_KEY_SAS) || (key_type == HSM_KEY_ENCRYPTION))
         {
-            if (!key_exists(store, HSM_KEY_ENCRYPTION, key_name) &&
-                (load_encryption_key_from_file(store, key_name) != 0))
-            {
-                LOG_ERROR("HSM store could not load encryption key %s", key_name);
-                do_key_create = false;
-            }
+            result = open_key(store, key_type, key_name);
         }
-
-        if (!do_key_create)
+        else if (key_type == HSM_KEY_ASYMMETRIC_PRIVATE_KEY)
         {
-            result = NULL;
+            result = open_certificate_private_key(store, key_name);
         }
         else
         {
-            STORE_ENTRY_KEY* key_entry;
-            size_t buffer_size = 0;
-            const unsigned char *buffer_ptr = NULL;
-            if ((key_entry = get_key(store, key_type, key_name)) == NULL)
-            {
-                LOG_ERROR("Could not find key name %s", key_name);
-                result = NULL;
-            }
-            else if (((buffer_ptr = BUFFER_u_char(key_entry->key)) == NULL) ||
-                     (BUFFER_size(key_entry->key, &buffer_size) != 0) ||
-                     (buffer_size == 0))
-            {
-                LOG_ERROR("Invalid key buffer for %s", key_name);
-                result = NULL;
-            }
-            else
-            {
-                if (key_type == HSM_KEY_ENCRYPTION)
-                {
-                    result = create_encryption_key(buffer_ptr, buffer_size);
-                }
-                else
-                {
-                    result = create_sas_key(buffer_ptr, buffer_size);
-                }
-            }
+            LOG_ERROR("Invalid key type parameter");
+            result = NULL;
         }
     }
 
@@ -2678,7 +2727,7 @@ static int edge_hsm_client_store_insert_encryption_key
     }
     else if (load_encryption_key_from_file(g_crypto_store, key_name) == 0)
     {
-        LOG_DEBUG("HSM store already has encryption key set %s", key_name);
+        LOG_DEBUG("Loaded encryption key %s from file", key_name);
         result = 0;
     }
     else
