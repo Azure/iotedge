@@ -553,9 +553,20 @@ where
 
     // Create the certificate management timer and channel
     let (restart_tx, restart_rx) = oneshot::channel();
-    let expiration_timer = cert_manager
-        .schedule_expiration_timer(move || restart_tx.send(()))
-        .map_err(|err| Error::from(err.context(ErrorKind::CertificateExpirationManagement)));
+
+    let expiration_timer = if settings.listen().management_uri().scheme() == "https"
+        || settings.listen().workload_uri().scheme() == "https"
+    {
+        Either::A(
+            cert_manager
+                .schedule_expiration_timer(move || restart_tx.send(()))
+                .map_err(|err| {
+                    Error::from(err.context(ErrorKind::CertificateExpirationManagement))
+                }),
+        )
+    } else {
+        Either::B(future::ok(()))
+    };
 
     let cert_manager = Arc::new(cert_manager);
 
