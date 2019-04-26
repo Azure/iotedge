@@ -4,6 +4,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices;
+    using Serilog;
 
     public class EdgeDevice
     {
@@ -31,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             CancellationToken token)
         {
             return Profiler.Run(
-                $"Creating edge device '{deviceId}' on hub '{iotHub.Hostname}'",
+                $"Created edge device '{deviceId}' on hub '{iotHub.Hostname}'",
                 async () =>
                 {
                     Device device = await iotHub.CreateEdgeDeviceIdentityAsync(deviceId, token);
@@ -52,7 +54,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     throw new InvalidOperationException($"Device '{device.Id}' exists, but is not an edge device");
                 }
 
-                Console.WriteLine($"Device '{device.Id}' already exists on hub '{iotHub.Hostname}'");
+                Log.Information(
+                    "{Message}",
+                    $"Device '{device.Id}' already exists on hub '{iotHub.Hostname}'"
+                );
                 return new EdgeDevice(device, false, iotHub);
             }
             else
@@ -64,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task DeleteIdentityAsync(CancellationToken token)
         {
             return Profiler.Run(
-                $"Deleting device '{this.Id}'",
+                $"Deleted device '{this.Id}'",
                 () => this.iotHub.DeleteDeviceIdentityAsync(this.device, token));
         }
 
@@ -76,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
             else
             {
-                Console.WriteLine($"Pre-existing device '{this.Id}' was not deleted");
+                Log.Information("{Message}", $"Pre-existing device '{this.Id}' was not deleted");
             }
         }
     }

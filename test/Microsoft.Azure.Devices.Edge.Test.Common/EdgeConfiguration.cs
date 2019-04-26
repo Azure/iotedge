@@ -26,8 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public EdgeConfiguration(string deviceId, string agentImage, IotHub iotHub)
         {
             this.config = GetBaseConfig(agentImage);
-            this.iotHub = iotHub;
             this.deviceId = deviceId;
+            this.iotHub = iotHub;
         }
 
         IReadOnlyCollection<string> Modules
@@ -150,8 +150,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public Task DeployAsync(CancellationToken token)
         {
-            string message = "Deploying edge configuration to device " +
-                             $"'{this.deviceId}' with modules ({string.Join(", ", this.Modules)})";
+            string message = "Deployed edge configuration to device " +
+                $"'{this.deviceId}' with modules ({string.Join(", ", this.Modules)})";
 
             return Profiler.Run(
                 message,

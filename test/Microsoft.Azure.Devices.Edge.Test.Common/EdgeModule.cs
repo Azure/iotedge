@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Serilog;
 
     public enum EdgeModuleStatus
     {
@@ -33,6 +34,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 ? $"module '{modules.First().Id}'"
                 : $"modules ({string.Join(", ", modules.Select(module => module.Id))})";
 
+            string SentenceCase(string input) =>
+                $"{input.First().ToString().ToUpper()}{input.Substring(1)}";
+
             async Task WaitForStatusAsync()
             {
                 try
@@ -40,9 +44,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     await Retry.Do(
                         async () =>
                         {
-                            string[] result = await Process.RunAsync("iotedge", "list", token);
+                            string[] output = await Process.RunAsync("iotedge", "list", token);
 
-                            return result
+                            Log.Verbose("{Output}", string.Join("\n", output));
+
+                            return output
                                 .Where(
                                     ln =>
                                     {
@@ -85,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
 
             return Profiler.Run(
-                $"Waiting for {FormatModulesList()} to enter the '{desired.ToString().ToLower()}' state",
+                $"{SentenceCase(FormatModulesList())} entered the '{desired.ToString().ToLower()}' state",
                 WaitForStatusAsync);
         }
 
@@ -97,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task WaitForEventsReceivedAsync(CancellationToken token)
         {
             return Profiler.Run(
-                $"Receiving events from device '{this.deviceId}' on Event Hub '{this.iotHub.EntityPath}'",
+                $"Received events from device '{this.deviceId}' on Event Hub '{this.iotHub.EntityPath}'",
                 () => this.iotHub.ReceiveEventsAsync(
                     this.deviceId,
                     data =>

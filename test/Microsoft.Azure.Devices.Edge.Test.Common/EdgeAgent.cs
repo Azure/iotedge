@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task PingAsync(CancellationToken token)
         {
             return Profiler.Run(
-                "Pinging module 'edgeAgent' from the cloud",
+                "Pinged module 'edgeAgent' from the cloud",
                 () =>
                 {
                     return Retry.Do(
