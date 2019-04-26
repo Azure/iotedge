@@ -375,6 +375,7 @@ where
     let diff = issuer_validity.timestamp() - now.timestamp();
 
     if diff > IOTEDGED_MIN_EXPIRATION_DURATION {
+        #[allow(clippy::cast_sign_loss)]
         let edgelet_ca_props = CertificateProperties::new(
             diff as u64,
             IOTEDGED_COMMONNAME.to_string(),
