@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public string ConnectionString =>
             $"HostName={this.iotHub.Hostname};" +
-            $"deviceId={this.device.Id};" +
+            $"DeviceId={this.device.Id};" +
             $"SharedAccessKey={this.device.Authentication.SymmetricKey.PrimaryKey}";
 
         public string Id => this.device.Id;
