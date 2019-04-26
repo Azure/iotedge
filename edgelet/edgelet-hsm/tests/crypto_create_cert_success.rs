@@ -46,7 +46,9 @@ fn crypto_create_cert_success() {
     let cn = workload_ca_cert.get_common_name().unwrap();
     assert_eq!("test-iotedge-cn".to_string(), cn);
 
-    let workload_ca_cert = crypto.get_certificate(IOTEDGED_CA_ALIAS.to_string()).unwrap();
+    let workload_ca_cert = crypto
+        .get_certificate(IOTEDGED_CA_ALIAS.to_string())
+        .unwrap();
     let buffer = workload_ca_cert.pem().unwrap();
     assert!(!buffer.as_bytes().is_empty());
     let cn = workload_ca_cert.get_common_name().unwrap();

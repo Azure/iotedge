@@ -169,10 +169,7 @@ mod tests {
             Ok(())
         }
 
-        fn get_certificate(
-            &self,
-            _alias: String,
-        ) -> StdResult<Self::Certificate, CoreError> {
+        fn get_certificate(&self, _alias: String) -> StdResult<Self::Certificate, CoreError> {
             Err(CoreError::from(CoreErrorKind::KeyStore))
         }
     }

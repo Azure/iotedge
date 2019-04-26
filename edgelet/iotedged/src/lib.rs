@@ -51,8 +51,8 @@ use edgelet_core::crypto::{
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
-    CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime, ModuleSpec, UrlExt,
-    WorkloadConfig, UNIX_SCHEME, Certificate
+    Certificate, CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime,
+    ModuleSpec, UrlExt, WorkloadConfig, UNIX_SCHEME,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
@@ -356,16 +356,17 @@ pub fn get_proxy_uri(https_proxy: Option<String>) -> Result<Option<Uri>, Error> 
 
 fn prepare_workload_ca<C>(crypto: &C) -> Result<(), Error>
 where
-    C: CreateCertificate
+    C: CreateCertificate,
 {
     let issuer_ca = crypto
-                     .get_certificate(IOTEDGED_CA_ALIAS.to_string())
-                     .context(ErrorKind::Initialize(
-                                InitializeErrorReason::PrepareWorkloadCa))?;
+        .get_certificate(IOTEDGED_CA_ALIAS.to_string())
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::PrepareWorkloadCa,
+        ))?;
 
-    let issuer_validity = issuer_ca.get_valid_to()
-                              .context(ErrorKind::Initialize(
-                                InitializeErrorReason::PrepareWorkloadCa))?;
+    let issuer_validity = issuer_ca.get_valid_to().context(ErrorKind::Initialize(
+        InitializeErrorReason::PrepareWorkloadCa,
+    ))?;
 
     info!("Edge issuer CA expiration date: {:?}", issuer_validity);
 
@@ -388,11 +389,10 @@ where
                 InitializeErrorReason::PrepareWorkloadCa,
             ))?;
         Ok(())
-    }
-    else
-    {
+    } else {
         Err(Error::from(ErrorKind::Initialize(
-                    InitializeErrorReason::IssuerCAExpiration)))
+            InitializeErrorReason::IssuerCAExpiration,
+        )))
     }
 }
 
@@ -1042,7 +1042,7 @@ mod tests {
     }
 
     struct TestCrypto {
-        use_expired_ca: bool
+        use_expired_ca: bool,
     }
 
     impl MasterEncryptionKey for TestCrypto {
@@ -1072,8 +1072,15 @@ mod tests {
             Ok(())
         }
 
-        fn get_certificate(&self, _alias: String) -> Result<Self::Certificate, edgelet_core::Error> {
-            let ts = if self.use_expired_ca { Utc::now() } else { Utc::now() + Duration::hours(1) };
+        fn get_certificate(
+            &self,
+            _alias: String,
+        ) -> Result<Self::Certificate, edgelet_core::Error> {
+            let ts = if self.use_expired_ca {
+                Utc::now()
+            } else {
+                Utc::now() + Duration::hours(1)
+            };
             Ok(TestCert::default()
                 .with_cert(vec![1, 2, 3])
                 .with_private_key(PrivateKey::Key(KeyBytes::Pem("some key".to_string())))
@@ -1104,7 +1111,9 @@ mod tests {
         let module: TestModule<Error> =
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
-        let crypto = TestCrypto { use_expired_ca: true };
+        let crypto = TestCrypto {
+            use_expired_ca: true,
+        };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         let result = check_settings_state(
             tmp_dir.path().to_path_buf(),
@@ -1129,7 +1138,9 @@ mod tests {
         let module: TestModule<Error> =
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
-        let crypto = TestCrypto { use_expired_ca: false };
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+        };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state(
             tmp_dir.path().to_path_buf(),
@@ -1161,7 +1172,9 @@ mod tests {
         let module: TestModule<Error> =
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
-        let crypto = TestCrypto { use_expired_ca: false };
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+        };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state(
             tmp_dir.path().to_path_buf(),
