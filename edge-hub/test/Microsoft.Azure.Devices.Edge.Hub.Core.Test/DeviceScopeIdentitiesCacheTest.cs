@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceProxy = new Mock<IServiceProxy>();
             serviceProxy.Setup(s => s.GetServiceIdentitiesIterator()).Returns(iterator.Object);
 
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthentication = new ServiceAuthentication(ServiceAuthenticationType.None);
             var si1 = new ServiceIdentity("d1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
             var si2 = new ServiceIdentity("d2", "m1", "2345", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task RefreshCacheTest()
         {
             // Arrange
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthentication = new ServiceAuthentication(ServiceAuthenticationType.None);
             Func<ServiceIdentity> si1 = () => new ServiceIdentity("d1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
             Func<ServiceIdentity> si2 = () => new ServiceIdentity("d2", "m1", "2345", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task RefreshCacheWithRefreshRequestTest()
         {
             // Arrange
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthentication = new ServiceAuthentication(ServiceAuthenticationType.None);
             Func<ServiceIdentity> si1 = () => new ServiceIdentity("d1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
             Func<ServiceIdentity> si2 = () => new ServiceIdentity("d2", "m1", "2345", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
@@ -280,7 +280,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task RefreshServiceIdentityTest_Device()
         {
             // Arrange
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
 
@@ -343,7 +343,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task RefreshServiceIdentityTest_List()
         {
             // Arrange
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
 
@@ -410,7 +410,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task RefreshServiceIdentityTest_Module()
         {
             // Arrange
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
 
@@ -473,7 +473,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task GetServiceIdentityTest_Device()
         {
             // Arrange
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
 
@@ -538,7 +538,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task GetServiceIdentityTest_Module()
         {
             // Arrange
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
 
@@ -603,7 +603,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task GetServiceIdentityFromServiceTest()
         {
             // Arrange
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
 
@@ -628,5 +628,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));
+
+        static IEntityStore<string, string> GetEntityStore(string entityName)
+            => new EntityStore<string, string>(new KeyValueStoreMapper<string, byte[], string, byte[]>(new InMemoryDbStore(), new BytesMapper<string>(), new BytesMapper<string>()), entityName);
     }
 }

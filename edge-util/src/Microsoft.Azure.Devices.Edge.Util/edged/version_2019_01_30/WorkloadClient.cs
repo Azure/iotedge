@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2019_01_30
 {
     using System;
     using System.Net.Http;
+    using System.Runtime.ExceptionServices;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Edged.Version_2019_01_30.GeneratedCode;
@@ -110,7 +111,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2019_01_30
                     }
 
                 default:
-                    throw ex;
+                    ExceptionDispatchInfo.Capture(ex).Throw();
+                    break;
             }
         }
 

@@ -508,13 +508,16 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
         const char *certificate = certificate_info_get_certificate(result);
         const char *chain_certificate = certificate_info_get_chain(result);
-        const void* private_key = certificate_info_get_private_key(result, &pk_size);
+        const void *private_key = certificate_info_get_private_key(result, &pk_size);
+        const char *common_name = certificate_info_get_common_name(result);
 
         // assert
         ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
         ASSERT_IS_NOT_NULL(certificate, "Line:" TOSTRING(__LINE__));
         ASSERT_IS_NOT_NULL(chain_certificate, "Line:" TOSTRING(__LINE__));
         ASSERT_IS_NOT_NULL(private_key, "Line:" TOSTRING(__LINE__));
+        int cmp = strcmp(TEST_SERVER_COMMON_NAME, common_name);
+        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         interface->hsm_client_destroy_certificate(hsm_handle, TEST_SERVER_ALIAS);
@@ -568,7 +571,8 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
         const char *certificate = certificate_info_get_certificate(result);
         const char *chain_certificate = certificate_info_get_chain(result);
-        const void* private_key = certificate_info_get_private_key(result, &pk_size);
+        const void *private_key = certificate_info_get_private_key(result, &pk_size);
+        const char *common_name = certificate_info_get_common_name(result);
         int64_t expiration_time = certificate_info_get_valid_to(result);
         int64_t issuer_expiration_time = certificate_info_get_valid_to(ca_cert_info);
         ASSERT_IS_TRUE((expiration_time <= issuer_expiration_time), "Line:" TOSTRING(__LINE__));
@@ -578,6 +582,8 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         ASSERT_IS_NOT_NULL(certificate, "Line:" TOSTRING(__LINE__));
         ASSERT_IS_NOT_NULL(chain_certificate, "Line:" TOSTRING(__LINE__));
         ASSERT_IS_NOT_NULL(private_key, "Line:" TOSTRING(__LINE__));
+        int cmp = strcmp(TEST_SERVER_COMMON_NAME, common_name);
+        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         interface->hsm_client_destroy_certificate(hsm_handle, TEST_SERVER_ALIAS);
@@ -609,7 +615,8 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
         const char *certificate = certificate_info_get_certificate(result);
         const char *chain_certificate = certificate_info_get_chain(result);
-        const void* private_key = certificate_info_get_private_key(result, &pk_size);
+        const void *private_key = certificate_info_get_private_key(result, &pk_size);
+        const char *common_name = certificate_info_get_common_name(result);
         int64_t expiration_time = certificate_info_get_valid_to(result);
         int64_t issuer_expiration_time = certificate_info_get_valid_to(ca_cert_info);
         ASSERT_IS_TRUE((expiration_time < issuer_expiration_time), "Line:" TOSTRING(__LINE__));
@@ -619,6 +626,8 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         ASSERT_IS_NOT_NULL(certificate, "Line:" TOSTRING(__LINE__));
         ASSERT_IS_NOT_NULL(chain_certificate, "Line:" TOSTRING(__LINE__));
         ASSERT_IS_NOT_NULL(private_key, "Line:" TOSTRING(__LINE__));
+        int cmp = strcmp(TEST_SERVER_COMMON_NAME, common_name);
+        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         interface->hsm_client_destroy_certificate(hsm_handle, TEST_SERVER_ALIAS);
@@ -701,9 +710,12 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
 
         // act
         CERT_INFO_HANDLE result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
+        const char *common_name = certificate_info_get_common_name(result);
 
         // assert
         ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
+        int cmp = strcmp(TEST_CLIENT_COMMON_NAME, common_name);
+        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         interface->hsm_client_destroy_certificate(hsm_handle, TEST_CLIENT_ALIAS);

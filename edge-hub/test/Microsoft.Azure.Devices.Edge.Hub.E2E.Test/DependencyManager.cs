@@ -139,7 +139,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Option.None<TimeSpan>(),
                     false,
                     10,
-                    10));
+                    10,
+                    false));
 
             builder.RegisterModule(new HttpModule());
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, false));

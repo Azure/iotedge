@@ -519,6 +519,10 @@ extern "C" {
     pub fn certificate_info_destroy(handle: CERT_INFO_HANDLE);
 }
 
+extern "C" {
+    pub fn certificate_info_get_common_name(handle: CERT_INFO_HANDLE) -> *const c_char;
+}
+
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct HSM_CLIENT_TPM_INTERFACE_TAG {
