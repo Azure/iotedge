@@ -513,7 +513,7 @@ mod tests {
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         assert_eq!(
-            "Could not create identity cert\n\tcaused by: A error occurred in the key store.",
+            "Could not create identity cert\n\tcaused by: An error occurred in the key store.",
             parse_error_response(response).message(),
         );
     }
@@ -546,7 +546,7 @@ mod tests {
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         assert_eq!(
-            "Could not create identity cert\n\tcaused by: A error occurred in the key store.",
+            "Could not create identity cert\n\tcaused by: An error occurred in the key store.",
             parse_error_response(response).message(),
         );
     }
@@ -579,7 +579,7 @@ mod tests {
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         assert_eq!(
-            "Could not create identity cert\n\tcaused by: A error occurred in the key store.",
+            "Could not create identity cert\n\tcaused by: An error occurred in the key store.",
             parse_error_response(response).message(),
         );
     }
@@ -612,7 +612,7 @@ mod tests {
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         assert_eq!(
-            "Could not create identity cert\n\tcaused by: A error occurred in the key store.",
+            "Could not create identity cert\n\tcaused by: An error occurred in the key store.",
             parse_error_response(response).message(),
         );
     }
