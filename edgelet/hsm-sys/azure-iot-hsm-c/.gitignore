@@ -6,7 +6,8 @@
 *.a
 
 cmake*/
-build/
+build*/
+
 
 # Doxygen output
 html/

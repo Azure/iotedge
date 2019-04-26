@@ -68,7 +68,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 ModuleState moduleState = moduleStateOption.GetOrElse(new ModuleState(0, moduleRuntimeInfo.ExitTime.GetOrElse(DateTime.MinValue)));
                 // compute module state based on restart policy
                 DateTime lastExitTime = moduleRuntimeInfo.ExitTime.GetOrElse(DateTime.MinValue);
-                ModuleStatus moduleRuntimeStatus = this.restartManager.ComputeModuleStatusFromRestartPolicy(moduleRuntimeInfo.ModuleStatus, dockerModule.RestartPolicy, moduleState.RestartCount, lastExitTime);
+                ModuleStatus moduleRuntimeStatus = dockerModule.DesiredStatus == ModuleStatus.Running
+                    ? this.restartManager.ComputeModuleStatusFromRestartPolicy(moduleRuntimeInfo.ModuleStatus, dockerModule.RestartPolicy, moduleState.RestartCount, lastExitTime)
+                    : moduleRuntimeInfo.ModuleStatus;
+
                 string image = !string.IsNullOrWhiteSpace(dockerRuntimeInfo.Config.Image) ? dockerRuntimeInfo.Config.Image : dockerModule.Config.Image;
                 var dockerReportedConfig = new DockerReportedConfig(image, dockerModule.Config.CreateOptions, dockerRuntimeInfo.Config.ImageHash);
                 IModule module;
