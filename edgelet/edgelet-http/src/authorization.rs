@@ -6,8 +6,7 @@ use failure::ResultExt;
 use futures::{future, Future};
 use hyper::{Body, Request, Response};
 
-use edgelet_core::AuthId;
-use edgelet_core::{Authorization as CoreAuth, Policy};
+use edgelet_core::{AuthId, Authorization as CoreAuth, Policy};
 
 use crate::error::{Error, ErrorKind};
 use crate::route::{Handler, Parameters};

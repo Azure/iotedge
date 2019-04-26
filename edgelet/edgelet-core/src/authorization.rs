@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::fmt;
+
 use futures::future::Either;
 use futures::{future, Future};
 
 use crate::error::Error;
-
-use std::fmt;
 
 #[derive(Debug)]
 pub enum Policy {

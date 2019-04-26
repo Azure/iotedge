@@ -5,12 +5,11 @@ use std::{cmp, fmt, io};
 use futures::prelude::*;
 use hyper::service::Service;
 use hyper::{Body, Error as HyperError, Request};
+use serde_derive::{Deserialize, Serialize};
 #[cfg(unix)]
 use tokio_uds::UnixStream;
 #[cfg(windows)]
 use tokio_uds_windows::UnixStream;
-
-use serde_derive::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum Pid {
@@ -113,9 +112,10 @@ use self::impl_linux::get_pid;
 
 #[cfg(target_os = "linux")]
 mod impl_linux {
-    use libc::{c_void, getsockopt, ucred, SOL_SOCKET, SO_PEERCRED};
     use std::os::unix::io::AsRawFd;
     use std::{io, mem};
+
+    use libc::{c_void, getsockopt, ucred, SOL_SOCKET, SO_PEERCRED};
     use tokio_uds::UnixStream;
 
     use super::*;
@@ -158,11 +158,13 @@ pub use self::impl_macos::get_pid;
 
 #[cfg(target_os = "macos")]
 pub mod impl_macos {
-    use crate::pid::Pid;
-    use libc::getpeereid;
     use std::os::unix::io::AsRawFd;
     use std::{io, mem};
+
+    use libc::getpeereid;
     use tokio_uds::{UCred, UnixStream};
+
+    use super::*;
 
     pub fn get_pid(sock: &UnixStream) -> io::Result<Pid> {
         unsafe {
@@ -189,6 +191,7 @@ use self::impl_windows::get_pid;
 mod impl_windows {
     use std::io;
     use std::os::windows::io::AsRawSocket;
+
     use winapi::ctypes::c_long;
     use winapi::um::winsock2::{ioctlsocket, WSAGetLastError, SOCKET_ERROR};
 

@@ -4,11 +4,12 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::module_name_repetitions, clippy::use_self)]
 
-use edgelet_core::{AuthId, Authenticator};
 use failure::Fail;
 use futures::{future, Future};
 use hyper::service::{NewService, Service};
 use hyper::{Body, Request};
+
+use edgelet_core::{AuthId, Authenticator};
 
 use crate::{Error, ErrorKind, IntoResponse};
 

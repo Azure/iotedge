@@ -50,15 +50,15 @@ mod unix;
 mod util;
 mod version;
 
-pub use self::certificate_manager::CertificateManager;
-pub use self::error::{BindListenerType, Error, ErrorKind, InvalidUrlReason};
-pub use self::util::proxy::MaybeProxyClient;
-pub use self::util::UrlConnector;
-pub use self::version::{Version, API_VERSION};
+pub use certificate_manager::CertificateManager;
+pub use error::{BindListenerType, Error, ErrorKind, InvalidUrlReason};
 pub use pid::Pid;
+pub use util::proxy::MaybeProxyClient;
+pub use util::UrlConnector;
+pub use version::{Version, API_VERSION};
 
-use self::util::incoming::Incoming;
 use crate::pid::PidService;
+use crate::util::incoming::Incoming;
 
 const HTTP_SCHEME: &str = "http";
 #[cfg(unix)]

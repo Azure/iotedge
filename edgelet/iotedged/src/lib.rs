@@ -34,8 +34,11 @@ use futures::future::Either;
 use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future};
 use hyper::server::conn::Http;
+use hyper::service::Service;
 use hyper::{Body, Request, Uri};
 use log::{debug, info};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 use url::Url;
 
@@ -57,6 +60,7 @@ use edgelet_core::{
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
+use edgelet_http::authentication::AuthenticationService;
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
@@ -64,6 +68,7 @@ use edgelet_http::{HyperExt, MaybeProxyClient, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
+pub use error::{Error, ErrorKind, InitializeErrorReason};
 use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
 use iothubservice::DeviceClient;
@@ -73,12 +78,6 @@ use provisioning::provisioning::{
 };
 
 use crate::workload::WorkloadData;
-
-pub use self::error::{Error, ErrorKind, InitializeErrorReason};
-use edgelet_http::authentication::AuthenticationService;
-use hyper::service::Service;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";

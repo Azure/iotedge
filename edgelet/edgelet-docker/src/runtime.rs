@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use base64;
 use failure::{Fail, ResultExt};
+use futures::future::Either;
 use futures::prelude::*;
 use futures::{future, stream, Async, Stream};
 use hyper::{Body, Chunk as HyperChunk, Client, Request};
@@ -31,7 +32,6 @@ use crate::error::{Error, ErrorKind, Result};
 use crate::module::{
     runtime_state, DockerModule, DockerModuleTop, MODULE_TYPE as DOCKER_MODULE_TYPE,
 };
-use futures::future::Either;
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 

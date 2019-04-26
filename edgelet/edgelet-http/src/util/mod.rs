@@ -28,8 +28,8 @@ mod hyperwrap;
 pub mod incoming;
 pub mod proxy;
 
-pub use self::connector::UrlConnector;
-pub use self::incoming::Incoming;
+pub use connector::UrlConnector;
+pub use incoming::Incoming;
 
 pub enum StreamSelector {
     Tcp(TcpStream),

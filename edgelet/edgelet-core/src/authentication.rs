@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use crate::AuthId;
 use futures::Future;
+
+use crate::AuthId;
 
 pub trait Authenticator {
     type Error;

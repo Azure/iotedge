@@ -2,12 +2,13 @@
 #![allow(deprecated)]
 
 use chrono::prelude::*;
-use edgelet_core::AuthId;
 use futures::prelude::*;
 use hyper::header::{CONTENT_LENGTH, USER_AGENT};
 use hyper::service::{NewService, Service};
 use hyper::Request;
 use log::info;
+
+use edgelet_core::AuthId;
 
 #[derive(Clone)]
 pub struct LoggingService<T> {

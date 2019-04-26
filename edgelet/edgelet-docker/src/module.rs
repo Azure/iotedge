@@ -3,20 +3,19 @@
 use std::str::FromStr;
 
 use chrono::prelude::*;
+use failure::ResultExt;
 use futures::Future;
 use hyper::client::connect::Connect;
-
-use edgelet_utils::ensure_not_empty_with_context;
 
 use docker::models::{InlineResponse2001, InlineResponse200State};
 use edgelet_core::{
     Module, ModuleOperation, ModuleRuntimeState, ModuleStatus, ModuleTop, RuntimeOperation,
 };
+use edgelet_utils::ensure_not_empty_with_context;
 
 use crate::client::DockerClient;
 use crate::config::DockerConfig;
 use crate::error::{Error, ErrorKind, Result};
-use failure::ResultExt;
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
