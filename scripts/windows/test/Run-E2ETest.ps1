@@ -356,7 +356,7 @@ Function PrepareTestFromArtifacts
                     }
                 }
             }
-            {"LongHaul" -or "Stress"}
+            {$_ -in "LongHaul","Stress"}
             {
                 If ($TestName -eq "LongHaul")
                 {
@@ -403,7 +403,7 @@ Function PrepareTestFromArtifacts
                 Write-Host "Copy deployment file from $QuickstartDeploymentArtifactFilePath"
                 Copy-Item $QuickstartDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
             }
-            {"QuickstartCerts" -or "TransparentGateway"} # Only when $ProxyUri is specified
+            {$_ -in "QuickstartCerts","TransparentGateway"} # Only when $ProxyUri is specified
             {
                 Write-Host "Copy deployment file from $RuntimeOnlyDeploymentArtifactFilePath"
                 Copy-Item $RuntimeOnlyDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
