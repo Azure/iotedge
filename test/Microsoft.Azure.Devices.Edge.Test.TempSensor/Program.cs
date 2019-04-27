@@ -17,7 +17,8 @@ The following variables must be set in your environment:
     E2E_IOT_HUB_CONNECTION_STRING
     E2E_EVENT_HUB_ENDPOINT
 If you specify `--registry` and `--user`, the following variable must also be set:
-    E2E_CONTAINER_REGISTRY_PASSWORD")]
+    E2E_CONTAINER_REGISTRY_PASSWORD
+")]
     [HelpOption]
     [RegistryAndUserOptionsMustBeSpecifiedTogether]
     class Program
