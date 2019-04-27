@@ -23,6 +23,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Could not provision device")]
     Provision,
+
+    #[fail(display = "Could not initialize Hosting client")]
+    HostingInitialization,
 }
 
 impl Fail for Error {

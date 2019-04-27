@@ -1,0 +1,66 @@
+swagger: '2.0'
+schemes:
+  - http
+info:
+  title: IoT Edge Hosting Environment API
+  version: '2019-04-10'
+tags:
+  - name: Hosting
+    x-displayName: Hosting
+    description: |
+
+paths:
+  '/edge/device/connectioninformation':
+    get:
+      tags:
+        - Hosting
+      summary: Gets the IoT hub connection information of the device.
+      produces:
+        - application/json
+      description: |
+        This returns the IoT hub connection information of the device.
+      operationId: GetDeviceConnectionInformation
+      parameters:
+        - $ref: '#/parameters/api-version'
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/DeviceConnectionInfo'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
+definitions:
+  DeviceConnectionInfo:
+    type: object
+    properties:
+      hubName:
+        type: string
+        description: The host name of the IoT hub.
+        example: mytesthub.azure-devices.net
+      deviceId:
+        type: string
+        description: The ID of the device in IoT hub.
+        example: device01
+    required:
+      - hubName
+      - deviceId
+
+  ErrorResponse:
+    type: object
+    properties:
+      message:
+        type: string
+    required:
+      - message
+
+parameters:
+  api-version:
+    name: api-version
+    in: query
+    description: The version of the API.
+    required: true
+    type: string
+    default: '2019-04-10'

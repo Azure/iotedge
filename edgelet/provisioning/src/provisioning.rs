@@ -2,6 +2,7 @@
 
 use std::fs::File;
 use std::io::{Read, Write};
+use std::marker::PhantomData;
 use std::path::PathBuf;
 
 use bytes::Bytes;
@@ -17,6 +18,7 @@ use dps::registration::{DpsAuthKind, DpsClient, DpsTokenSource};
 use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, MemoryKey, MemoryKeyStore};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
+use edgelet_http_hosting::HostingInterface;
 use edgelet_utils::log_failure;
 use hsm::TpmKey as HsmTpmKey;
 use log::{debug, Level};
@@ -131,6 +133,73 @@ impl Provision for ManualProvisioning {
             })
             .map_err(|err| Error::from(err.context(ErrorKind::Provision)));
         Box::new(result.into_future())
+    }
+}
+
+// Using PhantomData here as we need to know the associate type of Hsm in the implementation
+// of the Provision trait.
+pub struct ExternalProvisioning<T, U>
+where
+    T: 'static + HostingInterface,
+    U: 'static + Activate + KeyStore + Send,
+{
+    client: T,
+    phantom: PhantomData<U>,
+}
+
+impl<T, U> ExternalProvisioning<T, U>
+where
+    T: 'static + HostingInterface,
+    U: 'static + Activate + KeyStore + Send,
+{
+    pub fn new(client: T) -> Self {
+        ExternalProvisioning {
+            client,
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<T, U> Provision for ExternalProvisioning<T, U>
+where
+    T: 'static + HostingInterface,
+    U: 'static + Activate + KeyStore + Send,
+{
+    type Hsm = U;
+
+    fn provision(
+        self,
+        mut key_activator: Self::Hsm,
+    ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
+        let result = self
+            .client
+            .get_device_connection_information()
+            .map_err(|err| Error::from(err.context(ErrorKind::Provision)))
+            .and_then(move |device_connection_info| {
+                info!(
+                    "External device registration information: Device \"{}\" in hub \"{}\"",
+                    device_connection_info.device_id(),
+                    device_connection_info.hub_name()
+                );
+
+                // Passing an empty array as key because in the external mode, the hosting
+                // environment itself creates and activates the actual key.
+                key_activator
+                    .activate_identity_key(
+                        KeyIdentity::Device,
+                        "primary".to_string(),
+                        &Bytes::from(""),
+                    )
+                    .context(ErrorKind::Provision)?;
+
+                Ok(ProvisioningResult {
+                    device_id: device_connection_info.device_id().to_string(),
+                    hub_name: device_connection_info.hub_name().to_string(),
+                    reconfigure: false,
+                })
+            });
+
+        Box::new(result)
     }
 }
 
@@ -517,10 +586,12 @@ where
 mod tests {
     use super::*;
 
+    use edgelet_config::{Manual, ParseManualDeviceConnectionStringError};
+    use failure::{Backtrace, Fail};
+    use hosting::models::DeviceConnectionInfo;
+    use std::fmt::{self, Display};
     use tempdir::TempDir;
     use tokio;
-
-    use edgelet_config::{Manual, ParseManualDeviceConnectionStringError};
 
     use crate::error::ErrorKind;
 
@@ -823,5 +894,89 @@ mod tests {
         );
         let result: ProvisioningResult = serde_json::from_str(&json).unwrap();
         assert_eq!(result.reconfigure, ReprovisioningStatus::InitialAssignment)
+    }
+
+    struct TestExternalHostingInterface {
+        pub error: Option<TestError>,
+    }
+
+    #[derive(Debug)]
+    struct TestError {}
+
+    impl Fail for TestError {
+        fn cause(&self) -> Option<&dyn Fail> {
+            None
+        }
+
+        fn backtrace(&self) -> Option<&Backtrace> {
+            None
+        }
+    }
+
+    impl Display for TestError {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "test error")
+        }
+    }
+
+    impl HostingInterface for TestExternalHostingInterface {
+        type Error = TestError;
+
+        type DeviceConnectionInformationFuture =
+            Box<dyn Future<Item = DeviceConnectionInfo, Error = Self::Error> + Send>;
+
+        fn get_device_connection_information(&self) -> Self::DeviceConnectionInformationFuture {
+            match self.error.as_ref() {
+                None => Box::new(
+                    Ok(DeviceConnectionInfo::new(
+                        "TestHub".to_string(),
+                        "TestDevice".to_string(),
+                    ))
+                    .into_future(),
+                ),
+                Some(_s) => Box::new(Err(TestError {}).into_future()),
+            }
+        }
+    }
+
+    #[test]
+    fn external_get_connection_info_success() {
+        let provisioning = ExternalProvisioning::new(TestExternalHostingInterface { error: None });
+        let memory_hsm = MemoryKeyStore::new();
+        let task = provisioning
+            .provision(memory_hsm.clone())
+            .then(|result| match result {
+                Ok(result) => {
+                    assert_eq!(result.hub_name, "TestHub".to_string());
+                    assert_eq!(result.device_id, "TestDevice".to_string());
+                    Ok::<_, Error>(())
+                }
+                Err(err) => panic!("Unexpected {:?}", err),
+            });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn external_get_connection_info_failure() {
+        let provisioning = ExternalProvisioning::new(TestExternalHostingInterface {
+            error: Some(TestError {}),
+        });
+        let memory_hsm = MemoryKeyStore::new();
+        let task = provisioning
+            .provision(memory_hsm.clone())
+            .then(|result| match result {
+                Ok(_) => panic!("Expected a failure."),
+                Err(err) => match err.kind() {
+                    ErrorKind::Provision => Ok::<_, Error>(()),
+                    _ => panic!("Expected `Provision` but got {:?}", err),
+                },
+            });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 }

@@ -44,7 +44,7 @@ use url::Url;
 use docker::models::HostConfig;
 use dps::DPS_API_VERSION;
 use edgelet_config::{
-    AttestationMethod, Dps, Manual, Provisioning, Settings, SymmetricKeyAttestationInfo,
+    AttestationMethod, Dps, External, Manual, Provisioning, Settings, SymmetricKeyAttestationInfo,
     TpmAttestationInfo, DEFAULT_CONNECTION_STRING,
 };
 use edgelet_core::crypto::{
@@ -63,6 +63,7 @@ use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
 use edgelet_http::{HyperExt, MaybeProxyClient, API_VERSION};
+use edgelet_http_hosting::HostingClient;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
@@ -71,8 +72,8 @@ use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
 use iothubservice::DeviceClient;
 use provisioning::provisioning::{
-    BackupProvisioning, DpsSymmetricKeyProvisioning, DpsTpmProvisioning, ManualProvisioning,
-    Provision, ProvisioningResult, ReprovisioningStatus,
+    BackupProvisioning, DpsSymmetricKeyProvisioning, DpsTpmProvisioning, ExternalProvisioning,
+    ManualProvisioning, Provision, ProvisioningResult, ReprovisioningStatus,
 };
 
 use crate::workload::WorkloadData;
@@ -128,6 +129,10 @@ const HOMEDIR_KEY: &str = "IOTEDGE_HOMEDIR";
 const DEVICE_CA_CERT_KEY: &str = "IOTEDGE_DEVICE_CA_CERT";
 const DEVICE_CA_PK_KEY: &str = "IOTEDGE_DEVICE_CA_PK";
 const TRUSTED_CA_CERTS_KEY: &str = "IOTEDGE_TRUSTED_CA_CERTS";
+
+/// The HSM lib expects this variable to be set to the endpoint of the hosting environment in the 'external'
+/// provisioning mode.
+const HOSTING_ENDPOINT_KEY: &str = "IOTEDGE_HOSTING_ENDPOINT";
 
 /// This is the key for the docker network Id.
 const EDGE_NETWORKID_KEY: &str = "NetworkId";
@@ -246,41 +251,9 @@ impl Main {
             &mut tokio_runtime,
         )?;
 
-        info!("Provisioning edge device...");
-        match settings.provisioning() {
-            Provisioning::Manual(manual) => {
-                let (key_store, provisioning_result, root_key) =
-                    manual_provision(&manual, &mut tokio_runtime)?;
+        macro_rules! start_edgelet {
+            ($key_store:ident, $provisioning_result:ident, $root_key:ident, $runtime:ident) => {{
                 info!("Finished provisioning edge device.");
-                let cfg = WorkloadData::new(
-                    provisioning_result.hub_name().to_string(),
-                    provisioning_result.device_id().to_string(),
-                    IOTEDGE_ID_CERT_MAX_DURATION_SECS,
-                    IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
-                );
-                // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
-                // is received. If the TLS cert needs a restart, we will loop again.
-                while {
-                    let code = start_api(
-                        &settings,
-                        hyper_client.clone(),
-                        &runtime,
-                        &key_store,
-                        cfg.clone(),
-                        root_key.clone(),
-                        make_shutdown_signal(),
-                        &crypto,
-                        &mut tokio_runtime,
-                    )?;
-                    code == StartApiReturnStatus::Restart
-                } {}
-            }
-            Provisioning::Dps(dps) => {
-                let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
-
-                macro_rules! start_edgelet {
-                    ($key_store:ident, $provisioning_result:ident, $root_key:ident, $runtime:ident) => {{
-                        info!("Finished provisioning edge device.");
 
                         let cfg = WorkloadData::new(
                             $provisioning_result.hub_name().to_string(),
@@ -306,6 +279,23 @@ impl Main {
                         } {}
                     }};
                 }
+
+        info!("Provisioning edge device...");
+        match settings.provisioning() {
+            Provisioning::Manual(manual) => {
+                info!("Staring provisioning edge device via manual mode...");
+                let (key_store, provisioning_result, root_key) =
+                    manual_provision(&manual, &mut tokio_runtime)?;
+                start_edgelet!(key_store, provisioning_result, root_key, runtime);
+            }
+            Provisioning::External(external) => {
+                info!("Staring provisioning edge device via external hosted mode...");
+                let (key_store, provisioning_result, root_key) =
+                    external_provision(&external, &mut tokio_runtime)?;
+                start_edgelet!(key_store, provisioning_result, root_key, runtime);
+            }
+            Provisioning::Dps(dps) => {
+                let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
 
                 match dps.attestation() {
                     AttestationMethod::Tpm(ref tpm) => {
@@ -702,6 +692,48 @@ fn manual_provision(
                 .map_err(|err| {
                     Error::from(err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManualProvisioningClient,
+                    )))
+                })
+                .and_then(|k| {
+                    let derived_key_store = DerivedKeyStore::new(k.clone());
+                    Ok((derived_key_store, prov_result, k))
+                })
+        });
+    tokio_runtime.block_on(provision)
+}
+
+fn external_provision(
+    provisioning: &External,
+    tokio_runtime: &mut tokio::runtime::Runtime,
+) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey), Error> {
+    let hosting_client = HostingClient::new(provisioning.endpoint()).context(
+        ErrorKind::Initialize(InitializeErrorReason::ExternalHostingClient),
+    )?;
+
+    // Set the hosting endpoint environment variable for use by the custom HSM library.
+    env::set_var(HOSTING_ENDPOINT_KEY, provisioning.endpoint().as_str());
+
+    let tpm = Tpm::new().context(ErrorKind::Initialize(
+        InitializeErrorReason::ExternalHostingClient,
+    ))?;
+    let tpm_hsm = TpmKeyStore::from_hsm(tpm).context(ErrorKind::Initialize(
+        InitializeErrorReason::ExternalHostingClient,
+    ))?;
+    let external = ExternalProvisioning::new(hosting_client);
+
+    let provision = external
+        .provision(tpm_hsm.clone())
+        .map_err(|err| {
+            Error::from(err.context(ErrorKind::Initialize(
+                InitializeErrorReason::ExternalHostingClient,
+            )))
+        })
+        .and_then(move |prov_result| {
+            tpm_hsm
+                .get(&KeyIdentity::Device, "primary")
+                .map_err(|err| {
+                    Error::from(err.context(ErrorKind::Initialize(
+                        InitializeErrorReason::ExternalHostingClient,
                     )))
                 })
                 .and_then(|k| {
