@@ -110,6 +110,7 @@ PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -ContainerOs Windows -X509Identity
 
 PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -AutoGenX509IdentityCertificate $true -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
 
+
 .EXAMPLE
 
 PS> Initialize-IoTEdge -External -Endpoint $endpoint -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
@@ -461,6 +462,7 @@ PS> Install-IoTEdge -Dps -ScopeId $scopeId -ContainerOs Windows -X509IdentityCer
 .EXAMPLE
 
 PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -AutoGenX509IdentityCertificate $true -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+
 
 .EXAMPLE
 
