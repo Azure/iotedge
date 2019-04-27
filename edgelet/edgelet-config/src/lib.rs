@@ -818,7 +818,7 @@ mod tests {
             Provisioning::External(ref external) => {
                 assert_eq!(external.endpoint().as_str(), "http://localhost:9999/");
             }
-            _ => assert!(false),
+            _ => unreachable!(),
         };
     }
 
