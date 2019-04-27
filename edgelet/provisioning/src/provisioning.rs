@@ -26,6 +26,8 @@ use sha2::{Digest, Sha256};
 
 use crate::error::{Error, ErrorKind};
 
+const EXTERNAL_PROVISIONING_KEY_SENTINEL: &str = "_SENTINEL_";
+
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum ReprovisioningStatus {
     DeviceDataNotUpdated,
@@ -182,20 +184,22 @@ where
                     device_connection_info.hub_name()
                 );
 
-                // Passing an empty array as key because in the external mode, the hosting
-                // environment itself creates and activates the actual key.
+                // Passing a sentinel value as key because in the external mode, the hosting
+                // environment itself creates and activates the actual key. The sentinel is
+                // simply ignored.
                 key_activator
                     .activate_identity_key(
                         KeyIdentity::Device,
                         "primary".to_string(),
-                        &Bytes::from(""),
+                        &Bytes::from(EXTERNAL_PROVISIONING_KEY_SENTINEL),
                     )
                     .context(ErrorKind::Provision)?;
 
                 Ok(ProvisioningResult {
                     device_id: device_connection_info.device_id().to_string(),
                     hub_name: device_connection_info.hub_name().to_string(),
-                    reconfigure: false,
+                    reconfigure: ReprovisioningStatus::DeviceDataNotUpdated,
+                    sha256_thumbprint: None,
                 })
             });
 
