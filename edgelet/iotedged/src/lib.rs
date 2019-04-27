@@ -283,13 +283,13 @@ impl Main {
         info!("Provisioning edge device...");
         match settings.provisioning() {
             Provisioning::Manual(manual) => {
-                info!("Staring provisioning edge device via manual mode...");
+                info!("Starting provisioning edge device via manual mode...");
                 let (key_store, provisioning_result, root_key) =
                     manual_provision(&manual, &mut tokio_runtime)?;
                 start_edgelet!(key_store, provisioning_result, root_key, runtime);
             }
             Provisioning::External(external) => {
-                info!("Staring provisioning edge device via external hosted mode...");
+                info!("Starting provisioning edge device via external hosted mode...");
                 let (key_store, provisioning_result, root_key) =
                     external_provision(&external, &mut tokio_runtime)?;
                 start_edgelet!(key_store, provisioning_result, root_key, runtime);
