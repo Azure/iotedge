@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
@@ -16,22 +15,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class EdgeModule
     {
-        protected string DeviceId;
-        protected IotHub IotHub;
-
-        public string Id { get; }
+        protected string deviceId;
+        protected IotHub iotHub;
 
         public EdgeModule(string id, string deviceId, IotHub iotHub)
         {
-            this.DeviceId = deviceId;
-            this.IotHub = iotHub;
+            this.deviceId = deviceId;
+            this.iotHub = iotHub;
             this.Id = id;
         }
 
-        public Task WaitForStatusAsync(EdgeModuleStatus desired, CancellationToken token)
-        {
-            return WaitForStatusAsync(new []{this}, desired, token);
-        }
+        public string Id { get; }
 
         public static Task WaitForStatusAsync(EdgeModule[] modules, EdgeModuleStatus desired, CancellationToken token)
         {
@@ -39,7 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 ? $"module '{modules.First().Id}'"
                 : $"modules ({string.Join(", ", modules.Select(module => module.Id))})";
 
-            async Task WaitForStatusAsync() {
+            async Task WaitForStatusAsync()
+            {
                 try
                 {
                     await Retry.Do(
@@ -48,19 +43,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             string[] result = await Process.RunAsync("iotedge", "list", token);
 
                             return result
-                                .Where(ln => {
-                                    var columns = ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
-                                    foreach (var module in modules)
+                                .Where(
+                                    ln =>
                                     {
-                                        // each line is "name status"
-                                        if (columns[0] == module.Id &&
-                                            columns[1].Equals(desired.ToString(), StringComparison.OrdinalIgnoreCase))
+                                        var columns = ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
+                                        foreach (var module in modules)
                                         {
-                                            return true;
+                                            // each line is "name status"
+                                            if (columns[0] == module.Id &&
+                                                columns[1].Equals(desired.ToString(), StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                return true;
+                                            }
                                         }
-                                    }
-                                    return false;
-                                }).ToArray();
+
+                                        return false;
+                                    }).ToArray();
                         },
                         a => a.Length == modules.Length,
                         e =>
@@ -70,11 +68,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             bool DaemonNotReady(string details) =>
                                 details.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
                                 details.Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase);
+
                             return DaemonNotReady(e.ToString());
                         },
                         TimeSpan.FromSeconds(5),
-                        token
-                    );
+                        token);
                 }
                 catch (OperationCanceledException)
                 {
@@ -88,27 +86,29 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             return Profiler.Run(
                 $"Waiting for {FormatModulesList()} to enter the '{desired.ToString().ToLower()}' state",
-                WaitForStatusAsync
-            );
+                WaitForStatusAsync);
+        }
+
+        public Task WaitForStatusAsync(EdgeModuleStatus desired, CancellationToken token)
+        {
+            return WaitForStatusAsync(new[] { this }, desired, token);
         }
 
         public Task WaitForEventsReceivedAsync(CancellationToken token)
         {
             return Profiler.Run(
-                $"Receiving events from device '{this.DeviceId}' on Event Hub '{this.IotHub.EntityPath}'",
-                () => this.IotHub.ReceiveEventsAsync(
-                    this.DeviceId,
+                $"Receiving events from device '{this.deviceId}' on Event Hub '{this.iotHub.EntityPath}'",
+                () => this.iotHub.ReceiveEventsAsync(
+                    this.deviceId,
                     data =>
                     {
                         data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
                         data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
 
-                        return devId != null && devId.ToString().Equals(this.DeviceId)
-                            && modId != null && modId.ToString().Equals(this.Id);
+                        return devId != null && devId.ToString().Equals(this.deviceId)
+                                             && modId != null && modId.ToString().Equals(this.Id);
                     },
-                    token
-                )
-            );
+                    token));
         }
     }
 }
