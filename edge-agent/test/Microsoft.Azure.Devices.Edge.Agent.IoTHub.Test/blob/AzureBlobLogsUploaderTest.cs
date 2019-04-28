@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
 
             var azureBlobUploader = new Mock<IAzureBlobUploader>();
             azureBlobUploader.Setup(a => a.GetBlob(It.IsAny<Uri>(), It.IsAny<string>(), Option.None<string>(), Option.None<string>()))
-                .Callback<Uri, string>((u, b) =>
+                .Callback<Uri, string, Option<string>, Option<string>>((u, b, _, __) =>
                 {
                     receivedSasUri = u;
                     receivedBlobName = b;

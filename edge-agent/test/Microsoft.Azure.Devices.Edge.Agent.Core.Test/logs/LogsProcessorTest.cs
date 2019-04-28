@@ -293,7 +293,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
             var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
-            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, filter);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             var receivedBytes = new List<byte>();
 
@@ -310,7 +310,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             // Assert
             Assert.NotEmpty(receivedBytes);
             string receivedText = receivedBytes
-                .Skip(8)
                 .ToArray()
                 .FromBytes();
             Assert.Equal(TestLogTexts[0], receivedText);
@@ -329,7 +328,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
             var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
-            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, filter);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             var receivedBytes = new List<byte>();
 
@@ -366,7 +365,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
             var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
-            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             var receivedBytes = new List<byte>();
 
@@ -383,7 +382,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             // Assert
             Assert.NotEmpty(receivedBytes);
             string receivedText = Compression.DecompressFromGzip(receivedBytes.ToArray())
-                .Skip(8)
                 .ToArray()
                 .FromBytes();
             Assert.Equal(TestLogTexts[0], receivedText);
