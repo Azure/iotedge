@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Option.None<IWebProxy>(),
                 new ITransportSettings[]
                 {
-                    new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
+                    new AmqpTransportSettings(Client.TransportType.Amqp_Tcp_Only)
                     {
                         AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                         {
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Option.Some(new WebProxy(ProxyUri) as IWebProxy),
                 new ITransportSettings[]
                 {
-                    new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
+                    new AmqpTransportSettings(Client.TransportType.Amqp_Tcp_Only)
                     {
                         AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                         {
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Option.Some(new WebProxy(ProxyUri) as IWebProxy),
                 new ITransportSettings[]
                 {
-                    new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only)
+                    new AmqpTransportSettings(Client.TransportType.Amqp_WebSocket_Only)
                     {
                         AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                         {
@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Option.Some(new WebProxy(ProxyUri) as IWebProxy),
                 new ITransportSettings[]
                 {
-                    new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
+                    new MqttTransportSettings(Client.TransportType.Mqtt_Tcp_Only)
                     {
                         Proxy = new WebProxy(ProxyUri)
                     }
@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Option.Some(new WebProxy(ProxyUri) as IWebProxy),
                 new ITransportSettings[]
                 {
-                    new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only)
+                    new MqttTransportSettings(Client.TransportType.Mqtt_WebSocket_Only)
                     {
                         Proxy = new WebProxy(ProxyUri)
                     }
