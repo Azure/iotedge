@@ -54,7 +54,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
 
             let created_certificate = cert_manager.create_cert()?;
 
-            cert.get_or_insert(created_certificate);
+            *cert = Some(created_certificate);
         }
 
         Ok(cert_manager)
