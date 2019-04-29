@@ -33,12 +33,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             CancellationToken token)
         {
             return Profiler.Run(
-                $"Created edge device '{deviceId}' on hub '{iotHub.Hostname}'",
                 async () =>
                 {
                     Device device = await iotHub.CreateEdgeDeviceIdentityAsync(deviceId, token);
                     return new EdgeDevice(device, true, iotHub);
-                });
+                },
+                "Created edge device '{Device}' on hub '{IotHub}'",
+                deviceId,
+                iotHub.Hostname);
         }
 
         public static async Task<EdgeDevice> GetOrCreateIdentityAsync(
@@ -69,8 +71,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task DeleteIdentityAsync(CancellationToken token)
         {
             return Profiler.Run(
-                $"Deleted device '{this.Id}'",
-                () => this.iotHub.DeleteDeviceIdentityAsync(this.device, token));
+                () => this.iotHub.DeleteDeviceIdentityAsync(this.device, token),
+                "Deleted device '{Device}'",
+                this.Id);
         }
 
         public async Task MaybeDeleteIdentityAsync(CancellationToken token)

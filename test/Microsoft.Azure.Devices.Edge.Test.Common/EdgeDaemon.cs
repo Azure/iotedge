@@ -43,16 +43,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             };
 
             string message = "Installed edge daemon";
-            packagesPath.ForEach(p => message += $" from packages in '{p}'");
+            var properties = new string[] { };
+            packagesPath.ForEach(p =>
+            {
+                message += " from packages in '{InstallPackagePath}'";
+                properties = new[] { p };
+            });
 
             return Profiler.Run(
-                message,
                 async () =>
                 {
                     string[] output =
                         await Process.RunAsync("powershell", string.Join(";", commands), token);
                     Log.Verbose("{Output}", string.Join("\n", output));
-                });
+                },
+                message,
+                properties);
         }
 
         public Task UninstallAsync(CancellationToken token)
@@ -64,20 +70,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 "Uninstall-IoTEdge -Force"
             };
             return Profiler.Run(
-                "Uninstalled edge daemon",
                 async () =>
                 {
                     string[] output =
                         await Process.RunAsync("powershell", string.Join(";", commands), token);
                     Log.Verbose("{Output}", string.Join("\n", output));
-                });
+                },
+                "Uninstalled edge daemon");
         }
 
         public Task StartAsync(CancellationToken token)
         {
             var sc = new ServiceController("iotedge");
             return Profiler.Run(
-                "Started edge daemon",
                 async () =>
                 {
                     if (sc.Status != ServiceControllerStatus.Running)
@@ -85,14 +90,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         sc.Start();
                         await this.WaitForStatusAsync(sc, ServiceControllerStatus.Running, token);
                     }
-                });
+                },
+                "Started edge daemon");
         }
 
         public Task StopAsync(CancellationToken token)
         {
             var sc = new ServiceController("iotedge");
             return Profiler.Run(
-                "Stopped edge daemon",
                 async () =>
                 {
                     if (sc.Status != ServiceControllerStatus.Stopped)
@@ -100,15 +105,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         sc.Stop();
                         await this.WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
                     }
-                });
+                },
+                "Stopped edge daemon");
         }
 
         public Task WaitForStatusAsync(EdgeDaemonStatus desired, CancellationToken token)
         {
             var sc = new ServiceController("iotedge");
             return Profiler.Run(
-                $"Edge daemon entered the '{desired.ToString().ToLower()}' state",
-                () => this.WaitForStatusAsync(sc, (ServiceControllerStatus)desired, token));
+                () => this.WaitForStatusAsync(sc, (ServiceControllerStatus)desired, token),
+                "Edge daemon entered the '{Desired}' state",
+                desired.ToString().ToLower());
         }
 
         async Task WaitForStatusAsync(ServiceController sc, ServiceControllerStatus desired, CancellationToken token)

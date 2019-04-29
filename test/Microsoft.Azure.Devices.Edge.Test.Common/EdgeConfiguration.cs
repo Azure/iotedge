@@ -150,12 +150,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public Task DeployAsync(CancellationToken token)
         {
-            string message = "Deployed edge configuration to device " +
-                $"'{this.deviceId}' with modules ({string.Join(", ", this.Modules)})";
-
             return Profiler.Run(
-                message,
-                () => this.iotHub.DeployDeviceConfigurationAsync(this.deviceId, this.config, token));
+                () => this.iotHub.DeployDeviceConfigurationAsync(this.deviceId, this.config, token),
+                "Deployed edge configuration to device '{Device}' with modules ({Modules})",
+                this.deviceId,
+                string.Join(", ", this.Modules));
         }
 
         static JObject GetOrAddObject(string name, JObject parent)

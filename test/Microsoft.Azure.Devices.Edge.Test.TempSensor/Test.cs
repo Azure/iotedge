@@ -28,7 +28,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
                 {
                     Log.Information("{Message}", "Running tempSensor test");
                     await Profiler.Run(
-                        "Completed tempSensor test",
                         async () =>
                         {
                             CancellationToken token = cts.Token;
@@ -111,8 +110,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
                         // ** teardown
                         await daemon.StopAsync(token);
                             await device.MaybeDeleteIdentityAsync(token);
-                        }
-                    );
+                        },
+                        "Completed tempSensor test");
                 }
             }
             catch (Exception e)
