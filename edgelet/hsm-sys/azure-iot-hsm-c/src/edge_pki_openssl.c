@@ -19,6 +19,7 @@
 #include <openssl/err.h>
 #include <openssl/ec.h>
 #include <openssl/pem.h>
+#include <openssl/rand.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
@@ -1876,6 +1877,36 @@ int verify_certificate
             result = verify_certificate_internal(certificate_file_path,
                                                  issuer_certificate_file_path,
                                                  verify_status);
+        }
+    }
+
+    return result;
+}
+
+int generate_rand_buffer(unsigned char *buffer, size_t num_bytes)
+{
+    int result;
+
+    if ((buffer == NULL) || (num_bytes == 0))
+    {
+        LOG_ERROR("Invalid parameters");
+        result = __FAILURE__;
+    }
+    else
+    {
+        initialize_openssl();
+
+        int rc = RAND_bytes(buffer, num_bytes);
+
+        if (rc != 1)
+        {
+            unsigned long err = ERR_get_error();
+            LOG_ERROR("Generating a random number failed. Error code %ld", err);
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
         }
     }
 
