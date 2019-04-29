@@ -151,9 +151,6 @@ function PatchRustForArm
         Write-Host $(Get-Command cl.exe).Path
     }
 
-    $edgefolder = Get-EdgeletFolder
-    Set-Location -Path $edgefolder
-
     $ForkedCrates = @"
 
 [patch.crates-io]
@@ -172,7 +169,7 @@ mio-uds-windows = { git = "https://github.com/philipktlin/mio-uds-windows.git", 
 "@
 
     Write-Host "Append cargo.toml with $ForkedCrates"
-    Add-Content -Path cargo.toml -Value $ForkedCrates
+    Add-Content -Path $(Join-Path -Path $(Get-EdgeletFolder) -ChildPath "cargo.toml") -Value $ForkedCrates
 
     $cargo = Get-CargoCommand -Arm
 
@@ -186,31 +183,21 @@ mio-uds-windows = { git = "https://github.com/philipktlin/mio-uds-windows.git", 
     $ErrorActionPreference = 'Stop'
 }
 
-function ReplacePrivateRustInPath
-{
-    Write-Host "Remove cargo path in user profile from PATH, and add the private arm version to the PATH"
-    $oldPath = $env:Path
-    $paths = $env:Path.Split(";")
-    $newPaths = @()
-    for($i = 0; $i -lt $paths.length; $i++)
-    {
-        if(-NOT $paths[$i].Contains(".cargo"))
-        {
-            # only append path if it does not contain .cargo
-            $newPaths += $paths[$i]
-        }
-        else
-        {
-            Write-Host "$($paths[$i]) is being removed from PATH"
-        }
-    }
-    $newPaths += $(GetPrivateRustPath)
+function ReplacePrivateRustInPath {
+    Write-Host 'Remove cargo path in user profile from PATH, and add the private arm version to the PATH'
 
-    $env:path = ""
-    for($i = 0; $i -lt $newPaths.length; $i++)
-    {
-        $env:path += $newPaths[$i] + ";"
-    }
+    $oldPath = $env:PATH
 
-    return $oldPath
+    [string[]] $newPaths = $env:PATH -split ';' |
+        ?{
+            $removePath = $_.Contains('.cargo')
+            if ($removePath) {
+                Write-Host "$_ is being removed from PATH"
+            }
+            -not $removePath
+        }
+    $newPaths += GetPrivateRustPath
+    $env:PATH = $newPaths -join ';'
+
+    $oldPath
 }

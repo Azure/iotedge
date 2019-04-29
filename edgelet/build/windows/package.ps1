@@ -66,8 +66,18 @@ Function New-Package([string] $Name, [string] $Version)
 
     if($Arm)
     {
-        # pkggen cannot find makecat.exe from below folder at runtime
-        $env:PATH = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x64;" + $env:PATH
+        # pkggen cannot find makecat.exe from below folder at runtime, so we need to put makecat from latest windows kits to Path
+        # if we cannot find windows 10 kits or makecat.exe, we have to fail the build
+        $Win10KitsRoot = get-itemproperty -path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows Kits\Installed Roots" -name KitsRoot10
+        $Versions = get-childitem -path $($Win10KitsRoot.KitsRoot10 + "\bin") | Sort-Object -Property Name -Descending | Where-Object {$_.Name -like "10.*"}
+
+        if(-not $Versions.length -gt 0)
+        {
+            throw [System.IO.FileNotFoundException] "Cannot find any Windows 10 kits on the build agent"
+        }
+
+        $LatestWin10SdkX64Bin = Join-Path -Path $Win10KitsRoot.KitsRoot10 -ChildPath $("bin\" + $Versions[0].Name + "\X64")
+        $env:PATH += $LatestWin10SdkX64Bin + ';'
         Write-Host $(Get-Command makecat.exe).Path
     }
 
