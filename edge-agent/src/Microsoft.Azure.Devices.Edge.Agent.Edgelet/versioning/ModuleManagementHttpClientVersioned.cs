@@ -89,11 +89,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                     async () =>
                     {
                         HttpResponseMessage httpResponseMessage = await httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-                        //byte[] bytes = await httpResponseMessage.Content.ReadAsByteArrayAsync();
-                        ////return await httpResponseMessage.Content.ReadAsStreamAsync();
-                        //PrintBytes(module, bytes);
-                        //return new MemoryStream(bytes);
-                        return await httpResponseMessage.Content.ReadAsStreamAsync();
+                        byte[] bytes = await httpResponseMessage.Content.ReadAsByteArrayAsync();
+                        //return await httpResponseMessage.Content.ReadAsStreamAsync();
+                        PrintBytes(module, bytes);
+                        return new MemoryStream(bytes);
                     },
                     $"Get logs for {module}");
                 return stream;
