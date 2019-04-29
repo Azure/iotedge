@@ -4,6 +4,7 @@ use failure::ResultExt;
 use serde_derive::{Deserialize, Serialize};
 
 use docker::models::{AuthConfig, ContainerCreateBody};
+use edgelet_core::PullPolicy;
 use edgelet_utils::{ensure_not_empty_with_context, serde_clone};
 
 use crate::error::{ErrorKind, Result};
@@ -19,6 +20,9 @@ pub struct DockerConfig {
     create_options: ContainerCreateBody,
     #[serde(skip_serializing_if = "Option::is_none")]
     auth: Option<AuthConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "pullPolicy")]
+    pull_policy: Option<PullPolicy>,
 }
 
 impl DockerConfig {
@@ -26,6 +30,7 @@ impl DockerConfig {
         image: String,
         create_options: ContainerCreateBody,
         auth: Option<AuthConfig>,
+        pull_policy: Option<PullPolicy>,
     ) -> Result<Self> {
         ensure_not_empty_with_context(&image, || ErrorKind::InvalidImage(image.clone()))?;
 
@@ -34,6 +39,7 @@ impl DockerConfig {
             image_id: None,
             create_options,
             auth,
+            pull_policy
         };
         Ok(config)
     }
@@ -81,6 +87,15 @@ impl DockerConfig {
         self.auth = Some(auth);
         self
     }
+
+    pub fn pull_policy(&self) -> Option<&PullPolicy> {
+        self.pull_policy.as_ref().map(AsRef::as_ref)
+    }
+
+    pub fn with_pull_policy(mut self, pull_policy: PullPolicy) -> Self {
+        self.pull_policy = Some(pull_policy);
+        self
+    }
 }
 
 #[cfg(test)]
@@ -95,7 +110,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn empty_image_fails() {
-        DockerConfig::new("".to_string(), ContainerCreateBody::new(), None).unwrap();
+        DockerConfig::new("".to_string(), ContainerCreateBody::new(), None, ).unwrap();
     }
 
     #[test]

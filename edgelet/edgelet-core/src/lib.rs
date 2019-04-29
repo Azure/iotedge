@@ -33,7 +33,7 @@ pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, Ident
 pub use module::{
     LogOptions, LogTail, Module, ModuleOperation, ModuleRegistry, ModuleRuntime,
     ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, ModuleTop,
-    RegistryOperation, RuntimeOperation, SystemInfo,
+    RegistryOperation, RuntimeOperation, SystemInfo, PullPolicy
 };
 pub use watchdog::RetryLimit;
 pub use workload::WorkloadConfig;

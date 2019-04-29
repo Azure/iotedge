@@ -493,6 +493,13 @@ impl fmt::Display for RuntimeOperation {
     }
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PullPolicy {
+    Always,
+    Never,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
