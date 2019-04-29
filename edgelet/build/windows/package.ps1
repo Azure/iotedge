@@ -63,21 +63,27 @@ Function New-Package([string] $Name, [string] $Version)
 {
     $pkggen = "${Env:ProgramFiles(x86)}\Windows Kits\10\tools\bin\i386\pkggen.exe"
     $manifest = "edgelet\build\windows\$Name.wm.xml"
+    $oldPath = ''
 
     if($Arm)
     {
         # pkggen cannot find makecat.exe from below folder at runtime, so we need to put makecat from latest windows kits to Path
         # if we cannot find windows 10 kits or makecat.exe, we have to fail the build
         $Win10KitsRoot = get-itemproperty -path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows Kits\Installed Roots" -name KitsRoot10
+        Write-Host $Win10KitsRoot.KitsRoot10
+        
         $Versions = get-childitem -path $($Win10KitsRoot.KitsRoot10 + "\bin") | Sort-Object -Property Name -Descending | Where-Object {$_.Name -like "10.*"}
+        Write-Host $Versions
 
         if(-not $Versions.length -gt 0)
         {
             throw [System.IO.FileNotFoundException] "Cannot find any Windows 10 kits on the build agent"
         }
 
-        $LatestWin10SdkX64Bin = Join-Path -Path $Win10KitsRoot.KitsRoot10 -ChildPath $("bin\" + $Versions[0].Name + "\X64")
-        $env:PATH += $LatestWin10SdkX64Bin + ';'
+        $LatestWin10KitsX64Bin = Join-Path -Path $Win10KitsRoot.KitsRoot10 -ChildPath $("bin\" + $Versions[0].Name + "\X64")
+        $oldPath = $env:Path
+        $env:PATH = $LatestWin10KitsX64Bin + ';' + $env:Path
+        Write-Host $env:Path
         Write-Host $(Get-Command makecat.exe).Path
     }
 
@@ -95,6 +101,10 @@ Function New-Package([string] $Name, [string] $Version)
         Throw "Failed to expand cab"
     }
     Remove-Item -Path $EdgeCab
+    if($Arm -and (-not [string]::IsNullOrEmpty($oldPath)))
+    {
+        $env:Path = $oldPath
+    }
 }
 
 if ($CreateTemplate) {
