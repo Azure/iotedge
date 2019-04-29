@@ -408,6 +408,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         public void NeedToProcessStreamTest(ModuleLogOptions logOptions, bool expectedResult)
         {
             Assert.Equal(expectedResult, LogsProvider.NeedToProcessStream(logOptions));
-        }        
+        }
     }
 }

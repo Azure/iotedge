@@ -89,37 +89,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                     async () =>
                     {
                         HttpResponseMessage httpResponseMessage = await httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-                        byte[] bytes = await httpResponseMessage.Content.ReadAsByteArrayAsync();
-                        //return await httpResponseMessage.Content.ReadAsStreamAsync();
-                        PrintBytes(module, bytes);
-                        return new MemoryStream(bytes);
+                        return await httpResponseMessage.Content.ReadAsStreamAsync();
                     },
                     $"Get logs for {module}");
                 return stream;
             }
         }
-
-        static void PrintBytes(string module, byte[] bytes)
-        {
-            var sb = new StringBuilder($"Printing bytes in GetModuleLogs for module {module} - [");
-            foreach (var b in bytes)
-            {
-                sb.Append(b.ToString("X2") + ", ");
-            }
-            sb.Append("]");
-            Console.WriteLine(sb.ToString());
-        }
-
-        protected abstract void HandleException(Exception ex, string operation);
-
-        protected Task Execute(Func<Task> func, string operation) =>
-            this.Execute(
-                async () =>
-                {
-                    await func();
-                    return 1;
-                },
-                operation);
 
         protected internal async Task<T> Execute<T>(Func<Task<T>> func, string operation)
         {
@@ -137,6 +112,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 this.HandleException(ex, operation);
                 return default(T);
             }
+        }
+
+        protected abstract void HandleException(Exception ex, string operation);
+
+        protected Task Execute(Func<Task> func, string operation) =>
+            this.Execute(
+                async () =>
+                {
+                    await func();
+                    return 1;
+                },
+                operation);
+
+        static void PrintBytes(string module, byte[] bytes)
+        {
+            var sb = new StringBuilder($"Printing bytes in GetModuleLogs for module {module} - [");
+            foreach (var b in bytes)
+            {
+                sb.Append(b.ToString("X2") + ", ");
+            }
+
+            sb.Append("]");
+            Console.WriteLine(sb.ToString());
         }
 
         static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry, ITransientErrorDetectionStrategy transientErrorDetectionStrategy)

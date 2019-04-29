@@ -48,7 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         public async Task TestLogsUploadRequest(string payload, string id, string sasUrl, LogsContentEncoding contentEncoding, LogsContentType contentType, ModuleLogFilter filter)
         {
             // Arrange
-
             var logsUploader = new Mock<ILogsUploader>();
             var logsProvider = new Mock<ILogsProvider>();
             var uploadBytes = new byte[100];

@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
             {
                 case LogsContentType.Json:
                     return Option.Some("application/json");
-                    
+
                 case LogsContentType.Text:
                     return Option.Some("text/plain");
 

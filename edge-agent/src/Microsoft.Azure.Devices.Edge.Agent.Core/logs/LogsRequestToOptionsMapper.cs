@@ -84,5 +84,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
             return ids.ToImmutableHashSet();
         }
-    }    
+    }
 }

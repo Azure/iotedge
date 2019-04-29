@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
     class AzureBlobUploader : IAzureBlobUploader
     {
         public IAzureBlob GetBlob(Uri containerUri, string blobName, Option<string> contentType, Option<string> contentEncoding)
-        {            
+        {
             var container = new CloudBlobContainer(Preconditions.CheckNotNull(containerUri, nameof(containerUri)));
             CloudBlockBlob blob = container.GetBlockBlobReference(Preconditions.CheckNonWhiteSpace(blobName, nameof(blobName)));
             contentType.ForEach(c => blob.Properties.ContentType = c);
