@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 File.SetAttributes(ConfigYamlFile, attr);
             }
 
-            Log.Information("{Message}", $"Updated daemon configuration file '{ConfigYamlFile}'");
+            Log.Information("Updated daemon configuration file '{ConfigFile}'", ConfigYamlFile);
         }
     }
 }

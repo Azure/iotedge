@@ -57,8 +57,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 }
 
                 Log.Information(
-                    "{Message}",
-                    $"Device '{device.Id}' already exists on hub '{iotHub.Hostname}'"
+                    "Device '{Device}' already exists on hub '{IotHub}'",
+                    device.Id,
+                    iotHub.Hostname
                 );
                 return new EdgeDevice(device, false, iotHub);
             }
@@ -84,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
             else
             {
-                Log.Information("{Message}", $"Pre-existing device '{this.Id}' was not deleted");
+                Log.Information("Pre-existing device '{Device}' was not deleted", this.Id);
             }
         }
     }

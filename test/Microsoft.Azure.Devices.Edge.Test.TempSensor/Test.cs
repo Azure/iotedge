@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
             {
                 using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
                 {
-                    Log.Information("{Message}", "Running tempSensor test");
+                    Log.Information("Running tempSensor test");
                     await Profiler.Run(
                         async () =>
                         {
