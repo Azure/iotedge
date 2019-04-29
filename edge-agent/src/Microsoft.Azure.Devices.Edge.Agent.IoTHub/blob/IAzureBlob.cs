@@ -9,12 +9,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
         string Name { get; }
 
         Task UploadFromByteArrayAsync(byte[] bytes);
-    }
-
-    public interface IAzureAppendBlob
-    {
-        string Name { get; }
-
-        Task AppendByteArray(ArraySegment<byte> bytes);
-    }
+    }   
 }
