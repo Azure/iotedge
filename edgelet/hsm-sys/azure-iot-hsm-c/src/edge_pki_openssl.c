@@ -1887,6 +1887,8 @@ int generate_rand_buffer(unsigned char *buffer, size_t num_bytes)
 {
     int result;
 
+    initialize_openssl();
+
     if ((buffer == NULL) || (num_bytes == 0) || (num_bytes > INT_MAX))
     {
         LOG_ERROR("Invalid parameters");
@@ -1894,8 +1896,11 @@ int generate_rand_buffer(unsigned char *buffer, size_t num_bytes)
     }
     else
     {
-        initialize_openssl();
-
+        // note RAND_bytes will seed the random number generator
+        // if not initialized once per process or unless cleaned up
+        // In other works we don't have to worry about seeding for
+        // the default implementation.
+        // https://wiki.openssl.org/index.php/Random_Numbers
         int rc = RAND_bytes(buffer, (int)num_bytes);
 
         if (rc != 1)
