@@ -29,8 +29,6 @@ static void test_hook_gballoc_free(void* ptr)
     free(ptr);
 }
 
-#include <openssl/evp.h>
-#include <openssl/err.h>
 #include "testrunnerswitcher.h"
 #include "umock_c.h"
 #include "umock_c_negative_tests.h"
@@ -54,7 +52,6 @@ MOCKABLE_FUNCTION(, void, mocked_ERR_load_crypto_strings);
 // Interface(s) under test
 //#############################################################################
 #include "edge_openssl_common.h"
-#include "hsm_key.h"
 
 //#############################################################################
 // Test defines and data

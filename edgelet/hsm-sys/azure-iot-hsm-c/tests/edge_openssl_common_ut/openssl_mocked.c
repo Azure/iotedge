@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <openssl/err.h>
+#include <openssl/evp.h>
 #include <openssl/x509.h>
 
 #include "umock_c.h"

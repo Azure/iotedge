@@ -3856,9 +3856,9 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
 
         // act 1
         result = generate_rand_buffer(NULL, sizeof(output));
-        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         // assert 1
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
         cmp = memcmp(output, expected_output, sizeof(expected_output));
         ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
 
@@ -3866,6 +3866,15 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         result = generate_rand_buffer(output, 0);
 
         // assert 2
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        cmp = memcmp(output, expected_output, sizeof(expected_output));
+        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
+
+        // act 3
+        size_t max = INT_MAX;
+        result = generate_rand_buffer(output, ++max);
+
+        // assert 3
         ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
         cmp = memcmp(output, expected_output, sizeof(expected_output));
         ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));

@@ -1887,7 +1887,7 @@ int generate_rand_buffer(unsigned char *buffer, size_t num_bytes)
 {
     int result;
 
-    if ((buffer == NULL) || (num_bytes == 0))
+    if ((buffer == NULL) || (num_bytes == 0) || (num_bytes > INT_MAX))
     {
         LOG_ERROR("Invalid parameters");
         result = __FAILURE__;
@@ -1896,7 +1896,7 @@ int generate_rand_buffer(unsigned char *buffer, size_t num_bytes)
     {
         initialize_openssl();
 
-        int rc = RAND_bytes(buffer, num_bytes);
+        int rc = RAND_bytes(buffer, (int)num_bytes);
 
         if (rc != 1)
         {
