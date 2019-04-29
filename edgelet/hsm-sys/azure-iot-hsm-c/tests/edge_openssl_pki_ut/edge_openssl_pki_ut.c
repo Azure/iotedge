@@ -44,6 +44,7 @@ static void test_hook_gballoc_free(void* ptr)
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/ec.h>
+#include <openssl/rand.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
