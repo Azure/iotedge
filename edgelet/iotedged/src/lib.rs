@@ -30,7 +30,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use failure::{Fail, ResultExt};
-use futures::future::Either;
+use futures::future::{Either, IntoFuture};
 use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future};
 use hyper::server::conn::Http;
@@ -153,6 +153,12 @@ const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
 const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200; // 2 hours
 const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 7_776_000; // 90 days
 
+#[derive(PartialEq)]
+enum StartApiReturnStatus {
+    Restart,
+    Shutdown,
+}
+
 pub struct Main {
     settings: Settings<DockerConfig>,
 }
@@ -162,10 +168,7 @@ impl Main {
         Main { settings }
     }
 
-    pub fn run_until<F>(self, shutdown_signal: F) -> Result<(), Error>
-    where
-        F: Future<Item = (), Error = ()> + Send + 'static,
-    {
+    pub fn run(self) -> Result<(), Error> {
         let Main { settings } = self;
 
         let mut tokio_runtime = tokio::runtime::Runtime::new()
@@ -247,17 +250,20 @@ impl Main {
                     IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                     IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                 );
-                start_api(
-                    &settings,
-                    hyper_client,
-                    &runtime,
-                    &key_store,
-                    cfg,
-                    root_key,
-                    shutdown_signal,
-                    &crypto,
-                    tokio_runtime,
-                )?;
+                while {
+                    let code = start_api(
+                        &settings,
+                        hyper_client.clone(),
+                        &runtime,
+                        &key_store,
+                        cfg.clone(),
+                        root_key.clone(),
+                        signal::shutdown(),
+                        &crypto,
+                        &mut tokio_runtime,
+                    )?;
+                    code == StartApiReturnStatus::Restart
+                } {}
             }
             Provisioning::Dps(dps) => {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
@@ -272,17 +278,20 @@ impl Main {
                             IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                             IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                         );
-                        start_api(
-                            &settings,
-                            hyper_client,
-                            &$runtime,
-                            &$key_store,
-                            cfg,
-                            $root_key,
-                            shutdown_signal,
-                            &crypto,
-                            tokio_runtime,
-                        )?;
+                        while {
+                            let code = start_api(
+                                &settings,
+                                hyper_client.clone(),
+                                &$runtime,
+                                &$key_store,
+                                cfg.clone(),
+                                $root_key.clone(),
+                                signal::shutdown(),
+                                &crypto,
+                                &mut tokio_runtime,
+                            )?;
+                            code == StartApiReturnStatus::Restart
+                        } {}
                     }};
                 }
 
@@ -495,8 +504,8 @@ fn start_api<HC, K, F, C, W>(
     root_key: K,
     shutdown_signal: F,
     crypto: &C,
-    mut tokio_runtime: tokio::runtime::Runtime,
-) -> Result<(), Error>
+    tokio_runtime: &mut tokio::runtime::Runtime,
+) -> Result<StartApiReturnStatus, Error>
 where
     F: Future<Item = (), Error = ()> + Send + 'static,
     HC: ClientImpl + 'static,
@@ -538,7 +547,28 @@ where
     )
     .with_issuer(CertificateIssuer::DeviceCa);
 
-    let cert_manager = Arc::new(CertificateManager::new(crypto.clone(), edgelet_cert_props));
+    let cert_manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).context(
+        ErrorKind::Initialize(InitializeErrorReason::CreateCertificateManager),
+    )?;
+
+    // Create the certificate management timer and channel
+    let (restart_tx, restart_rx) = oneshot::channel();
+
+    let expiration_timer = if settings.listen().management_uri().scheme() == "https"
+        || settings.listen().workload_uri().scheme() == "https"
+    {
+        Either::A(
+            cert_manager
+                .schedule_expiration_timer(move || restart_tx.send(()))
+                .map_err(|err| {
+                    Error::from(err.context(ErrorKind::CertificateExpirationManagement))
+                }),
+        )
+    } else {
+        Either::B(future::ok(()))
+    };
+
+    let cert_manager = Arc::new(cert_manager);
 
     let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, cert_manager.clone());
 
@@ -557,10 +587,15 @@ where
 
     // Wait for the watchdog to finish, and then send signal to the workload and management services.
     // This way the edgeAgent can finish shutting down all modules.
-    let edge_rt_with_cleanup = edge_rt.map_err(Into::into).and_then(|_| {
+
+    let edge_rt_with_cleanup = edge_rt.select2(restart_rx).then(move |res| {
         mgmt_tx.send(()).unwrap_or(());
         work_tx.send(()).unwrap_or(());
-        future::ok(())
+
+        match res {
+            Ok(Either::B(_)) => Ok(StartApiReturnStatus::Restart).into_future(),
+            _ => Ok(StartApiReturnStatus::Shutdown).into_future(),
+        }
     });
 
     let shutdown = shutdown_signal.map(move |_| {
@@ -571,14 +606,14 @@ where
     tokio_runtime.spawn(shutdown);
 
     let services = mgmt
-        .join3(workload, edge_rt_with_cleanup)
+        .join4(workload, edge_rt_with_cleanup, expiration_timer)
         .then(|result| match result {
-            Ok(((), (), ())) => Ok(()),
+            Ok(((), (), code, ())) => Ok(code),
             Err(err) => Err(err),
         });
-    tokio_runtime.block_on(services)?;
+    let restart_code = tokio_runtime.block_on(services)?;
 
-    Ok(())
+    Ok(restart_code)
 }
 
 fn init_docker_runtime(
@@ -1052,8 +1087,7 @@ mod tests {
     fn default_settings_raise_unconfigured_error() {
         let settings = Settings::<DockerConfig>::new(None).unwrap();
         let main = Main::new(settings);
-        let shutdown_signal = signal::shutdown();
-        let result = main.run_until(shutdown_signal);
+        let result = main.run();
         match result.unwrap_err().kind() {
             ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
             kind => panic!("Expected `NotConfigured` but got {:?}", kind),

@@ -83,7 +83,7 @@ pub fn configure_test(address: &str) -> Run {
     )
     .with_issuer(CertificateIssuer::DeviceCa);
 
-    let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props);
+    let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
 
     let recognizer = RegexRoutesBuilder::default()
         .get(Version::Version2018_06_28, "/route1/hello", route1)
