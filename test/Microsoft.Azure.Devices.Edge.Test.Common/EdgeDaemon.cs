@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     string[] output =
                         await Process.RunAsync("powershell", string.Join(";", commands), token);
-                    Log.Verbose("{Output}", string.Join("\n", output));
+                    Log.Verbose(string.Join("\n", output));
                 },
                 message,
                 properties);
@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     string[] output =
                         await Process.RunAsync("powershell", string.Join(";", commands), token);
-                    Log.Verbose("{Output}", string.Join("\n", output));
+                    Log.Verbose(string.Join("\n", output));
                 },
                 "Uninstalled edge daemon");
         }
