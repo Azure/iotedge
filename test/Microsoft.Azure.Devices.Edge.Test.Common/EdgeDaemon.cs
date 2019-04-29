@@ -43,11 +43,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             };
 
             string message = "Installed edge daemon";
-            var properties = new string[] { };
+            var properties = new object[] { };
             packagesPath.ForEach(p =>
             {
                 message += " from packages in '{InstallPackagePath}'";
-                properties = new[] { p };
+                properties = new object[] { p };
             });
 
             return Profiler.Run(
