@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             || logOptions.Filter.Regex.HasValue
             || logOptions.ContentEncoding != LogsContentEncoding.None
             || logOptions.ContentType != LogsContentType.Text
-            || logOptions.OutputFraming == LogOutputFraming.SimpleLength;
+            || logOptions.OutputFraming != LogOutputFraming.None;
 
         internal async Task GetLogsStreamInternal(string id, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
         {

@@ -36,6 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.Some(3), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
             yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.Some("foo")), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
             yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>()), LogOutputFraming.SimpleLength, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.Some(new LogsOutputGroupingConfig(100, TimeSpan.FromMilliseconds(1000))), false), false };
         }
 
         [Fact]
