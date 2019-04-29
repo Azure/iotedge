@@ -8,8 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class Profiler
     {
-        public static Task Run(string startMessage, Func<Task> func) => Run(
-            startMessage,
+        public static Task Run(string message, Func<Task> func) => Run(
+            message,
             async () =>
             {
                 await func();
@@ -24,7 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             T t = await func();
 
             stopwatch.Stop();
-            Log.Information("[+{Elapsed}] {Message}", stopwatch.Elapsed, message);
+            string elapsed = $"{((double)stopwatch.ElapsedMilliseconds)/1000,9:+0.000s}";
+            Log.Information("[{Elapsed}] {Message}", elapsed, message);
             return t;
         }
     }
