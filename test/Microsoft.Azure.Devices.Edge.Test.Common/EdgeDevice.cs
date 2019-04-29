@@ -59,8 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Log.Information(
                     "Device '{Device}' already exists on hub '{IotHub}'",
                     device.Id,
-                    iotHub.Hostname
-                );
+                    iotHub.Hostname);
                 return new EdgeDevice(device, false, iotHub);
             }
             else

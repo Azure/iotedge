@@ -107,8 +107,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
                                 },
                                 token);
 
-                        // ** teardown
-                        await daemon.StopAsync(token);
+                            // ** teardown
+                            await daemon.StopAsync(token);
                             await device.MaybeDeleteIdentityAsync(token);
                         },
                         "Completed tempSensor test");
