@@ -4,30 +4,36 @@ use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use crate::constants::*;
-use crate::convert::{auth_to_image_pull_secret, pod_to_module, spec_to_deployment};
-use crate::error::{Error, ErrorKind, Result};
-use crate::module::KubeModule;
-use edgelet_core::{
-    LogOptions, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, RuntimeOperation,
-    SystemInfo,
-};
-use edgelet_docker::DockerConfig;
-use edgelet_utils::{ensure_not_empty_with_context, sanitize_dns_label};
 use failure::Fail;
 use futures::future::Either;
 use futures::prelude::*;
 use futures::{future, stream, Async, Future, Stream};
 use hyper::client::HttpConnector;
 use hyper::service::Service;
-use hyper::{Body, Chunk as HyperChunk};
+use hyper::{header, Body, Chunk as HyperChunk, Request};
 use hyper_tls::HttpsConnector;
-use kube_client::{get_config, Client as KubeClient, HttpClient, ValueToken};
+use log::Level;
 use url::Url;
 
+use edgelet_core::{
+    AuthId, Authenticator, LogOptions, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
+    ModuleSpec, RuntimeOperation, SystemInfo,
+};
+use edgelet_docker::DockerConfig;
+use edgelet_utils::{ensure_not_empty_with_context, log_failure, sanitize_dns_label};
+use kube_client::HttpClient;
+use kube_client::{
+    get_config, Client as KubeClient, Error as KubeClientError, TokenSource, ValueToken,
+};
+
+use crate::constants::*;
+use crate::convert::{auth_to_image_pull_secret, pod_to_module, spec_to_deployment};
+use crate::error::{Error, ErrorKind, Result};
+use crate::module::KubeModule;
+
 #[derive(Clone)]
-pub struct KubeModuleRuntime<S> {
-    client: Arc<Mutex<RefCell<KubeClient<ValueToken, S>>>>,
+pub struct KubeModuleRuntime<T: Clone, S> {
+    client: Arc<Mutex<RefCell<KubeClient<T, S>>>>,
     namespace: String,
     use_pvc: bool,
     iot_hub_hostname: String,
@@ -58,7 +64,10 @@ pub trait KubeRuntimeData {
     fn management_uri(&self) -> &Url;
 }
 
-impl<S> KubeRuntimeData for KubeModuleRuntime<S> {
+impl<T, S> KubeRuntimeData for KubeModuleRuntime<T, S>
+where
+    T: Clone,
+{
     fn namespace(&self) -> &str {
         &self.namespace
     }
@@ -97,8 +106,12 @@ impl<S> KubeRuntimeData for KubeModuleRuntime<S> {
     }
 }
 
-impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
-    pub fn new(
+impl<T, S> KubeModuleRuntime<T, S>
+where
+    T: Clone,
+{
+    pub fn with_client(
+        client: KubeClient<T, S>,
         namespace: String,
         use_pvc: bool,
         iot_hub_hostname: String,
@@ -163,7 +176,7 @@ impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
         );
 
         Ok(KubeModuleRuntime {
-            client: Arc::new(Mutex::new(RefCell::new(KubeClient::new(get_config()?)))),
+            client: Arc::new(Mutex::new(RefCell::new(client))),
             namespace,
             use_pvc,
             iot_hub_hostname,
@@ -181,19 +194,53 @@ impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
     }
 }
 
-impl<S> ModuleRegistry for KubeModuleRuntime<S>
+impl KubeModuleRuntime<ValueToken, HttpClient<HttpsConnector<HttpConnector>, Body>> {
+    pub fn new(
+        namespace: String,
+        use_pvc: bool,
+        iot_hub_hostname: String,
+        device_id: String,
+        edge_hostname: String,
+        proxy_image: String,
+        proxy_config_path: String,
+        proxy_config_map_name: String,
+        image_pull_policy: String,
+        service_account_name: String,
+        workload_uri: Url,
+        management_uri: Url,
+    ) -> Result<Self> {
+        let client = KubeClient::new(get_config()?);
+
+        Self::with_client(
+            client,
+            namespace,
+            use_pvc,
+            iot_hub_hostname,
+            device_id,
+            edge_hostname,
+            proxy_image,
+            proxy_config_path,
+            proxy_config_map_name,
+            image_pull_policy,
+            service_account_name,
+            workload_uri,
+            management_uri,
+        )
+    }
+}
+
+impl<T, S> ModuleRegistry for KubeModuleRuntime<T, S>
 where
-    S: Send + Service + 'static,
+    T: TokenSource + Clone + Send + 'static,
+    S: Service + Send + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
-    Body: From<<S as Service>::ResBody>,
+    Body: From<S::ResBody>,
     <S::ResBody as Stream>::Item: AsRef<[u8]>,
     <S::ResBody as Stream>::Error: Into<Error>,
-    S::Error: Into<Error>,
-    <<S as hyper::service::Service>::ResBody as futures::Stream>::Error:
-        std::convert::Into<kube_client::Error>,
-    <S as hyper::service::Service>::Error: std::convert::Into<kube_client::Error>,
-    <S as hyper::service::Service>::Future: Send,
+    <S::ResBody as Stream>::Error: Into<KubeClientError>,
+    S::Error: Into<KubeClientError>,
+    S::Future: Send,
 {
     type Error = Error;
     type PullFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
@@ -265,19 +312,18 @@ where
     }
 }
 
-impl<S> ModuleRuntime for KubeModuleRuntime<S>
+impl<T, S> ModuleRuntime for KubeModuleRuntime<T, S>
 where
+    T: TokenSource + Clone + Send + 'static,
     S: Send + Service + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
-    Body: From<<S as Service>::ResBody>,
+    Body: From<S::ResBody>,
     <S::ResBody as Stream>::Item: AsRef<[u8]>,
     <S::ResBody as Stream>::Error: Into<Error>,
-    S::Error: Into<Error>,
-    <<S as hyper::service::Service>::ResBody as futures::Stream>::Error:
-        std::convert::Into<kube_client::Error>,
-    <S as hyper::service::Service>::Error: std::convert::Into<kube_client::Error>,
-    <S as hyper::service::Service>::Future: Send,
+    <S::ResBody as Stream>::Error: Into<KubeClientError>,
+    S::Error: Into<KubeClientError>,
+    S::Future: Send,
 {
     type Error = Error;
     type Config = DockerConfig;
@@ -433,6 +479,61 @@ where
     }
 }
 
+impl<T, S> Authenticator for KubeModuleRuntime<T, S>
+where
+    T: TokenSource + Clone + 'static,
+    S: Service + Send + 'static,
+    S::ReqBody: From<Vec<u8>>,
+    S::ResBody: Stream,
+    Body: From<S::ResBody>,
+    <S::ResBody as Stream>::Item: AsRef<[u8]>,
+    <S::ResBody as Stream>::Error: Into<KubeClientError>,
+    S::Error: Into<KubeClientError>,
+    S::Future: Send,
+{
+    type Error = Error;
+    type Request = Request<Body>;
+    type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
+
+    fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
+        let token = req
+            .headers()
+            .get(header::AUTHORIZATION)
+            .and_then(|token| token.to_str().ok())
+            .filter(|token| token.len() > 6 && &token[..7].to_uppercase() == "BEARER ")
+            .map(|token: &str| &token[7..]);
+
+        let fut = match token {
+            Some(token) => Either::A(
+                self.client
+                    .lock()
+                    .expect("Unexpected lock error")
+                    .borrow_mut()
+                    .token_review(token)
+                    .map_err(|err| {
+                        log_failure(Level::Warn, &err);
+                        Error::from(err)
+                    })
+                    .and_then(|token_review| {
+                        let auth_id = token_review
+                            .status
+                            .as_ref()
+                            .filter(|status| status.authenticated.filter(|x| *x).is_some())
+                            .and_then(|status| {
+                                status.user.as_ref().and_then(|user| user.username.clone())
+                            })
+                            .map_or(AuthId::None, AuthId::Value);
+
+                        future::ok(auth_id)
+                    }),
+            ),
+            None => Either::B(future::ok(AuthId::None)),
+        };
+
+        Box::new(fut)
+    }
+}
+
 #[derive(Debug)]
 pub struct Logs(String, Body);
 
@@ -486,10 +587,19 @@ impl AsRef<[u8]> for Chunk {
 
 #[cfg(test)]
 mod tests {
-
-    use super::KubeModuleRuntime;
     use std::str::FromStr;
+
+    use futures::future::Future;
+    use hyper::service::{service_fn, Service};
+    use hyper::Error as HyperError;
+    use hyper::{header, Body, Request, Response};
+    use native_tls::TlsConnector;
     use url::Url;
+
+    use edgelet_core::{AuthId, Authenticator};
+    use kube_client::{Client as KubeClient, Config, Error, TokenSource};
+
+    use crate::runtime::KubeModuleRuntime;
 
     #[test]
     fn runtime_new() {
@@ -649,5 +759,143 @@ mod tests {
             management_uri.clone(),
         );
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn authenticate_returns_none_when_no_auth_token_provided() {
+        let service = service_fn(
+            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                Ok(Response::new(Body::empty()))
+            },
+        );
+        let req = Request::default();
+        let runtime = prepare_module_runtime(service);
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_none_when_invalid_auth_token_provided() {
+        let service = service_fn(
+            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                Ok(Response::new(Body::empty()))
+            },
+        );
+        let runtime = prepare_module_runtime(service);
+
+        let mut req = Request::default();
+        req.headers_mut()
+            .insert(header::AUTHORIZATION, "BeErer token".parse().unwrap());
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_none_when_unknown_auth_token_provided() {
+        let service = service_fn(
+            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let body = r###"{
+                        "kind": "TokenReview",
+                        "spec": { "token": "token" },
+                        "status": {
+                            "authenticated": false
+                        }
+                    }"###;
+                Ok(Response::new(Body::from(body)))
+            },
+        );
+        let runtime = prepare_module_runtime(service);
+
+        let mut req = Request::default();
+        req.headers_mut().insert(
+            header::AUTHORIZATION,
+            "Bearer token-unknown".parse().unwrap(),
+        );
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_auth_id_when_module_auth_token_provided() {
+        let service = service_fn(
+            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let body = r###"{
+                    "kind": "TokenReview",
+                    "spec": { "token": "token" },
+                    "status": {
+                        "authenticated": true,
+                        "user": {
+                            "username": "module-abc"
+                        }
+                    }
+                }"###;
+                Ok(Response::new(Body::from(body)))
+            },
+        );
+
+        let mut req = Request::default();
+        req.headers_mut()
+            .insert(header::AUTHORIZATION, "Bearer token".parse().unwrap());
+
+        let runtime = prepare_module_runtime(service);
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::Value("module-abc".to_string()), auth_id);
+    }
+
+    fn prepare_module_runtime<S: Service>(service: S) -> KubeModuleRuntime<TestTokenSource, S> {
+        let namespace = String::from("my-namespace");
+        let iot_hub_hostname = String::from("iothostname");
+        let device_id = String::from("my_device_id");
+        let edge_hostname = String::from("edge-hostname");
+        let proxy_image = String::from("proxy-image");
+        let proxy_config_path = String::from("proxy-confg-path");
+        let proxy_config_map_name = String::from("config-volume");
+        let image_pull_policy = String::from("IfNotPresent");
+        let service_account_name = String::from("iotedge");
+        let workload_uri = Url::from_str("http://localhost:35000").unwrap();
+        let management_uri = Url::from_str("http://localhost:35001").unwrap();
+
+        let config = Config::new(
+            Url::parse("https://localhost:443").unwrap(),
+            "/api".to_string(),
+            TestTokenSource,
+            TlsConnector::new().unwrap(),
+        );
+
+        KubeModuleRuntime::with_client(
+            KubeClient::with_client(config, service),
+            namespace.clone(),
+            true,
+            iot_hub_hostname.clone(),
+            device_id.clone(),
+            edge_hostname.clone(),
+            proxy_image.clone(),
+            proxy_config_path.clone(),
+            proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
+            service_account_name.clone(),
+            workload_uri.clone(),
+            management_uri.clone(),
+        )
+        .unwrap()
+    }
+
+    #[derive(Clone)]
+    struct TestTokenSource;
+
+    impl TokenSource for TestTokenSource {
+        type Error = Error;
+
+        fn get(&self) -> kube_client::error::Result<Option<String>> {
+            Ok(None)
+        }
     }
 }
