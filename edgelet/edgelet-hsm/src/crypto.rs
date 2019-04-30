@@ -30,23 +30,26 @@ pub use crate::error::{Error, ErrorKind};
 #[derive(Clone)]
 pub struct Crypto {
     crypto: Arc<Mutex<HsmCrypto>>,
+    hsm_lock: Arc<Mutex<()>>,
 }
 
 impl Crypto {
-    pub fn new() -> Result<Self, Error> {
+    pub fn new(m: &Arc<Mutex<()>>) -> Result<Self, Error> {
         let hsm = HsmCrypto::new()?;
-        Crypto::from_hsm(hsm)
+        Crypto::from_hsm(hsm, m)
     }
 
-    pub fn from_hsm(crypto: HsmCrypto) -> Result<Self, Error> {
+    pub fn from_hsm(crypto: HsmCrypto, m: &Arc<Mutex<()>>) -> Result<Self, Error> {
         Ok(Crypto {
             crypto: Arc::new(Mutex::new(crypto)),
+            hsm_lock: m.clone(),
         })
     }
 }
 
 impl CoreMasterEncryptionKey for Crypto {
     fn create_key(&self) -> Result<(), CoreError> {
+        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
         self.crypto
             .lock()
             .expect("Lock on crypto structure failed")
@@ -56,6 +59,7 @@ impl CoreMasterEncryptionKey for Crypto {
     }
 
     fn destroy_key(&self) -> Result<(), CoreError> {
+        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
         self.crypto
             .lock()
             .expect("Lock on crypto structure failed")
@@ -72,6 +76,7 @@ impl CoreCreateCertificate for Crypto {
         &self,
         properties: &CoreCertificateProperties,
     ) -> Result<Self::Certificate, CoreError> {
+        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
         let crypto = self.crypto.lock().expect("Lock on crypto structure failed");
         let device_ca_alias = crypto.get_device_ca_alias();
         let cert = crypto
@@ -82,6 +87,7 @@ impl CoreCreateCertificate for Crypto {
     }
 
     fn destroy_certificate(&self, alias: String) -> Result<(), CoreError> {
+        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
         self.crypto
             .lock()
             .expect("Lock on crypto structure failed")
@@ -101,6 +107,7 @@ impl CoreEncrypt for Crypto {
         plaintext: &[u8],
         initialization_vector: &[u8],
     ) -> Result<Self::Buffer, CoreError> {
+        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
         self.crypto
             .lock()
             .expect("Lock on crypto structure failed")
@@ -119,6 +126,7 @@ impl CoreDecrypt for Crypto {
         ciphertext: &[u8],
         initialization_vector: &[u8],
     ) -> Result<Self::Buffer, CoreError> {
+        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
         self.crypto
             .lock()
             .expect("Lock on crypto structure failed")
@@ -132,6 +140,7 @@ impl CoreGetTrustBundle for Crypto {
     type Certificate = Certificate;
 
     fn get_trust_bundle(&self) -> Result<Self::Certificate, CoreError> {
+        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
         let cert = self
             .crypto
             .lock()

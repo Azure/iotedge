@@ -4,7 +4,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use lazy_static::lazy_static;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use edgelet_core::crypto::MasterEncryptionKey;
 use edgelet_hsm::Crypto;
@@ -21,7 +21,8 @@ fn crypto_master_key_success() {
     // arrange
     let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
-    let crypto = Crypto::new().unwrap();
+    let hsm_lock = Arc::new(Mutex::new(()));
+    let crypto = Crypto::new(&hsm_lock).unwrap();
 
     crypto
         .destroy_key()
