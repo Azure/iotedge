@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
-    using Akka.Streams.Implementation.Fusing;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -473,13 +472,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string deviceId = "dev1";
             string moduleId = "mod1";
             var logMessageParser = new LogMessageParser(iotHub, deviceId);
-            var logsProcessor = new LogsProcessor(logMessageParser);            
+            var logsProcessor = new LogsProcessor(logMessageParser);
             var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.None<int>(), Option.None<string>());
 
             var stream1 = new MemoryStream(DockerFraming.Frame(TestLogTexts));
             var logOptions1 = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
-            
+
             var receivedBytes1 = new List<byte>();
+
             Task Callback1(ArraySegment<byte> bytes)
             {
                 receivedBytes1.AddRange(bytes.ToArray());
@@ -493,13 +493,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             Assert.NotEmpty(receivedBytes1);
             string receivedText1 = receivedBytes1.ToArray()
                 .FromBytes();
-            Assert.Equal(String.Join(string.Empty, TestLogTexts), receivedText1);
+            Assert.Equal(string.Join(string.Empty, TestLogTexts), receivedText1);
 
             // Arrange
             var stream2 = new MemoryStream(DockerFraming.Frame(TestLogTexts));
             var logOptions2 = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             var receivedBytes2 = new List<ArraySegment<byte>>();
+
             Task Callback2(ArraySegment<byte> bytes)
             {
                 receivedBytes2.Add(bytes);
@@ -512,7 +513,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             // Assert
             Assert.NotEmpty(receivedBytes2);
             IEnumerable<string> receivedText2 = receivedBytes2
-                .Select(r => Compression.DecompressFromGzip(r.ToArray()))                
+                .Select(r => Compression.DecompressFromGzip(r.ToArray()))
                 .Select(r => r.FromBytes());
             Assert.Equal(TestLogTexts, receivedText2);
 
@@ -521,6 +522,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logOptions3 = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter, LogOutputFraming.None, Option.Some(new LogsOutputGroupingConfig(100, TimeSpan.FromSeconds(10))), false);
 
             var receivedBytes3 = new List<ArraySegment<byte>>();
+
             Task Callback3(ArraySegment<byte> bytes)
             {
                 receivedBytes3.Add(bytes);
@@ -536,7 +538,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
                 .Select(r => Compression.DecompressFromGzip(r.ToArray()))
                 .Select(r => r.FromBytes());
             Assert.Equal(string.Join(string.Empty, TestLogTexts), receivedText3.First());
-            
+
             int countBytes2 = receivedBytes2.Select(r => r.Count).Sum();
             int countBytes3 = receivedBytes3.Select(r => r.Count).Sum();
             Assert.True(countBytes2 > countBytes3);
