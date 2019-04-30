@@ -166,7 +166,10 @@ pub struct Main {
 
 impl Main {
     pub fn new(settings: Settings<DockerConfig>) -> Self {
-        Main { settings, hsm_lock: Arc::new(Mutex::new(())) }
+        Main {
+            settings,
+            hsm_lock: Arc::new(Mutex::new(())),
+        }
     }
 
     pub fn run(self) -> Result<(), Error> {
@@ -225,7 +228,8 @@ impl Main {
         info!("Finished configuring certificates.");
 
         info!("Initializing hsm...");
-        let crypto = Crypto::new(&hsm_lock).context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+        let crypto =
+            Crypto::new(&hsm_lock).context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
         info!("Finished initializing hsm.");
 
         // Detect if the settings were changed and if the device needs to be reconfigured
@@ -307,7 +311,7 @@ impl Main {
                                 runtime,
                                 &mut tokio_runtime,
                                 tpm,
-                                &hsm_lock
+                                &hsm_lock,
                             )?;
                         start_edgelet!(key_store, provisioning_result, root_key, runtime);
                     }
