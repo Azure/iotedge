@@ -4,7 +4,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use std::str;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
 use hmac::{Hmac, Mac};
@@ -42,7 +42,8 @@ fn tpm_active_key_sign() {
     // arrange
     let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
-    let key_store = TpmKeyStore::new().unwrap();
+    let hsm_lock = Arc::new(Mutex::new(()));
+    let key_store = TpmKeyStore::new(&hsm_lock).unwrap();
 
     let decoded_key = base64::decode(TEST_KEY_BASE64).unwrap();
     let decoded_key_str = unsafe { str::from_utf8_unchecked(&decoded_key) };

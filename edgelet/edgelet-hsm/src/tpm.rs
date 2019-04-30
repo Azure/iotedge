@@ -21,6 +21,7 @@ pub struct TpmKey {
     tpm: Arc<Mutex<Tpm>>,
     identity: KeyIdentity,
     key_name: String,
+    hsm_lock: Arc<Mutex<()>>,
 }
 
 /// The TPM Key Store.
@@ -28,22 +29,25 @@ pub struct TpmKey {
 #[derive(Clone)]
 pub struct TpmKeyStore {
     tpm: Arc<Mutex<Tpm>>,
+    hsm_lock: Arc<Mutex<()>>,
 }
 
 impl TpmKeyStore {
-    pub fn new() -> Result<Self, Error> {
+    pub fn new(m: &Arc<Mutex<()>>) -> Result<Self, Error> {
         let hsm = Tpm::new()?;
-        TpmKeyStore::from_hsm(hsm)
+        TpmKeyStore::from_hsm(hsm, m)
     }
 
-    pub fn from_hsm(tpm: Tpm) -> Result<Self, Error> {
+    pub fn from_hsm(tpm: Tpm, m: &Arc<Mutex<()>>) -> Result<Self, Error> {
         Ok(TpmKeyStore {
             tpm: Arc::new(Mutex::new(tpm)),
+            hsm_lock: m.clone(),
         })
     }
 
     /// Activate and store a private key in the TPM.
     pub fn activate_key(&self, key_value: &Bytes) -> Result<(), Error> {
+        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
         self.tpm
             .lock()
             .expect("Lock on KeyStore TPM failed")
@@ -57,6 +61,7 @@ impl TpmKeyStore {
             tpm: Arc::clone(&self.tpm),
             identity: KeyIdentity::Device,
             key_name: ROOT_KEY_NAME.to_string(),
+            hsm_lock: self.hsm_lock.clone(),
         })
     }
 }
@@ -80,6 +85,7 @@ impl CoreKeyStore for TpmKeyStore {
                     tpm: Arc::clone(&self.tpm),
                     identity: identity.clone(),
                     key_name: key_name.to_string(),
+                    hsm_lock: self.hsm_lock.clone(),
                 })
             }
         }
@@ -116,6 +122,7 @@ impl Sign for TpmKey {
         _signature_algorithm: SignatureAlgorithm,
         data: &[u8],
     ) -> Result<Self::Signature, CoreError> {
+        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
         match self.identity {
             KeyIdentity::Device => self
                 .tpm
