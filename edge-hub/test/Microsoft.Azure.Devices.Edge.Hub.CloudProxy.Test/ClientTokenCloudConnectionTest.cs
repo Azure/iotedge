@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task GetCloudConnectionForIdentityWithTokenTest()
         {
             IClientProvider clientProvider = GetMockDeviceClientProviderWithToken();
-            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(Client.TransportType.Amqp_Tcp_Only) };
+            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
             var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
             ITokenCredentials clientCredentials1 = GetMockClientCredentialsWithToken();
             ClientTokenCloudConnection cloudConnection = await ClientTokenCloudConnection.Create(
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Returns(GetMockDeviceClient())
                 .Throws(new UnauthorizedException("Unauthorized"));
 
-            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(Client.TransportType.Amqp_Tcp_Only) };
+            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
 
             var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
             ITokenCredentials identity1 = GetMockClientCredentialsWithToken();
@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>()))
                 .Returns(() => client);
 
-            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(Client.TransportType.Amqp_Tcp_Only) };
+            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
             var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
 
             ITokenCredentials clientCredentialsWithNonExpiringToken = GetClientCredentialsWithNonExpiringToken();
@@ -150,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             ITokenProvider tokenProvider = null;
             IClientProvider clientProvider = GetMockDeviceClientProviderWithToken((s, a, t) => tokenProvider = a);
 
-            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(Client.TransportType.Amqp_Tcp_Only) };
+            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
 
             var receivedStatus = CloudConnectionStatus.ConnectionEstablished;
             void ConnectionStatusHandler(string id, CloudConnectionStatus status) => receivedStatus = status;
@@ -217,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             ITokenProvider tokenProvider = null;
             IClientProvider clientProvider = GetMockDeviceClientProviderWithToken((s, a, t) => tokenProvider = a);
 
-            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(Client.TransportType.Amqp_Tcp_Only) };
+            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
 
             var receivedStatuses = new List<CloudConnectionStatus>();
             void ConnectionStatusHandler(string id, CloudConnectionStatus status) => receivedStatuses.Add(status);
@@ -313,7 +313,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>()))
                 .Returns(() => GetMockedDeviceClient());
 
-            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(Client.TransportType.Amqp_Tcp_Only) };
+            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
 
             void ConnectionStatusHandler(string id, CloudConnectionStatus status)
             {
