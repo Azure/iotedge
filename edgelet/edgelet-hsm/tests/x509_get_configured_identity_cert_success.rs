@@ -7,7 +7,7 @@ use std::env;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use lazy_static::lazy_static;
 
@@ -50,7 +50,8 @@ fn x509_get_identity_cert_success() {
     let home_dir = TestHSMEnvSetup::new(&LOCK, None);
     setup_configured_id_cert(home_dir.get_path());
 
-    let x509 = X509::new().unwrap();
+    let hsm_lock = Arc::new(Mutex::new(()));
+    let x509 = X509::new(&hsm_lock).unwrap();
 
     let cert_info = x509.get().unwrap();
 
