@@ -39,6 +39,7 @@ pub struct Crypto {
 
 // Handles don't have thread-affinity
 unsafe impl Send for Crypto {}
+unsafe impl Sync for Crypto {}
 
 impl Drop for Crypto {
     fn drop(&mut self) {

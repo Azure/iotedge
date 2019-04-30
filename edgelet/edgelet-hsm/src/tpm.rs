@@ -18,7 +18,7 @@ const ROOT_KEY_NAME: &str = "primary";
 /// Represents a key which can sign data.
 #[derive(Clone, Debug)]
 pub struct TpmKey {
-    tpm: Arc<Mutex<Tpm>>,
+    tpm: Arc<Tpm>,
     identity: KeyIdentity,
     key_name: String,
     hsm_lock: Arc<Mutex<()>>,
@@ -28,7 +28,7 @@ pub struct TpmKey {
 /// Activate a private key, and then you can use that key to sign data.
 #[derive(Clone)]
 pub struct TpmKeyStore {
-    tpm: Arc<Mutex<Tpm>>,
+    tpm: Arc<Tpm>,
     hsm_lock: Arc<Mutex<()>>,
 }
 
@@ -40,7 +40,7 @@ impl TpmKeyStore {
 
     pub fn from_hsm(tpm: Tpm, m: &Arc<Mutex<()>>) -> Result<Self, Error> {
         Ok(TpmKeyStore {
-            tpm: Arc::new(Mutex::new(tpm)),
+            tpm: Arc::new(tpm),
             hsm_lock: m.clone(),
         })
     }
@@ -49,8 +49,6 @@ impl TpmKeyStore {
     pub fn activate_key(&self, key_value: &Bytes) -> Result<(), Error> {
         let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
         self.tpm
-            .lock()
-            .expect("Lock on KeyStore TPM failed")
             .activate_identity_key(key_value)?;
         Ok(())
     }
@@ -126,15 +124,11 @@ impl Sign for TpmKey {
         match self.identity {
             KeyIdentity::Device => self
                 .tpm
-                .lock()
-                .expect("Lock failed")
                 .sign_with_identity(data)
                 .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
                 .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore))),
             KeyIdentity::Module(ref _m) => self
                 .tpm
-                .lock()
-                .expect("Lock failed")
                 .derive_and_sign_with_identity(
                     data,
                     format!(

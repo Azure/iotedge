@@ -21,6 +21,7 @@ pub struct Tpm {
 
 // Handles don't have thread-affinity
 unsafe impl Send for Tpm {}
+unsafe impl Sync for Tpm {}
 
 // HSM TPM
 

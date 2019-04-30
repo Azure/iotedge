@@ -18,7 +18,7 @@ use edgelet_core::{
 /// The X.509 device identity HSM instance
 #[derive(Clone)]
 pub struct X509 {
-    x509: Arc<Mutex<HsmX509>>,
+    x509: Arc<HsmX509>,
     hsm_lock: Arc<Mutex<()>>,
 }
 
@@ -30,7 +30,7 @@ impl X509 {
 
     pub fn from_hsm(x509: HsmX509, m: &Arc<Mutex<()>>) -> Result<Self, Error> {
         Ok(X509 {
-            x509: Arc::new(Mutex::new(x509)),
+            x509: Arc::new(x509),
             hsm_lock: m.clone(),
         })
     }
@@ -44,8 +44,6 @@ impl CoreGetDeviceIdentityCertificate for X509 {
         let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
         let cert = self
             .x509
-            .lock()
-            .expect("Lock on X509 structure failed")
             .get_certificate_info()
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| {
@@ -57,8 +55,6 @@ impl CoreGetDeviceIdentityCertificate for X509 {
     fn sign_with_private_key(&self, data: &[u8]) -> Result<Self::Buffer, CoreError> {
         let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
         self.x509
-            .lock()
-            .expect("Lock on X509 structure failed")
             .sign_with_private_key(data)
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::DeviceIdentitySign)))
     }
