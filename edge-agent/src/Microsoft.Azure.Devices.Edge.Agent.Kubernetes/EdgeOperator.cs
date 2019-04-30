@@ -510,7 +510,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 });
         }
 
-        string DeploymentName(string moduleId) => KubeUtils.SanitizeK8sValue(this.iotHubHostname + "-" + this.deviceId + "-" + moduleId);
+        string DeploymentName(string moduleId) => KubeUtils.SanitizeK8sValue(moduleId);
 
         async void ManageDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments, EdgeDeploymentDefinition customObject)
         {

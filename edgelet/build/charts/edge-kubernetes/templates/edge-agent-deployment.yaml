@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: '{{ include "edge-kubernetes.hostname" . }}-{{ include "edge-kubernetes.deviceid" . }}-edgeagent'
+  name: 'edgeagent'
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
   labels:
     app.kubernetes.io/name: {{ include "edge-kubernetes.name" . }}-edge-agent
