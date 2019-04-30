@@ -1261,8 +1261,9 @@ $DirectMethodModuleToModuleDeploymentFilename = "dm_module_to_module_deployment.
 $RuntimeOnlyDeploymentFilename = 'runtime_only_deployment.template.json'
 $QuickstartDeploymentFilename = 'quickstart_deployment.template.json'
 $TwinTestFilename = "twin_test_tempSensor.json"
-$LongHaulDeploymentFilename = "long_haul_deployment.template.json"
-$StressDeplymentFilename = "stress_deployment.template.json"
+# Using versions without snitcher and influxdb, as they are currently not working in windows
+$LongHaulDeploymentFilename = "long_haul_deployment_windows.template.json"
+$StressDeplymentFilename = "stress_deployment_windows.template.json"
 
 $IotEdgeQuickstartArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\IotEdgeQuickstart\$Architecture"
 $LeafDeviceArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\LeafDevice\$Architecture"
