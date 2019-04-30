@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 {
     using System;
     using System.Collections.Generic;
 
-    static class SimpleFraming
+    public static class SimpleFraming
     {
         public static IList<byte[]> Parse(byte[] buf)
         {
