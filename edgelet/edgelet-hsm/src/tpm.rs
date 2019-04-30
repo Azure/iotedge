@@ -48,8 +48,7 @@ impl TpmKeyStore {
     /// Activate and store a private key in the TPM.
     pub fn activate_key(&self, key_value: &Bytes) -> Result<(), Error> {
         let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
-        self.tpm
-            .activate_identity_key(key_value)?;
+        self.tpm.activate_identity_key(key_value)?;
         Ok(())
     }
 

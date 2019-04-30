@@ -74,7 +74,8 @@ impl CoreCreateCertificate for Crypto {
     ) -> Result<Self::Certificate, CoreError> {
         let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
         let device_ca_alias = self.crypto.get_device_ca_alias();
-        let cert = self.crypto
+        let cert = self
+            .crypto
             .create_certificate(&convert_properties(properties, &device_ca_alias))
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))?;
