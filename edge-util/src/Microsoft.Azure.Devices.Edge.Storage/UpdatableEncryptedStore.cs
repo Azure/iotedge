@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
+    using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
@@ -23,12 +24,23 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return encryptedDataString;
         }
 
-        protected override async Task<string> DecryptValue(string value)
+        protected override async Task<Option<string>> DecryptValue(string value)
         {
-            string decryptedValue;
+            EncryptedData encryptedData;
             try
             {
-                var encryptedData = value.FromJson<EncryptedData>();
+                encryptedData = value.FromJson<EncryptedData>();
+            }
+            catch (JsonSerializationException)
+            {
+                // If the json serialization fails, then assume the stored value
+                // was unencrypted and return it.
+                return Option.Some(value);
+            }
+
+            try
+            {
+                string decryptedValue;
                 if (encryptedData.Encrypted)
                 {
                     decryptedValue = await this.EncryptionProvider.DecryptAsync(encryptedData.Payload);
@@ -37,15 +49,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 {
                     decryptedValue = encryptedData.Payload;
                 }
-            }
-            catch (JsonSerializationException)
-            {
-                // If the json serialization fails, then assume the stored value
-                // was unencrypted and return it.
-                decryptedValue = value;
-            }
 
-            return decryptedValue;
+                return Option.Some(decryptedValue);
+            }
+            catch (Exception)
+            {
+                return Option.None<string>();
+            }
         }
 
         public class EncryptedData
