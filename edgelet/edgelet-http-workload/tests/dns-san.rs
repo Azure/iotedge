@@ -8,6 +8,7 @@
 
 use std::env;
 use std::str;
+use std::sync::{Arc, Mutex};
 
 use chrono::{Duration, Utc};
 use failure::Fail;
@@ -82,7 +83,8 @@ impl WorkloadConfig for Config {
 }
 
 fn init_crypto() -> Crypto {
-    let crypto = Crypto::new().unwrap();
+    let hsm_lock = Arc::new(Mutex::new(()));
+    let crypto = Crypto::new(&hsm_lock).unwrap();
 
     // create the default issuing CA cert
     let edgelet_ca_props = CertificateProperties::new(

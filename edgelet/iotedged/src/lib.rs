@@ -27,7 +27,7 @@ use std::fs;
 use std::fs::{DirBuilder, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use failure::{Fail, ResultExt};
 use futures::future::{Either, IntoFuture};
@@ -161,15 +161,16 @@ enum StartApiReturnStatus {
 
 pub struct Main {
     settings: Settings<DockerConfig>,
+    hsm_lock: Arc<Mutex<()>>,
 }
 
 impl Main {
     pub fn new(settings: Settings<DockerConfig>) -> Self {
-        Main { settings }
+        Main { settings, hsm_lock: Arc::new(Mutex::new(())) }
     }
 
     pub fn run(self) -> Result<(), Error> {
-        let Main { settings } = self;
+        let Main { settings, hsm_lock } = self;
 
         let mut tokio_runtime = tokio::runtime::Runtime::new()
             .context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
@@ -224,7 +225,7 @@ impl Main {
         info!("Finished configuring certificates.");
 
         info!("Initializing hsm...");
-        let crypto = Crypto::new().context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+        let crypto = Crypto::new(&hsm_lock).context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
         info!("Finished initializing hsm.");
 
         // Detect if the settings were changed and if the device needs to be reconfigured
@@ -306,6 +307,7 @@ impl Main {
                                 runtime,
                                 &mut tokio_runtime,
                                 tpm,
+                                &hsm_lock
                             )?;
                         start_edgelet!(key_store, provisioning_result, root_key, runtime);
                     }
@@ -743,6 +745,7 @@ fn dps_tpm_provision<HC, M>(
     runtime: M,
     tokio_runtime: &mut tokio::runtime::Runtime,
     tpm_attestation_info: &TpmAttestationInfo,
+    hsm_lock: &Arc<Mutex<()>>,
 ) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey, M), Error>
 where
     HC: 'static + ClientImpl,
@@ -769,7 +772,7 @@ where
     .context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
-    let tpm_hsm = TpmKeyStore::from_hsm(tpm).context(ErrorKind::Initialize(
+    let tpm_hsm = TpmKeyStore::from_hsm(tpm, &hsm_lock).context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
     let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
