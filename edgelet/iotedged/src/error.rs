@@ -19,6 +19,9 @@ pub enum ErrorKind {
     #[fail(display = "The symmetric key string could not be activated")]
     ActivateSymmetricKey,
 
+    #[fail(display = "The certificate management expiration timer encountered a failure.")]
+    CertificateExpirationManagement,
+
     #[fail(display = "The daemon could not start up successfully: {}", _0)]
     Initialize(InitializeErrorReason),
 
@@ -77,6 +80,7 @@ impl From<Context<ErrorKind>> for Error {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum InitializeErrorReason {
+    CreateCertificateManager,
     CreateMasterEncryptionKey,
     CreateSettingsDirectory,
     CreateTlsCertificate,
@@ -107,6 +111,10 @@ pub enum InitializeErrorReason {
 impl fmt::Display for InitializeErrorReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            InitializeErrorReason::CreateCertificateManager => {
+                write!(f, "Could not create the certificate manager.")
+            }
+
             InitializeErrorReason::CreateMasterEncryptionKey => {
                 write!(f, "Could not create master encryption key")
             }
