@@ -2,7 +2,9 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use std::sync::{Arc, RwLock};
+use std::time::{Duration, Instant};
 
+use futures::future::Either;
 #[cfg(unix)]
 use openssl::pkcs12::Pkcs12;
 #[cfg(unix)]
@@ -11,6 +13,8 @@ use openssl::pkey::PKey;
 use openssl::stack::Stack;
 #[cfg(unix)]
 use openssl::x509::X509;
+use tokio::prelude::*;
+use tokio::timer::Delay;
 
 use edgelet_core::crypto::{
     Certificate as CryptoCertificate, CreateCertificate, KeyBytes, PrivateKey, Signature,
@@ -20,11 +24,11 @@ use failure::ResultExt;
 
 pub use crate::error::{Error, ErrorKind};
 
-#[derive(Clone)]
 pub struct CertificateManager<C: CreateCertificate + Clone> {
     certificate: Arc<RwLock<Option<Certificate>>>,
     crypto: C,
     props: CertificateProperties,
+    creation_time: Instant,
 }
 
 #[derive(Clone)]
@@ -34,12 +38,26 @@ struct Certificate {
 }
 
 impl<C: CreateCertificate + Clone> CertificateManager<C> {
-    pub fn new(crypto: C, props: CertificateProperties) -> Self {
-        Self {
+    pub fn new(crypto: C, props: CertificateProperties) -> Result<Self, Error> {
+        let cert_manager = Self {
             certificate: Arc::new(RwLock::new(None)),
             crypto,
             props,
+            creation_time: Instant::now(),
+        };
+
+        {
+            let mut cert = cert_manager
+                .certificate
+                .write()
+                .expect("Locking the certificate for write failed.");
+
+            let created_certificate = cert_manager.create_cert()?;
+
+            *cert = Some(created_certificate);
         }
+
+        Ok(cert_manager)
     }
 
     // Convenience function since native-tls does not yet support PEM
@@ -82,30 +100,45 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
         Ok(stored_cert.cert)
     }
 
-    fn get_certificate(&self) -> Result<Certificate, Error> {
-        // First, try to directly read
-        {
-            let stored_cert = self
-                .certificate
-                .read()
-                .expect("Locking the certificate for read failed.");
+    pub fn schedule_expiration_timer<F>(
+        &self,
+        expiration_callback: F,
+    ) -> impl Future<Item = (), Error = Error>
+    where
+        F: FnOnce() -> Result<(), ()> + Sync + Send + 'static,
+    {
+        // Now, let's set a timer to expire this certificate
+        // expire the certificate with 2 minutes remaining in it's lifetime
+        let when = self.compute_certificate_alarm_time();
 
-            if let Some(stored_cert) = stored_cert.as_ref() {
-                return Ok(stored_cert.clone());
-            }
-        }
-
-        // No valid cert so must create
-        let mut stored_cert = self
-            .certificate
-            .write()
-            .expect("Locking the certificate for write failed.");
-
-        if let Some(stored_cert) = stored_cert.as_ref() {
-            Ok(stored_cert.clone())
+        // Fail if the cert has already been expired when the call to create
+        // a timer happens.
+        if when < (Instant::now() + Duration::from_secs(1)) {
+            Either::A(future::err(Error::from(
+                ErrorKind::CertificateTimerCreationError,
+            )))
         } else {
-            let created_certificate = self.create_cert()?;
-            Ok(stored_cert.get_or_insert(created_certificate).clone())
+            Either::B(
+                Delay::new(when)
+                    .map_err(|_| Error::from(ErrorKind::CertificateTimerCreationError))
+                    .and_then(move |_| match expiration_callback() {
+                        Ok(_) => Ok(()),
+                        Err(_) => Err(Error::from(ErrorKind::CertificateTimerRuntimeError)),
+                    }),
+            )
+        }
+    }
+
+    fn get_certificate(&self) -> Result<Certificate, Error> {
+        // Try to directly read
+        let stored_cert = self
+            .certificate
+            .read()
+            .expect("Locking the certificate for read failed.");
+
+        match stored_cert.as_ref() {
+            Some(stored_cert) => Ok(stored_cert.clone()),
+            None => Err(Error::from(ErrorKind::CertificateNotFound)),
         }
     }
 
@@ -149,6 +182,15 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
         })
     }
 
+    // Determine when to sound the alarm and renew the certificate.
+    #[allow(clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_sign_loss)]
+    #[allow(clippy::cast_precision_loss)]
+    fn compute_certificate_alarm_time(&self) -> Instant {
+        self.creation_time
+            + Duration::from_secs((*self.props.validity_in_secs() as f64 * 0.95) as u64)
+    }
+
     #[cfg(test)]
     fn has_certificate(&self) -> bool {
         !self
@@ -174,7 +216,7 @@ mod tests {
     };
 
     #[test]
-    pub fn test_new_manager_has_no_cert() {
+    pub fn test_cert_manager_pem_has_cert() {
         let crypto = TestCrypto::new().unwrap();
 
         let edgelet_cert_props = CertificateProperties::new(
@@ -184,29 +226,57 @@ mod tests {
             "iotedge-tls".to_string(),
         );
 
-        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props);
-
-        assert_eq!(manager.has_certificate(), false);
-    }
-
-    #[test]
-    pub fn test_manager_cert_pem_has_cert() {
-        let crypto = TestCrypto::new().unwrap();
-
-        let edgelet_cert_props = CertificateProperties::new(
-            123_456,
-            "IOTEDGED_TLS_COMMONNAME".to_string(),
-            CertificateType::Server,
-            "iotedge-tls".to_string(),
-        );
-
-        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props);
+        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
 
         let cert = manager.get_certificate().unwrap();
 
         assert_eq!(cert.cert, "test".to_string());
 
         assert_eq!(manager.has_certificate(), true);
+    }
+
+    #[test]
+    pub fn test_cert_manager_expired_timer_creation() {
+        let crypto = TestCrypto::new().unwrap();
+
+        let edgelet_cert_props = CertificateProperties::new(
+            1, // 150 second validity
+            "IOTEDGED_TLS_COMMONNAME".to_string(),
+            CertificateType::Server,
+            "iotedge-tls".to_string(),
+        );
+
+        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
+        let _timer = manager.schedule_expiration_timer(|| Ok(()));
+    }
+
+    #[test]
+    pub fn test_cert_manager_expired_timer_creation_fails() {
+        let crypto = TestCrypto::new().unwrap();
+
+        let edgelet_cert_props = CertificateProperties::new(
+            50, // 50 second validity
+            "IOTEDGED_TLS_COMMONNAME".to_string(),
+            CertificateType::Server,
+            "iotedge-tls".to_string(),
+        );
+
+        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
+
+        let timer = manager.schedule_expiration_timer(|| Ok(())).wait();
+        match timer {
+            Ok(_) => panic!("Should not be okay to create this timer..."),
+            Err(err) => {
+                if let ErrorKind::CertificateTimerCreationError = err.kind() {
+                    assert_eq!(true, true);
+                } else {
+                    panic!(
+                        "Expected a CertificteTimerCreationError type, but got {:?}",
+                        err
+                    );
+                }
+            }
+        }
     }
 
     #[derive(Clone)]
