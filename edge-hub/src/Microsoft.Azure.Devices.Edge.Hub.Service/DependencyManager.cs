@@ -177,6 +177,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
 
             string proxy = this.configuration.GetValue("https_proxy", string.Empty);
+            Option<int> storageLimitThresholdPercentage = this.GetConfigurationValueIfExists("StorageLimitThresholdPercentage")
+                .Map(t => (int)t);
 
             // Register modules
             builder.RegisterModule(
@@ -197,7 +199,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     scopeCacheRefreshRate,
                     cacheTokens,
                     this.trustBundle,
-                    proxy));
+                    proxy,
+                    storageLimitThresholdPercentage));
         }
 
         (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) GetStoreAndForwardConfiguration()
