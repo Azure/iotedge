@@ -10,6 +10,7 @@ pub struct TestCert {
     private_key: Option<PrivateKey<String>>,
     fail_private_key: bool,
     fail_valid_to: bool,
+    valid_to: Option<DateTime<Utc>>,
     common_name: String,
     fail_common_name: bool,
 }
@@ -32,6 +33,12 @@ impl TestCert {
 
     pub fn with_fail_private_key(mut self, fail_private_key: bool) -> Self {
         self.fail_private_key = fail_private_key;
+        self
+    }
+
+    pub fn with_valid_to(mut self, valid_to: DateTime<Utc>) -> Self {
+        self.fail_valid_to = false;
+        self.valid_to = Some(valid_to);
         self
     }
 
@@ -75,7 +82,10 @@ impl Certificate for TestCert {
         if self.fail_valid_to {
             Err(CoreError::from(CoreErrorKind::KeyStore))
         } else {
-            Ok(Utc::now())
+            match self.valid_to {
+                Some(ts) => Ok(ts),
+                None => Ok(Utc::now()),
+            }
         }
     }
 

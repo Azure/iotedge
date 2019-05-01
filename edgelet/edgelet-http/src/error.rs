@@ -32,6 +32,15 @@ pub enum ErrorKind {
     #[fail(display = "Unable to convert a TLS certificate into a PKCS#12 certificate")]
     CertificateConversionError,
 
+    #[fail(display = "Unable to create a certificate expiration timer")]
+    CertificateTimerCreationError,
+
+    #[fail(display = "The certificate timer callback failed")]
+    CertificateTimerRuntimeError,
+
+    #[fail(display = "A valid certificate was not found")]
+    CertificateNotFound,
+
     #[fail(display = "Could not perform HTTP request")]
     Http,
 
