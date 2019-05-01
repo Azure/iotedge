@@ -84,10 +84,7 @@
         Enable amqp protocol head in Edge Hub.
 
     .PARAMETER MqttSettingsEnabled
-        Enable mqtt protocol head in Edge Hub.
-
-    .PARAMETER LongHaulProtocolHead
-        Specify which protocol head is used to run long haul test for ARM32v7 device. Valid values are amqp (default) and mqtt.  
+        Enable mqtt protocol head in Edge Hub. 
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -204,9 +201,6 @@ Param (
 
     [ValidateSet("true", "false")]
     [string] $MqttSettingsEnabled,
-
-    [ValidateNotNullOrEmpty()]
-    [string] $LongHaulProtocolHead = "amqp"
 
 )
 

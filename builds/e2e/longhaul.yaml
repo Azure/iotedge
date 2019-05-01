@@ -340,6 +340,7 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.arm64v8)'
           longHaul.protocolHead: 'mqtt'
+          
 ################################################################################
   - job: windows_amd64_moby
 ################################################################################
