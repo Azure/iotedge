@@ -73,9 +73,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Console.WriteLine($"Got created Drive {driveInfo.Name} - AvailableFreeSpace = {driveInfo.AvailableFreeSpace} TotalSize = {driveInfo.TotalSize}");
             lock (this.updateLock)
             {
-                double percentDiskUsed = (double)driveInfo.AvailableFreeSpace * 100 / driveInfo.TotalFreeSpace;
-                this.isFull = percentDiskUsed >= this.thresholdPercentage;
-                Console.WriteLine($"Percentage disk used = {percentDiskUsed}, isFull = {this.isFull}");
+                double percentDiskFree = (double)driveInfo.AvailableFreeSpace * 100 / driveInfo.TotalFreeSpace;
+                this.isFull = percentDiskFree <= this.thresholdPercentage;
+                Console.WriteLine($"Percentage disk used = {percentDiskFree}, isFull = {this.isFull}");
             }
 
             return Task.CompletedTask;
