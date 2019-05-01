@@ -9,11 +9,13 @@ pub enum Policy {
     Module(&'static str),
 }
 
+pub type ModuleId = String;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum AuthId {
     None,
     Any,
-    Value(String),
+    Value(ModuleId),
 }
 
 impl fmt::Display for AuthId {
