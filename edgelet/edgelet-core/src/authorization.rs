@@ -2,11 +2,6 @@
 
 use std::fmt;
 
-use futures::future::Either;
-use futures::{future, Future};
-
-use crate::error::Error;
-
 #[derive(Debug)]
 pub enum Policy {
     Anonymous,
@@ -40,61 +35,43 @@ impl Authorization {
         Authorization { policy }
     }
 
-    pub fn authorize(
-        &self,
-        name: Option<String>,
-        auth_id: AuthId,
-    ) -> impl Future<Item = bool, Error = Error> {
+    pub fn authorize(&self, name: Option<String>, auth_id: AuthId) -> bool {
         let name = name.map(|n| n.trim_start_matches('$').to_string());
         match self.policy {
-            Policy::Anonymous => Either::A(Either::A(self.auth_anonymous())),
-            Policy::Caller => Either::A(Either::B(self.auth_caller(name, auth_id))),
-            Policy::Module(ref expected_name) => {
-                Either::B(self.auth_module(expected_name, auth_id))
-            }
+            Policy::Anonymous => self.auth_anonymous(),
+            Policy::Caller => self.auth_caller(name, auth_id),
+            Policy::Module(ref expected_name) => self.auth_module(expected_name, auth_id),
         }
     }
 
-    fn auth_anonymous(&self) -> impl Future<Item = bool, Error = Error> {
-        future::ok(true)
+    fn auth_anonymous(&self) -> bool {
+        true
     }
 
-    fn auth_caller(
-        &self,
-        name: Option<String>,
-        auth_id: AuthId,
-    ) -> impl Future<Item = bool, Error = Error> {
-        let authorized = name.map_or_else(
+    fn auth_caller(&self, name: Option<String>, auth_id: AuthId) -> bool {
+        name.map_or_else(
             || false,
             |name| match auth_id {
                 AuthId::None => false,
                 AuthId::Any => true,
                 AuthId::Value(module) => module == name,
             },
-        );
-
-        future::ok(authorized)
+        )
     }
 
-    fn auth_module(
-        &self,
-        expected_name: &'static str,
-        auth_id: AuthId,
-    ) -> impl Future<Item = bool, Error = Error> {
+    fn auth_module(&self, expected_name: &'static str, auth_id: AuthId) -> bool {
         self.auth_caller(Some(expected_name.to_string()), auth_id)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use futures::future::Future;
-
     use crate::{AuthId, Authorization, Policy};
 
     #[test]
     fn should_authorize_anonymous() {
         let auth = Authorization::new(Policy::Anonymous);
-        assert_eq!(true, auth.authorize(None, AuthId::None).wait().unwrap());
+        assert_eq!(true, auth.authorize(None, AuthId::None));
     }
 
     #[test]
@@ -103,8 +80,6 @@ mod tests {
         assert_eq!(
             true,
             auth.authorize(Some("abc".to_string()), AuthId::Value("abc".to_string()))
-                .wait()
-                .unwrap()
         );
     }
 
@@ -117,8 +92,6 @@ mod tests {
                 Some("$edgeAgent".to_string()),
                 AuthId::Value("edgeAgent".to_string()),
             )
-            .wait()
-            .unwrap()
         );
     }
 
@@ -128,8 +101,6 @@ mod tests {
         assert_eq!(
             false,
             auth.authorize(None, AuthId::Value("abc".to_string()))
-                .wait()
-                .unwrap()
         );
     }
 
@@ -139,20 +110,13 @@ mod tests {
         assert_eq!(
             false,
             auth.authorize(Some("xyz".to_string()), AuthId::Value("abc".to_string()))
-                .wait()
-                .unwrap()
         );
     }
 
     #[test]
     fn should_authorize_module() {
         let auth = Authorization::new(Policy::Module("abc"));
-        assert_eq!(
-            true,
-            auth.authorize(None, AuthId::Value("abc".to_string()))
-                .wait()
-                .unwrap()
-        );
+        assert_eq!(true, auth.authorize(None, AuthId::Value("abc".to_string())));
     }
 
     #[test]
@@ -161,8 +125,6 @@ mod tests {
         assert_eq!(
             false,
             auth.authorize(None, AuthId::Value("xyz".to_string()))
-                .wait()
-                .unwrap()
         );
     }
 }

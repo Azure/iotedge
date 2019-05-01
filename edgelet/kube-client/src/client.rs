@@ -38,7 +38,7 @@ where
 }
 
 #[derive(Clone)]
-pub struct Client<T: Clone, S> {
+pub struct Client<T, S> {
     config: Config<T>,
     client: S,
 }

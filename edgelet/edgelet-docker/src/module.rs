@@ -40,6 +40,13 @@ impl<C: 'static + Connect> DockerModule<C> {
     }
 }
 
+pub trait DockerModuleTop {
+    type Error;
+    type ModuleTopFuture: Future<Item = ModuleTop, Error = Self::Error> + Send;
+
+    fn top(&self) -> Self::ModuleTopFuture;
+}
+
 impl<C: 'static + Connect> DockerModuleTop for DockerModule<C> {
     type Error = Error;
     type ModuleTopFuture = Box<dyn Future<Item = ModuleTop, Error = Self::Error> + Send>;
@@ -186,13 +193,6 @@ impl<C: 'static + Connect> Module for DockerModule<C> {
                 }),
         )
     }
-}
-
-pub trait DockerModuleTop {
-    type Error;
-    type ModuleTopFuture: Future<Item = ModuleTop, Error = Self::Error> + Send;
-
-    fn top(&self) -> Self::ModuleTopFuture;
 }
 
 #[cfg(test)]

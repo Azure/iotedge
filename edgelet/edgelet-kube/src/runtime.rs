@@ -32,7 +32,7 @@ use crate::error::{Error, ErrorKind, Result};
 use crate::module::KubeModule;
 
 #[derive(Clone)]
-pub struct KubeModuleRuntime<T: Clone, S> {
+pub struct KubeModuleRuntime<T, S> {
     client: Arc<Mutex<RefCell<KubeClient<T, S>>>>,
     namespace: String,
     use_pvc: bool,
@@ -64,10 +64,7 @@ pub trait KubeRuntimeData {
     fn management_uri(&self) -> &Url;
 }
 
-impl<T, S> KubeRuntimeData for KubeModuleRuntime<T, S>
-where
-    T: Clone,
-{
+impl<T, S> KubeRuntimeData for KubeModuleRuntime<T, S> {
     fn namespace(&self) -> &str {
         &self.namespace
     }
@@ -106,10 +103,7 @@ where
     }
 }
 
-impl<T, S> KubeModuleRuntime<T, S>
-where
-    T: Clone,
-{
+impl<T, S> KubeModuleRuntime<T, S> {
     pub fn with_client(
         client: KubeClient<T, S>,
         namespace: String,
@@ -499,7 +493,7 @@ where
         let token = req
             .headers()
             .get(header::AUTHORIZATION)
-            .and_then(|token| token.to_str().ok())
+            .and_then(|token| token.to_str().ok()) // todo @dmolokanov treat to_str()->Err as a Fail
             .filter(|token| token.len() > 6 && &token[..7].to_uppercase() == "BEARER ")
             .map(|token: &str| &token[7..]);
 
@@ -514,17 +508,15 @@ where
                         log_failure(Level::Warn, &err);
                         Error::from(err)
                     })
-                    .and_then(|token_review| {
-                        let auth_id = token_review
+                    .map(|token_review| {
+                        token_review
                             .status
                             .as_ref()
                             .filter(|status| status.authenticated.filter(|x| *x).is_some())
                             .and_then(|status| {
                                 status.user.as_ref().and_then(|user| user.username.clone())
                             })
-                            .map_or(AuthId::None, AuthId::Value);
-
-                        future::ok(auth_id)
+                            .map_or(AuthId::None, AuthId::Value)
                     }),
             ),
             None => Either::B(future::ok(AuthId::None)),

@@ -65,14 +65,14 @@ where
     M: Authenticator + Send + Clone + 'static,
     S: NewService,
     S::Future: Send + 'static,
-    AuthenticationService<M, <S as NewService>::Service>: Service,
+    AuthenticationService<M, S::Service>: Service,
 {
-    type ReqBody = <AuthenticationService<M, <S as NewService>::Service> as Service>::ReqBody;
-    type ResBody = <AuthenticationService<M, <S as NewService>::Service> as Service>::ResBody;
-    type Error = <AuthenticationService<M, <S as NewService>::Service> as Service>::Error;
-    type Service = AuthenticationService<M, <S as NewService>::Service>;
+    type ReqBody = <AuthenticationService<M, S::Service> as Service>::ReqBody;
+    type ResBody = <AuthenticationService<M, S::Service> as Service>::ResBody;
+    type Error = <AuthenticationService<M, S::Service> as Service>::Error;
+    type Service = AuthenticationService<M, S::Service>;
     type Future = Box<dyn Future<Item = Self::Service, Error = Self::InitError> + Send>;
-    type InitError = <S as NewService>::InitError;
+    type InitError = S::InitError;
 
     fn new_service(&self) -> Self::Future {
         let runtime = self.runtime.clone();
