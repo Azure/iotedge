@@ -14,6 +14,7 @@
     <Configurations>Debug;Release;CodeCoverage;CheckInBuild</Configurations>
     <LangVersion>7.1</LangVersion>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 
   <!--
@@ -43,7 +44,7 @@
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\stylecop.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>  
+  </PropertyGroup>
   <Import Project="..\..\stylecop.props" />
 
 </Project>
