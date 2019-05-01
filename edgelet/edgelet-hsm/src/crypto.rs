@@ -33,6 +33,14 @@ pub struct Crypto {
     hsm_lock: Arc<Mutex<()>>,
 }
 
+// Crypto is Send and !Sync. However Crypto can be Sync since all access to Crypto::crypto
+// is controlled by the methods of Crypto, which all lock Crypto::hsm_lock first.
+//
+// For the same reason, Crypto also needs an explicit Send impl
+// since Arc<T>: Send requires T: Send + Sync.
+unsafe impl Send for Crypto {}
+unsafe impl Sync for Crypto {}
+
 impl Crypto {
     pub fn new(m: &Arc<Mutex<()>>) -> Result<Self, Error> {
         let hsm = HsmCrypto::new()?;

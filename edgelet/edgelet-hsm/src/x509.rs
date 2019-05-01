@@ -22,6 +22,14 @@ pub struct X509 {
     hsm_lock: Arc<Mutex<()>>,
 }
 
+// HsmX509 is Send and !Sync. However X509 can be Sync since all access to X509::x509
+// is controlled by the methods of X509, which all lock X509::hsm_lock first.
+//
+// For the same reason, X509 also needs an explicit Send impl
+// since Arc<T>: Send requires T: Send + Sync.
+unsafe impl Send for X509 {}
+unsafe impl Sync for X509 {}
+
 impl X509 {
     pub fn new(m: &Arc<Mutex<()>>) -> Result<Self, Error> {
         let hsm = HsmX509::new()?;

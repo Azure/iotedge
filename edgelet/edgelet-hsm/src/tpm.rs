@@ -24,6 +24,14 @@ pub struct TpmKey {
     hsm_lock: Arc<Mutex<()>>,
 }
 
+// TpmKey is Send and !Sync. However TpmKey can be Sync since all access to TpmKey::tpm
+// is controlled by the methods of TpmKey, which all lock TpmKey::hsm_lock first.
+//
+// For the same reason, TpmKey also needs an explicit Send impl
+// since Arc<T>: Send requires T: Send + Sync.
+unsafe impl Send for TpmKey {}
+unsafe impl Sync for TpmKey {}
+
 /// The TPM Key Store.
 /// Activate a private key, and then you can use that key to sign data.
 #[derive(Clone)]
@@ -31,6 +39,14 @@ pub struct TpmKeyStore {
     tpm: Arc<Tpm>,
     hsm_lock: Arc<Mutex<()>>,
 }
+
+// TpmKeyStore is Send and !Sync. However TpmKeyStore can be Sync since all access to TpmKeyStore::tpm
+// is controlled by the methods of TpmKeyStore, which all lock TpmKeyStore::hsm_lock first.
+//
+// For the same reason, TpmKeyStore also needs an explicit Send impl
+// since Arc<T>: Send requires T: Send + Sync.
+unsafe impl Send for TpmKeyStore {}
+unsafe impl Sync for TpmKeyStore {}
 
 impl TpmKeyStore {
     pub fn new(m: &Arc<Mutex<()>>) -> Result<Self, Error> {

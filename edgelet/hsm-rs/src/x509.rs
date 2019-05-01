@@ -13,7 +13,6 @@ use crate::error::{Error, ErrorKind};
 
 // Handles don't have thread-affinity
 unsafe impl Send for X509 {}
-unsafe impl Sync for X509 {}
 
 /// Hsm for x509
 /// create an instance of this to use the x509 interface of an HSM
