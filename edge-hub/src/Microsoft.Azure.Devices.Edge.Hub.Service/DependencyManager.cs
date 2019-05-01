@@ -190,6 +190,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             string proxy = this.configuration.GetValue("https_proxy", string.Empty);
             string productInfo = GetProductInfo();
+            Option<int> storageLimitThresholdPercentage = this.GetConfigurationValueIfExists("StorageLimitThresholdPercentage")
+                .Map(t => (int)t);
 
             // Register modules
             builder.RegisterModule(
@@ -211,7 +213,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     cacheTokens,
                     this.trustBundle,
                     proxy,
-                    metricsConfig));
+                    metricsConfig,
+                    storageLimitThresholdPercentage));
         }
 
         static string GetProductInfo()

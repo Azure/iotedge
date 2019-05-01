@@ -42,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly IList<X509Certificate2> trustBundle;
         readonly string proxy;
         readonly MetricsConfig metricsConfig;
+        readonly Option<int> storageLimitThresholdPercentage;
 
         public CommonModule(
             string productInfo,
@@ -61,7 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool persistTokens,
             IList<X509Certificate2> trustBundle,
             string proxy,
-            MetricsConfig metricsConfig)
+            MetricsConfig metricsConfig,
+            Option<int> storageLimitThresholdPercentage)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -81,6 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
+            this.storageLimitThresholdPercentage = storageLimitThresholdPercentage;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -149,10 +152,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var partitionsList = new List<string> { Core.Constants.MessageStorePartitionKey, Core.Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
                             try
                             {
+                                Option<IDiskSpaceChecker> diskSpaceChecker = this.storageLimitThresholdPercentage.Map(t => DiskSpaceChecker.Create(this.storagePath, t, TimeSpan.FromSeconds(30), null) as IDiskSpaceChecker);
                                 IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(
                                     c.Resolve<IRocksDbOptionsProvider>(),
                                     this.storagePath,
-                                    partitionsList);
+                                    partitionsList,
+                                    diskSpaceChecker);
                                 logger.LogInformation($"Created persistent store at {this.storagePath}");
                                 return dbStoreprovider;
                             }
