@@ -26,6 +26,7 @@ Set-Variable EdgeServiceName -Value 'iotedge' -Option Constant
 
 Set-Variable ContainersFeatureRegPath -Value 'HKLM:\SYSTEM\CurrentControlSet\Services\vmcompute' -Option Constant
 Set-Variable ContainersFeaturePackageName -Value 'Microsoft-IoT-Containers-Server-Package' -Option Constant
+Set-Variable ContainersFeatureLangPackageName -Value 'Microsoft-IoT-Containers-Server-Package_en-US' -Option Constant
 
 Set-Variable MobyDataRootDirectory -Value "$env:ProgramData\iotedge-moby" -Option Constant
 Set-Variable MobyInstallDirectory -Value "$env:ProgramFiles\iotedge-moby" -Option Constant
@@ -868,7 +869,7 @@ function Setup-Environment {
     }
     
     if (Test-IoTCore) {
-        if (-not (Test-Path $ContainersFeatureRegPath) -or (-not [bool] (Get-Package $ContainersFeaturePackageName))) {
+        if (-not (Test-Path $ContainersFeatureRegPath) -or (-not [bool] (Get-Package $ContainersFeaturePackageName)) -or (-not [bool] (Get-Package $ContainersFeatureLangPackageName))) {
             Write-HostRed "The container host does not have 'Containers Feature' enabled"
             $preRequisitesMet = $false
         }
