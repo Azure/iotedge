@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "edge-kubernetes.fullname" . }}-iotedged
+  name: iotedged
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
   labels:
     app.kubernetes.io/name: {{ include "edge-kubernetes.name" . }}-iotedged
