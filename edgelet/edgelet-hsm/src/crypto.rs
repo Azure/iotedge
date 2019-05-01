@@ -13,8 +13,8 @@ use edgelet_core::{
     PrivateKey as CorePrivateKey,
 };
 pub use hsm::{
-    Buffer, Decrypt, Encrypt, GetTrustBundle, HsmCertificate, KeyBytes as HsmKeyBytes,
-    PrivateKey as HsmPrivateKey,
+    Buffer, Decrypt, Encrypt, GetCertificate as HsmGetCertificate, GetTrustBundle, HsmCertificate,
+    KeyBytes as HsmKeyBytes, PrivateKey as HsmPrivateKey,
 };
 use hsm::{
     CreateCertificate as HsmCreateCertificate,
@@ -77,7 +77,7 @@ impl CoreCreateCertificate for Crypto {
         let cert = crypto
             .create_certificate(&convert_properties(properties, &device_ca_alias))
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
-            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))?;
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateCreate)))?;
         Ok(Certificate(cert))
     }
 
@@ -87,8 +87,19 @@ impl CoreCreateCertificate for Crypto {
             .expect("Lock on crypto structure failed")
             .destroy_certificate(alias)
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
-            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))?;
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateDestroy)))?;
         Ok(())
+    }
+
+    fn get_certificate(&self, alias: String) -> Result<Self::Certificate, CoreError> {
+        let cert = self
+            .crypto
+            .lock()
+            .expect("Lock on crypto structure failed")
+            .get(alias)
+            .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateGet)))?;
+        Ok(Certificate(cert))
     }
 }
 
@@ -138,7 +149,7 @@ impl CoreGetTrustBundle for Crypto {
             .expect("Lock on crypto structure failed")
             .get_trust_bundle()
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
-            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))?;
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateGet)))?;
         Ok(Certificate(cert))
     }
 }

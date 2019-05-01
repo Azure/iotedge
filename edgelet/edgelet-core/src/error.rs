@@ -19,19 +19,28 @@ pub enum ErrorKind {
     #[fail(display = "Identity error")]
     Certificate,
 
-    #[fail(display = "A error occurred obtaining the certificate")]
+    #[fail(display = "An error occurred obtaining the certificate contents")]
     CertificateContent,
 
-    #[fail(display = "A error occurred obtaining the certificate's details")]
+    #[fail(display = "An error occurred creating the certificate")]
+    CertificateCreate,
+
+    #[fail(display = "An error occurred destroying the certificate")]
+    CertificateDestroy,
+
+    #[fail(display = "An error occurred obtaining the certificate's details")]
     CertificateDetail,
 
-    #[fail(display = "A error occurred obtaining the certificate's key")]
+    #[fail(display = "An error occurred getting the certificate")]
+    CertificateGet,
+
+    #[fail(display = "An error occurred obtaining the certificate's key")]
     CertificateKey,
 
-    #[fail(display = "A error occurred when obtaining the device identity certificate.")]
+    #[fail(display = "An error occurred when obtaining the device identity certificate.")]
     DeviceIdentityCertificate,
 
-    #[fail(display = "A error occurred when signing using the device identity private key.")]
+    #[fail(display = "An error occurred when signing using the device identity private key.")]
     DeviceIdentitySign,
 
     #[fail(
@@ -45,7 +54,7 @@ pub enum ErrorKind {
     #[fail(display = "An identity manager error occurred.")]
     IdentityManager,
 
-    #[fail(display = "A error occurred in the key store.")]
+    #[fail(display = "An error occurred in the key store.")]
     KeyStore,
 
     #[fail(display = "Invalid log tail {:?}", _0)]
