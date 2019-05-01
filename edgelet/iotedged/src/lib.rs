@@ -27,7 +27,7 @@ use std::fs;
 use std::fs::{DirBuilder, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use failure::{Fail, ResultExt};
 use futures::future::{Either, IntoFuture};
@@ -56,7 +56,7 @@ use edgelet_core::{
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
-use edgelet_hsm::Crypto;
+use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
@@ -161,14 +161,14 @@ enum StartApiReturnStatus {
 
 pub struct Main {
     settings: Settings<DockerConfig>,
-    hsm_lock: Arc<Mutex<()>>,
+    hsm_lock: Arc<HsmLock>,
 }
 
 impl Main {
     pub fn new(settings: Settings<DockerConfig>) -> Self {
         Main {
             settings,
-            hsm_lock: Arc::new(Mutex::new(())),
+            hsm_lock: HsmLock::new(),
         }
     }
 
@@ -229,7 +229,7 @@ impl Main {
 
         info!("Initializing hsm...");
         let crypto =
-            Crypto::new(&hsm_lock).context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+            Crypto::new(hsm_lock.clone()).context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
         info!("Finished initializing hsm.");
 
         // Detect if the settings were changed and if the device needs to be reconfigured
@@ -311,7 +311,7 @@ impl Main {
                                 runtime,
                                 &mut tokio_runtime,
                                 tpm,
-                                &hsm_lock,
+                                hsm_lock.clone(),
                             )?;
                         start_edgelet!(key_store, provisioning_result, root_key, runtime);
                     }
@@ -749,7 +749,7 @@ fn dps_tpm_provision<HC, M>(
     runtime: M,
     tokio_runtime: &mut tokio::runtime::Runtime,
     tpm_attestation_info: &TpmAttestationInfo,
-    hsm_lock: &Arc<Mutex<()>>,
+    hsm_lock: Arc<HsmLock>,
 ) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey, M), Error>
 where
     HC: 'static + ClientImpl,
@@ -776,7 +776,7 @@ where
     .context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
-    let tpm_hsm = TpmKeyStore::from_hsm(tpm, &hsm_lock).context(ErrorKind::Initialize(
+    let tpm_hsm = TpmKeyStore::from_hsm(tpm, hsm_lock).context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
     let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
