@@ -200,7 +200,7 @@ Param (
     [string] $AmqpSettingsEnabled,
 
     [ValidateSet("true", "false")]
-    [string] $MqttSettingsEnabled,
+    [string] $MqttSettingsEnabled
 
 )
 
