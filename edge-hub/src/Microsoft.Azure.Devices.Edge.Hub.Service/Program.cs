@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
@@ -14,6 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Storage.RocksDb;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Configuration;
@@ -37,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         static async Task<int> MainAsync(IConfigurationRoot configuration)
         {
             string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
-            Logger.SetLogLevel(logLevel);
+            Logger.SetLogLevel(logLevel);            
 
             // Set the LoggerFactory used by the Routing code.
             if (configuration.GetValue("EnableRoutingLogging", false))
@@ -56,6 +59,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             LogVersionInfo(logger);
             logger.LogInformation($"OptimizeForPerformance={configuration.GetValue("OptimizeForPerformance", true)}");
             logger.LogInformation("Loaded server certificate with expiration date of {0}", certificates.ServerCertificate.NotAfter.ToString("o"));
+
+            GetTotalFreeSpace(logger);
 
             // EdgeHub and CloudConnectionProvider have a circular dependency. So need to Bind the EdgeHub to the CloudConnectionProvider.
             IEdgeHub edgeHub = await container.Resolve<Task<IEdgeHub>>();
@@ -134,6 +139,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             return new EdgeHubProtocolHead(protocolHeads, logger);
+        }
+
+        static void GetTotalFreeSpace(ILogger logger)
+        {
+            //var drives = DriveInfo.GetDrives();
+            //Console.WriteLine($"Found {drives.Length} drives");
+            //foreach (DriveInfo drive in drives)
+            //{
+            //    Console.WriteLine($"Drive {drive.Name} - IsReady = {drive.IsReady}, TotalFreeSpace = {drive.TotalFreeSpace} TotalSize = {drive.TotalSize} - RootDir - {drive.RootDirectory.FullName} vol label = {drive.VolumeLabel}");
+            //}
+
+            //DriveInfo driveInfo = new DriveInfo("/app/ehstore");
+            //Console.WriteLine($"Custom created Drive {driveInfo.Name} - IsReady = {driveInfo.IsReady}, TotalFreeSpace = {driveInfo.TotalFreeSpace} TotalSize = {driveInfo.TotalSize} - RootDir - {driveInfo.RootDirectory.FullName}");
+
+            DiskSpaceChecker.Create("/app/ehstore", 50, TimeSpan.FromSeconds(20), logger);
         }
 
         static void LogLogo(ILogger logger)
