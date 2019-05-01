@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use chrono::{DateTime, Utc};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use failure::Fail;
 
@@ -24,13 +24,14 @@ use hsm::{
 
 use crate::certificate_properties::convert_properties;
 pub use crate::error::{Error, ErrorKind};
+use crate::HsmLock;
 
 /// The TPM Key Store.
 /// Activate a private key, and then you can use that key to sign data.
 #[derive(Clone)]
 pub struct Crypto {
     crypto: Arc<HsmCrypto>,
-    hsm_lock: Arc<Mutex<()>>,
+    hsm_lock: Arc<HsmLock>,
 }
 
 // Crypto is Send and !Sync. However Crypto can be Sync since all access to Crypto::crypto
@@ -42,22 +43,22 @@ unsafe impl Send for Crypto {}
 unsafe impl Sync for Crypto {}
 
 impl Crypto {
-    pub fn new(m: &Arc<Mutex<()>>) -> Result<Self, Error> {
+    pub fn new(hsm_lock: Arc<HsmLock>) -> Result<Self, Error> {
         let hsm = HsmCrypto::new()?;
-        Crypto::from_hsm(hsm, m)
+        Crypto::from_hsm(hsm, hsm_lock)
     }
 
-    pub fn from_hsm(crypto: HsmCrypto, m: &Arc<Mutex<()>>) -> Result<Self, Error> {
+    pub fn from_hsm(crypto: HsmCrypto, hsm_lock: Arc<HsmLock>) -> Result<Self, Error> {
         Ok(Crypto {
             crypto: Arc::new(crypto),
-            hsm_lock: m.clone(),
+            hsm_lock,
         })
     }
 }
 
 impl CoreMasterEncryptionKey for Crypto {
     fn create_key(&self) -> Result<(), CoreError> {
-        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
+        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.crypto
             .create_master_encryption_key()
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
@@ -65,7 +66,7 @@ impl CoreMasterEncryptionKey for Crypto {
     }
 
     fn destroy_key(&self) -> Result<(), CoreError> {
-        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
+        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.crypto
             .destroy_master_encryption_key()
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
@@ -80,7 +81,7 @@ impl CoreCreateCertificate for Crypto {
         &self,
         properties: &CoreCertificateProperties,
     ) -> Result<Self::Certificate, CoreError> {
-        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
+        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         let device_ca_alias = self.crypto.get_device_ca_alias();
         let cert = self
             .crypto
@@ -91,7 +92,7 @@ impl CoreCreateCertificate for Crypto {
     }
 
     fn destroy_certificate(&self, alias: String) -> Result<(), CoreError> {
-        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
+        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.crypto
             .destroy_certificate(alias)
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
@@ -109,7 +110,7 @@ impl CoreEncrypt for Crypto {
         plaintext: &[u8],
         initialization_vector: &[u8],
     ) -> Result<Self::Buffer, CoreError> {
-        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
+        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.crypto
             .encrypt(client_id, plaintext, initialization_vector)
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
@@ -126,7 +127,7 @@ impl CoreDecrypt for Crypto {
         ciphertext: &[u8],
         initialization_vector: &[u8],
     ) -> Result<Self::Buffer, CoreError> {
-        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
+        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.crypto
             .decrypt(client_id, ciphertext, initialization_vector)
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
@@ -138,7 +139,7 @@ impl CoreGetTrustBundle for Crypto {
     type Certificate = Certificate;
 
     fn get_trust_bundle(&self) -> Result<Self::Certificate, CoreError> {
-        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
+        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         let cert = self
             .crypto
             .get_trust_bundle()

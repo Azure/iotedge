@@ -4,10 +4,10 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use lazy_static::lazy_static;
-use std::sync::{Arc, Mutex};
+use std::sync::{Mutex};
 
 use edgelet_core::{Certificate, GetTrustBundle};
-use edgelet_hsm::Crypto;
+use edgelet_hsm::{Crypto, HsmLock};
 mod test_utils;
 use test_utils::TestHSMEnvSetup;
 
@@ -20,8 +20,8 @@ fn crypto_get_trust_bundle() {
     // arrange
     let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
-    let hsm_lock = Arc::new(Mutex::new(()));
-    let crypto = Crypto::new(&hsm_lock).unwrap();
+    let hsm_lock = HsmLock::new();
+    let crypto = Crypto::new(hsm_lock).unwrap();
 
     // act
     let cert_info = crypto.get_trust_bundle().unwrap();

@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use failure::Fail;
 
@@ -9,6 +9,7 @@ use hsm::{
 
 use crate::crypto::Certificate;
 pub use crate::error::{Error, ErrorKind};
+use crate::HsmLock;
 
 use edgelet_core::{
     Error as CoreError, ErrorKind as CoreErrorKind,
@@ -19,7 +20,7 @@ use edgelet_core::{
 #[derive(Clone)]
 pub struct X509 {
     x509: Arc<HsmX509>,
-    hsm_lock: Arc<Mutex<()>>,
+    hsm_lock: Arc<HsmLock>,
 }
 
 // HsmX509 is Send and !Sync. However X509 can be Sync since all access to X509::x509
@@ -31,15 +32,15 @@ unsafe impl Send for X509 {}
 unsafe impl Sync for X509 {}
 
 impl X509 {
-    pub fn new(m: &Arc<Mutex<()>>) -> Result<Self, Error> {
+    pub fn new(hsm_lock: Arc<HsmLock>) -> Result<Self, Error> {
         let hsm = HsmX509::new()?;
-        X509::from_hsm(hsm, m)
+        X509::from_hsm(hsm, hsm_lock)
     }
 
-    pub fn from_hsm(x509: HsmX509, m: &Arc<Mutex<()>>) -> Result<Self, Error> {
+    pub fn from_hsm(x509: HsmX509, hsm_lock: Arc<HsmLock>) -> Result<Self, Error> {
         Ok(X509 {
             x509: Arc::new(x509),
-            hsm_lock: m.clone(),
+            hsm_lock
         })
     }
 }
@@ -49,7 +50,7 @@ impl CoreGetDeviceIdentityCertificate for X509 {
     type Buffer = HsmPrivateKeySignDigest;
 
     fn get(&self) -> Result<Self::Certificate, CoreError> {
-        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
+        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         let cert = self
             .x509
             .get_certificate_info()
@@ -61,7 +62,7 @@ impl CoreGetDeviceIdentityCertificate for X509 {
     }
 
     fn sign_with_private_key(&self, data: &[u8]) -> Result<Self::Buffer, CoreError> {
-        let _d = self.hsm_lock.lock().expect("Acquiring HSM lock failed");
+        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.x509
             .sign_with_private_key(data)
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::DeviceIdentitySign)))

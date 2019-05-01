@@ -4,13 +4,13 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use lazy_static::lazy_static;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use edgelet_core::{
     Certificate, CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate,
     KeyBytes, PrivateKey, Signature, IOTEDGED_CA_ALIAS,
 };
-use edgelet_hsm::Crypto;
+use edgelet_hsm::{Crypto, HsmLock};
 mod test_utils;
 use test_utils::TestHSMEnvSetup;
 
@@ -23,8 +23,8 @@ fn crypto_create_cert_success() {
     // arrange
     let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
-    let hsm_lock = Arc::new(Mutex::new(()));
-    let crypto = Crypto::new(&hsm_lock).unwrap();
+    let hsm_lock = HsmLock::new();
+    let crypto = Crypto::new(hsm_lock).unwrap();
 
     // create the default issuing CA cert properties
     let edgelet_ca_props = CertificateProperties::new(
