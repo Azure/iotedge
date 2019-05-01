@@ -101,10 +101,9 @@ impl CoreCreateCertificate for Crypto {
     }
 
     fn get_certificate(&self, alias: String) -> Result<Self::Certificate, CoreError> {
+        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         let cert = self
             .crypto
-            .lock()
-            .expect("Lock on crypto structure failed")
             .get(alias)
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateGet)))?;
