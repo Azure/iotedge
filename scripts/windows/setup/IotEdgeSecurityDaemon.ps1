@@ -26,7 +26,7 @@ Set-Variable EdgeServiceName -Value 'iotedge' -Option Constant
 
 Set-Variable ContainersFeatureRegPath -Value 'HKLM:\SYSTEM\CurrentControlSet\Services\vmcompute' -Option Constant
 Set-Variable ContainersFeaturePackageName -Value 'Microsoft-IoT-Containers-Server-Package' -Option Constant
-Set-Variable ContainersFeatureLangPackageName -Value 'Microsoft-IoT-Containers-Server-Package_en-US' -Option Constant
+Set-Variable ContainersFeatureLangPackageName -Value 'Microsoft-IoT-Containers-Server-Package_*' -Option Constant
 
 Set-Variable MobyDataRootDirectory -Value "$env:ProgramData\iotedge-moby" -Option Constant
 Set-Variable MobyInstallDirectory -Value "$env:ProgramFiles\iotedge-moby" -Option Constant
