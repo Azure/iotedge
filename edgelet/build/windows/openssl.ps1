@@ -40,7 +40,7 @@ function Get-OpenSSL
         Throw "Failed to install openssl vcpkg with exit code $LastExitCode"
     }
 
-    Write-Host "Setting env variable OPENSSL_ROOT_DIR..."
+    Write-Host "Setting env variable OPENSSL_ROOT_DIR and OPENSSL_DIR..."
     if ((Test-Path env:TF_BUILD) -and ($env:TF_BUILD -eq $true))
     {
         # When executing within TF (VSTS) environment, install the env variable

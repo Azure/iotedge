@@ -21,6 +21,7 @@ edgelet-utils = { path = "../edgelet-utils" }
 workload = { path = "../workload" }
 
 [dev-dependencies]
+edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-test-utils = { path = "../edgelet-test-utils" }
 
 [target.'cfg(not(windows))'.dev-dependencies]

@@ -22,10 +22,12 @@ members = [
     "iotedged-eventlog-messages",
     "iotedge-diagnostics",
     "iothubservice",
+    "kube-client",
     "management",
     "mini-sntp",
     "provisioning",
     "systemd",
     "tokio-named-pipe",
+    "update-identity-hook",
     "win-logger",
 ]

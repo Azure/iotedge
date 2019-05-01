@@ -20,6 +20,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const int OrderedRetryPlanRunner = EventIdStart + 1400;
         public const int ModuleManagementHttpClient = EventIdStart + 1500;
         public const int ModuleIdentityLifecycleManager = EventIdStart + 1600;
+        public const int KubernetesPlanner = EventIdStart + 1700;
+        public const int KubernetesOperator = EventIdStart + 1800;
+        public const int KubernetesCommand = EventIdStart + 1900;
         const int EventIdStart = 100000;
     }
 }

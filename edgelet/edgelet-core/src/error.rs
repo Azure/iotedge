@@ -56,6 +56,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Signing error occurred. Invalid key length: {}", _0)]
     SignInvalidKeyLength(usize),
+
+    #[fail(display = "Shutdown failed")]
+    Shutdown,
 }
 
 impl Fail for Error {

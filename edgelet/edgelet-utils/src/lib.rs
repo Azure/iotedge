@@ -30,7 +30,9 @@ mod logging;
 pub mod macros;
 mod ser_de;
 
+use std::cmp;
 use std::collections::HashMap;
+use std::str;
 
 pub use error::{Error, ErrorKind};
 pub use logging::log_failure;

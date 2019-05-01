@@ -7,12 +7,56 @@ use failure::ResultExt;
 
 use edgelet_config::Settings;
 use edgelet_core;
-use edgelet_docker::DockerConfig;
+use edgelet_docker::Settings as DockerSettings;
+use failure::ResultExt;
+
+use error::{Error, ErrorKind, InitializeErrorReason};
+
+#[cfg(feature = "runtime-docker")]
+mod docker;
+
+#[cfg(feature = "runtime-docker")]
+pub use self::docker::init;
+
+#[cfg(target_os = "windows")]
+#[cfg(feature = "runtime-docker")]
+pub use self::docker::init_win_svc;
 
 use error::{Error, ErrorKind, InitializeErrorReason};
 use logging;
 
-pub fn create_base_app<'a, 'b>() -> App<'a, 'b> {
+#[cfg(feature = "runtime-kubernetes")]
+pub use self::kubernetes::init;
+
+#[cfg(unix)]
+static DEFAULTS: &str = include_str!("config/unix/default.yaml");
+
+#[cfg(windows)]
+static DEFAULTS: &str = include_str!("config/windows/default.yaml");
+
+pub fn init_common<'a>() -> Result<(DockerSettings, ArgMatches<'a>), Error> {
+    let matches = create_app().get_matches();
+    let settings = {
+        let config_str = matches
+            .value_of("config-file")
+            .map(|name| {
+                info!("Using config file: {}", name);
+                fs::read_to_string(name)
+            })
+            .unwrap_or_else(|| {
+                info!("Using default configuration");
+                Ok(DEFAULTS.to_string())
+            })
+            .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+
+        DockerSettings::from_str(&config_str)
+            .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?
+    };
+
+    Ok((settings, matches))
+}
+
+fn create_base_app<'a, 'b>() -> App<'a, 'b> {
     App::new(crate_name!())
         .version(edgelet_core::version_with_source_version())
         .author(crate_authors!("\n"))
@@ -45,6 +89,7 @@ pub fn create_app<'a, 'b>() -> App<'a, 'b> {
     )
 }
 
+#[cfg(feature = "runtime-docker")]
 pub fn log_banner() {
     info!("Starting Azure IoT Edge Security Daemon");
     info!("Version - {}", edgelet_core::version_with_source_version());

@@ -1,0 +1,27 @@
+provisioning:
+  source: "manual"
+  device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
+
+agent:
+  name: "edgeAgent"
+  type: "docker"
+  env": {}
+  config:
+    image: "mcr.microsoft.com/azureiotedge-agent:1.0"
+    auth: {}
+
+hostname: "localhost"
+
+connect:
+  management_uri: "unix:///C:/ProgramData/iotedge/mgmt/sock"
+  workload_uri: "unix:///C:/ProgramData/iotedge/workload/sock"
+
+listen:
+  management_uri: "unix:///C:/ProgramData/iotedge/mgmt/sock"
+  workload_uri: "unix:///C:/ProgramData/iotedge/workload/sock"
+
+homedir: "C:\\ProgramData\\iotedge"
+
+moby_runtime:
+  uri: "npipe://./pipe/iotedge_moby_engine"
+  network: "azure-iot-edge"

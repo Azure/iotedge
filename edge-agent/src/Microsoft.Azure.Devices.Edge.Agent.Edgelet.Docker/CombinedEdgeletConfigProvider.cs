@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             this.MountSockets(module, createOptions);
             this.InjectNetworkAliases(module, createOptions);
 
-            return new CombinedDockerConfig(combinedConfig.Image, createOptions, combinedConfig.AuthConfig);
+            return new CombinedDockerConfig((string)combinedConfig.Image, createOptions, combinedConfig.AuthConfig);
         }
 
         static CreateContainerParameters CloneOrCreateParams(CreateContainerParameters createOptions) =>

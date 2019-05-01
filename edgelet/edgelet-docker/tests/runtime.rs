@@ -41,7 +41,7 @@ use docker::models::{
     HostConfig, HostConfigPortBindings, ImageDeleteResponseItem,
 };
 use edgelet_core::{LogOptions, LogTail, Module, ModuleRegistry, ModuleRuntime, ModuleSpec};
-use edgelet_docker::{DockerConfig, DockerModuleRuntime};
+use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings as DockerSettings};
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 
 const IMAGE_NAME: &str = "nginx:latest";
@@ -101,9 +101,12 @@ fn image_pull_with_invalid_image_name_fails() {
     let server = run_tcp_server("127.0.0.1", port, invalid_image_name_pull_handler)
         .map_err(|err| eprintln!("{}", err));
 
-    let mri =
-        DockerModuleRuntime::new(&Url::parse(&format!("http://localhost:{}/", port)).unwrap())
-            .unwrap();
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+
+    let mri = DockerModuleRuntime::new();
+    let settings = DEFAULT_SETTINGS.parse().unwrap();
+    runtime.block_on(mri.init(settings)).unwrap();
 
     let auth = AuthConfig::new()
         .with_username("u1".to_string())
@@ -118,9 +121,6 @@ fn image_pull_with_invalid_image_name_fails() {
     .unwrap();
 
     let task = mri.pull(&config);
-
-    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
-    runtime.spawn(server);
 
     // Assert
     let err = runtime

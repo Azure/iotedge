@@ -17,6 +17,7 @@ use serde_json;
 use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};
 
 use error::{Error, ErrorKind, Result};
+use settings::RuntimeSettings;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -219,6 +220,10 @@ impl<T> ModuleSpec<T> {
         &self.env
     }
 
+    pub fn env_mut(&mut self) -> &mut HashMap<String, String> {
+        &mut self.env
+    }
+
     pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
         self.env = env;
         self
@@ -374,6 +379,7 @@ pub trait ModuleRuntime {
     type Error: Fail;
 
     type Config: Send;
+    type Settings: RuntimeSettings<Config = Self::Config>;
     type Module: Module<Config = Self::Config> + Send;
     type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
     type Chunk: AsRef<[u8]>;
@@ -396,7 +402,7 @@ pub trait ModuleRuntime {
     type RemoveAllFuture: Future<Item = (), Error = Self::Error> + Send;
     type TopFuture: Future<Item = ModuleTop, Error = Self::Error> + Send;
 
-    fn init(&self) -> Self::InitFuture;
+    fn init(&mut self, settings: Self::Settings) -> Self::InitFuture;
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
     fn get(&self, id: &str) -> Self::GetFuture;
     fn start(&self, id: &str) -> Self::StartFuture;

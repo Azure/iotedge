@@ -20,6 +20,7 @@ extern crate log;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate sha2;
+#[cfg(feature = "runtime-docker")]
 extern crate tokio;
 extern crate url;
 
@@ -37,6 +38,7 @@ mod error;
 mod identity;
 mod module;
 pub mod pid;
+pub mod settings;
 pub mod watchdog;
 pub mod workload;
 
@@ -53,6 +55,7 @@ pub use module::{
     ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, ModuleTop,
     RegistryOperation, RuntimeOperation, SystemInfo,
 };
+pub use settings::{Certificates, Connect, Dps, Listen, Manual, Provisioning, RuntimeSettings};
 pub use workload::WorkloadConfig;
 
 lazy_static! {

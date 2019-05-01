@@ -6,6 +6,7 @@
 
 extern crate base64;
 extern crate chrono;
+extern crate config as cfg;
 extern crate failure;
 extern crate futures;
 extern crate hyper;
@@ -17,17 +18,17 @@ extern crate log;
 extern crate serde_derive;
 #[cfg(test)]
 extern crate serde;
-// Need stuff other than macros from serde_json for non-test code.
+#[cfg(test)]
+#[macro_use]
+extern crate serde_json;
 #[cfg(not(test))]
 extern crate serde_json;
 #[cfg(test)]
 extern crate tokio;
 extern crate url;
+extern crate url_serde;
 
 // Need macros from serde_json for unit tests.
-#[cfg(test)]
-#[macro_use]
-extern crate serde_json;
 #[cfg(unix)]
 #[cfg(test)]
 extern crate tempfile;
@@ -47,9 +48,11 @@ mod config;
 mod error;
 mod module;
 mod runtime;
+mod settings;
 
 pub use config::DockerConfig;
 pub use error::{Error, ErrorKind};
 pub use module::{DockerModule, MODULE_TYPE};
+pub use settings::{MobyRuntime, Settings};
 
 pub use runtime::DockerModuleRuntime;

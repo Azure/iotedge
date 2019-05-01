@@ -147,7 +147,7 @@ fn match_route(re: &Regex, path: &str) -> Option<Parameters> {
     })
 }
 
-fn normalize_pattern(pattern: &str) -> Cow<str> {
+fn normalize_pattern(pattern: &str) -> Cow<'_, str> {
     let pattern = pattern
         .trim()
         .trim_start_matches('^')
