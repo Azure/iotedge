@@ -10,6 +10,9 @@ pub struct TestCert {
     private_key: Option<PrivateKey<String>>,
     fail_private_key: bool,
     fail_valid_to: bool,
+    valid_to: Option<DateTime<Utc>>,
+    common_name: String,
+    fail_common_name: bool,
 }
 
 impl TestCert {
@@ -33,8 +36,24 @@ impl TestCert {
         self
     }
 
+    pub fn with_valid_to(mut self, valid_to: DateTime<Utc>) -> Self {
+        self.fail_valid_to = false;
+        self.valid_to = Some(valid_to);
+        self
+    }
+
     pub fn with_fail_valid_to(mut self, fail_valid_to: bool) -> Self {
         self.fail_valid_to = fail_valid_to;
+        self
+    }
+
+    pub fn with_common_name(mut self, common_name: String) -> Self {
+        self.common_name = common_name;
+        self
+    }
+
+    pub fn with_fail_common_name(mut self, fail_common_name: bool) -> Self {
+        self.fail_common_name = fail_common_name;
         self
     }
 }
@@ -63,7 +82,18 @@ impl Certificate for TestCert {
         if self.fail_valid_to {
             Err(CoreError::from(CoreErrorKind::KeyStore))
         } else {
-            Ok(Utc::now())
+            match self.valid_to {
+                Some(ts) => Ok(ts),
+                None => Ok(Utc::now()),
+            }
+        }
+    }
+
+    fn get_common_name(&self) -> Result<String, CoreError> {
+        if self.fail_common_name {
+            Err(CoreError::from(CoreErrorKind::KeyStore))
+        } else {
+            Ok(self.common_name.clone())
         }
     }
 }

@@ -72,8 +72,13 @@ Function New-Package([string] $Name, [string] $Version)
 }
 
 if ($CreateTemplate) {
-    $docker_cli_uri = "https://github.com/Azure/azure-iotedge/releases/download/1.0.5/moby-cli_3.0.2.zip"
-    $docker_engine_uri = "https://conteng.blob.core.windows.net/mby/moby-engine_3.0.3.zip"
+    $docker_cli_uri = 'https://mby.blob.core.windows.net/mby-win-amd64/docker-3.0.5.exe'
+    $docker_cli_license_uri = 'https://mby.blob.core.windows.net/mby/LICENSE-cli'
+    $docker_cli_tpn_uri = 'https://mby.blob.core.windows.net/mby/ThirdPartyNotices-cli'
+
+    $docker_engine_uri = 'https://mby.blob.core.windows.net/mby-win-amd64/dockerd-3.0.5.exe'
+    $docker_engine_license_uri = 'https://mby.blob.core.windows.net/mby/LICENSE-engine'
+    $docker_engine_tpn_uri = 'https://mby.blob.core.windows.net/mby/ThirdPartyNotices-engine'
 
     $env:PATH = "$env:PATH;C:\Program Files (x86)\Windows Kits\10\bin\x64;C:\Program Files (x86)\Windows Kits\10\tools\bin\i386"
     $env:SIGNTOOL_OEM_SIGN = '/a /s my /i "Windows OEM Intermediate 2017 (TEST ONLY)" /n "Windows OEM Test Cert 2017 (TEST ONLY)" /fd SHA256'
@@ -87,17 +92,23 @@ if ($CreateTemplate) {
     }
 
     $ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest $docker_cli_uri -out "moby-cli.zip" -UseBasicParsing
-    if (Test-Path "moby-cli") {
-        Remove-Item -Path "moby-cli" -Recurse -Force
-    }
-    Expand-Archive -Path "moby-cli.zip" -DestinationPath "moby-cli"
 
-    Invoke-WebRequest $docker_engine_uri -out "moby-engine.zip" -UseBasicParsing
-    if (Test-Path "moby-engine") {
-        Remove-Item -Path "moby-engine" -Recurse -Force
+    if (Test-Path 'moby-cli') {
+        Remove-Item -Path 'moby-cli' -Recurse -Force
     }
-    Expand-Archive -Path "moby-engine.zip" -DestinationPath "moby-engine"
+    if (Test-Path 'moby-engine') {
+        Remove-Item -Path 'moby-engine' -Recurse -Force
+    }
+    New-Item -Type Directory 'moby-cli'
+    New-Item -Type Directory 'moby-engine'
+
+    Invoke-WebRequest $docker_cli_uri -OutFile 'moby-cli\docker.exe' -UseBasicParsing
+    Invoke-WebRequest $docker_cli_license_uri -OutFile 'moby-cli\LICENSE' -UseBasicParsing
+    Invoke-WebRequest $docker_cli_tpn_uri -OutFile 'moby-cli\ThirdPartyNotices' -UseBasicParsing
+
+    Invoke-WebRequest $docker_engine_uri -OutFile 'moby-engine\dockerd.exe' -UseBasicParsing
+    Invoke-WebRequest $docker_engine_license_uri -OutFile 'moby-engine\LICENSE' -UseBasicParsing
+    Invoke-WebRequest $docker_engine_tpn_uri -OutFile 'moby-engine\ThirdPartyNotices' -UseBasicParsing
 
     #
     # IoTEdge

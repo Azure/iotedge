@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
     using System.Collections.ObjectModel;
     using System.Linq;
     using System.Net.Http;
+    using System.Runtime.ExceptionServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -22,7 +23,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
     class ModuleManagementHttpClient : ModuleManagementHttpClientVersioned
     {
         public ModuleManagementHttpClient(Uri managementUri)
-            : base(managementUri, ApiVersion.Version20190130, new ErrorDetectionStrategy())
+            : this(managementUri, Option.None<TimeSpan>())
+        {
+        }
+
+        internal ModuleManagementHttpClient(Uri managementUri, Option<TimeSpan> operationTimeout)
+            : base(managementUri, ApiVersion.Version20190130, new ErrorDetectionStrategy(), operationTimeout)
         {
         }
 
@@ -198,7 +204,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
                     }
 
                 default:
-                    throw exception;
+                    ExceptionDispatchInfo.Capture(exception).Throw();
+                    break;
             }
         }
 
