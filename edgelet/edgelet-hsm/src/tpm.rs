@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
 use bytes::Bytes;
@@ -18,7 +17,7 @@ use crate::HsmLock;
 const ROOT_KEY_NAME: &str = "primary";
 
 /// Represents a key which can sign data.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TpmKey {
     tpm: Arc<Tpm>,
     identity: KeyIdentity,
@@ -49,18 +48,6 @@ pub struct TpmKeyStore {
 // since Arc<T>: Send requires T: Send + Sync.
 unsafe impl Send for TpmKeyStore {}
 unsafe impl Sync for TpmKeyStore {}
-
-impl Debug for TpmKey {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Key Name: {}", self.key_name)
-    }
-}
-
-impl Debug for TpmKeyStore {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
 
 impl TpmKeyStore {
     pub fn new(hsm_lock: Arc<HsmLock>) -> Result<Self, Error> {

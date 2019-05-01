@@ -17,6 +17,7 @@ pub use error::{Error, ErrorKind};
 pub use tpm::{TpmKey, TpmKeyStore};
 pub use x509::X509;
 
+#[derive(Debug)]
 pub struct HsmLock(Mutex<()>);
 
 impl HsmLock {
