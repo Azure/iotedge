@@ -201,7 +201,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         static string GetProductInfo()
         {
             string version = VersionInfo.Get(Constants.VersionInfoFileName).ToString();
-            string productInfo = $"{Core.Constants.IoTEdgeProductInfoIdentifier} {version}";
+            string productInfo = $"{Core.Constants.IoTEdgeProductInfoIdentifier}/{version}";
             return productInfo;
         }
 
