@@ -4,7 +4,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use std::str;
-use std::sync::{Mutex};
+use std::sync::Mutex;
 
 use bytes::Bytes;
 use lazy_static::lazy_static;
@@ -14,7 +14,7 @@ use edgelet_core::crypto::Sign;
 use edgelet_core::crypto::SignatureAlgorithm;
 use edgelet_core::KeyIdentity;
 use edgelet_core::KeyStore;
-use edgelet_hsm::{TpmKeyStore, HsmLock};
+use edgelet_hsm::{HsmLock, TpmKeyStore};
 mod test_utils;
 use test_utils::TestHSMEnvSetup;
 

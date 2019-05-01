@@ -228,8 +228,8 @@ impl Main {
         info!("Finished configuring certificates.");
 
         info!("Initializing hsm...");
-        let crypto =
-            Crypto::new(hsm_lock.clone()).context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+        let crypto = Crypto::new(hsm_lock.clone())
+            .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
         info!("Finished initializing hsm.");
 
         // Detect if the settings were changed and if the device needs to be reconfigured

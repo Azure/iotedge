@@ -40,7 +40,7 @@ impl X509 {
     pub fn from_hsm(x509: HsmX509, hsm_lock: Arc<HsmLock>) -> Result<Self, Error> {
         Ok(X509 {
             x509: Arc::new(x509),
-            hsm_lock
+            hsm_lock,
         })
     }
 }

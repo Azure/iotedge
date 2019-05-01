@@ -56,6 +56,12 @@ impl Debug for TpmKey {
     }
 }
 
+impl Debug for TpmKeyStore {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 impl TpmKeyStore {
     pub fn new(hsm_lock: Arc<HsmLock>) -> Result<Self, Error> {
         let hsm = Tpm::new()?;

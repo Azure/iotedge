@@ -4,7 +4,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use lazy_static::lazy_static;
-use std::sync::{Mutex};
+use std::sync::Mutex;
 
 use edgelet_core::crypto::{Decrypt, Encrypt, MasterEncryptionKey};
 use edgelet_hsm::{Crypto, HsmLock};
