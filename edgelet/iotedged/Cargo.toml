@@ -8,6 +8,7 @@ edition = "2018"
 [dependencies]
 base64 = "0.9"
 clap = "2.31"
+chrono = "0.4"
 env_logger = "0.5"
 failure = "0.1"
 futures = "0.1"
