@@ -168,6 +168,7 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodReceiver", "edge-modules\DirectMethodReceiver\DirectMethodReceiver.csproj", "{013D53C7-3AB5-41A4-9A8D-0F2C47238773}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.ModuleUtil", "edge-modules\ModuleLib\Microsoft.Azure.Devices.Edge.ModuleUtil.csproj", "{A58633ED-5302-41DF-A0F6-FDC48E5C6B04}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Kubernetes", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Kubernetes\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.csproj", "{61C43258-F30B-48C4-982C-5ADB5767A54E}"
 EndProject
 Global

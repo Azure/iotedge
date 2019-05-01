@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Net;
     using System.Net.Http;
     using System.Threading.Tasks;
     using Autofac;
@@ -35,8 +36,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string serviceAccountName;
         readonly Uri managementUri;
         readonly Uri workloadUri;
+        readonly string apiVersion;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
         readonly Option<UpstreamProtocol> upstreamProtocol;
+        readonly Option<IWebProxy> proxy;
         readonly Option<string> productInfo;
         readonly PortMapServiceType defaultMapServiceType;
         readonly bool enableServiceCallTracing;
@@ -51,8 +54,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string serviceAccountName,
             Uri managementUri,
             Uri workloadUri,
+            string apiVersion,
             IEnumerable<AuthConfig> dockerAuthConfig,
             Option<UpstreamProtocol> upstreamProtocol,
+            Option<IWebProxy> proxy,
             Option<string> productInfo,
             PortMapServiceType defaultMapServiceType,
             bool enableServiceCallTracing)
@@ -66,8 +71,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.serviceAccountName = Preconditions.CheckNonWhiteSpace(serviceAccountName, nameof(serviceAccountName));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
+            this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
             this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
+            this.proxy = proxy;
             this.productInfo = productInfo;
             this.defaultMapServiceType = defaultMapServiceType;
             this.enableServiceCallTracing = enableServiceCallTracing;
@@ -106,12 +113,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleClientProvider
-            builder.Register(c => new EnvironmentModuleClientProvider(this.upstreamProtocol, this.productInfo))
+            builder.Register(c => new EnvironmentModuleClientProvider(this.upstreamProtocol, this.proxy, this.productInfo))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 
             // IModuleManager
-            builder.Register(c => new ModuleManagementHttpClient(this.managementUri))
+            builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Core.Constants.EdgeletClientApiVersion))
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
                 .SingleInstance();

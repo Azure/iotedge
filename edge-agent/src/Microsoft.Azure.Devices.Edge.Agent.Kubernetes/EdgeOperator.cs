@@ -889,7 +889,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             envList.Add(new V1EnvVar(CoreConstants.EdgeletModuleGenerationIdVariableName, identity.Credentials.ModuleGenerationId));
             envList.Add(new V1EnvVar(CoreConstants.DeviceIdVariableName, this.deviceId)); // could also get this from module identity
             envList.Add(new V1EnvVar(CoreConstants.ModuleIdVariableName, identity.ModuleId));
-            envList.Add(new V1EnvVar(CoreConstants.EdgeletApiVersionVariableName, CoreConstants.EdgeletWorkloadApiVersion));
+            envList.Add(new V1EnvVar(CoreConstants.EdgeletApiVersionVariableName, CoreConstants.EdgeletClientApiVersion));
 
             if (string.Equals(identity.ModuleId, CoreConstants.EdgeAgentModuleIdentityName))
             {

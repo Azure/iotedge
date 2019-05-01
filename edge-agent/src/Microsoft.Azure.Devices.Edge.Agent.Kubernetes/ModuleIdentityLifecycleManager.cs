@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;

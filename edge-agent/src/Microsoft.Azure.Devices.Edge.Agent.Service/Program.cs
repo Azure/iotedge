@@ -152,8 +152,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             serviceAccountName,
                             new Uri(managementUri),
                             new Uri(workloadUri),
+                            apiVersion,
                             dockerAuthConfig,
                             upstreamProtocol,
+                            proxy,
                             productInfo,
                             mappedServiceDefault,
                             enableServiceCallTracing));
