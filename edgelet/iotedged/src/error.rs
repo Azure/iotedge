@@ -141,7 +141,7 @@ impl fmt::Display for InitializeErrorReason {
             InitializeErrorReason::InvalidSocketUri => write!(f, "Invalid socket URI"),
 
             InitializeErrorReason::IssuerCAExpiration => {
-                write!(f, "Edge device CA has expired or near expiration")
+                write!(f, "Edge device CA has expired or is near expiration")
             }
 
             InitializeErrorReason::LoadSettings => write!(f, "Could not load settings"),
