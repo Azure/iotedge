@@ -8,7 +8,7 @@ use std::sync::Mutex;
 
 use edgelet_core::{
     Certificate, CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate,
-    KeyBytes, PrivateKey, Signature, IOTEDGED_CA_ALIAS,
+    KeyBytes, PrivateKey, Signature, IOTEDGED_CA_ALIAS, GetIssuerAlias
 };
 use edgelet_hsm::Crypto;
 mod test_utils;
@@ -28,9 +28,20 @@ fn crypto_create_cert_success() {
     let workload_ca_cert = crypto.get_certificate(IOTEDGED_CA_ALIAS.to_string());
     assert!(workload_ca_cert.is_err());
 
+    let issuer_alias = crypto.get_issuer_alias(CertificateIssuer::DeviceCa).unwrap();
+
+    let issuer_ca = crypto
+        .get_certificate(issuer_alias)
+        .unwrap();
+    let issuer_validity = issuer_ca.get_valid_to().unwrap();
+
+    let now = chrono::Utc::now();
+
+    let diff = issuer_validity.timestamp() - now.timestamp();
+    assert!(diff > 0);
     // create the default issuing CA cert properties
     let edgelet_ca_props = CertificateProperties::new(
-        3600,
+        diff as u64,
         "test-iotedge-cn".to_string(),
         CertificateType::Ca,
         IOTEDGED_CA_ALIAS.to_string(),

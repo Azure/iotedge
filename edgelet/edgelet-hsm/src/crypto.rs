@@ -10,7 +10,7 @@ use edgelet_core::{
     CreateCertificate as CoreCreateCertificate, Decrypt as CoreDecrypt, Encrypt as CoreEncrypt,
     Error as CoreError, ErrorKind as CoreErrorKind, GetTrustBundle as CoreGetTrustBundle,
     KeyBytes as CoreKeyBytes, MasterEncryptionKey as CoreMasterEncryptionKey,
-    PrivateKey as CorePrivateKey,
+    PrivateKey as CorePrivateKey, GetIssuerAlias as CoreGetIssuerAlias, CertificateIssuer as CoreCertificateIssuer,
 };
 pub use hsm::{
     Buffer, Decrypt, Encrypt, GetCertificate as HsmGetCertificate, GetTrustBundle, HsmCertificate,
@@ -136,6 +136,18 @@ impl CoreDecrypt for Crypto {
             .decrypt(client_id, ciphertext, initialization_vector)
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
+    }
+}
+
+impl CoreGetIssuerAlias for Crypto {
+    fn get_issuer_alias(&self, issuer: CoreCertificateIssuer) -> Result<String, CoreError> {
+        if issuer == CoreCertificateIssuer::DeviceCa {
+            let crypto = self.crypto.lock().expect("Lock on crypto structure failed");
+            Ok(crypto.get_device_ca_alias())
+        }
+        else {
+            Err(CoreError::from(CoreErrorKind::InvalidIssuer))
+        }
     }
 }
 
