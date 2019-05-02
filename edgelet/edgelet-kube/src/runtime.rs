@@ -25,6 +25,7 @@ use crate::constants::*;
 use crate::convert::{auth_to_image_pull_secret, pod_to_module, spec_to_deployment};
 use crate::error::{Error, ErrorKind, Result};
 use crate::module::KubeModule;
+use hyper::header::HeaderValue;
 
 #[derive(Clone)]
 pub struct KubeModuleRuntime<T, S> {
@@ -453,7 +454,7 @@ where
         let token = req
             .headers()
             .get(header::AUTHORIZATION)
-            .map(|token| token.to_str())
+            .map(HeaderValue::to_str)
             .transpose()
             .map(|token| {
                 token
@@ -800,8 +801,10 @@ mod tests {
         let runtime = prepare_module_runtime_with_defaults(service);
 
         let mut req = Request::default();
-        req.headers_mut()
-            .insert(header::AUTHORIZATION, "ΪΩΤ".parse().unwrap());
+        req.headers_mut().insert(
+            header::AUTHORIZATION,
+            "\u{3aa}\u{3a9}\u{3a4}".parse().unwrap(),
+        );
 
         let err = runtime.authenticate(&req).wait().err().unwrap();
 

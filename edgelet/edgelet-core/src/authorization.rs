@@ -18,9 +18,12 @@ impl fmt::Display for ModuleId {
     }
 }
 
-impl PartialEq<String> for ModuleId {
-    fn eq(&self, other: &String) -> bool {
-        self.0 == *other
+impl<T> PartialEq<T> for ModuleId
+where
+    T: AsRef<str>,
+{
+    fn eq(&self, other: &T) -> bool {
+        self.0 == other.as_ref()
     }
 }
 
@@ -59,7 +62,7 @@ impl Authorization {
         Authorization { policy }
     }
 
-    pub fn authorize(&self, name: Option<String>, auth_id: AuthId) -> bool {
+    pub fn authorize(&self, name: Option<&str>, auth_id: AuthId) -> bool {
         let name = name.map(|n| n.trim_start_matches('$').to_string());
         match self.policy {
             Policy::Anonymous => self.auth_anonymous(),
@@ -95,54 +98,42 @@ mod tests {
     #[test]
     fn should_authorize_anonymous() {
         let auth = Authorization::new(Policy::Anonymous);
-        assert_eq!(true, auth.authorize(None, AuthId::None));
+        assert!(auth.authorize(None, AuthId::None));
     }
 
     #[test]
     fn should_authorize_caller() {
         let auth = Authorization::new(Policy::Caller);
-        assert_eq!(
-            true,
-            auth.authorize(Some("abc".to_string()), AuthId::Value("abc".into()))
-        );
+        assert!(auth.authorize(Some("abc"), AuthId::Value("abc".into())));
     }
 
     #[test]
     fn should_authorize_system_caller() {
         let auth = Authorization::new(Policy::Caller);
-        assert_eq!(
-            true,
-            auth.authorize(
-                Some("$edgeAgent".to_string()),
-                AuthId::Value("edgeAgent".into()),
-            )
-        );
+        assert!(auth.authorize(Some("$edgeAgent"), AuthId::Value("edgeAgent".into()),));
     }
 
     #[test]
     fn should_reject_caller_without_name() {
         let auth = Authorization::new(Policy::Caller);
-        assert_eq!(false, auth.authorize(None, AuthId::Value("abc".into())));
+        assert!(!auth.authorize(None, AuthId::Value("abc".into())));
     }
 
     #[test]
     fn should_reject_caller_with_different_name() {
         let auth = Authorization::new(Policy::Caller);
-        assert_eq!(
-            false,
-            auth.authorize(Some("xyz".to_string()), AuthId::Value("abc".into()))
-        );
+        assert!(!auth.authorize(Some("xyz"), AuthId::Value("abc".into())));
     }
 
     #[test]
     fn should_authorize_module() {
         let auth = Authorization::new(Policy::Module("abc"));
-        assert_eq!(true, auth.authorize(None, AuthId::Value("abc".into())));
+        assert!(auth.authorize(None, AuthId::Value("abc".into())));
     }
 
     #[test]
     fn should_reject_module_whose_name_does_not_match_policy() {
         let auth = Authorization::new(Policy::Module("abc"));
-        assert_eq!(false, auth.authorize(None, AuthId::Value("xyz".into())));
+        assert!(!auth.authorize(None, AuthId::Value("xyz".into())));
     }
 }

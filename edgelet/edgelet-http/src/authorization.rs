@@ -39,7 +39,7 @@ where
         params: Parameters,
     ) -> Box<dyn Future<Item = Response<Body>, Error = Error> + Send> {
         let (name, auth_id) = (
-            params.name("name").map(ToString::to_string),
+            params.name("name"),
             req.extensions()
                 .get::<AuthId>()
                 .cloned()
@@ -47,7 +47,7 @@ where
         );
         let inner = self.inner.clone();
 
-        let authorized = self.auth.authorize(name.clone(), auth_id);
+        let authorized = self.auth.authorize(name, auth_id);
 
         let response = if authorized {
             future::Either::A(
@@ -57,7 +57,7 @@ where
             )
         } else {
             future::Either::B(future::err(Error::from(ErrorKind::ModuleNotFound(
-                name.unwrap_or_else(String::new),
+                name.unwrap_or("").to_string(),
             ))))
         };
 
