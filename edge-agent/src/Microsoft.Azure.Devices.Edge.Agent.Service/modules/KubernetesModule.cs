@@ -33,6 +33,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
         readonly string serviceAccountName;
+        readonly string persistantVolumeName;
+        readonly string storageClassName;
+        readonly string persistantVolumeClaimSizeMb;
         readonly Uri managementUri;
         readonly Uri workloadUri;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
@@ -49,6 +52,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string proxyConfigPath,
             string proxyConfigVolumeName,
             string serviceAccountName,
+            string persistantVolumeName,
+            string storageClassName,
+            string persistantVolumeClaimSizeMb,
             Uri managementUri,
             Uri workloadUri,
             IEnumerable<AuthConfig> dockerAuthConfig,
@@ -71,6 +77,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.productInfo = productInfo;
             this.defaultMapServiceType = defaultMapServiceType;
             this.enableServiceCallTracing = enableServiceCallTracing;
+            this.persistantVolumeName = persistantVolumeName;
+            this.storageClassName = storageClassName;
+            this.persistantVolumeClaimSizeMb = string.IsNullOrWhiteSpace(persistantVolumeClaimSizeMb) ? "10" : persistantVolumeClaimSizeMb;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -169,6 +178,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         this.proxyConfigPath,
                         this.proxyConfigVolumeName,
                         this.serviceAccountName,
+                        this.persistantVolumeName,
+                        this.storageClassName,
+                        this.persistantVolumeClaimSizeMb,
                         this.workloadUri,
                         this.managementUri,
                         this.defaultMapServiceType,

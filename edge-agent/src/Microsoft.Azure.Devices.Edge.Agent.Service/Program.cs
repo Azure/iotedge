@@ -134,6 +134,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string serviceAccountName = configuration.GetValue<string>(CoreConstant.EdgeAgentServiceAccountName);
                         Kubernetes.PortMapServiceType mappedServiceDefault = GetDefaultServiceType(configuration);
                         bool enableServiceCallTracing = configuration.GetValue<bool>(CoreConstant.EnableK8sServiceCallTracingName);
+                        string persistantVolumeName = configuration.GetValue<string>(CoreConstant.PersistantVolumeNameKey);
+                        string storageClassName = configuration.GetValue<string>(CoreConstant.StorageClassNameKey);
+                        string persistantVolumeClaimDefaultSizeMb = configuration.GetValue<string>(CoreConstant.PersistantVolumeClaimDefaultSizeKey);
 
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), moduleId, Option.Some(moduleGenerationId)));
                         builder.RegisterModule(new Modules.KubernetesModule(
@@ -144,6 +147,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             proxyConfigPath,
                             proxyConfigVolumeName,
                             serviceAccountName,
+                            persistantVolumeName,
+                            storageClassName,
+                            persistantVolumeClaimDefaultSizeMb,
                             new Uri(managementUri),
                             new Uri(workloadUri),
                             dockerAuthConfig,

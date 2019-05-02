@@ -48,6 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string serviceAccountName;
         readonly Uri workloadUri;
         readonly Uri managementUri;
+        readonly string PersistantVolumeClaimKey; // Either PV or SC
+        readonly string persistantVolumeClaimSizeMb;
         readonly string defaultMapServiceType;
         readonly TypeSpecificSerDe<EdgeDeploymentDefinition> deploymentSerde;
         readonly JsonSerializerSettings crdSerializerSettings;
@@ -61,6 +63,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string proxyConfigPath,
             string proxyConfigVolumeName,
             string serviceAccountName,
+            string PersistantVolumeName,
+            string StorageClassName,
+            string PersistantVolumeClaimSizeMb,
             Uri workloadUri,
             Uri managementUri,
             PortMapServiceType defaultMapServiceType,
@@ -97,6 +102,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
                 ContractResolver = new CamelCasePropertyNamesContractResolver()
             };
+
+            this.PersistantVolumeClaimKey = !string.IsNullOrWhiteSpace(PersistantVolumeName) ? PersistantVolumeName :
+                                                !string.IsNullOrWhiteSpace(StorageClassName) ? StorageClassName : string.Empty;
+            this.persistantVolumeClaimSizeMb = PersistantVolumeClaimSizeMb;
         }
 
         public Task CloseAsync(CancellationToken token)
@@ -850,7 +859,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         string name = KubeUtils.SanitizeDNSValue(mount.Source);
                         string mountPath = mount.Target;
                         bool readOnly = mount.ReadOnly;
-                        volumeList.Add(new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource()));
+
+                        // If the cluster is configured with a persistant volume name then use it otherwise rever to the empty dir source
+                        if (string.IsNullOrWhiteSpace(this.PersistantVolumeClaimKey))
+                        {
+                            volumeList.Add(new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource()));
+                        }
+                        else
+                        {
+                            volumeList.Add(new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(this.PersistantVolumeClaimKey, readOnly)));
+                        }
                         volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
                     }
                 }
