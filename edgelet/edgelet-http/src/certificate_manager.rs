@@ -303,6 +303,10 @@ mod tests {
         fn destroy_certificate(&self, _alias: String) -> Result<(), CoreError> {
             Ok(())
         }
+
+        fn get_certificate(&self, _alias: String) -> Result<Self::Certificate, CoreError> {
+            Ok(TestCertificate {})
+        }
     }
 
     struct TestCertificate {}

@@ -46,13 +46,13 @@ use edgelet_config::{
     TpmAttestationInfo, DEFAULT_CONNECTION_STRING,
 };
 use edgelet_core::crypto::{
-    Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity,
-    KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
+    Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetIssuerAlias, GetTrustBundle,
+    KeyIdentity, KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
-    CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime, ModuleSpec, UrlExt,
-    WorkloadConfig, UNIX_SCHEME,
+    Certificate, CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime,
+    ModuleSpec, UrlExt, WorkloadConfig, UNIX_SCHEME,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
@@ -149,7 +149,7 @@ const EDGE_SETTINGS_SUBDIR: &str = "cache";
 const IOTEDGED_VALIDITY: u64 = 7_776_000; // 90 days
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
-
+const IOTEDGED_MIN_EXPIRATION_DURATION: i64 = 300; // 5 mins
 const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200; // 2 hours
 const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 7_776_000; // 90 days
 
@@ -365,22 +365,51 @@ pub fn get_proxy_uri(https_proxy: Option<String>) -> Result<Option<Uri>, Error> 
 
 fn prepare_workload_ca<C>(crypto: &C) -> Result<(), Error>
 where
-    C: CreateCertificate,
+    C: CreateCertificate + GetIssuerAlias,
 {
-    let edgelet_ca_props = CertificateProperties::new(
-        IOTEDGED_VALIDITY,
-        IOTEDGED_COMMONNAME.to_string(),
-        CertificateType::Ca,
-        IOTEDGED_CA_ALIAS.to_string(),
-    )
-    .with_issuer(CertificateIssuer::DeviceCa);
-
-    crypto
-        .create_certificate(&edgelet_ca_props)
+    let issuer_alias = crypto
+        .get_issuer_alias(CertificateIssuer::DeviceCa)
         .context(ErrorKind::Initialize(
             InitializeErrorReason::PrepareWorkloadCa,
         ))?;
-    Ok(())
+
+    let issuer_ca = crypto
+        .get_certificate(issuer_alias)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::PrepareWorkloadCa,
+        ))?;
+
+    let issuer_validity = issuer_ca.get_valid_to().context(ErrorKind::Initialize(
+        InitializeErrorReason::PrepareWorkloadCa,
+    ))?;
+
+    info!("Edge issuer CA expiration date: {:?}", issuer_validity);
+
+    let now = chrono::Utc::now();
+
+    let diff = issuer_validity.timestamp() - now.timestamp();
+
+    if diff > IOTEDGED_MIN_EXPIRATION_DURATION {
+        #[allow(clippy::cast_sign_loss)]
+        let edgelet_ca_props = CertificateProperties::new(
+            diff as u64,
+            IOTEDGED_COMMONNAME.to_string(),
+            CertificateType::Ca,
+            IOTEDGED_CA_ALIAS.to_string(),
+        )
+        .with_issuer(CertificateIssuer::DeviceCa);
+
+        crypto
+            .create_certificate(&edgelet_ca_props)
+            .context(ErrorKind::Initialize(
+                InitializeErrorReason::PrepareWorkloadCa,
+            ))?;
+        Ok(())
+    } else {
+        Err(Error::from(ErrorKind::Initialize(
+            InitializeErrorReason::IssuerCAExpiration,
+        )))
+    }
 }
 
 fn destroy_workload_ca<C>(crypto: &C) -> Result<(), Error>
@@ -406,7 +435,7 @@ fn check_settings_state<M, C>(
 where
     M: ModuleRuntime,
     <M as ModuleRuntime>::RemoveAllFuture: 'static,
-    C: MasterEncryptionKey + CreateCertificate,
+    C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
     info!("Detecting if configuration file has changed...");
     let path = subdir_path.join(filename);
@@ -451,7 +480,7 @@ fn reconfigure<M, C>(
 where
     M: ModuleRuntime,
     <M as ModuleRuntime>::RemoveAllFuture: 'static,
-    C: MasterEncryptionKey + CreateCertificate,
+    C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
     // Remove all edge containers and destroy the cache (settings and dps backup)
     info!("Removing all modules...");
@@ -1025,6 +1054,7 @@ mod tests {
     use std::io::Read;
     use std::path::Path;
 
+    use chrono::{Duration, Utc};
     use tempdir::TempDir;
 
     use edgelet_core::ModuleRuntimeState;
@@ -1053,7 +1083,10 @@ mod tests {
         }
     }
 
-    struct TestCrypto {}
+    struct TestCrypto {
+        use_expired_ca: bool,
+        fail_device_ca_alias: bool,
+    }
 
     impl MasterEncryptionKey for TestCrypto {
         fn create_key(&self) -> Result<(), edgelet_core::Error> {
@@ -1081,6 +1114,38 @@ mod tests {
         fn destroy_certificate(&self, _alias: String) -> Result<(), edgelet_core::Error> {
             Ok(())
         }
+
+        fn get_certificate(
+            &self,
+            _alias: String,
+        ) -> Result<Self::Certificate, edgelet_core::Error> {
+            let ts = if self.use_expired_ca {
+                Utc::now()
+            } else {
+                Utc::now() + Duration::hours(1)
+            };
+            Ok(TestCert::default()
+                .with_cert(vec![1, 2, 3])
+                .with_private_key(PrivateKey::Key(KeyBytes::Pem("some key".to_string())))
+                .with_fail_pem(false)
+                .with_fail_private_key(false)
+                .with_valid_to(ts))
+        }
+    }
+
+    impl GetIssuerAlias for TestCrypto {
+        fn get_issuer_alias(
+            &self,
+            _issuer: CertificateIssuer,
+        ) -> Result<String, edgelet_core::Error> {
+            if self.fail_device_ca_alias {
+                Err(edgelet_core::Error::from(
+                    edgelet_core::ErrorKind::InvalidIssuer,
+                ))
+            } else {
+                Ok("test-device-ca".to_string())
+            }
+        }
     }
 
     #[test]
@@ -1095,6 +1160,62 @@ mod tests {
     }
 
     #[test]
+    fn settings_with_invalid_issuer_ca_fails() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
+        let config = TestConfig::new("microsoft/test-image".to_string());
+        let state = ModuleRuntimeState::default();
+        let module: TestModule<Error> =
+            TestModule::new("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::new(Ok(module));
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: true,
+        };
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        let result = check_settings_state(
+            tmp_dir.path().to_path_buf(),
+            "settings_state",
+            &settings,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+        );
+        match result.unwrap_err().kind() {
+            ErrorKind::Initialize(InitializeErrorReason::PrepareWorkloadCa) => (),
+            kind => panic!("Expected `PrepareWorkloadCa` but got {:?}", kind),
+        }
+    }
+
+    #[test]
+    fn settings_with_expired_issuer_ca_fails() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
+        let config = TestConfig::new("microsoft/test-image".to_string());
+        let state = ModuleRuntimeState::default();
+        let module: TestModule<Error> =
+            TestModule::new("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::new(Ok(module));
+        let crypto = TestCrypto {
+            use_expired_ca: true,
+            fail_device_ca_alias: false,
+        };
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        let result = check_settings_state(
+            tmp_dir.path().to_path_buf(),
+            "settings_state",
+            &settings,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+        );
+        match result.unwrap_err().kind() {
+            ErrorKind::Initialize(InitializeErrorReason::IssuerCAExpiration) => (),
+            kind => panic!("Expected `IssuerCAExpiration` but got {:?}", kind),
+        }
+    }
+
+    #[test]
     fn settings_first_time_creates_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
@@ -1103,7 +1224,10 @@ mod tests {
         let module: TestModule<Error> =
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
-        let crypto = TestCrypto {};
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+        };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state(
             tmp_dir.path().to_path_buf(),
@@ -1135,7 +1259,10 @@ mod tests {
         let module: TestModule<Error> =
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
-        let crypto = TestCrypto {};
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+        };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state(
             tmp_dir.path().to_path_buf(),
