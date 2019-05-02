@@ -50,15 +50,19 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             int segmentCount = -1;
             foreach (DriveInfo drive in drives)
             {
-                Console.WriteLine($"Drive {drive.Name} - IsReady = {drive.IsReady}, TotalFreeSpace = {drive.TotalFreeSpace} TotalSize = {drive.TotalSize}");
-                if (storageFolder.StartsWith(drive.Name, StringComparison.OrdinalIgnoreCase))
+                if (drive.IsReady)
                 {
-                    string[] segments = drive.Name.Split(new[] { Path.DirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
-                    if (segments.Length > segmentCount)
+                    Console.WriteLine($"Drive {drive.Name} - IsReady = {drive.IsReady}, TotalFreeSpace = {drive.TotalFreeSpace} TotalSize = {drive.TotalSize}");
+
+                    if (storageFolder.StartsWith(drive.Name, StringComparison.OrdinalIgnoreCase))
                     {
-                        Console.WriteLine($"New match for {drive.Name} with segments {segments.Length}");
-                        segmentCount = segments.Length;
-                        match = drive.Name;
+                        string[] segments = drive.Name.Split(new[] { Path.DirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+                        if (segments.Length > segmentCount)
+                        {
+                            Console.WriteLine($"New match for {drive.Name} with segments {segments.Length}");
+                            segmentCount = segments.Length;
+                            match = drive.Name;
+                        }
                     }
                 }
             }
