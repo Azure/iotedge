@@ -46,8 +46,8 @@ use edgelet_config::{
     TpmAttestationInfo, DEFAULT_CONNECTION_STRING,
 };
 use edgelet_core::crypto::{
-    Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity,
-    KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS, GetIssuerAlias,
+    Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetIssuerAlias, GetTrustBundle,
+    KeyIdentity, KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
@@ -368,10 +368,10 @@ where
     C: CreateCertificate + GetIssuerAlias,
 {
     let issuer_alias = crypto
-                        .get_issuer_alias(CertificateIssuer::DeviceCa)
-                        .context(ErrorKind::Initialize(
-                            InitializeErrorReason::PrepareWorkloadCa,
-                        ))?;
+        .get_issuer_alias(CertificateIssuer::DeviceCa)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::PrepareWorkloadCa,
+        ))?;
 
     let issuer_ca = crypto
         .get_certificate(issuer_alias)
@@ -1134,12 +1134,15 @@ mod tests {
     }
 
     impl GetIssuerAlias for TestCrypto {
-        fn get_issuer_alias(&self, _issuer: CertificateIssuer) -> Result<String, edgelet_core::Error> {
+        fn get_issuer_alias(
+            &self,
+            _issuer: CertificateIssuer,
+        ) -> Result<String, edgelet_core::Error> {
             if self.fail_device_ca_alias {
-                Err(edgelet_core::Error::from(edgelet_core::ErrorKind::InvalidIssuer))
-            }
-            else
-            {
+                Err(edgelet_core::Error::from(
+                    edgelet_core::ErrorKind::InvalidIssuer,
+                ))
+            } else {
                 Ok("test-device-ca".to_string())
             }
         }
@@ -1166,7 +1169,8 @@ mod tests {
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
         let crypto = TestCrypto {
-            use_expired_ca: true, fail_device_ca_alias: true,
+            use_expired_ca: false,
+            fail_device_ca_alias: true,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         let result = check_settings_state(
@@ -1193,7 +1197,8 @@ mod tests {
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
         let crypto = TestCrypto {
-            use_expired_ca: true, fail_device_ca_alias: false,
+            use_expired_ca: true,
+            fail_device_ca_alias: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         let result = check_settings_state(
@@ -1220,7 +1225,8 @@ mod tests {
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
         let crypto = TestCrypto {
-            use_expired_ca: false, fail_device_ca_alias: false,
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state(
@@ -1254,7 +1260,8 @@ mod tests {
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
         let crypto = TestCrypto {
-            use_expired_ca: false, fail_device_ca_alias: false,
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state(

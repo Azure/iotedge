@@ -6,11 +6,12 @@ use std::sync::{Arc, Mutex};
 use failure::Fail;
 
 use edgelet_core::{
-    Certificate as CoreCertificate, CertificateProperties as CoreCertificateProperties,
-    CreateCertificate as CoreCreateCertificate, Decrypt as CoreDecrypt, Encrypt as CoreEncrypt,
-    Error as CoreError, ErrorKind as CoreErrorKind, GetTrustBundle as CoreGetTrustBundle,
+    Certificate as CoreCertificate, CertificateIssuer as CoreCertificateIssuer,
+    CertificateProperties as CoreCertificateProperties, CreateCertificate as CoreCreateCertificate,
+    Decrypt as CoreDecrypt, Encrypt as CoreEncrypt, Error as CoreError, ErrorKind as CoreErrorKind,
+    GetIssuerAlias as CoreGetIssuerAlias, GetTrustBundle as CoreGetTrustBundle,
     KeyBytes as CoreKeyBytes, MasterEncryptionKey as CoreMasterEncryptionKey,
-    PrivateKey as CorePrivateKey, GetIssuerAlias as CoreGetIssuerAlias, CertificateIssuer as CoreCertificateIssuer,
+    PrivateKey as CorePrivateKey,
 };
 pub use hsm::{
     Buffer, Decrypt, Encrypt, GetCertificate as HsmGetCertificate, GetTrustBundle, HsmCertificate,
@@ -144,8 +145,7 @@ impl CoreGetIssuerAlias for Crypto {
         if issuer == CoreCertificateIssuer::DeviceCa {
             let crypto = self.crypto.lock().expect("Lock on crypto structure failed");
             Ok(crypto.get_device_ca_alias())
-        }
-        else {
+        } else {
             Err(CoreError::from(CoreErrorKind::InvalidIssuer))
         }
     }
