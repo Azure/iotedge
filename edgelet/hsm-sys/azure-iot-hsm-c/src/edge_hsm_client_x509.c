@@ -22,18 +22,6 @@ static bool g_is_x509_initialized = false;
 static unsigned int g_ref_cnt = 0;
 
 //##############################################################################
-// Helpers
-//##############################################################################
-
-#define FREEIF(x) \
-    do { \
-        if ((x) != NULL) { \
-            free((x)); \
-            (x) = NULL; \
-        } \
-    } while(0)
-
-//##############################################################################
 // Forward declarations
 //##############################################################################
 static CERT_INFO_HANDLE edge_x509_hsm_get_cert_info(HSM_CLIENT_HANDLE hsm_handle);
@@ -287,22 +275,26 @@ static int get_device_id_cert_env_vars(char **device_cert_file_path, char **devi
     if (hsm_get_env(ENV_DEVICE_ID_CERTIFICATE_PATH, &cert_path) != 0)
     {
         LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_ID_CERTIFICATE_PATH);
-        FREEIF(cert_path);
         result = __FAILURE__;
     }
     else if (hsm_get_env(ENV_DEVICE_ID_PRIVATE_KEY_PATH, &key_path) != 0)
     {
         LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_ID_PRIVATE_KEY_PATH);
-        FREEIF(cert_path);
-        FREEIF(key_path);
         result = __FAILURE__;
     }
     else
     {
-        *device_cert_file_path = cert_path;
-        *device_pk_file_path = key_path;
         result = 0;
     }
+
+    if (result != 0)
+    {
+        FREEIF(cert_path);
+        FREEIF(key_path);
+    }
+
+    *device_cert_file_path = cert_path;
+    *device_pk_file_path = key_path;
 
     return result;
 }
