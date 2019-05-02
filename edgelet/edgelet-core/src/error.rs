@@ -54,6 +54,9 @@ pub enum ErrorKind {
     #[fail(display = "An identity manager error occurred.")]
     IdentityManager,
 
+    #[fail(display = "Invalid or unsupported certificate issuer.")]
+    InvalidIssuer,
+
     #[fail(display = "An error occurred in the key store.")]
     KeyStore,
 
