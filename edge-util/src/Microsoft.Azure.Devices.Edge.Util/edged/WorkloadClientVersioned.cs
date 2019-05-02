@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
     abstract class WorkloadClientVersioned
     {
         static readonly RetryStrategy TransientRetryStrategy =
-            new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
+            new ExponentialBackoff(retryCount: 2, minBackoff: TimeSpan.FromSeconds(1), maxBackoff: TimeSpan.FromSeconds(3), deltaBackoff: TimeSpan.FromSeconds(2));
 
         readonly ITransientErrorDetectionStrategy transientErrorDetectionStrategy;
 
