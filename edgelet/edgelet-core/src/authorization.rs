@@ -63,7 +63,7 @@ impl Authorization {
     }
 
     pub fn authorize(&self, name: Option<&str>, auth_id: AuthId) -> bool {
-        let name = name.map(|n| n.trim_start_matches('$').to_string());
+        let name = name.map(|n| n.trim_start_matches('$'));
         match self.policy {
             Policy::Anonymous => self.auth_anonymous(),
             Policy::Caller => self.auth_caller(name, auth_id),
@@ -75,7 +75,7 @@ impl Authorization {
         true
     }
 
-    fn auth_caller(&self, name: Option<String>, auth_id: AuthId) -> bool {
+    fn auth_caller(&self, name: Option<&str>, auth_id: AuthId) -> bool {
         name.map_or_else(
             || false,
             |name| match auth_id {
@@ -87,7 +87,7 @@ impl Authorization {
     }
 
     fn auth_module(&self, expected_name: &'static str, auth_id: AuthId) -> bool {
-        self.auth_caller(Some(expected_name.to_string()), auth_id)
+        self.auth_caller(Some(expected_name), auth_id)
     }
 }
 
