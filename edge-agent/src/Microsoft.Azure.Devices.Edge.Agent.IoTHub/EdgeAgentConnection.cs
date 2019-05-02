@@ -198,6 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 IModuleClient dc = this.moduleClient.Expect(() => new InvalidOperationException("DeviceClient not yet initialized"));
                 Twin twin = await retryPolicy.ExecuteAsync(() => dc.GetTwinAsync());
 
+                Events.GotTwin(twin);
                 this.desiredProperties = twin.Properties.Desired;
                 this.reportedProperties = Option.Some(twin.Properties.Reported);
                 await this.UpdateDeploymentConfig();
@@ -303,7 +304,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 RetryingGetTwin,
                 MismatchedSchemaVersion,
                 TwinRefreshInit,
-                TwinRefreshStart
+                TwinRefreshStart,
+                GotTwin
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -376,6 +378,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             internal static void RetryingGetTwin(RetryingEventArgs args)
             {
                 Log.LogDebug((int)EventIds.RetryingGetTwin, $"Edge agent is retrying GetTwinAsync. Attempt #{args.CurrentRetryCount}. Last error: {args.LastException?.Message}");
+            }
+
+            public static void GotTwin(Twin twin)
+            {
+                long reportedPropertiesVersion = twin?.Properties?.Reported?.Version ?? -1;
+                long desiredPropertiesVersion = twin?.Properties?.Desired?.Version ?? -1;
+                Log.LogInformation((int)EventIds.GotTwin, $"Obtained Edge agent twin from IoTHub with desired properties version {desiredPropertiesVersion} and reported properties version {reportedPropertiesVersion}.");
             }
         }
     }
