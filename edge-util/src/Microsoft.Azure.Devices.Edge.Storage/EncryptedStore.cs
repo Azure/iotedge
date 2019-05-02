@@ -9,13 +9,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     public class EncryptedStore<TK, TV> : IKeyValueStore<TK, TV>
     {
         readonly IKeyValueStore<TK, string> entityStore;
-        readonly IEncryptionProvider encryptionProvider;
 
         public EncryptedStore(IKeyValueStore<TK, string> entityStore, IEncryptionProvider encryptionProvider)
         {
             this.entityStore = Preconditions.CheckNotNull(entityStore, nameof(entityStore));
-            this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
+            this.EncryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
         }
+
+        protected IEncryptionProvider EncryptionProvider { get; }
 
         public Task Put(TK key, TV value) => this.Put(key, value, CancellationToken.None);
 
@@ -46,15 +47,19 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return await encryptedValue.Map(
                     async e =>
                     {
-                        string decryptedValue = await this.DecryptValue(e);
-                        return Option.Some(decryptedValue.FromJson<TV>());
+                        Option<string> decryptedValue = await this.DecryptValue(e);
+                        return decryptedValue.Map(d => d.FromJson<TV>());
                     })
                 .GetOrElse(() => Task.FromResult(Option.None<TV>()));
         }
 
         public Task Remove(TK key, CancellationToken cancellationToken) => this.entityStore.Remove(key, cancellationToken);
 
-        public Task<bool> Contains(TK key, CancellationToken cancellationToken) => this.entityStore.Contains(key, cancellationToken);
+        public async Task<bool> Contains(TK key, CancellationToken cancellationToken)
+        {
+            Option<TV> value = await this.Get(key, cancellationToken);
+            return value.HasValue;
+        }
 
         public async Task<Option<(TK key, TV value)>> GetFirstEntry(CancellationToken cancellationToken)
         {
@@ -62,8 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return await encryptedValue.Map(
                     async e =>
                     {
-                        string decryptedValue = await this.DecryptValue(e.value);
-                        return Option.Some((e.key, decryptedValue.FromJson<TV>()));
+                        Option<string> decryptedValue = await this.DecryptValue(e.value);
+                        return decryptedValue.Map(d => (e.key, d.FromJson<TV>()));
                     })
                 .GetOrElse(() => Task.FromResult(Option.None<(TK key, TV value)>()));
         }
@@ -74,8 +79,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return await encryptedValue.Map(
                     async e =>
                     {
-                        string decryptedValue = await this.DecryptValue(e.value);
-                        return Option.Some((e.key, decryptedValue.FromJson<TV>()));
+                        Option<string> decryptedValue = await this.DecryptValue(e.value);
+                        return decryptedValue.Map(d => (e.key, d.FromJson<TV>()));
                     })
                 .GetOrElse(() => Task.FromResult(Option.None<(TK key, TV value)>()));
         }
@@ -86,9 +91,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 batchSize,
                 async (key, stringValue) =>
                 {
-                    string decryptedValue = await this.DecryptValue(stringValue);
-                    var value = decryptedValue.FromJson<TV>();
-                    await perEntityCallback(key, value);
+                    Option<string> decryptedValue = await this.DecryptValue(stringValue);
+                    await decryptedValue.ForEachAsync(
+                        d =>
+                        {
+                            var value = d.FromJson<TV>();
+                            return perEntityCallback(key, value);
+                        });
                 },
                 cancellationToken);
         }
@@ -100,9 +109,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 batchSize,
                 async (key, stringValue) =>
                 {
-                    string decryptedValue = await this.DecryptValue(stringValue);
-                    var value = decryptedValue.FromJson<TV>();
-                    await perEntityCallback(key, value);
+                    Option<string> decryptedValue = await this.DecryptValue(stringValue);
+                    await decryptedValue.ForEachAsync(
+                        d =>
+                        {
+                            var value = d.FromJson<TV>();
+                            return perEntityCallback(key, value);
+                        });
                 },
                 cancellationToken);
         }
@@ -121,12 +134,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
-        protected IEncryptionProvider EncryptionProvider => this.encryptionProvider;
-
         protected virtual Task<string> EncryptValue(string value)
-            => this.encryptionProvider.EncryptAsync(value);
+            => this.EncryptionProvider.EncryptAsync(value);
 
-        protected virtual Task<string> DecryptValue(string encryptedValue)
-            => this.encryptionProvider.DecryptAsync(encryptedValue);
+        protected virtual async Task<Option<string>> DecryptValue(string encryptedValue)
+        {
+            try
+            {
+                string decryptedValue = await this.EncryptionProvider.DecryptAsync(encryptedValue);
+                return Option.Some(decryptedValue);
+            }
+            catch (Exception)
+            {
+                return Option.None<string>();
+            }
+        }
     }
 }
