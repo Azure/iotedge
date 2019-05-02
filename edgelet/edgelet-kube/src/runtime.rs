@@ -8,10 +8,8 @@ use failure::Fail;
 use futures::future::Either;
 use futures::prelude::*;
 use futures::{future, stream, Async, Future, Stream};
-use hyper::client::HttpConnector;
 use hyper::service::Service;
 use hyper::{header, Body, Chunk as HyperChunk, Request};
-use hyper_tls::HttpsConnector;
 use log::Level;
 use url::Url;
 
@@ -21,10 +19,7 @@ use edgelet_core::{
 };
 use edgelet_docker::DockerConfig;
 use edgelet_utils::{ensure_not_empty_with_context, log_failure, sanitize_dns_label};
-use kube_client::HttpClient;
-use kube_client::{
-    get_config, Client as KubeClient, Error as KubeClientError, TokenSource, ValueToken,
-};
+use kube_client::{Client as KubeClient, Error as KubeClientError, TokenSource};
 
 use crate::constants::*;
 use crate::convert::{auth_to_image_pull_secret, pod_to_module, spec_to_deployment};
@@ -104,7 +99,7 @@ impl<T, S> KubeRuntimeData for KubeModuleRuntime<T, S> {
 }
 
 impl<T, S> KubeModuleRuntime<T, S> {
-    pub fn with_client(
+    pub fn new(
         client: KubeClient<T, S>,
         namespace: String,
         use_pvc: bool,
@@ -185,41 +180,6 @@ impl<T, S> KubeModuleRuntime<T, S> {
             management_uri,
             device_hub_selector,
         })
-    }
-}
-
-impl KubeModuleRuntime<ValueToken, HttpClient<HttpsConnector<HttpConnector>, Body>> {
-    pub fn new(
-        namespace: String,
-        use_pvc: bool,
-        iot_hub_hostname: String,
-        device_id: String,
-        edge_hostname: String,
-        proxy_image: String,
-        proxy_config_path: String,
-        proxy_config_map_name: String,
-        image_pull_policy: String,
-        service_account_name: String,
-        workload_uri: Url,
-        management_uri: Url,
-    ) -> Result<Self> {
-        let client = KubeClient::new(get_config()?);
-
-        Self::with_client(
-            client,
-            namespace,
-            use_pvc,
-            iot_hub_hostname,
-            device_id,
-            edge_hostname,
-            proxy_image,
-            proxy_config_path,
-            proxy_config_map_name,
-            image_pull_policy,
-            service_account_name,
-            workload_uri,
-            management_uri,
-        )
     }
 }
 
@@ -496,7 +456,6 @@ where
             .and_then(|token| token.to_str().ok()) // todo @dmolokanov treat to_str()->Err as a Fail
             .filter(|token| token.len() > 6 && &token[..7].to_uppercase() == "BEARER ")
             .map(|token: &str| &token[7..]);
-
         let fut = match token {
             Some(token) => Either::A(
                 self.client
@@ -516,7 +475,7 @@ where
                             .and_then(|status| {
                                 status.user.as_ref().and_then(|user| user.username.clone())
                             })
-                            .map_or(AuthId::None, AuthId::Value)
+                            .map_or(AuthId::None, |name| AuthId::Value(name.into()))
                     }),
             ),
             None => Either::B(future::ok(AuthId::None)),
@@ -593,6 +552,15 @@ mod tests {
 
     use crate::runtime::KubeModuleRuntime;
 
+    fn get_config() -> Config<TestTokenSource> {
+        Config::new(
+            Url::parse("https://localhost:443").unwrap(),
+            "/api".to_string(),
+            TestTokenSource,
+            TlsConnector::new().unwrap(),
+        )
+    }
+
     #[test]
     fn runtime_new() {
         let namespace = String::from("my-namespace");
@@ -608,6 +576,7 @@ mod tests {
         let management_uri = Url::from_str("http://localhost:35001").unwrap();
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             String::default(),
             true,
             iot_hub_hostname.clone(),
@@ -625,6 +594,7 @@ mod tests {
         assert!(result.is_err());
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             namespace.clone(),
             true,
             String::default(),
@@ -641,6 +611,7 @@ mod tests {
         assert!(result.is_err());
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             namespace.clone(),
             true,
             iot_hub_hostname.clone(),
@@ -657,6 +628,7 @@ mod tests {
         assert!(result.is_err());
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             namespace.clone(),
             true,
             iot_hub_hostname.clone(),
@@ -673,6 +645,7 @@ mod tests {
         assert!(result.is_err());
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             namespace.clone(),
             true,
             iot_hub_hostname.clone(),
@@ -689,6 +662,7 @@ mod tests {
         assert!(result.is_err());
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             namespace.clone(),
             true,
             iot_hub_hostname.clone(),
@@ -705,6 +679,7 @@ mod tests {
         assert!(result.is_err());
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             namespace.clone(),
             true,
             iot_hub_hostname.clone(),
@@ -721,6 +696,7 @@ mod tests {
         assert!(result.is_err());
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             namespace.clone(),
             true,
             iot_hub_hostname.clone(),
@@ -737,6 +713,7 @@ mod tests {
         assert!(result.is_err());
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             namespace.clone(),
             true,
             iot_hub_hostname.clone(),
@@ -751,6 +728,23 @@ mod tests {
             management_uri.clone(),
         );
         assert!(result.is_err());
+
+        let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
+            namespace.clone(),
+            true,
+            iot_hub_hostname.clone(),
+            device_id.clone(),
+            edge_hostname.clone(),
+            proxy_image.clone(),
+            proxy_config_path.clone(),
+            proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
+            service_account_name.clone(),
+            workload_uri.clone(),
+            management_uri.clone(),
+        );
+        assert!(result.is_ok());
     }
 
     #[test]
@@ -761,7 +755,7 @@ mod tests {
             },
         );
         let req = Request::default();
-        let runtime = prepare_module_runtime(service);
+        let runtime = prepare_module_runtime_with_defaults(service);
 
         let auth_id = runtime.authenticate(&req).wait().unwrap();
 
@@ -775,7 +769,7 @@ mod tests {
                 Ok(Response::new(Body::empty()))
             },
         );
-        let runtime = prepare_module_runtime(service);
+        let runtime = prepare_module_runtime_with_defaults(service);
 
         let mut req = Request::default();
         req.headers_mut()
@@ -800,7 +794,7 @@ mod tests {
                 Ok(Response::new(Body::from(body)))
             },
         );
-        let runtime = prepare_module_runtime(service);
+        let runtime = prepare_module_runtime_with_defaults(service);
 
         let mut req = Request::default();
         req.headers_mut().insert(
@@ -835,14 +829,16 @@ mod tests {
         req.headers_mut()
             .insert(header::AUTHORIZATION, "Bearer token".parse().unwrap());
 
-        let runtime = prepare_module_runtime(service);
+        let runtime = prepare_module_runtime_with_defaults(service);
 
         let auth_id = runtime.authenticate(&req).wait().unwrap();
 
-        assert_eq!(AuthId::Value("module-abc".to_string()), auth_id);
+        assert_eq!(AuthId::Value("module-abc".into()), auth_id);
     }
 
-    fn prepare_module_runtime<S: Service>(service: S) -> KubeModuleRuntime<TestTokenSource, S> {
+    fn prepare_module_runtime_with_defaults<S: Service>(
+        service: S,
+    ) -> KubeModuleRuntime<TestTokenSource, S> {
         let namespace = String::from("my-namespace");
         let iot_hub_hostname = String::from("iothostname");
         let device_id = String::from("my_device_id");
@@ -862,7 +858,7 @@ mod tests {
             TlsConnector::new().unwrap(),
         );
 
-        KubeModuleRuntime::with_client(
+        KubeModuleRuntime::new(
             KubeClient::with_client(config, service),
             namespace.clone(),
             true,

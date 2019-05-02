@@ -76,9 +76,7 @@ mod tests {
     #[test]
     fn handler_calls_inner_handler() {
         let mut request = Request::default();
-        request
-            .extensions_mut()
-            .insert(AuthId::Value("abc".to_string()));
+        request.extensions_mut().insert(AuthId::Value("abc".into()));
         let params = Parameters::with_captures(vec![(Some("name".to_string()), "abc".to_string())]);
 
         let auth = Authorization::new(TestHandler::new(), Policy::Caller);
@@ -108,9 +106,7 @@ mod tests {
     fn handler_responds_with_not_found_when_name_is_omitted() {
         let params = Parameters::with_captures(vec![]);
         let mut request = Request::default();
-        request
-            .extensions_mut()
-            .insert(AuthId::Value("abc".to_string()));
+        request.extensions_mut().insert(AuthId::Value("abc".into()));
 
         let auth = Authorization::new(TestHandler::new(), Policy::Caller);
         let response = auth.handle(request, params).wait().unwrap();

@@ -151,8 +151,7 @@ fn generate_server_cert(
         .unwrap();
 
     // set the correct AuthId value on the request so that authorization works
-    req.extensions_mut()
-        .insert(AuthId::Value(MODULE_ID.to_string()));
+    req.extensions_mut().insert(AuthId::Value(MODULE_ID.into()));
 
     request(service, req)
 }

@@ -58,6 +58,8 @@ impl<T: TokenSource + Clone> Client<T, HttpClient<HttpsConnector<HttpConnector>,
     }
 }
 
+// with_client method lives in its own block because we don't need whole set of constrains
+// everywhere in the code, in tests for instance
 impl<T: TokenSource + Clone, S> Client<T, S> {
     pub fn with_client(config: Config<T>, client: S) -> Self {
         Client { config, client }

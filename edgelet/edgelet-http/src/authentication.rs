@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn call_forward_to_inner_service_when_module_authenticated() {
-        call_forward_to_inner_service_when_authenticated_with(AuthId::Value("abc".to_string()));
+        call_forward_to_inner_service_when_authenticated_with(AuthId::Value("abc".into()));
     }
 
     #[test]

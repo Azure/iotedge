@@ -797,32 +797,40 @@ where
         Pid::Any => Either::A(future::ok(AuthId::Any)),
         Pid::Value(pid) => {
             Either::B(
+                // to authenticate request we need to determine whether given pid corresponds to
+                // any pid from any module. In order to do so, we are getting a list of all running
+                // modules and for each of them execute docker top command. There can be errors
+                // during a multiple requests, so we are filtered out those modules that we active
+                // during docker inspect operation but have gone after (NotFound and TopModule errors).
                 runtime
                     .list()
-                    .into_stream()
                     .map(|list| {
                         stream::futures_unordered(list.into_iter().map(|module| module.top()))
                     })
+                    .into_stream()
                     .flatten()
-                    .then(Ok::<_, Error>) // wrap error into a result to ignore Module::NotFound error
-                    .filter_map(move |top| match top {
-                        Ok(top) => {
+                    .then(|result| match result {
+                        Ok(top) => Ok(Some(top)),
+                        Err(err) => match err.kind() {
+                            ErrorKind::NotFound(_)
+                            | ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(_)) => {
+                                Ok(None)
+                            }
+                            _ => Err(err),
+                        },
+                    })
+                    .filter_map(move |top| {
+                        top.and_then(|top| {
                             if top.process_ids().contains(&pid) {
-                                Some(Ok(top.name().to_string()))
+                                Some(top.name().to_string())
                             } else {
                                 None
                             }
-                        }
-                        Err(err) => match err.kind() {
-                            ErrorKind::NotFound(_)
-                            | ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(_)) => None,
-                            _ => Some(Err(err)),
-                        },
+                        })
                     })
-                    .then(Result::unwrap) // unwrap unknown error to emit error
                     .into_future()
                     .then(move |result| match result {
-                        Ok((Some(m), _)) => Ok(AuthId::Value(m.to_string())),
+                        Ok((Some(m), _)) => Ok(AuthId::Value(m.into())),
                         Ok((None, _)) => {
                             info!("Unable to find a module for caller pid: {}", pid);
                             Ok(AuthId::None)
@@ -1293,7 +1301,7 @@ mod tests {
 
         let auth_id = runtime.authenticate(&req).wait().unwrap();
 
-        assert_eq!(AuthId::Value("a".to_string()), auth_id);
+        assert_eq!(AuthId::Value("a".into()), auth_id);
     }
 
     #[test]
@@ -1304,7 +1312,7 @@ mod tests {
 
         let auth_id = runtime.authenticate(&req).wait().unwrap();
 
-        assert_eq!(AuthId::Value("d".to_string()), auth_id);
+        assert_eq!(AuthId::Value("d".into()), auth_id);
     }
 
     fn prepare_module_runtime_with_known_modules() -> TestModuleList {
