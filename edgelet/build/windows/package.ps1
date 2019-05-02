@@ -108,11 +108,23 @@ Function New-Package([string] $Name, [string] $Version)
 }
 
 if ($CreateTemplate) {
-    $docker_cli_uri = if($Arm) { 'https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/docker.exe'} else { 'https://mby.blob.core.windows.net/mby-win-amd64/docker-3.0.5.exe' }
-    $docker_cli_license_uri = if ($Arm) { 'https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/dockerd.exe' } else { 'https://mby.blob.core.windows.net/mby/LICENSE-cli' }
+    $docker_cli_uri =
+        if ($Arm) {
+            'https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/docker.exe'
+        }
+        else {
+            'https://mby.blob.core.windows.net/mby-win-amd64/docker-3.0.5.exe'
+        }
+    $docker_cli_license_uri = 'https://mby.blob.core.windows.net/mby/LICENSE-cli'
     $docker_cli_tpn_uri = 'https://mby.blob.core.windows.net/mby/ThirdPartyNotices-cli'
 
-    $docker_engine_uri = 'https://mby.blob.core.windows.net/mby-win-amd64/dockerd-3.0.5.exe'
+    $docker_engine_uri =
+        if ($Arm) {
+            'https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/dockerd.exe'
+        }
+        else {
+            'https://mby.blob.core.windows.net/mby-win-amd64/dockerd-3.0.5.exe'
+        }
     $docker_engine_license_uri = 'https://mby.blob.core.windows.net/mby/LICENSE-engine'
     $docker_engine_tpn_uri = 'https://mby.blob.core.windows.net/mby/ThirdPartyNotices-engine'
 
