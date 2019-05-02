@@ -163,16 +163,13 @@ Param (
     [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
     [string] $ProxyUri = $null,
 
-    [ValidateNotNullOrEmpty()]
     [string] $LoadGenMessageFrequency = $null,
 
     [ValidateNotNullOrEmpty()]
     [string] $SnitchAlertUrl = $null,
 
-    [ValidateNotNullOrEmpty()]
     [string] $SnitchBuildNumber = "1.1",
 
-    [ValidateNotNullOrEmpty()]
     [string] $SnitchReportingIntervalInSecs = $null,
 
     [ValidateNotNullOrEmpty()]
@@ -181,26 +178,21 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $SnitchStorageMasterKey = $null,
 
-    [ValidateNotNullOrEmpty()]
     [string] $SnitchTestDurationInSecs = $null,
 
-    [ValidateNotNullOrEmpty()]
     [string] $LoadGen1TransportType = "amqp",
 
-    [ValidateNotNullOrEmpty()]
     [string] $LoadGen2TransportType = "amqp",
 
-    [ValidateNotNullOrEmpty()]
     [string] $LoadGen3TransportType = "mqtt",
 
-    [ValidateNotNullOrEmpty()]
     [string] $LoadGen4TransportType = "mqtt",
 
     [ValidateSet("true", "false")]
-    [string] $AmqpSettingsEnabled,
+    [string] $AmqpSettingsEnabled = "true",
 
     [ValidateSet("true", "false")]
-    [string] $MqttSettingsEnabled
+    [string] $MqttSettingsEnabled = "true"
 
 )
 
@@ -313,7 +305,7 @@ Function PrepareTestFromArtifacts
 
     # Deployment file
     If (($TestName -like "DirectMethod*") -Or
-	    ($TestName -eq "LongHaul") -Or
+        ($TestName -eq "LongHaul") -Or
         ($TestName -eq "Stress") -Or
         ($TestName -eq "TempFilter") -Or
         ($TestName -eq "TempFilterFunctions") -Or
@@ -775,7 +767,7 @@ Function RunLongHaulTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-longHaul"
+    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-longHaul"
     (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
     PrintHighlightedMessage "Run Long Haul test with -d ""$deviceId"" started at $testStartAt"
 
@@ -806,7 +798,7 @@ Function RunStressTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-stress"
+    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-stress"
     (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
     PrintHighlightedMessage "Run Stress test with -d ""$deviceId"" started at $testStartAt"
 
@@ -1256,8 +1248,8 @@ $RuntimeOnlyDeploymentFilename = 'runtime_only_deployment.template.json'
 $QuickstartDeploymentFilename = 'quickstart_deployment.template.json'
 $TwinTestFilename = "twin_test_tempSensor.json"
 # Using versions without snitcher and influxdb, as they are currently not working in windows
-$LongHaulDeploymentFilename = "long_haul_deployment_windows.template.json"
-$StressDeplymentFilename = "stress_deployment_windows.template.json"
+$LongHaulDeploymentFilename = "long_haul_deployment.template.windows.json"
+$StressDeplymentFilename = "stress_deployment.template.windows.json"
 
 $IotEdgeQuickstartArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\IotEdgeQuickstart\$Architecture"
 $LeafDeviceArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\LeafDevice\$Architecture"
