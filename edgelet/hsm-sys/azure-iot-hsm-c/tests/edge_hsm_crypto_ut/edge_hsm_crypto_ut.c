@@ -80,6 +80,8 @@ MOCKABLE_FUNCTION(, CERT_INFO_HANDLE, certificate_info_create, const char*, cert
 MOCKABLE_FUNCTION(, const char*, get_alias, CERT_PROPS_HANDLE, handle);
 MOCKABLE_FUNCTION(, const char*, get_issuer_alias, CERT_PROPS_HANDLE, handle);
 
+MOCKABLE_FUNCTION(, int, generate_rand_buffer, unsigned char*, buffer, size_t, num_bytes);
+
 #undef ENABLE_MOCKS
 
 //#############################################################################
@@ -391,6 +393,14 @@ static CERT_INFO_HANDLE test_hook_certificate_info_create
     return TEST_CERT_INFO_HANDLE;
 }
 
+static int test_hook_generate_rand_buffer(unsigned char *buffer, size_t num_bytes)
+{
+    (void)buffer;
+    (void)num_bytes;
+
+    return 0;
+}
+
 //#############################################################################
 // Test cases
 //#############################################################################
@@ -501,6 +511,9 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
 
             REGISTER_GLOBAL_MOCK_HOOK(get_issuer_alias, test_hook_get_issuer_alias);
             REGISTER_GLOBAL_MOCK_FAIL_RETURN(get_issuer_alias, NULL);
+
+            REGISTER_GLOBAL_MOCK_HOOK(generate_rand_buffer, test_hook_generate_rand_buffer);
+            REGISTER_GLOBAL_MOCK_FAIL_RETURN(generate_rand_buffer, 1);
         }
 
         TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -918,9 +931,10 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
             HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_crypto_create();
-            unsigned char test_input[] = {'r', 'a', 'n' , 'd'};
             unsigned char test_output[] = {'r', 'a', 'n' , 'd'};
             umock_c_reset_all_calls();
+
+            STRICT_EXPECTED_CALL(generate_rand_buffer(test_output, sizeof(test_output)));
 
             // act
             status = interface->hsm_client_get_random_bytes(hsm_handle, test_output, sizeof(test_output));
@@ -929,17 +943,50 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
-            // if this test fails it implies that the call to hsm_client_get_random_bytes
-            // never updated the buffer and yet returned a success OR
-            // the statistically improbable event occured that the random bytes returned
-            // exactly what the test_input was setup with
-            // P(test failure) = P('r') * P('a') * P('n') * P('d') = ((1/256) ^ 4) == very small
-            int cmp = memcmp(test_input, test_output, sizeof(test_input));
-            ASSERT_ARE_NOT_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
+            //cleanup
+            hsm_client_crypto_destroy(hsm_handle);
+            hsm_client_crypto_deinit();
+        }
+
+        /**
+         * Test function for API
+         *   hsm_client_get_random_bytes
+        */
+        TEST_FUNCTION(edge_hsm_client_get_random_bytes_negative)
+        {
+            //arrange
+            int test_result = umock_c_negative_tests_init();
+            ASSERT_ARE_EQUAL(int, 0, test_result);
+            int status;
+            status = hsm_client_crypto_init();
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
+            HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
+            HSM_CLIENT_DESTROY hsm_client_crypto_destroy = interface->hsm_client_crypto_destroy;
+            HSM_CLIENT_HANDLE hsm_handle = hsm_client_crypto_create();
+            unsigned char test_output[] = {'r', 'a', 'n' , 'd'};
+            umock_c_reset_all_calls();
+
+            STRICT_EXPECTED_CALL(generate_rand_buffer(test_output, sizeof(test_output)));
+
+            umock_c_negative_tests_snapshot();
+
+            for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
+            {
+                umock_c_negative_tests_reset();
+                umock_c_negative_tests_fail_call(i);
+
+                // act
+                status = interface->hsm_client_get_random_bytes(hsm_handle, test_output, sizeof(test_output));
+
+                // assert
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+            }
 
             //cleanup
             hsm_client_crypto_destroy(hsm_handle);
             hsm_client_crypto_deinit();
+            umock_c_negative_tests_deinit();
         }
 
         /**
