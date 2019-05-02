@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk;
     using Microsoft.Azure.Devices.Edge.Util;
 
     class DiskSpaceAwareColumnFamilyDbStore : IDbStore

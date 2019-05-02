@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Storage.RocksDb;
+    using Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Extensions.Logging;
@@ -127,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var partitionsList = new List<string> { Core.Constants.MessageStorePartitionKey, Core.Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
                             try
                             {
-                                Option<IDiskSpaceChecker> diskSpaceChecker = this.storageLimitThresholdPercentage.Map(t => DiskSpaceChecker.Create(this.storagePath, t, TimeSpan.FromSeconds(30), null) as IDiskSpaceChecker);
+                                Option<IDiskSpaceChecker> diskSpaceChecker = this.storageLimitThresholdPercentage.Map(t => DiskSpaceChecker.Create(this.storagePath, t, TimeSpan.FromSeconds(30)) as IDiskSpaceChecker);
                                 IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(
                                     c.Resolve<IRocksDbOptionsProvider>(),
                                     this.storagePath,
