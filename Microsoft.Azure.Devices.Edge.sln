@@ -171,6 +171,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodCloudSender", "edge-modules\DirectMethodCloudSender\DirectMethodCloudSender.csproj", "{A68ABCD4-5926-4005-9525-559DD74991C9}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{2300ED4C-1D5A-460F-8691-7C85E1162E0C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Test.Common", "test\Microsoft.Azure.Devices.Edge.Test.Common\Microsoft.Azure.Devices.Edge.Test.Common.csproj", "{950DACB0-B011-41AF-B0FB-245F749B01AB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Test.TempSensor", "test\Microsoft.Azure.Devices.Edge.Test.TempSensor\Microsoft.Azure.Devices.Edge.Test.TempSensor.csproj", "{FCF94FF4-A608-4CC1-8D1D-215B6F88F203}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CheckInBuild|Any CPU = CheckInBuild|Any CPU
@@ -547,6 +553,22 @@ Global
 		{A68ABCD4-5926-4005-9525-559DD74991C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A68ABCD4-5926-4005-9525-559DD74991C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A68ABCD4-5926-4005-9525-559DD74991C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{950DACB0-B011-41AF-B0FB-245F749B01AB}.CheckInBuild|Any CPU.ActiveCfg = Debug|Any CPU
+		{950DACB0-B011-41AF-B0FB-245F749B01AB}.CheckInBuild|Any CPU.Build.0 = Debug|Any CPU
+		{950DACB0-B011-41AF-B0FB-245F749B01AB}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{950DACB0-B011-41AF-B0FB-245F749B01AB}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{950DACB0-B011-41AF-B0FB-245F749B01AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{950DACB0-B011-41AF-B0FB-245F749B01AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{950DACB0-B011-41AF-B0FB-245F749B01AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{950DACB0-B011-41AF-B0FB-245F749B01AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FCF94FF4-A608-4CC1-8D1D-215B6F88F203}.CheckInBuild|Any CPU.ActiveCfg = Debug|Any CPU
+		{FCF94FF4-A608-4CC1-8D1D-215B6F88F203}.CheckInBuild|Any CPU.Build.0 = Debug|Any CPU
+		{FCF94FF4-A608-4CC1-8D1D-215B6F88F203}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{FCF94FF4-A608-4CC1-8D1D-215B6F88F203}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{FCF94FF4-A608-4CC1-8D1D-215B6F88F203}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FCF94FF4-A608-4CC1-8D1D-215B6F88F203}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FCF94FF4-A608-4CC1-8D1D-215B6F88F203}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FCF94FF4-A608-4CC1-8D1D-215B6F88F203}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -615,6 +637,8 @@ Global
 		{013D53C7-3AB5-41A4-9A8D-0F2C47238773} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
 		{A58633ED-5302-41DF-A0F6-FDC48E5C6B04} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
 		{A68ABCD4-5926-4005-9525-559DD74991C9} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
+		{950DACB0-B011-41AF-B0FB-245F749B01AB} = {2300ED4C-1D5A-460F-8691-7C85E1162E0C}
+		{FCF94FF4-A608-4CC1-8D1D-215B6F88F203} = {2300ED4C-1D5A-460F-8691-7C85E1162E0C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}
