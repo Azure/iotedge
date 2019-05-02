@@ -4,6 +4,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use lazy_static::lazy_static;
+use std::convert::TryFrom;
 use std::sync::Mutex;
 
 use edgelet_core::{
@@ -41,7 +42,7 @@ fn crypto_create_cert_success() {
     assert!(diff > 0);
     // create the default issuing CA cert properties
     let edgelet_ca_props = CertificateProperties::new(
-        diff as u64,
+        u64::try_from(diff).unwrap(),
         "test-iotedge-cn".to_string(),
         CertificateType::Ca,
         IOTEDGED_CA_ALIAS.to_string(),
