@@ -26,12 +26,16 @@ fn crypto_create_cert_success() {
 
     let crypto = Crypto::new().unwrap();
 
-    let workload_ca_cert = crypto.get_certificate(IOTEDGED_CA_ALIAS.to_string());
-    assert!(workload_ca_cert.is_err());
-
+    // tests to ensure that the Device CA alias exists and is valid
+    assert!(crypto.get_issuer_alias(CertificateIssuer::DefaultCa).is_err());
     let issuer_alias = crypto
         .get_issuer_alias(CertificateIssuer::DeviceCa)
         .unwrap();
+    assert!(!issuer_alias.is_empty());
+
+    // ensure workload CA does not exist
+    let workload_ca_cert = crypto.get_certificate(IOTEDGED_CA_ALIAS.to_string());
+    assert!(workload_ca_cert.is_err());
 
     let issuer_ca = crypto.get_certificate(issuer_alias).unwrap();
     let issuer_validity = issuer_ca.get_valid_to().unwrap();
