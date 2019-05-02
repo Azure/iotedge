@@ -1,8 +1,8 @@
 # Copyright (c) Microsoft. All rights reserved.
 
 param(
-    [switch]$Release,
-    [switch]$Arm
+    [switch] $Release,
+    [switch] $Arm
 )
 
 # Bring in util functions
@@ -15,12 +15,11 @@ Assert-Rust -Arm:$Arm
 $cargo = Get-CargoCommand -Arm:$Arm
 Write-Host $cargo
 
-$oldPath = $(if($Arm){ ReplacePrivateRustInPath } else {""})
+$oldPath = if ($Arm) { ReplacePrivateRustInPath } else { '' }
 
 $ErrorActionPreference = 'Continue'
 
-if($Arm)
-{
+if ($Arm) {
     PatchRustForArm -OpenSSL
 }
 
@@ -28,17 +27,15 @@ if($Arm)
 
 $ManifestPath = Get-Manifest
 
-Write-Host "$cargo build --all $(if ($Arm) {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
-Invoke-Expression "$cargo build --all $(if ($Arm) {'--target thumbv7a-pc-windows-msvc'}) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
+Write-Host "$cargo build --all $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
+Invoke-Expression "$cargo build --all $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
 
-if ($LastExitCode)
-{
+if ($LastExitCode -ne 0) {
     Throw "cargo build failed with exit code $LastExitCode"
 }
 
 $ErrorActionPreference = 'Stop'
 
-if($Arm -and (-NOT [string]::IsNullOrEmpty($oldPath)))
-{
-    $env:path = $oldPath
+if ($Arm -and (-not [string]::IsNullOrEmpty($oldPath))) {
+    $env:PATH = $oldPath
 }

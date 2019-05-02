@@ -13,20 +13,17 @@ $ErrorActionPreference = 'Continue'
 
 . (Join-Path $PSScriptRoot 'util.ps1')
 
-$targetArchs = @("amd64", "arm32v7")
+$targetArchs = @('amd64', 'arm32v7')
 
-for ($i=0; $i -lt $targetArchs.length; $i++) {
-
+for ($i = 0; $i -lt $targetArchs.Length; $i++) {
     $Arm = ($targetArchs[$i] -eq "arm32v7")
 
     Assert-Rust -Arm:$Arm
 
-    $oldPath = ""
+    $oldPath = ''
 
-    if($Arm)
-    {
-        if ($BuildConfiguration -eq "debug")
-        {
+    if ($Arm) {
+        if ($BuildConfiguration -eq 'debug') {
             # Arm rust compiler does not support debug build
             continue
         }
@@ -39,7 +36,8 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
     If ($BuildConfiguration -eq 'release') {
         $BuildConfiguration = 'release'
         $BuildConfigOption = '--release'
-    } else {
+    }
+    else {
         $BuildConfiguration = 'debug'
         $BuildConfigOption = ''
     }
@@ -53,21 +51,20 @@ for ($i=0; $i -lt $targetArchs.length; $i++) {
 
     $originalRustflags = $env:RUSTFLAGS
     $env:RUSTFLAGS += ' -C target-feature=+crt-static'
-    Write-Host "$cargo build -p iotedge-diagnostics $(if($Arm) {'--target thumbv7a-pc-windows-msvc'}) $BuildConfigOption --manifest-path $ManifestPath"
-    Invoke-Expression "$cargo build -p iotedge-diagnostics $(if($Arm) {'--target thumbv7a-pc-windows-msvc'}) $BuildConfigOption --manifest-path $ManifestPath"
+    Write-Host "$cargo build -p iotedge-diagnostics $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $BuildConfigOption --manifest-path $ManifestPath"
+    Invoke-Expression "$cargo build -p iotedge-diagnostics $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $BuildConfigOption --manifest-path $ManifestPath"
     if ($originalRustflags -eq '') {
         Remove-Item Env:\RUSTFLAGS
     }
     else {
         $env:RUSTFLAGS = $originalRustflags
     }
-    if ($LastExitCode) {
-        Throw "cargo build failed with exit code $LastExitCode"
+    if ($LastExitCode -ne 0) {
+        throw "cargo build failed with exit code $LastExitCode"
     }
 
-    if($Arm -and (-NOT [string]::IsNullOrEmpty($oldPath)))
-    {
-        $env:path = $oldPath
+    if ($Arm -and (-not [string]::IsNullOrEmpty($oldPath))) {
+        $env:PATH = $oldPath
     }
 }
 

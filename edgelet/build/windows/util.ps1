@@ -10,26 +10,23 @@ function Test-RustUp
 
 function GetPrivateRustPath
 {
-    Join-Path -Path $(Get-IotEdgeFolder) -ChildPath "rust-windows-arm/rust-windows-arm/bin/"
+    Join-Path -Path (Get-IotEdgeFolder) -ChildPath 'rust-windows-arm/rust-windows-arm/bin/'
 }
 
 function Get-CargoCommand
 {
-    Param(
-        [Switch] $Arm
+    param (
+        [switch] $Arm
     )
 
-    if($Arm)
-    {
+    if ($Arm) {
         # we have private rust arm tool chain downloaded and unzipped to <source root>\rust-windows-arm\rust-windows-arm\cargo.exe
-        Join-Path -Path $(GetPrivateRustPath) -ChildPath "cargo.exe"
+        Join-Path -Path (GetPrivateRustPath) -ChildPath 'cargo.exe'
     }
-    elseif (Test-RustUp)
-    {
+    elseif (Test-RustUp) {
         'cargo +stable-x86_64-pc-windows-msvc '
     }
-    else
-    {
+    else {
         "$env:USERPROFILE/.cargo/bin/cargo.exe +stable-x86_64-pc-windows-msvc "
     }
 }
@@ -54,22 +51,19 @@ function Get-IotEdgeFolder
 
 function Assert-Rust
 {
-Param(
-    [Switch] $Arm
-)
+    param (
+        [switch] $Arm
+    )
 
     $ErrorActionPreference = 'Continue'
 
-    if($Arm)
-    {
-        if(-NOT (Test-Path "rust-windows-arm"))
-        {
+    if ($Arm) {
+        if (-not (Test-Path 'rust-windows-arm')) {
             # if the folder rust-windows-arm exists, we assume the private rust compiler for arm is installed
             InstallWinArmPrivateRustCompiler
         }
     }
-    elseif (-not (Test-RustUp))
-    {
+    elseif (-not (Test-RustUp)) {
         Write-Host "Installing rustup and stable-x86_64-pc-windows-msvc Rust."
         Invoke-RestMethod -usebasicparsing 'https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe' -outfile 'rustup-init.exe'
         if ($LastExitCode)
@@ -84,8 +78,7 @@ Param(
             Throw "Failed to install rust with exit code $LastExitCode"
         }
     }
-    else
-    {
+    else {
         Write-Host "Running rustup.exe"
         rustup install stable-x86_64-pc-windows-msvc
         if ($LastExitCode)
@@ -97,16 +90,15 @@ Param(
     $ErrorActionPreference = 'Stop'
 }
 
-function InstallWinArmPrivateRustCompiler
-{
-    $link = "https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/rust-windows-arm.zip"
+function InstallWinArmPrivateRustCompiler {
+    $link = 'https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/rust-windows-arm.zip'
 
     Write-Host "Downloading $link"
     $ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest $link -out "rust-windows-arm.zip" -UseBasicParsing
+    Invoke-WebRequest $link -OutFile 'rust-windows-arm.zip' -UseBasicParsing
 
     Write-Host "Extracting $link"
-    Expand-Archive -Path "rust-windows-arm.zip" -DestinationPath "rust-windows-arm"
+    Expand-Archive -Path 'rust-windows-arm.zip' -DestinationPath 'rust-windows-arm'
     $ProgressPreference = 'Stop'
 }
 
@@ -115,30 +107,26 @@ function InstallWinArmPrivateRustCompiler
 # 2. run cargo update commands to force update cargo.lock to use the forked crates
 # 3 (optional). when building openssl-sys, cl.exe is called to expand a c file, we need to put the hostx64\x64 cl.exe folder to PATH so cl.exe can be found
 #   this is optional because when building iotedge-diagnostics project, openssl is not required
-function PatchRustForArm
-{
-    Param(
-        [Switch] $OpenSSL
+function PatchRustForArm {
+    param (
+        [switch] $OpenSSL
     )
 
-    $vspath = Join-Path -Path ${env:ProgramFiles(x86)} -ChildPath "Microsoft Visual Studio"
-    Write-Host $vspath
+    $vsPath = Join-Path -Path ${env:ProgramFiles(x86)} -ChildPath 'Microsoft Visual Studio'
+    Write-Host $vsPath
 
     # arm build requires cl.exe from vc tools to expand a c file for openssl-sys, append x64-x64 cl.exe folder to PATH
-    if($OpenSSL)
-    {
-        try{
+    if ($OpenSSL) {
+        try {
             Get-Command cl.exe -ErrorAction Stop
         }
-        catch{
-            $cls = (Get-ChildItem -Path $vspath -Filter cl.exe -Recurse -ErrorAction Continue -Force | Sort-Object -Property DirectoryName -Descending)
-            $clPath = ""
-            for ($i= 0; $i -lt $cls.length; $i++) {
-
+        catch {
+            $cls = Get-ChildItem -Path $vsPath -Filter cl.exe -Recurse -ErrorAction Continue -Force | Sort-Object -Property DirectoryName -Descending
+            $clPath = ''
+            for ($i = 0; $i -lt $cls.length; $i++) {
                 $cl = $cls[$i]
                 Write-Host $cl.DirectoryName
-                if($cl.DirectoryName.ToLower().Contains("hostx64\x64"))
-                {
+                if ($cl.DirectoryName.ToLower().Contains('hostx64\x64')) {
                     $clPath = $cl.DirectoryName
                     break
                 }

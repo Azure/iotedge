@@ -9,7 +9,7 @@ $EdgeCab = "Microsoft-Azure-IoTEdge.cab"
 $EdgeTemplate = "Package-Template"
 
 # Bring in util functions
-$util = Join-Path -Path $PSScriptRoot -ChildPath "util.ps1"
+$util = Join-Path -Path $PSScriptRoot -ChildPath 'util.ps1'
 . $util
 
 Function New-Cabinet([String] $Destination, [String[]] $Files, [String] $Path)
@@ -65,29 +65,32 @@ Function New-Package([string] $Name, [string] $Version)
     $manifest = "edgelet\build\windows\$Name.wm.xml"
     $oldPath = ''
 
-    if($Arm)
-    {
+    if ($Arm) {
         # pkggen cannot find makecat.exe from below folder at runtime, so we need to put makecat from latest windows kits to Path
         # if we cannot find windows 10 kits or makecat.exe, we have to fail the build
-        $Win10KitsRoot = get-itemproperty -path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows Kits\Installed Roots" -name KitsRoot10
-        Write-Host $Win10KitsRoot.KitsRoot10
+        $Win10KitsRoot = Get-ItemProperty -Path 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows Kits\Installed Roots' -Name KitsRoot10 | % KitsRoot10
+        Write-Host $Win10KitsRoot
         
-        $Versions = get-childitem -path $($Win10KitsRoot.KitsRoot10 + "\bin") | Sort-Object -Property Name -Descending | Where-Object {$_.Name -like "10.*"}
-        Write-Host $Versions
+        $Version =
+            Get-ChildItem -Path "$Win10KitsRoot\bin" -ErrorAction Ignore |
+            Sort-Object -Property Name -Descending |
+            ?{ $_.Name -like '10.*' } |
+            Select-Object -First 1 |
+            % Name
+        Write-Host $Version
 
-        if(-not $Versions.length -gt 0)
-        {
-            throw [System.IO.FileNotFoundException] "Cannot find any Windows 10 kits on the build agent"
+        if ($Version -eq $null) {
+            throw [System.IO.FileNotFoundException] 'Cannot find any Windows 10 kits on the build agent'
         }
 
-        $LatestWin10KitsX64Bin = Join-Path -Path $Win10KitsRoot.KitsRoot10 -ChildPath $("bin\" + $Versions[0].Name + "\X64")
-        $oldPath = $env:Path
-        $env:PATH = $LatestWin10KitsX64Bin + ';' + $env:Path
-        Write-Host $env:Path
+        $LatestWin10KitsX64Bin = "$Win10KitsRoot\bin\$Version\X64"
+        $oldPath = $env:PATH
+        $env:PATH = $LatestWin10KitsX64Bin + ';' + $env:PATH
+        Write-Host $env:PATH
         Write-Host $(Get-Command makecat.exe).Path
     }
 
-    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_REPO_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR;_Arch=$(if($Arm) { 'thumbv7a-pc-windows-msvc'} else { '' })' /cpu:$(if($Arm) {'arm'} else { 'amd64' }) /version:$Version"
+    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_REPO_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR;_Arch=$(if ($Arm) { 'thumbv7a-pc-windows-msvc' } else { '' })' /cpu:$(if ($Arm) { 'arm' } else { 'amd64' }) /version:$Version"
     if ($LASTEXITCODE) {
         Throw "Failed to package cab"
     }
@@ -101,8 +104,7 @@ Function New-Package([string] $Name, [string] $Version)
         Throw "Failed to expand cab"
     }
     Remove-Item -Path $EdgeCab
-    if($Arm -and (-not [string]::IsNullOrEmpty($oldPath)))
-    {
+    if ($Arm -and (-not [string]::IsNullOrEmpty($oldPath))) {
         $env:Path = $oldPath
     }
 }

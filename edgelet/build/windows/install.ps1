@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft. All rights reserved.
 
 param(
-    [switch]$Arm
+    [switch] $Arm
 )
 
 # Bring in util functions
