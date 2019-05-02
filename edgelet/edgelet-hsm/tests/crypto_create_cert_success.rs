@@ -27,7 +27,9 @@ fn crypto_create_cert_success() {
     let crypto = Crypto::new().unwrap();
 
     // tests to ensure that the Device CA alias exists and is valid
-    assert!(crypto.get_issuer_alias(CertificateIssuer::DefaultCa).is_err());
+    assert!(crypto
+        .get_issuer_alias(CertificateIssuer::DefaultCa)
+        .is_err());
     let issuer_alias = crypto
         .get_issuer_alias(CertificateIssuer::DeviceCa)
         .unwrap();
