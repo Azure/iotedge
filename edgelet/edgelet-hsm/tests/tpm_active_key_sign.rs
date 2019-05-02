@@ -14,7 +14,8 @@ use sha2::Sha256;
 use edgelet_core::crypto::Sign;
 use edgelet_core::crypto::Signature;
 use edgelet_core::crypto::SignatureAlgorithm;
-use edgelet_hsm::TpmKeyStore;
+use edgelet_hsm::{HsmLock, TpmKeyStore};
+
 mod test_utils;
 use test_utils::TestHSMEnvSetup;
 
@@ -42,7 +43,8 @@ fn tpm_active_key_sign() {
     // arrange
     let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
-    let key_store = TpmKeyStore::new().unwrap();
+    let hsm_lock = HsmLock::new();
+    let key_store = TpmKeyStore::new(hsm_lock).unwrap();
 
     let decoded_key = base64::decode(TEST_KEY_BASE64).unwrap();
     let decoded_key_str = unsafe { str::from_utf8_unchecked(&decoded_key) };
