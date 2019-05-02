@@ -15,12 +15,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task CreateTest()
         {
-            IEntityStore<byte[], Item> entityStore = this.GetEntityStore<Item>($"testEntity{Guid.NewGuid().ToString()}");
-            ISequentialStore<Item> sequentialStore = await SequentialStore<Item>.Create(entityStore);
+            string entityName = $"testEntity{Guid.NewGuid().ToString()}";
+            IEntityStore<byte[], Item> entityStore = this.GetEntityStore<Item>(entityName);
+            ISequentialStore<Item> sequentialStore = await SequentialStore<Item>.Create(entityStore, entityName);
             long offset = await sequentialStore.Append(new Item { Prop1 = 10 });
             Assert.Equal(0, offset);
 
-            sequentialStore = await SequentialStore<Item>.Create(entityStore);
+            sequentialStore = await SequentialStore<Item>.Create(entityStore, entityName);
             offset = await sequentialStore.Append(new Item { Prop1 = 20 });
             Assert.Equal(1, offset);
         }
@@ -28,19 +29,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task CreateWithOffsetTest()
         {
-            IEntityStore<byte[], Item> entityStore = this.GetEntityStore<Item>($"testEntity{Guid.NewGuid().ToString()}");
-            ISequentialStore<Item> sequentialStore = await SequentialStore<Item>.Create(entityStore, 10150);
+            string entityName = $"testEntity{Guid.NewGuid().ToString()}";
+            IEntityStore<byte[], Item> entityStore = this.GetEntityStore<Item>(entityName);
+            ISequentialStore<Item> sequentialStore = await SequentialStore<Item>.Create(entityStore, entityName, 10150);
             long offset = await sequentialStore.Append(new Item { Prop1 = 10 });
             Assert.Equal(10150, offset);
 
-            sequentialStore = await SequentialStore<Item>.Create(entityStore);
+            sequentialStore = await SequentialStore<Item>.Create(entityStore, entityName);
             for (int i = 0; i < 10; i++)
             {
                 offset = await sequentialStore.Append(new Item { Prop1 = 20 });
                 Assert.Equal(10151 + i, offset);
             }
 
-            sequentialStore = await SequentialStore<Item>.Create(entityStore);
+            sequentialStore = await SequentialStore<Item>.Create(entityStore, entityName);
             offset = await sequentialStore.Append(new Item { Prop1 = 20 });
             Assert.Equal(10161, offset);
 
@@ -211,8 +213,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         {
             IEntityStore<byte[], Item> entityStore = this.GetEntityStore<Item>(entityName);
             ISequentialStore<Item> sequentialStore = await defaultHeadOffset
-                .Map(d => SequentialStore<Item>.Create(entityStore, d))
-                .GetOrElse(() => SequentialStore<Item>.Create(entityStore));
+                .Map(d => SequentialStore<Item>.Create(entityStore, entityName, d))
+                .GetOrElse(() => SequentialStore<Item>.Create(entityStore, entityName));
             return sequentialStore;
         }
 

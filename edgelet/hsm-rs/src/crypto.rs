@@ -598,6 +598,18 @@ impl HsmCertificate {
         }
         Ok(DateTime::<Utc>::from_utc(naive_ts.unwrap(), Utc))
     }
+
+    pub fn get_common_name(&self) -> Result<String, Error> {
+        let cn = unsafe {
+            CStr::from_ptr(certificate_info_get_common_name(self.cert_info_handle))
+                .to_string_lossy()
+                .into_owned()
+        };
+        if cn.is_empty() {
+            Err(ErrorKind::NullResponse)?
+        }
+        Ok(cn)
+    }
 }
 
 impl Drop for HsmCertificate {

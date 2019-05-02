@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using System.Collections.Generic;
     using System.IO;
     using System.Net.Sockets;
+    using System.Runtime.ExceptionServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Amqp;
@@ -123,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             if (args.Exception != null)
             {
                 Events.AcceptTransportInputError(args.Exception);
-                throw args.Exception;
+                ExceptionDispatchInfo.Capture(args.Exception).Throw();
             }
 
             AmqpConnection connection = null;

@@ -113,6 +113,14 @@ where
     }
 }
 
+pub trait GetDeviceIdentityCertificate {
+    type Certificate: Certificate;
+    type Buffer: AsRef<[u8]>;
+
+    fn get(&self) -> Result<Self::Certificate, Error>;
+    fn sign_with_private_key(&self, data: &[u8]) -> Result<Self::Buffer, Error>;
+}
+
 pub trait CreateCertificate {
     type Certificate: Certificate;
 
@@ -122,6 +130,8 @@ pub trait CreateCertificate {
     ) -> Result<Self::Certificate, Error>;
 
     fn destroy_certificate(&self, alias: String) -> Result<(), Error>;
+
+    fn get_certificate(&self, alias: String) -> Result<Self::Certificate, Error>;
 }
 
 pub trait Certificate {
@@ -131,6 +141,7 @@ pub trait Certificate {
     fn pem(&self) -> Result<Self::Buffer, Error>;
     fn get_private_key(&self) -> Result<Option<PrivateKey<Self::KeyBuffer>>, Error>;
     fn get_valid_to(&self) -> Result<DateTime<Utc>, Error>;
+    fn get_common_name(&self) -> Result<String, Error>;
 }
 
 pub trait GetTrustBundle {

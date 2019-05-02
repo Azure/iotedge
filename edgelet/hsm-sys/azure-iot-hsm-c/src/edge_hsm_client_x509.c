@@ -280,7 +280,7 @@ static int get_device_id_cert_env_vars(char **device_cert_file_path, char **devi
     return result;
 }
 
-static CERT_INFO_HANDLE prepare_device_certifiicate_info
+static CERT_INFO_HANDLE prepare_device_certificate_info
 (
     const char *cert_file_path,
     const char *pk_file_path
@@ -379,8 +379,8 @@ static CERT_INFO_HANDLE get_or_create_device_certificate(HSM_CLIENT_HANDLE hsm_h
         {
             if (env_set)
             {
-                result = prepare_device_certifiicate_info(device_cert_file_path,
-                                                          device_pk_file_path);
+                result = prepare_device_certificate_info(device_cert_file_path,
+                                                         device_pk_file_path);
             }
             else
             {

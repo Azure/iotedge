@@ -48,6 +48,7 @@ usage()
     echo "Note: You might have to run this as root or sudo."
     echo "Note: This script is only applicable on ARM architectures."
     echo ""
+    echo " -a, --arch           Architecture of the Docker image; either 'armv7l' or 'aarch64'. Defaults to 'uname -m'"
     echo " -i, --image-name     Image name (azureiotedge-module-base, azureiotedge-agent-base, or azureiotedge-hub-base)"
     echo " -d, --project-dir    Project directory (required)."
     echo "                      Directory which contains docker/linux/arm32v7/base/Dockerfile or docker/linux/arm64v8/base/Dockerfile"
@@ -84,6 +85,9 @@ process_args()
         elif [ $save_next_arg -eq 4 ]; then
             DOCKER_IMAGEVERSION="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 5 ]; then
+            ARCH="$arg"
+            save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
@@ -91,11 +95,14 @@ process_args()
                 "-i" | "--image-name" ) save_next_arg=2;;
                 "-n" | "--namespace" ) save_next_arg=3;;
                 "-v" | "--image-version" ) save_next_arg=4;;
+                "-a" | "--arch" ) save_next_arg=5;;
                 "--no-push" ) NO_PUSH=1;;
                 * ) usage;;
             esac
         fi
     done
+
+    check_arch
 
     if [[ -z ${PUBLISH_DIR} ]]; then
         echo "Docker project directory parameter invalid"
@@ -174,7 +181,6 @@ docker_push()
 ###############################################################################
 # Main Script Execution
 ###############################################################################
-check_arch
 process_args "$@"
 
 docker_build_and_tag
