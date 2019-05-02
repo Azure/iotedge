@@ -165,9 +165,7 @@ pub struct Main {
 
 impl Main {
     pub fn new(settings: Settings<DockerConfig>) -> Self {
-        Main {
-            settings,
-        }
+        Main { settings }
     }
 
     pub fn run(self) -> Result<(), Error> {
