@@ -475,7 +475,6 @@ mod tests {
 
         let pids = parse_top_response::<Deserializer>(&response);
 
-        assert!(pids.is_ok());
         assert_eq!(vec![123], pids.unwrap());
     }
 
@@ -485,7 +484,6 @@ mod tests {
 
         let pids = parse_top_response::<Deserializer>(&response);
 
-        assert!(pids.is_err());
         assert_eq!("missing field `Titles`", format!("{}", pids.unwrap_err()));
     }
 
@@ -495,9 +493,8 @@ mod tests {
 
         let pids = parse_top_response::<Deserializer>(&response);
 
-        assert!(pids.is_err());
         assert_eq!(
-            "invalid value: sequence, expected array including the column title \'PID\'",
+            "invalid value: sequence, expected array including the column title 'PID'",
             format!("{}", pids.unwrap_err())
         );
     }
@@ -508,7 +505,6 @@ mod tests {
 
         let pids = parse_top_response::<Deserializer>(&response);
 
-        assert!(pids.is_err());
         assert_eq!(
             "missing field `Processes`",
             format!("{}", pids.unwrap_err())
@@ -523,7 +519,6 @@ mod tests {
 
         let pids = parse_top_response::<Deserializer>(&response);
 
-        assert!(pids.is_err());
         assert_eq!(
             "invalid length 1, expected at least 2 columns",
             format!("{}", pids.unwrap_err())
@@ -538,7 +533,6 @@ mod tests {
 
         let pids = parse_top_response::<Deserializer>(&response);
 
-        assert!(pids.is_err());
         assert_eq!(
             "invalid value: string \"xyz\", expected a process ID number",
             format!("{}", pids.unwrap_err())

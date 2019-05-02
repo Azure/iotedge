@@ -29,7 +29,7 @@ impl<M, S> AuthenticationService<M, S> {
 
 impl<M, S> Service for AuthenticationService<M, S>
 where
-    M: Authenticator<Request = Request<S::ReqBody>> + Send + Clone + 'static,
+    M: Authenticator<Request = Request<S::ReqBody>> + Send + 'static,
     M::AuthenticateFuture: Future<Item = AuthId> + Send + 'static,
     <M::AuthenticateFuture as Future>::Error: Fail,
     S: Service<ReqBody = Body, ResBody = Body> + Send + Clone + 'static,
@@ -64,7 +64,7 @@ where
 
 impl<M, S> NewService for AuthenticationService<M, S>
 where
-    M: Authenticator + Send + Sync + Clone + 'static,
+    M: Authenticator + Send + Sync + 'static,
     S: NewService,
     S::Future: Send + 'static,
     AuthenticationService<M, S::Service>: Service,
