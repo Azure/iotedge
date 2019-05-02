@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Storage.RocksDb;
+    using Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -64,8 +65,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var metricsListener = container.Resolve<IMetricsListener>();
             var metricsProvider = container.Resolve<IMetricsProvider>();
             Metrics.Init(metricsProvider, metricsListener, logger);
-
-            GetTotalFreeSpace(logger);
 
             // EdgeHub and CloudConnectionProvider have a circular dependency. So need to Bind the EdgeHub to the CloudConnectionProvider.
             IEdgeHub edgeHub = await container.Resolve<Task<IEdgeHub>>();
@@ -142,21 +141,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             return new EdgeHubProtocolHead(protocolHeads, logger);
-        }
-
-        static void GetTotalFreeSpace(ILogger logger)
-        {
-            //var drives = DriveInfo.GetDrives();
-            //Console.WriteLine($"Found {drives.Length} drives");
-            //foreach (DriveInfo drive in drives)
-            //{
-            //    Console.WriteLine($"Drive {drive.Name} - IsReady = {drive.IsReady}, TotalFreeSpace = {drive.TotalFreeSpace} TotalSize = {drive.TotalSize} - RootDir - {drive.RootDirectory.FullName} vol label = {drive.VolumeLabel}");
-            //}
-
-            //DriveInfo driveInfo = new DriveInfo("/app/ehstore");
-            //Console.WriteLine($"Custom created Drive {driveInfo.Name} - IsReady = {driveInfo.IsReady}, TotalFreeSpace = {driveInfo.TotalFreeSpace} TotalSize = {driveInfo.TotalSize} - RootDir - {driveInfo.RootDirectory.FullName}");
-
-            DiskSpaceChecker.Create("/app/ehstore", 50, TimeSpan.FromSeconds(20), logger);
         }
 
         static void LogLogo(ILogger logger)
