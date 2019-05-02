@@ -161,19 +161,19 @@ enum StartApiReturnStatus {
 
 pub struct Main {
     settings: Settings<DockerConfig>,
-    hsm_lock: Arc<HsmLock>,
 }
 
 impl Main {
     pub fn new(settings: Settings<DockerConfig>) -> Self {
         Main {
             settings,
-            hsm_lock: HsmLock::new(),
         }
     }
 
     pub fn run(self) -> Result<(), Error> {
-        let Main { settings, hsm_lock } = self;
+        let Main { settings } = self;
+
+        let hsm_lock = HsmLock::new();
 
         let mut tokio_runtime = tokio::runtime::Runtime::new()
             .context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
