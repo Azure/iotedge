@@ -35,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         public static DiskSpaceChecker Create(string storageFolder, int thresholdPercentage, TimeSpan checkFrequency, ILogger logger)
         {
+            logger = logger ?? Logger.Factory.CreateLogger<DiskSpaceChecker>();
             string drive = GetMatchingDrive(storageFolder);
             Console.WriteLine("Getting drive info.. ");
             DriveInfo driveInfo = new DriveInfo(drive);
@@ -74,12 +75,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         Task UpdateCurrentDiskSpace()
         {
             var driveInfo = new DriveInfo(this.drive);
-            Console.WriteLine($"Got created Drive {driveInfo.Name} - AvailableFreeSpace = {driveInfo.AvailableFreeSpace} TotalSize = {driveInfo.TotalSize}");
+            Console.WriteLine($"Got created Drive {driveInfo.Name} - AvailablenFreeSpace = {driveInfo.AvailableFreeSpace} TotalSize = {driveInfo.TotalSize}");
             lock (this.updateLock)
             {
                 double percentDiskFree = (double)driveInfo.AvailableFreeSpace * 100 / driveInfo.TotalFreeSpace;
                 this.isFull = percentDiskFree <= this.thresholdPercentage;
-                Console.WriteLine($"Percentage disk used = {percentDiskFree}, isFull = {this.isFull}");
+                Console.WriteLine($"Percentage disk free = {percentDiskFree}, isFull = {this.isFull}");
             }
 
             return Task.CompletedTask;
@@ -109,6 +110,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         //        size += GetDirectorySize(di);
         //    }
         //    return size;
-        //}        
+        //}
+
+        static class Events
+        {
+            const int IdStart = 0;
+            public static readonly ILogger Log = Logger.Factory.CreateLogger<DiskSpaceChecker>();
+        }
     }
 }

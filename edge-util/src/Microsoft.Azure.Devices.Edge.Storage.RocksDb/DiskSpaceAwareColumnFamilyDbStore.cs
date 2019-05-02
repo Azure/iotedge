@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         {
             if (this.diskSpaceChecker.IsFull)
             {
-                return Task.FromException(new IOException("Storage disk is full"));
+                return Task.FromException(new StorageFullException("Storage disk is full"));
             }
 
             return this.inner.Put(key, value);
@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         {
             if (this.diskSpaceChecker.IsFull)
             {
-                return Task.FromException(new IOException("Storage disk is full"));
+                return Task.FromException(new StorageFullException("Storage disk is full"));
             }
 
             return this.inner.Put(key, value, cancellationToken);
