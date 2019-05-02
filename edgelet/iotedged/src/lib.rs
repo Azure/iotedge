@@ -46,8 +46,8 @@ use edgelet_config::{
     TpmAttestationInfo, DEFAULT_CONNECTION_STRING,
 };
 use edgelet_core::crypto::{
-    Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity,
-    KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
+    Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetIssuerAlias, GetTrustBundle,
+    KeyIdentity, KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
@@ -56,7 +56,7 @@ use edgelet_core::{
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
-use edgelet_hsm::Crypto;
+use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
@@ -171,6 +171,8 @@ impl Main {
     pub fn run(self) -> Result<(), Error> {
         let Main { settings } = self;
 
+        let hsm_lock = HsmLock::new();
+
         let mut tokio_runtime = tokio::runtime::Runtime::new()
             .context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
 
@@ -224,7 +226,8 @@ impl Main {
         info!("Finished configuring certificates.");
 
         info!("Initializing hsm...");
-        let crypto = Crypto::new().context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+        let crypto = Crypto::new(hsm_lock.clone())
+            .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
         info!("Finished initializing hsm.");
 
         // Detect if the settings were changed and if the device needs to be reconfigured
@@ -306,6 +309,7 @@ impl Main {
                                 runtime,
                                 &mut tokio_runtime,
                                 tpm,
+                                hsm_lock.clone(),
                             )?;
                         start_edgelet!(key_store, provisioning_result, root_key, runtime);
                     }
@@ -365,10 +369,16 @@ pub fn get_proxy_uri(https_proxy: Option<String>) -> Result<Option<Uri>, Error> 
 
 fn prepare_workload_ca<C>(crypto: &C) -> Result<(), Error>
 where
-    C: CreateCertificate,
+    C: CreateCertificate + GetIssuerAlias,
 {
+    let issuer_alias = crypto
+        .get_issuer_alias(CertificateIssuer::DeviceCa)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::PrepareWorkloadCa,
+        ))?;
+
     let issuer_ca = crypto
-        .get_certificate(IOTEDGED_CA_ALIAS.to_string())
+        .get_certificate(issuer_alias)
         .context(ErrorKind::Initialize(
             InitializeErrorReason::PrepareWorkloadCa,
         ))?;
@@ -429,7 +439,7 @@ fn check_settings_state<M, C>(
 where
     M: ModuleRuntime,
     <M as ModuleRuntime>::RemoveAllFuture: 'static,
-    C: MasterEncryptionKey + CreateCertificate,
+    C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
     info!("Detecting if configuration file has changed...");
     let path = subdir_path.join(filename);
@@ -474,7 +484,7 @@ fn reconfigure<M, C>(
 where
     M: ModuleRuntime,
     <M as ModuleRuntime>::RemoveAllFuture: 'static,
-    C: MasterEncryptionKey + CreateCertificate,
+    C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
     // Remove all edge containers and destroy the cache (settings and dps backup)
     info!("Removing all modules...");
@@ -766,6 +776,7 @@ fn dps_tpm_provision<HC, M>(
     runtime: M,
     tokio_runtime: &mut tokio::runtime::Runtime,
     tpm_attestation_info: &TpmAttestationInfo,
+    hsm_lock: Arc<HsmLock>,
 ) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey, M), Error>
 where
     HC: 'static + ClientImpl,
@@ -792,7 +803,7 @@ where
     .context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
-    let tpm_hsm = TpmKeyStore::from_hsm(tpm).context(ErrorKind::Initialize(
+    let tpm_hsm = TpmKeyStore::from_hsm(tpm, hsm_lock).context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
     let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
@@ -1079,6 +1090,7 @@ mod tests {
 
     struct TestCrypto {
         use_expired_ca: bool,
+        fail_device_ca_alias: bool,
     }
 
     impl MasterEncryptionKey for TestCrypto {
@@ -1126,6 +1138,21 @@ mod tests {
         }
     }
 
+    impl GetIssuerAlias for TestCrypto {
+        fn get_issuer_alias(
+            &self,
+            _issuer: CertificateIssuer,
+        ) -> Result<String, edgelet_core::Error> {
+            if self.fail_device_ca_alias {
+                Err(edgelet_core::Error::from(
+                    edgelet_core::ErrorKind::InvalidIssuer,
+                ))
+            } else {
+                Ok("test-device-ca".to_string())
+            }
+        }
+    }
+
     #[test]
     fn default_settings_raise_unconfigured_error() {
         let settings = Settings::<DockerConfig>::new(None).unwrap();
@@ -1134,6 +1161,34 @@ mod tests {
         match result.unwrap_err().kind() {
             ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
             kind => panic!("Expected `NotConfigured` but got {:?}", kind),
+        }
+    }
+
+    #[test]
+    fn settings_with_invalid_issuer_ca_fails() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
+        let config = TestConfig::new("microsoft/test-image".to_string());
+        let state = ModuleRuntimeState::default();
+        let module: TestModule<Error> =
+            TestModule::new("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::new(Ok(module));
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: true,
+        };
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        let result = check_settings_state(
+            tmp_dir.path().to_path_buf(),
+            "settings_state",
+            &settings,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+        );
+        match result.unwrap_err().kind() {
+            ErrorKind::Initialize(InitializeErrorReason::PrepareWorkloadCa) => (),
+            kind => panic!("Expected `PrepareWorkloadCa` but got {:?}", kind),
         }
     }
 
@@ -1148,6 +1203,7 @@ mod tests {
         let runtime = TestRuntime::new(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: true,
+            fail_device_ca_alias: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         let result = check_settings_state(
@@ -1175,6 +1231,7 @@ mod tests {
         let runtime = TestRuntime::new(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
+            fail_device_ca_alias: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state(
@@ -1209,6 +1266,7 @@ mod tests {
         let runtime = TestRuntime::new(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
+            fail_device_ca_alias: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state(
