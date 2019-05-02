@@ -99,9 +99,9 @@ static const unsigned char COMMON_NAME_OID[COMMON_NAME_OID_SIZE] = {  0x06, 0x03
 
 #define FREEIF(x) \
     do { \
-        if ((x != NULL)) { \
-            free(x); \
-            x = NULL; \
+        if ((x) != NULL) { \
+            free((x)); \
+            (x) = NULL; \
         } \
     } while(0)
 

@@ -100,9 +100,9 @@ static int g_store_ref_count = 0;
 
 #define FREEIF(x) \
     do { \
-        if ((x != NULL)) { \
-            free(x); \
-            x = NULL; \
+        if ((x) != NULL) { \
+            free((x)); \
+            (x) = NULL; \
         } \
     } while(0)
 
