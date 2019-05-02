@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public async Task<string> GetEdgeProductInfo(string id)
         {
             string clientProductInfo = await this.GetProductInfo(id);
-            string edgeProductInfo = $"{clientProductInfo} {this.edgeProductInfo}";
+            string edgeProductInfo = $"{clientProductInfo} {this.edgeProductInfo}".Trim();
             return edgeProductInfo;
         }
     }
