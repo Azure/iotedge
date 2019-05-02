@@ -137,7 +137,7 @@ Param (
     [string] $TestName = "All",
 
     [ValidateNotNullOrEmpty()]
-    [string] $ContainerRegistry = $(Throw "Container registry is required"),
+    [string] $ContainerRegistry = "edgebuilds.azurecr.io",
 
     [ValidateNotNullOrEmpty()]
     [string] $ContainerRegistryUsername = $(Throw "Container registry username is required"),
@@ -402,11 +402,7 @@ Function PrepareTestFromArtifacts
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Username>', $ContainerRegistryUsername) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Password>', $ContainerRegistryPassword) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('-linux-', '-windows-') | Set-Content $DeploymentWorkingFilePath
-
-        If ($ContainerRegistry -ne 'edgebuilds.azurecr.io') 
-        {
-            (Get-Content $DeploymentWorkingFilePath).replace('edgebuilds.azurecr.io', $ContainerRegistry) | Set-Content $DeploymentWorkingFilePath
-        }
+        (Get-Content $DeploymentWorkingFilePath).replace('<Container_Registry>', $ContainerRegistry) | Set-Content $DeploymentWorkingFilePath
 
         If ($ProxyUri)
         {
