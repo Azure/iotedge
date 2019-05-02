@@ -149,8 +149,8 @@ impl CoreDecrypt for Crypto {
 impl CoreGetIssuerAlias for Crypto {
     fn get_issuer_alias(&self, issuer: CoreCertificateIssuer) -> Result<String, CoreError> {
         if issuer == CoreCertificateIssuer::DeviceCa {
-            let crypto = self.crypto.lock().expect("Lock on crypto structure failed");
-            Ok(crypto.get_device_ca_alias())
+            let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+            Ok(self.crypto.get_device_ca_alias())
         } else {
             Err(CoreError::from(CoreErrorKind::InvalidIssuer))
         }
