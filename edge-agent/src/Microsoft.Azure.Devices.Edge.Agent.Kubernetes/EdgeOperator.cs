@@ -48,6 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string serviceAccountName;
         readonly Uri workloadUri;
         readonly Uri managementUri;
+        readonly string apiVersion;
         readonly string defaultMapServiceType;
         readonly TypeSpecificSerDe<EdgeDeploymentDefinition> deploymentSerde;
         readonly JsonSerializerSettings crdSerializerSettings;
@@ -63,6 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string serviceAccountName,
             Uri workloadUri,
             Uri managementUri,
+            string apiVersion,
             PortMapServiceType defaultMapServiceType,
             IKubernetes client)
         {
@@ -75,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.serviceAccountName = Preconditions.CheckNonWhiteSpace(serviceAccountName, nameof(serviceAccountName));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
+            this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.defaultMapServiceType = Preconditions.CheckNotNull(defaultMapServiceType, nameof(defaultMapServiceType)).ToString();
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.moduleRuntimeInfos = new Dictionary<string, ModuleRuntimeInfo>();
@@ -889,7 +892,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             envList.Add(new V1EnvVar(CoreConstants.EdgeletModuleGenerationIdVariableName, identity.Credentials.ModuleGenerationId));
             envList.Add(new V1EnvVar(CoreConstants.DeviceIdVariableName, this.deviceId)); // could also get this from module identity
             envList.Add(new V1EnvVar(CoreConstants.ModuleIdVariableName, identity.ModuleId));
-            envList.Add(new V1EnvVar(CoreConstants.EdgeletApiVersionVariableName, CoreConstants.EdgeletClientApiVersion));
+            envList.Add(new V1EnvVar(CoreConstants.EdgeletApiVersionVariableName, this.apiVersion));
 
             if (string.Equals(identity.ModuleId, CoreConstants.EdgeAgentModuleIdentityName))
             {

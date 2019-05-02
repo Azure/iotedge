@@ -178,6 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         this.serviceAccountName,
                         this.workloadUri,
                         this.managementUri,
+                        this.apiVersion,
                         this.defaultMapServiceType,
                         c.Resolve<IKubernetes>()) as IRuntimeInfoProvider))
                 .As<Task<IRuntimeInfoProvider>>()
