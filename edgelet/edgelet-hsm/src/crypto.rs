@@ -6,15 +6,16 @@ use std::sync::{Arc, Mutex};
 use failure::Fail;
 
 use edgelet_core::{
-    Certificate as CoreCertificate, CertificateProperties as CoreCertificateProperties,
-    CreateCertificate as CoreCreateCertificate, Decrypt as CoreDecrypt, Encrypt as CoreEncrypt,
-    Error as CoreError, ErrorKind as CoreErrorKind, GetTrustBundle as CoreGetTrustBundle,
+    Certificate as CoreCertificate, CertificateIssuer as CoreCertificateIssuer,
+    CertificateProperties as CoreCertificateProperties, CreateCertificate as CoreCreateCertificate,
+    Decrypt as CoreDecrypt, Encrypt as CoreEncrypt, Error as CoreError, ErrorKind as CoreErrorKind,
+    GetIssuerAlias as CoreGetIssuerAlias, GetTrustBundle as CoreGetTrustBundle,
     KeyBytes as CoreKeyBytes, MasterEncryptionKey as CoreMasterEncryptionKey,
     PrivateKey as CorePrivateKey,
 };
 pub use hsm::{
-    Buffer, Decrypt, Encrypt, GetTrustBundle, HsmCertificate, KeyBytes as HsmKeyBytes,
-    PrivateKey as HsmPrivateKey,
+    Buffer, Decrypt, Encrypt, GetCertificate as HsmGetCertificate, GetTrustBundle, HsmCertificate,
+    KeyBytes as HsmKeyBytes, PrivateKey as HsmPrivateKey,
 };
 use hsm::{
     CreateCertificate as HsmCreateCertificate,
@@ -77,7 +78,7 @@ impl CoreCreateCertificate for Crypto {
         let cert = crypto
             .create_certificate(&convert_properties(properties, &device_ca_alias))
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
-            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))?;
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateCreate)))?;
         Ok(Certificate(cert))
     }
 
@@ -87,8 +88,19 @@ impl CoreCreateCertificate for Crypto {
             .expect("Lock on crypto structure failed")
             .destroy_certificate(alias)
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
-            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))?;
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateDestroy)))?;
         Ok(())
+    }
+
+    fn get_certificate(&self, alias: String) -> Result<Self::Certificate, CoreError> {
+        let cert = self
+            .crypto
+            .lock()
+            .expect("Lock on crypto structure failed")
+            .get(alias)
+            .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateGet)))?;
+        Ok(Certificate(cert))
     }
 }
 
@@ -128,6 +140,17 @@ impl CoreDecrypt for Crypto {
     }
 }
 
+impl CoreGetIssuerAlias for Crypto {
+    fn get_issuer_alias(&self, issuer: CoreCertificateIssuer) -> Result<String, CoreError> {
+        if issuer == CoreCertificateIssuer::DeviceCa {
+            let crypto = self.crypto.lock().expect("Lock on crypto structure failed");
+            Ok(crypto.get_device_ca_alias())
+        } else {
+            Err(CoreError::from(CoreErrorKind::InvalidIssuer))
+        }
+    }
+}
+
 impl CoreGetTrustBundle for Crypto {
     type Certificate = Certificate;
 
@@ -138,7 +161,7 @@ impl CoreGetTrustBundle for Crypto {
             .expect("Lock on crypto structure failed")
             .get_trust_bundle()
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
-            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))?;
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateGet)))?;
         Ok(Certificate(cert))
     }
 }
@@ -160,7 +183,7 @@ impl CoreCertificate for Certificate {
         self.0
             .pem()
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
-            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateContent)))
     }
 
     fn get_private_key(&self) -> Result<Option<CorePrivateKey<Self::KeyBuffer>>, CoreError> {
@@ -174,13 +197,20 @@ impl CoreCertificate for Certificate {
                 None => None,
             })
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
-            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateKey)))
     }
 
     fn get_valid_to(&self) -> Result<DateTime<Utc>, CoreError> {
         self.0
             .get_valid_to()
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
-            .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateDetail)))
+    }
+
+    fn get_common_name(&self) -> Result<String, CoreError> {
+        self.0
+            .get_common_name()
+            .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateDetail)))
     }
 }

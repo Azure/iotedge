@@ -13,7 +13,7 @@ use failure::ResultExt;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
-use crate::certificate_properties::CertificateProperties;
+use crate::certificate_properties::{CertificateIssuer, CertificateProperties};
 use crate::error::{Error, ErrorKind};
 
 /// This is the issuer alias used when `CertificateIssuer::DefaultCa` is provided by the caller
@@ -113,6 +113,10 @@ where
     }
 }
 
+pub trait GetIssuerAlias {
+    fn get_issuer_alias(&self, issuer: CertificateIssuer) -> Result<String, Error>;
+}
+
 pub trait GetDeviceIdentityCertificate {
     type Certificate: Certificate;
     type Buffer: AsRef<[u8]>;
@@ -130,6 +134,8 @@ pub trait CreateCertificate {
     ) -> Result<Self::Certificate, Error>;
 
     fn destroy_certificate(&self, alias: String) -> Result<(), Error>;
+
+    fn get_certificate(&self, alias: String) -> Result<Self::Certificate, Error>;
 }
 
 pub trait Certificate {
@@ -139,6 +145,7 @@ pub trait Certificate {
     fn pem(&self) -> Result<Self::Buffer, Error>;
     fn get_private_key(&self) -> Result<Option<PrivateKey<Self::KeyBuffer>>, Error>;
     fn get_valid_to(&self) -> Result<DateTime<Utc>, Error>;
+    fn get_common_name(&self) -> Result<String, Error>;
 }
 
 pub trait GetTrustBundle {

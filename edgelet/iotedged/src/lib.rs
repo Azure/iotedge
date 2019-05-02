@@ -30,7 +30,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use failure::{Fail, ResultExt};
-use futures::future::Either;
+use futures::future::{Either, IntoFuture};
 use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future};
 use hyper::server::conn::Http;
@@ -49,13 +49,14 @@ use edgelet_config::{
     TpmAttestationInfo, DEFAULT_CONNECTION_STRING,
 };
 use edgelet_core::crypto::{
-    Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity,
-    KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
+    Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetIssuerAlias, GetTrustBundle,
+    KeyIdentity, KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
-    AuthId, Authenticator, CertificateIssuer, CertificateProperties, CertificateType, Module,
-    ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, UrlExt, WorkloadConfig, UNIX_SCHEME,
+    AuthId, Authenticator, Certificate, CertificateIssuer, CertificateProperties, CertificateType,
+    Module, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, UrlExt, WorkloadConfig,
+    UNIX_SCHEME,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
@@ -152,9 +153,15 @@ const EDGE_SETTINGS_SUBDIR: &str = "cache";
 const IOTEDGED_VALIDITY: u64 = 7_776_000; // 90 days
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
-
+const IOTEDGED_MIN_EXPIRATION_DURATION: i64 = 300; // 5 mins
 const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200; // 2 hours
 const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 7_776_000; // 90 days
+
+#[derive(PartialEq)]
+enum StartApiReturnStatus {
+    Restart,
+    Shutdown,
+}
 
 pub struct Main {
     settings: Settings<DockerConfig>,
@@ -165,10 +172,7 @@ impl Main {
         Main { settings }
     }
 
-    pub fn run_until<F>(self, shutdown_signal: F) -> Result<(), Error>
-    where
-        F: Future<Item = (), Error = ()> + Send + 'static,
-    {
+    pub fn run(self) -> Result<(), Error> {
         let Main { settings } = self;
 
         let mut tokio_runtime = tokio::runtime::Runtime::new()
@@ -250,17 +254,20 @@ impl Main {
                     IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                     IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                 );
-                start_api(
-                    &settings,
-                    hyper_client,
-                    &runtime,
-                    &key_store,
-                    cfg,
-                    root_key,
-                    shutdown_signal,
-                    &crypto,
-                    tokio_runtime,
-                )?;
+                while {
+                    let code = start_api(
+                        &settings,
+                        hyper_client.clone(),
+                        &runtime,
+                        &key_store,
+                        cfg.clone(),
+                        root_key.clone(),
+                        signal::shutdown(),
+                        &crypto,
+                        &mut tokio_runtime,
+                    )?;
+                    code == StartApiReturnStatus::Restart
+                } {}
             }
             Provisioning::Dps(dps) => {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
@@ -275,17 +282,20 @@ impl Main {
                             IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                             IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                         );
-                        start_api(
-                            &settings,
-                            hyper_client,
-                            &$runtime,
-                            &$key_store,
-                            cfg,
-                            $root_key,
-                            shutdown_signal,
-                            &crypto,
-                            tokio_runtime,
-                        )?;
+                        while {
+                            let code = start_api(
+                                &settings,
+                                hyper_client.clone(),
+                                &$runtime,
+                                &$key_store,
+                                cfg.clone(),
+                                $root_key.clone(),
+                                signal::shutdown(),
+                                &crypto,
+                                &mut tokio_runtime,
+                            )?;
+                            code == StartApiReturnStatus::Restart
+                        } {}
                     }};
                 }
 
@@ -359,22 +369,51 @@ pub fn get_proxy_uri(https_proxy: Option<String>) -> Result<Option<Uri>, Error> 
 
 fn prepare_workload_ca<C>(crypto: &C) -> Result<(), Error>
 where
-    C: CreateCertificate,
+    C: CreateCertificate + GetIssuerAlias,
 {
-    let edgelet_ca_props = CertificateProperties::new(
-        IOTEDGED_VALIDITY,
-        IOTEDGED_COMMONNAME.to_string(),
-        CertificateType::Ca,
-        IOTEDGED_CA_ALIAS.to_string(),
-    )
-    .with_issuer(CertificateIssuer::DeviceCa);
-
-    crypto
-        .create_certificate(&edgelet_ca_props)
+    let issuer_alias = crypto
+        .get_issuer_alias(CertificateIssuer::DeviceCa)
         .context(ErrorKind::Initialize(
             InitializeErrorReason::PrepareWorkloadCa,
         ))?;
-    Ok(())
+
+    let issuer_ca = crypto
+        .get_certificate(issuer_alias)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::PrepareWorkloadCa,
+        ))?;
+
+    let issuer_validity = issuer_ca.get_valid_to().context(ErrorKind::Initialize(
+        InitializeErrorReason::PrepareWorkloadCa,
+    ))?;
+
+    info!("Edge issuer CA expiration date: {:?}", issuer_validity);
+
+    let now = chrono::Utc::now();
+
+    let diff = issuer_validity.timestamp() - now.timestamp();
+
+    if diff > IOTEDGED_MIN_EXPIRATION_DURATION {
+        #[allow(clippy::cast_sign_loss)]
+        let edgelet_ca_props = CertificateProperties::new(
+            diff as u64,
+            IOTEDGED_COMMONNAME.to_string(),
+            CertificateType::Ca,
+            IOTEDGED_CA_ALIAS.to_string(),
+        )
+        .with_issuer(CertificateIssuer::DeviceCa);
+
+        crypto
+            .create_certificate(&edgelet_ca_props)
+            .context(ErrorKind::Initialize(
+                InitializeErrorReason::PrepareWorkloadCa,
+            ))?;
+        Ok(())
+    } else {
+        Err(Error::from(ErrorKind::Initialize(
+            InitializeErrorReason::IssuerCAExpiration,
+        )))
+    }
 }
 
 fn destroy_workload_ca<C>(crypto: &C) -> Result<(), Error>
@@ -400,7 +439,7 @@ fn check_settings_state<M, C>(
 where
     M: ModuleRuntime,
     <M as ModuleRuntime>::RemoveAllFuture: 'static,
-    C: MasterEncryptionKey + CreateCertificate,
+    C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
     info!("Detecting if configuration file has changed...");
     let path = subdir_path.join(filename);
@@ -445,7 +484,7 @@ fn reconfigure<M, C>(
 where
     M: ModuleRuntime,
     <M as ModuleRuntime>::RemoveAllFuture: 'static,
-    C: MasterEncryptionKey + CreateCertificate,
+    C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
     // Remove all edge containers and destroy the cache (settings and dps backup)
     info!("Removing all modules...");
@@ -498,8 +537,8 @@ fn start_api<HC, K, F, C, W>(
     root_key: K,
     shutdown_signal: F,
     crypto: &C,
-    mut tokio_runtime: tokio::runtime::Runtime,
-) -> Result<(), Error>
+    tokio_runtime: &mut tokio::runtime::Runtime,
+) -> Result<StartApiReturnStatus, Error>
 where
     F: Future<Item = (), Error = ()> + Send + 'static,
     HC: ClientImpl + 'static,
@@ -541,7 +580,28 @@ where
     )
     .with_issuer(CertificateIssuer::DeviceCa);
 
-    let cert_manager = Arc::new(CertificateManager::new(crypto.clone(), edgelet_cert_props));
+    let cert_manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).context(
+        ErrorKind::Initialize(InitializeErrorReason::CreateCertificateManager),
+    )?;
+
+    // Create the certificate management timer and channel
+    let (restart_tx, restart_rx) = oneshot::channel();
+
+    let expiration_timer = if settings.listen().management_uri().scheme() == "https"
+        || settings.listen().workload_uri().scheme() == "https"
+    {
+        Either::A(
+            cert_manager
+                .schedule_expiration_timer(move || restart_tx.send(()))
+                .map_err(|err| {
+                    Error::from(err.context(ErrorKind::CertificateExpirationManagement))
+                }),
+        )
+    } else {
+        Either::B(future::ok(()))
+    };
+
+    let cert_manager = Arc::new(cert_manager);
 
     let mgmt = start_management(&settings, runtime, &id_man, mgmt_rx, cert_manager.clone());
 
@@ -560,10 +620,15 @@ where
 
     // Wait for the watchdog to finish, and then send signal to the workload and management services.
     // This way the edgeAgent can finish shutting down all modules.
-    let edge_rt_with_cleanup = edge_rt.map_err(Into::into).and_then(|_| {
+
+    let edge_rt_with_cleanup = edge_rt.select2(restart_rx).then(move |res| {
         mgmt_tx.send(()).unwrap_or(());
         work_tx.send(()).unwrap_or(());
-        future::ok(())
+
+        match res {
+            Ok(Either::B(_)) => Ok(StartApiReturnStatus::Restart).into_future(),
+            _ => Ok(StartApiReturnStatus::Shutdown).into_future(),
+        }
     });
 
     let shutdown = shutdown_signal.map(move |_| {
@@ -574,14 +639,14 @@ where
     tokio_runtime.spawn(shutdown);
 
     let services = mgmt
-        .join3(workload, edge_rt_with_cleanup)
+        .join4(workload, edge_rt_with_cleanup, expiration_timer)
         .then(|result| match result {
-            Ok(((), (), ())) => Ok(()),
+            Ok(((), (), code, ())) => Ok(code),
             Err(err) => Err(err),
         });
-    tokio_runtime.block_on(services)?;
+    let restart_code = tokio_runtime.block_on(services)?;
 
-    Ok(())
+    Ok(restart_code)
 }
 
 fn init_docker_runtime(
@@ -1021,6 +1086,7 @@ mod tests {
     use std::io::Read;
     use std::path::Path;
 
+    use chrono::{Duration, Utc};
     use tempdir::TempDir;
 
     use edgelet_core::ModuleRuntimeState;
@@ -1049,7 +1115,10 @@ mod tests {
         }
     }
 
-    struct TestCrypto {}
+    struct TestCrypto {
+        use_expired_ca: bool,
+        fail_device_ca_alias: bool,
+    }
 
     impl MasterEncryptionKey for TestCrypto {
         fn create_key(&self) -> Result<(), edgelet_core::Error> {
@@ -1077,17 +1146,104 @@ mod tests {
         fn destroy_certificate(&self, _alias: String) -> Result<(), edgelet_core::Error> {
             Ok(())
         }
+
+        fn get_certificate(
+            &self,
+            _alias: String,
+        ) -> Result<Self::Certificate, edgelet_core::Error> {
+            let ts = if self.use_expired_ca {
+                Utc::now()
+            } else {
+                Utc::now() + Duration::hours(1)
+            };
+            Ok(TestCert::default()
+                .with_cert(vec![1, 2, 3])
+                .with_private_key(PrivateKey::Key(KeyBytes::Pem("some key".to_string())))
+                .with_fail_pem(false)
+                .with_fail_private_key(false)
+                .with_valid_to(ts))
+        }
+    }
+
+    impl GetIssuerAlias for TestCrypto {
+        fn get_issuer_alias(
+            &self,
+            _issuer: CertificateIssuer,
+        ) -> Result<String, edgelet_core::Error> {
+            if self.fail_device_ca_alias {
+                Err(edgelet_core::Error::from(
+                    edgelet_core::ErrorKind::InvalidIssuer,
+                ))
+            } else {
+                Ok("test-device-ca".to_string())
+            }
+        }
     }
 
     #[test]
     fn default_settings_raise_unconfigured_error() {
         let settings = Settings::<DockerConfig>::new(None).unwrap();
         let main = Main::new(settings);
-        let shutdown_signal = signal::shutdown();
-        let result = main.run_until(shutdown_signal);
+        let result = main.run();
         match result.unwrap_err().kind() {
             ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
             kind => panic!("Expected `NotConfigured` but got {:?}", kind),
+        }
+    }
+
+    #[test]
+    fn settings_with_invalid_issuer_ca_fails() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
+        let config = TestConfig::new("microsoft/test-image".to_string());
+        let state = ModuleRuntimeState::default();
+        let module: TestModule<Error> =
+            TestModule::new("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::new(Ok(module));
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: true,
+        };
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        let result = check_settings_state(
+            tmp_dir.path().to_path_buf(),
+            "settings_state",
+            &settings,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+        );
+        match result.unwrap_err().kind() {
+            ErrorKind::Initialize(InitializeErrorReason::PrepareWorkloadCa) => (),
+            kind => panic!("Expected `PrepareWorkloadCa` but got {:?}", kind),
+        }
+    }
+
+    #[test]
+    fn settings_with_expired_issuer_ca_fails() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
+        let config = TestConfig::new("microsoft/test-image".to_string());
+        let state = ModuleRuntimeState::default();
+        let module: TestModule<Error> =
+            TestModule::new("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::new(Ok(module));
+        let crypto = TestCrypto {
+            use_expired_ca: true,
+            fail_device_ca_alias: false,
+        };
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        let result = check_settings_state(
+            tmp_dir.path().to_path_buf(),
+            "settings_state",
+            &settings,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+        );
+        match result.unwrap_err().kind() {
+            ErrorKind::Initialize(InitializeErrorReason::IssuerCAExpiration) => (),
+            kind => panic!("Expected `IssuerCAExpiration` but got {:?}", kind),
         }
     }
 
@@ -1100,7 +1256,10 @@ mod tests {
         let module: TestModule<Error> =
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
-        let crypto = TestCrypto {};
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+        };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state(
             tmp_dir.path().to_path_buf(),
@@ -1132,7 +1291,10 @@ mod tests {
         let module: TestModule<Error> =
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
-        let crypto = TestCrypto {};
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+        };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state(
             tmp_dir.path().to_path_buf(),

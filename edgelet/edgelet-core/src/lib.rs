@@ -24,8 +24,9 @@ pub use authentication::Authenticator;
 pub use authorization::{AuthId, Authorization, ModuleId, Policy};
 pub use certificate_properties::{CertificateIssuer, CertificateProperties, CertificateType};
 pub use crypto::{
-    Certificate, CreateCertificate, Decrypt, Encrypt, GetDeviceIdentityCertificate, GetTrustBundle,
-    KeyBytes, KeyIdentity, KeyStore, MasterEncryptionKey, PrivateKey, Signature, IOTEDGED_CA_ALIAS,
+    Certificate, CreateCertificate, Decrypt, Encrypt, GetDeviceIdentityCertificate, GetIssuerAlias,
+    GetTrustBundle, KeyBytes, KeyIdentity, KeyStore, MasterEncryptionKey, PrivateKey, Signature,
+    IOTEDGED_CA_ALIAS,
 };
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
