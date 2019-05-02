@@ -13,7 +13,7 @@ use failure::ResultExt;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
-use crate::certificate_properties::CertificateProperties;
+use crate::certificate_properties::{CertificateIssuer, CertificateProperties};
 use crate::error::{Error, ErrorKind};
 
 /// This is the issuer alias used when `CertificateIssuer::DefaultCa` is provided by the caller
@@ -111,6 +111,10 @@ where
             PrivateKey::Key(ref val) => PrivateKey::Key(val.clone()),
         }
     }
+}
+
+pub trait GetIssuerAlias {
+    fn get_issuer_alias(&self, issuer: CertificateIssuer) -> Result<String, Error>;
 }
 
 pub trait GetDeviceIdentityCertificate {

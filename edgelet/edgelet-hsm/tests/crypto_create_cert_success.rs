@@ -4,11 +4,12 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use lazy_static::lazy_static;
+use std::convert::TryFrom;
 use std::sync::Mutex;
 
 use edgelet_core::{
     Certificate, CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate,
-    KeyBytes, PrivateKey, Signature, IOTEDGED_CA_ALIAS,
+    GetIssuerAlias, KeyBytes, PrivateKey, Signature, IOTEDGED_CA_ALIAS,
 };
 use edgelet_hsm::Crypto;
 mod test_utils;
@@ -25,12 +26,29 @@ fn crypto_create_cert_success() {
 
     let crypto = Crypto::new().unwrap();
 
+    // tests to ensure that the Device CA alias exists and is valid
+    assert!(crypto
+        .get_issuer_alias(CertificateIssuer::DefaultCa)
+        .is_err());
+    let issuer_alias = crypto
+        .get_issuer_alias(CertificateIssuer::DeviceCa)
+        .unwrap();
+    assert!(!issuer_alias.is_empty());
+
+    // ensure workload CA does not exist
     let workload_ca_cert = crypto.get_certificate(IOTEDGED_CA_ALIAS.to_string());
     assert!(workload_ca_cert.is_err());
 
+    let issuer_ca = crypto.get_certificate(issuer_alias).unwrap();
+    let issuer_validity = issuer_ca.get_valid_to().unwrap();
+
+    let now = chrono::Utc::now();
+
+    let diff = issuer_validity.timestamp() - now.timestamp();
+    assert!(diff > 0);
     // create the default issuing CA cert properties
     let edgelet_ca_props = CertificateProperties::new(
-        3600,
+        u64::try_from(diff).unwrap(),
         "test-iotedge-cn".to_string(),
         CertificateType::Ca,
         IOTEDGED_CA_ALIAS.to_string(),

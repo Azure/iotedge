@@ -46,8 +46,8 @@ use edgelet_config::{
     TpmAttestationInfo, DEFAULT_CONNECTION_STRING,
 };
 use edgelet_core::crypto::{
-    Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity,
-    KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
+    Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetIssuerAlias, GetTrustBundle,
+    KeyIdentity, KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
@@ -365,10 +365,16 @@ pub fn get_proxy_uri(https_proxy: Option<String>) -> Result<Option<Uri>, Error> 
 
 fn prepare_workload_ca<C>(crypto: &C) -> Result<(), Error>
 where
-    C: CreateCertificate,
+    C: CreateCertificate + GetIssuerAlias,
 {
+    let issuer_alias = crypto
+        .get_issuer_alias(CertificateIssuer::DeviceCa)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::PrepareWorkloadCa,
+        ))?;
+
     let issuer_ca = crypto
-        .get_certificate(IOTEDGED_CA_ALIAS.to_string())
+        .get_certificate(issuer_alias)
         .context(ErrorKind::Initialize(
             InitializeErrorReason::PrepareWorkloadCa,
         ))?;
@@ -429,7 +435,7 @@ fn check_settings_state<M, C>(
 where
     M: ModuleRuntime,
     <M as ModuleRuntime>::RemoveAllFuture: 'static,
-    C: MasterEncryptionKey + CreateCertificate,
+    C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
     info!("Detecting if configuration file has changed...");
     let path = subdir_path.join(filename);
@@ -474,7 +480,7 @@ fn reconfigure<M, C>(
 where
     M: ModuleRuntime,
     <M as ModuleRuntime>::RemoveAllFuture: 'static,
-    C: MasterEncryptionKey + CreateCertificate,
+    C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
     // Remove all edge containers and destroy the cache (settings and dps backup)
     info!("Removing all modules...");
@@ -1079,6 +1085,7 @@ mod tests {
 
     struct TestCrypto {
         use_expired_ca: bool,
+        fail_device_ca_alias: bool,
     }
 
     impl MasterEncryptionKey for TestCrypto {
@@ -1126,6 +1133,21 @@ mod tests {
         }
     }
 
+    impl GetIssuerAlias for TestCrypto {
+        fn get_issuer_alias(
+            &self,
+            _issuer: CertificateIssuer,
+        ) -> Result<String, edgelet_core::Error> {
+            if self.fail_device_ca_alias {
+                Err(edgelet_core::Error::from(
+                    edgelet_core::ErrorKind::InvalidIssuer,
+                ))
+            } else {
+                Ok("test-device-ca".to_string())
+            }
+        }
+    }
+
     #[test]
     fn default_settings_raise_unconfigured_error() {
         let settings = Settings::<DockerConfig>::new(None).unwrap();
@@ -1134,6 +1156,34 @@ mod tests {
         match result.unwrap_err().kind() {
             ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
             kind => panic!("Expected `NotConfigured` but got {:?}", kind),
+        }
+    }
+
+    #[test]
+    fn settings_with_invalid_issuer_ca_fails() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
+        let config = TestConfig::new("microsoft/test-image".to_string());
+        let state = ModuleRuntimeState::default();
+        let module: TestModule<Error> =
+            TestModule::new("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::new(Ok(module));
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: true,
+        };
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        let result = check_settings_state(
+            tmp_dir.path().to_path_buf(),
+            "settings_state",
+            &settings,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+        );
+        match result.unwrap_err().kind() {
+            ErrorKind::Initialize(InitializeErrorReason::PrepareWorkloadCa) => (),
+            kind => panic!("Expected `PrepareWorkloadCa` but got {:?}", kind),
         }
     }
 
@@ -1148,6 +1198,7 @@ mod tests {
         let runtime = TestRuntime::new(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: true,
+            fail_device_ca_alias: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         let result = check_settings_state(
@@ -1175,6 +1226,7 @@ mod tests {
         let runtime = TestRuntime::new(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
+            fail_device_ca_alias: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state(
@@ -1209,6 +1261,7 @@ mod tests {
         let runtime = TestRuntime::new(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
+            fail_device_ca_alias: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state(
