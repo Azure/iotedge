@@ -25,6 +25,7 @@ use url::Url;
 const HOMEDIR_KEY: &str = "IOTEDGE_HOMEDIR";
 
 #[test]
+#[cfg_attr(target_os = "macos", ignore)] // TODO: remove when macOS security framework supports opening pcks12 file with empty password
 fn tls_functional_test() {
     let mut http = hyper::client::HttpConnector::new(1);
     http.enforce_http(false);

@@ -4,6 +4,8 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::module_name_repetitions, clippy::use_self)]
 
+use std::sync::Arc;
+
 use failure::Fail;
 use futures::{future, Future};
 use hyper::service::{NewService, Service};
@@ -15,12 +17,12 @@ use crate::{Error, ErrorKind, IntoResponse};
 
 #[derive(Clone)]
 pub struct AuthenticationService<M, S> {
-    runtime: M,
+    runtime: Arc<M>,
     inner: S,
 }
 
 impl<M, S> AuthenticationService<M, S> {
-    pub fn new(runtime: M, inner: S) -> Self {
+    pub fn new(runtime: Arc<M>, inner: S) -> Self {
         AuthenticationService { runtime, inner }
     }
 }
@@ -62,7 +64,7 @@ where
 
 impl<M, S> NewService for AuthenticationService<M, S>
 where
-    M: Authenticator + Send + Clone + 'static,
+    M: Authenticator + Send + Sync + Clone + 'static,
     S: NewService,
     S::Future: Send + 'static,
     AuthenticationService<M, S::Service>: Service,
@@ -86,12 +88,16 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::authentication::AuthenticationService;
-    use edgelet_core::{AuthId, Authenticator, Error, ErrorKind};
+    use std::sync::Arc;
+
     use futures::{future, Future, Stream};
     use hyper::service::Service;
     use hyper::{Body, Request, Response, StatusCode};
     use tokio::io;
+
+    use edgelet_core::{AuthId, Authenticator, Error, ErrorKind};
+
+    use crate::authentication::AuthenticationService;
 
     #[test]
     fn call_forward_to_inner_service_when_module_authenticated() {
@@ -143,18 +149,18 @@ mod tests {
     }
 
     impl TestAuthenticator {
-        fn authenticated(auth_id: AuthId) -> Self {
-            TestAuthenticator {
+        fn authenticated(auth_id: AuthId) -> Arc<Self> {
+            Arc::new(TestAuthenticator {
                 auth: Some(auth_id),
                 error: None,
-            }
+            })
         }
 
-        fn error() -> Self {
-            TestAuthenticator {
+        fn error() -> Arc<Self> {
+            Arc::new(TestAuthenticator {
                 auth: None,
                 error: Some("unexpected error".to_string()),
-            }
+            })
         }
     }
 

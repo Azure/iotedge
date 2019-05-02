@@ -287,6 +287,7 @@ fn init_test(module_id: &str, generation_id: &str) -> (WorkloadService, Identity
 }
 
 #[test]
+#[cfg_attr(target_os = "macos", ignore)] // TODO: remove when macOS security framework supports opening pcks12 file with empty password
 fn dns_san_server() {
     const GENERATION_ID: &str = "g1";
 

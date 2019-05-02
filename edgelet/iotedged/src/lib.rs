@@ -927,7 +927,7 @@ where
 
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
-    let module_runtime = runtime.clone();
+    let module_runtime = Arc::new(runtime.clone());
 
     ManagementService::new(runtime, id_man)
         .then(move |service| -> Result<_, Error> {
@@ -990,7 +990,7 @@ where
 
     let label = "work".to_string();
     let url = settings.listen().workload_uri().clone();
-    let module_runtime = runtime.clone();
+    let module_runtime = Arc::new(runtime.clone());
 
     WorkloadService::new(key_store, crypto.clone(), runtime, config)
         .then(move |service| -> Result<_, Error> {
