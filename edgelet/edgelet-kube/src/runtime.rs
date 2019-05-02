@@ -453,32 +453,41 @@ where
         let token = req
             .headers()
             .get(header::AUTHORIZATION)
-            .and_then(|token| token.to_str().ok()) // todo @dmolokanov treat to_str()->Err as a Fail
-            .filter(|token| token.len() > 6 && &token[..7].to_uppercase() == "BEARER ")
-            .map(|token: &str| &token[7..]);
+            .map(|token| token.to_str())
+            .transpose()
+            .map(|token| {
+                token
+                    .filter(|token| token.len() > 6 && &token[..7].to_uppercase() == "BEARER ")
+                    .map(|token| &token[7..])
+            })
+            .map_err(Error::from);
+
         let fut = match token {
-            Some(token) => Either::A(
-                self.client
-                    .lock()
-                    .expect("Unexpected lock error")
-                    .borrow_mut()
-                    .token_review(token)
-                    .map_err(|err| {
-                        log_failure(Level::Warn, &err);
-                        Error::from(err)
-                    })
-                    .map(|token_review| {
-                        token_review
-                            .status
-                            .as_ref()
-                            .filter(|status| status.authenticated.filter(|x| *x).is_some())
-                            .and_then(|status| {
-                                status.user.as_ref().and_then(|user| user.username.clone())
-                            })
-                            .map_or(AuthId::None, |name| AuthId::Value(name.into()))
-                    }),
-            ),
-            None => Either::B(future::ok(AuthId::None)),
+            Ok(token) => match token {
+                Some(token) => Either::A(Either::A(
+                    self.client
+                        .lock()
+                        .expect("Unexpected lock error")
+                        .borrow_mut()
+                        .token_review(token)
+                        .map_err(|err| {
+                            log_failure(Level::Warn, &err);
+                            Error::from(err)
+                        })
+                        .map(|token_review| {
+                            token_review
+                                .status
+                                .as_ref()
+                                .filter(|status| status.authenticated.filter(|x| *x).is_some())
+                                .and_then(|status| {
+                                    status.user.as_ref().and_then(|user| user.username.clone())
+                                })
+                                .map_or(AuthId::None, |name| AuthId::Value(name.into()))
+                        }),
+                )),
+                None => Either::A(Either::B(future::ok(AuthId::None))),
+            },
+            Err(e) => Either::B(future::err(e)),
         };
 
         Box::new(fut)
@@ -550,6 +559,7 @@ mod tests {
     use edgelet_core::{AuthId, Authenticator};
     use kube_client::{Client as KubeClient, Config, Error, TokenSource};
 
+    use crate::error::ErrorKind;
     use crate::runtime::KubeModuleRuntime;
 
     fn get_config() -> Config<TestTokenSource> {
@@ -763,7 +773,7 @@ mod tests {
     }
 
     #[test]
-    fn authenticate_returns_none_when_invalid_auth_token_provided() {
+    fn authenticate_returns_none_when_invalid_auth_header_provided() {
         let service = service_fn(
             |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
                 Ok(Response::new(Body::empty()))
@@ -778,6 +788,24 @@ mod tests {
         let auth_id = runtime.authenticate(&req).wait().unwrap();
 
         assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_none_when_invalid_auth_token_provided() {
+        let service = service_fn(
+            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                Ok(Response::new(Body::empty()))
+            },
+        );
+        let runtime = prepare_module_runtime_with_defaults(service);
+
+        let mut req = Request::default();
+        req.headers_mut()
+            .insert(header::AUTHORIZATION, "ΪΩΤ".parse().unwrap());
+
+        let err = runtime.authenticate(&req).wait().err().unwrap();
+
+        assert_eq!(&ErrorKind::ModuleAuthenticationError, err.kind());
     }
 
     #[test]

@@ -458,7 +458,7 @@ impl fmt::Display for RegistryOperation {
 }
 
 // Useful for error contexts
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum RuntimeOperation {
     CreateModule(String),
     GetModule(String),
