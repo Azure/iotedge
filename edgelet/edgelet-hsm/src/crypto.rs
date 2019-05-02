@@ -34,7 +34,7 @@ pub struct Crypto {
     hsm_lock: Arc<HsmLock>,
 }
 
-// Crypto is Send and !Sync. However Crypto can be Sync since all access to Crypto::crypto
+// HsmCrypto is Send and !Sync. However Crypto can be Sync since all access to Crypto::crypto
 // is controlled by the methods of Crypto, which all lock Crypto::hsm_lock first.
 //
 // For the same reason, Crypto also needs an explicit Send impl
@@ -58,7 +58,7 @@ impl Crypto {
 
 impl CoreMasterEncryptionKey for Crypto {
     fn create_key(&self) -> Result<(), CoreError> {
-        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.crypto
             .create_master_encryption_key()
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
@@ -66,7 +66,7 @@ impl CoreMasterEncryptionKey for Crypto {
     }
 
     fn destroy_key(&self) -> Result<(), CoreError> {
-        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.crypto
             .destroy_master_encryption_key()
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
@@ -81,7 +81,7 @@ impl CoreCreateCertificate for Crypto {
         &self,
         properties: &CoreCertificateProperties,
     ) -> Result<Self::Certificate, CoreError> {
-        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         let device_ca_alias = self.crypto.get_device_ca_alias();
         let cert = self
             .crypto
@@ -92,7 +92,7 @@ impl CoreCreateCertificate for Crypto {
     }
 
     fn destroy_certificate(&self, alias: String) -> Result<(), CoreError> {
-        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.crypto
             .destroy_certificate(alias)
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
@@ -101,7 +101,7 @@ impl CoreCreateCertificate for Crypto {
     }
 
     fn get_certificate(&self, alias: String) -> Result<Self::Certificate, CoreError> {
-        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         let cert = self
             .crypto
             .get(alias)
@@ -120,7 +120,7 @@ impl CoreEncrypt for Crypto {
         plaintext: &[u8],
         initialization_vector: &[u8],
     ) -> Result<Self::Buffer, CoreError> {
-        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.crypto
             .encrypt(client_id, plaintext, initialization_vector)
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
@@ -137,7 +137,7 @@ impl CoreDecrypt for Crypto {
         ciphertext: &[u8],
         initialization_vector: &[u8],
     ) -> Result<Self::Buffer, CoreError> {
-        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.crypto
             .decrypt(client_id, ciphertext, initialization_vector)
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
@@ -149,7 +149,7 @@ impl CoreGetTrustBundle for Crypto {
     type Certificate = Certificate;
 
     fn get_trust_bundle(&self) -> Result<Self::Certificate, CoreError> {
-        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         let cert = self
             .crypto
             .get_trust_bundle()

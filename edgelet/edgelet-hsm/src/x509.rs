@@ -50,7 +50,7 @@ impl CoreGetDeviceIdentityCertificate for X509 {
     type Buffer = HsmPrivateKeySignDigest;
 
     fn get(&self) -> Result<Self::Certificate, CoreError> {
-        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         let cert = self
             .x509
             .get_certificate_info()
@@ -62,7 +62,7 @@ impl CoreGetDeviceIdentityCertificate for X509 {
     }
 
     fn sign_with_private_key(&self, data: &[u8]) -> Result<Self::Buffer, CoreError> {
-        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.x509
             .sign_with_private_key(data)
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::DeviceIdentitySign)))

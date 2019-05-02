@@ -25,7 +25,7 @@ pub struct TpmKey {
     hsm_lock: Arc<HsmLock>,
 }
 
-// TpmKey is Send and !Sync. However TpmKey can be Sync since all access to TpmKey::tpm
+// hsm::Tpm is Send and !Sync. However TpmKey can be Sync since all access to TpmKey::tpm
 // is controlled by the methods of TpmKey, which all lock TpmKey::hsm_lock first.
 //
 // For the same reason, TpmKey also needs an explicit Send impl
@@ -41,7 +41,7 @@ pub struct TpmKeyStore {
     hsm_lock: Arc<HsmLock>,
 }
 
-// TpmKeyStore is Send and !Sync. However TpmKeyStore can be Sync since all access to TpmKeyStore::tpm
+// hsm::Tpm is Send and !Sync. However TpmKeyStore can be Sync since all access to TpmKeyStore::tpm
 // is controlled by the methods of TpmKeyStore, which all lock TpmKeyStore::hsm_lock first.
 //
 // For the same reason, TpmKeyStore also needs an explicit Send impl
@@ -64,7 +64,7 @@ impl TpmKeyStore {
 
     /// Activate and store a private key in the TPM.
     pub fn activate_key(&self, key_value: &Bytes) -> Result<(), Error> {
-        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.tpm.activate_identity_key(key_value)?;
         Ok(())
     }
@@ -136,7 +136,7 @@ impl Sign for TpmKey {
         _signature_algorithm: SignatureAlgorithm,
         data: &[u8],
     ) -> Result<Self::Signature, CoreError> {
-        let _d = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         match self.identity {
             KeyIdentity::Device => self
                 .tpm
