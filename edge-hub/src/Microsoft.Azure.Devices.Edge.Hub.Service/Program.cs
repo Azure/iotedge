@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         static async Task<int> MainAsync(IConfigurationRoot configuration)
         {
             string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
-            Logger.SetLogLevel(logLevel);            
+            Logger.SetLogLevel(logLevel);
 
             // Set the LoggerFactory used by the Routing code.
             if (configuration.GetValue("EnableRoutingLogging", false))

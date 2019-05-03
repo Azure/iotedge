@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         public Task IterateBatch(int batchSize, Func<byte[], byte[], Task> perEntityCallback) => this.inner.IterateBatch(batchSize, perEntityCallback);
 
-        public Task IterateBatch(byte[] startKey, int batchSize, Func<byte[], byte[], Task> perEntityCallback) => this.inner.IterateBatch(startKey, batchSize, perEntityCallback);        
+        public Task IterateBatch(byte[] startKey, int batchSize, Func<byte[], byte[], Task> perEntityCallback) => this.inner.IterateBatch(startKey, batchSize, perEntityCallback);
 
         public Task<Option<byte[]>> Get(byte[] key, CancellationToken cancellationToken) => this.inner.Get(key, cancellationToken);
 
