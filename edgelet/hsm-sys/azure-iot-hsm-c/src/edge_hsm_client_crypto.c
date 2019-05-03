@@ -7,6 +7,7 @@
 #include "azure_c_shared_utility/gballoc.h"
 #include "hsm_client_data.h"
 #include "hsm_client_store.h"
+#include "hsm_key.h"
 #include "hsm_log.h"
 #include "hsm_constants.h"
 
@@ -50,7 +51,6 @@ int hsm_client_crypto_init(void)
             g_is_crypto_initialized = true;
             g_hsm_store_if = store_if;
             g_hsm_key_if = key_if;
-			srand((unsigned int)time(NULL));
             result = 0;
         }
     }
@@ -169,14 +169,9 @@ static int edge_hsm_client_get_random_bytes(HSM_CLIENT_HANDLE handle, unsigned c
     }
     else
     {
-        // todo use OpenSSL RAND_BUFFER and CNG rand API
-        size_t count;
-        for (count = 0; count < num_bytes; count++)
-        {
-            *rand_buffer++ = rand() % 256;
-        }
-        result = 0;
+        result = generate_rand_buffer(rand_buffer, num_bytes);
     }
+
     return result;
 }
 

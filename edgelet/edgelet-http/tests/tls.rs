@@ -6,7 +6,7 @@ use std::env;
 
 use edgelet_core::crypto::CreateCertificate;
 use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType, IOTEDGED_CA_ALIAS};
-use edgelet_hsm::Crypto;
+use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
 use edgelet_http::Error as HttpError;
@@ -62,7 +62,8 @@ pub fn configure_test(address: &str) -> Run {
     env::set_var(HOMEDIR_KEY, &home_dir.path());
     println!("IOTEDGE_HOMEDIR set to {:#?}", home_dir.path());
 
-    let crypto = Crypto::new().unwrap();
+    let hsm_lock = HsmLock::new();
+    let crypto = Crypto::new(hsm_lock).unwrap();
 
     // create the default issuing CA cert properties
     let edgelet_ca_props = CertificateProperties::new(
