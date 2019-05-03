@@ -77,7 +77,8 @@ spec:
           volumeMounts:
             - name: agent-storage
               mountPath: {{ .Values.edgeAgent.data.targetPath | quote }}
-          {{ end -}}
+              readOnly: false
+          {{- end }}
         - name: proxy
           image: "{{ .Values.iotedgedProxy.image.repository }}:{{ .Values.iotedgedProxy.image.tag }}"
           imagePullPolicy: {{ .Values.iotedgedProxy.image.pullPolicy }}
@@ -99,3 +100,4 @@ spec:
             claimName: {{ .Values.edgeAgent.data.persistentVolumeClaim.name }}
             readOnly: false
         {{ end -}}
+

@@ -11,4 +11,4 @@ spec:
   accessModes:
     - ReadWriteMany
   storageClassName: {{ .Values.iotedged.data.persistentVolumeClaim.storageClassName | quote }}
-  {{- end }}
+{{- end }}
