@@ -19,6 +19,7 @@
 #include <openssl/err.h>
 #include <openssl/ec.h>
 #include <openssl/pem.h>
+#include <openssl/rand.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
@@ -71,7 +72,7 @@ static const SUBJECT_FIELD_OFFSET subj_offsets[] =
 
 struct CERT_KEY_TAG
 {
-    HSM_CLIENT_KEY_INTERFACE interface;
+    HSM_CLIENT_KEY_INTERFACE intf;
     EVP_PKEY* evp_key;
 };
 typedef struct CERT_KEY_TAG CERT_KEY;
@@ -1632,11 +1633,11 @@ KEY_HANDLE create_cert_key(const char* key_file_name)
     }
     else
     {
-        cert_key->interface.hsm_client_key_sign = cert_key_sign;
-        cert_key->interface.hsm_client_key_derive_and_sign = cert_key_derive_and_sign;
-        cert_key->interface.hsm_client_key_encrypt = cert_key_encrypt;
-        cert_key->interface.hsm_client_key_decrypt = cert_key_decrypt;
-        cert_key->interface.hsm_client_key_destroy = cert_key_destroy;
+        cert_key->intf.hsm_client_key_sign = cert_key_sign;
+        cert_key->intf.hsm_client_key_derive_and_sign = cert_key_derive_and_sign;
+        cert_key->intf.hsm_client_key_encrypt = cert_key_encrypt;
+        cert_key->intf.hsm_client_key_decrypt = cert_key_decrypt;
+        cert_key->intf.hsm_client_key_destroy = cert_key_destroy;
         cert_key->evp_key = evp_key;
         result = (KEY_HANDLE)cert_key;
     }
@@ -1876,6 +1877,41 @@ int verify_certificate
             result = verify_certificate_internal(certificate_file_path,
                                                  issuer_certificate_file_path,
                                                  verify_status);
+        }
+    }
+
+    return result;
+}
+
+int generate_rand_buffer(unsigned char *buffer, size_t num_bytes)
+{
+    int result;
+
+    initialize_openssl();
+
+    if ((buffer == NULL) || (num_bytes == 0) || (num_bytes > INT_MAX))
+    {
+        LOG_ERROR("Invalid parameters");
+        result = __FAILURE__;
+    }
+    else
+    {
+        // note RAND_bytes will seed the random number generator
+        // if not initialized once per process or unless cleaned up
+        // In other works we don't have to worry about seeding for
+        // the default implementation.
+        // https://wiki.openssl.org/index.php/Random_Numbers
+        int rc = RAND_bytes(buffer, (int)num_bytes);
+
+        if (rc != 1)
+        {
+            unsigned long err = ERR_get_error();
+            LOG_ERROR("Generating a random number failed. Error code %ld", err);
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
         }
     }
 

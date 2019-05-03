@@ -56,7 +56,7 @@ use edgelet_core::{
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
-use edgelet_hsm::Crypto;
+use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
@@ -171,6 +171,8 @@ impl Main {
     pub fn run(self) -> Result<(), Error> {
         let Main { settings } = self;
 
+        let hsm_lock = HsmLock::new();
+
         let mut tokio_runtime = tokio::runtime::Runtime::new()
             .context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
 
@@ -224,7 +226,8 @@ impl Main {
         info!("Finished configuring certificates.");
 
         info!("Initializing hsm...");
-        let crypto = Crypto::new().context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+        let crypto = Crypto::new(hsm_lock.clone())
+            .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
         info!("Finished initializing hsm.");
 
         // Detect if the settings were changed and if the device needs to be reconfigured
@@ -306,6 +309,7 @@ impl Main {
                                 runtime,
                                 &mut tokio_runtime,
                                 tpm,
+                                hsm_lock.clone(),
                             )?;
                         start_edgelet!(key_store, provisioning_result, root_key, runtime);
                     }
@@ -772,6 +776,7 @@ fn dps_tpm_provision<HC, M>(
     runtime: M,
     tokio_runtime: &mut tokio::runtime::Runtime,
     tpm_attestation_info: &TpmAttestationInfo,
+    hsm_lock: Arc<HsmLock>,
 ) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey, M), Error>
 where
     HC: 'static + ClientImpl,
@@ -798,7 +803,7 @@ where
     .context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
-    let tpm_hsm = TpmKeyStore::from_hsm(tpm).context(ErrorKind::Initialize(
+    let tpm_hsm = TpmKeyStore::from_hsm(tpm, hsm_lock).context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
     let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
