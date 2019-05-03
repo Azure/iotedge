@@ -14,7 +14,7 @@ use edgelet_core::crypto::Sign;
 use edgelet_core::crypto::SignatureAlgorithm;
 use edgelet_core::KeyIdentity;
 use edgelet_core::KeyStore;
-use edgelet_hsm::TpmKeyStore;
+use edgelet_hsm::{HsmLock, TpmKeyStore};
 mod test_utils;
 use test_utils::TestHSMEnvSetup;
 
@@ -30,7 +30,8 @@ fn tpm_input_tests() {
     // arrange
     let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
-    let mut key_store = TpmKeyStore::new().unwrap();
+    let hsm_lock = HsmLock::new();
+    let mut key_store = TpmKeyStore::new(hsm_lock).unwrap();
 
     let decoded_key = base64::decode(TEST_KEY_BASE64).unwrap();
     let decoded_key_str = unsafe { str::from_utf8_unchecked(&decoded_key) };
