@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use bytes::Bytes;
 use failure::Fail;
@@ -12,42 +12,60 @@ use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 use hsm::{ManageTpmKeys, SignWithTpm, Tpm, TpmDigest};
 
 pub use crate::error::{Error, ErrorKind};
+use crate::HsmLock;
 
 const ROOT_KEY_NAME: &str = "primary";
 
 /// Represents a key which can sign data.
 #[derive(Clone, Debug)]
 pub struct TpmKey {
-    tpm: Arc<Mutex<Tpm>>,
+    tpm: Arc<Tpm>,
     identity: KeyIdentity,
     key_name: String,
+    hsm_lock: Arc<HsmLock>,
 }
+
+// hsm::Tpm is Send and !Sync. However TpmKey can be Sync since all access to TpmKey::tpm
+// is controlled by the methods of TpmKey, which all lock TpmKey::hsm_lock first.
+//
+// For the same reason, TpmKey also needs an explicit Send impl
+// since Arc<T>: Send requires T: Send + Sync.
+unsafe impl Send for TpmKey {}
+unsafe impl Sync for TpmKey {}
 
 /// The TPM Key Store.
 /// Activate a private key, and then you can use that key to sign data.
 #[derive(Clone)]
 pub struct TpmKeyStore {
-    tpm: Arc<Mutex<Tpm>>,
+    tpm: Arc<Tpm>,
+    hsm_lock: Arc<HsmLock>,
 }
 
+// hsm::Tpm is Send and !Sync. However TpmKeyStore can be Sync since all access to TpmKeyStore::tpm
+// is controlled by the methods of TpmKeyStore, which all lock TpmKeyStore::hsm_lock first.
+//
+// For the same reason, TpmKeyStore also needs an explicit Send impl
+// since Arc<T>: Send requires T: Send + Sync.
+unsafe impl Send for TpmKeyStore {}
+unsafe impl Sync for TpmKeyStore {}
+
 impl TpmKeyStore {
-    pub fn new() -> Result<Self, Error> {
+    pub fn new(hsm_lock: Arc<HsmLock>) -> Result<Self, Error> {
         let hsm = Tpm::new()?;
-        TpmKeyStore::from_hsm(hsm)
+        TpmKeyStore::from_hsm(hsm, hsm_lock)
     }
 
-    pub fn from_hsm(tpm: Tpm) -> Result<Self, Error> {
+    pub fn from_hsm(tpm: Tpm, hsm_lock: Arc<HsmLock>) -> Result<Self, Error> {
         Ok(TpmKeyStore {
-            tpm: Arc::new(Mutex::new(tpm)),
+            tpm: Arc::new(tpm),
+            hsm_lock,
         })
     }
 
     /// Activate and store a private key in the TPM.
     pub fn activate_key(&self, key_value: &Bytes) -> Result<(), Error> {
-        self.tpm
-            .lock()
-            .expect("Lock on KeyStore TPM failed")
-            .activate_identity_key(key_value)?;
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        self.tpm.activate_identity_key(key_value)?;
         Ok(())
     }
 
@@ -57,6 +75,7 @@ impl TpmKeyStore {
             tpm: Arc::clone(&self.tpm),
             identity: KeyIdentity::Device,
             key_name: ROOT_KEY_NAME.to_string(),
+            hsm_lock: self.hsm_lock.clone(),
         })
     }
 }
@@ -80,6 +99,7 @@ impl CoreKeyStore for TpmKeyStore {
                     tpm: Arc::clone(&self.tpm),
                     identity: identity.clone(),
                     key_name: key_name.to_string(),
+                    hsm_lock: self.hsm_lock.clone(),
                 })
             }
         }
@@ -116,18 +136,15 @@ impl Sign for TpmKey {
         _signature_algorithm: SignatureAlgorithm,
         data: &[u8],
     ) -> Result<Self::Signature, CoreError> {
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         match self.identity {
             KeyIdentity::Device => self
                 .tpm
-                .lock()
-                .expect("Lock failed")
                 .sign_with_identity(data)
                 .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
                 .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore))),
             KeyIdentity::Module(ref _m) => self
                 .tpm
-                .lock()
-                .expect("Lock failed")
                 .derive_and_sign_with_identity(
                     data,
                     format!(

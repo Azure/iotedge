@@ -11,7 +11,7 @@ use edgelet_core::{
     Certificate, CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate,
     GetIssuerAlias, KeyBytes, PrivateKey, Signature, IOTEDGED_CA_ALIAS,
 };
-use edgelet_hsm::Crypto;
+use edgelet_hsm::{Crypto, HsmLock};
 mod test_utils;
 use test_utils::TestHSMEnvSetup;
 
@@ -24,7 +24,8 @@ fn crypto_create_cert_success() {
     // arrange
     let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
-    let crypto = Crypto::new().unwrap();
+    let hsm_lock = HsmLock::new();
+    let crypto = Crypto::new(hsm_lock).unwrap();
 
     // tests to ensure that the Device CA alias exists and is valid
     assert!(crypto
