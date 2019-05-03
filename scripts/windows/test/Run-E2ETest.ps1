@@ -272,10 +272,7 @@ Function GetLongHaulDeploymentFilename
         # Using versions without snitcher and influxdb, as they are currently not working in windows
         return "long_haul_deployment.template.windows.json"
     }
-    Else
-    {
-        Throw "Unsupported long haul test architecture: $Architecture"
-    }
+    Throw "Unsupported long haul test architecture: $Architecture"
 }
 
 Function GetStressDeploymentFilename
@@ -285,10 +282,7 @@ Function GetStressDeploymentFilename
         # Using versions without snitcher and influxdb, as they are currently not working in windows
         return "stress_deployment.template.windows.json"
     }
-    Else
-    {
-        Throw "Unsupported stress test architecture: $Architecture"
-    }
+    Throw "Unsupported stress test architecture: $Architecture"
 }
 
 Function InitializeWorkingFolder
