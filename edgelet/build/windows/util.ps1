@@ -8,14 +8,25 @@ function Test-RustUp
     (get-command -Name rustup.exe -ErrorAction SilentlyContinue) -ne $null
 }
 
+function GetPrivateRustPath
+{
+    Join-Path -Path (Get-IotEdgeFolder) -ChildPath 'rust-windows-arm/rust-windows-arm/bin/'
+}
+
 function Get-CargoCommand
 {
-    if (Test-RustUp)
-    {
+    param (
+        [switch] $Arm
+    )
+
+    if ($Arm) {
+        # we have private rust arm tool chain downloaded and unzipped to <source root>\rust-windows-arm\rust-windows-arm\cargo.exe
+        Join-Path -Path (GetPrivateRustPath) -ChildPath 'cargo.exe'
+    }
+    elseif (Test-RustUp) {
         'cargo +stable-x86_64-pc-windows-msvc '
     }
-    else
-    {
+    else {
         "$env:USERPROFILE/.cargo/bin/cargo.exe +stable-x86_64-pc-windows-msvc "
     }
 }
@@ -26,11 +37,33 @@ function Get-Manifest
     Join-Path -Path $ProjectRoot -ChildPath "edgelet/Cargo.toml"
 }
 
+function Get-EdgeletFolder
+{
+    $ProjectRoot = Join-Path -Path $PSScriptRoot -ChildPath "../../.."
+    Join-Path -Path $ProjectRoot -ChildPath "edgelet"
+}
+
+function Get-IotEdgeFolder
+{
+    # iotedge is parent folder of edgelet
+    Join-Path -Path $(Get-EdgeletFolder) -ChildPath ".."
+}
+
 function Assert-Rust
 {
-    Write-Host "Validating Rust (stable-x86_64-pc-windows-msvc) is installed and up to date."
-    if (-not (Test-RustUp))
-    {
+    param (
+        [switch] $Arm
+    )
+
+    $ErrorActionPreference = 'Continue'
+
+    if ($Arm) {
+        if (-not (Test-Path 'rust-windows-arm')) {
+            # if the folder rust-windows-arm exists, we assume the private rust compiler for arm is installed
+            InstallWinArmPrivateRustCompiler
+        }
+    }
+    elseif (-not (Test-RustUp)) {
         Write-Host "Installing rustup and stable-x86_64-pc-windows-msvc Rust."
         Invoke-RestMethod -usebasicparsing 'https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe' -outfile 'rustup-init.exe'
         if ($LastExitCode)
@@ -45,8 +78,7 @@ function Assert-Rust
             Throw "Failed to install rust with exit code $LastExitCode"
         }
     }
-    else
-    {
+    else {
         Write-Host "Running rustup.exe"
         rustup install stable-x86_64-pc-windows-msvc
         if ($LastExitCode)
@@ -54,4 +86,107 @@ function Assert-Rust
             Throw "Failed to install rust with exit code $LastExitCode"
         }
     }
+    
+    $ErrorActionPreference = 'Stop'
+}
+
+function InstallWinArmPrivateRustCompiler {
+    $link = 'https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/rust-windows-arm.zip'
+
+    Write-Host "Downloading $link"
+    $ProgressPreference = 'SilentlyContinue'
+    Invoke-WebRequest $link -OutFile 'rust-windows-arm.zip' -UseBasicParsing
+
+    Write-Host "Extracting $link"
+    Expand-Archive -Path 'rust-windows-arm.zip' -DestinationPath 'rust-windows-arm'
+    $ProgressPreference = 'Stop'
+}
+
+# arm build has to use a few private forks of dependencies instead of the public ones, in order to to this, we have to 
+# 1. append a [patch] section in cargo.toml to use crate forks
+# 2. run cargo update commands to force update cargo.lock to use the forked crates
+# 3 (optional). when building openssl-sys, cl.exe is called to expand a c file, we need to put the hostx64\x64 cl.exe folder to PATH so cl.exe can be found
+#   this is optional because when building iotedge-diagnostics project, openssl is not required
+function PatchRustForArm {
+    param (
+        [switch] $OpenSSL
+    )
+
+    $vsPath = Join-Path -Path ${env:ProgramFiles(x86)} -ChildPath 'Microsoft Visual Studio'
+    Write-Host $vsPath
+
+    # arm build requires cl.exe from vc tools to expand a c file for openssl-sys, append x64-x64 cl.exe folder to PATH
+    if ($OpenSSL) {
+        try {
+            Get-Command cl.exe -ErrorAction Stop
+        }
+        catch {
+            $cls = Get-ChildItem -Path $vsPath -Filter cl.exe -Recurse -ErrorAction Continue -Force | Sort-Object -Property DirectoryName -Descending
+            $clPath = ''
+            for ($i = 0; $i -lt $cls.length; $i++) {
+                $cl = $cls[$i]
+                Write-Host $cl.DirectoryName
+                if ($cl.DirectoryName.ToLower().Contains('hostx64\x64')) {
+                    $clPath = $cl.DirectoryName
+                    break
+                }
+            }
+            $env:PATH = $clPath + ";" + $env:PATH
+            Write-Host $env:PATH
+        }
+
+        # test cl.exe command again to make sure we really have it in PATH
+        Write-Host $(Get-Command cl.exe).Path
+    }
+
+    $ForkedCrates = @"
+
+[patch.crates-io]
+backtrace = { git = "https://github.com/philipktlin/backtrace-rs", branch = "arm" }
+cmake = { git = "https://github.com/philipktlin/cmake-rs", branch = "arm" }
+dtoa = { git = "https://github.com/philipktlin/dtoa", branch = "arm" }
+iovec = { git = "https://github.com/philipktlin/iovec", branch = "arm" }
+mio = { git = "https://github.com/philipktlin/mio", branch = "arm" }
+miow = { git = "https://github.com/philipktlin/miow", branch = "arm" }
+serde-hjson = { git = "https://github.com/philipktlin/hjson-rust", branch = "arm" }
+winapi = { git = "https://github.com/philipktlin/winapi-rs", branch = "arm/v0.3.5" }
+
+[patch."https://github.com/Azure/mio-uds-windows.git"]
+mio-uds-windows = { git = "https://github.com/philipktlin/mio-uds-windows.git", branch = "arm" }
+
+"@
+
+    $ManifestPath = Get-Manifest
+    Write-Host "Add-Content -Path $ManifestPath -Value $ForkedCrates"
+    Add-Content -Path $ManifestPath -Value $ForkedCrates
+
+    $cargo = Get-CargoCommand -Arm
+
+    $ErrorActionPreference = 'Continue'
+
+    Write-Host "$cargo update -p winapi:0.3.5 --precise 0.3.5 --manifest-path $ManifestPath"
+    Invoke-Expression "$cargo update -p winapi:0.3.5 --precise 0.3.5 --manifest-path $ManifestPath"
+    Write-Host "$cargo update -p mio-uds-windows --manifest-path $ManifestPath"
+    Invoke-Expression "$cargo update -p mio-uds-windows --manifest-path $ManifestPath"
+
+    $ErrorActionPreference = 'Stop'
+}
+
+function ReplacePrivateRustInPath {
+    Write-Host 'Remove cargo path in user profile from PATH, and add the private arm version to the PATH'
+
+    $oldPath = $env:PATH
+
+    [string[]] $newPaths = $env:PATH -split ';' |
+        ?{
+            $removePath = $_.Contains('.cargo')
+            if ($removePath) {
+                Write-Host "$_ is being removed from PATH"
+            }
+            -not $removePath
+        }
+    $newPaths += GetPrivateRustPath
+    $env:PATH = $newPaths -join ';'
+
+    $oldPath
 }
