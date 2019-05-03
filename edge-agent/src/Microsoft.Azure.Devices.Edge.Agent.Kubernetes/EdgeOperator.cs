@@ -907,7 +907,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 if (foundPvc.Spec.AccessModes.Contains("Once"))
                 {
                     // TODO : should we throw here or should we just let Kube throw when we try to mount it?
-                    throw new AccessViolationException("PVC is configured to only be mounted to one node.");
+                    throw new AccessViolationException($"PVC with name {name} is configured to only be mounted to one node.");
                 }
 
                 // PVC is fine and we can return
