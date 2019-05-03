@@ -29,13 +29,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 
         public static IEnumerable<object[]> GetNeedToProcessStreamTestData()
         {
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty), false };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>())), false };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, ModuleLogFilter.Empty), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.Some(3), Option.Some("foo"))), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.Some(3), Option.None<string>())), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.Some("foo"))), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>())), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), false };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), false };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.Some(3), Option.Some("foo")), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.Some(3), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.Some("foo")), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>()), LogOutputFraming.SimpleLength, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.Some(new LogsOutputGroupingConfig(100, TimeSpan.FromMilliseconds(1000))), false), false };
         }
 
         [Fact]
@@ -57,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             // Act
             byte[] bytes = await logsProvider.GetLogs(moduleId, logOptions, cancellationToken);
@@ -86,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, ModuleLogFilter.Empty);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             // Act
             byte[] bytes = await logsProvider.GetLogs(moduleId, logOptions, cancellationToken);
@@ -115,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, ModuleLogFilter.Empty);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             // Act
             byte[] bytes = await logsProvider.GetLogs(moduleId, logOptions, cancellationToken);
@@ -156,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Json, ModuleLogFilter.Empty);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Json, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             // Act
             byte[] bytes = await logsProvider.GetLogs(moduleId, logOptions, cancellationToken);
@@ -201,7 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), true);
 
             var receivedBytes = new List<byte>();
 
@@ -241,7 +243,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
             var filter = new ModuleLogFilter(tail, since, Option.Some(6), Option.Some("Starting"));
-            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), true);
 
             var receivedBytes = new List<byte>();
 
@@ -258,7 +260,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             // Assert
             Assert.NotEmpty(receivedBytes);
             string receivedText = Compression.DecompressFromGzip(receivedBytes.ToArray())
-                .Skip(8)
                 .ToArray()
                 .FromBytes();
             Assert.Equal(TestLogTexts[0], receivedText);
@@ -300,11 +301,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            var logOptions1 = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter1);
-            var logOptions2 = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter2);
+            var logOptions1 = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter1, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), true);
+            var logOptions2 = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter2, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), true);
             var logIds = new List<(string, ModuleLogOptions)> { (moduleId1, logOptions1), (moduleId2, logOptions2) };
 
             var receivedBytes = new List<byte[]>();
+
             Task Callback(ArraySegment<byte> bytes)
             {
                 receivedBytes.Add(bytes.ToArray());
@@ -324,9 +326,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
                 .Select(
                     r =>
                         Compression.DecompressFromGzip(r)
-                        .Skip(8)
-                        .ToArray()
-                        .FromBytes())
+                            .ToArray()
+                            .FromBytes())
                 .ToList();
             receivedText.Sort();
 
@@ -368,10 +369,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            string regex = "mod";
-            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), true);
+            var listOptions = new List<(string id, ModuleLogOptions logOptions)>
+            {
+                (moduleId1, logOptions),
+                (moduleId2, logOptions)
+            };
 
             var receivedBytes = new List<byte[]>();
+
             Task Callback(ArraySegment<byte> bytes)
             {
                 receivedBytes.Add(bytes.ToArray());
@@ -382,7 +388,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             expectedTextLines.Sort();
 
             // Act
-            await logsProvider.GetLogsStream(regex, logOptions, Callback, cancellationToken);
+            await logsProvider.GetLogsStream(listOptions, Callback, cancellationToken);
             await Task.Delay(TimeSpan.FromSeconds(6));
 
             // Assert
@@ -391,9 +397,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
                 .Select(
                     r =>
                         Compression.DecompressFromGzip(r)
-                        .Skip(8)
-                        .ToArray()
-                        .FromBytes())
+                            .ToArray()
+                            .FromBytes())
                 .ToList();
             receivedText.Sort();
 
@@ -405,127 +410,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         public void NeedToProcessStreamTest(ModuleLogOptions logOptions, bool expectedResult)
         {
             Assert.Equal(expectedResult, LogsProvider.NeedToProcessStream(logOptions));
-        }
-
-        [Theory]
-        [MemberData(nameof(GetMatchingIdsTestData))]
-        public void GetMatchingIdsTest(string regex, IList<string> moduleIds, IList<string> expectedList)
-        {
-            ISet<string> actualModules = LogsProvider.GetMatchingIds(regex, moduleIds);
-            Assert.Equal(expectedList.OrderBy(i => i), actualModules.OrderBy(i => i));
-        }
-
-        [Theory]
-        [MemberData(nameof(GetIdsToProcessTestData))]
-        public void GetIdsToProcessTest(IList<(string id, ModuleLogOptions logOptions)> idList, IList<string> allIds, IDictionary<string, ModuleLogOptions> expectedIdsToProcess)
-        {
-            IDictionary<string, ModuleLogOptions> idsToProcess = LogsProvider.GetIdsToProcess(idList, allIds);
-            Assert.Equal(expectedIdsToProcess, idsToProcess);
-        }
-
-        public static IEnumerable<object[]> GetIdsToProcessTestData()
-        {
-            var logOptions1 = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Json, ModuleLogFilter.Empty);
-            var logOptions2 = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty);
-            var logOptions3 = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(100), Option.None<int>(), Option.None<int>(), Option.None<string>()));
-
-            yield return new object[]
-            {
-                new List<(string id, ModuleLogOptions logOptions)>
-                {
-                    ("edgeAgent", logOptions1),
-                    ("edgeHub", logOptions2),
-                    ("tempSensor", logOptions3)
-                },
-                new List<string> { "edgeAgent", "edgeHub", "tempSensor", "eModule2" },
-                new Dictionary<string, ModuleLogOptions>
-                {
-                    ["edgeAgent"] = logOptions1,
-                    ["edgeHub"] = logOptions2,
-                    ["tempSensor"] = logOptions3
-                }
-            };
-
-            yield return new object[]
-            {
-                new List<(string id, ModuleLogOptions logOptions)>
-                {
-                    ("edgeAgent", logOptions1),
-                    ("edgeHub", logOptions2),
-                    ("tempSensor", logOptions3)
-                },
-                new List<string> { "edgeAgent", "edgeHub", "tempSimulator", "eModule2" },
-                new Dictionary<string, ModuleLogOptions>
-                {
-                    ["edgeAgent"] = logOptions1,
-                    ["edgeHub"] = logOptions2
-                }
-            };
-
-            yield return new object[]
-            {
-                new List<(string id, ModuleLogOptions logOptions)>
-                {
-                    ("edge", logOptions1),
-                    ("edgeHub", logOptions2),
-                    ("e.*e", logOptions3)
-                },
-                new List<string> { "edgeAgent", "edgeHub", "module1", "eModule2" },
-                new Dictionary<string, ModuleLogOptions>
-                {
-                    ["edgeAgent"] = logOptions1,
-                    ["edgeHub"] = logOptions1,
-                    ["eModule2"] = logOptions3
-                }
-            };
-
-            yield return new object[]
-            {
-                new List<(string id, ModuleLogOptions logOptions)>
-                {
-                    ("^e.*", logOptions1),
-                    ("mod", logOptions2)
-                },
-                new List<string> { "edgeAgent", "edgeHub", "module1", "eModule2" },
-                new Dictionary<string, ModuleLogOptions>
-                {
-                    ["edgeAgent"] = logOptions1,
-                    ["edgeHub"] = logOptions1,
-                    ["eModule2"] = logOptions1,
-                    ["module1"] = logOptions2,
-                }
-            };
-        }
-
-        public static IEnumerable<object[]> GetMatchingIdsTestData()
-        {
-            yield return new object[]
-            {
-                "edge",
-                new List<string> { "edgehub", "edgeAgent", "module1", "edgMod2" },
-                new List<string> { "edgehub", "edgeAgent" },
-            };
-
-            yield return new object[]
-            {
-                "e.*t",
-                new List<string> { "edgehub", "edgeAgent", "module1", "eandt" },
-                new List<string> { "edgeAgent", "eandt" },
-            };
-
-            yield return new object[]
-            {
-                "EDGE",
-                new List<string> { "edgehub", "edgeAgent", "module1", "testmod3" },
-                new List<string> { "edgehub", "edgeAgent" },
-            };
-
-            yield return new object[]
-            {
-                "^e.*",
-                new List<string> { "edgehub", "edgeAgent", "module1", "eandt" },
-                new List<string> { "edgehub", "edgeAgent", "eandt" },
-            };
         }
     }
 }
