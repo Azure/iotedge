@@ -883,7 +883,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         // TODO Async?
         private void GetOrCreatePersistantVolumeClaim(string name)
         {
-            var listResult = this.client.ListNamespacedPersistentVolumeClaim(KubeUtils.K8sNamespace);
+            var listResult = this.client.ListPersistentVolumeClaimForAllNamespaces();
 
             var foundPvc = listResult.Items.SingleOrDefault(item => !string.IsNullOrWhiteSpace(item.Metadata.Name) && item.Metadata.Name == name);
 
