@@ -369,25 +369,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
                 Properties = new TwinProperties
                 {
                     Desired = desired3,
-                    Reported = reported1
-                }
-            };
-
-            var twin4 = new Twin
-            {
-                Properties = new TwinProperties
-                {
-                    Desired = desired2,
                     Reported = reported3
-                }
-            };
-
-            var twin5 = new Twin
-            {
-                Properties = new TwinProperties
-                {
-                    Desired = desired2,
-                    Reported = reported2
                 }
             };
 
@@ -426,26 +408,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             twin = await twinStore.Get(id);
             Assert.True(twin.HasValue);
-            Assert.Equal("{\"p2\":\"vp2\",\"p3\":\"v3\",\"$version\":2}", twin.OrDefault().Properties.Desired.ToJson());
-            Assert.Equal("{\"p1\":\"vp1\",\"p2\":\"vp3\",\"$version\":2}", twin.OrDefault().Properties.Reported.ToJson());
-
-            // Act
-            await twinStore.Update(id, twin4);
-
-            // Assert
-            twin = await twinStore.Get(id);
-            Assert.True(twin.HasValue);
-            Assert.Equal("{\"p2\":\"vp2\",\"p3\":\"v3\",\"$version\":2}", twin.OrDefault().Properties.Desired.ToJson());
-            Assert.Equal("{\"p1\":\"vp1\",\"p2\":\"vp3\",\"$version\":2}", twin.OrDefault().Properties.Reported.ToJson());
-
-            // Act
-            await twinStore.Update(id, twin5);
-
-            // Assert
-            twin = await twinStore.Get(id);
-            Assert.True(twin.HasValue);
-            Assert.Equal("{\"p2\":\"vp2\",\"p3\":\"v3\",\"$version\":2}", twin.OrDefault().Properties.Desired.ToJson());
-            Assert.Equal("{\"p1\":\"vp1\",\"p2\":\"vp3\",\"$version\":2}", twin.OrDefault().Properties.Reported.ToJson());
+            Assert.Equal("{\"p2\":\"v10\",\"p3\":\"vp3\",\"$version\":3}", twin.OrDefault().Properties.Desired.ToJson());
+            Assert.Equal("{\"p1\":\"vp1\",\"p3\":\"v10\",\"$version\":3}", twin.OrDefault().Properties.Reported.ToJson());
         }
 
         static IEntityStore<string, TwinStoreEntity> GetTwinEntityStore()
