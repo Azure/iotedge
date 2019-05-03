@@ -48,7 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string serviceAccountName;
         readonly Uri workloadUri;
         readonly Uri managementUri;
-        readonly string PersistantVolumeClaimKey; // Either PV or SC
+        readonly string PersistantVolumeName; // Either PV or SC
+        readonly bool PersistantVolumeNameIsSC;
         readonly string persistantVolumeClaimSizeMb;
         readonly string defaultMapServiceType;
         readonly TypeSpecificSerDe<EdgeDeploymentDefinition> deploymentSerde;
@@ -103,8 +104,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 ContractResolver = new CamelCasePropertyNamesContractResolver()
             };
 
-            this.PersistantVolumeClaimKey = !string.IsNullOrWhiteSpace(PersistantVolumeName) ? PersistantVolumeName :
-                                                !string.IsNullOrWhiteSpace(StorageClassName) ? StorageClassName : string.Empty;
+            if (!string.IsNullOrWhiteSpace(PersistantVolumeName))
+            {
+                this.PersistantVolumeName = PersistantVolumeName;
+                this.PersistantVolumeNameIsSC = false;
+            }
+            else if (!string.IsNullOrWhiteSpace(StorageClassName))
+            {
+                this.PersistantVolumeName = StorageClassName;
+                this.PersistantVolumeNameIsSC = true;
+            }
+            else
+            {
+                this.PersistantVolumeName = string.Empty;
+            }
+
             this.persistantVolumeClaimSizeMb = PersistantVolumeClaimSizeMb;
         }
 
@@ -861,7 +875,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         bool readOnly = mount.ReadOnly;
 
                         // If the cluster is configured with a persistant volume name then use it otherwise rever to the empty dir source
-                        if (string.IsNullOrWhiteSpace(this.PersistantVolumeClaimKey))
+                        if (string.IsNullOrWhiteSpace(this.PersistantVolumeName))
                         {
                             volumeList.Add(new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource()));
                         }
@@ -903,12 +917,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             var persistentVolumeClaimSpec = new V1PersistentVolumeClaimSpec()
             {
                 AccessModes = new List<string> { readOnly ? "ReadOnlyMany" : "ReadWriteMany" },
-                VolumeName = name,
                 Resources = new V1ResourceRequirements()
                 {
                     Requests = new Dictionary<string, ResourceQuantity>() { { "storage", new ResourceQuantity(this.persistantVolumeClaimSizeMb + "Mi") } }
                 }
             };
+
+            if (this.PersistantVolumeNameIsSC)
+            {
+                persistentVolumeClaimSpec.StorageClassName = this.PersistantVolumeName;
+            }
+            else
+            {
+                persistentVolumeClaimSpec.VolumeName = this.PersistantVolumeName;
+            }
+
             // TODO : Check return?
             this.client.CreateNamespacedPersistentVolumeClaim(new V1PersistentVolumeClaim(spec: persistentVolumeClaimSpec), KubeUtils.K8sNamespace);
         }
