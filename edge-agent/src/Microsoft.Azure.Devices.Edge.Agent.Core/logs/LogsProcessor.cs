@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             if (logOptions.ContentEncoding == LogsContentEncoding.Gzip)
             {
                 sourceMappers.Add(
-                    s => logOptions.OutputGroupingConfig.Map(o => GzipGroupingMapper(s, o))
+                    s => logOptions.OutputGroupingConfig.Map(o => GroupingGzipMapper(s, o))
                         .GetOrElse(() => NonGroupingGzipMapper(s)));
             }
 
@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         static Source<ArraySegment<byte>, NotUsed> NonGroupingGzipMapper(Source<ArraySegment<byte>, NotUsed> s) =>
             s.Select(m => new ArraySegment<byte>(Compression.CompressToGzip(m.Array)));
 
-        static Source<ArraySegment<byte>, NotUsed> GzipGroupingMapper(Source<ArraySegment<byte>, NotUsed> s, LogsOutputGroupingConfig outputGroupingConfig) =>
+        static Source<ArraySegment<byte>, NotUsed> GroupingGzipMapper(Source<ArraySegment<byte>, NotUsed> s, LogsOutputGroupingConfig outputGroupingConfig) =>
             s.GroupedWithin(outputGroupingConfig.MaxFrames, outputGroupingConfig.MaxDuration)
                 .Select(
                     b =>
