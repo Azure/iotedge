@@ -1,0 +1,14 @@
+{{- if .Values.edgeAgent.data.persistentVolumeClaim }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.edgeAgent.data.persistentVolumeClaim.name | quote }}
+  namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+spec:
+  resources:
+    requests:
+      storage: 100Mi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: {{ .Values.edgeAgent.data.persistentVolumeClaim.storageClassName | quote }}
+  {{- end }}

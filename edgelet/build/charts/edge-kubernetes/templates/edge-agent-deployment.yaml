@@ -73,6 +73,11 @@ spec:
             value: {{ .Values.edgeAgent.env.enableK8sServiceCallTracing | quote }}
           - name: "K8sNamespaceBaseName"
             value: {{ .Values.namespace | quote }}
+          {{- if .Values.edgeAgent.data.persistentVolumeClaim }}
+          volumeMounts:
+            - name: agent-storage
+              mountPath: {{ .Values.edgeAgent.data.targetPath | quote }}
+          {{ end -}}
         - name: proxy
           image: "{{ .Values.iotedgedProxy.image.repository }}:{{ .Values.iotedgedProxy.image.tag }}"
           imagePullPolicy: {{ .Values.iotedgedProxy.image.pullPolicy }}
@@ -88,3 +93,9 @@ spec:
         - name: config-volume
           configMap:
             name: {{ include "edge-kubernetes.fullname" . }}-iotedged-proxy-config
+        {{- if .Values.edgeAgent.data.persistentVolumeClaim }}
+        - name: agent-storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.edgeAgent.data.persistentVolumeClaim.name }}
+            readOnly: false
+        {{ end -}}

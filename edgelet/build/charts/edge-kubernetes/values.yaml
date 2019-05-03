@@ -74,6 +74,17 @@ edgeAgent:
     enableK8sServiceCallTracing: false
     # Configure edge agent log verbosity
     runtimeLogLevel: 'debug'
+  data:
+    # In order to benefit from HA, at a minimum the data location for edgeAgent
+    # should be backed by a persistent volume. Please setup a persistent volume
+    # and define a persistent volume claim and provide its reference below. If
+    # this is not provided then the iotedged pod will default to using an
+    # "emptyDir" volume which doesn't work for HA because its lifetime is linked
+    # to the pod's lifetime.
+    targetPath: /tmp/edgeAgent
+    # persistentVolumeClaim:
+    #   name: <CLAIM NAME HERE>
+    #   storageClassName: <STORAGE CLASS NAME HERE>
 
 # Optional registry credentials for module images
 # registryCredentials:
