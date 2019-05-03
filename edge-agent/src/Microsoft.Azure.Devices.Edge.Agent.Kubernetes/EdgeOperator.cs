@@ -887,10 +887,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             var foundPvc = listResult.Items.SingleOrDefault(item => !string.IsNullOrWhiteSpace(item.Metadata.Name) && item.Metadata.Name == name);
 
-            // TODO check the 
             if (foundPvc != default(V1PersistentVolumeClaim))
             {
-                if (foundPvc.Spec.AccessModes.Contains("Many"))
+                // ReadWriteOnce is the Kubernetes moniker for single pod use only
+                if (foundPvc.Spec.AccessModes.Contains("Once"))
                 {
                     // TODO : should we throw here or should we just let Kube throw when we try to mount it?
                     throw new AccessViolationException("PVC is configured to only be mounted to one node.");
