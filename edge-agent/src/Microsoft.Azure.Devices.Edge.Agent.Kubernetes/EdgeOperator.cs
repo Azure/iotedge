@@ -867,7 +867,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         }
                         else
                         {
-                            GetOrCreatePersistantVolumeClaim(name);
+                            GetOrCreatePersistantVolumeClaim(name, readOnly);
                             volumeList.Add(new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(name, readOnly)));
                         }
                         volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
@@ -881,7 +881,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         }
 
         // TODO Async?
-        private void GetOrCreatePersistantVolumeClaim(string name)
+        private void GetOrCreatePersistantVolumeClaim(string name, bool readOnly)
         {
             var listResult = this.client.ListPersistentVolumeClaimForAllNamespaces();
 
@@ -890,7 +890,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // TODO check the 
             if (foundPvc != default(V1PersistentVolumeClaim))
             {
-                if (foundPvc.Spec.AccessModes.Contains("ReadWriteOnce"))
+                if (foundPvc.Spec.AccessModes.Contains("Many"))
                 {
                     // TODO : should we throw here or should we just let Kube throw when we try to mount it?
                     throw new AccessViolationException("PVC is configured to only be mounted to one node.");
@@ -902,7 +902,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             var persistentVolumeClaimSpec = new V1PersistentVolumeClaimSpec()
             {
-                AccessModes = new List<string> { "ReadWriteOnce" },
+                AccessModes = new List<string> { readOnly ? "ReadOnlyMany" : "ReadWriteMany" },
                 VolumeName = name,
                 Resources = new V1ResourceRequirements()
                 {
