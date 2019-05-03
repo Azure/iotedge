@@ -431,11 +431,7 @@ static const char* obtain_default_platform_base_dir(void)
                     }
                 }
             }
-            if (env_base_path != NULL)
-            {
-                free(env_base_path);
-                env_base_path = NULL;
-            }
+            FREEIF(env_base_path);
         #else
             if (make_dir(DEFAULT_EDGE_HOME_DIR_UNIX) != 0)
             {
@@ -510,11 +506,7 @@ static const char* get_base_dir(void)
                     status = __FAILURE__;
                 }
             }
-            if (env_base_path != NULL)
-            {
-                free(env_base_path);
-                env_base_path = NULL;
-            }
+            FREEIF(env_base_path);
             if (status == 0)
             {
                 if ((STRING_concat(base_dir_path, SLASH) != 0) ||
@@ -830,10 +822,7 @@ static int load_encryption_key_from_file(CRYPTO_STORE* store, const char *key_na
             result = put_key(store, HSM_KEY_ENCRYPTION, key_name, key, key_size);
         }
 
-        if (key != NULL)
-        {
-            free(key);
-        }
+        free(key);
         STRING_delete(key_file_handle);
     }
 
@@ -920,14 +909,8 @@ static CERT_INFO_HANDLE prepare_cert_info_handle
                                                                    PRIVATE_KEY_UNKNOWN);
     }
 
-    if (cert_contents != NULL)
-    {
-        free(cert_contents);
-    }
-    if (private_key_contents != NULL)
-    {
-        free(private_key_contents);
-    }
+    free(cert_contents);
+    free(private_key_contents);
 
     return result;
 }
@@ -1838,15 +1821,8 @@ static int hsm_provision_edge_id_certificate(void)
             result = 0;
         }
     }
-
-    if (device_id_cert_path != NULL)
-    {
-        free(device_id_cert_path);
-    }
-    if (device_id_pk_path != NULL)
-    {
-        free(device_id_pk_path);
-    }
+    free(device_id_cert_path);
+    free(device_id_pk_path);
 
     return result;
 }
@@ -1982,18 +1958,10 @@ static int hsm_provision_edge_ca_certificates(void)
                 result = put_pki_trusted_cert(g_crypto_store, DEFAULT_TRUSTED_CA_ALIAS, trusted_ca);
             }
         }
-        if (trusted_certs_path != NULL)
-        {
-            free(trusted_certs_path);
-        }
-        if (device_ca_path != NULL)
-        {
-            free(device_ca_path);
-        }
-        if (device_ca_pk_path != NULL)
-        {
-            free(device_ca_pk_path);
-        }
+
+        free(trusted_certs_path);
+        free(device_ca_path);
+        free(device_ca_pk_path);
     }
 
     return result;
