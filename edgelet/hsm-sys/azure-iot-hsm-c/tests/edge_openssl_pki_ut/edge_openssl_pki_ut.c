@@ -44,6 +44,7 @@ static void test_hook_gballoc_free(void* ptr)
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/ec.h>
+#include <openssl/rand.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
@@ -183,6 +184,9 @@ MOCKABLE_FUNCTION(, int, EVP_DigestInit_ex, EVP_MD_CTX*, ctx, const EVP_MD*, typ
 MOCKABLE_FUNCTION(, int, EVP_DigestSignInit, EVP_MD_CTX*, ctx, EVP_PKEY_CTX**, pctx, const EVP_MD*, type, ENGINE*, e, EVP_PKEY*, pkey);
 MOCKABLE_FUNCTION(, int, EVP_DigestSignFinal, EVP_MD_CTX*, ctx, unsigned char*, sigret, size_t*, siglen);
 MOCKABLE_FUNCTION(, int, EVP_DigestUpdate, EVP_MD_CTX*, ctx, const void*, d, size_t, cnt);
+
+MOCKABLE_FUNCTION(, unsigned long, ERR_get_error);
+MOCKABLE_FUNCTION(, int, RAND_bytes, unsigned char*, buf, int, num);
 
 #undef ENABLE_MOCKS
 
@@ -1207,6 +1211,19 @@ static int test_hook_EVP_DigestUpdate(EVP_MD_CTX *ctx, const void *d, size_t cnt
     (void)ctx;
     (void)d;
     (void)cnt;
+    return 1;
+}
+
+static int test_hook_RAND_bytes(unsigned char *buf, int num)
+{
+    (void)buf;
+    (void)num;
+
+    return 1;
+}
+
+static unsigned long test_hook_ERR_get_error(void)
+{
     return 1;
 }
 
@@ -2396,6 +2413,11 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
 
         REGISTER_GLOBAL_MOCK_HOOK(EVP_DigestUpdate, test_hook_EVP_DigestUpdate);
         REGISTER_GLOBAL_MOCK_FAIL_RETURN(EVP_DigestUpdate, 0);
+
+        REGISTER_GLOBAL_MOCK_HOOK(RAND_bytes, test_hook_RAND_bytes);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(RAND_bytes, 0);
+
+        REGISTER_GLOBAL_MOCK_HOOK(ERR_get_error, test_hook_ERR_get_error);
     }
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -3819,6 +3841,101 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
 
         //cleanup
         key_destroy(key_handle);
+        umock_c_negative_tests_deinit();
+    }
+
+    /**
+     * Test function for API
+     *   generate_rand_buffer
+    */
+    TEST_FUNCTION(generate_rand_buffer_invalid_params_fail)
+    {
+        // arrange
+        int result, cmp;
+        unsigned char output[4] = { 'A', 'B', 'C', 'D' };
+        unsigned char expected_output[4] = { 'A', 'B', 'C', 'D' };
+
+        // act 1
+        result = generate_rand_buffer(NULL, sizeof(output));
+
+        // assert 1
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        cmp = memcmp(output, expected_output, sizeof(expected_output));
+        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
+
+        // act 2
+        result = generate_rand_buffer(output, 0);
+
+        // assert 2
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        cmp = memcmp(output, expected_output, sizeof(expected_output));
+        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
+
+        // act 3
+        size_t max = INT_MAX;
+        result = generate_rand_buffer(output, ++max);
+
+        // assert 3
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        cmp = memcmp(output, expected_output, sizeof(expected_output));
+        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+    }
+
+    /**
+     * Test function for API
+     *   generate_rand_buffer
+    */
+    TEST_FUNCTION(generate_rand_buffer_success)
+    {
+        // arrange
+        unsigned char output[4];
+        EXPECTED_CALL(initialize_openssl());
+        STRICT_EXPECTED_CALL(RAND_bytes(output, sizeof(output)));
+
+        // act
+        int result = generate_rand_buffer(output, sizeof(output));
+
+        // assert
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+    }
+
+    /**
+     * Test function for API
+     *   generate_rand_buffer
+    */
+    TEST_FUNCTION(generate_rand_buffer_negative)
+    {
+        // arrange
+        // arrange
+        int test_result = umock_c_negative_tests_init();
+        ASSERT_ARE_EQUAL(int, 0, test_result);
+        unsigned char output[4] = { 'A', 'B', 'C', 'D' };
+        unsigned char expected_output[4] = { 'A', 'B', 'C', 'D' };
+        EXPECTED_CALL(initialize_openssl());
+        STRICT_EXPECTED_CALL(RAND_bytes(output, sizeof(output)));
+        umock_c_negative_tests_snapshot();
+
+        for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(i);
+
+            if (i == 1)
+            {
+                int result = generate_rand_buffer(output, sizeof(output));
+
+                ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+                int cmp = memcmp(output, expected_output, sizeof(expected_output));
+                ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
+            }
+        }
+
+        // cleanup
         umock_c_negative_tests_deinit();
     }
 
