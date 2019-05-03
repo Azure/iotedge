@@ -867,7 +867,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         }
                         else
                         {
-                            volumeList.Add(new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(this.PersistantVolumeClaimKey, readOnly)));
+                            GetOrCreatePersistantVolumeClaim(name);
+                            volumeList.Add(new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(name, readOnly)));
                         }
                         volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
                     }
@@ -877,6 +878,39 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return volumeList.Count > 0 || volumeMountList.Count > 0
                 ? Option.Some((volumeList, proxyMountList, volumeMountList))
                 : Option.None<(List<V1Volume>, List<V1VolumeMount>, List<V1VolumeMount>)>();
+        }
+
+        // TODO Async?
+        private void GetOrCreatePersistantVolumeClaim(string name)
+        {
+            var listResult = this.client.ListNamespacedPersistentVolumeClaim(KubeUtils.K8sNamespace);
+
+            var foundPvc = listResult.Items.SingleOrDefault(item => !string.IsNullOrWhiteSpace(item.Metadata.Name) && item.Metadata.Name == name);
+
+            // TODO check the 
+            if (foundPvc != default(V1PersistentVolumeClaim))
+            {
+                if (foundPvc.Spec.AccessModes.Contains("ReadWriteOnce"))
+                {
+                    // TODO : should we throw here or should we just let Kube throw when we try to mount it?
+                    throw new AccessViolationException("PVC is configured to only be mounted to one node.");
+                }
+
+                // PVC is fine and we can return
+                return;
+            }
+
+            var persistentVolumeClaimSpec = new V1PersistentVolumeClaimSpec()
+            {
+                AccessModes = new List<string> { "ReadWriteOnce" },
+                VolumeName = name,
+                Resources = new V1ResourceRequirements()
+                {
+                    Requests = new Dictionary<string, ResourceQuantity>() { { "storage", new ResourceQuantity(this.persistantVolumeClaimSizeMb + "Mi") } }
+                }
+            };
+            // TODO : Check return?
+            this.client.CreateNamespacedPersistentVolumeClaim(new V1PersistentVolumeClaim(spec: persistentVolumeClaimSpec), KubeUtils.K8sNamespace);
         }
 
         List<V1EnvVar> CollectEnv(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig, KubernetesModuleIdentity identity)
