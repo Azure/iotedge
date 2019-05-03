@@ -265,6 +265,24 @@ Function GetImageArchitectureLabel
     Throw "Can't find image architecture label for $Architecture"
 }
 
+Function GetLongHaulDeploymentFilename
+{
+    if (GetImageArchitectureLabel -eq "amd64")
+    {
+        # Using versions without snitcher and influxdb, as they are currently not working in windows
+        return "long_haul_deployment.template.windows.json"
+    }
+}
+
+Function GetStressDeploymentFilename
+{
+    if (GetImageArchitectureLabel -eq "amd64")
+    {
+        # Using versions without snitcher and influxdb, as they are currently not working in windows
+        return "stress_deployment.template.windows.json"
+    }
+}
+
 Function InitializeWorkingFolder
 {
     PrintHighlightedMessage "Prepare $TestWorkingFolder for test run"
@@ -1244,9 +1262,8 @@ $DirectMethodModuleToModuleDeploymentFilename = "dm_module_to_module_deployment.
 $RuntimeOnlyDeploymentFilename = 'runtime_only_deployment.template.json'
 $QuickstartDeploymentFilename = 'quickstart_deployment.template.json'
 $TwinTestFilename = "twin_test_tempSensor.json"
-# Using versions without snitcher and influxdb, as they are currently not working in windows
-$LongHaulDeploymentFilename = "long_haul_deployment.template.windows.json"
-$StressDeplymentFilename = "stress_deployment.template.windows.json"
+$LongHaulDeploymentFilename = GetLongHaulDeploymentFilename
+$StressDeplymentFilename = GetStressDeploymentFilename
 
 $IotEdgeQuickstartArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\IotEdgeQuickstart\$Architecture"
 $LeafDeviceArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\LeafDevice\$Architecture"
