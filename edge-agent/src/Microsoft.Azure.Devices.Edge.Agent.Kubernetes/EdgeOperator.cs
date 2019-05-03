@@ -575,7 +575,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     moduleService.ForEach(service => desiredServices.Add(service));
 
                     // Create a Pod for each module, and a proxy container.
-                    V1PodTemplateSpec v1PodSpec = this.GetPodFromModule(labels, module);
+                    V1PodTemplateSpec v1PodSpec = await this.GetPodFromModule(labels, module);
 
                     // if this is the edge agent's deployment then it needs to run under a specific service account
                     if (module.ModuleIdentity.ModuleId == CoreConstants.EdgeAgentModuleIdentityName)
@@ -736,7 +736,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             await Task.WhenAll(updateDeploymentTasks);
         }
 
-        V1PodTemplateSpec GetPodFromModule(Dictionary<string, string> labels, KubernetesModule module)
+        async Task<V1PodTemplateSpec> GetPodFromModule(Dictionary<string, string> labels, KubernetesModule module)
         {
             if (module.Module is IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig)
             {
@@ -772,7 +772,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 List<V1EnvVar> env = this.CollectEnv(moduleWithDockerConfig, module.ModuleIdentity);
 
                 // Bind mounts
-                (List<V1Volume> volumeList, List<V1VolumeMount> proxyMounts, List<V1VolumeMount> volumeMountList) = this.GetVolumesFromModule(moduleWithDockerConfig).GetOrElse((null, null, null));
+                (List<V1Volume> volumeList, List<V1VolumeMount> proxyMounts, List<V1VolumeMount> volumeMountList) = (await this.GetVolumesFromModule(moduleWithDockerConfig)).GetOrElse((null, null, null));
 
                 //Image
                 string moduleImage = moduleWithDockerConfig.Config.Image;
@@ -816,7 +816,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return new V1PodTemplateSpec();
         }
 
-        VolumeOptions GetVolumesFromModule(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig)
+        async Task<VolumeOptions> GetVolumesFromModule(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig)
         {
             var v1ConfigMapVolumeSource = new V1ConfigMapVolumeSource(null, null, this.proxyConfigVolumeName, null);
 
@@ -881,7 +881,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         }
                         else
                         {
-                            GetOrCreatePersistantVolumeClaim(name, readOnly);
+                            await GetOrCreatePersistantVolumeClaim(name, readOnly);
                             volumeList.Add(new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(name, readOnly)));
                         }
                         volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
@@ -894,10 +894,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 : Option.None<(List<V1Volume>, List<V1VolumeMount>, List<V1VolumeMount>)>();
         }
 
-        // TODO Async?
-        private void GetOrCreatePersistantVolumeClaim(string name, bool readOnly)
+        private async Task GetOrCreatePersistantVolumeClaim(string name, bool readOnly)
         {
-            var listResult = this.client.ListPersistentVolumeClaimForAllNamespaces();
+            var listResult = await this.client.ListNamespacedPersistentVolumeClaimAsync(KubeUtils.K8sNamespace);
 
             var foundPvc = listResult.Items.SingleOrDefault(item => !string.IsNullOrWhiteSpace(item.Metadata.Name) && item.Metadata.Name == name);
 
@@ -933,7 +932,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
 
             // TODO : Check return?
-            this.client.CreateNamespacedPersistentVolumeClaim(new V1PersistentVolumeClaim(spec: persistentVolumeClaimSpec), KubeUtils.K8sNamespace);
+            await this.client.CreateNamespacedPersistentVolumeClaimAsync(new V1PersistentVolumeClaim(spec: persistentVolumeClaimSpec), KubeUtils.K8sNamespace);
         }
 
         List<V1EnvVar> CollectEnv(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig, KubernetesModuleIdentity identity)
