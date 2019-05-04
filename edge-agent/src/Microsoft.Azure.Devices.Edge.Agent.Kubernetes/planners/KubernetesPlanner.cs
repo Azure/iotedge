@@ -98,16 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
         }
 
 
-        public async Task<Plan> CreateShutdownPlanAsync(ModuleSet current)
-        {
-            var modulesWithIdentities = new List<KubernetesModule>();
-            var crdCommand = new KubernetesCrdCommand<CombinedDockerConfig>(this.iotHubHostname, this.deviceId, this.client, modulesWithIdentities.ToArray(), Option.None<IRuntimeInfo>(), combinedConfigProvider as ICombinedConfigProvider<CombinedDockerConfig>);
-            var planCommand = await this.commandFactory.WrapAsync(crdCommand);
-            var plan = new List<ICommand>();
-            plan.Add(planCommand);
-            Events.PlanCreated(plan);
-            return new Plan(plan);
-        }
+        public Task<Plan> CreateShutdownPlanAsync(ModuleSet current) => Task.FromResult(Plan.Empty);
+
         static class Events
         {
             static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesPlanner<T>>();
