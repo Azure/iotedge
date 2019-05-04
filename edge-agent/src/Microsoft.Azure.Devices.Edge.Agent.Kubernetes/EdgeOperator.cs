@@ -932,11 +932,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 case WatchEventType.Added:
                 case WatchEventType.Modified:
                 case WatchEventType.Error:
-                    ModuleRuntimeInfo runtimeInfo = this.ConvertPodToRuntime(podName, item);
-                    using (await this.moduleLock.LockAsync())
+                    await this.ConvertPodToRuntime(podName, item).ForEachAsync(async runtimeInfo =>
                     {
-                        this.moduleRuntimeInfos[podName] = runtimeInfo;
-                    }
+                        using (await this.moduleLock.LockAsync())
+                        {
+                            this.moduleRuntimeInfos[podName] = runtimeInfo;
+                        }
+                    });
                     break;
                 case WatchEventType.Deleted:
                     using (await this.moduleLock.LockAsync())
@@ -952,25 +954,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
         }
 
-        (ModuleStatus, string) ConvertPodStatusToModuleStatus(Option<V1ContainerStatus> podStatus)
+        (ModuleStatus, string) ConvertPodStatusToModuleStatus(V1ContainerStatus podStatus)
         {
             // TODO: Possibly refine this?
-            return podStatus.Map(pod =>
-                {
-                    if (pod.State.Running != null)
-                    {
-                        return (ModuleStatus.Running, $"Started at {pod.State.Running.StartedAt.GetValueOrDefault(DateTime.Now)}");
-                    }
-                    else if (pod.State.Terminated != null)
-                    {
-                        return (ModuleStatus.Failed, pod.State.Terminated.Message);
-                    }
-                    else if (pod.State.Waiting != null)
-                    {
-                        return (ModuleStatus.Failed, pod.State.Waiting.Message);
-                    }
-                    return (ModuleStatus.Unknown, "Unknown");
-                }).GetOrElse(() => (ModuleStatus.Unknown, "Unknown"));
+            if (podStatus.State.Running != null)
+            {
+                return (ModuleStatus.Running, $"Started at {podStatus.State.Running.StartedAt.GetValueOrDefault(DateTime.Now)}");
+            }
+            else if (podStatus.State.Terminated != null)
+            {
+                return (ModuleStatus.Failed, podStatus.State.Terminated.Message);
+            }
+            else if (podStatus.State.Waiting != null)
+            {
+                return (ModuleStatus.Failed, podStatus.State.Waiting.Message);
+            }
+            return (ModuleStatus.Unknown, "Unknown");
         }
 
 
@@ -993,11 +992,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         (int, Option<DateTime>, Option<DateTime>, string image) GetRuntimedata(V1ContainerStatus status)
         {
+            string imageName = "unknown:unknown";
+            if (status?.Image != null)
+            {
+                imageName = status.Image;
+            }
             if (status?.LastState?.Running != null)
             {
                 if (status.LastState.Running.StartedAt.HasValue)
                 {
-                    return (0, Option.Some(status.LastState.Running.StartedAt.Value), Option.None<DateTime>(), status.Image);
+                    return (0, Option.Some(status.LastState.Running.StartedAt.Value), Option.None<DateTime>(), imageName);
                 }
             }
             else if (status?.LastState?.Terminated != null)
@@ -1005,25 +1009,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 if (status.LastState.Terminated.StartedAt.HasValue &&
                     status.LastState.Terminated.FinishedAt.HasValue)
                 {
-                    return (0, Option.Some(status.LastState.Terminated.StartedAt.Value), Option.Some(status.LastState.Terminated.FinishedAt.Value), status.Image);
+                    return (0, Option.Some(status.LastState.Terminated.StartedAt.Value), Option.Some(status.LastState.Terminated.FinishedAt.Value), imageName);
                 }
             }
-            return (0, Option.None<DateTime>(), Option.None<DateTime>(), String.Empty);
+            return (0, Option.None<DateTime>(), Option.None<DateTime>(), imageName);
         }
 
-        ModuleRuntimeInfo ConvertPodToRuntime(string name, V1Pod pod)
+        Option<ModuleRuntimeInfo> ConvertPodToRuntime(string name, V1Pod pod)
         {
             string moduleName = name;
             pod.Metadata?.Annotations?.TryGetValue(Constants.k8sEdgeOriginalModuleId, out moduleName);
 
-            Option<V1ContainerStatus> containerStatus = this.GetContainerByName(name, pod);
-            (ModuleStatus moduleStatus, string statusDescription) = this.ConvertPodStatusToModuleStatus(containerStatus);
-            (int exitCode, Option<DateTime> startTime, Option<DateTime> exitTime, string imageHash) = this.GetRuntimedata(containerStatus.OrDefault());
+            return this.GetContainerByName(name, pod).Map(containerStatus =>
+            {
+                (ModuleStatus moduleStatus, string statusDescription) = this.ConvertPodStatusToModuleStatus(containerStatus);
+                (int exitCode, Option<DateTime> startTime, Option<DateTime> exitTime, string image) = this.GetRuntimedata(containerStatus);
 
-            var reportedConfig = new AgentDocker.DockerReportedConfig(string.Empty, string.Empty, imageHash);
-            return new ModuleRuntimeInfo<AgentDocker.DockerReportedConfig>(
-                ModuleIdentityHelper.GetModuleName(moduleName), "docker", moduleStatus, statusDescription, exitCode,
-                startTime, exitTime, reportedConfig);
+                var reportedConfig = new AgentDocker.DockerReportedConfig(image, string.Empty, string.Empty);
+                return new ModuleRuntimeInfo<AgentDocker.DockerReportedConfig>(
+                    ModuleIdentityHelper.GetModuleName(moduleName), "docker", moduleStatus, statusDescription, exitCode,
+                    startTime, exitTime, reportedConfig) as ModuleRuntimeInfo;
+            }
+            );
         }
 
         static class Events
