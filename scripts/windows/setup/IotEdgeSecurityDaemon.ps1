@@ -1100,14 +1100,11 @@ function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
             Invoke-Native 'ApplyUpdate -clear'
         }
         
-        $edgeCabUrl = switch ($env:PROCESSOR_ARCHITECTURE)
-        {
-            'AMD64'
-            {
+        $edgeCabUrl = switch ($env:PROCESSOR_ARCHITECTURE) {
+            'AMD64' {
                 'https://aka.ms/iotedged-windows-latest-cab'
             }
-            'ARM'
-            {
+            'ARM' {
                 'https://aka.ms/iotedged-windows-arm32v7-latest-cab'
             }
         }
