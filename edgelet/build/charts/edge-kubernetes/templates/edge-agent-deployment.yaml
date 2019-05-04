@@ -32,6 +32,12 @@ spec:
           image: "{{ .Values.edgeAgent.image.repository }}:{{ .Values.edgeAgent.image.tag }}"
           imagePullPolicy: {{ .Values.edgeAgent.image.pullPolicy }}
           env:
+          {{- if .Values.edgeAgent.data.persistentVolumeClaim }}
+          - name: BackupConfigFilePath
+            value: {{ printf "%s/backup.json" .Values.edgeAgent.data.targetPath }}
+          - name: StorageFolder
+            value: {{ .Values.edgeAgent.data.targetPath | quote }}
+          {{- end }}
           - name: IOTEDGE_MODULEGENERATIONID
             valueFrom:
               configMapKeyRef:
