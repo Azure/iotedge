@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 {
     using System;
     using System.IO;
+    using Microsoft.Azure.Devices.Edge.Storage.Disk;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 

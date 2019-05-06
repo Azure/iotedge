@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
+namespace Microsoft.Azure.Devices.Edge.Storage.Disk
 {
     public interface IDiskSpaceChecker
     {

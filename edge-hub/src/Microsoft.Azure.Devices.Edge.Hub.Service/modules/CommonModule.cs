@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Storage.Disk;
     using Microsoft.Azure.Devices.Edge.Storage.RocksDb;
     using Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -38,7 +39,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool persistTokens;
         readonly IList<X509Certificate2> trustBundle;
         readonly string proxy;
-        readonly Option<int> storageLimitThresholdPercentage;
+        readonly int storageLimitThresholdPercentage;
+        readonly TimeSpan diskSpaceCheckFrequency;
+        readonly bool enableDiskSpaceChecks;
 
         public CommonModule(
             string productInfo,
@@ -58,7 +61,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool persistTokens,
             IList<X509Certificate2> trustBundle,
             string proxy,
-            Option<int> storageLimitThresholdPercentage)
+            int storageLimitThresholdPercentage,
+            TimeSpan diskSpaceCheckFrequency,
+            bool enableDiskSpaceChecks)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -78,6 +83,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.storageLimitThresholdPercentage = storageLimitThresholdPercentage;
+            this.diskSpaceCheckFrequency = diskSpaceCheckFrequency;
+            this.enableDiskSpaceChecks = enableDiskSpaceChecks;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -115,6 +122,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 
+            // IDiskSpaceChecker
+            builder.Register(
+                c =>
+                {
+                    IDiskSpaceChecker dickSpaceChecker = this.usePersistentStorage
+                        ? DiskSpaceChecker.Create(this.storagePath, this.storageLimitThresholdPercentage, this.diskSpaceCheckFrequency)
+                        : new NullDiskSpaceChecker() as IDiskSpaceChecker;
+                    return dickSpaceChecker;
+                })
+                .As<IDiskSpaceChecker>()
+                .SingleInstance();
+
             // IDbStoreProvider
             builder.Register(
                     c =>
@@ -128,16 +147,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var partitionsList = new List<string> { Core.Constants.MessageStorePartitionKey, Core.Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
                             try
                             {
-                                Option<IDiskSpaceChecker> diskSpaceChecker = this.storageLimitThresholdPercentage.Map(t => DiskSpaceChecker.Create(this.storagePath, t, TimeSpan.FromSeconds(30)) as IDiskSpaceChecker);
-                                IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(
+                                var diskSpaceChecker = c.Resolve<IDiskSpaceChecker>();
+                                IDbStoreProvider dbStoreProvider = DbStoreProvider.Create(
                                     c.Resolve<IRocksDbOptionsProvider>(),
                                     this.storagePath,
                                     partitionsList,
-                                    diskSpaceChecker);
+                                    Option.Some(diskSpaceChecker));
                                 logger.LogInformation($"Created persistent store at {this.storagePath}");
-                                return dbStoreprovider;
+                                return dbStoreProvider;
                             }
-                            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+                            catch (Exception ex) when (!ex.IsFatal())
                             {
                                 logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
                                 return new InMemoryDbStoreProvider();

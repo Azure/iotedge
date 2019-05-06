@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Threading;
+    using Microsoft.Azure.Devices.Edge.Storage.Disk;
     using Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
