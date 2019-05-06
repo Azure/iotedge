@@ -190,8 +190,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             string proxy = this.configuration.GetValue("https_proxy", string.Empty);
             string productInfo = GetProductInfo();
-            Option<int> storageLimitThresholdPercentage = this.GetConfigurationValueIfExists("StorageLimitThresholdPercentage")
-                .Map(t => (int)t);
+            int storageLimitThresholdPercentage = this.configuration.GetValue("StorageLimitThresholdPercentage", 90);
+            long diskSpaceCheckFrequencySecs = this.configuration.GetValue("DiskSpaceCheckFrequencySecs", 120);
+            TimeSpan diskSpaceCheckFrequency = TimeSpan.FromSeconds(diskSpaceCheckFrequencySecs);
+            bool enableDiskSpaceChecks = this.configuration.GetValue("EnableDiskSpaceChecks", true);
 
             // Register modules
             builder.RegisterModule(
@@ -214,8 +216,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.trustBundle,
                     proxy,
                     metricsConfig,
-                    storageLimitThresholdPercentage));
-        }
+                    storageLimitThresholdPercentage,
+                    diskSpaceCheckFrequency,
+                    enableDiskSpaceChecks));
 
         static string GetProductInfo()
         {
