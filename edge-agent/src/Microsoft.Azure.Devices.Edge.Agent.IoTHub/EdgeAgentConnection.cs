@@ -97,9 +97,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public async Task UpdateReportedPropertiesAsync(TwinCollection patch)
         {
-            if (await this.WaitForDeviceClientInitialization())
+            Events.UpdatingReportedProperties();
+            try
             {
-                await this.moduleClient.ForEachAsync(d => d.UpdateReportedPropertiesAsync(patch));
+                if (!this.moduleClient.HasValue)
+                {
+                    Events.UpdateReportedPropertiesDeviceClientEmpty();
+                }
+
+                if (await this.WaitForDeviceClientInitialization())
+                {
+                    await this.moduleClient.ForEachAsync(d => d.UpdateReportedPropertiesAsync(patch));
+                    Events.UpdatedReportedProperties();
+                }
+            }
+            catch (Exception e)
+            {
+                Events.ErrorUpdatingReportedProperties(e);
+                throw;
             }
         }
 
@@ -305,7 +320,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 MismatchedSchemaVersion,
                 TwinRefreshInit,
                 TwinRefreshStart,
-                GotTwin
+                GotTwin,
+                UpdatingReportedProperties,
+                UpdateReportedPropertiesDeviceClientEmpty,
+                UpdatedReportedProperties,
+                ErrorUpdatingReportedProperties
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -385,6 +404,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 long reportedPropertiesVersion = twin?.Properties?.Reported?.Version ?? -1;
                 long desiredPropertiesVersion = twin?.Properties?.Desired?.Version ?? -1;
                 Log.LogInformation((int)EventIds.GotTwin, $"Obtained Edge agent twin from IoTHub with desired properties version {desiredPropertiesVersion} and reported properties version {reportedPropertiesVersion}.");
+            }
+
+            public static void UpdatingReportedProperties()
+            {
+                Log.LogDebug((int)EventIds.UpdatingReportedProperties, "Updating reported properties in IoT Hub");
+            }
+
+            public static void UpdateReportedPropertiesDeviceClientEmpty()
+            {
+                Log.LogDebug((int)EventIds.UpdateReportedPropertiesDeviceClientEmpty, "Updating reported properties in IoT Hub");
+            }
+
+            public static void UpdatedReportedProperties()
+            {
+                Log.LogDebug((int)EventIds.UpdatedReportedProperties, "Updated reported properties in IoT Hub");
+            }
+
+            public static void ErrorUpdatingReportedProperties(Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorUpdatingReportedProperties, ex, "Error updating reported properties in IoT Hub");
             }
         }
     }
