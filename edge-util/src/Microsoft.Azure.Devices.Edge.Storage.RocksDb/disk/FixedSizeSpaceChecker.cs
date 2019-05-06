@@ -10,11 +10,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
         readonly string storageFolder;
         readonly long maxSizeBytes;
 
-        protected override bool GetIsDiskFull()
+        protected override DiskStatus GetDiskStatus()
         {
             long bytes = GetDirectorySize(this.storageFolder);
-            bool isFull = bytes >= this.maxSizeBytes;
-            return isFull;
+            double usagePercentage = (double)bytes * 100 / this.maxSizeBytes;
+            DiskStatus diskStatus = GetDiskStatus(usagePercentage);
+            return diskStatus;
         }
 
         public FixedSizeSpaceChecker(string storageFolder, long maxSizeBytes, TimeSpan checkFrequency, ILogger logger)
@@ -22,6 +23,21 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
         {
             this.storageFolder = storageFolder;
             this.maxSizeBytes = maxSizeBytes;
+        }
+
+        static DiskStatus GetDiskStatus(double usagePercentage)
+        {
+            if (usagePercentage < 90)
+            {
+                return DiskStatus.Available;
+            }
+
+            if (usagePercentage < 100)
+            {
+                return DiskStatus.Critical;
+            }
+
+            return DiskStatus.Full;
         }
 
         static long GetDirectorySize(string directoryPath)

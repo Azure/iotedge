@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             }
         }
 
-        public bool IsFull => this.inner.IsFull;
+        public bool IsFull => this.inner.DiskStatus == DiskStatus.Full;
 
         static string GetMatchingDrive(string storageFolder)
         {

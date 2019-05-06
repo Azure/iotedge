@@ -19,12 +19,28 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             this.thresholdPercentage = thresholdPercentage;
         }
 
-        protected override bool GetIsDiskFull()
+        protected override DiskStatus GetDiskStatus()
         {
             var driveInfo = new DriveInfo(this.drive);
             double percentDiskFree = (double)driveInfo.AvailableFreeSpace * 100 / driveInfo.TotalFreeSpace;
-            bool isFull = percentDiskFree <= this.thresholdPercentage;
-            return isFull;
+            DiskStatus diskStatus = GetDiskStatus(percentDiskFree, this.thresholdPercentage);
+            return diskStatus;
+        }
+
+        static DiskStatus GetDiskStatus(double percentDiskFree, int thresholdPercentage)
+        {
+            double usagePercentage = percentDiskFree * 100 / thresholdPercentage;
+            if (usagePercentage < 90)
+            {
+                return DiskStatus.Available;
+            }
+
+            if (usagePercentage < 100)
+            {
+                return DiskStatus.Critical;
+            }
+
+            return DiskStatus.Full;
         }
     }
 }
