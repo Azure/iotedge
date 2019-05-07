@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             unchecked
             {
-                int hashCode = (this.SchemaVersion != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(this.SchemaVersion) : 0);
+                int hashCode = this.SchemaVersion != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(this.SchemaVersion) : 0;
                 hashCode = (hashCode * 397) ^ (this.Routes?.GetHashCode() ?? 0);
                 hashCode = (hashCode * 397) ^ (this.StoreAndForwardConfiguration?.GetHashCode() ?? 0);
                 return hashCode;

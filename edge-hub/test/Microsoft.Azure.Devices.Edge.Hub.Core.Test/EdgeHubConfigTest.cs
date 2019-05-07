@@ -10,7 +10,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
     [Unit]
     public class EdgeHubConfigTest
-    { 
+    {
+        public static IEnumerable<object[]> GetConstructorInvalidParameters()
+        {
+            yield return new object[] { null, new Dictionary<string, RouteConfig>(), new StoreAndForwardConfiguration(1000) };
+            yield return new object[] { "1.0", null, new StoreAndForwardConfiguration(1000) };
+            yield return new object[] { "1.0", new Dictionary<string, RouteConfig>(), null };
+        }
+
         [Fact]
         public void ConstructorHappyPath()
         {
@@ -31,13 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             // Act & Assert
             Assert.ThrowsAny<ArgumentException>(() => new EdgeHubConfig(schemaVersion, routes, configuration));
-        }
-
-        public static IEnumerable<object[]> GetConstructorInvalidParameters()
-        {
-            yield return new object[] { null, new Dictionary<string, RouteConfig>(), new StoreAndForwardConfiguration(1000) };
-            yield return new object[] { "1.0", null, new StoreAndForwardConfiguration(1000) };
-            yield return new object[] { "1.0", new Dictionary<string, RouteConfig>(), null };
         }
     }
 }
