@@ -18,12 +18,6 @@ mod windows {
     use winreg::RegKey;
 
     pub fn main() {
-        // on windows we only support x64 at this time
-        let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
-        if target_arch != "x86_64" {
-            panic!("Only x64 architecture is supported on Windows at this time.");
-        }
-
         let sdk_bin_root = get_sdk_bin_root().expect("Could not get Windows SDK root bin path");
         let mc_path = sdk_bin_root.join("mc.exe");
         let rc_path = sdk_bin_root.join("rc.exe");

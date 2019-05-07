@@ -110,6 +110,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 
                     Events.UpdatedReportedProperties();
                 }
+                else
+                {
+                    Events.ReportedPropertiesPatchEmpty();
+                }
             }
             catch (Exception e)
             {
@@ -157,6 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 
         void SetReported(AgentState reported)
         {
+            Events.UpdatingReportedPropertiesCache();
             if (this.reportedState.OrDefault() != reported)
             {
                 this.reportedState = Option.Some(reported);
@@ -243,7 +248,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             NoSavedReportedProperties,
             BuildStateFailed,
             UpdateErrorInfoFailed,
-            ClearedReportedProperties
+            ClearedReportedProperties,
+            ReportedPropertiesPatchEmpty,
+            UpdatingReportedPropertiesCache
         }
 
         public static void NoSavedReportedProperties()
@@ -274,6 +281,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         public static void ClearedReportedProperties(Exception e)
         {
             Log.LogWarning((int)EventIds.ClearedReportedProperties, $"Clearing reported properties due to error {e.Message}");
+        }
+
+        public static void ReportedPropertiesPatchEmpty()
+        {
+            Log.LogDebug((int)EventIds.ReportedPropertiesPatchEmpty, "Not updating reported properties as patch was found to be empty");
+        }
+
+        public static void UpdatingReportedPropertiesCache()
+        {
+            Log.LogDebug((int)EventIds.UpdatingReportedPropertiesCache, "Updating reported properties cache");
         }
     }
 }

@@ -16,8 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
 
         public string Name => this.blockBlob.Name;
 
-        public BlobProperties BlobProperties => this.blockBlob.Properties;
-
         public Task UploadFromByteArrayAsync(byte[] bytes) => this.blockBlob.UploadFromByteArrayAsync(bytes, 0, bytes.Length);
     }
 }

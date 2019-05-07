@@ -9,10 +9,10 @@
   >
   <files>
     <file source="$(_REPO_ROOT)\edgelet\contrib\config\windows\config.yaml" destinationDir="$(runtime.programFiles)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedge.exe" destinationDir="$(runtime.programFiles)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged.exe" destinationDir="$(runtime.programFiles)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged.pdb" destinationDir="$(runtime.programFiles)\iotedge" />
-    <file source="$(_REPO_ROOT)\edgelet\target\release\iotedged_eventlog_messages.dll" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\target\$(_Arch)\release\iotedge.exe" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\target\$(_Arch)\release\iotedged.exe" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\target\$(_Arch)\release\iotedged.pdb" destinationDir="$(runtime.programFiles)\iotedge" />
+    <file source="$(_REPO_ROOT)\edgelet\target\$(_Arch)\release\iotedged_eventlog_messages.dll" destinationDir="$(runtime.programFiles)\iotedge" />
     <file source="$(_REPO_ROOT)\edgelet\hsm-sys\azure-iot-hsm-c\build\Release\iothsm.dll" destinationDir="$(runtime.programFiles)\iotedge" />
     <file source="$(_OPENSSL_ROOT_DIR)\bin\libeay32.dll" destinationDir="$(runtime.programFiles)\iotedge" />
     <file source="$(_OPENSSL_ROOT_DIR)\bin\ssleay32.dll" destinationDir="$(runtime.programFiles)\iotedge" />
