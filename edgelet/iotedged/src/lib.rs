@@ -296,7 +296,7 @@ impl Main {
             Provisioning::External(external) => {
                 info!("Starting provisioning edge device via external hosted mode...");
                 let (key_store, provisioning_result, root_key) =
-                    external_provision(&external, &mut tokio_runtime)?;
+                    external_provision(&external, &mut tokio_runtime, hsm_lock.clone())?;
                 start_edgelet!(key_store, provisioning_result, root_key, runtime);
             }
             Provisioning::Dps(dps) => {
@@ -710,6 +710,7 @@ fn manual_provision(
 fn external_provision(
     provisioning: &External,
     tokio_runtime: &mut tokio::runtime::Runtime,
+    hsm_lock: Arc<HsmLock>,
 ) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey), Error> {
     let hosting_client = HostingClient::new(provisioning.endpoint()).context(
         ErrorKind::Initialize(InitializeErrorReason::ExternalHostingClient),
@@ -718,7 +719,7 @@ fn external_provision(
     let tpm = Tpm::new().context(ErrorKind::Initialize(
         InitializeErrorReason::ExternalHostingClient,
     ))?;
-    let tpm_hsm = TpmKeyStore::from_hsm(tpm).context(ErrorKind::Initialize(
+    let tpm_hsm = TpmKeyStore::from_hsm(tpm, hsm_lock).context(ErrorKind::Initialize(
         InitializeErrorReason::ExternalHostingClient,
     ))?;
     let external = ExternalProvisioning::new(hosting_client);
