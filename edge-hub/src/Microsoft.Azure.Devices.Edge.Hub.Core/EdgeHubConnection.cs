@@ -228,7 +228,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             ValidateSchemaVersion(desiredProperties.SchemaVersion);
 
-            var routes = new List<(string Name, string Value, Route Route)>();
+            var routes = new Dictionary<string, RouteConfig>();
             if (desiredProperties.Routes != null)
             {
                 foreach (KeyValuePair<string, string> inputRoute in desiredProperties.Routes)
@@ -238,7 +238,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         if (!string.IsNullOrWhiteSpace(inputRoute.Value))
                         {
                             Route route = this.routeFactory.Create(inputRoute.Value);
-                            routes.Add((inputRoute.Key, inputRoute.Value, route));
+                            routes.Add(inputRoute.Key, new RouteConfig(inputRoute.Key, inputRoute.Value, route));
                         }
                     }
                     catch (Exception ex)

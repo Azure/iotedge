@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 IConfigSource configSource = await this.container.Resolve<Task<IConfigSource>>();
                 ConfigUpdater configUpdater = await this.container.Resolve<Task<ConfigUpdater>>();
-                await configUpdater.Init(configSource);
+                configUpdater.Init(configSource);
 
                 ILogger logger = this.container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
                 MqttProtocolHead mqttProtocolHead = await this.container.Resolve<Task<MqttProtocolHead>>();
