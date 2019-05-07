@@ -281,7 +281,6 @@ jobs:
           name: azureiotedge-diagnostics
           imageName: azureiotedge-diagnostics
           project: azureiotedge-diagnostics
-          arm32v7: 'false'
 
       # Edge Agent
       - template: templates/image-windows.yaml
