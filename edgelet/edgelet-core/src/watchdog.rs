@@ -123,7 +123,8 @@ where
             .or_else(|e| {
                 warn!("Error in watchdog when checking for edge runtime status:");
                 log_failure(Level::Warn, &e);
-                future::ok(())
+//                future::ok(())
+                future::err(e)
             })
         })
 }

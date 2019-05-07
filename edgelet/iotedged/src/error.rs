@@ -5,6 +5,9 @@ use std::fmt::Display;
 #[cfg(windows)]
 use std::sync::Mutex;
 
+use edgelet_core::ErrorKind as CoreErrorKind;
+use edgelet_core::Error as CoreError;
+
 use failure::{Backtrace, Context, Fail};
 #[cfg(windows)]
 use windows_service::Error as WindowsServiceError;
@@ -24,6 +27,15 @@ pub enum ErrorKind {
 
     #[fail(display = "The daemon could not start up successfully: {}", _0)]
     Initialize(InitializeErrorReason),
+
+    #[fail(display = "Invalid device configuration was provided.")]
+    InvalidDeviceConfig,
+
+    #[fail(display = "Invalid IoT hub configuration was provided.")]
+    InvalidHubConfig,
+
+    #[fail(display = "Invalid signed token was provided.")]
+    InvalidSignedToken,
 
     #[fail(display = "The management service encountered an error")]
     ManagementService,
@@ -72,9 +84,46 @@ impl From<ErrorKind> for Error {
     }
 }
 
+impl From<CoreError> for Error {
+    fn from(error: CoreError) -> Self {
+        let fail: &dyn Fail = &error;
+        println!("Printing causes");
+        println!("{:?}",fail.cause());
+        for cause in fail.iter_causes() {
+            println!("{}", cause);
+        }
+
+        let error_kind = match error.kind() {
+            CoreErrorKind::EdgeRuntimeIdentityNotFound => ErrorKind::InvalidDeviceConfig,
+            _ => ErrorKind::Watchdog
+        };
+
+        Error::from(error.context(error_kind))
+    }
+}
+
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
+    }
+}
+
+impl From<&ErrorKind> for i32 {
+    fn from(err: &ErrorKind) -> Self {
+        match err {
+            // Using 150 as the starting base for custom IoT edge error codes so as to avoid
+            // collisions with -
+            // 1. The standard error codes defined by the BSD ecosystem
+            // (https://www.freebsd.org/cgCould not get module i/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+11.2-stable&arch=default&format=html)
+            // that is recommended by the Rust docs
+            // (https://rust-lang-nursery.github.io/cli-wg/in-depth/exit-code.html)
+            // 2. Bash scripting exit codes with special meanings
+            // (http://www.tldp.org/LDP/abs/html/exitcodes.html)
+            ErrorKind::InvalidDeviceConfig => 150,
+            ErrorKind::InvalidHubConfig => 151,
+            ErrorKind::InvalidSignedToken => 152,
+            _ => 1
+        }
     }
 }
 

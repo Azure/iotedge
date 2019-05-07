@@ -894,7 +894,7 @@ where
     let watchdog = Watchdog::new(runtime.clone(), id_man.clone());
     let runtime_future = watchdog
         .run_until(spec, EDGE_RUNTIME_MODULEID, shutdown.map_err(|_| ()))
-        .map_err(|err| Error::from(err.context(ErrorKind::Watchdog)));
+        .map_err(|err| Error::from(err));
 
     Ok(runtime_future)
 }
