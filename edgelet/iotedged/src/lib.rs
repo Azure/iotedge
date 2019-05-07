@@ -194,6 +194,11 @@ impl Main {
             }
         }
 
+        if let Provisioning::External(ref external) = settings.provisioning() {
+            // Set the hosting endpoint environment variable for use by the custom HSM library.
+            env::set_var(HOSTING_ENDPOINT_KEY, external.endpoint().as_str());
+        }
+
         let hyper_client = MaybeProxyClient::new(get_proxy_uri(None)?)
             .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
 
@@ -709,9 +714,6 @@ fn external_provision(
     let hosting_client = HostingClient::new(provisioning.endpoint()).context(
         ErrorKind::Initialize(InitializeErrorReason::ExternalHostingClient),
     )?;
-
-    // Set the hosting endpoint environment variable for use by the custom HSM library.
-    env::set_var(HOSTING_ENDPOINT_KEY, provisioning.endpoint().as_str());
 
     let tpm = Tpm::new().context(ErrorKind::Initialize(
         InitializeErrorReason::ExternalHostingClient,
