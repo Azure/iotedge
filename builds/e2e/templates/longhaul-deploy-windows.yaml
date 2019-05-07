@@ -1,0 +1,38 @@
+parameters:
+  release.Label: ''
+  edgelet.artifact.name: ''
+  images.artifact.name: ''
+  container.registry: ''
+  container.registry.username: ''
+  container.registry.password: ''
+  iotHub.connectionString: ''
+  eventHub.connectionString: ''
+  snitch.build.number: ''
+  snitch.alert.url: ''
+  snitch.storage.account: ''
+  snitch.storage.masterKey: ''
+  loadGen.message.frequency: ''
+
+steps:
+  - task: CopyFiles@2
+    displayName: 'Copy Edgelet Artifact'
+    inputs:
+      SourceFolder: "$(System.ArtifactsDirectory)/${{ parameters['edgelet.artifact.name'] }}"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
+      CleanTargetFolder: true
+  - task: CopyFiles@2
+    displayName: 'Copy Images Artifact'
+    inputs:
+      SourceFolder: "$(System.ArtifactsDirectory)/${{ parameters['images.artifact.name'] }}"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
+      CleanTargetFolder: true
+  - task: PowerShell@2
+    displayName: 'Run Long Haul Deployment'
+    inputs:
+      targetType: inline
+      script: |
+        #Requires -RunAsAdministrator
+        $testName="LongHaul"
+        $ArtifactInfo=convertfrom-stringdata (get-content $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt -raw)
+        $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/windows/test/Run-E2ETest.ps1 -E2ETestFolder "$(Agent.HomeDirectory)/.." -ReleaseLabel "${{ parameters['release.label'] }}" -ArtifactImageBuildNumber "$($ArtifactInfo.BuildNumber)" -TestName "$testName" -ContainerRegistry "${{ parameters['container.registry'] }}" -ContainerRegistryUsername "${{ parameters['container.registry.username'] }}" -ContainerRegistryPassword "${{ parameters['container.registry.password'] }}" -IoTHubConnectionString "${{ parameters['iotHub.connectionString'] }}" -EventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" -SnitchBuildNumber "${{ parameters['snitch.build.number'] }}" -SnitchStorageAccount "${{ parameters['snitch.storage.account'] }}" -SnitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" -SnitchAlertUrl "${{ parameters['snitch.alert.url'] }}" -LoadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}"
+      workingDirectory: "$(Agent.HomeDirectory)/.."
