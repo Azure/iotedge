@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
+namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
 {
     using System;
     using System.Collections.Generic;
