@@ -49,29 +49,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             try
             {
                 Option<EdgeHubConfig> edgeHubConfig = await this.configProvider
-                        .Map(c => c.GetConfig())
-                        .GetOrElse(Task.FromResult(Option.None<EdgeHubConfig>()));
-                    if (!edgeHubConfig.HasValue)
+                    .Map(c => c.GetConfig())
+                    .GetOrElse(Task.FromResult(Option.None<EdgeHubConfig>()));
+                if (!edgeHubConfig.HasValue)
+                {
+                    Events.EmptyConfigReceived();
+                }
+                else
+                {
+                    using (await this.updateLock.LockAsync())
                     {
-                        Events.EmptyConfigReceived();
-                    }
-                    else
-                    {
-                        using (await this.updateLock.LockAsync())
-                        {
-                            await edgeHubConfig.ForEachAsync(
-                                async ehc =>
+                        await edgeHubConfig.ForEachAsync(
+                            async ehc =>
+                            {
+                                bool hasUpdates = this.currentConfig.Map(cc => !cc.Equals(ehc)).GetOrElse(true);
+                                if (hasUpdates)
                                 {
-                                    bool hasUpdates = this.currentConfig.Map(cc => !cc.Equals(ehc)).GetOrElse(true);
-                                    if (hasUpdates)
-                                    {
-                                        await this.UpdateRoutes(ehc.Routes, this.currentConfig.HasValue);
-                                        this.UpdateStoreAndForwardConfig(ehc.StoreAndForwardConfiguration);
-                                        this.currentConfig = Option.Some(ehc);
-                                    }
-                                });
-                        }
+                                    await this.UpdateRoutes(ehc.Routes, this.currentConfig.HasValue);
+                                    this.UpdateStoreAndForwardConfig(ehc.StoreAndForwardConfiguration);
+                                    this.currentConfig = Option.Some(ehc);
+                                }
+                            });
                     }
+                }
             }
             catch (Exception ex)
             {
@@ -129,8 +129,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
         static class Events
         {
-            const int IdStart = HubCoreEventIds.ConfigUpdater;
             public static readonly ILogger Log = Logger.Factory.CreateLogger<ConfigUpdater>();
+            const int IdStart = HubCoreEventIds.ConfigUpdater;
 
             enum EventIds
             {
@@ -142,6 +142,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 UpdatedStoreAndForwardConfig,
                 EmptyConfig,
                 ErrorPullingConfig
+            }
+
+            public static void ErrorPullingConfig(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorPullingConfig, ex, FormattableString.Invariant($"Error getting edge hub configuration."));
             }
 
             internal static void Initialized()
@@ -194,11 +199,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             internal static void EmptyConfigReceived()
             {
                 Log.LogWarning((int)EventIds.EmptyConfig, FormattableString.Invariant($"Empty edge hub configuration received. Ignoring..."));
-            }
-
-            public static void ErrorPullingConfig(Exception ex)
-            {
-                Log.LogWarning((int)EventIds.ErrorPullingConfig, ex, FormattableString.Invariant($"Error getting edge hub configuration."));
             }
         }
     }
