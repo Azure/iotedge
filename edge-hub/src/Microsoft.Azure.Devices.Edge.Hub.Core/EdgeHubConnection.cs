@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
@@ -248,7 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
             }
 
-            return new EdgeHubConfig(desiredProperties.SchemaVersion, routes, desiredProperties.StoreAndForwardConfiguration);
+            return new EdgeHubConfig(desiredProperties.SchemaVersion, new ReadOnlyDictionary<string, RouteConfig>(routes), desiredProperties.StoreAndForwardConfiguration);
         }
 
         async Task HandleDesiredPropertiesUpdate(IMessage desiredPropertiesUpdate)

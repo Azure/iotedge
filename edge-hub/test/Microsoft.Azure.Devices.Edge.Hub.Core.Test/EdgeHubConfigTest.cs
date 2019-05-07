@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var snfConfig = new StoreAndForwardConfiguration(1000);
 
             // Act
-            var edgeHubConfig = new EdgeHubConfig("1.0", new Dictionary<string, RouteConfig>(), snfConfig);
+            var edgeHubConfig = new EdgeHubConfig("1.0", routes, snfConfig);
 
             // Assert
             Assert.NotNull(edgeHubConfig);
