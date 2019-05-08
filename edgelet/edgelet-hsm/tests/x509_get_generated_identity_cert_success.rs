@@ -8,7 +8,7 @@ use std::env;
 use std::sync::Mutex;
 
 use edgelet_core::{Certificate, GetDeviceIdentityCertificate, KeyBytes, PrivateKey, Signature};
-use edgelet_hsm::X509;
+use edgelet_hsm::{HsmLock, X509};
 mod test_utils;
 use test_utils::TestHSMEnvSetup;
 
@@ -25,7 +25,8 @@ fn x509_get_identity_cert_success() {
 
     env::set_var(REGISTRATION_ID_KEY, "TEST X509 DEVICE");
 
-    let x509 = X509::new().unwrap();
+    let hsm_lock = HsmLock::new();
+    let x509 = X509::new(hsm_lock).unwrap();
 
     let cert_info = x509.get().unwrap();
 
