@@ -192,7 +192,7 @@ Param (
     [string] $AmqpSettingsEnabled = "true",
 
     [ValidateSet("true", "false")]
-    [string] $MqttSettingsEnabled = "true"
+    [string] $MqttSettingsEnabled = "true",
 
     [ValidateNotNullOrEmpty()]
     [switch] $BypassEdgeInstallation
@@ -933,7 +933,7 @@ Function RunTempSensorTest
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         -tw `"$TwinTestFileArtifactFilePath`" ``
         --optimize_for_performance=`"$OptimizeForPerformance`" ``
-        --bypass_edge_installation=`"$BypassEdgeInstallation`"
+        --bypass_edge_installation=`"$BypassEdgeInstallation`""
 
     If ($ProxyUri) {
         $testCommand = "$testCommand ``

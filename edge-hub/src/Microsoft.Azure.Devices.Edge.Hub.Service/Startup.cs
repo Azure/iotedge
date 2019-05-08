@@ -22,7 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         // ReSharper disable once UnusedParameter.Local
         public Startup(
-            IHostingEnvironment env,
             IConfigurationRoot configuration,
             IDependencyManager dependencyManager)
         {

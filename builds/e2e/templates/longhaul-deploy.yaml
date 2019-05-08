@@ -19,13 +19,13 @@ steps:
   - task: CopyFiles@2
     displayName: 'Copy Edgelet Artifact'
     inputs:
-      SourceFolder: '$(System.ArtifactsDirectory)/$(edgelet.artifact.name)'
+      SourceFolder: '$(Build.StagingDirectory)/$(edgelet.artifact.name)'
       TargetFolder: '$(Agent.HomeDirectory)/../artifacts/$(edgelet.artifact.name)'
       CleanTargetFolder: true
   - task: CopyFiles@2
     displayName: 'Copy Images artifact'
     inputs:
-      SourceFolder: '$(System.ArtifactsDirectory)/$(images.artifact.name)'
+      SourceFolder: '$(Build.StagingDirectory)/$(images.artifact.name)'
       TargetFolder: '$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name)'
       CleanTargetFolder: true
   - task: Bash@3

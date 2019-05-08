@@ -1,7 +1,7 @@
-ARG base_tag=2.1.6-runtime-alpine3.7
+ARG base_tag=2.1.10-alpine3.7
 FROM azureiotedge/azureiotedge-runtime-base:1.0.0-preview001-linux-amd64 as builder
 
-FROM microsoft/dotnet:${base_tag}
+FROM mcr.microsoft.com/dotnet/core/runtime:${base_tag}
 
 ARG EXE_DIR=.
 
