@@ -368,6 +368,7 @@ pub struct Settings<T> {
     homedir: PathBuf,
     moby_runtime: MobyRuntime,
     certificates: Option<Certificates>,
+    retry_count: Option<u32>,
 }
 
 impl<T> Settings<T>
@@ -430,6 +431,10 @@ where
 
     pub fn certificates(&self) -> Option<&Certificates> {
         self.certificates.as_ref()
+    }
+
+    pub fn retry_count(&self) -> Option<&u32> {
+        self.retry_count.as_ref()
     }
 
     pub fn diff_with_cached(&self, path: &Path) -> bool {
@@ -829,5 +834,19 @@ mod tests {
 
         let create_options = settings.agent().config().create_options();
         assert_eq!(create_options.hostname(), Some("VAluE3"));
+    }
+
+    #[test]
+    fn retry_count_is_read() {
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS)));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+        let retry_count = s.retry_count();
+        retry_count
+            .map(|c| {
+                assert_eq!(c, &3);
+            })
+            .expect("Retry count not read.");
     }
 }

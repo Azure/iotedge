@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use failure::Fail;
@@ -29,6 +30,7 @@ const WATCHDOG_FREQUENCY_SECS: u64 = 60;
 pub struct Watchdog<M, I> {
     runtime: M,
     id_mgr: I,
+    retry_count: Option<u32>
 }
 
 impl<M, I> Watchdog<M, I>
@@ -38,8 +40,8 @@ where
     <M::Module as Module>::Config: Clone,
     I: 'static + IdentityManager + Clone,
 {
-    pub fn new(runtime: M, id_mgr: I) -> Self {
-        Watchdog { runtime, id_mgr }
+    pub fn new(runtime: M, id_mgr: I, retry_count: Option<u32>) -> Self {
+        Watchdog { runtime, id_mgr, retry_count }
     }
 
     // Start the edge runtime module (EdgeAgent). This also updates the identity of the module (module_id)
@@ -59,8 +61,9 @@ where
         let name = spec.name().to_string();
         let id_mgr = self.id_mgr.clone();
         let module_id = module_id.to_string();
+        let retry_count = self.retry_count.clone();
 
-        let watchdog = start_watchdog(runtime, id_mgr, spec, module_id);
+        let watchdog = start_watchdog(runtime, id_mgr, spec, module_id, retry_count);
 
         // Swallow any errors from shutdown_signal
         let shutdown_signal = shutdown_signal.then(|_| Ok(()));
@@ -100,6 +103,7 @@ pub fn start_watchdog<M, I>(
     id_mgr: I,
     spec: ModuleSpec<<M::Module as Module>::Config>,
     module_id: String,
+    retry_count: Option<u32>
 ) -> impl Future<Item = (), Error = Error>
 where
     M: 'static + ModuleRuntime + Clone,
@@ -110,6 +114,14 @@ where
         "Starting watchdog with {} second frequency...",
         WATCHDOG_FREQUENCY_SECS
     );
+
+//    let execution_count = match retry_count {
+//        Some(_count) => Some(Arc::new(Mutex::new(0 as u32))),
+//        None => None
+//    };
+
+    let execution_count = Arc::new(Mutex::new(0 as u32));
+
     Interval::new(Instant::now(), Duration::from_secs(WATCHDOG_FREQUENCY_SECS))
         .map_err(|err| Error::from(err.context(ErrorKind::EdgeRuntimeStatusCheckerTimer)))
         .for_each(move |_| {
@@ -123,10 +135,76 @@ where
             .or_else(|e| {
                 warn!("Error in watchdog when checking for edge runtime status:");
                 log_failure(Level::Warn, &e);
-//                future::ok(())
-                future::err(e)
+
+//                let mut fail = should_throw();
+
+                match should_throw(&execution_count.clone(), &retry_count) {
+                    true => future::ok(()),
+                    false => future::err(e)
+                }
             })
         })
+
+//    let mut execution_count : u32 = 0;
+
+
+//    Interval::new(Instant::now(), Duration::from_secs(WATCHDOG_FREQUENCY_SECS))
+//        .map_err(|err| Error::from(err.context(ErrorKind::EdgeRuntimeStatusCheckerTimer)))
+//        .and_then(move |_| {
+//            info!("Checking edge runtime status");
+//            check_runtime(
+//                runtime.clone(),
+//                id_mgr.clone(),
+//                spec.clone(),
+//                module_id.clone(),
+//            ).and_then(future::ok(None))
+//                .or_else(|e| {
+//                    warn!("Error in watchdog when checking for edge runtime status:");
+//                    log_failure(Level::Warn, &e);
+//                    future::ok(Some(e))
+//                })
+//        })
+//        .take(retry_count.unwrap() as u64)
+//        .take_while(|x| {
+//            if let Some(err) = x.as_ref() {
+//                debug!("x");
+//                Ok(true)
+//        }
+//            else{
+//            Ok(false)}
+//        })
+//        .fold(
+//        None,
+//        |_final_result: Option<Error>,
+//         error_from_check: Option<Error>| {
+//            debug!("{:?}", error_from_check);
+//            future::ok::<Option<DeviceRegistrationResult>, Error>(result_from_service)
+//        },
+//    )
+}
+
+fn should_throw(
+    execution_count: &Arc<Mutex<u32>>,
+    retry_count: &Option<u32>,
+) -> bool
+{
+    let mut fail = false;
+    if let Some(ret_count) = retry_count {
+        let mut count = execution_count.lock().unwrap();
+        {
+            let count = &mut *count;
+
+            if *count == *ret_count {
+                info!("e");
+                fail = true;
+            }
+
+            *count+=1;
+        }
+        drop(count);
+    }
+
+    fail
 }
 
 // Check if the edge runtime module is running, and if not, start it.

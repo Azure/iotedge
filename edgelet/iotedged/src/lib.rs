@@ -891,7 +891,8 @@ where
         ],
     )?;
 
-    let watchdog = Watchdog::new(runtime.clone(), id_man.clone());
+    let watchdog = Watchdog::new(
+        runtime.clone(), id_man.clone(), settings.retry_count().cloned());
     let runtime_future = watchdog
         .run_until(spec, EDGE_RUNTIME_MODULEID, shutdown.map_err(|_| ()))
         .map_err(|err| Error::from(err));
