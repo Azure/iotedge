@@ -9,6 +9,7 @@ use edgelet_core::ErrorKind as CoreErrorKind;
 use edgelet_core::Error as CoreError;
 use edgelet_http::Error as HttpError;
 use edgelet_http::ErrorKind as HttpErrorKind;
+use iothubservice::Error as HubServiceError;
 
 use failure::{Backtrace, Context, Fail};
 #[cfg(windows)]
@@ -89,39 +90,31 @@ impl From<ErrorKind> for Error {
 impl From<CoreError> for Error {
     fn from(error: CoreError) -> Self {
         let fail: &dyn Fail = &error;
-        println!("Printing causes");
-//        println!("{:?}",fail.cause());
         let mut error_kind = ErrorKind::Watchdog;
+
         for cause in fail.iter_causes() {
-            if let Some(err) = cause.downcast_ref::<HttpError>() {
-                println!("{:?}", err);
+            if let Some(service_err) = cause.downcast_ref::<HubServiceError>() {
+                let hub_failure: &dyn Fail = service_err;
 
-                match HttpError::kind(err) {
-                    HttpErrorKind::HttpWithErrorResponse(code, _message) => {
-                        if code.as_u16() == 401 {
-                            error_kind = ErrorKind::InvalidSignedToken;
-                        }
-                    },
-                    HttpErrorKind::Http => {
-                        error_kind = ErrorKind::InvalidHubConfig;
-                    },
-                    _ => {}
-                };
-            }
-            else if let Some(err) = cause.downcast_ref::<HttpError>() {
-                println!("{:?}", err);
+                for cause in hub_failure.iter_causes(){
+                    if let Some(err) = cause.downcast_ref::<HttpError>() {
+                        match HttpError::kind(err) {
+                            HttpErrorKind::Http => {
+                                error_kind = ErrorKind::InvalidHubConfig;
+                            },
+                            HttpErrorKind::HttpWithErrorResponse(code, _message) => {
+                                if code.as_u16() == 401 {
+                                    error_kind = ErrorKind::InvalidSignedToken;
+                                }
+                            },
+                            _ => {}
+                        };
 
-                match HttpError::kind(err) {
-                    HttpErrorKind::HttpWithErrorResponse(code, _message) => {
-                        if code.as_u16() == 401 {
-                            error_kind = ErrorKind::InvalidSignedToken;
-                        }
-                    },
-                    HttpErrorKind::Http => {
-                        error_kind = ErrorKind::InvalidHubConfig;
-                    },
-                    _ => {}
-                };
+                        break;
+                    }
+                }
+
+                break;
             }
         }
 
