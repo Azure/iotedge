@@ -57,6 +57,7 @@ jobs:
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
@@ -66,6 +67,7 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
@@ -119,6 +121,7 @@ jobs:
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
@@ -128,6 +131,7 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
@@ -187,6 +191,7 @@ jobs:
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
@@ -196,6 +201,7 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
@@ -255,6 +261,7 @@ jobs:
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
@@ -264,6 +271,7 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm64.tar.gz
@@ -323,6 +331,7 @@ jobs:
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
@@ -332,6 +341,7 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm64.tar.gz
@@ -389,6 +399,7 @@ jobs:
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
@@ -398,6 +409,7 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.windows)
           itemPattern: |
             $(images.artifact.name.windows)/IotEdgeQuickstart/x64/*
