@@ -106,7 +106,7 @@ namespace IotEdgeQuickstart.Details
 
         public Task Install()
         {
-            // Windows installation does install + configure in one step. Since we need to connection string
+            // Windows installation does install + configure in one step. Since we need the connection string
             // to configure and we don't have that information here, we'll do installation in Configure().
             return Task.CompletedTask;
         }
