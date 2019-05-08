@@ -17,7 +17,7 @@ jobs:
         displayName: Install .NET Core
         inputs:
           packageType: sdk
-          version: 3.0.100-preview-010184
+          version: 3.0.100-preview5-011568
 
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
