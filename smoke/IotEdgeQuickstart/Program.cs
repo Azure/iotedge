@@ -102,7 +102,7 @@ Defaults:
         [Option("--no-verify", CommandOptionType.NoValue, Description = "Don't verify the behavior of the deployment (e.g.: temp sensor)")]
         public bool NoVerify { get; } = false;
 
-        [Option("--bypass_edge_installation", CommandOptionType.NoValue, Description = "Don't install bootstrapper")]
+        [Option("--bypass-edge-installation", CommandOptionType.NoValue, Description = "Don't install bootstrapper")]
         public bool BypassEdgeInstallation { get; } = false;
 
         [Option("--optimize_for_performance <true/false>", CommandOptionType.SingleValue, Description = "Add OptimizeForPerformance Flag on edgeHub. Only when no deployment is passed.")]
