@@ -13,21 +13,23 @@ namespace IotEdgeQuickstart.Details
 
     class IotedgedWindows : IBootstrapper
     {
-        const string ConfigYamlFile = @"C:\ProgramData\iotedge\config.yaml";
+        string ConfigYamlFile = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\iotedge\config.yaml";
 
         readonly string offlineInstallationPath;
         readonly Option<RegistryCredentials> credentials;
         readonly TimeSpan iotEdgeServiceOperationWaitTime = TimeSpan.FromMinutes(5);
         readonly Option<string> proxy;
         readonly Option<UpstreamProtocolType> upstreamProtocol;
+        readonly bool isCleanInstall;
         string scriptDir;
 
-        public IotedgedWindows(string offlineInstallationPath, Option<RegistryCredentials> credentials, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol)
+        public IotedgedWindows(string offlineInstallationPath, Option<RegistryCredentials> credentials, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol, bool isCleanInstall)
         {
             this.offlineInstallationPath = offlineInstallationPath;
             this.credentials = credentials;
             this.proxy = proxy;
             this.upstreamProtocol = upstreamProtocol;
+            this.isCleanInstall = isCleanInstall;
         }
 
         public async Task VerifyNotActive()
@@ -132,15 +134,24 @@ namespace IotEdgeQuickstart.Details
                         cts.Token);
                 }
 
-                string args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon -Manual " +
-                              $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
+                string args;
+                if (this.isCleanInstall)
+                {
+                    args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon -Manual " +
+                           $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
+
+                    if (!string.IsNullOrEmpty(this.offlineInstallationPath))
+                    {
+                        args += $" -OfflineInstallationPath '{this.offlineInstallationPath}'";
+                    }
+                }
+                else
+                {
+                    args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Initialize-IoTEdge -Manual " +
+                           $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
+                }
 
                 this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
-
-                if (!string.IsNullOrEmpty(this.offlineInstallationPath))
-                {
-                    args += $" -OfflineInstallationPath '{this.offlineInstallationPath}'";
-                }
 
                 string commandForDebug = args;
 
@@ -275,7 +286,7 @@ namespace IotEdgeQuickstart.Details
             }
         }
 
-        static void SetEnvironmentVariable()
+        void SetEnvironmentVariable()
         {
             string config = File.ReadAllText(ConfigYamlFile);
             var managementUriRegex = new Regex(@"connect:\s*management_uri:\s*""*(.*)""*");

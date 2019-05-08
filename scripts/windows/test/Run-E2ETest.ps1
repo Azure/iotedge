@@ -194,6 +194,9 @@ Param (
     [ValidateSet("true", "false")]
     [string] $MqttSettingsEnabled = "true"
 
+    [ValidateNotNullOrEmpty()]
+    [switch] $BypassEdgeInstallation
+
 )
 
 Set-StrictMode -Version "Latest"
@@ -929,7 +932,8 @@ Function RunTempSensorTest
         -p `"$ContainerRegistryPassword`" ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         -tw `"$TwinTestFileArtifactFilePath`" ``
-        --optimize_for_performance=`"$OptimizeForPerformance`""
+        --optimize_for_performance=`"$OptimizeForPerformance`" ``
+        --bypass_edge_installation=`"$BypassEdgeInstallation`"
 
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
