@@ -68,10 +68,7 @@ namespace IotEdgeQuickstart
                 {
                     await this.StartBootstrapper();
                     await this.VerifyEdgeAgentIsRunning();
-                    if (!this.bypassEdgeInstallation)
-                    {
-                        await this.VerifyEdgeAgentIsConnectedToIotHub();
-                    }
+                    await this.VerifyEdgeAgentIsConnectedToIotHub();
 
                     if (!this.noDeployment)
                     {

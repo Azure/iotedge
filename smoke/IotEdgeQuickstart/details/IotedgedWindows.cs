@@ -20,16 +20,16 @@ namespace IotEdgeQuickstart.Details
         readonly TimeSpan iotEdgeServiceOperationWaitTime = TimeSpan.FromMinutes(5);
         readonly Option<string> proxy;
         readonly Option<UpstreamProtocolType> upstreamProtocol;
-        readonly bool isCleanInstall;
+        readonly bool requireEdgeInstallation;
         string scriptDir;
 
-        public IotedgedWindows(string offlineInstallationPath, Option<RegistryCredentials> credentials, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol, bool isCleanInstall)
+        public IotedgedWindows(string offlineInstallationPath, Option<RegistryCredentials> credentials, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol, bool requireEdgeInstallation)
         {
             this.offlineInstallationPath = offlineInstallationPath;
             this.credentials = credentials;
             this.proxy = proxy;
             this.upstreamProtocol = upstreamProtocol;
-            this.isCleanInstall = isCleanInstall;
+            this.requireEdgeInstallation = requireEdgeInstallation;
         }
 
         public async Task VerifyNotActive()
@@ -135,10 +135,13 @@ namespace IotEdgeQuickstart.Details
                 }
 
                 string args;
-                if (this.isCleanInstall)
+                if (this.requireEdgeInstallation)
                 {
+                    Console.WriteLine("Installing iotedge...");
                     args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon -Manual " +
                            $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
+
+                    this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
 
                     if (!string.IsNullOrEmpty(this.offlineInstallationPath))
                     {
@@ -147,11 +150,10 @@ namespace IotEdgeQuickstart.Details
                 }
                 else
                 {
+                    Console.WriteLine("Initializing iotedge...");
                     args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Initialize-IoTEdge -Manual " +
                            $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
                 }
-
-                this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
 
                 string commandForDebug = args;
 

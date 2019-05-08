@@ -933,7 +933,7 @@ Function RunTempSensorTest
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         -tw `"$TwinTestFileArtifactFilePath`" ``
         --optimize_for_performance=`"$OptimizeForPerformance`" ``
-        --bypass_edge_installation=`"$BypassEdgeInstallation`""
+        $BypassInstallationFlag"
 
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -1307,6 +1307,15 @@ If ($TestName -eq "Stress")
     If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:00.03"}
     If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "1700000"}
     If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "14400"}
+}
+
+If ($BypassEdgeInstallation)
+{
+    $BypassInstallationFlag = "--bypass_edge_installation"
+}
+Else
+{
+    $BypassInstallationFlag = $null
 }
 
 $retCode = RunTest
