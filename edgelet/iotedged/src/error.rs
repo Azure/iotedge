@@ -7,6 +7,8 @@ use std::sync::Mutex;
 
 use edgelet_core::ErrorKind as CoreErrorKind;
 use edgelet_core::Error as CoreError;
+use edgelet_http::Error as HttpError;
+use edgelet_http::ErrorKind as HttpErrorKind;
 
 use failure::{Backtrace, Context, Fail};
 #[cfg(windows)]
@@ -88,17 +90,47 @@ impl From<CoreError> for Error {
     fn from(error: CoreError) -> Self {
         let fail: &dyn Fail = &error;
         println!("Printing causes");
-        println!("{:?}",fail.cause());
+//        println!("{:?}",fail.cause());
+        let mut error_kind = ErrorKind::Watchdog;
         for cause in fail.iter_causes() {
-            println!("{}", cause);
+            if let Some(err) = cause.downcast_ref::<HttpError>() {
+                println!("{:?}", err);
+
+                match HttpError::kind(err) {
+                    HttpErrorKind::HttpWithErrorResponse(code, _message) => {
+                        if code.as_u16() == 401 {
+                            error_kind = ErrorKind::InvalidSignedToken;
+                        }
+                    },
+                    HttpErrorKind::Http => {
+                        error_kind = ErrorKind::InvalidHubConfig;
+                    },
+                    _ => {}
+                };
+            }
+            else if let Some(err) = cause.downcast_ref::<HttpError>() {
+                println!("{:?}", err);
+
+                match HttpError::kind(err) {
+                    HttpErrorKind::HttpWithErrorResponse(code, _message) => {
+                        if code.as_u16() == 401 {
+                            error_kind = ErrorKind::InvalidSignedToken;
+                        }
+                    },
+                    HttpErrorKind::Http => {
+                        error_kind = ErrorKind::InvalidHubConfig;
+                    },
+                    _ => {}
+                };
+            }
         }
 
-        let error_kind = match error.kind() {
+        let error_kind_result = match error.kind() {
             CoreErrorKind::EdgeRuntimeIdentityNotFound => ErrorKind::InvalidDeviceConfig,
-            _ => ErrorKind::Watchdog
+            _ => error_kind
         };
 
-        Error::from(error.context(error_kind))
+        Error::from(error.context(error_kind_result))
     }
 }
 
