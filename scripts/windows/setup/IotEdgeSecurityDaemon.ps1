@@ -24,6 +24,9 @@ Set-Variable EdgeInstallDirectory -Value "$env:ProgramFiles\iotedge" -Option Con
 Set-Variable EdgeDataDirectory -Value "$env:ProgramData\iotedge" -Option Constant
 Set-Variable EdgeServiceName -Value 'iotedge' -Option Constant
 
+Set-Variable ContainersFeaturePackageName -Value 'Microsoft-IoT-Containers-Server-Package' -Option Constant
+Set-Variable ContainersFeatureLangPackageName -Value 'Microsoft-IoT-Containers-Server-Package_*' -Option Constant
+
 Set-Variable MobyDataRootDirectory -Value "$env:ProgramData\iotedge-moby" -Option Constant
 Set-Variable MobyInstallDirectory -Value "$env:ProgramFiles\iotedge-moby" -Option Constant
 Set-Variable MobyLinuxNamedPipeUrl -Value 'npipe://./pipe/docker_engine' -Option Constant
@@ -862,6 +865,13 @@ function Setup-Environment {
         Write-HostRed ('IoT Edge is currently not supported on Windows ARM32. ' +
             'See https://aka.ms/iotedge-platsup for more details.')
         $preRequisitesMet = $false
+    }
+    
+    if (Test-IoTCore) {
+        if (-not (Get-Service vmcompute -ErrorAction SilentlyContinue) -or (-not [bool] (Get-Package $ContainersFeaturePackageName)) -or (-not [bool] (Get-Package $ContainersFeatureLangPackageName))) {
+            Write-HostRed "The container host does not have 'Containers Feature' enabled. Please build an Iot Core image with 'Containers Feature' enabled."
+            $preRequisitesMet = $false
+        }
     }
 
     if ($preRequisitesMet) {
