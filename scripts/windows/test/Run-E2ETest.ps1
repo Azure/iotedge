@@ -194,7 +194,6 @@ Param (
     [ValidateSet("true", "false")]
     [string] $MqttSettingsEnabled = "true",
 
-    [ValidateNotNullOrEmpty()]
     [switch] $BypassEdgeInstallation
 
 )
@@ -220,17 +219,6 @@ Function CleanUp
     Write-Host "Uninstall iotedged"
     Invoke-Expression $InstallationScriptPath
     Uninstall-IoTEdge -Force
-
-    Write-Host "Do IoT Edge Moby system prune"
-    Try
-    {
-        docker -H npipe:////./pipe/iotedge_moby_engine system prune -f
-    }
-    Catch
-    {
-      # Ignore error and just print it out
-      Write-Verbose "$_"
-    }
 
     # This may require once IoT Edge created its only bridge network
     #Write-Host "Remove nat VM switch"
