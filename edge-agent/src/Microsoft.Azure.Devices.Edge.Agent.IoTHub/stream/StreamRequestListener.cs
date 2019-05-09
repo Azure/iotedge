@@ -27,10 +27,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             this.moduleConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection)).ModuleConnection;
         }
 
-        public void InitPump(IModuleConnection moduleConnection)
+        public void InitPump()
         {
             Events.StartingPump();
-            this.pumpTask = this.Pump(moduleConnection);
+            this.pumpTask = this.Pump(this.moduleConnection);
         }
 
         public void Dispose()

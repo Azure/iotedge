@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Autofac;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -174,6 +175,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
+
+            // Initialize stream request listener
+            IStreamRequestListener streamRequestListener = await container.Resolve<Task<IStreamRequestListener>>();
+            streamRequestListener.InitPump();
 
             int returnCode;
             using (IConfigSource unused = await container.Resolve<Task<IConfigSource>>())
