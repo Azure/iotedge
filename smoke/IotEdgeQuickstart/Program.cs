@@ -102,6 +102,9 @@ Defaults:
         [Option("--no-verify", CommandOptionType.NoValue, Description = "Don't verify the behavior of the deployment (e.g.: temp sensor)")]
         public bool NoVerify { get; } = false;
 
+        [Option("--bypass-edge-installation", CommandOptionType.NoValue, Description = "Don't install bootstrapper")]
+        public bool BypassEdgeInstallation { get; } = false;
+
         [Option("--optimize_for_performance <true/false>", CommandOptionType.SingleValue, Description = "Add OptimizeForPerformance Flag on edgeHub. Only when no deployment is passed.")]
         public bool OptimizeForPerformance { get; } = true;
 
@@ -176,7 +179,7 @@ Defaults:
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
                             string offlineInstallationPath = string.IsNullOrEmpty(this.OfflineInstallationPath) ? this.BootstrapperArchivePath : this.OfflineInstallationPath;
-                            bootstrapper = new IotedgedWindows(offlineInstallationPath, credentials, proxy, upstreamProtocolOption);
+                            bootstrapper = new IotedgedWindows(offlineInstallationPath, credentials, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation);
                         }
                         else
                         {
@@ -221,6 +224,7 @@ Defaults:
                     this.LeaveRunning,
                     this.NoDeployment,
                     this.NoVerify,
+                    this.BypassEdgeInstallation,
                     this.VerifyDataFromModule,
                     deployment,
                     twinTest,

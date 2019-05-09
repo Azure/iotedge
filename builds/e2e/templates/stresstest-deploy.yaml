@@ -23,13 +23,13 @@ steps:
   - task: CopyFiles@2
     displayName: 'Copy Edgelet Artifact'
     inputs:
-      SourceFolder: "$(System.ArtifactsDirectory)/${{ parameters['edgelet.artifact.name'] }}"
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
       CleanTargetFolder: true
   - task: CopyFiles@2
     displayName: 'Copy Images Artifact'
     inputs:
-      SourceFolder: "$(System.ArtifactsDirectory)/${{ parameters['images.artifact.name'] }}"
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
       CleanTargetFolder: true
   - bash: |
