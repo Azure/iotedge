@@ -91,7 +91,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public void Dispose()
         {
-            this.moduleClient.ForEach(d => d.Dispose());
             this.refreshTwinTask.Dispose();
         }
 

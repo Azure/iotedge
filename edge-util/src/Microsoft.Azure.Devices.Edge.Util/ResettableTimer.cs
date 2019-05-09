@@ -25,7 +25,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
             this.period = period;
             this.callback = Preconditions.CheckNotNull(callback);
             this.logger = logger;
-            this.Enable();
+            if (enable)
+            {
+                this.Enable();
+            }
         }
 
         public void Start()
