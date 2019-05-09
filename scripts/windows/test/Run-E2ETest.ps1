@@ -192,7 +192,9 @@ Param (
     [string] $AmqpSettingsEnabled = "true",
 
     [ValidateSet("true", "false")]
-    [string] $MqttSettingsEnabled = "true"
+    [string] $MqttSettingsEnabled = "true",
+
+    [switch] $BypassEdgeInstallation
 
 )
 
@@ -213,17 +215,6 @@ Function AppendInstallationOption([string] $testCommand)
 Function CleanUp
 {
     PrintHighlightedMessage "Test Clean Up"
-    Write-Host "Do IoT Edge Moby system prune"
-
-    Try
-    {
-        docker -H npipe:////./pipe/iotedge_moby_engine system prune -f
-    }
-    Catch
-    {
-      # Ignore error and just print it out
-      Write-Verbose "$_"
-    }
 
     Write-Host "Uninstall iotedged"
     Invoke-Expression $InstallationScriptPath
@@ -494,8 +485,8 @@ Function PrintLogs
     Get-WinEvent -ea SilentlyContinue `
         -FilterHashtable @{ProviderName= "iotedged";
         LogName = "application"; StartTime = $testStartTime} |
-	    select TimeCreated, Message |
-	    sort-object @{Expression="TimeCreated";Descending=$false} |
+        select TimeCreated, Message |
+        sort-object @{Expression="TimeCreated";Descending=$false} |
         format-table -autosize -wrap | Out-Host
 
     $dockerCmd ="docker -H npipe:////./pipe/iotedge_moby_engine"
@@ -618,7 +609,8 @@ Function RunDirectMethodAmqpTest
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-            -l `"$DeploymentWorkingFilePath`""
+            -l `"$DeploymentWorkingFilePath`" ``
+            $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             --upstream-protocol 'AmqpWs' ``
@@ -650,7 +642,8 @@ Function RunDirectMethodAmqpMqttTest
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-            -l `"$DeploymentWorkingFilePath`""
+            -l `"$DeploymentWorkingFilePath`" ``
+            $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             --upstream-protocol 'AmqpWs' ``
@@ -682,7 +675,8 @@ Function RunDirectMethodMqttTest
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-            -l `"$DeploymentWorkingFilePath`""
+            -l `"$DeploymentWorkingFilePath`" ``
+            $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             --upstream-protocol 'MqttWs' ``
@@ -714,7 +708,8 @@ Function RunDirectMethodMqttAmqpTest
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-            -l `"$DeploymentWorkingFilePath`""
+            -l `"$DeploymentWorkingFilePath`" ``
+            $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             --upstream-protocol 'MqttWs' ``
@@ -748,7 +743,8 @@ Function RunQuickstartCertsTest
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         --optimize_for_performance=`"$OptimizeForPerformance`" ``
         --leave-running=All ``
-        --no-verify"
+        --no-verify ``
+        $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             -l `"$DeploymentWorkingFilePath`" ``
@@ -800,7 +796,8 @@ Function RunLongHaulTest
             --leave-running=All ``
             -l `"$DeploymentWorkingFilePath`" ``
             --runtime-log-level `"Info`" ``
-            --no-verify"
+            --no-verify ``
+            $BypassInstallationFlag"
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
     $testExitCode = $LastExitCode
@@ -831,7 +828,8 @@ Function RunStressTest
             --leave-running=All ``
             -l `"$DeploymentWorkingFilePath`" ``
             --runtime-log-level `"Info`" ``
-            --no-verify"
+            --no-verify ``
+            $BypassInstallationFlag"
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
     $testExitCode = $LastExitCode
@@ -858,7 +856,8 @@ Function RunTempFilterTest
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilter`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-            -l `"$DeploymentWorkingFilePath`""
+            -l `"$DeploymentWorkingFilePath`" ``
+            $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             --upstream-protocol 'AmqpWs' ``
@@ -896,7 +895,8 @@ Function RunTempFilterFunctionsTest
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilterFunctions`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-            -l `"$DeploymentWorkingFilePath`""
+            -l `"$DeploymentWorkingFilePath`" ``
+            $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             --upstream-protocol 'AmqpWs' ``
@@ -929,7 +929,8 @@ Function RunTempSensorTest
         -p `"$ContainerRegistryPassword`" ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         -tw `"$TwinTestFileArtifactFilePath`" ``
-        --optimize_for_performance=`"$OptimizeForPerformance`""
+        --optimize_for_performance=`"$OptimizeForPerformance`" ``
+        $BypassInstallationFlag"
 
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -1089,7 +1090,8 @@ Function RunTransparentGatewayTest
         --trusted_ca_certs `"$TrustedCACertificatePath`" ``
         --optimize_for_performance=`"$OptimizeForPerformance`" ``
         --leave-running=All ``
-        --no-verify"
+        --no-verify ``
+        $BypassInstallationFlag"
 
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -1135,7 +1137,7 @@ Function RunTest
         "TempFilterFunctions" { $testExitCode = RunTempFilterFunctionsTest; break }
         "TempSensor" { $testExitCode = RunTempSensorTest; break }
         "TransparentGateway" { $testExitCode = RunTransparentGatewayTest; break }
-		default { Throw "$TestName test is not supported." }
+        default { Throw "$TestName test is not supported." }
     }
 
     Return $testExitCode
@@ -1152,7 +1154,10 @@ Function SetEnvironmentVariable
 Function TestSetup
 {
     ValidateTestParameters
-    CleanUp | Out-Host
+    If (!$BypassEdgeInstallation)
+    {
+        CleanUp | Out-Host
+    }
     InitializeWorkingFolder
     PrepareTestFromArtifacts
     SetEnvironmentVariable
@@ -1303,6 +1308,15 @@ If ($TestName -eq "Stress")
     If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:00.03"}
     If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "1700000"}
     If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "14400"}
+}
+
+If ($BypassEdgeInstallation)
+{
+    $BypassInstallationFlag = "--bypass-edge-installation"
+}
+Else
+{
+    $BypassInstallationFlag = $null
 }
 
 $retCode = RunTest
