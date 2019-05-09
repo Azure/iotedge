@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -21,34 +22,57 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             this.logsProcessor = Preconditions.CheckNotNull(logsProcessor, nameof(logsProcessor));
         }
 
-        public async Task<byte[]> GetLogs(ModuleLogOptions logOptions, CancellationToken cancellationToken)
+        public async Task<byte[]> GetLogs(string id, ModuleLogOptions logOptions, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
-            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(logOptions.Id, false, logOptions.Filter.Tail, logOptions.Filter.Since, cancellationToken);
-            Events.ReceivedStream(logOptions.Id);
+            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(id, false, logOptions.Filter.Tail, logOptions.Filter.Since, cancellationToken);
+            Events.ReceivedStream(id);
 
-            byte[] logBytes = await this.GetProcessedLogs(logsStream, logOptions);
+            byte[] logBytes = await this.GetProcessedLogs(id, logsStream, logOptions);
             return logBytes;
         }
 
-        public async Task GetLogsStream(ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
+        // The id parameter is a regex. Logs for all modules that match this regex are processed.
+        public Task GetLogsStream(string id, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
             Preconditions.CheckNotNull(callback, nameof(callback));
 
-            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(logOptions.Id, true, logOptions.Filter.Tail, logOptions.Filter.Since, cancellationToken);
-            Events.ReceivedStream(logOptions.Id);
+            Events.StreamingLogs(id, logOptions);
+            return this.GetLogsStreamInternal(id, logOptions, callback, cancellationToken);
+        }
 
-            await (NeedToProcessStream(logOptions)
-                ? this.logsProcessor.ProcessLogsStream(logsStream, logOptions, callback)
-                : this.WriteLogsStreamToOutput(logOptions.Id, callback, logsStream, cancellationToken));
+        // The id parameter in the ids is a regex. Logs for all modules that match this regex are processed.
+        // If multiple id parameters match a module, the first one is considered.
+        public Task GetLogsStream(IList<(string id, ModuleLogOptions logOptions)> ids, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
+        {
+            Preconditions.CheckNotNull(ids, nameof(ids));
+            Preconditions.CheckNotNull(callback, nameof(callback));
+
+            Events.StreamingLogs(ids);
+            IEnumerable<Task> streamingTasks = ids.Select(item => this.GetLogsStreamInternal(item.id, item.logOptions, callback, cancellationToken));
+            return Task.WhenAll(streamingTasks);
         }
 
         internal static bool NeedToProcessStream(ModuleLogOptions logOptions) =>
             logOptions.Filter.LogLevel.HasValue
             || logOptions.Filter.Regex.HasValue
             || logOptions.ContentEncoding != LogsContentEncoding.None
-            || logOptions.ContentType != LogsContentType.Text;
+            || logOptions.ContentType != LogsContentType.Text
+            || logOptions.OutputFraming != LogOutputFraming.None;
+
+        internal async Task GetLogsStreamInternal(string id, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
+        {
+            Preconditions.CheckNotNull(logOptions, nameof(logOptions));
+            Preconditions.CheckNotNull(callback, nameof(callback));
+
+            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(id, logOptions.Follow, logOptions.Filter.Tail, logOptions.Filter.Since, cancellationToken);
+            Events.ReceivedStream(id);
+
+            await (NeedToProcessStream(logOptions)
+                ? this.logsProcessor.ProcessLogsStream(id, logsStream, logOptions, callback)
+                : this.WriteLogsStreamToOutput(id, callback, logsStream, cancellationToken));
+        }
 
         static byte[] ProcessByContentEncoding(byte[] bytes, LogsContentEncoding contentEncoding) =>
             contentEncoding == LogsContentEncoding.Gzip
@@ -85,23 +109,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             }
         }
 
-        async Task<byte[]> GetProcessedLogs(Stream logsStream, ModuleLogOptions logOptions)
+        async Task<byte[]> GetProcessedLogs(string id, Stream logsStream, ModuleLogOptions logOptions)
         {
-            byte[] logBytes = await this.ProcessByContentType(logsStream, logOptions);
+            byte[] logBytes = await this.ProcessByContentType(id, logsStream, logOptions);
             logBytes = ProcessByContentEncoding(logBytes, logOptions.ContentEncoding);
             return logBytes;
         }
 
-        async Task<byte[]> ProcessByContentType(Stream logsStream, ModuleLogOptions logOptions)
+        async Task<byte[]> ProcessByContentType(string id, Stream logsStream, ModuleLogOptions logOptions)
         {
             switch (logOptions.ContentType)
             {
                 case LogsContentType.Json:
-                    IEnumerable<ModuleLogMessage> logMessages = await this.logsProcessor.GetMessages(logsStream, logOptions.Id, logOptions.Filter);
+                    IEnumerable<ModuleLogMessage> logMessages = await this.logsProcessor.GetMessages(id, logsStream, logOptions.Filter);
                     return logMessages.ToBytes();
 
                 default:
-                    IEnumerable<string> logTexts = await this.logsProcessor.GetText(logsStream, logOptions.Id, logOptions.Filter);
+                    IEnumerable<string> logTexts = await this.logsProcessor.GetText(id, logsStream, logOptions.Filter);
                     string logTextString = logTexts.Join(string.Empty);
                     return logTextString.ToBytes();
             }
@@ -117,7 +141,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                 StreamingCancelled = IdStart,
                 ErrorWhileStreaming,
                 ReceivedStream,
-                StreamingCompleted
+                StreamingCompleted,
+                StreamingLogs,
+                NoMatchingModule
             }
 
             public static void ErrorWhileProcessingStream(string id, Exception ex)
@@ -139,6 +165,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             public static void StreamingCompleted(string id)
             {
                 Log.LogInformation((int)EventIds.StreamingCompleted, $"Completed streaming logs for {id}");
+            }
+
+            public static void StreamingLogs(IList<(string id, ModuleLogOptions logOptions)> ids)
+            {
+                Log.LogDebug((int)EventIds.StreamingLogs, $"Streaming logs for {ids.ToJson()}");
+            }
+
+            public static void NoMatchingModule(string regex, IList<string> allIds)
+            {
+                string idsString = allIds.Join(", ");
+                Log.LogWarning((int)EventIds.NoMatchingModule, $"The regex {regex} in the log stream request did not match any of the modules - {idsString}");
+            }
+
+            internal static void StreamingLogs(string id, ModuleLogOptions logOptions)
+            {
+                Log.LogDebug((int)EventIds.StreamingLogs, $"Streaming logs for {id} with options {logOptions.ToJson()}");
             }
         }
     }

@@ -171,7 +171,7 @@ where
                 let path = req.uri().path().to_owned();
                 match self.inner.recognize(&method, api_version, &path) {
                     Ok((handler, params)) => {
-                        Box::new(handler.handle(req, params).map_err(|err| err.compat()))
+                        Box::new(handler.handle(req, params).map_err(Fail::compat))
                     }
                     Err(code) => Box::new(future::ok(
                         Response::builder()

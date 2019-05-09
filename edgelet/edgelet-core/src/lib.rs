@@ -23,8 +23,9 @@ pub mod workload;
 pub use authorization::{Authorization, Policy};
 pub use certificate_properties::{CertificateIssuer, CertificateProperties, CertificateType};
 pub use crypto::{
-    Certificate, CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyBytes, KeyIdentity,
-    KeyStore, MasterEncryptionKey, PrivateKey, Signature, IOTEDGED_CA_ALIAS,
+    Certificate, CreateCertificate, Decrypt, Encrypt, GetDeviceIdentityCertificate, GetIssuerAlias,
+    GetTrustBundle, KeyBytes, KeyIdentity, KeyStore, MasterEncryptionKey, PrivateKey, Signature,
+    IOTEDGED_CA_ALIAS,
 };
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
@@ -36,15 +37,21 @@ pub use module::{
 pub use workload::WorkloadConfig;
 
 lazy_static! {
-    static ref VERSION: String = option_env!("VERSION")
+    static ref VERSION: &'static str =
+        option_env!("VERSION").unwrap_or_else(|| include_str!("../../version.txt").trim());
+    static ref VERSION_WITH_SOURCE_VERSION: String = option_env!("VERSION")
         .map(|version| option_env!("BUILD_SOURCEVERSION")
             .map(|sha| format!("{} ({})", version, sha))
             .unwrap_or_else(|| version.to_string()))
-        .unwrap_or_else(|| include_str!("../../version.txt").to_string());
+        .unwrap_or_else(|| include_str!("../../version.txt").trim().to_string());
 }
 
 pub fn version() -> &'static str {
     &VERSION
+}
+
+pub fn version_with_source_version() -> &'static str {
+    &VERSION_WITH_SOURCE_VERSION
 }
 
 pub trait UrlExt {

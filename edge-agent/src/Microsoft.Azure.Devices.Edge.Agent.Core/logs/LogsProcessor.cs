@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.IO;
+    using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
     using akka::Akka;
@@ -31,6 +32,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         static readonly Flow<ByteString, ByteString, NotUsed> FramingFlow
             = Framing.LengthField(4, int.MaxValue, 4, ByteOrder.BigEndian);
 
+        static readonly Flow<ByteString, ByteString, NotUsed> SimpleLengthFraming
+            = Framing.SimpleFramingProtocolEncoder(int.MaxValue);
+
         readonly ActorSystem system;
         readonly ActorMaterializer materializer;
         readonly ILogMessageParser logMessageParser;
@@ -42,13 +46,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             this.materializer = this.system.Materializer();
         }
 
-        public async Task<IReadOnlyList<ModuleLogMessage>> GetMessages(Stream stream, string moduleId, ModuleLogFilter filter)
+        // Gzip encoding or output framing don't apply to this method.
+        public async Task<IReadOnlyList<ModuleLogMessage>> GetMessages(string id, Stream stream, ModuleLogFilter filter)
         {
             Preconditions.CheckNotNull(stream, nameof(stream));
             Preconditions.CheckNotNull(filter, nameof(filter));
-            Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
 
-            GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, moduleId));
+            GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, id));
             filter.LogLevel.ForEach(l => graphBuilder.AddFilter(m => m.LogLevel == l));
             filter.Regex.ForEach(r => graphBuilder.AddFilter(m => r.IsMatch(m.Text)));
             IRunnableGraph<Task<IImmutableList<ModuleLogMessage>>> graph = graphBuilder.GetMaterializingGraph(m => (ModuleLogMessage)m);
@@ -57,17 +62,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             return result;
         }
 
-        public async Task<IReadOnlyList<string>> GetText(Stream stream, string moduleId, ModuleLogFilter filter)
+        // Gzip encoding or output framing don't apply to this method.
+        public async Task<IReadOnlyList<string>> GetText(string id, Stream stream, ModuleLogFilter filter)
         {
             Preconditions.CheckNotNull(stream, nameof(stream));
             Preconditions.CheckNotNull(filter, nameof(filter));
-            Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
 
             IRunnableGraph<Task<IImmutableList<string>>> GetGraph()
             {
                 if (filter.Regex.HasValue || filter.LogLevel.HasValue)
                 {
-                    GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, moduleId));
+                    GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, id));
                     filter.LogLevel.ForEach(l => graphBuilder.AddFilter(m => m.LogLevel == l));
                     filter.Regex.ForEach(r => graphBuilder.AddFilter(m => r.IsMatch(m.Text)));
                     return graphBuilder.GetMaterializingGraph(m => m.FullText);
@@ -83,9 +89,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             return result;
         }
 
-        public async Task ProcessLogsStream(Stream stream, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback)
+        public async Task ProcessLogsStream(string id, Stream stream, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback)
         {
-            string id = logOptions.Id;
             GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, id));
             logOptions.Filter.LogLevel.ForEach(l => graphBuilder.AddFilter(m => m.LogLevel == l));
             logOptions.Filter.Regex.ForEach(r => graphBuilder.AddFilter(m => r.IsMatch(m.Text)));
@@ -98,19 +103,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
             ArraySegment<byte> BasicMapper(ModuleLogMessageData l)
                 => logOptions.ContentType == LogsContentType.Text
-                    ? new ArraySegment<byte>(l.FullFrame.ToArray())
+                    ? new ArraySegment<byte>(l.FullText.ToBytes())
                     : new ArraySegment<byte>(l.ToBytes());
 
-            var mappers = new List<Func<ArraySegment<byte>, ArraySegment<byte>>>();
+            var sourceMappers = new List<Func<Source<ArraySegment<byte>, NotUsed>, Source<ArraySegment<byte>, NotUsed>>>();
+
             if (logOptions.ContentEncoding == LogsContentEncoding.Gzip)
             {
-                mappers.Add(m => new ArraySegment<byte>(Compression.CompressToGzip(m.Array)));
+                sourceMappers.Add(
+                    s => logOptions.OutputGroupingConfig.Map(o => GroupingGzipMapper(s, o))
+                        .GetOrElse(() => NonGroupingGzipMapper(s)));
+            }
+
+            if (logOptions.OutputFraming == LogOutputFraming.SimpleLength)
+            {
+                sourceMappers.Add(SimpleLengthFramingMapper);
             }
 
             IRunnableGraph<Task> graph = graphBuilder.GetStreamingGraph(
                 ConsumerCallback,
                 BasicMapper,
-                mappers);
+                sourceMappers);
 
             await graph.Run(this.materializer);
         }
@@ -120,6 +133,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             this.system?.Dispose();
             this.materializer?.Dispose();
         }
+
+        static Source<ArraySegment<byte>, NotUsed> SimpleLengthFramingMapper(Source<ArraySegment<byte>, NotUsed> s) =>
+            s.Select(ByteString.FromBytes)
+                .Via(SimpleLengthFraming)
+                .Select(b => new ArraySegment<byte>(b.ToArray()));
+
+        static Source<ArraySegment<byte>, NotUsed> NonGroupingGzipMapper(Source<ArraySegment<byte>, NotUsed> s) =>
+            s.Select(m => new ArraySegment<byte>(Compression.CompressToGzip(m.Array)));
+
+        static Source<ArraySegment<byte>, NotUsed> GroupingGzipMapper(Source<ArraySegment<byte>, NotUsed> s, LogsOutputGroupingConfig outputGroupingConfig) =>
+            s.GroupedWithin(outputGroupingConfig.MaxFrames, outputGroupingConfig.MaxDuration)
+                .Select(
+                    b =>
+                    {
+                        var combinedArray = b.Select(a => a.Array).ToList().Combine();
+                        return new ArraySegment<byte>(combinedArray);
+                    })
+                .Select(m => new ArraySegment<byte>(Compression.CompressToGzip(m.Array)));
 
         class GraphBuilder
         {
@@ -165,16 +196,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                     .ToMaterialized(seqSink, Keep.Right);
             }
 
-            public IRunnableGraph<Task> GetStreamingGraph<TU, TV>(Func<TV, Task<TU>> callback, Func<ModuleLogMessageData, TV> basicMapper, IList<Func<TV, TV>> mappers)
+            public IRunnableGraph<Task> GetStreamingGraph<TU, TV>(
+                Func<TV, Task<TU>> callback,
+                Func<ModuleLogMessageData, TV> basicMapper,
+                List<Func<Source<TV, NotUsed>, Source<TV, NotUsed>>> mappers)
             {
                 Source<TV, NotUsed> streamingGraphSource = this.parsingGraphSource
                     .Select(basicMapper);
 
                 if (mappers?.Count > 0)
                 {
-                    foreach (Func<TV, TV> mapper in mappers)
+                    foreach (Func<Source<TV, NotUsed>, Source<TV, NotUsed>> mapper in mappers)
                     {
-                        streamingGraphSource = streamingGraphSource.Select(mapper);
+                        streamingGraphSource = mapper(streamingGraphSource);
                     }
                 }
 

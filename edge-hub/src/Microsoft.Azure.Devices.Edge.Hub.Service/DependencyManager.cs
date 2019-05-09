@@ -129,7 +129,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 .Map(s => TimeSpan.FromSeconds(s));
             bool useV1TwinManager = this.GetConfigurationValueIfExists<string>("TwinManagerVersion")
                 .Map(v => v.Equals("v1", StringComparison.OrdinalIgnoreCase))
-                .GetOrElse(true);
+                .GetOrElse(false);
+            int maxUpstreamBatchSize = this.configuration.GetValue("MaxUpstreamBatchSize", 10);
+            int upstreamFanOutFactor = this.configuration.GetValue("UpstreamFanOutFactor", 10);
+            bool encryptTwinStore = this.configuration.GetValue("EncryptTwinStore", false);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -151,7 +154,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     cloudOperationTimeout,
                     minTwinSyncPeriod,
                     reportedPropertiesSyncFrequency,
-                    useV1TwinManager));
+                    useV1TwinManager,
+                    maxUpstreamBatchSize,
+                    upstreamFanOutFactor,
+                    encryptTwinStore));
         }
 
         void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)

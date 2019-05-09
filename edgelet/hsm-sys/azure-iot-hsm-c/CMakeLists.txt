@@ -17,6 +17,10 @@ include_directories(. ./inc)
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
+if(USE_TEST_TPM_INTERFACE_IN_MEM)
+    add_definitions(-DTEST_TPM_INTERFACE_IN_MEM)
+endif(USE_TEST_TPM_INTERFACE_IN_MEM)
+
 set(source_c_files
     ./src/certificate_info.c
     ./src/constants.c
@@ -63,6 +67,7 @@ if(MSVC)
     else()
         add_definitions(/W4)
     endif(run_unittests)
+
     # export functions in DLL
     set(source_c_files ${source_c_files}
         ./src/hsm_client_data.def
@@ -71,6 +76,12 @@ if(MSVC)
     add_definitions(-DGB_MEASURE_MEMORY_FOR_THIS -DGB_DEBUG_ALLOC)
 else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security -std=c99 ")
+
+    # suppress clang compiler warnings complaining about calls to vsnprintf
+    if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=format-nonliteral")
+    endif()
+
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Wall -Werror -Wextra -Wformat=2 -Wformat-security ")
 
     if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
@@ -175,3 +186,8 @@ set (CPACK_RPM_PACKAGE_LICENSE "Proprietary")
 
 include (CPack)
 
+if (${run_unittests})
+    if(WIN32)
+        target_link_libraries(iothsm shell32)
+    endif(WIN32)
+endif()

@@ -91,18 +91,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         {
             Events.UpdatingTwin(id);
             Preconditions.CheckNotNull(twin, nameof(twin));
+            // Don't check for version number here - just update the twin in the store.
+            // This is because, if the module, say A, was deleted and recreated, then the
+            // version number check won't really apply. So just override the twin.
             await this.twinEntityStore.PutOrUpdate(
                 id,
                 new TwinStoreEntity(twin),
-                twinInfo =>
-                {
-                    return twinInfo.Twin
-                        .Filter(
-                            storedTwin => storedTwin.Properties?.Desired?.Version < twin.Properties.Desired.Version
-                                          && storedTwin.Properties?.Reported?.Version < twin.Properties.Reported.Version)
-                        .Map(_ => new TwinStoreEntity(Option.Some(twin), twinInfo.ReportedPropertiesPatch))
-                        .GetOrElse(twinInfo);
-                });
+                twinInfo => new TwinStoreEntity(Option.Some(twin), twinInfo.ReportedPropertiesPatch));
             Events.DoneUpdatingTwin(id);
         }
 

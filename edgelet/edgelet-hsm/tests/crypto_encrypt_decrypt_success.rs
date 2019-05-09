@@ -3,14 +3,26 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
+use lazy_static::lazy_static;
+use std::sync::Mutex;
+
 use edgelet_core::crypto::{Decrypt, Encrypt, MasterEncryptionKey};
-use edgelet_hsm::Crypto;
+use edgelet_hsm::{Crypto, HsmLock};
+mod test_utils;
+use test_utils::TestHSMEnvSetup;
+
+lazy_static! {
+    static ref LOCK: Mutex<()> = Mutex::new(());
+}
 
 /// Encrypt/Decrypt tests
 #[test]
 fn crypto_encrypt_decypt_success() {
     // arrange
-    let crypto = Crypto::new().unwrap();
+    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
+
+    let hsm_lock = HsmLock::new();
+    let crypto = Crypto::new(hsm_lock).unwrap();
 
     let client_id = b"module1";
     let plaintext = b"plaintext";

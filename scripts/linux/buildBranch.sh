@@ -16,7 +16,6 @@ BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/target}
 PUBLISH_FOLDER=$BUILD_BINARIESDIRECTORY/publish
 ROOT_FOLDER=$BUILD_REPOSITORY_LOCALPATH
-SRC_BIN_DIR=$ROOT_FOLDER/bin
 SRC_DOCKER_DIR=$ROOT_FOLDER/docker
 SRC_SCRIPTS_DIR=$ROOT_FOLDER/scripts
 SRC_STRESS_DIR=$ROOT_FOLDER/stress
@@ -77,15 +76,20 @@ process_args()
         exit 1
     fi
 
-    if [ -f "$AGENT_WORKFOLDER/dotnet/dotnet" ]; then   # VSTS Linux
-        DOTNET_ROOT_PATH="$AGENT_WORKFOLDER/dotnet"
-    elif [ -f "/usr/share/dotnet/dotnet" ]; then        # default Linux
-        DOTNET_ROOT_PATH="/usr/share/dotnet"
-    elif [ -f "/usr/local/share/dotnet/dotnet" ]; then  # default macOS
-        DOTNET_ROOT_PATH="/usr/local/share/dotnet"
-    else
-        echo "dotnet not found" 1>&2
-        exit 1
+    if [ ! -f "$DOTNET_ROOT_PATH" ]; then
+        local dotnet_path=$(command -v dotnet)
+        if [ $? -eq 0 ]; then
+            DOTNET_ROOT_PATH=$(dirname $dotnet_path)
+        elif [ -f "$AGENT_WORKFOLDER/dotnet/dotnet" ]; then # VSTS Linux
+            DOTNET_ROOT_PATH="$AGENT_WORKFOLDER/dotnet"
+        elif [ -f "/usr/share/dotnet/dotnet" ]; then        # default Linux
+            DOTNET_ROOT_PATH="/usr/share/dotnet"
+        elif [ -f "/usr/local/share/dotnet/dotnet" ]; then  # default macOS
+            DOTNET_ROOT_PATH="/usr/local/share/dotnet"
+        else
+            echo "dotnet not found" 1>&2
+            exit 1
+        fi
     fi
 
     if [ ! -d "$BUILD_BINARIESDIRECTORY" ]; then
@@ -253,7 +257,6 @@ publish_lib "EdgeHubTriggerCSharp"
 
 publish_files $SRC_DOCKER_DIR $PUBLISH_FOLDER
 publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
-publish_files $SRC_BIN_DIR $PUBLISH_FOLDER
 publish_files $SRC_STRESS_DIR $PUBLISH_FOLDER
 publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
 publish_files $SRC_E2E_TEST_FILES_DIR $PUBLISH_FOLDER

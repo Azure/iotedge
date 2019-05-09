@@ -3,13 +3,25 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
+use lazy_static::lazy_static;
+use std::sync::Mutex;
+
 use edgelet_core::{Certificate, GetTrustBundle};
-use edgelet_hsm::Crypto;
+use edgelet_hsm::{Crypto, HsmLock};
+mod test_utils;
+use test_utils::TestHSMEnvSetup;
+
+lazy_static! {
+    static ref LOCK: Mutex<()> = Mutex::new(());
+}
 
 #[test]
 fn crypto_get_trust_bundle() {
     // arrange
-    let crypto = Crypto::new().unwrap();
+    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
+
+    let hsm_lock = HsmLock::new();
+    let crypto = Crypto::new(hsm_lock).unwrap();
 
     // act
     let cert_info = crypto.get_trust_bundle().unwrap();

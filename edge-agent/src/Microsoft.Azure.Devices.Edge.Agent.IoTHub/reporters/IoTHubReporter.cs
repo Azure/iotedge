@@ -110,6 +110,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 
                     Events.UpdatedReportedProperties();
                 }
+                else
+                {
+                    Events.ReportedPropertiesPatchEmpty();
+                }
             }
             catch (Exception e)
             {
@@ -157,6 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 
         void SetReported(AgentState reported)
         {
+            Events.UpdatingReportedPropertiesCache();
             if (this.reportedState.OrDefault() != reported)
             {
                 this.reportedState = Option.Some(reported);
@@ -196,15 +201,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         Task ReportShutdownInternal(AgentState agentState, DeploymentStatus status)
         {
             Option<IEdgeAgentModule> edgeAgentModule = agentState.SystemModules.EdgeAgent
-                .Map(ea => ea as IRuntimeStatusModule)
-                .Filter(ea => ea != null)
-                .Map(ea => (IEdgeAgentModule)ea.WithRuntimeStatus(ModuleStatus.Unknown))
+                .Filter(ea => ea is IRuntimeStatusModule)
+                .Map(ea => ((IRuntimeStatusModule)ea).WithRuntimeStatus(ModuleStatus.Unknown) as IEdgeAgentModule)
                 .Else(agentState.SystemModules.EdgeAgent);
 
             Option<IEdgeHubModule> edgeHubModule = agentState.SystemModules.EdgeHub
-                .Map(eh => eh as IRuntimeStatusModule)
-                .Filter(eh => eh != null)
-                .Map(eh => (IEdgeHubModule)eh.WithRuntimeStatus(ModuleStatus.Unknown))
+                .Filter(eh => eh is IRuntimeStatusModule)
+                .Map(eh => ((IRuntimeStatusModule)eh).WithRuntimeStatus(ModuleStatus.Unknown) as IEdgeHubModule)
                 .Else(agentState.SystemModules.EdgeHub);
 
             IDictionary<string, IModule> updateUserModules = (agentState.Modules ?? ImmutableDictionary<string, IModule>.Empty)
@@ -245,7 +248,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             NoSavedReportedProperties,
             BuildStateFailed,
             UpdateErrorInfoFailed,
-            ClearedReportedProperties
+            ClearedReportedProperties,
+            ReportedPropertiesPatchEmpty,
+            UpdatingReportedPropertiesCache
         }
 
         public static void NoSavedReportedProperties()
@@ -276,6 +281,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         public static void ClearedReportedProperties(Exception e)
         {
             Log.LogWarning((int)EventIds.ClearedReportedProperties, $"Clearing reported properties due to error {e.Message}");
+        }
+
+        public static void ReportedPropertiesPatchEmpty()
+        {
+            Log.LogDebug((int)EventIds.ReportedPropertiesPatchEmpty, "Not updating reported properties as patch was found to be empty");
+        }
+
+        public static void UpdatingReportedPropertiesCache()
+        {
+            Log.LogDebug((int)EventIds.UpdatingReportedPropertiesCache, "Updating reported properties cache");
         }
     }
 }

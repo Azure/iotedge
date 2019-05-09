@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string deviceId;
         readonly string iotHubHostName;
         readonly bool enableStreams;
+        readonly TimeSpan requestTimeout;
 
         public TwinConfigSourceModule(
             string iotHubHostname,
@@ -37,7 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             IConfiguration config,
             VersionInfo versionInfo,
             TimeSpan configRefreshFrequency,
-            bool enableStreams)
+            bool enableStreams,
+            TimeSpan requestTimeout)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -46,6 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.versionInfo = Preconditions.CheckNotNull(versionInfo, nameof(versionInfo));
             this.configRefreshFrequency = configRefreshFrequency;
             this.enableStreams = enableStreams;
+            this.requestTimeout = requestTimeout;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -72,8 +75,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     {
                         if (this.enableStreams)
                         {
-                            ILogsProvider logsProvider = await c.Resolve<Task<ILogsProvider>>();
-                            var streamRequestHandlerProvider = new StreamRequestHandlerProvider(logsProvider);
+                            var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
+                            var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
+                            IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
+                            ILogsProvider logsProvider = await logsProviderTask;
+                            var streamRequestHandlerProvider = new StreamRequestHandlerProvider(logsProvider, runtimeInfoProvider);
                             return new StreamRequestListener(streamRequestHandlerProvider) as IStreamRequestListener;
                         }
                         else
@@ -89,13 +95,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 async c =>
                 {
                     var logsUploader = c.Resolve<ILogsUploader>();
-                    ILogsProvider logsProvider = await c.Resolve<Task<ILogsProvider>>();
+                    var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
+                    var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
+                    IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
+                    ILogsProvider logsProvider = await logsProviderTask;
                     var requestHandlers = new List<IRequestHandler>
                     {
                         new PingRequestHandler(),
-                        new LogsUploadRequestHandler(logsUploader, logsProvider)
+                        new LogsUploadRequestHandler(logsUploader, logsProvider, runtimeInfoProvider)
                     };
-                    return new RequestManager(requestHandlers) as IRequestManager;
+                    return new RequestManager(requestHandlers, this.requestTimeout) as IRequestManager;
                 })
                 .As<Task<IRequestManager>>()
                 .SingleInstance();

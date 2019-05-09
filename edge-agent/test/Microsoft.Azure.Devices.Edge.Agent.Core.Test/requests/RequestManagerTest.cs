@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -28,14 +29,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var requestHandler = new Mock<IRequestHandler>();
-            requestHandler.Setup(r => r.HandleRequest(It.IsAny<Option<string>>()))
+            requestHandler.Setup(r => r.HandleRequest(It.IsAny<Option<string>>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Option.Some("{\"prop3\":\"foo\",\"prop4\":100}"));
             requestHandler.SetupGet(r => r.RequestName).Returns("req1");
             var requestHandlers = new List<IRequestHandler>
             {
                 requestHandler.Object
             };
-            var requestManager = new RequestManager(requestHandlers);
+            var requestManager = new RequestManager(requestHandlers, TimeSpan.FromSeconds(60));
             string payload = "{\"prop2\":\"foo\",\"prop1\":100}";
 
             // Act
@@ -86,13 +87,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var requestHandler = new Mock<IRequestHandler>();
-            requestHandler.Setup(r => r.HandleRequest(Option.Some(payload))).ThrowsAsync(handlerException);
+            requestHandler.Setup(r => r.HandleRequest(Option.Some(payload), It.IsAny<CancellationToken>())).ThrowsAsync(handlerException);
             requestHandler.SetupGet(r => r.RequestName).Returns("req1");
             var requestHandlers = new List<IRequestHandler>
             {
                 requestHandler.Object
             };
-            var requestManager = new RequestManager(requestHandlers);
+            var requestManager = new RequestManager(requestHandlers, TimeSpan.FromSeconds(60));
 
             // Act
             (int responseStatus, Option<string> responsePayload) = await requestManager.ProcessRequest("req1", payload);
@@ -102,6 +103,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             Assert.True(responsePayload.HasValue);
             JObject parsedJson = JObject.Parse(responsePayload.OrDefault());
             Assert.False(string.IsNullOrWhiteSpace(parsedJson["message"].ToString()));
+        }
+
+        [Fact]
+        public async Task TestRequestCancelled()
+        {
+            // Arrange
+            var requestHandler = new Mock<IRequestHandler>();
+            requestHandler.Setup(r => r.HandleRequest(It.IsAny<Option<string>>(), It.IsAny<CancellationToken>()))
+                .Callback<Option<string>, CancellationToken>((s, c) => Task.Delay(TimeSpan.FromSeconds(60), c).Wait(c))
+                .ReturnsAsync(Option.Some("{\"prop3\":\"foo\",\"prop4\":100}"));
+
+            requestHandler.SetupGet(r => r.RequestName).Returns("req1");
+            var requestHandlers = new List<IRequestHandler>
+            {
+                requestHandler.Object
+            };
+            var requestManager = new RequestManager(requestHandlers, TimeSpan.FromSeconds(5));
+            string payload = "{\"prop2\":\"foo\",\"prop1\":100}";
+
+            // Act
+            Task<(int responseStatus, Option<string> responsePayload)> processRequestTask = requestManager.ProcessRequest("req1", payload);
+            Task delayTask = Task.Delay(TimeSpan.FromSeconds(10));
+            Task completedTask = await Task.WhenAny(processRequestTask, delayTask);
+
+            // Assert
+            Assert.Equal(completedTask, processRequestTask);
+            (int responseStatus, Option<string> _) = await processRequestTask;
+            Assert.Equal(500, responseStatus);
         }
     }
 }

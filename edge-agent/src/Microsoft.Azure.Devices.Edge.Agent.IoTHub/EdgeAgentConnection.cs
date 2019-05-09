@@ -97,9 +97,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public async Task UpdateReportedPropertiesAsync(TwinCollection patch)
         {
-            if (await this.WaitForDeviceClientInitialization())
+            Events.UpdatingReportedProperties();
+            try
             {
-                await this.moduleClient.ForEachAsync(d => d.UpdateReportedPropertiesAsync(patch));
+                if (!this.moduleClient.HasValue)
+                {
+                    Events.UpdateReportedPropertiesDeviceClientEmpty();
+                }
+
+                if (await this.WaitForDeviceClientInitialization())
+                {
+                    await this.moduleClient.ForEachAsync(d => d.UpdateReportedPropertiesAsync(patch));
+                    Events.UpdatedReportedProperties();
+                }
+            }
+            catch (Exception e)
+            {
+                Events.ErrorUpdatingReportedProperties(e);
+                throw;
             }
         }
 
@@ -198,6 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 IModuleClient dc = this.moduleClient.Expect(() => new InvalidOperationException("DeviceClient not yet initialized"));
                 Twin twin = await retryPolicy.ExecuteAsync(() => dc.GetTwinAsync());
 
+                Events.GotTwin(twin);
                 this.desiredProperties = twin.Properties.Desired;
                 this.reportedProperties = Option.Some(twin.Properties.Reported);
                 await this.UpdateDeploymentConfig();
@@ -303,7 +319,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 RetryingGetTwin,
                 MismatchedSchemaVersion,
                 TwinRefreshInit,
-                TwinRefreshStart
+                TwinRefreshStart,
+                GotTwin,
+                UpdatingReportedProperties,
+                UpdateReportedPropertiesDeviceClientEmpty,
+                UpdatedReportedProperties,
+                ErrorUpdatingReportedProperties
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -376,6 +397,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             internal static void RetryingGetTwin(RetryingEventArgs args)
             {
                 Log.LogDebug((int)EventIds.RetryingGetTwin, $"Edge agent is retrying GetTwinAsync. Attempt #{args.CurrentRetryCount}. Last error: {args.LastException?.Message}");
+            }
+
+            public static void GotTwin(Twin twin)
+            {
+                long reportedPropertiesVersion = twin?.Properties?.Reported?.Version ?? -1;
+                long desiredPropertiesVersion = twin?.Properties?.Desired?.Version ?? -1;
+                Log.LogInformation((int)EventIds.GotTwin, $"Obtained Edge agent twin from IoTHub with desired properties version {desiredPropertiesVersion} and reported properties version {reportedPropertiesVersion}.");
+            }
+
+            public static void UpdatingReportedProperties()
+            {
+                Log.LogDebug((int)EventIds.UpdatingReportedProperties, "Updating reported properties in IoT Hub");
+            }
+
+            public static void UpdateReportedPropertiesDeviceClientEmpty()
+            {
+                Log.LogDebug((int)EventIds.UpdateReportedPropertiesDeviceClientEmpty, "Updating reported properties in IoT Hub");
+            }
+
+            public static void UpdatedReportedProperties()
+            {
+                Log.LogDebug((int)EventIds.UpdatedReportedProperties, "Updated reported properties in IoT Hub");
+            }
+
+            public static void ErrorUpdatingReportedProperties(Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorUpdatingReportedProperties, ex, "Error updating reported properties in IoT Hub");
             }
         }
     }

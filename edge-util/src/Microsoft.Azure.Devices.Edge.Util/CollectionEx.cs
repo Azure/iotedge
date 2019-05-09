@@ -132,5 +132,37 @@ namespace Microsoft.Azure.Devices.Edge.Util
             value = default(TValue);
             return false;
         }
+
+        public static IEnumerable<IEnumerable<T>> Batch<T>(this IEnumerable<T> list, int batchSize)
+        {
+            var current = new List<T>();
+            foreach (T item in list)
+            {
+                current.Add(item);
+                if (current.Count == batchSize)
+                {
+                    yield return current;
+                    current = new List<T>(batchSize);
+                }
+            }
+
+            if (current.Count > 0)
+            {
+                yield return current;
+            }
+        }
+
+        public static byte[] Combine(this IList<byte[]> arrays)
+        {
+            byte[] combinedBytes = new byte[arrays.Sum(a => a.Length)];
+            int dstOffset = 0;
+            foreach (byte[] array in arrays)
+            {
+                Buffer.BlockCopy(array, 0, combinedBytes, dstOffset, array.Length);
+                dstOffset += array.Length;
+            }
+
+            return combinedBytes;
+        }
     }
 }

@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
     using System.IO;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class TestRocksDbStoreProvider : IDisposable
+    public class TestRocksDbStoreProvider : IDbStoreProvider
     {
         readonly string rocksDbFolder;
         readonly DbStoreProvider rocksDbStoreProvider;
@@ -24,9 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             this.rocksDbStoreProvider = DbStoreProvider.Create(options, this.rocksDbFolder, new string[0]);
         }
 
-        public IDbStore GetColumnStoreFamily(string columnFamilyName) =>
-            this.rocksDbStoreProvider.GetDbStore(columnFamilyName);
-
         public void Dispose()
         {
             this.rocksDbStoreProvider?.Dispose();
@@ -35,5 +32,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
                 Directory.Delete(this.rocksDbFolder, true);
             }
         }
+
+        public IDbStore GetDbStore(string partitionName) => this.rocksDbStoreProvider.GetDbStore(partitionName);
+
+        public IDbStore GetDbStore() => this.rocksDbStoreProvider.GetDbStore("default");
+
+        public void RemoveDbStore(string partitionName) => throw new NotImplementedException();
     }
 }

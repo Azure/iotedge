@@ -23,6 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             services.AddSingleton<IController, EdgeletTestImplementation>();
         }
 
+        // TODO: Remove warning disable for Obsolete when project is moved to dotnetcore 3.0
+#pragma warning disable 612, 618
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
@@ -33,5 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
 
             app.UseMvc();
         }
+#pragma warning restore 612, 618
     }
 }

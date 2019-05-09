@@ -3,9 +3,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Net;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -14,11 +14,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     public class RequestManager : IRequestManager
     {
         readonly IDictionary<string, IRequestHandler> requestHandlers;
+        readonly TimeSpan maxRequestTimeout;
 
-        public RequestManager(IEnumerable<IRequestHandler> requestHandlers)
+        public RequestManager(IEnumerable<IRequestHandler> requestHandlers, TimeSpan maxRequestTimeout)
         {
             this.requestHandlers = Preconditions.CheckNotNull(requestHandlers, nameof(requestHandlers))
                 .ToDictionary(r => r.RequestName, r => r, StringComparer.OrdinalIgnoreCase);
+            this.maxRequestTimeout = maxRequestTimeout;
         }
 
         public async Task<(int statusCode, Option<string> responsePayload)> ProcessRequest(string request, string payloadJson)
@@ -34,9 +36,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                     throw new ArgumentException(message);
                 }
 
-                Option<string> responsePayload = await requestHandler.HandleRequest(Option.Maybe(payloadJson));
-                Events.HandledRequest(request);
-                return ((int)HttpStatusCode.OK, responsePayload);
+                // This does not timeout the actual handle request operation.
+                // It relies on the handler to cancel the operation when the cancellation token is set to cancelled.
+                using (var cancellationTokenSource = new CancellationTokenSource(this.maxRequestTimeout))
+                {
+                    Option<string> responsePayload = await requestHandler.HandleRequest(Option.Maybe(payloadJson), cancellationTokenSource.Token);
+                    Events.HandledRequest(request);
+                    return ((int)HttpStatusCode.OK, responsePayload);
+                }
             }
             catch (Exception ex)
             {
