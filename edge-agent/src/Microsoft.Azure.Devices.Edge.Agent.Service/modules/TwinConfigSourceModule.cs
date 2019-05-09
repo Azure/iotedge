@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string iotHubHostName;
         readonly bool enableStreams;
         readonly TimeSpan requestTimeout;
+        readonly bool enableSubscriptions;
 
         public TwinConfigSourceModule(
             string iotHubHostname,
@@ -39,7 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             VersionInfo versionInfo,
             TimeSpan configRefreshFrequency,
             bool enableStreams,
-            TimeSpan requestTimeout)
+            TimeSpan requestTimeout,
+            bool enableSubscriptions)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -49,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.configRefreshFrequency = configRefreshFrequency;
             this.enableStreams = enableStreams;
             this.requestTimeout = requestTimeout;
+            this.enableSubscriptions = enableSubscriptions;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -119,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     var requestManagerTask = c.Resolve<Task<IRequestManager>>();
                     IStreamRequestListener streamRequestListener = await streamRequestListenerTask;
                     IRequestManager requestManager = await requestManagerTask;
-                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, streamRequestListener, this.configRefreshFrequency);
+                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, streamRequestListener, this.enableSubscriptions, this.configRefreshFrequency);
                     return edgeAgentConnection;
                 })
                 .As<Task<IEdgeAgentConnection>>()

@@ -625,7 +625,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var streamRequestListener = Mock.Of<IStreamRequestListener>();
 
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), streamRequestListener, retryStrategy.Object, TimeSpan.FromHours(1));
+            IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), streamRequestListener, true, retryStrategy.Object, TimeSpan.FromHours(1));
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(
                 ConnectionStatus.Connected,

@@ -14,7 +14,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
     public interface IModuleConnection
     {
-        Task<IModuleClient> GetModuleClient(ConnectionStatusChangesHandler connectionStatusChangesHandler);
+        Task<IModuleClient> GetOrCreateModuleClient();
+
+        Option<IModuleClient> GetModuleClient();
     }
 
     public class ModuleConnection : IModuleConnection
@@ -29,12 +31,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         Option<IModuleClient> moduleClient;
 
-        public ModuleConnection(IModuleClientProvider moduleClientProvider, bool enableSubscriptions)
+        public ModuleConnection(
+            IModuleClientProvider moduleClientProvider,
+            IRequestManager requestManager,
+            IStreamRequestListener streamRequestListener,
+            ConnectionStatusChangesHandler connectionStatusChangesHandler,
+            DesiredPropertyUpdateCallback desiredPropertyUpdateCallback,
+            bool enableSubscriptions)
         {
             this.moduleClientProvider = Preconditions.CheckNotNull(moduleClientProvider, nameof(moduleClientProvider));
+            this.requestManager = Preconditions.CheckNotNull(requestManager, nameof(requestManager));
+            this.streamRequestListener = Preconditions.CheckNotNull(streamRequestListener, nameof(streamRequestListener));
+            this.connectionStatusChangesHandler = Preconditions.CheckNotNull(connectionStatusChangesHandler, nameof(connectionStatusChangesHandler));
+            this.desiredPropertyUpdateCallback = Preconditions.CheckNotNull(desiredPropertyUpdateCallback, nameof(desiredPropertyUpdateCallback));
+            this.enableSubscriptions = enableSubscriptions;
         }
 
-        public async Task<IModuleClient> GetModuleClient()
+        public async Task<IModuleClient> GetOrCreateModuleClient()
         {
             IModuleClient moduleClient = await this.moduleClient
                 .Filter(m => m.IsActive)
@@ -42,6 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 .GetOrElse(this.InitModuleClient);
             return moduleClient;
         }
+
+        public Option<IModuleClient> GetModuleClient() => this.moduleClient.Filter(m => m.IsActive);
 
         async Task<MethodResponse> MethodCallback(MethodRequest methodRequest, object _)
         {
@@ -63,8 +78,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                         {
                             IModuleClient mc = await this.moduleClientProvider.Create(this.connectionStatusChangesHandler);
                             mc.Closed += this.OnModuleClientClosed;
-                            await mc.SetDefaultMethodHandlerAsync(this.MethodCallback);
-                            await mc.SetDesiredPropertyUpdateCallbackAsync(this.desiredPropertyUpdateCallback);
+                            if (this.enableSubscriptions)
+                            {
+                                await mc.SetDefaultMethodHandlerAsync(this.MethodCallback);
+                                await mc.SetDesiredPropertyUpdateCallbackAsync(this.desiredPropertyUpdateCallback);
+                            }
+
                             this.streamRequestListener.InitPump(mc);
                             this.moduleClient = Option.Some(mc);
                             return mc;
