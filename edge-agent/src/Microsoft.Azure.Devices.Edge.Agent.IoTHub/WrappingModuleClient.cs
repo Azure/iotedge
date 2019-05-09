@@ -17,7 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
         }
 
-        public event EventHandler Closed;
+        public event EventHandler Closed
+        {
+            add { }
+            remove { }
+        }
 
         public bool IsActive => true;
 

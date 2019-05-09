@@ -96,6 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
+                Events.ModuleClientClosed();
                 await this.InitModuleClient();
             }
             catch (Exception ex)
@@ -114,7 +115,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 ClosingModuleClient = IdStart,
                 ExceptionInHandleException,
                 TimedOutClosing,
-                ErrorClosingClient
+                ErrorClosingClient,
+                ErrorHandlingModuleClosedEvent,
+                ModuleClientClosed
             }
 
             public static void ClosingModuleClient(Exception ex)
@@ -135,6 +138,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             public static void TimedOutClosing()
             {
                 Log.LogInformation((int)EventIds.TimedOutClosing, "Edge agent module client timed out due to inactivity, closing...");
+            }
+
+            public static void ErrorHandlingModuleClosedEvent(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorHandlingModuleClosedEvent, ex, "Error handling module client closed event");
+            }
+
+            public static void ModuleClientClosed()
+            {
+                Log.LogInformation((int)EventIds.ModuleClientClosed, "Current module client closed. Initializing a new one...");
             }
         }
     }
