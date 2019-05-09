@@ -77,6 +77,31 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
             }
         }
 
+        public string ReadLine()
+        {
+            int position = 0;
+            var buffer = new byte[1];
+            bool crFound = false;
+            var builder = new StringBuilder();
+            while (true)
+            {
+                int length = this.innerStream.Read(buffer, 0, buffer.Length);
+                if (length == 0)
+                {
+                    throw new IOException("Unexpected end of stream.");
+                }
+
+                if (crFound && (char)buffer[position] == LF)
+                {
+                    builder.Remove(builder.Length - 1, 1);
+                    return builder.ToString();
+                }
+
+                builder.Append((char)buffer[position]);
+                crFound = (char)buffer[position] == CR;
+            }
+        }
+
         public override long Seek(long offset, SeekOrigin origin)
         {
             return this.innerStream.Seek(offset, origin);

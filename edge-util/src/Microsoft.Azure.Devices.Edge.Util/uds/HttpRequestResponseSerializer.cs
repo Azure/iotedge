@@ -108,8 +108,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
                              && httpResponse.Headers.TransferEncodingChunked.Value;
 
             httpResponse.Content = isChunked
-                    ? new StreamContent(new HttpChunkedStreamReader(bufferedStream))
-                    : new StreamContent(bufferedStream);
+                ? new StreamContent(new HttpChunkedStreamReader(bufferedStream))
+                : new StreamContent(bufferedStream);
 
             foreach (KeyValuePair<string, string> contentHeader in contentHeaders)
             {
