@@ -194,7 +194,7 @@ fn build_libiothsm() {
 }
 
 fn main() {
-    if env::var("LIBIOTHSM_NOBUILD").is_ok() {
+    if env::var_os("LIBIOTHSM_NOBUILD").is_some() {
         // libiothsm-std is expected to be built and installed out of band
         println!("cargo:rustc-link-lib=iothsm");
     } else {
