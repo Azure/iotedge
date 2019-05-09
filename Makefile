@@ -1,3 +1,5 @@
+# Copyright (c) Microsoft. All rights reserved.
+
 TARGET=target
 
 _version:=$(shell cat edgelet/version.txt)
@@ -34,8 +36,10 @@ $(TARGET)/$(PACKAGE).tar.gz: $(TARGET)
 	gzip -f $(TARGET)/$(PACKAGE).tar
 	rm -f $(TARGET)/$(PACKAGE).tar
 
+# Produces a tarball of the source including all git submodules
 dist: $(TARGET)/$(PACKAGE).tar.gz
 
+# Removes the build directory
 clean:
 	rm -rf $(TARGET)
 
