@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
-    using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
+    using ExponentialBackoff = Util.TransientFaultHandling.ExponentialBackoff;
 
     public class ModuleClientProvider : IModuleClientProvider
     {
