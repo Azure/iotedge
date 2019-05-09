@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
     public class ModuleClientProvider : IModuleClientProvider
     {
-        const uint ModuleClientTimeout = 30000; // ms
+        const uint ModuleClientTimeoutMilliseconds = 30000; // ms
         static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
 
         static readonly RetryStrategy TransientRetryStrategy =
@@ -174,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             // note: it's important to set the status-changed handler and
             // timeout value *before* we open a connection to the hub
-            moduleClient.OperationTimeoutInMilliseconds = ModuleClientTimeout;
+            moduleClient.OperationTimeoutInMilliseconds = ModuleClientTimeoutMilliseconds;
             moduleClient.SetConnectionStatusChangesHandler(statusChangedHandler);
             await moduleClient.OpenAsync();
 
