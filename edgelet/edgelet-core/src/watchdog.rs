@@ -287,6 +287,7 @@ where
             id.generation_id().to_string(),
         );
         let spec = spec.with_env(env);
+
         runtime
             .registry()
             .pull(spec.clone().config())
