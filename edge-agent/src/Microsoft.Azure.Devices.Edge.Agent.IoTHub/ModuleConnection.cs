@@ -12,19 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
 
-    public interface IModuleConnection
-    {
-        Task<IModuleClient> GetOrCreateModuleClient();
-
-        Option<IModuleClient> GetModuleClient();
-    }
-
     public class ModuleConnection : IModuleConnection
     {
         readonly IModuleClientProvider moduleClientProvider;
         readonly AsyncLock stateLock = new AsyncLock();
         readonly IRequestManager requestManager;
-        readonly IStreamRequestListener streamRequestListener;
         readonly ConnectionStatusChangesHandler connectionStatusChangesHandler;
         readonly DesiredPropertyUpdateCallback desiredPropertyUpdateCallback;
         readonly bool enableSubscriptions;
@@ -34,14 +26,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         public ModuleConnection(
             IModuleClientProvider moduleClientProvider,
             IRequestManager requestManager,
-            IStreamRequestListener streamRequestListener,
             ConnectionStatusChangesHandler connectionStatusChangesHandler,
             DesiredPropertyUpdateCallback desiredPropertyUpdateCallback,
             bool enableSubscriptions)
         {
             this.moduleClientProvider = Preconditions.CheckNotNull(moduleClientProvider, nameof(moduleClientProvider));
             this.requestManager = Preconditions.CheckNotNull(requestManager, nameof(requestManager));
-            this.streamRequestListener = Preconditions.CheckNotNull(streamRequestListener, nameof(streamRequestListener));
             this.connectionStatusChangesHandler = Preconditions.CheckNotNull(connectionStatusChangesHandler, nameof(connectionStatusChangesHandler));
             this.desiredPropertyUpdateCallback = Preconditions.CheckNotNull(desiredPropertyUpdateCallback, nameof(desiredPropertyUpdateCallback));
             this.enableSubscriptions = enableSubscriptions;
@@ -84,7 +74,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                                 await mc.SetDesiredPropertyUpdateCallbackAsync(this.desiredPropertyUpdateCallback);
                             }
 
-                            this.streamRequestListener.InitPump(mc);
                             this.moduleClient = Option.Some(mc);
                             return mc;
                         });
@@ -92,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        async void OnModuleClientClosed(object sender, System.EventArgs e)
+        async void OnModuleClientClosed(object sender, EventArgs e)
         {
             try
             {
@@ -107,8 +96,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         static class Events
         {
-            public static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleClient>();
             const int IdStart = AgentEventIds.ModuleClientProvider;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleClient>();
 
             enum EventIds
             {
