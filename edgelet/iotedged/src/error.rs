@@ -5,8 +5,8 @@ use std::fmt::Display;
 #[cfg(windows)]
 use std::sync::Mutex;
 
-use edgelet_core::ErrorKind as CoreErrorKind;
 use edgelet_core::Error as CoreError;
+use edgelet_core::ErrorKind as CoreErrorKind;
 use edgelet_http::Error as HttpError;
 use edgelet_http::ErrorKind as HttpErrorKind;
 use iothubservice::Error as HubServiceError;
@@ -96,17 +96,17 @@ impl From<CoreError> for Error {
             if let Some(service_err) = cause.downcast_ref::<HubServiceError>() {
                 let hub_failure: &dyn Fail = service_err;
 
-                for cause in hub_failure.iter_causes(){
+                for cause in hub_failure.iter_causes() {
                     if let Some(err) = cause.downcast_ref::<HttpError>() {
                         match HttpError::kind(err) {
                             HttpErrorKind::Http => {
                                 error_kind = ErrorKind::InvalidHubConfig;
-                            },
+                            }
                             HttpErrorKind::HttpWithErrorResponse(code, _message) => {
                                 if code.as_u16() == 401 {
                                     error_kind = ErrorKind::InvalidSignedToken;
                                 }
-                            },
+                            }
                             _ => {}
                         };
 
@@ -120,7 +120,7 @@ impl From<CoreError> for Error {
 
         let error_kind_result = match error.kind() {
             CoreErrorKind::EdgeRuntimeIdentityNotFound => ErrorKind::InvalidDeviceConfig,
-            _ => error_kind
+            _ => error_kind,
         };
 
         Error::from(error.context(error_kind_result))
@@ -147,7 +147,7 @@ impl From<&ErrorKind> for i32 {
             ErrorKind::InvalidDeviceConfig => 150,
             ErrorKind::InvalidHubConfig => 151,
             ErrorKind::InvalidSignedToken => 152,
-            _ => 1
+            _ => 1,
         }
     }
 }
