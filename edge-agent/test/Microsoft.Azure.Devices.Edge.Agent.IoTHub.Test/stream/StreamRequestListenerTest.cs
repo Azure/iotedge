@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
             var streamRequestListener = new StreamRequestListener(streamRequestHandlerProvider.Object, edgeAgentConnection, 2);
 
             // Act
-            streamRequestListener.InitPump(moduleClient.Object);
+            streamRequestListener.InitPump();
 
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(5));
