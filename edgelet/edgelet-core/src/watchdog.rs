@@ -289,7 +289,7 @@ where
         let spec = spec.with_env(env);
 
         println!("{:?}", spec.pull_policy());
-        let fut: Box<dyn Future<Item=_, Error=_> + Send> = match spec.pull_policy() {
+        let pull_future: Box<dyn Future<Item=_, Error=_> + Send> = match spec.pull_policy() {
             None => Box::new(future::ok(())),
             Some(pull_policy) => {
                 if pull_policy == &PullPolicy::Never {
@@ -303,7 +303,7 @@ where
             }
         };
 
-        fut
+        pull_future
             .and_then(move |_| runtime.create(spec))
             .and_then(move |_| runtime_copy.start(&module_name))
             .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))

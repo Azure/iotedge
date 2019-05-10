@@ -385,19 +385,13 @@ where
         });
         let mut config = Config::default();
         config.merge(YamlFileSource::String(DEFAULTS))?;
-
-//        println!("{:?}", config);
         if let Some(file) = filename {
             config.merge(YamlFileSource::File(file.into()))?;
         }
 
         config.merge(Environment::with_prefix("iotedge"))?;
 
-        println!("{:?}", config);
-        println!("Settings try into");
         let settings: Self = config.try_into()?;
-        println!("Settings try into done");
-        println!("{:?}", settings);
 
         Ok(settings)
     }
