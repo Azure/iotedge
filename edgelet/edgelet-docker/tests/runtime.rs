@@ -657,6 +657,7 @@ fn container_create_succeeds() {
         "docker".to_string(),
         DockerConfig::new("nginx:latest".to_string(), create_options, None).unwrap(),
         env,
+        None
     )
     .unwrap();
 

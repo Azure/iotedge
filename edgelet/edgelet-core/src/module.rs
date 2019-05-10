@@ -553,7 +553,7 @@ mod tests {
     #[test]
     fn module_config_empty_name_fails() {
         let name = "".to_string();
-        match ModuleSpec::new(name.clone(), "docker".to_string(), 10_i32, HashMap::new()) {
+        match ModuleSpec::new(name.clone(), "docker".to_string(), 10_i32, HashMap::new(), None) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
                 if let ErrorKind::InvalidModuleName(s) = err.kind() {
@@ -568,7 +568,7 @@ mod tests {
     #[test]
     fn module_config_white_space_name_fails() {
         let name = "    ".to_string();
-        match ModuleSpec::new(name.clone(), "docker".to_string(), 10_i32, HashMap::new()) {
+        match ModuleSpec::new(name.clone(), "docker".to_string(), 10_i32, HashMap::new(), None) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
                 if let ErrorKind::InvalidModuleName(s) = err.kind() {
@@ -583,7 +583,7 @@ mod tests {
     #[test]
     fn module_config_empty_type_fails() {
         let type_ = "    ".to_string();
-        match ModuleSpec::new("m1".to_string(), type_.clone(), 10_i32, HashMap::new()) {
+        match ModuleSpec::new("m1".to_string(), type_.clone(), 10_i32, HashMap::new(), None) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
                 if let ErrorKind::InvalidModuleType(s) = err.kind() {
@@ -598,7 +598,7 @@ mod tests {
     #[test]
     fn module_config_white_space_type_fails() {
         let type_ = "    ".to_string();
-        match ModuleSpec::new("m1".to_string(), type_.clone(), 10_i32, HashMap::new()) {
+        match ModuleSpec::new("m1".to_string(), type_.clone(), 10_i32, HashMap::new(), None) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
                 if let ErrorKind::InvalidModuleType(s) = err.kind() {

@@ -562,6 +562,7 @@ mod tests {
                 env.insert(String::from("C"), String::from("D"));
                 env
             },
+            None
         )
         .unwrap()
     }
