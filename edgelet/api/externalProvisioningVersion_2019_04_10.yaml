@@ -2,18 +2,18 @@ swagger: '2.0'
 schemes:
   - http
 info:
-  title: IoT Edge Hosting Environment API
+  title: IoT Edge External Provisioning Environment API
   version: '2019-04-10'
 tags:
-  - name: Hosting
-    x-displayName: Hosting
+  - name: ExternalProvisioning
+    x-displayName: ExternalProvisioning
     description: |
 
 paths:
   '/edge/device/connectioninformation':
     get:
       tags:
-        - Hosting
+        - ExternalProvisioning
       summary: Gets the IoT hub connection information of the device.
       produces:
         - application/json

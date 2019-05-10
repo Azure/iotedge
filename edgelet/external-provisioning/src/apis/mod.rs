@@ -48,8 +48,8 @@ impl<T> From<serde_json::Error> for Error<T> {
     }
 }
 
-mod hosting_api;
-pub use self::hosting_api::{HostingApi, HostingApiClient};
+mod external_provisioning_api;
+pub use self::external_provisioning_api::{ExternalProvisioningApi, ExternalProvisioningApiClient};
 
 pub mod client;
 pub mod configuration;

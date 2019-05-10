@@ -1,5 +1,5 @@
 [package]
-name = "edgelet-http-hosting"
+name = "edgelet-http-external-provisioning"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 publish = false
@@ -20,4 +20,4 @@ url = "1.7"
 
 edgelet-core = { path = "../edgelet-core" }
 edgelet-http = { path = "../edgelet-http" }
-hosting = { path = "../hosting" }
+external-provisioning = { path = "../external-provisioning" }

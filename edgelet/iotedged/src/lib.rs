@@ -63,7 +63,7 @@ use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
 use edgelet_http::{HyperExt, MaybeProxyClient, API_VERSION};
-use edgelet_http_hosting::HostingClient;
+use edgelet_http_external_provisioning::ExternalProvisioningClient;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
@@ -130,9 +130,9 @@ const DEVICE_CA_CERT_KEY: &str = "IOTEDGE_DEVICE_CA_CERT";
 const DEVICE_CA_PK_KEY: &str = "IOTEDGE_DEVICE_CA_PK";
 const TRUSTED_CA_CERTS_KEY: &str = "IOTEDGE_TRUSTED_CA_CERTS";
 
-/// The HSM lib expects this variable to be set to the endpoint of the hosting environment in the 'external'
+/// The HSM lib expects this variable to be set to the endpoint of the external provisioning environment in the 'external'
 /// provisioning mode.
-const HOSTING_ENDPOINT_KEY: &str = "IOTEDGE_HOSTING_ENDPOINT";
+const EXTERNAL_PROVISIONING_ENDPOINT_KEY: &str = "IOTEDGE_EXTERNAL_PROVISIONING_ENDPOINT";
 
 /// This is the key for the docker network Id.
 const EDGE_NETWORKID_KEY: &str = "NetworkId";
@@ -197,8 +197,11 @@ impl Main {
         }
 
         if let Provisioning::External(ref external) = settings.provisioning() {
-            // Set the hosting endpoint environment variable for use by the custom HSM library.
-            env::set_var(HOSTING_ENDPOINT_KEY, external.endpoint().as_str());
+            // Set the external provisioning endpoint environment variable for use by the custom HSM library.
+            env::set_var(
+                EXTERNAL_PROVISIONING_ENDPOINT_KEY,
+                external.endpoint().as_str(),
+            );
         }
 
         let hyper_client = MaybeProxyClient::new(get_proxy_uri(None)?)
@@ -714,23 +717,24 @@ fn external_provision(
     tokio_runtime: &mut tokio::runtime::Runtime,
     hsm_lock: Arc<HsmLock>,
 ) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey), Error> {
-    let hosting_client = HostingClient::new(provisioning.endpoint()).context(
-        ErrorKind::Initialize(InitializeErrorReason::ExternalHostingClient),
-    )?;
+    let external_provisioning_client = ExternalProvisioningClient::new(provisioning.endpoint())
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::ExternalProvisioningClient,
+        ))?;
 
     let tpm = Tpm::new().context(ErrorKind::Initialize(
-        InitializeErrorReason::ExternalHostingClient,
+        InitializeErrorReason::ExternalProvisioningClient,
     ))?;
     let tpm_hsm = TpmKeyStore::from_hsm(tpm, hsm_lock).context(ErrorKind::Initialize(
-        InitializeErrorReason::ExternalHostingClient,
+        InitializeErrorReason::ExternalProvisioningClient,
     ))?;
-    let external = ExternalProvisioning::new(hosting_client);
+    let external = ExternalProvisioning::new(external_provisioning_client);
 
     let provision = external
         .provision(tpm_hsm.clone())
         .map_err(|err| {
             Error::from(err.context(ErrorKind::Initialize(
-                InitializeErrorReason::ExternalHostingClient,
+                InitializeErrorReason::ExternalProvisioningClient,
             )))
         })
         .and_then(move |prov_result| {
@@ -738,7 +742,7 @@ fn external_provision(
                 .get(&KeyIdentity::Device, "primary")
                 .map_err(|err| {
                     Error::from(err.context(ErrorKind::Initialize(
-                        InitializeErrorReason::ExternalHostingClient,
+                        InitializeErrorReason::ExternalProvisioningClient,
                     )))
                 })
                 .and_then(|k| {

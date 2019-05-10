@@ -1,10 +1,10 @@
 [package]
-name = "hosting"
+name = "external-provisioning"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 publish = false
 description = """
-Includes the code-generated implementation of the hosting
+Includes the code-generated implementation of the external provisioning
 api.
 """
 edition = "2018"

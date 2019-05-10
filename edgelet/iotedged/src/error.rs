@@ -160,7 +160,7 @@ pub enum InitializeErrorReason {
     DeviceClient,
     DpsProvisioningClient,
     EdgeRuntime,
-    ExternalHostingClient,
+    ExternalProvisioningClient,
     Hsm,
     HttpClient,
     InvalidDeviceConfig,
@@ -215,8 +215,8 @@ impl fmt::Display for InitializeErrorReason {
 
             InitializeErrorReason::EdgeRuntime => write!(f, "Could not initialize edge runtime"),
 
-            InitializeErrorReason::ExternalHostingClient => {
-                write!(f, "Could not initialize external hosting client")
+            InitializeErrorReason::ExternalProvisioningClient => {
+                write!(f, "Could not initialize external provisioning client")
             }
 
             InitializeErrorReason::Hsm => write!(f, "Could not initialize HSM"),

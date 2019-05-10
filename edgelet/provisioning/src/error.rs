@@ -21,8 +21,8 @@ pub enum ErrorKind {
     #[fail(display = "Could not initialize DPS provisioning client")]
     DpsInitialization,
 
-    #[fail(display = "Could not initialize Hosting client")]
-    HostingInitialization,
+    #[fail(display = "Could not initialize External provisioning client")]
+    ExternalProvisioningInitialization,
 
     #[fail(display = "Could not provision device")]
     Provision,

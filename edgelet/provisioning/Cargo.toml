@@ -21,9 +21,9 @@ dps = { path = "../dps" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-http = { path = "../edgelet-http" }
-edgelet-http-hosting = { path = "../edgelet-http-hosting" }
+edgelet-http-external-provisioning = { path = "../edgelet-http-external-provisioning" }
 edgelet-utils = { path = "../edgelet-utils" }
-hosting = { path = "../hosting" }
+external-provisioning = { path = "../external-provisioning" }
 
 [dev_dependencies]
 tempdir = "0.3.7"

@@ -7,7 +7,7 @@
 pub mod client;
 pub mod error;
 
-pub use client::{HostingClient, HostingInterface};
+pub use client::{ExternalProvisioningClient, ExternalProvisioningInterface};
 pub use error::{Error, ErrorKind};
 
-pub const HOSTING_API_VERSION: &str = "2019-04-10";
+pub const EXTERNAL_PROVISIONING_API_VERSION: &str = "2019-04-10";

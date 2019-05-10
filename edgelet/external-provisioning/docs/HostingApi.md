@@ -1,10 +1,10 @@
-# \HostingApi
+# \ExternalProvisioningApi
 
 All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**get_device_connection_information**](HostingApi.md#get_device_connection_information) | **Get** /edge/device/connectioninformation | Gets the IoT hub connection information of the device.
+[**get_device_connection_information**](ExternalProvisioningApi.md#get_device_connection_information) | **Get** /edge/device/connectioninformation | Gets the IoT hub connection information of the device.
 
 # **get_device_connection_information**
 > ::models::DeviceConnectionInfo get_device_connection_information(api_version)

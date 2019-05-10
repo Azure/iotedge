@@ -18,7 +18,7 @@
 # Supported modes:
 #     manual   - using an iothub connection string
 #     dps      - using dps for provisioning
-#     external - the device has been provisioned externally. Uses a hosting endpoint to get device specific information.
+#     external - the device has been provisioned externally. Uses an external provisioning endpoint to get device specific information.
 #
 # DPS Settings
 #     scope_id - Required. Value of a specific DPS instance's ID scope

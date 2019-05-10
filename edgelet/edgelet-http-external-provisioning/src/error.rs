@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use external_provisioning::apis::Error as ExternalProvisioningError;
 use failure::{Backtrace, Context, Fail};
-use hosting::apis::Error as HostingError;
 use serde_json;
 use std::fmt::{self, Display};
 
@@ -16,13 +16,13 @@ pub struct Error {
 pub enum ErrorKind {
     // Note: This errorkind is always wrapped in another errorkind context
     #[fail(display = "Client error")]
-    Client(HostingError<serde_json::Value>),
+    Client(ExternalProvisioningError<serde_json::Value>),
 
     #[fail(display = "Could not get device connection info")]
     GetDeviceConnectionInformation,
 
-    #[fail(display = "Hosting client initialization")]
-    InitializeHostingClient,
+    #[fail(display = "External provisioning client initialization")]
+    InitializeExternalProvisioningClient,
 }
 
 impl Fail for Error {
@@ -46,11 +46,16 @@ impl Error {
         self.inner.get_context()
     }
 
-    pub fn from_hosting_error(error: HostingError<serde_json::Value>, context: ErrorKind) -> Self {
+    pub fn from_external_provisioning_error(
+        error: ExternalProvisioningError<serde_json::Value>,
+        context: ErrorKind,
+    ) -> Self {
         match error {
-            HostingError::Hyper(h) => Error::from(h.context(context)),
-            HostingError::Serde(s) => Error::from(s.context(context)),
-            HostingError::Api(_) => Error::from(ErrorKind::Client(error).context(context)),
+            ExternalProvisioningError::Hyper(h) => Error::from(h.context(context)),
+            ExternalProvisioningError::Serde(s) => Error::from(s.context(context)),
+            ExternalProvisioningError::Api(_) => {
+                Error::from(ErrorKind::Client(error).context(context))
+            }
         }
     }
 }

@@ -18,7 +18,7 @@ use dps::registration::{DpsAuthKind, DpsClient, DpsTokenSource};
 use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, MemoryKey, MemoryKeyStore};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
-use edgelet_http_hosting::HostingInterface;
+use edgelet_http_external_provisioning::ExternalProvisioningInterface;
 use edgelet_utils::log_failure;
 use hsm::TpmKey as HsmTpmKey;
 use log::{debug, Level};
@@ -163,7 +163,7 @@ where
 
 impl<T, U> Provision for ExternalProvisioning<T, U>
 where
-    T: 'static + HostingInterface,
+    T: 'static + ExternalProvisioningInterface,
     U: 'static + Activate + KeyStore + Send,
 {
     type Hsm = U;
@@ -183,7 +183,7 @@ where
                     device_connection_info.hub_name()
                 );
 
-                // Passing a sentinel value as key because in the external mode, the hosting
+                // Passing a sentinel value as key because in the external mode, the external provisioning
                 // environment itself creates and activates the actual key. The sentinel is
                 // simply ignored.
                 key_activator
@@ -590,8 +590,8 @@ mod tests {
     use super::*;
 
     use edgelet_config::{Manual, ParseManualDeviceConnectionStringError};
-    use failure::{Fail};
-    use hosting::models::DeviceConnectionInfo;
+    use external_provisioning::models::DeviceConnectionInfo;
+    use failure::Fail;
     use std::fmt::{self, Display};
     use tempdir::TempDir;
     use tokio;
@@ -899,7 +899,7 @@ mod tests {
         assert_eq!(result.reconfigure, ReprovisioningStatus::InitialAssignment)
     }
 
-    struct TestExternalHostingInterface {
+    struct TestExternalProvisioningInterface {
         pub error: Option<TestError>,
     }
 
@@ -912,7 +912,7 @@ mod tests {
         }
     }
 
-    impl HostingInterface for TestExternalHostingInterface {
+    impl ExternalProvisioningInterface for TestExternalProvisioningInterface {
         type Error = TestError;
 
         type DeviceConnectionInformationFuture =
@@ -934,7 +934,8 @@ mod tests {
 
     #[test]
     fn external_get_connection_info_success() {
-        let provisioning = ExternalProvisioning::new(TestExternalHostingInterface { error: None });
+        let provisioning =
+            ExternalProvisioning::new(TestExternalProvisioningInterface { error: None });
         let memory_hsm = MemoryKeyStore::new();
         let task = provisioning
             .provision(memory_hsm.clone())
@@ -954,7 +955,7 @@ mod tests {
 
     #[test]
     fn external_get_connection_info_failure() {
-        let provisioning = ExternalProvisioning::new(TestExternalHostingInterface {
+        let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
             error: Some(TestError {}),
         });
         let memory_hsm = MemoryKeyStore::new();

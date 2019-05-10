@@ -21,7 +21,7 @@ All URIs are relative to *http://localhost*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
-*HostingApi* | [**get_device_connection_information**](docs/HostingApi.md#get_device_connection_information) | **Get** /edge/device/connectioninformation | Gets the IoT hub connection information of the device.
+*ExternalProvisioningApi* | [**get_device_connection_information**](docs/ExternalProvisioningApi.md#get_device_connection_information) | **Get** /edge/device/connectioninformation | Gets the IoT hub connection information of the device.
 
 
 ## Documentation For Models

@@ -31,7 +31,7 @@ edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
 edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-http = { path = "../edgelet-http" }
-edgelet-http-hosting = { path = "../edgelet-http-hosting" }
+edgelet-http-external-provisioning = { path = "../edgelet-http-external-provisioning" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-iothub = { path = "../edgelet-iothub" }
