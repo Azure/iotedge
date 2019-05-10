@@ -160,8 +160,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [InlineData("ea:t1", "ea:t1", null)]
         [InlineData(" ea:t1 ", "ea:t1", null)]
         [InlineData("mcr.ms.com/ea:t1", "mcr.ms.com/ea:t1", null)]
+        [InlineData("mcr.ms.com/ms/ea:t1", "mcr.ms.com/ms/ea:t1", null)]
         [InlineData("mcr.ms.com/ea", "mcr.ms.com/ea:latest", null)]
         [InlineData(" ubuntu ", "ubuntu:latest", null)]
+        [InlineData("localhost:9000/ea", "localhost:9000/ea:latest", null)]
+        [InlineData("localhost:9000/ea:tag1", "localhost:9000/ea:tag1", null)]
+        [InlineData("localhost:9000/comp/ea:tag1", "localhost:9000/comp/ea:tag1", null)]
         public void TestValidateAndGetImage(string image, string result, Type expectedException)
         {
             if (expectedException != null)
