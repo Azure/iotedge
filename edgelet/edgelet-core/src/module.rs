@@ -146,6 +146,9 @@ pub struct ModuleSpec<T> {
     #[serde(default = "HashMap::new")]
     #[serde(serialize_with = "serialize_ordered")]
     env: HashMap<String, String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "pullPolicy")]
+    pull_policy: Option<PullPolicy>,
 }
 
 impl<T> Clone for ModuleSpec<T>
@@ -158,6 +161,7 @@ where
             type_: self.type_.clone(),
             config: self.config.clone(),
             env: self.env.clone(),
+            pull_policy: self.pull_policy.clone()
         }
     }
 }
@@ -168,6 +172,7 @@ impl<T> ModuleSpec<T> {
         type_: String,
         config: T,
         env: HashMap<String, String>,
+        pull_policy: Option<PullPolicy>
     ) -> Result<Self> {
         ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
         ensure_not_empty_with_context(&type_, || ErrorKind::InvalidModuleType(type_.clone()))?;
@@ -177,6 +182,7 @@ impl<T> ModuleSpec<T> {
             type_,
             config,
             env,
+            pull_policy
         })
     }
 
@@ -221,6 +227,15 @@ impl<T> ModuleSpec<T> {
 
     pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
         self.env = env;
+        self
+    }
+
+    pub fn pull_policy(&self) -> Option<&PullPolicy> {
+        self.pull_policy.as_ref()
+    }
+
+    pub fn with_pull_policy(mut self, pull_policy: PullPolicy) -> Self {
+        self.pull_policy = Some(pull_policy);
         self
     }
 }

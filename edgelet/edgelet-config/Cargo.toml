@@ -7,7 +7,7 @@ edition = "2018"
 
 [dependencies]
 base64 = "0.9"
-config = "0.8"
+config = "0.9.2"
 failure = "0.1"
 log = "0.4"
 regex = "0.2"

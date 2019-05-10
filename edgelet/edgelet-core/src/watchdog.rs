@@ -16,7 +16,7 @@ use edgelet_utils::log_failure;
 use crate::error::{Error, ErrorKind};
 use crate::identity::{Identity, IdentityManager, IdentitySpec};
 use crate::module::{
-    Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ModuleStatus,
+    Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ModuleStatus, PullPolicy
 };
 
 // Time to allow EdgeAgent to gracefully shutdown (including stopping all modules, and updating reported properties)
@@ -288,9 +288,22 @@ where
         );
         let spec = spec.with_env(env);
 
-        runtime
-            .registry()
-            .pull(spec.clone().config())
+        println!("{:?}", spec.pull_policy());
+        let fut: Box<dyn Future<Item=_, Error=_> + Send> = match spec.pull_policy() {
+            None => Box::new(future::ok(())),
+            Some(pull_policy) => {
+                if pull_policy == &PullPolicy::Never {
+                    Box::new(future::ok(()))
+                }
+                else{
+                    Box::new(runtime
+                        .registry()
+                        .pull(spec.clone().config()))
+                }
+            }
+        };
+
+        fut
             .and_then(move |_| runtime.create(spec))
             .and_then(move |_| runtime_copy.start(&module_name))
             .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))

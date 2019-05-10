@@ -55,7 +55,7 @@ where
         Err(err) => return Err(Error::from(err.context(context))),
     };
 
-    let module_spec = match CoreModuleSpec::new(name, type_, config, env) {
+    let module_spec = match CoreModuleSpec::new(name, type_, config, env, None) {
         Ok(module_spec) => module_spec,
         Err(err) => return Err(Error::from(err.context(context))),
     };
