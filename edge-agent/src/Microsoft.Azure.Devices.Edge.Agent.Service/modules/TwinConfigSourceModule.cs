@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -89,6 +90,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     return new RequestManager(requestHandlers, this.requestTimeout) as IRequestManager;
                 })
                 .As<Task<IRequestManager>>()
+                .SingleInstance();
+
+            // ISdkModuleClientProvider
+            builder.Register(c => new SdkModuleClientProvider())
+                .As<ISdkModuleClientProvider>()
                 .SingleInstance();
 
             // Task<IEdgeAgentConnection>

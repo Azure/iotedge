@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -68,7 +69,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         protected override void Load(ContainerBuilder builder)
         {
             // IModuleClientProvider
-            builder.Register(c => new ModuleClientProvider(this.upstreamProtocol, this.proxy, this.productInfo, this.closeOnIdleTimeout, this.idleTimeout))
+            builder.Register(
+                    c => new ModuleClientProvider(
+                        c.Resolve<ISdkModuleClientProvider>(),
+                        this.upstreamProtocol,
+                        this.proxy,
+                        this.productInfo,
+                        this.closeOnIdleTimeout,
+                        this.idleTimeout))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 

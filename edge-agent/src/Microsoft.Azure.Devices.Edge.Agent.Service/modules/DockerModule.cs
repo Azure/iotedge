@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -58,9 +59,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         {
             // IModuleClientProvider
             string edgeAgentConnectionString = $"{this.edgeDeviceConnectionString};{Constants.ModuleIdKey}={Constants.EdgeAgentModuleIdentityName}";
+
             builder.Register(
                     c => new ModuleClientProvider(
                         edgeAgentConnectionString,
+                        c.Resolve<ISdkModuleClientProvider>(),
                         this.upstreamProtocol,
                         this.proxy,
                         this.productInfo,

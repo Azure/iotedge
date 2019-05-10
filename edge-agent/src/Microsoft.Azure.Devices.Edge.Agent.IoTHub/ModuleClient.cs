@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
@@ -20,10 +21,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         };
 
         readonly AtomicBoolean isActive = new AtomicBoolean(true);
-        readonly IModuleClient inner;
+        readonly ISdkModuleClient inner;
         readonly ResettableTimer inactivityTimer;
 
-        public ModuleClient(IModuleClient inner, TimeSpan idleTimeout, bool closeOnIdleTimeout)
+        public ModuleClient(ISdkModuleClient inner, TimeSpan idleTimeout, bool closeOnIdleTimeout)
         {
             this.inner = Preconditions.CheckNotNull(inner, nameof(inner));
             this.inactivityTimer = new ResettableTimer(this.CloseOnInactivity, idleTimeout, Events.Log, closeOnIdleTimeout);
@@ -31,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public event EventHandler Closed;
 
-        public bool IsActive => this.inner.IsActive;
+        public bool IsActive => this.isActive.Get();
 
         public async Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyChanged)
         {

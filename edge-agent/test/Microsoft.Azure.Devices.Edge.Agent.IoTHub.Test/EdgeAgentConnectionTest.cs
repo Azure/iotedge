@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -158,7 +159,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 await SetAgentDesiredProperties(registryManager, edgeDeviceId);
 
                 string edgeAgentConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};ModuleId=$edgeAgent;SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
-                IModuleClientProvider moduleClientProvider = new ModuleClientProvider(edgeAgentConnectionString, Option.None<UpstreamProtocol>(), Option.None<IWebProxy>(), Option.None<string>(), false, TimeSpan.FromDays(1));
+                IModuleClientProvider moduleClientProvider = new ModuleClientProvider(
+                    edgeAgentConnectionString,
+                    new SdkModuleClientProvider(),
+                    Option.None<UpstreamProtocol>(),
+                    Option.None<IWebProxy>(),
+                    Option.None<string>(),
+                    false,
+                    TimeSpan.FromDays(1));
 
                 var moduleDeserializerTypes = new Dictionary<string, Type>
                 {
@@ -272,7 +280,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 await Task.Delay(TimeSpan.FromMinutes(7));
 
                 string edgeAgentConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};ModuleId=$edgeAgent;SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
-                IModuleClientProvider moduleClientProvider = new ModuleClientProvider(edgeAgentConnectionString, Option.None<UpstreamProtocol>(), Option.None<IWebProxy>(), Option.None<string>(), false, TimeSpan.FromDays(1));
+                IModuleClientProvider moduleClientProvider = new ModuleClientProvider(
+                    edgeAgentConnectionString,
+                    new SdkModuleClientProvider(),
+                    Option.None<UpstreamProtocol>(),
+                    Option.None<IWebProxy>(),
+                    Option.None<string>(),
+                    false,
+                    TimeSpan.FromDays(1));
 
                 var moduleDeserializerTypes = new Dictionary<string, Type>
                 {
@@ -738,10 +753,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var moduleClientProvider = new Mock<IModuleClientProvider>();
             moduleClientProvider.Setup(d => d.Create(It.IsAny<ConnectionStatusChangesHandler>()))
                 .Callback<ConnectionStatusChangesHandler>(
-                    statusChanges =>
-                    {
-                        connectionStatusChangesHandler = statusChanges;
-                    })
+                    statusChanges => { connectionStatusChangesHandler = statusChanges; })
                 .ReturnsAsync(deviceClient.Object);
 
             deviceClient.Setup(d => d.GetTwinAsync())
@@ -807,7 +819,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 await SetAgentDesiredProperties(registryManager, edgeDeviceId);
 
                 string edgeAgentConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};ModuleId=$edgeAgent;SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
-                IModuleClientProvider moduleClientProvider = new ModuleClientProvider(edgeAgentConnectionString, Option.None<UpstreamProtocol>(), Option.None<IWebProxy>(), Option.None<string>(), false, TimeSpan.FromDays(1));
+                IModuleClientProvider moduleClientProvider = new ModuleClientProvider(
+                    edgeAgentConnectionString,
+                    new SdkModuleClientProvider(),
+                    Option.None<UpstreamProtocol>(),
+                    Option.None<IWebProxy>(),
+                    Option.None<string>(),
+                    false,
+                    TimeSpan.FromDays(1));
 
                 var moduleDeserializerTypes = new Dictionary<string, Type>
                 {
@@ -897,7 +916,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 await SetAgentDesiredProperties(registryManager, edgeDeviceId);
 
                 string edgeAgentConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};ModuleId=$edgeAgent;SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
-                IModuleClientProvider moduleClientProvider = new ModuleClientProvider(edgeAgentConnectionString, Option.None<UpstreamProtocol>(), Option.None<IWebProxy>(), Option.None<string>(), false, TimeSpan.FromDays(1));
+                IModuleClientProvider moduleClientProvider = new ModuleClientProvider(
+                    edgeAgentConnectionString,
+                    new SdkModuleClientProvider(),
+                    Option.None<UpstreamProtocol>(),
+                    Option.None<IWebProxy>(),
+                    Option.None<string>(),
+                    false,
+                    TimeSpan.FromDays(1));
 
                 var moduleDeserializerTypes = new Dictionary<string, Type>
                 {

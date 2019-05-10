@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
@@ -30,30 +31,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly Option<string> productInfo;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
+        readonly ISdkModuleClientProvider sdkModuleClientProvider;
 
         public ModuleClientProvider(
             string connectionString,
+            ISdkModuleClientProvider sdkModuleClientProvider,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
             Option<string> productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout)
-            : this(Option.Maybe(connectionString), upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout)
+            : this(Option.Maybe(connectionString), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout)
         {
         }
 
         public ModuleClientProvider(
+            ISdkModuleClientProvider sdkModuleClientProvider,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
             Option<string> productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout)
-            : this(Option.None<string>(), upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout)
+            : this(Option.None<string>(), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout)
         {
         }
 
         ModuleClientProvider(
             Option<string> connectionString,
+            ISdkModuleClientProvider sdkModuleClientProvider,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
             Option<string> productInfo,
@@ -61,6 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             TimeSpan idleTimeout)
         {
             this.connectionString = connectionString;
+            this.sdkModuleClientProvider = sdkModuleClientProvider;
             this.upstreamProtocol = upstreamProtocol;
             this.productInfo = productInfo;
             this.proxy = proxy;
@@ -70,9 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public async Task<IModuleClient> Create(ConnectionStatusChangesHandler statusChangedHandler)
         {
-            Client.ModuleClient sdkModuleClient = await this.CreateSdkModuleClientWithRetry(statusChangedHandler);
-            IModuleClient wrappingModuleClient = new WrappingModuleClient(sdkModuleClient);
-            IModuleClient moduleClient = new ModuleClient(wrappingModuleClient, this.idleTimeout, this.closeOnIdleTimeout);
+            ISdkModuleClient sdkModuleClient = await this.CreateSdkModuleClientWithRetry(statusChangedHandler);
+            IModuleClient moduleClient = new ModuleClient(sdkModuleClient, this.idleTimeout, this.closeOnIdleTimeout);
             return moduleClient;
         }
 
@@ -122,11 +127,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             return transientRetryPolicy.ExecuteAsync(func);
         }
 
-        async Task<Client.ModuleClient> CreateSdkModuleClientWithRetry(ConnectionStatusChangesHandler statusChangedHandler)
+        async Task<ISdkModuleClient> CreateSdkModuleClientWithRetry(ConnectionStatusChangesHandler statusChangedHandler)
         {
             try
             {
-                Client.ModuleClient moduleClient = await ExecuteWithRetry(
+                ISdkModuleClient moduleClient = await ExecuteWithRetry(
                     () => this.CreateSdkModuleClient(statusChangedHandler),
                     Events.RetryingDeviceClientConnection);
                 Events.DeviceClientCreated();
@@ -140,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        Task<Client.ModuleClient> CreateSdkModuleClient(ConnectionStatusChangesHandler statusChangedHandler)
+        Task<ISdkModuleClient> CreateSdkModuleClient(ConnectionStatusChangesHandler statusChangedHandler)
             => this.upstreamProtocol
                 .Map(u => this.CreateAndOpenDeviceClient(u, statusChangedHandler))
                 .GetOrElse(
@@ -148,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     {
                         // The device SDK doesn't appear to be falling back to WebSocket from TCP,
                         // so we'll do it explicitly until we can get the SDK sorted out.
-                        Try<Client.ModuleClient> result = await Fallback.ExecuteAsync(
+                        Try<ISdkModuleClient> result = await Fallback.ExecuteAsync(
                             () => this.CreateAndOpenDeviceClient(UpstreamProtocol.Amqp, statusChangedHandler),
                             () => this.CreateAndOpenDeviceClient(UpstreamProtocol.AmqpWs, statusChangedHandler));
 
@@ -161,20 +166,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                         return result.Value;
                     });
 
-        async Task<Client.ModuleClient> CreateAndOpenDeviceClient(UpstreamProtocol upstreamProtocol, ConnectionStatusChangesHandler statusChangedHandler)
+        async Task<ISdkModuleClient> CreateAndOpenDeviceClient(UpstreamProtocol upstreamProtocol, ConnectionStatusChangesHandler statusChangedHandler)
         {
             ITransportSettings settings = GetTransportSettings(upstreamProtocol, this.proxy);
             Events.AttemptingConnectionWithTransport(settings.GetTransportType());
 
-            Client.ModuleClient moduleClient = await this.connectionString
-                .Map(cs => Task.FromResult(Client.ModuleClient.CreateFromConnectionString(cs, new[] { settings })))
-                .GetOrElse(() => Client.ModuleClient.CreateFromEnvironmentAsync(new[] { settings }));
+            ISdkModuleClient moduleClient = await this.connectionString
+                .Map(cs => Task.FromResult(this.sdkModuleClientProvider.GetSdkModuleClient(cs, settings)))
+                .GetOrElse(this.sdkModuleClientProvider.GetSdkModuleClient(settings));
 
-            this.productInfo.ForEach(p => moduleClient.ProductInfo = p);
+            this.productInfo.ForEach(p => moduleClient.SetProductInfo(p));
 
             // note: it's important to set the status-changed handler and
             // timeout value *before* we open a connection to the hub
-            moduleClient.OperationTimeoutInMilliseconds = ModuleClientTimeoutMilliseconds;
+            moduleClient.SetOperationTimeoutInMilliseconds(ModuleClientTimeoutMilliseconds);
             moduleClient.SetConnectionStatusChangesHandler(statusChangedHandler);
             await moduleClient.OpenAsync();
 
