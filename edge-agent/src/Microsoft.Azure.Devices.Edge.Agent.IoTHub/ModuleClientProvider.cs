@@ -147,15 +147,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         Task<ISdkModuleClient> CreateSdkModuleClient(ConnectionStatusChangesHandler statusChangedHandler)
             => this.upstreamProtocol
-                .Map(u => this.CreateAndOpenDeviceClient(u, statusChangedHandler))
+                .Map(u => this.CreateAndOpenSdkModuleClient(u, statusChangedHandler))
                 .GetOrElse(
                     async () =>
                     {
                         // The device SDK doesn't appear to be falling back to WebSocket from TCP,
                         // so we'll do it explicitly until we can get the SDK sorted out.
                         Try<ISdkModuleClient> result = await Fallback.ExecuteAsync(
-                            () => this.CreateAndOpenDeviceClient(UpstreamProtocol.Amqp, statusChangedHandler),
-                            () => this.CreateAndOpenDeviceClient(UpstreamProtocol.AmqpWs, statusChangedHandler));
+                            () => this.CreateAndOpenSdkModuleClient(UpstreamProtocol.Amqp, statusChangedHandler),
+                            () => this.CreateAndOpenSdkModuleClient(UpstreamProtocol.AmqpWs, statusChangedHandler));
 
                         if (!result.Success)
                         {
@@ -166,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                         return result.Value;
                     });
 
-        async Task<ISdkModuleClient> CreateAndOpenDeviceClient(UpstreamProtocol upstreamProtocol, ConnectionStatusChangesHandler statusChangedHandler)
+        async Task<ISdkModuleClient> CreateAndOpenSdkModuleClient(UpstreamProtocol upstreamProtocol, ConnectionStatusChangesHandler statusChangedHandler)
         {
             ITransportSettings settings = GetTransportSettings(upstreamProtocol, this.proxy);
             Events.AttemptingConnectionWithTransport(settings.GetTransportType());
