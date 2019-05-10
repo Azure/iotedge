@@ -607,7 +607,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             var moduleClientProvider = new Mock<IModuleClientProvider>();
             moduleClientProvider.Setup(d => d.Create(It.IsAny<ConnectionStatusChangesHandler>()))
-                .Callback<ConnectionStatusChangesHandler, Func<ModuleClient, Task>>((statusChanges, x) => connectionStatusChangesHandler = statusChanges)
+                .Callback<ConnectionStatusChangesHandler>(statusChanges => connectionStatusChangesHandler = statusChanges)
                 .ReturnsAsync(deviceClient.Object);
 
             deviceClient.Setup(d => d.GetTwinAsync())
