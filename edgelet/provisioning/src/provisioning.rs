@@ -138,20 +138,19 @@ impl Provision for ManualProvisioning {
     }
 }
 
-// Using PhantomData here as we need to know the associate type of Hsm in the implementation
-// of the Provision trait.
 pub struct ExternalProvisioning<T, U>
 where
-    T: 'static + HostingInterface,
     U: 'static + Activate + KeyStore + Send,
 {
     client: T,
+
+    // ExternalProvisioning is not restricted to a single HSM implementation, so it uses
+    // PhantomData to be generic on them.
     phantom: PhantomData<U>,
 }
 
 impl<T, U> ExternalProvisioning<T, U>
 where
-    T: 'static + HostingInterface,
     U: 'static + Activate + KeyStore + Send,
 {
     pub fn new(client: T) -> Self {
@@ -591,7 +590,7 @@ mod tests {
     use super::*;
 
     use edgelet_config::{Manual, ParseManualDeviceConnectionStringError};
-    use failure::{Backtrace, Fail};
+    use failure::{Fail};
     use hosting::models::DeviceConnectionInfo;
     use std::fmt::{self, Display};
     use tempdir::TempDir;
@@ -904,18 +903,8 @@ mod tests {
         pub error: Option<TestError>,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Fail)]
     struct TestError {}
-
-    impl Fail for TestError {
-        fn cause(&self) -> Option<&dyn Fail> {
-            None
-        }
-
-        fn backtrace(&self) -> Option<&Backtrace> {
-            None
-        }
-    }
 
     impl Display for TestError {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {

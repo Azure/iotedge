@@ -27,7 +27,7 @@
 #                     provisioning devices configured for symmetric key
 #                     attestation
 # External Settings
-#     endpoint - Required. Value of the endpoint used to retrieve device specific information such as it's IoT hub connection information.
+#     endpoint - Required. Value of the endpoint used to retrieve device specific information such as its IoT hub connection information.
 ###############################################################################
 
 # Manual provisioning configuration
@@ -65,6 +65,7 @@ provisioning:
 #     identity_cert: "<REQUIRED PATH TO DEVICE IDENTITY CERTIFICATE HERE>"
 #     identity_pk: "<REQUIRED PATH TO DEVICE IDENTITY PRIVATE KEY HERE>"
 
+# External provisioning configuration
 # provisioning:
 #   source: "external"
 #   endpoint: "http://localhost:9999"

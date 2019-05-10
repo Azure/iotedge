@@ -24,7 +24,7 @@ impl<C: Connect> Configuration<C> {
     pub fn new(client: Client<C>) -> Configuration<C> {
         Configuration {
             base_path: "http://localhost".to_owned(),
-            user_agent: Some(format!("iotedge/{}", env!("CARGO_PKG_VERSION"))),
+            user_agent: Some(edgelet_core::version_with_source_version()),
             client,
             uri_composer: Box::new(|base_path, path| {
                 format!("{}{}", base_path, path)

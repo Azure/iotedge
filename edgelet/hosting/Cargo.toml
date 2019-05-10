@@ -21,5 +21,4 @@ serde_yaml = "0.7"
 typed-headers = "0.1"
 url = "1.5"
 
-[dev-dependencies]
-tokio-core = "*"
+edgelet-core = { path = "../edgelet-core" }

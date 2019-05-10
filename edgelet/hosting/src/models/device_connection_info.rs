@@ -39,7 +39,7 @@ impl DeviceConnectionInfo {
         self
     }
 
-    pub fn hub_name(&self) -> &String {
+    pub fn hub_name(&self) -> &str {
         &self.hub_name
     }
 
@@ -52,7 +52,7 @@ impl DeviceConnectionInfo {
         self
     }
 
-    pub fn device_id(&self) -> &String {
+    pub fn device_id(&self) -> &str {
         &self.device_id
     }
 }

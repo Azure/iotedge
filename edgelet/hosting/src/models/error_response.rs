@@ -32,7 +32,7 @@ impl ErrorResponse {
         self
     }
 
-    pub fn message(&self) -> &String {
+    pub fn message(&self) -> &str {
         &self.message
     }
 }

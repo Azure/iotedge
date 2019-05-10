@@ -176,7 +176,7 @@ function Initialize-IoTEdge {
 
         # The hosting environment endpoint for the External provisioning mode.
         [Parameter(Mandatory = $true, ParameterSetName = 'External')]
-		[ValidateNotNullOrEmpty()]
+        [ValidateNotNullOrEmpty()]
         [String] $Endpoint,
 
         # The base OS of all the containers that will be run on this device via the security daemon.
@@ -530,7 +530,7 @@ function Install-IoTEdge {
         # The hosting environment endpoint for the External provisioning mode.
         [Parameter(Mandatory = $true, ParameterSetName = 'External')]
         [ValidateNotNullOrEmpty()]
-		[String] $Endpoint,
+        [String] $Endpoint,
 
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
