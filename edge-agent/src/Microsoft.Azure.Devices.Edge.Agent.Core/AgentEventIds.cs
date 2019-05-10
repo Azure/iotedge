@@ -25,6 +25,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const int StreamRequestListener = EventIdStart + 1900;
         public const int LogsStreamRequestHandler = EventIdStart + 2000;
         public const int LogsProvider = EventIdStart + 2100;
+        public const int KubernetesPlanner = EventIdStart + 2200;
+        public const int KubernetesCommand = EventIdStart + 2300;
+        public const int KubernetesOperator = EventIdStart + 2400;
         const int EventIdStart = 100000;
     }
 }
