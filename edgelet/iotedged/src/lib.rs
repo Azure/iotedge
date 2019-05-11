@@ -34,7 +34,6 @@ use futures::future::{Either, IntoFuture};
 use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future};
 use hyper::server::conn::Http;
-use hyper::service::Service;
 use hyper::{Body, Request, Uri};
 use log::{debug, info};
 use serde::de::DeserializeOwned;
@@ -54,14 +53,12 @@ use edgelet_core::crypto::{
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
-    AuthId, Authenticator, Certificate, CertificateIssuer, CertificateProperties, CertificateType,
-    Module, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, UrlExt, WorkloadConfig,
-    UNIX_SCHEME,
+    Authenticator, Certificate, CertificateIssuer, CertificateProperties, CertificateType, Module,
+    ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, UrlExt, WorkloadConfig, UNIX_SCHEME,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
-use edgelet_http::authentication::AuthenticationService;
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
@@ -976,13 +973,7 @@ where
     C: CreateCertificate + Clone,
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl + Send + Sync,
-    M: ModuleRuntime
-        + Authenticator<Request = Request<<LoggingService<ManagementService> as Service>::ReqBody>>
-        + Send
-        + Sync
-        + Clone
-        + 'static,
-    M::AuthenticateFuture: Future<Item = AuthId> + Send + 'static,
+    M: ModuleRuntime + Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
     <M::AuthenticateFuture as Future>::Error: Fail,
     for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
     <M::Module as Module>::Config: DeserializeOwned + Serialize,
@@ -992,7 +983,6 @@ where
 
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
-    let module_runtime = Arc::new(runtime.clone());
 
     ManagementService::new(runtime, id_man)
         .then(move |service| -> Result<_, Error> {
@@ -1000,7 +990,6 @@ where
                 InitializeErrorReason::ManagementService,
             ))?;
             let service = LoggingService::new(label, service);
-            let service = AuthenticationService::new(module_runtime, service);
 
             let run = Http::new()
                 .bind_url(url.clone(), service, Some(&cert_manager))
@@ -1039,13 +1028,7 @@ where
         + 'static,
     CE: CreateCertificate + Clone,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
-    M: ModuleRuntime
-        + Authenticator<Request = Request<<LoggingService<WorkloadService> as Service>::ReqBody>>
-        + Send
-        + Sync
-        + Clone
-        + 'static,
-    M::AuthenticateFuture: Future<Item = AuthId> + Send + 'static,
+    M: ModuleRuntime + Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
     <M::AuthenticateFuture as Future>::Error: Fail,
     for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
     <M::Module as Module>::Config: DeserializeOwned + Serialize,
@@ -1055,7 +1038,6 @@ where
 
     let label = "work".to_string();
     let url = settings.listen().workload_uri().clone();
-    let module_runtime = Arc::new(runtime.clone());
 
     WorkloadService::new(key_store, crypto.clone(), runtime, config)
         .then(move |service| -> Result<_, Error> {
@@ -1063,7 +1045,6 @@ where
                 InitializeErrorReason::WorkloadService,
             ))?;
             let service = LoggingService::new(label, service);
-            let service = AuthenticationService::new(module_runtime, service);
 
             let run = Http::new()
                 .bind_url(url.clone(), service, Some(&cert_manager))

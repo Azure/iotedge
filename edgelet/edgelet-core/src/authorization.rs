@@ -2,13 +2,6 @@
 
 use std::fmt;
 
-#[derive(Debug)]
-pub enum Policy {
-    Anonymous,
-    Caller,
-    Module(&'static str),
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct ModuleId(String);
 
@@ -53,26 +46,30 @@ impl fmt::Display for AuthId {
     }
 }
 
-pub struct Authorization {
-    policy: Policy,
+#[derive(Debug)]
+pub enum Policy {
+    Anonymous,
+    Caller,
+    Module(&'static str),
 }
 
-impl Authorization {
-    pub fn new(policy: Policy) -> Self {
-        Authorization { policy }
+impl Policy {
+    pub fn should_authenticate<'a>(&self, name: Option<&'a str>) -> (bool, Option<&'a str>) {
+        let name = name.map(|n| n.trim_start_matches('$'));
+        match self {
+            Policy::Anonymous => (false, None),
+            Policy::Caller => (true, name),
+            Policy::Module(ref expected_name) => (true, Some(expected_name)),
+        }
     }
 
     pub fn authorize(&self, name: Option<&str>, auth_id: AuthId) -> bool {
         let name = name.map(|n| n.trim_start_matches('$'));
-        match self.policy {
-            Policy::Anonymous => self.auth_anonymous(),
+        match self {
+            Policy::Anonymous => true,
             Policy::Caller => self.auth_caller(name, auth_id),
-            Policy::Module(ref expected_name) => self.auth_module(expected_name, auth_id),
+            Policy::Module(ref expected_name) => self.auth_caller(Some(expected_name), auth_id),
         }
-    }
-
-    fn auth_anonymous(&self) -> bool {
-        true
     }
 
     fn auth_caller(&self, name: Option<&str>, auth_id: AuthId) -> bool {
@@ -85,55 +82,51 @@ impl Authorization {
             },
         )
     }
-
-    fn auth_module(&self, expected_name: &'static str, auth_id: AuthId) -> bool {
-        self.auth_caller(Some(expected_name), auth_id)
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{AuthId, Authorization, Policy};
+    use crate::{AuthId, Policy};
 
     #[test]
     fn should_authorize_anonymous() {
-        let auth = Authorization::new(Policy::Anonymous);
-        assert!(auth.authorize(None, AuthId::None));
+        let policy = Policy::Anonymous;
+        assert!(policy.authorize(None, AuthId::None));
     }
 
     #[test]
     fn should_authorize_caller() {
-        let auth = Authorization::new(Policy::Caller);
-        assert!(auth.authorize(Some("abc"), AuthId::Value("abc".into())));
+        let policy = Policy::Caller;
+        assert!(policy.authorize(Some("abc"), AuthId::Value("abc".into())));
     }
 
     #[test]
     fn should_authorize_system_caller() {
-        let auth = Authorization::new(Policy::Caller);
-        assert!(auth.authorize(Some("$edgeAgent"), AuthId::Value("edgeAgent".into()),));
+        let policy = Policy::Caller;
+        assert!(policy.authorize(Some("$edgeAgent"), AuthId::Value("edgeAgent".into()),));
     }
 
     #[test]
     fn should_reject_caller_without_name() {
-        let auth = Authorization::new(Policy::Caller);
-        assert!(!auth.authorize(None, AuthId::Value("abc".into())));
+        let policy = Policy::Caller;
+        assert!(!policy.authorize(None, AuthId::Value("abc".into())));
     }
 
     #[test]
     fn should_reject_caller_with_different_name() {
-        let auth = Authorization::new(Policy::Caller);
-        assert!(!auth.authorize(Some("xyz"), AuthId::Value("abc".into())));
+        let policy = Policy::Caller;
+        assert!(!policy.authorize(Some("xyz"), AuthId::Value("abc".into())));
     }
 
     #[test]
     fn should_authorize_module() {
-        let auth = Authorization::new(Policy::Module("abc"));
-        assert!(auth.authorize(None, AuthId::Value("abc".into())));
+        let policy = Policy::Module("abc");
+        assert!(policy.authorize(None, AuthId::Value("abc".into())));
     }
 
     #[test]
     fn should_reject_module_whose_name_does_not_match_policy() {
-        let auth = Authorization::new(Policy::Module("abc"));
-        assert!(!auth.authorize(None, AuthId::Value("xyz".into())));
+        let policy = Policy::Module("abc");
+        assert!(!policy.authorize(None, AuthId::Value("xyz".into())));
     }
 }

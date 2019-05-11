@@ -20,8 +20,9 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, NetworkConfig};
 use edgelet_core::{
-    AuthId, Authenticator, LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
-    ModuleSpec, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
+    AuthId, Authenticator, LogOptions, Module, ModuleId, ModuleRegistry, ModuleRuntime,
+    ModuleRuntimeState, ModuleSpec, RegistryOperation, RuntimeOperation,
+    SystemInfo as CoreSystemInfo, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -792,6 +793,8 @@ where
         .cloned()
         .unwrap_or_else(|| Pid::None);
 
+    let expected_module_id = req.extensions().get::<ModuleId>().cloned();
+
     Box::new(match pid {
         Pid::None => Either::A(future::ok(AuthId::None)),
         Pid::Any => Either::A(future::ok(AuthId::Any)),
@@ -804,8 +807,16 @@ where
                 // during docker inspect operation but have gone after (NotFound and TopModule errors).
                 runtime
                     .list()
-                    .map(|list| {
-                        stream::futures_unordered(list.into_iter().map(|module| module.top()))
+                    .map(move |list| {
+                        stream::futures_unordered(list.into_iter().filter_map(|module| {
+                            if expected_module_id.is_none()
+                                || *expected_module_id.as_ref().unwrap() == module.name()
+                            {
+                                Some(module.top())
+                            } else {
+                                None
+                            }
+                        }))
                     })
                     .into_stream()
                     .flatten()
@@ -857,7 +868,7 @@ mod tests {
     use url::Url;
 
     use docker::models::ContainerCreateBody;
-    use edgelet_core::{ModuleRegistry, ModuleTop};
+    use edgelet_core::{ModuleId, ModuleRegistry, ModuleTop};
 
     use crate::error::{Error, ErrorKind};
 
@@ -1276,6 +1287,18 @@ mod tests {
         let runtime = prepare_module_runtime_with_known_modules();
         let mut req = Request::default();
         req.extensions_mut().insert(Pid::Value(1));
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_none_when_expected_module_not_found() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Value(1000));
+        req.extensions_mut().insert(ModuleId::from("x"));
 
         let auth_id = runtime.authenticate(&req).wait().unwrap();
 

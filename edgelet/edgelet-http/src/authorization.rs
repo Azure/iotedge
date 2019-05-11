@@ -6,24 +6,20 @@ use failure::ResultExt;
 use futures::{future, Future};
 use hyper::{Body, Request, Response};
 
-use edgelet_core::{AuthId, Authorization as CoreAuth, Policy};
+use edgelet_core::{AuthId, Policy};
 
-use crate::error::{Error, ErrorKind};
 use crate::route::{Handler, Parameters};
-use crate::IntoResponse;
+use crate::{Error, ErrorKind, IntoResponse};
 
 pub struct Authorization<H> {
-    auth: CoreAuth,
+    policy: Policy,
     inner: Arc<H>,
 }
 
-impl<H> Authorization<H>
-where
-    H: Handler<Parameters>,
-{
+impl<H> Authorization<H> {
     pub fn new(inner: H, policy: Policy) -> Self {
         Authorization {
-            auth: CoreAuth::new(policy),
+            policy,
             inner: Arc::new(inner),
         }
     }
@@ -47,7 +43,7 @@ where
         );
         let inner = self.inner.clone();
 
-        let authorized = self.auth.authorize(name, auth_id);
+        let authorized = self.policy.authorize(name, auth_id);
 
         let response = if authorized {
             future::Either::A(

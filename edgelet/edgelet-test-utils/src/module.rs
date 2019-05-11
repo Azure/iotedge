@@ -9,7 +9,7 @@ use futures::future::{self, FutureResult};
 use futures::prelude::*;
 use futures::stream;
 use futures::IntoFuture;
-use hyper::Body;
+use hyper::{Body, Request};
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
@@ -116,6 +116,19 @@ where
             registry: TestRegistry::new(module.as_ref().err().cloned()),
             module,
         }
+    }
+}
+
+impl<E> Authenticator for TestRuntime<E>
+where
+    E: Clone + Fail,
+{
+    type Error = E;
+    type Request = Request<Body>;
+    type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
+
+    fn authenticate(&self, _req: &Self::Request) -> Self::AuthenticateFuture {
+        Box::new(future::ok(AuthId::Any))
     }
 }
 
