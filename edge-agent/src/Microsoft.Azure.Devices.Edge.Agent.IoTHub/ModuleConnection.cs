@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
-    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
@@ -35,6 +34,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.connectionStatusChangesHandler = Preconditions.CheckNotNull(connectionStatusChangesHandler, nameof(connectionStatusChangesHandler));
             this.desiredPropertyUpdateCallback = Preconditions.CheckNotNull(desiredPropertyUpdateCallback, nameof(desiredPropertyUpdateCallback));
             this.enableSubscriptions = enableSubscriptions;
+
+            // Run initialize module client to create the module client. But we don't need to wait for the result.
+            // The subsequent calls will automatically wait because of the lock
+            Task.Run(this.InitModuleClient);
         }
 
         public async Task<IModuleClient> GetOrCreateModuleClient()
