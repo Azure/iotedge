@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return Profiler.Run(
                 WaitForStatusAsync,
                 string.Format(SentenceCase(template), "{Modules}") + " entered the '{Desired}' state",
-                string.Join(",", args),
+                string.Join(", ", args),
                 desired.ToString().ToLower());
         }
 
