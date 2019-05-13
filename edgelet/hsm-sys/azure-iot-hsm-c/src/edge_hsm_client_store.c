@@ -431,11 +431,7 @@ static const char* obtain_default_platform_base_dir(void)
                     }
                 }
             }
-            if (env_base_path != NULL)
-            {
-                free(env_base_path);
-                env_base_path = NULL;
-            }
+            FREEIF(env_base_path);
         #else
             if (make_dir(DEFAULT_EDGE_HOME_DIR_UNIX) != 0)
             {
@@ -510,11 +506,7 @@ static const char* get_base_dir(void)
                     status = __FAILURE__;
                 }
             }
-            if (env_base_path != NULL)
-            {
-                free(env_base_path);
-                env_base_path = NULL;
-            }
+            FREEIF(env_base_path);
             if (status == 0)
             {
                 if ((STRING_concat(base_dir_path, SLASH) != 0) ||
@@ -830,10 +822,7 @@ static int load_encryption_key_from_file(CRYPTO_STORE* store, const char *key_na
             result = put_key(store, HSM_KEY_ENCRYPTION, key_name, key, key_size);
         }
 
-        if (key != NULL)
-        {
-            free(key);
-        }
+        free(key);
         STRING_delete(key_file_handle);
     }
 
@@ -920,14 +909,8 @@ static CERT_INFO_HANDLE prepare_cert_info_handle
                                                                    PRIVATE_KEY_UNKNOWN);
     }
 
-    if (cert_contents != NULL)
-    {
-        free(cert_contents);
-    }
-    if (private_key_contents != NULL)
-    {
-        free(private_key_contents);
-    }
+    free(cert_contents);
+    free(private_key_contents);
 
     return result;
 }
@@ -1692,18 +1675,19 @@ static int generate_edge_hsm_certificates_if_needed(void)
 static int get_tg_env_vars(char **trusted_certs_path, char **device_ca_path, char **device_pk_path)
 {
     int result;
+    char *tb_path = NULL, *cert_path = NULL, *pk_path = NULL;
 
-    if (hsm_get_env(ENV_TRUSTED_CA_CERTS_PATH, trusted_certs_path) != 0)
+    if (hsm_get_env(ENV_TRUSTED_CA_CERTS_PATH, &tb_path) != 0)
     {
         LOG_ERROR("Failed to read env variable %s", ENV_TRUSTED_CA_CERTS_PATH);
         result = __FAILURE__;
     }
-    else if (hsm_get_env(ENV_DEVICE_CA_PATH, device_ca_path) != 0)
+    else if (hsm_get_env(ENV_DEVICE_CA_PATH, &cert_path) != 0)
     {
         LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_CA_PATH);
         result = __FAILURE__;
     }
-    else if (hsm_get_env(ENV_DEVICE_PK_PATH, device_pk_path) != 0)
+    else if (hsm_get_env(ENV_DEVICE_PK_PATH, &pk_path) != 0)
     {
         LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_PK_PATH);
         result = __FAILURE__;
@@ -1713,19 +1697,146 @@ static int get_tg_env_vars(char **trusted_certs_path, char **device_ca_path, cha
         result = 0;
     }
 
+    if (result != 0)
+    {
+        FREEIF(tb_path);
+        FREEIF(cert_path);
+        FREEIF(pk_path);
+    }
+
+    *trusted_certs_path = tb_path;
+    *device_ca_path = cert_path;
+    *device_pk_path = pk_path;
+
     return result;
 }
 
-static int hsm_provision_edge_certificates(void)
+static int get_device_id_env_vars(char **device_id_cert_path, char **device_id_pk_path)
+{
+    int result;
+    char *cert_path = NULL, *pk_path = NULL;
+
+    if (hsm_get_env(ENV_DEVICE_ID_CERTIFICATE_PATH, &cert_path) != 0)
+    {
+        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_ID_CERTIFICATE_PATH);
+        result = __FAILURE__;
+    }
+    else if (hsm_get_env(ENV_DEVICE_ID_PRIVATE_KEY_PATH, &pk_path) != 0)
+    {
+        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_ID_PRIVATE_KEY_PATH);
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = 0;
+    }
+
+    if (result != 0)
+    {
+        FREEIF(cert_path);
+        FREEIF(pk_path);
+    }
+
+    *device_id_cert_path = cert_path;
+    *device_id_pk_path = pk_path;
+
+    return result;
+}
+
+static int hsm_provision_edge_id_certificate(void)
+{
+    int result;
+    char *device_id_cert_path = NULL;
+    char *device_id_pk_path = NULL;
+    bool env_set = false;
+    unsigned int mask = 0, i = 0;
+
+    if (get_device_id_env_vars(&device_id_cert_path, &device_id_pk_path) != 0)
+    {
+        result = __FAILURE__;
+    }
+    else
+    {
+        if (device_id_cert_path != NULL)
+        {
+            if ((strlen(device_id_cert_path) != 0) && is_file_valid(device_id_cert_path))
+            {
+                mask |= 1 << i; i++;
+            }
+            else
+            {
+                LOG_ERROR("Path set in env variable %s is invalid or cannot be accessed: '%s'",
+                          ENV_DEVICE_ID_CERTIFICATE_PATH, device_id_cert_path);
+
+            }
+            env_set = true;
+            LOG_DEBUG("Env %s set to %s", ENV_DEVICE_ID_CERTIFICATE_PATH, device_id_cert_path);
+        }
+        else
+        {
+            LOG_DEBUG("Env %s is NULL", ENV_DEVICE_ID_CERTIFICATE_PATH);
+        }
+
+        if (device_id_pk_path != NULL)
+        {
+            if ((strlen(device_id_pk_path) != 0) && is_file_valid(device_id_pk_path))
+            {
+                mask |= 1 << i; i++;
+            }
+            else
+            {
+                LOG_ERROR("Path set in env variable %s is invalid or cannot be accessed: '%s'",
+                          ENV_DEVICE_ID_PRIVATE_KEY_PATH, device_id_pk_path);
+
+            }
+            env_set = true;
+            LOG_DEBUG("Env %s set to %s", ENV_DEVICE_ID_PRIVATE_KEY_PATH, device_id_pk_path);
+        }
+        else
+        {
+            LOG_DEBUG("Env %s is NULL", ENV_DEVICE_ID_PRIVATE_KEY_PATH);
+        }
+
+        LOG_DEBUG("Device identity certificate setup mask 0x%02x", mask);
+
+        if (env_set && (mask != 0x3))
+        {
+            LOG_ERROR("To setup the Edge device certificates, set "
+                      "env variables with valid values:\n  %s\n  %s",
+                      ENV_DEVICE_ID_CERTIFICATE_PATH, ENV_DEVICE_ID_PRIVATE_KEY_PATH);
+            result = __FAILURE__;
+        }
+        // since we don't know the issuer, we treat the device certificate as the issuer
+        else if (env_set && (edge_hsm_client_store_insert_pki_cert(g_crypto_store,
+                                                                   EDGE_DEVICE_ALIAS,
+                                                                   EDGE_DEVICE_ALIAS,
+                                                                   device_id_cert_path,
+                                                                   device_id_pk_path) != 0))
+        {
+            LOG_ERROR("Failure inserting device identity certificate and key into the HSM store");
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+    }
+    free(device_id_cert_path);
+    free(device_id_pk_path);
+
+    return result;
+}
+
+static int hsm_provision_edge_ca_certificates(void)
 {
     int result;
     unsigned int mask = 0, i = 0;
     bool env_set = false;
     char *trusted_certs_path = NULL;
     char *device_ca_path = NULL;
-    char *device_pk_path = NULL;
+    char *device_ca_pk_path = NULL;
 
-    if (get_tg_env_vars(&trusted_certs_path, &device_ca_path, &device_pk_path) != 0)
+    if (get_tg_env_vars(&trusted_certs_path, &device_ca_path, &device_ca_pk_path) != 0)
     {
         result = __FAILURE__;
     }
@@ -1770,20 +1881,20 @@ static int hsm_provision_edge_certificates(void)
             LOG_DEBUG("Env %s is NULL", ENV_DEVICE_CA_PATH);
         }
 
-        if (device_pk_path != NULL)
+        if (device_ca_pk_path != NULL)
         {
-            if ((strlen(device_pk_path) != 0) && is_file_valid(device_pk_path))
+            if ((strlen(device_ca_pk_path) != 0) && is_file_valid(device_ca_pk_path))
             {
                 mask |= 1 << i; i++;
             }
             else
             {
                 LOG_ERROR("Path set in env variable %s is invalid or cannot be accessed: '%s'",
-                        ENV_DEVICE_PK_PATH, device_pk_path);
+                          ENV_DEVICE_PK_PATH, device_ca_pk_path);
 
             }
             env_set = true;
-            LOG_DEBUG("Env %s set to %s", ENV_DEVICE_PK_PATH, device_pk_path);
+            LOG_DEBUG("Env %s set to %s", ENV_DEVICE_PK_PATH, device_ca_pk_path);
         }
         else
         {
@@ -1805,13 +1916,14 @@ static int hsm_provision_edge_certificates(void)
             LOG_ERROR("Failure generating required HSM certificates");
             result = __FAILURE__;
         }
+        // since we don't know the issuer, we treat the device CA certificate as the issuer
         else if (env_set && (edge_hsm_client_store_insert_pki_cert(g_crypto_store,
-                                                                hsm_get_device_ca_alias(),
-                                                                hsm_get_device_ca_alias(), // since we don't know the issuer, we treat this certificate as the issuer
-                                                                device_ca_path,
-                                                                device_pk_path) != 0))
+                                                                   hsm_get_device_ca_alias(),
+                                                                   hsm_get_device_ca_alias(),
+                                                                   device_ca_path,
+                                                                   device_ca_pk_path) != 0))
         {
-            LOG_ERROR("Failure inserting device CA certificate and key into the HSM store`");
+            LOG_ERROR("Failure inserting device CA certificate and key into the HSM store");
             result = __FAILURE__;
         }
         else
@@ -1846,18 +1958,10 @@ static int hsm_provision_edge_certificates(void)
                 result = put_pki_trusted_cert(g_crypto_store, DEFAULT_TRUSTED_CA_ALIAS, trusted_ca);
             }
         }
-        if (trusted_certs_path != NULL)
-        {
-            free(trusted_certs_path);
-        }
-        if (device_ca_path != NULL)
-        {
-            free(device_ca_path);
-        }
-        if (device_pk_path != NULL)
-        {
-            free(device_pk_path);
-        }
+
+        free(trusted_certs_path);
+        free(device_ca_path);
+        free(device_ca_pk_path);
     }
 
     return result;
@@ -1873,9 +1977,13 @@ static int hsm_provision(void)
                   "Set environment variable IOTEDGE_HOMEDIR to a valid path.");
         result = __FAILURE__;
     }
+    else if (hsm_provision_edge_ca_certificates() != 0)
+    {
+        result = __FAILURE__;
+    }
     else
     {
-        result = hsm_provision_edge_certificates();
+        result = hsm_provision_edge_id_certificate();
     }
 
     return result;

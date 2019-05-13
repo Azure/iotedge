@@ -97,14 +97,6 @@ static const int month_day[] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 30
 #define COMMON_NAME_OID_SIZE 5
 static const unsigned char COMMON_NAME_OID[COMMON_NAME_OID_SIZE] = {  0x06, 0x03, 0x55, 0x04, 0x03 };
 
-#define FREEIF(x) \
-    do { \
-        if ((x != NULL)) { \
-            free(x); \
-            x = NULL; \
-        } \
-    } while(0)
-
 // Forward declaration(s)
 static char *get_common_name(const unsigned char *input);
 
@@ -696,10 +688,10 @@ void certificate_info_destroy(CERT_INFO_HANDLE handle)
     CERT_DATA_INFO* cert_info = (CERT_DATA_INFO*)handle;
     if (cert_info != NULL)
     {
-        FREEIF(cert_info->first_certificate);
-        FREEIF(cert_info->certificate_pem);
-        FREEIF(cert_info->private_key);
-        FREEIF(cert_info->common_name);
+        free(cert_info->first_certificate);
+        free(cert_info->certificate_pem);
+        free(cert_info->private_key);
+        free(cert_info->common_name);
         free(cert_info);
     }
 }
