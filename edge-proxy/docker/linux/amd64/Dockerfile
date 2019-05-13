@@ -1,3 +1,3 @@
 FROM traefik:v1.7.11-alpine
-COPY run.sh /
+COPY ./docker/linux/amd64/run.sh /
 CMD ["/run.sh"]
