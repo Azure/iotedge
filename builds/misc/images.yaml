@@ -39,7 +39,7 @@ jobs:
         displayName: Build iotedge-diagnostics
 
       - script: scripts/linux/buildEdgeProxy.sh
-        displayName: Build edge-proxy
+        displayName: Build Edge Proxy
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
@@ -56,7 +56,7 @@ jobs:
 
      # Edge Proxy - Not Using Template because it doesn't have .NET code
       - task: Bash@3
-        displayName: Build Image - edge-proxy - aarch64
+        displayName: Build Image - Edge Proxy - aarch64
         inputs:
           filePath: scripts/linux/buildImage.sh
           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-proxy -n microsoft -P azureiotedge-proxy --target-arch aarch64
@@ -165,7 +165,7 @@ jobs:
         displayName: Build iotedge-diagnostics
 
       - script: scripts/linux/buildEdgeProxy.sh
-        displayName: Build edge-proxy
+        displayName: Build Edge Proxy
 
       - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
         displayName: 'Create Artifact Info File'
@@ -186,7 +186,7 @@ jobs:
       # Edge Proxy
       - template: templates/image-linux.yaml
         parameters:
-          name: azureiotedge-proxy
+          name: Edge Proxy
           imageName: azureiotedge-proxy
           project: azureiotedge-proxy
 
