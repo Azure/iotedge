@@ -168,7 +168,10 @@ impl Main {
         Main { settings }
     }
 
-    pub fn run(self) -> Result<(), Error> {
+    pub fn run_until<F>(self, shutdown_signal_generator: F) -> Result<(), Error>
+        where
+        F: Fn() -> Box<dyn Future<Item = (), Error = ()> + Send>,
+     {
         let Main { settings } = self;
 
         let hsm_lock = HsmLock::new();
@@ -261,7 +264,7 @@ impl Main {
                         &key_store,
                         cfg.clone(),
                         root_key.clone(),
-                        signal::shutdown(),
+                        shutdown_signal_generator(),
                         &crypto,
                         &mut tokio_runtime,
                     )?;
@@ -289,7 +292,7 @@ impl Main {
                                 &$key_store,
                                 cfg.clone(),
                                 $root_key.clone(),
-                                signal::shutdown(),
+                                shutdown_signal_generator(),
                                 &crypto,
                                 &mut tokio_runtime,
                             )?;
@@ -628,6 +631,7 @@ where
         match res {
             Ok(Either::B(_)) => Ok(StartApiReturnStatus::Restart).into_future(),
             _ => Ok(StartApiReturnStatus::Shutdown).into_future(),
+            // Err(err) => Err(err.into()).into_future()
         }
     });
 

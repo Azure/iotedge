@@ -1,11 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 use std::env;
 use std::ffi::OsString;
 use std::time::Duration;
 
 use clap::crate_name;
+// use crossbeam::
 use failure::ResultExt;
+use futures::Future;
 use log::{error, info};
 use winapi::shared::minwindef::DWORD;
 use winapi::um::wincon::{GenerateConsoleCtrlEvent, CTRL_C_EVENT};
@@ -18,6 +19,7 @@ use windows_service::service_control_handler::{
 use windows_service::{define_windows_service, service_dispatcher};
 
 use crate::app;
+use crate::signal;
 use crate::error::{Error, ErrorKind, InitializeErrorReason, ServiceError};
 use crate::logging;
 
@@ -44,6 +46,10 @@ fn iotedge_service_main(args: Vec<OsString>) {
 }
 
 fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
+    // setup a channel for notifying service stop/shutdown
+    let (sender, receiver) = oneshot::channel();
+    let sender = RefCell::new(Some(sender)); // register() takes Fn, not FnMut
+
     // setup the service control handler
     let status_handle = register(
         IOTEDGED_SERVICE_NAME,
@@ -51,13 +57,15 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
             ServiceControl::Shutdown | ServiceControl::Stop => {
                 info!("{} service is shutting down", IOTEDGED_SERVICE_NAME);
 
-                // We were told by windows to shutdown :(
-                // Let's generate a CTRL_C event to trigger the shutdown sequence
-                // https://docs.microsoft.com/en-us/windows/console/generateconsolectrlevent
-                // 0 is used as the process group id since CTRL C is passed to all processes
-                // that share a console, but doesn't actually target a process group
-                unsafe {
-                    GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0 as DWORD);
+                // If sender is None, then it has already been consumed by a previous shutdown / stop notification
+                // that signaled the receiver. There's nothing more to do in that case.
+                if let Some(sender) = sender.borrow_mut().take() {
+                    sender.send(()).unwrap_or_else(|err| {
+                        error!(
+                            "An error occurred while raising service shutdown signal: {:?}",
+                            err
+                        );
+                    });
                 }
 
                 ServiceControlHandlerResult::NoError
@@ -71,21 +79,31 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
         InitializeErrorReason::RegisterWindowsService,
     ))?;
 
+    // initialize iotedged
+    info!("Initializing {} service.", IOTEDGED_SERVICE_NAME);
     let settings = app::init_win_svc()?;
     let main = super::Main::new(settings);
+    let shutdown_signal = signal::shutdown()
+        .select(receiver.map_err(|_| ()))
+        .map(move |_| {
+            info!("Stopping {} service.", IOTEDGED_SERVICE_NAME);
+            if let Err(err) = update_service_state(status_handle, ServiceState::StopPending) {
+                error!(
+                    "An error occurred while setting service status to STOP_PENDING: {:?}",
+                    err,
+                );
+            }
+        })
+        .map_err(|_| ());
 
     // tell Windows we're all set
     update_service_state(status_handle, ServiceState::Running)?;
 
     // start running
     info!("Starting {} service.", IOTEDGED_SERVICE_NAME);
-    main.run()?;
+    main.run_until(shutdown_signal)?;
 
-    // This will only happen if a shutdown class event happens and main returns.
-    info!("Stopping {} service.", IOTEDGED_SERVICE_NAME);
-    update_service_state(status_handle, ServiceState::StopPending)?;
-
-    Ok(status_handle)
+Ok(status_handle)
 }
 
 pub fn run_as_console() -> Result<(), Error> {
@@ -110,6 +128,14 @@ pub fn run() -> Result<(), Error> {
                 InitializeErrorReason::StartWindowsService,
             ))?;
         Ok(())
+    }
+}
+
+fn create_shutdown_future() -> Box<dyn Future<Item = (), Error = ()> + Send> {
+    if env::var(RUN_AS_CONSOLE_KEY).is_ok() {
+        Box::new(signal::shutdown())
+    } else {
+        Box::new(signal::shutdown())
     }
 }
 
