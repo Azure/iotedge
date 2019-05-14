@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         }
 
         public IEnumerable<IRuntimeModule> ApplyRestartPolicy(IEnumerable<IRuntimeModule> modules) =>
-            modules.Where(module => this.ShouldRestart(module));
+            modules.Where(this.ShouldRestart);
 
         internal TimeSpan GetCoolOffPeriod(int restartCount) =>
             TimeSpan.FromSeconds(Math.Min(this.coolOffTimeUnitInSeconds * Math.Pow(2, restartCount), MaxCoolOffPeriodSecs));
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 TimeSpan elapsedTime = DateTime.UtcNow - module.LastExitTimeUtc;
 
                 // LastExitTime can be greater thatn UtcNow if the clock is off, so check if the elapsed time is > 0
-                bool shouldRestart = elapsedTime > TimeSpan.Zero ? elapsedTime > coolOffPeriod : true;
+                bool shouldRestart = elapsedTime <= TimeSpan.Zero || elapsedTime > coolOffPeriod;
                 if (!shouldRestart)
                 {
                     Events.ScheduledModule(module, elapsedTime, coolOffPeriod);
@@ -88,24 +88,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
             return false;
         }
-    }
 
-    static class Events
-    {
-        const int IdStart = AgentEventIds.RestartManager;
-        static readonly ILogger Log = Logger.Factory.CreateLogger<RestartPolicyManager>();
-
-        enum EventIds
+        static class Events
         {
-            ScheduledModule = IdStart + 1
-        }
+            const int IdStart = AgentEventIds.RestartManager;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<RestartPolicyManager>();
 
-        public static void ScheduledModule(IRuntimeModule module, TimeSpan elapsedTime, TimeSpan coolOffPeriod)
-        {
-            TimeSpan timeLeft = coolOffPeriod - elapsedTime;
-            Log.LogInformation(
-                (int)EventIds.ScheduledModule,
-                $"Module '{module.Name}' scheduled to restart after {coolOffPeriod.Humanize()} ({timeLeft.Humanize()} left).");
+            enum EventIds
+            {
+                ScheduledModule = IdStart + 1
+            }
+
+            public static void ScheduledModule(IRuntimeModule module, TimeSpan elapsedTime, TimeSpan coolOffPeriod)
+            {
+                TimeSpan timeLeft = coolOffPeriod - elapsedTime;
+                Log.LogInformation(
+                    (int)EventIds.ScheduledModule,
+                    $"Module '{module.Name}' scheduled to restart after {coolOffPeriod.Humanize()} ({timeLeft.Humanize()} left).");
+            }
         }
     }
 }
