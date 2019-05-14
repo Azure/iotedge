@@ -94,7 +94,8 @@ impl From<CoreError> for Error {
                     if let Some(err) = cause.downcast_ref::<HttpError>() {
                         match HttpError::kind(err) {
                             HttpErrorKind::Http => {
-                                error_kind = ErrorKind::Initialize(InitializeErrorReason::InvalidHubConfig);
+                                error_kind =
+                                    ErrorKind::Initialize(InitializeErrorReason::InvalidHubConfig);
                             }
                             HttpErrorKind::HttpWithErrorResponse(code, _message) => {
                                 if code.as_u16() == 401 {
@@ -113,7 +114,9 @@ impl From<CoreError> for Error {
         }
 
         let error_kind_result = match error.kind() {
-            CoreErrorKind::EdgeRuntimeIdentityNotFound => ErrorKind::Initialize(InitializeErrorReason::InvalidDeviceConfig),
+            CoreErrorKind::EdgeRuntimeIdentityNotFound => {
+                ErrorKind::Initialize(InitializeErrorReason::InvalidDeviceConfig)
+            }
             _ => error_kind,
         };
 
@@ -214,9 +217,13 @@ impl fmt::Display for InitializeErrorReason {
 
             InitializeErrorReason::HttpClient => write!(f, "Could not initialize HTTP client"),
 
-            InitializeErrorReason::InvalidDeviceConfig => write!(f, "Invalid device configuration was provide"),
+            InitializeErrorReason::InvalidDeviceConfig => {
+                write!(f, "Invalid device configuration was provide")
+            }
 
-            InitializeErrorReason::InvalidHubConfig => write!(f, "Invalid IoT hub configuration was provided"),
+            InitializeErrorReason::InvalidHubConfig => {
+                write!(f, "Invalid IoT hub configuration was provided")
+            }
 
             InitializeErrorReason::InvalidProxyUri => write!(f, "Invalid proxy URI"),
 

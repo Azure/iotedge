@@ -25,8 +25,8 @@ use sha2::{Digest, Sha256};
 use url::Url;
 
 use edgelet_core::crypto::MemoryKey;
-use edgelet_core::ModuleSpec;
 use edgelet_core::watchdog::RetryLimit;
+use edgelet_core::ModuleSpec;
 use edgelet_utils::log_failure;
 
 mod yaml_file_source;
@@ -359,19 +359,13 @@ impl Certificates {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct WatchdogSettings {
     #[serde(default)]
     max_retries: RetryLimit,
 }
 
 impl WatchdogSettings {
-    pub fn new() -> Self {
-        WatchdogSettings {
-            max_retries: RetryLimit::default()
-        }
-    }
-
     pub fn max_retries(&self) -> &RetryLimit {
         &self.max_retries
     }
@@ -387,8 +381,7 @@ pub struct Settings<T> {
     homedir: PathBuf,
     moby_runtime: MobyRuntime,
     certificates: Option<Certificates>,
-
-    #[serde(default = "WatchdogSettings::new")]
+    #[serde(default)]
     watchdog: WatchdogSettings,
 }
 
@@ -865,6 +858,6 @@ mod tests {
         assert!(settings.is_ok());
         let s = settings.unwrap();
         let watchdog_settings = s.watchdog();
-        assert_eq!(watchdog_settings.max_retries().cmp(&3), Ordering::Equal);
+        assert_eq!(watchdog_settings.max_retries().compare(3), Ordering::Equal);
     }
 }

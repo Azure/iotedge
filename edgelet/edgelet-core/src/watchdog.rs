@@ -36,16 +36,18 @@ pub enum RetryLimit {
 }
 
 impl RetryLimit {
-    pub fn cmp(&self, right: &u32) -> Ordering {
+    pub fn compare(&self, right: u32) -> Ordering {
         match self {
             RetryLimit::Infinite => Ordering::Greater,
-            RetryLimit::Num(n) => n.cmp(right),
+            RetryLimit::Num(n) => n.cmp(&right),
         }
     }
 }
 
 impl Default for RetryLimit {
-    fn default() -> Self { println!("defult"); RetryLimit::Infinite }
+    fn default() -> Self {
+        RetryLimit::Infinite
+    }
 }
 
 pub struct Watchdog<M, I> {
@@ -157,18 +159,17 @@ where
                 future::ok(Some(e))
             })
         })
-        .fold(
-            0,
-            move |exec_count: u32, result: Option<Error>| {
-                result.and_then(|e| {
-                    if max_retries.cmp(&exec_count) == Ordering::Greater {
+        .fold(0, move |exec_count: u32, result: Option<Error>| {
+            result
+                .and_then(|e| {
+                    if max_retries.compare(exec_count) == Ordering::Greater {
                         Some(Ok(exec_count + 1))
                     } else {
                         Some(Err(e))
                     }
-                }).unwrap_or_else(|| Ok(0))
-            },
-        )
+                })
+                .unwrap_or_else(|| Ok(0))
+        })
         .map(|_| ())
 }
 
