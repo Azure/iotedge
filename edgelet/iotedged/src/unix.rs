@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 use crate::app;
-use crate::signal;
 use crate::error::Error;
+use crate::signal;
 
 pub fn run() -> Result<(), Error> {
     let settings = app::init()?;

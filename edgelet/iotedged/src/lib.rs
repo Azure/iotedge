@@ -169,9 +169,9 @@ impl Main {
     }
 
     pub fn run_until<F>(self, shutdown_signal_generator: F) -> Result<(), Error>
-        where
+    where
         F: Fn() -> Box<dyn Future<Item = (), Error = ()> + Send>,
-     {
+    {
         let Main { settings } = self;
 
         let hsm_lock = HsmLock::new();
@@ -1161,7 +1161,7 @@ mod tests {
     fn default_settings_raise_unconfigured_error() {
         let settings = Settings::<DockerConfig>::new(None).unwrap();
         let main = Main::new(settings);
-        let result = main.run();
+        let result = main.run_until(move || Box::new(signal::shutdown()));
         match result.unwrap_err().kind() {
             ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
             kind => panic!("Expected `NotConfigured` but got {:?}", kind),
