@@ -15,9 +15,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
     public class ModuleClient : IModuleClient
     {
-        static readonly Type[] TransientExceptions =
+        static readonly Type[] NonRetryableExceptions =
         {
-            typeof(TimeoutException)
+            typeof(NullReferenceException),
+            typeof(ObjectDisposedException)
         };
 
         readonly AtomicBoolean isActive = new AtomicBoolean(true);
@@ -28,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             this.inner = Preconditions.CheckNotNull(inner, nameof(inner));
             this.inactivityTimer = new ResettableTimer(this.CloseOnInactivity, idleTimeout, Events.Log, closeOnIdleTimeout);
+            this.inactivityTimer.Start();
         }
 
         public event EventHandler Closed;
@@ -136,9 +138,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                this.isActive.Set(false);
-                await this.inner.CloseAsync();
-                this.Closed?.Invoke(this, EventArgs.Empty);
+                if (this.isActive.GetAndSet(false))
+                {
+                    await this.inner.CloseAsync();
+                    this.Closed?.Invoke(this, EventArgs.Empty);
+                }
             }
             catch (Exception e)
             {
@@ -156,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                if (!TransientExceptions.Any(e => e.IsInstanceOfType(ex)))
+                if (NonRetryableExceptions.Any(e => e.IsInstanceOfType(ex)))
                 {
                     Events.ClosingModuleClient(ex);
                     await this.CloseAsync();
