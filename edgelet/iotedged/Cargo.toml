@@ -9,7 +9,6 @@ edition = "2018"
 base64 = "0.9"
 clap = "2.31"
 chrono = "0.4"
-crossbeam-channel = "0.3"
 env_logger = "0.5"
 failure = "0.1"
 futures = "0.1"
@@ -37,6 +36,7 @@ edgelet-iothub = { path = "../edgelet-iothub" }
 edgelet-utils = { path = "../edgelet-utils" }
 iothubservice = { path = "../iothubservice" }
 provisioning = { path = "../provisioning" }
+signal-future = { path = "../signal-future" }
 
 [target.'cfg(windows)'.dependencies]
 windows-service = "0.1"

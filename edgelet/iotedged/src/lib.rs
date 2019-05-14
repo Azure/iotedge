@@ -256,6 +256,8 @@ impl Main {
                     IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                     IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                 );
+                // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
+                // is received. If the TLS cert needs a restart, we will loop again.
                 while {
                     let code = start_api(
                         &settings,
@@ -284,6 +286,8 @@ impl Main {
                             IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                             IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                         );
+                        // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
+                        // is received. If the TLS cert needs a restart, we will loop again.
                         while {
                             let code = start_api(
                                 &settings,

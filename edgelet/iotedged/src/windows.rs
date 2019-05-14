@@ -1,15 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
+
+use std::cell::RefCell;
 use std::env;
 use std::ffi::OsString;
 use std::time::Duration;
 
 use clap::crate_name;
-// use crossbeam::
 use failure::ResultExt;
-use futures::Future;
+use futures::future::Future;
 use log::{error, info};
-use winapi::shared::minwindef::DWORD;
-use winapi::um::wincon::{GenerateConsoleCtrlEvent, CTRL_C_EVENT};
 use windows_service::service::{
     ServiceControl, ServiceControlAccept, ServiceExitCode, ServiceState, ServiceStatus, ServiceType,
 };
@@ -19,9 +18,9 @@ use windows_service::service_control_handler::{
 use windows_service::{define_windows_service, service_dispatcher};
 
 use crate::app;
-use crate::signal;
 use crate::error::{Error, ErrorKind, InitializeErrorReason, ServiceError};
 use crate::logging;
+use crate::signal;
 
 const RUN_AS_CONSOLE_KEY: &str = "IOTEDGE_RUN_AS_CONSOLE";
 const IOTEDGED_SERVICE_NAME: &str = crate_name!();
@@ -46,9 +45,9 @@ fn iotedge_service_main(args: Vec<OsString>) {
 }
 
 fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
-    // setup a channel for notifying service stop/shutdown
-    let (sender, receiver) = oneshot::channel();
-    let sender = RefCell::new(Some(sender)); // register() takes Fn, not FnMut
+    // Configure a Signal Future to alert us if Windows shuts us down.
+    let windows_signal = signal_future::signal();
+    let ws_signaler = RefCell::new(windows_signal.clone());
 
     // setup the service control handler
     let status_handle = register(
@@ -57,16 +56,7 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
             ServiceControl::Shutdown | ServiceControl::Stop => {
                 info!("{} service is shutting down", IOTEDGED_SERVICE_NAME);
 
-                // If sender is None, then it has already been consumed by a previous shutdown / stop notification
-                // that signaled the receiver. There's nothing more to do in that case.
-                if let Some(sender) = sender.borrow_mut().take() {
-                    sender.send(()).unwrap_or_else(|err| {
-                        error!(
-                            "An error occurred while raising service shutdown signal: {:?}",
-                            err
-                        );
-                    });
-                }
+                ws_signaler.borrow_mut().signal();
 
                 ServiceControlHandlerResult::NoError
             }
@@ -83,34 +73,39 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
     info!("Initializing {} service.", IOTEDGED_SERVICE_NAME);
     let settings = app::init_win_svc()?;
     let main = super::Main::new(settings);
-    let shutdown_signal = signal::shutdown()
-        .select(receiver.map_err(|_| ()))
-        .map(move |_| {
-            info!("Stopping {} service.", IOTEDGED_SERVICE_NAME);
-            if let Err(err) = update_service_state(status_handle, ServiceState::StopPending) {
-                error!(
-                    "An error occurred while setting service status to STOP_PENDING: {:?}",
-                    err,
-                );
-            }
-        })
-        .map_err(|_| ());
 
     // tell Windows we're all set
     update_service_state(status_handle, ServiceState::Running)?;
 
     // start running
     info!("Starting {} service.", IOTEDGED_SERVICE_NAME);
-    main.run_until(shutdown_signal)?;
+    main.run_until(move || {
+        Box::new(
+            signal::shutdown()
+                .select(windows_signal.clone())
+                .map(move |_| {
+                    info!("Stopping {} service.", IOTEDGED_SERVICE_NAME);
+                    if let Err(err) = update_service_state(status_handle, ServiceState::StopPending)
+                    {
+                        error!(
+                            "An error occurred while setting service status to STOP_PENDING: {:?}",
+                            err,
+                        );
+                    }
+                })
+                .map_err(|_| ()),
+        )
+    })?;
 
-Ok(status_handle)
+    Ok(status_handle)
 }
 
 pub fn run_as_console() -> Result<(), Error> {
     let settings = app::init()?;
     let main = super::Main::new(settings);
 
-    main.run()?;
+    main.run_until(move || signal::shutdown())?;
+    
     Ok(())
 }
 
@@ -128,14 +123,6 @@ pub fn run() -> Result<(), Error> {
                 InitializeErrorReason::StartWindowsService,
             ))?;
         Ok(())
-    }
-}
-
-fn create_shutdown_future() -> Box<dyn Future<Item = (), Error = ()> + Send> {
-    if env::var(RUN_AS_CONSOLE_KEY).is_ok() {
-        Box::new(signal::shutdown())
-    } else {
-        Box::new(signal::shutdown())
     }
 }
 
