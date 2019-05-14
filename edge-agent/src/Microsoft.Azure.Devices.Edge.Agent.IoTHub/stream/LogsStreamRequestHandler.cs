@@ -18,10 +18,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
     {
         const int MaxLogRequestSizeBytes = 8192; // 8kb
         readonly ILogsProvider logsProvider;
+        readonly IRuntimeInfoProvider runtimeInfoProvider;
 
-        public LogsStreamRequestHandler(ILogsProvider logsProvider)
+        public LogsStreamRequestHandler(ILogsProvider logsProvider, IRuntimeInfoProvider runtimeInfoProvider)
         {
             this.logsProvider = Preconditions.CheckNotNull(logsProvider, nameof(logsProvider));
+            this.runtimeInfoProvider = Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider));
         }
 
         public async Task Handle(IClientWebSocket clientWebSocket, CancellationToken cancellationToken)
@@ -47,7 +49,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
                     }
                 }
 
-                IList<(string id, ModuleLogOptions logOptions)> logOptionsList = streamRequest.Items.Select(i => (i.Id, new ModuleLogOptions(streamRequest.Encoding, streamRequest.ContentType, i.Filter))).ToList();
+                ILogsRequestToOptionsMapper requestToOptionsMapper = new LogsRequestToOptionsMapper(
+                    this.runtimeInfoProvider,
+                    streamRequest.Encoding,
+                    streamRequest.ContentType,
+                    LogOutputFraming.SimpleLength,
+                    Option.None<LogsOutputGroupingConfig>(),
+                    true);
+                IList<(string id, ModuleLogOptions logOptions)> logOptionsList = await requestToOptionsMapper.MapToLogOptions(streamRequest.Items, cancellationToken);
 
                 using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, socketCancellationTokenSource.Token))
                 {

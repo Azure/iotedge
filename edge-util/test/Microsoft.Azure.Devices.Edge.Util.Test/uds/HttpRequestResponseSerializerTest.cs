@@ -307,6 +307,41 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
             Assert.Equal(ChunkedResponseContentText, responseText);
         }
 
+        [Fact]
+        public async Task TestDeserializeChunkedResponse_ValidContent_ShouldDeserialize_Sync()
+        {
+            var memory = new MemoryStream(ChunkedResponseBytes, true);
+            var stream = new HttpBufferedStream(memory);
+
+            CancellationToken cancellationToken = default(CancellationToken);
+            HttpResponseMessage response = await new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken);
+
+            Assert.Equal(response.Version, Version.Parse("1.1"));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("OK", response.ReasonPhrase);
+            Assert.False(response.Content.Headers.ContentLength.HasValue);
+
+            Stream responseStream = await response.Content.ReadAsStreamAsync();
+            byte[] responseBytes = ReadStreamSync(responseStream);
+            string responseText = Encoding.UTF8.GetString(responseBytes);
+            Assert.Equal(ChunkedResponseContentText, responseText);
+        }
+
+        static byte[] ReadStreamSync(Stream s)
+        {
+            byte[] buffer = new byte[16 * 1024];
+            using (MemoryStream ms = new MemoryStream())
+            {
+                int read;
+                while ((read = s.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    ms.Write(buffer, 0, read);
+                }
+
+                return ms.ToArray();
+            }
+        }
+
         static async Task<byte[]> ReadStream(Stream s)
         {
             byte[] buffer = new byte[16 * 1024];

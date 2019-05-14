@@ -2,12 +2,15 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
 {
     using System;
+    using System.Collections.Generic;
     using System.Globalization;
+    using System.Linq;
     using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.WindowsAzure.Storage.Blob;
     using Moq;
@@ -78,8 +81,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
             byte[] payload = Encoding.UTF8.GetBytes("Test payload string");
 
             var azureBlob = new Mock<IAzureBlob>();
-            azureBlob.Setup(a => a.BlobProperties)
-                .Returns(new BlobProperties());
             azureBlob.Setup(a => a.Name)
                 .Returns(() => receivedBlobName);
             azureBlob.Setup(a => a.UploadFromByteArrayAsync(payload))
@@ -87,8 +88,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
                 .Returns(Task.CompletedTask);
 
             var azureBlobUploader = new Mock<IAzureBlobUploader>();
-            azureBlobUploader.Setup(a => a.GetBlob(It.IsAny<Uri>(), It.IsAny<string>()))
-                .Callback<Uri, string>((u, b) =>
+            azureBlobUploader.Setup(a => a.GetBlob(It.IsAny<Uri>(), It.IsAny<string>(), It.IsAny<Option<string>>(), It.IsAny<Option<string>>()))
+                .Callback<Uri, string, Option<string>, Option<string>>((u, b, _, __) =>
                 {
                     receivedSasUri = u;
                     receivedBlobName = b;
@@ -108,6 +109,58 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
             Assert.Equal(sasUri, receivedSasUri.ToString());
             Assert.NotNull(receivedPayload);
             Assert.Equal(payload, receivedPayload);
+        }
+
+        [Fact]
+        public async Task GetUploaderCallbackTest()
+        {
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "abcd";
+            string id = "pqr";
+            string sasUri = @"http://testuri/";
+            var regex = new Regex(BlobNameRegexPattern);
+
+            string receivedBlobName = null;
+            Uri receivedSasUri = null;
+            var receivedPayload = new List<byte>();
+
+            byte[] payload1 = Encoding.UTF8.GetBytes("Test payload string");
+            byte[] payload2 = Encoding.UTF8.GetBytes("Second interesting payload");
+
+            var azureAppendBlob = new Mock<IAzureAppendBlob>();
+            azureAppendBlob.Setup(a => a.Name)
+                .Returns(() => receivedBlobName);
+            azureAppendBlob.Setup(a => a.AppendByteArray(It.IsAny<ArraySegment<byte>>()))
+                .Callback<ArraySegment<byte>>(b => receivedPayload.AddRange(b.ToArray()))
+                .Returns(Task.CompletedTask);
+
+            var azureBlobUploader = new Mock<IAzureBlobUploader>();
+            azureBlobUploader.Setup(a => a.GetAppendBlob(It.IsAny<Uri>(), It.IsAny<string>(), It.IsAny<Option<string>>(), It.IsAny<Option<string>>()))
+                .Callback<Uri, string, Option<string>, Option<string>>((u, b, _, __) =>
+                {
+                    receivedSasUri = u;
+                    receivedBlobName = b;
+                })
+                .ReturnsAsync(azureAppendBlob.Object);
+
+            var azureBlobLogsUploader = new AzureBlobLogsUploader(iotHub, deviceId, azureBlobUploader.Object);
+
+            // Act
+            Func<ArraySegment<byte>, Task> callback = await azureBlobLogsUploader.GetUploaderCallback(sasUri, id, LogsContentEncoding.Gzip, LogsContentType.Json);
+
+            Assert.NotNull(callback);
+            await callback.Invoke(new ArraySegment<byte>(payload1));
+            await callback.Invoke(new ArraySegment<byte>(payload2));
+
+            // Assert
+            Assert.NotNull(receivedBlobName);
+            Match match = regex.Match(receivedBlobName);
+            Assert.True(match.Success);
+            Assert.NotNull(receivedSasUri);
+            Assert.Equal(sasUri, receivedSasUri.ToString());
+            Assert.NotNull(receivedPayload);
+            Assert.Equal(payload1.Concat(payload2), receivedPayload);
         }
     }
 }

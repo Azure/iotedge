@@ -75,7 +75,46 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
 
         public override void Flush() => throw new NotImplementedException();
 
-        public override int Read(byte[] buffer, int offset, int count) => throw new NotImplementedException();
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            if (this.eos)
+            {
+                return 0;
+            }
+
+            if (this.chunkBytes == 0)
+            {
+                string line = this.stream.ReadLine();
+                if (!int.TryParse(line, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out this.chunkBytes))
+                {
+                    throw new IOException($"Cannot parse chunk header - {line}");
+                }
+            }
+
+            int bytesRead = 0;
+            if (this.chunkBytes > 0)
+            {
+                int bytesToRead = Math.Min(count, this.chunkBytes);
+                bytesRead = this.stream.Read(buffer, offset, bytesToRead);
+                if (bytesToRead == 0)
+                {
+                    throw new EndOfStreamException();
+                }
+
+                this.chunkBytes -= bytesToRead;
+            }
+
+            if (this.chunkBytes == 0)
+            {
+                this.stream.ReadLine();
+                if (bytesRead == 0)
+                {
+                    this.eos = true;
+                }
+            }
+
+            return bytesRead;
+        }
 
         public override long Seek(long offset, SeekOrigin origin) => throw new NotImplementedException();
 
