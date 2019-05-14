@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::cmp::Ordering;
 use std::time::{Duration, Instant};
 
 use failure::Fail;
 use futures::future::{self, Either, FutureResult};
 use futures::Future;
 use log::{info, warn, Level};
+use serde_derive::{Deserialize, Serialize};
 use tokio::prelude::*;
 use tokio::timer::Interval;
 
@@ -24,12 +26,32 @@ const EDGE_RUNTIME_STOP_TIME: Duration = Duration::from_secs(60);
 const MODULE_GENERATIONID: &str = "IOTEDGE_MODULEGENERATIONID";
 
 /// This is the frequency with which the watchdog checks for the status of the edge runtime module.
-const WATCHDOG_FREQUENCY_SECS: u64 = 60;
+const WATCHDOG_FREQUENCY_SECS: u64 = 1;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum RetryLimit {
+    Infinite,
+    Num(u32),
+}
+
+impl RetryLimit {
+    pub fn cmp(&self, right: &u32) -> Ordering {
+        match self {
+            RetryLimit::Infinite => Ordering::Greater,
+            RetryLimit::Num(n) => n.cmp(right),
+        }
+    }
+}
+
+impl Default for RetryLimit {
+    fn default() -> Self { println!("defult"); RetryLimit::Infinite }
+}
 
 pub struct Watchdog<M, I> {
     runtime: M,
     id_mgr: I,
-    retry_count: Option<u32>,
+    max_retries: RetryLimit,
 }
 
 impl<M, I> Watchdog<M, I>
@@ -39,11 +61,11 @@ where
     <M::Module as Module>::Config: Clone,
     I: 'static + IdentityManager + Clone,
 {
-    pub fn new(runtime: M, id_mgr: I, retry_count: Option<u32>) -> Self {
+    pub fn new(runtime: M, id_mgr: I, max_retries: RetryLimit) -> Self {
         Watchdog {
             runtime,
             id_mgr,
-            retry_count,
+            max_retries,
         }
     }
 
@@ -64,9 +86,9 @@ where
         let name = spec.name().to_string();
         let id_mgr = self.id_mgr.clone();
         let module_id = module_id.to_string();
-        let retry_count = self.retry_count;
+        let max_retries = self.max_retries.clone();
 
-        let watchdog = start_watchdog(runtime, id_mgr, spec, module_id, retry_count);
+        let watchdog = start_watchdog(runtime, id_mgr, spec, module_id, max_retries);
 
         // Swallow any errors from shutdown_signal
         let shutdown_signal = shutdown_signal.then(|_| Ok(()));
@@ -106,7 +128,7 @@ pub fn start_watchdog<M, I>(
     id_mgr: I,
     spec: ModuleSpec<<M::Module as Module>::Config>,
     module_id: String,
-    retry_count: Option<u32>,
+    max_retries: RetryLimit,
 ) -> impl Future<Item = (), Error = Error>
 where
     M: 'static + ModuleRuntime + Clone,
@@ -137,18 +159,14 @@ where
         })
         .fold(
             0,
-            move |exec_count: u32, result: Option<Error>| match result {
-                Some(err) => match retry_count {
-                    None => future::ok(0),
-                    Some(ret_count) => {
-                        if ret_count == exec_count {
-                            future::err(err)
-                        } else {
-                            future::ok(exec_count + 1)
-                        }
+            move |exec_count: u32, result: Option<Error>| {
+                result.and_then(|e| {
+                    if max_retries.cmp(&exec_count) == Ordering::Greater {
+                        Some(Ok(exec_count + 1))
+                    } else {
+                        Some(Err(e))
                     }
-                },
-                None => future::ok(0),
+                }).unwrap_or_else(|| Ok(0))
             },
         )
         .map(|_| ())

@@ -894,7 +894,7 @@ where
     let watchdog = Watchdog::new(
         runtime.clone(),
         id_man.clone(),
-        settings.retry_count().cloned(),
+        settings.watchdog().max_retries().clone(),
     );
     let runtime_future = watchdog
         .run_until(spec, EDGE_RUNTIME_MODULEID, shutdown.map_err(|_| ()))

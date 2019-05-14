@@ -13,7 +13,9 @@ agent:
     image: "microsoft/azureiotedge-agent:1.0"
     auth: {}
 hostname: "localhost"
-retry_count: 3
+
+watchdog:
+  max_retries: 3
 
 # Sets the connection uris for clients
 connect:

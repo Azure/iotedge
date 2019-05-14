@@ -26,6 +26,7 @@ use url::Url;
 
 use edgelet_core::crypto::MemoryKey;
 use edgelet_core::ModuleSpec;
+use edgelet_core::watchdog::RetryLimit;
 use edgelet_utils::log_failure;
 
 mod yaml_file_source;
@@ -359,6 +360,24 @@ impl Certificates {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct WatchdogSettings {
+    #[serde(default)]
+    max_retries: RetryLimit,
+}
+
+impl WatchdogSettings {
+    pub fn new() -> Self {
+        WatchdogSettings {
+            max_retries: RetryLimit::default()
+        }
+    }
+
+    pub fn max_retries(&self) -> &RetryLimit {
+        &self.max_retries
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Settings<T> {
     provisioning: Provisioning,
     agent: ModuleSpec<T>,
@@ -368,7 +387,9 @@ pub struct Settings<T> {
     homedir: PathBuf,
     moby_runtime: MobyRuntime,
     certificates: Option<Certificates>,
-    retry_count: Option<u32>,
+
+    #[serde(default = "WatchdogSettings::new")]
+    watchdog: WatchdogSettings,
 }
 
 impl<T> Settings<T>
@@ -393,7 +414,6 @@ where
         config.merge(Environment::with_prefix("iotedge"))?;
 
         let settings: Self = config.try_into()?;
-
         Ok(settings)
     }
 
@@ -433,8 +453,8 @@ where
         self.certificates.as_ref()
     }
 
-    pub fn retry_count(&self) -> Option<&u32> {
-        self.retry_count.as_ref()
+    pub fn watchdog(&self) -> &WatchdogSettings {
+        &self.watchdog
     }
 
     pub fn diff_with_cached(&self, path: &Path) -> bool {
@@ -515,6 +535,7 @@ mod tests {
     use super::*;
     use config::{Config, File, FileFormat};
     use edgelet_docker::DockerConfig;
+    use std::cmp::Ordering;
     use std::fs::File as FsFile;
     use std::io::Write;
     use tempdir::TempDir;
@@ -837,16 +858,12 @@ mod tests {
     }
 
     #[test]
-    fn retry_count_is_read() {
+    fn watchdog_settings_are_read() {
         let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS)));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        let retry_count = s.retry_count();
-        retry_count
-            .map(|c| {
-                assert_eq!(c, &3);
-            })
-            .expect("Retry count not read.");
+        let watchdog_settings = s.watchdog();
+        assert_eq!(watchdog_settings.max_retries().cmp(&3), Ordering::Equal);
     }
 }

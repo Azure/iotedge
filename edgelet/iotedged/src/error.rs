@@ -31,12 +31,6 @@ pub enum ErrorKind {
     #[fail(display = "The daemon could not start up successfully: {}", _0)]
     Initialize(InitializeErrorReason),
 
-    #[fail(display = "Invalid device configuration was provided.")]
-    InvalidDeviceConfig,
-
-    #[fail(display = "Invalid IoT hub configuration was provided.")]
-    InvalidHubConfig,
-
     #[fail(display = "Invalid signed token was provided.")]
     InvalidSignedToken,
 
@@ -100,7 +94,7 @@ impl From<CoreError> for Error {
                     if let Some(err) = cause.downcast_ref::<HttpError>() {
                         match HttpError::kind(err) {
                             HttpErrorKind::Http => {
-                                error_kind = ErrorKind::InvalidHubConfig;
+                                error_kind = ErrorKind::Initialize(InitializeErrorReason::InvalidHubConfig);
                             }
                             HttpErrorKind::HttpWithErrorResponse(code, _message) => {
                                 if code.as_u16() == 401 {
@@ -119,7 +113,7 @@ impl From<CoreError> for Error {
         }
 
         let error_kind_result = match error.kind() {
-            CoreErrorKind::EdgeRuntimeIdentityNotFound => ErrorKind::InvalidDeviceConfig,
+            CoreErrorKind::EdgeRuntimeIdentityNotFound => ErrorKind::Initialize(InitializeErrorReason::InvalidDeviceConfig),
             _ => error_kind,
         };
 
@@ -134,8 +128,8 @@ impl From<Context<ErrorKind>> for Error {
 }
 
 impl From<&ErrorKind> for i32 {
-    fn from(err: &ErrorKind) -> Self {
-        match err {
+    fn from(err_reason: &ErrorKind) -> Self {
+        match err_reason {
             // Using 150 as the starting base for custom IoT edge error codes so as to avoid
             // collisions with -
             // 1. The standard error codes defined by the BSD ecosystem
@@ -144,8 +138,8 @@ impl From<&ErrorKind> for i32 {
             // (https://rust-lang-nursery.github.io/cli-wg/in-depth/exit-code.html)
             // 2. Bash scripting exit codes with special meanings
             // (http://www.tldp.org/LDP/abs/html/exitcodes.html)
-            ErrorKind::InvalidDeviceConfig => 150,
-            ErrorKind::InvalidHubConfig => 151,
+            ErrorKind::Initialize(InitializeErrorReason::InvalidDeviceConfig) => 150,
+            ErrorKind::Initialize(InitializeErrorReason::InvalidHubConfig) => 151,
             ErrorKind::InvalidSignedToken => 152,
             _ => 1,
         }
@@ -164,6 +158,8 @@ pub enum InitializeErrorReason {
     EdgeRuntime,
     Hsm,
     HttpClient,
+    InvalidDeviceConfig,
+    InvalidHubConfig,
     InvalidProxyUri,
     InvalidSocketUri,
     IssuerCAExpiration,
@@ -217,6 +213,10 @@ impl fmt::Display for InitializeErrorReason {
             InitializeErrorReason::Hsm => write!(f, "Could not initialize HSM"),
 
             InitializeErrorReason::HttpClient => write!(f, "Could not initialize HTTP client"),
+
+            InitializeErrorReason::InvalidDeviceConfig => write!(f, "Invalid device configuration was provide"),
+
+            InitializeErrorReason::InvalidHubConfig => write!(f, "Invalid IoT hub configuration was provided"),
 
             InitializeErrorReason::InvalidProxyUri => write!(f, "Invalid proxy URI"),
 
