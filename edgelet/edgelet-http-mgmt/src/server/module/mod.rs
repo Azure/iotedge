@@ -7,7 +7,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;
 
-use edgelet_core::{Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleStatus};
+use edgelet_core::{Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleStatus, PullPolicy};
 use management::models::*;
 
 use crate::error::{Error, ErrorKind};
@@ -55,7 +55,7 @@ where
         Err(err) => return Err(Error::from(err.context(context))),
     };
 
-    let module_spec = match CoreModuleSpec::new(name, type_, config, env, None) {
+    let module_spec = match CoreModuleSpec::new(name, type_, config, env, PullPolicy::default()) {
         Ok(module_spec) => module_spec,
         Err(err) => return Err(Error::from(err.context(context))),
     };

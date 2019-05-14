@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use base64;
 use docker::models::{AuthConfig, HostConfig};
-use edgelet_core::ModuleSpec;
+use edgelet_core::{ModuleSpec, PullPolicy};
 use edgelet_docker::DockerConfig;
 use k8s_openapi::api::apps::v1 as apps;
 use k8s_openapi::api::core::v1 as api_core;
@@ -562,7 +562,7 @@ mod tests {
                 env.insert(String::from("C"), String::from("D"));
                 env
             },
-            None
+            PullPolicy::default()
         )
         .unwrap()
     }

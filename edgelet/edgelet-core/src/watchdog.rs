@@ -290,17 +290,11 @@ where
 
         println!("{:?}", spec.pull_policy());
         let pull_future: Box<dyn Future<Item=_, Error=_> + Send> = match spec.pull_policy() {
-            None => Box::new(future::ok(())),
-            Some(pull_policy) => {
-                if pull_policy == &PullPolicy::Never {
-                    Box::new(future::ok(()))
-                }
-                else{
+            PullPolicy::Never => Box::new(future::ok(())),
+            PullPolicy::Always =>
                     Box::new(runtime
                         .registry()
                         .pull(spec.clone().config()))
-                }
-            }
         };
 
         pull_future

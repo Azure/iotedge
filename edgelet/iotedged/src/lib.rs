@@ -880,7 +880,7 @@ where
         spec.type_().to_string(),
         spec.config().clone(),
         env,
-        spec.pull_policy().cloned()
+        spec.pull_policy().clone()
     )
     .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
 
