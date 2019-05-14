@@ -128,8 +128,8 @@ impl From<Context<ErrorKind>> for Error {
 }
 
 impl From<&ErrorKind> for i32 {
-    fn from(err_reason: &ErrorKind) -> Self {
-        match err_reason {
+    fn from(err: &ErrorKind) -> Self {
+        match err {
             // Using 150 as the starting base for custom IoT edge error codes so as to avoid
             // collisions with -
             // 1. The standard error codes defined by the BSD ecosystem

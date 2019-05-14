@@ -414,6 +414,7 @@ where
         config.merge(Environment::with_prefix("iotedge"))?;
 
         let settings: Self = config.try_into()?;
+
         Ok(settings)
     }
 

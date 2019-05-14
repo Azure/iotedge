@@ -26,7 +26,7 @@ const EDGE_RUNTIME_STOP_TIME: Duration = Duration::from_secs(60);
 const MODULE_GENERATIONID: &str = "IOTEDGE_MODULEGENERATIONID";
 
 /// This is the frequency with which the watchdog checks for the status of the edge runtime module.
-const WATCHDOG_FREQUENCY_SECS: u64 = 1;
+const WATCHDOG_FREQUENCY_SECS: u64 = 60;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
