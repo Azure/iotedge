@@ -66,15 +66,51 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
             else
             {
-                string[] packages = new string[] { };
-                packagesPath.ForEach(p => packages = Directory.GetFiles(p, "*.deb"));
+                string[] commands = await packagesPath.Match(
+                    p =>
+                    {
+                        string[] packages = Directory.GetFiles(p, "*.deb");
+                        return Task.FromResult(new[]
+                        {
+                            "set -e",
+                            $"dpkg --force-confnew -i {string.Join(' ', packages)}",
+                            "apt-get install -f"
+                        });
+                    },
+                    async () =>
+                    {
+                        string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
+                        string os = platformInfo[0].Trim();
+                        string version = platformInfo[1].Trim();
+                        switch (os)
+                        {
+                            case "Ubuntu":
+                                return new[]
+                                {
+                                    "set -e",
+                                    $"curl https://packages.microsoft.com/config/ubuntu/{version}/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
+                                    "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
+                                    "apt-get update",
+                                    "apt-get install iotedge"
+                                };
+                            case "Raspbian":
+                                return new[]
+                                {
+                                    "set -e",
+                                    "curl -L https://aka.ms/libiothsm-std-linux-armhf-latest -o libiothsm-std.deb",
+                                    "curl -L https://aka.ms/iotedged-linux-armhf-latest -o iotedge.deb",
+                                    "dpkg --force-confnew -i libiothsm-std.deb iotedge.deb",
+                                    "apt-get install -f"
+                                };
+                            default:
+                                throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
+                        }
+                    });
 
                 await Profiler.Run(
                     async () =>
                     {
-                        string[] output = await Process.RunAsync("dpkg", $"--force-confnew -i {string.Join(' ', packages)}", token);
-                        Log.Verbose(string.Join("\n", output));
-                        output = await Process.RunAsync("apt-get", "install -f");
+                        string[] output = await Process.RunAsync("bash", $"-c \"{string.Join("; ", commands)}\"");
                         Log.Verbose(string.Join("\n", output));
                     },
                     message);
@@ -112,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                         await this.LinuxStartAsync(token);
                     },
-                    $"Configured edge daemon for edge device '{builder.DeviceId}', hostname '{hostname}'");
+                    $"Configured edge daemon for device '{hostname}' registered as '{builder.DeviceId}'");
             }
         }
 
