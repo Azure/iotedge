@@ -372,7 +372,7 @@ pub struct Settings<T> {
 
 impl<T> Settings<T>
 where
-    T: DeserializeOwned + Serialize + std::fmt::Debug,
+    T: DeserializeOwned + Serialize,
 {
     pub fn new(filename: Option<&Path>) -> Result<Self, LoadSettingsError> {
         let filename = filename.map(|filename| {
