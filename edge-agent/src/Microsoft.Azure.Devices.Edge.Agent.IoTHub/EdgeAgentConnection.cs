@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         internal static void ValidateSchemaVersion(string schemaVersion)
         {
-            if (ExpectedSchemaVersion.CompareTo(schemaVersion, "desired properties schema") != 0)
+            if (ExpectedSchemaVersion.CompareMajorVersion(schemaVersion, "desired properties schema") != 0)
             {
                 Events.MismatchedMinorVersions(schemaVersion, ExpectedSchemaVersion);
             }

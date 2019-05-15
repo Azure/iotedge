@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
                 LogsStreamRequest streamRequest = await this.ReadLogsStreamingRequest(clientWebSocket, cancellationToken);
                 Events.RequestData(streamRequest);
 
-                if (ExpectedSchemaVersion.CompareTo(streamRequest.SchemaVersion, "logs stream request schema") != 0)
+                if (ExpectedSchemaVersion.CompareMajorVersion(streamRequest.SchemaVersion, "logs stream request schema") != 0)
                 {
                     Events.MismatchedMinorVersions(streamRequest.SchemaVersion, ExpectedSchemaVersion);
                 }

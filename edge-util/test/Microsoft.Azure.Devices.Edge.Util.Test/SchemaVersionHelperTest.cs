@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     using Xunit;
 
     [Unit]
-    public class VersionHelperTest
+    public class SchemaVersionHelperTest
     {
         public static IEnumerable<object[]> CompareToTestData()
         {
@@ -22,18 +22,18 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
         public static IEnumerable<object[]> CompareToTestDataWithInvalidVersion()
         {
-            yield return new object[] { new Version("1.0"), string.Empty, typeof(ArgumentException) };
+            yield return new object[] { new Version("1.0"), string.Empty, typeof(InvalidSchemaVersionException) };
 
-            yield return new object[] { new Version("1.4"), "a.b", typeof(ArgumentException) };
+            yield return new object[] { new Version("1.4"), "a.b", typeof(InvalidSchemaVersionException) };
 
-            yield return new object[] { new Version("1.0"), "2.0", typeof(InvalidOperationException) };
+            yield return new object[] { new Version("1.0"), "2.0", typeof(InvalidSchemaVersionException) };
         }
 
         [Theory]
         [MemberData(nameof(CompareToTestData))]
         public void CompareToTest(Version expectedVersion, string version, int expectedResult)
         {
-            int result = expectedVersion.CompareTo(version, "dummy");
+            int result = expectedVersion.CompareMajorVersion(version, "dummy");
             Assert.Equal(expectedResult, result);
         }
 
@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [MemberData(nameof(CompareToTestDataWithInvalidVersion))]
         public void CompareToWithInvalidVersionTest(Version expectedVersion, string version, Type exception)
         {
-            Assert.Throws(exception, () => expectedVersion.CompareTo(version, "dummy"));
+            Assert.Throws(exception, () => expectedVersion.CompareMajorVersion(version, "dummy"));
         }
     }
 }

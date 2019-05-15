@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         internal static void ValidateSchemaVersion(string schemaVersion)
         {
-            if (Constants.ConfigSchemaVersion.CompareTo(schemaVersion, "desired properties schema") != 0)
+            if (Constants.ConfigSchemaVersion.CompareMajorVersion(schemaVersion, "desired properties schema") != 0)
             {
                 Events.MismatchedMinorVersions(schemaVersion, Constants.ConfigSchemaVersion);
             }

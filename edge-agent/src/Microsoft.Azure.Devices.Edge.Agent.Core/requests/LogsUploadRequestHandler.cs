@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         protected override async Task<Option<object>> HandleRequestInternal(Option<LogsUploadRequest> payloadOption, CancellationToken cancellationToken)
         {
             LogsUploadRequest payload = payloadOption.Expect(() => new ArgumentException("Request payload not found"));
-            if (ExpectedSchemaVersion.CompareTo(payload.SchemaVersion, "logs upload request schema") != 0)
+            if (ExpectedSchemaVersion.CompareMajorVersion(payload.SchemaVersion, "logs upload request schema") != 0)
             {
                 Events.MismatchedMinorVersions(payload.SchemaVersion, ExpectedSchemaVersion);
             }
