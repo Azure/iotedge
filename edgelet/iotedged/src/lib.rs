@@ -634,8 +634,8 @@ where
 
         match res {
             Ok(Either::B(_)) => Ok(StartApiReturnStatus::Restart).into_future(),
+            Err(Either::A((err, _))) => Err(err).into_future(),
             _ => Ok(StartApiReturnStatus::Shutdown).into_future(),
-            // Err(err) => Err(err.into()).into_future()
         }
     });
 
