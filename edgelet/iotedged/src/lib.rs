@@ -633,10 +633,16 @@ where
         mgmt_tx.send(()).unwrap_or(());
         work_tx.send(()).unwrap_or(());
 
+        // A -> EdgeRt Future
+        // B -> Restart Signal Future
         match res {
+            Ok(Either::A(_)) => Ok(StartApiReturnStatus::Shutdown).into_future(),
             Ok(Either::B(_)) => Ok(StartApiReturnStatus::Restart).into_future(),
             Err(Either::A((err, _))) => Err(err).into_future(),
-            _ => Ok(StartApiReturnStatus::Shutdown).into_future(),
+            Err(Either::B(_)) => {
+                debug!("The restart signal failed, shutting down.");
+                Ok(StartApiReturnStatus::Shutdown).into_future()
+            }
         }
     });
 
