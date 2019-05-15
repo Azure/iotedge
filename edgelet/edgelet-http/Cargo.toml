@@ -44,6 +44,7 @@ mio-uds-windows = { git = "https://github.com/Azure/mio-uds-windows.git" }
 tokio-named-pipe = { path = "../tokio-named-pipe" }
 tokio-uds-windows = { git = "https://github.com/Azure/tokio-uds-windows.git" }
 winapi = { version = "0.3.5", features = ["winsock2"] }
+openssl = "0.10"
 
 [dev-dependencies]
 lazy_static = "1.0"

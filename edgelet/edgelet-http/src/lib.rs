@@ -67,6 +67,25 @@ const TCP_SCHEME: &str = "tcp";
 #[cfg(target_os = "linux")]
 const FD_SCHEME: &str = "fd";
 
+#[derive(Clone)]
+pub struct PemCertificate {
+    cert: Vec<u8>,
+    key: Vec<u8>,
+    username: Option<String>,
+    password: Option<String>,
+}
+
+impl PemCertificate {
+    pub fn new(cert: Vec<u8>, key: Vec<u8>, username: Option<String>, password: Option<String>) -> Self {
+        PemCertificate {
+                cert,
+                key,
+                username,
+                password,
+        }
+    }
+}
+
 pub trait IntoResponse {
     fn into_response(self) -> Response<Body>;
 }

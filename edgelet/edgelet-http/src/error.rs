@@ -10,6 +10,8 @@ use hyper::{Body, Response, StatusCode, Uri};
 use serde_json::json;
 use systemd::Fd;
 use url::Url;
+use native_tls::Error as NativeTlsError;
+use openssl::error::ErrorStack;
 
 use crate::IntoResponse;
 
@@ -72,8 +74,14 @@ pub enum ErrorKind {
     #[fail(display = "Module not found")]
     ModuleNotFound(String),
 
+    #[fail(display = "A native TLS error occurred.")]
+    NativeTls,
+
     #[fail(display = "An error occurred for path {}", _0)]
     Path(String),
+
+    #[fail(display = "An OpenSSL PKCS12 error occurred.")]
+    OpenSSLPkcs12,
 
     #[fail(display = "An error occurred with the proxy {}", _0)]
     Proxy(Uri),
@@ -81,10 +89,10 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred in the service")]
     ServiceError,
 
-    #[fail(display = "An error occured configuring the TLS stack")]
+    #[fail(display = "An error occurred configuring the TLS stack")]
     TlsBootstrapError,
 
-    #[fail(display = "An error occured during creation of the TLS identity from cert")]
+    #[fail(display = "An error occurred during creation of the TLS identity from cert")]
     TlsIdentityCreationError,
 
     #[fail(display = "Token source error")]
@@ -142,6 +150,22 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
+    }
+}
+
+impl From<NativeTlsError> for Error {
+    fn from(error: NativeTlsError) -> Self {
+        Error {
+            inner: error.context(ErrorKind::NativeTls),
+        }
+    }
+}
+
+impl From<ErrorStack> for Error {
+    fn from(error: ErrorStack) -> Self {
+        Error {
+            inner: error.context(ErrorKind::OpenSSLPkcs12),
+        }
     }
 }
 
