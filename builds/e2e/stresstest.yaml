@@ -51,7 +51,9 @@ jobs:
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
       - bash: |
             echo "build artifact staging dir=$(Build.ArtifactStagingDirectory)"
+            echo "build staging dir=$(Build.StagingDirectory)"
         displayName: 'Print debug'
+        workingDirectory: '$(Agent.HomeDirectory)/..'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
