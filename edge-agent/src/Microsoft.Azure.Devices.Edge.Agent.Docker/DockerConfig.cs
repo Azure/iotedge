@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System;
     using System.Linq;
+    using System.Text.RegularExpressions;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
@@ -12,6 +13,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     [JsonConverter(typeof(DockerConfigJsonConverter))]
     public class DockerConfig : IEquatable<DockerConfig>
     {
+        // This is not the actual docker image regex, but a less strict version.
+        const string ImageRegexPattern = @"^(?<repo>([^/]*/)*)(?<image>[^/:]+)(?<tag>:[^/:]+)?$";
+
+        static readonly Regex ImageRegex = new Regex(ImageRegexPattern);
         readonly CreateContainerParameters createOptions;
 
         public DockerConfig(string image)
@@ -78,22 +83,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         internal static string ValidateAndGetImage(string image)
         {
             image = Preconditions.CheckNonWhiteSpace(image, nameof(image)).Trim();
-            string[] parts = image.Split(':');
-            string imageWithTag;
-            if (parts.Length == 2)
+            Match match = ImageRegex.Match(image);
+            if (match.Success)
             {
-                imageWithTag = image;
-            }
-            else if (parts.Length == 1)
-            {
-                imageWithTag = Invariant($"{image}:{Constants.DefaultTag}");
+                if (match.Groups["tag"]?.Length > 0)
+                {
+                    return image;
+                }
+                else
+                {
+                    return Invariant($"{image}:{Constants.DefaultTag}");
+                }
             }
             else
             {
                 throw new ArgumentException($"Image {image} is not in the right format");
             }
-
-            return imageWithTag;
         }
 
         internal static bool CompareCreateOptions(CreateContainerParameters a, CreateContainerParameters b)
