@@ -74,6 +74,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     {
                         string[] output = await Process.RunAsync("dpkg", $"--force-confnew -i {string.Join(' ', packages)}", token);
                         Log.Verbose(string.Join("\n", output));
+                        output = await Process.RunAsync("apt-get", "install -f");
+                        Log.Verbose(string.Join("\n", output));
                     },
                     message);
 
