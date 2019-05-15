@@ -20,18 +20,6 @@ parameters:
   loadGen4.transportType: 'Mqtt_WebSocket_Only'
 
 steps:
-  - task: CopyFiles@2
-    displayName: 'Copy Edgelet Artifact'
-    inputs:
-      SourceFolder: "$(Build.ArtifactStagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
-      CleanTargetFolder: true
-  - task: CopyFiles@2
-    displayName: 'Copy Images Artifact'
-    inputs:
-      SourceFolder: "$(Build.ArtifactStagingDirectory)/${{ parameters['images.artifact.name'] }}"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
-      CleanTargetFolder: true
   - bash: |
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
         testName="Stress"
