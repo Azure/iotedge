@@ -53,7 +53,7 @@ jobs:
         displayName: 'Clean Artifacts folder'
         inputs:
           sourceFolder: $(Agent.HomeDirectory)/../artifacts
-          contents: **
+          contents: '**'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
