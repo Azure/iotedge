@@ -168,9 +168,10 @@ impl Main {
         Main { settings }
     }
 
-    pub fn run_until<F>(self, shutdown_signal_generator: F) -> Result<(), Error>
+    pub fn run_until<F, G>(self, make_shutdown_signal: G) -> Result<(), Error>
     where
-        F: Fn() -> Box<dyn Future<Item = (), Error = ()> + Send>,
+        F: Future<Item = (), Error = ()> + Send + 'static,
+        G: Fn() -> F,
     {
         let Main { settings } = self;
 
@@ -266,7 +267,7 @@ impl Main {
                         &key_store,
                         cfg.clone(),
                         root_key.clone(),
-                        shutdown_signal_generator(),
+                        make_shutdown_signal(),
                         &crypto,
                         &mut tokio_runtime,
                     )?;
@@ -296,7 +297,7 @@ impl Main {
                                 &$key_store,
                                 cfg.clone(),
                                 $root_key.clone(),
-                                shutdown_signal_generator(),
+                                make_shutdown_signal(),
                                 &crypto,
                                 &mut tokio_runtime,
                             )?;

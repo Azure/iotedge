@@ -7,6 +7,6 @@ pub fn run() -> Result<(), Error> {
     let settings = app::init()?;
     let main = super::Main::new(settings);
 
-    main.run_until(|| Box::new(signal::shutdown()))?;
+    main.run_until(|| signal::shutdown())?;
     Ok(())
 }

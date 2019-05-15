@@ -46,8 +46,8 @@ fn iotedge_service_main(args: Vec<OsString>) {
 
 fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
     // Configure a Signal Future to alert us if Windows shuts us down.
-    let windows_signal = signal_future::signal();
-    let ws_signaler = RefCell::new(windows_signal.clone());
+    let mut windows_signal = signal_future::signal();
+    // let ws_signaler = RefCell::new(windows_signal.clone());
 
     // setup the service control handler
     let status_handle = register(
@@ -56,7 +56,7 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
             ServiceControl::Shutdown | ServiceControl::Stop => {
                 info!("{} service is shutting down", IOTEDGED_SERVICE_NAME);
 
-                ws_signaler.borrow_mut().signal();
+                windows_signal.signal();
 
                 ServiceControlHandlerResult::NoError
             }
@@ -80,21 +80,18 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
     // start running
     info!("Starting {} service.", IOTEDGED_SERVICE_NAME);
     main.run_until(move || {
-        Box::new(
-            signal::shutdown()
-                .select(windows_signal.clone())
-                .map(move |_| {
-                    info!("Stopping {} service.", IOTEDGED_SERVICE_NAME);
-                    if let Err(err) = update_service_state(status_handle, ServiceState::StopPending)
-                    {
-                        error!(
-                            "An error occurred while setting service status to STOP_PENDING: {:?}",
-                            err,
-                        );
-                    }
-                })
-                .map_err(|_| ()),
-        )
+        signal::shutdown()
+            .select(windows_signal.clone())
+            .map(move |_| {
+                info!("Stopping {} service.", IOTEDGED_SERVICE_NAME);
+                if let Err(err) = update_service_state(status_handle, ServiceState::StopPending) {
+                    error!(
+                        "An error occurred while setting service status to STOP_PENDING: {:?}",
+                        err,
+                    );
+                }
+            })
+            .map_err(|_| ())
     })?;
 
     Ok(status_handle)
@@ -105,7 +102,7 @@ pub fn run_as_console() -> Result<(), Error> {
     let main = super::Main::new(settings);
 
     main.run_until(|| signal::shutdown())?;
-    
+
     Ok(())
 }
 
