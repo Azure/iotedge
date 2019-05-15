@@ -33,8 +33,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Option<Uri> proxy,
             CancellationToken token)
         {
+            var properties = new object[] { };
             string message = "Installed edge daemon";
-            packagesPath.ForEach(p => { message += $" from packages in '{p}'"; });
+            packagesPath.ForEach(
+                p =>
+                {
+                    message += " from packages in '{InstallPackagePath}'";
+                    properties = new object[] { p };
+                });
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -50,9 +56,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1",
                     installCommand
                 };
-
-                var properties = new object[] { };
-                packagesPath.ForEach(p => properties = new object[] { p });
 
                 await Profiler.Run(
                     async () =>
@@ -113,7 +116,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         string[] output = await Process.RunAsync("bash", $"-c \"{string.Join("; ", commands)}\"");
                         Log.Verbose(string.Join("\n", output));
                     },
-                    message);
+                    message,
+                    properties);
 
                 string hostname = (await File.ReadAllTextAsync("/proc/sys/kernel/hostname", token)).Trim();
                 IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(deviceConnectionString);
@@ -148,7 +152,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                         await this.LinuxStartAsync(token);
                     },
-                    $"Configured edge daemon for device '{hostname}' registered as '{builder.DeviceId}'");
+                    "Configured edge daemon for device '{Device}' registered as '{Id}'",
+                    hostname,
+                    builder.DeviceId);
             }
         }
 
