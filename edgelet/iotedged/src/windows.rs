@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::cell::RefCell;
 use std::env;
 use std::ffi::OsString;
 use std::time::Duration;
@@ -46,8 +45,8 @@ fn iotedge_service_main(args: Vec<OsString>) {
 
 fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
     // Configure a Signal Future to alert us if Windows shuts us down.
-    let mut windows_signal = signal_future::signal();
-    // let ws_signaler = RefCell::new(windows_signal.clone());
+    let windows_signal = signal_future::signal();
+    let ws_signaler = windows_signal.clone();
 
     // setup the service control handler
     let status_handle = register(
@@ -56,6 +55,7 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
             ServiceControl::Shutdown | ServiceControl::Stop => {
                 info!("{} service is shutting down", IOTEDGED_SERVICE_NAME);
 
+                let mut windows_signal = windows_signal.clone();
                 windows_signal.signal();
 
                 ServiceControlHandlerResult::NoError
@@ -81,7 +81,7 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
     info!("Starting {} service.", IOTEDGED_SERVICE_NAME);
     main.run_until(move || {
         signal::shutdown()
-            .select(windows_signal.clone())
+            .select(ws_signaler.clone())
             .map(move |_| {
                 info!("Stopping {} service.", IOTEDGED_SERVICE_NAME);
                 if let Err(err) = update_service_state(status_handle, ServiceState::StopPending) {
@@ -101,7 +101,7 @@ pub fn run_as_console() -> Result<(), Error> {
     let settings = app::init()?;
     let main = super::Main::new(settings);
 
-    main.run_until(|| signal::shutdown())?;
+    main.run_until(signal::shutdown)?;
 
     Ok(())
 }
