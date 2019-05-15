@@ -140,6 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     false,
                     10,
                     10,
+                    false,
                     false));
 
             builder.RegisterModule(new HttpModule());

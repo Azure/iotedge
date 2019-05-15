@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -19,6 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     class CloudProxy : ICloudProxy
     {
+        static readonly Type[] NonRecoverableExceptions =
+        {
+            typeof(NullReferenceException),
+            typeof(ObjectDisposedException)
+        };
+
         readonly IClient client;
         readonly IMessageConverterProvider messageConverterProvider;
         readonly Action<string, CloudConnectionStatus> connectionStatusChangedHandler;
@@ -259,9 +266,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     this.connectionStatusChangedHandler(this.clientId, CloudConnectionStatus.DisconnectedTokenExpired);
                 }
-                else if (ex is NullReferenceException)
+                else if (NonRecoverableExceptions.Any(nre => nre.IsInstanceOfType(ex)))
                 {
-                    Events.HandleNre(this);
+                    Events.HandleNre(ex, this);
                     return this.CloseAsync();
                 }
             }
@@ -556,9 +563,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogDebug((int)EventIds.ErrorGettingTwin, ex, Invariant($"Error getting twin for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
-            public static void HandleNre(CloudProxy cloudProxy)
+            public static void HandleNre(Exception ex, CloudProxy cloudProxy)
             {
-                Log.LogDebug((int)EventIds.HandleNre, Invariant($"Got a NullReferenceException from client for {cloudProxy.clientId}. Closing the cloud proxy since it may be in a bad state."));
+                Log.LogDebug((int)EventIds.HandleNre, ex, Invariant($"Got a non-recoverable error from client for {cloudProxy.clientId}. Closing the cloud proxy since it may be in a bad state."));
             }
 
             internal static void ExceptionInHandleException(CloudProxy cloudProxy, Exception handlingException, Exception caughtException)
