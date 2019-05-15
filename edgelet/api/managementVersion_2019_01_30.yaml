@@ -466,12 +466,19 @@ definitions:
         $ref: '#/definitions/Config'
       status:
         $ref: '#/definitions/Status'
+      pullPolicy:
+        type: string
+        enum:
+          - Always
+          - Never
+        example: "Always"
     required:
       - id
       - name
       - type
       - config
       - status
+      - pullPolicy
   ModuleSpec:
     type: object
     properties:
@@ -482,6 +489,12 @@ definitions:
       type:
         type: string
         example: docker
+      pullPolicy:
+        type: string
+        enum:
+          - Always
+          - Never
+        example: "Always"
       config:
         $ref: '#/definitions/Config'
     required:
