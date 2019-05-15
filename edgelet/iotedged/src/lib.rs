@@ -1165,7 +1165,7 @@ mod tests {
     fn default_settings_raise_unconfigured_error() {
         let settings = Settings::<DockerConfig>::new(None).unwrap();
         let main = Main::new(settings);
-        let result = main.run_until(move || Box::new(signal::shutdown()));
+        let result = main.run_until(|| Box::new(signal::shutdown()));
         match result.unwrap_err().kind() {
             ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
             kind => panic!("Expected `NotConfigured` but got {:?}", kind),

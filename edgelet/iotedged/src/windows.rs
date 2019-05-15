@@ -104,7 +104,7 @@ pub fn run_as_console() -> Result<(), Error> {
     let settings = app::init()?;
     let main = super::Main::new(settings);
 
-    main.run_until(move || signal::shutdown())?;
+    main.run_until(|| signal::shutdown())?;
     
     Ok(())
 }
