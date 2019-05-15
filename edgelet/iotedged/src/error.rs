@@ -218,7 +218,7 @@ impl fmt::Display for InitializeErrorReason {
             InitializeErrorReason::HttpClient => write!(f, "Could not initialize HTTP client"),
 
             InitializeErrorReason::InvalidDeviceConfig => {
-                write!(f, "Invalid device configuration was provide")
+                write!(f, "Invalid device configuration was provided")
             }
 
             InitializeErrorReason::InvalidHubConfig => {
