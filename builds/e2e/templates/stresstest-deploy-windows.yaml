@@ -1,6 +1,5 @@
 parameters:
-  release.Label: ''
-  edgelet.artifact.name: ''
+  release.label: ''
   images.artifact.name: ''
   container.registry: ''
   container.registry.username: ''
@@ -20,18 +19,6 @@ parameters:
   loadGen4.transportType: 'Mqtt_WebSocket_Only'
 
 steps:
-  - task: CopyFiles@2
-    displayName: 'Copy Edgelet Artifact'
-    inputs:
-      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
-      CleanTargetFolder: true
-  - task: CopyFiles@2
-    displayName: 'Copy Images Artifact'
-    inputs:
-      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
-      CleanTargetFolder: true
   - task: PowerShell@2
     displayName: 'Run Stress Test Deployment'
     inputs:

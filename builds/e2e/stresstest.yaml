@@ -83,7 +83,6 @@ jobs:
       - template: templates/stresstest-deploy.yaml
         parameters:
           release.label: 'st'
-          edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
@@ -118,6 +117,11 @@ jobs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
+      - task: DeleteFiles@1
+        displayName: 'Clean Artifacts folder'
+        inputs:
+          sourceFolder: $(Agent.HomeDirectory)/../artifacts
+          contents: '**'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -126,7 +130,7 @@ jobs:
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
+          downloadPath: $(Agent.HomeDirectory)/../artifacts
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
@@ -136,7 +140,7 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
+          downloadPath: $(Agent.HomeDirectory)/../artifacts
           artifactName: $(images.artifact.name.linux)
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
@@ -147,7 +151,6 @@ jobs:
       - template: templates/stresstest-deploy.yaml
         parameters:
           release.label: 'st-amqp'
-          edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
@@ -188,6 +191,11 @@ jobs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
+      - task: DeleteFiles@1
+        displayName: 'Clean Artifacts folder'
+        inputs:
+          sourceFolder: $(Agent.HomeDirectory)/../artifacts
+          contents: '**'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -196,7 +204,7 @@ jobs:
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
+          downloadPath: $(Agent.HomeDirectory)/../artifacts
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
@@ -206,7 +214,7 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
+          downloadPath: $(Agent.HomeDirectory)/../artifacts
           artifactName: $(images.artifact.name.linux)
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
@@ -217,7 +225,6 @@ jobs:
       - template: templates/stresstest-deploy.yaml
         parameters:
           release.label: 'st-mqtt'
-          edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
@@ -258,6 +265,11 @@ jobs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
+      - task: DeleteFiles@1
+        displayName: 'Clean Artifacts folder'
+        inputs:
+          sourceFolder: $(Agent.HomeDirectory)/../artifacts
+          contents: '**'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -266,7 +278,7 @@ jobs:
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
+          downloadPath: $(Agent.HomeDirectory)/../artifacts
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
@@ -276,7 +288,7 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
+          downloadPath: $(Agent.HomeDirectory)/../artifacts
           artifactName: $(images.artifact.name.linux)
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm64.tar.gz
@@ -287,7 +299,6 @@ jobs:
       - template: templates/stresstest-deploy.yaml
         parameters:
           release.label: 'st-amqp'
-          edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
@@ -328,6 +339,11 @@ jobs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
+      - task: DeleteFiles@1
+        displayName: 'Clean Artifacts folder'
+        inputs:
+          sourceFolder: $(Agent.HomeDirectory)/../artifacts
+          contents: '**'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -336,7 +352,7 @@ jobs:
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
+          downloadPath: $(Agent.HomeDirectory)/../artifacts
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
@@ -346,7 +362,7 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
+          downloadPath: $(Agent.HomeDirectory)/../artifacts
           artifactName: $(images.artifact.name.linux)
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm64.tar.gz
@@ -357,7 +373,6 @@ jobs:
       - template: templates/stresstest-deploy.yaml
         parameters:
           release.label: 'st-mqtt'
-          edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
@@ -396,6 +411,11 @@ jobs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
+      - task: DeleteFiles@1
+        displayName: 'Clean Artifacts folder'
+        inputs:
+          sourceFolder: $(Agent.HomeDirectory)/../artifacts
+          contents: '**'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -404,7 +424,7 @@ jobs:
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
+          downloadPath: $(Agent.HomeDirectory)/../artifacts
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
@@ -414,7 +434,7 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
+          downloadPath: $(Agent.HomeDirectory)/../artifacts
           artifactName: $(images.artifact.name.windows)
           itemPattern: |
             $(images.artifact.name.windows)/IotEdgeQuickstart/x64/*
@@ -426,7 +446,6 @@ jobs:
       - template: templates/stresstest-deploy-windows.yaml
         parameters:
           release.label: 'st'
-          edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'

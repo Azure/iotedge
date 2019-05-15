@@ -1,6 +1,5 @@
 parameters:
   release.label: ''
-  edgelet.artifact.name: ''
   images.artifact.name: ''
   container.registry: ''
   container.registry.username: ''
@@ -16,14 +15,11 @@ parameters:
   longHaul.protocolHead: ''
 
 steps:
-  - task: Bash@3
-    displayName: 'Run Long Haul Deployment'
-    inputs:
-      targetType: inline
-      script: |
+  - bash: |
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
         testName="LongHaul"
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
         sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "${{ parameters['release.label'] }}" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistry "${{ parameters['container.registry'] }}" -containerRegistryUsername "${{ parameters['container.registry.username'] }}" -containerRegistryPassword "${{ parameters['container.registry.password'] }}" -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" -snitchBuildNumber "${{ parameters['snitch.build.number'] }}" -snitchStorageAccount "${{ parameters['snitch.storage.account'] }}" -snitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" -snitchAlertUrl "${{ parameters['snitch.alert.url'] }}" -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" -longHaulProtocolHead "${{ parameters['longHaul.protocolHead'] }}"
-      workingDirectory: "$(Agent.HomeDirectory)/.."
+    displayName: 'Run Long Haul Deployment'
+    workingDirectory: "$(Agent.HomeDirectory)/.."
