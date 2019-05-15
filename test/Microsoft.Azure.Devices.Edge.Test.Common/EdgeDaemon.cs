@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                     $"curl https://packages.microsoft.com/config/ubuntu/{version}/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
                                     "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
                                     "apt-get update",
-                                    "apt-get install iotedge"
+                                    "apt-get install --yes iotedge"
                                 };
                             case "Raspbian":
                                 return new[]
@@ -176,13 +176,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             {
                 try
                 {
-                    await this.StopAsync(token);
+                    await this.LinuxStopAsync(token);
+                }
+                catch (Win32Exception e)
+                {
+                    Log.Verbose(e, "Failed to stop edge daemon, probably because it is already stopped");
+                }
 
+                try
+                {
                     await Profiler.Run(
                         async () =>
                         {
                             string[] output =
-                                await Process.RunAsync("apt-get", "apt-get purge libiothsm-std --yes", token);
+                                await Process.RunAsync("apt-get", "purge --yes libiothsm-std", token);
                             Log.Verbose(string.Join("\n", output));
                         },
                         "Uninstalled edge daemon");
@@ -302,7 +309,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             throw new NotImplementedException($"No handler for {desired.ToString()}");
                     }
 
-                    string[] output = await Process.RunAsync("bash", "-c \"systemctl --no-pager show iotedge | grep ActiveState=\"");
+                    // TODO: use `systemctl is-active` instead of `systemctl show`
+                    string[] output = await Process.RunAsync("bash", "-c \"systemctl --no-pager show iotedge | grep ActiveState=\"", token);
                     Log.Verbose(string.Join("\n", output));
                     if (output.First().Split("=").Last() == activeState)
                     {
