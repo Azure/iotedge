@@ -179,6 +179,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
 
             string proxy = this.configuration.GetValue("https_proxy", string.Empty);
+            int storageLimitThresholdPercentage = this.configuration.GetValue("StorageLimitThresholdPercentage", 90);
+            long diskSpaceCheckFrequencySecs = this.configuration.GetValue("DiskSpaceCheckFrequencySecs", 120);
+            TimeSpan diskSpaceCheckFrequency = TimeSpan.FromSeconds(diskSpaceCheckFrequencySecs);
+            bool enableDiskSpaceChecks = this.configuration.GetValue("EnableDiskSpaceChecks", true);
 
             // Register modules
             builder.RegisterModule(
@@ -199,7 +203,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     scopeCacheRefreshRate,
                     cacheTokens,
                     this.trustBundle,
-                    proxy));
+                    proxy,
+                    storageLimitThresholdPercentage,
+                    diskSpaceCheckFrequency,
+                    enableDiskSpaceChecks));
         }
 
         (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) GetStoreAndForwardConfiguration()

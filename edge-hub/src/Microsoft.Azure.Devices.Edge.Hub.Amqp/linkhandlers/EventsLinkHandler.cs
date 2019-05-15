@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                     };
 
                 List<IMessage> outgoingMessages = messages.Select(m => this.MessageConverter.ToMessage(m)).ToList();
-                outgoingMessages.ForEach(m => this.AddMessageSystemProperties(m));
+                outgoingMessages.ForEach(this.AddMessageSystemProperties);
                 await this.DeviceListener.ProcessDeviceMessageBatchAsync(outgoingMessages);
                 Events.ProcessedMessages(messages, this);
             }
