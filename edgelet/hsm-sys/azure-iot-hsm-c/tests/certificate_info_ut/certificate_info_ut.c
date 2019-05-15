@@ -632,11 +632,11 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //arrange
         CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
-        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
-        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
-        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
-        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
-        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
 
         //act
         certificate_info_destroy(cert_handle);
@@ -652,10 +652,11 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //arrange
         CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, NULL, 0, PRIVATE_KEY_UNKNOWN);
         umock_c_reset_all_calls();
-        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
-        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
-        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
-        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
 
         //act
         certificate_info_destroy(cert_handle);
