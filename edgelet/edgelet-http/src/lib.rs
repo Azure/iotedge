@@ -18,6 +18,8 @@ use std::os::unix::io::FromRawFd;
 use std::sync::Arc;
 #[cfg(unix)]
 use std::sync::{Arc, Mutex};
+use std::fmt;
+use std::fmt::{Debug, Display, Formatter};
 
 use failure::{Fail, ResultExt};
 use futures::{future, Future, Poll, Stream};
@@ -32,7 +34,7 @@ use tokio::net::TcpListener;
 use tokio_uds::UnixListener;
 use url::Url;
 
-use edgelet_core::crypto::CreateCertificate;
+use edgelet_core::crypto::{Certificate, CreateCertificate, PrivateKey, KeyBytes};
 use edgelet_core::{UrlExt, UNIX_SCHEME};
 use edgelet_utils::log_failure;
 #[cfg(unix)]
@@ -83,6 +85,41 @@ impl PemCertificate {
                 username,
                 password,
         }
+    }
+
+    pub fn from<C: Certificate>(id_cert: &C) -> Result<Self, Error> {
+        let cert = match id_cert.pem() {
+            Ok(cert_buffer) => cert_buffer.as_ref().to_owned(),
+            _ => return Err(Error::from(ErrorKind::IdentityCertificate)),
+        };
+
+        let key = match id_cert.get_private_key() {
+            Ok(Some(PrivateKey::Ref(ref_))) => {
+                ref_.into_bytes().clone()
+            },
+
+            Ok(Some(PrivateKey::Key(KeyBytes::Pem(buffer)))) => {
+                buffer.as_ref().to_vec()
+            },
+
+            _ => return Err(Error::from(ErrorKind::IdentityPrivateKey)),
+        };
+
+        Ok(PemCertificate::new(cert, key, None, None))
+    }
+}
+
+impl Debug for PemCertificate {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // do not print either the username, password or private key
+        write!(f, "Certificate: {:?}", self.cert)
+    }
+}
+
+impl Display for PemCertificate {
+    // do not print either the username, password or private key
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "Certificate: {:?}", self.cert)
     }
 }
 

@@ -49,6 +49,12 @@ pub enum ErrorKind {
     #[fail(display = "HTTP request failed: [{}] {}", _0, _1)]
     HttpWithErrorResponse(StatusCode, String),
 
+    #[fail(display = "An error occurred obtaining the client identity certificate")]
+    IdentityCertificate,
+
+    #[fail(display = "An error occurred obtaining the client identity private key")]
+    IdentityPrivateKey,
+
     #[fail(display = "Could not initialize")]
     Initialization,
 

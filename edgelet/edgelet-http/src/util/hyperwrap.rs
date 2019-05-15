@@ -21,6 +21,7 @@ use native_tls::{Identity, TlsConnector};
 
 const DNS_WORKER_THREADS: usize = 4;
 
+#[derive(Clone, Debug)]
 pub struct Config {
     proxy_uri: Option<Uri>,
     null: bool,
