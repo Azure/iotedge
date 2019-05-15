@@ -5,7 +5,7 @@ use crate::convert::sanitize_dns_value;
 use crate::error::{ErrorKind, Result};
 use crate::runtime::KubeRuntimeData;
 use base64;
-use docker::models::AuthConfig;
+use docker::models::{AuthConfig, HostConfig};
 use edgelet_core::ModuleSpec;
 use edgelet_docker::DockerConfig;
 use k8s_openapi::v1_10::api::apps::v1 as apps;
@@ -118,7 +118,7 @@ fn spec_to_podspec<R: KubeRuntimeData>(
         .config()
         .create_options()
         .host_config()
-        .and_then(|hc| hc.privileged())
+        .and_then(HostConfig::privileged)
         .and_then(|privileged| {
             if *privileged {
                 let context = api_core::SecurityContext {

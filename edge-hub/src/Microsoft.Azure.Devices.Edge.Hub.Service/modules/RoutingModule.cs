@@ -48,6 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool useV1TwinManager;
         readonly int maxUpstreamBatchSize;
         readonly int upstreamFanOutFactor;
+        readonly bool encryptTwinStore;
+        readonly bool disableCloudSubscriptions;
 
         public RoutingModule(
             string iotHubName,
@@ -70,7 +72,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             Option<TimeSpan> reportedPropertiesSyncFrequency,
             bool useV1TwinManager,
             int maxUpstreamBatchSize,
-            int upstreamFanOutFactor)
+            int upstreamFanOutFactor,
+            bool encryptTwinStore,
+            bool disableCloudSubscriptions)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -93,6 +97,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.useV1TwinManager = useV1TwinManager;
             this.maxUpstreamBatchSize = maxUpstreamBatchSize;
             this.upstreamFanOutFactor = upstreamFanOutFactor;
+            this.encryptTwinStore = encryptTwinStore;
+            this.disableCloudSubscriptions = disableCloudSubscriptions;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -399,11 +405,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             }
                             else
                             {
-                                var storeProvider = c.Resolve<IStoreProvider>();
                                 var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
                                 var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
-                                IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                                IEntityStore<string, TwinStoreEntity> entityStore = storeProvider.GetEntityStore<string, TwinStoreEntity>("EdgeTwin");
+                                var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
+                                IEntityStore<string, TwinStoreEntity> entityStore = await this.GetTwinStore(c);
+                                IConnectionManager connectionManager = await connectionManagerTask;
                                 ITwinManager twinManager = StoringTwinManager.Create(
                                     connectionManager,
                                     messageConverterProvider,
@@ -445,12 +451,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var invokeMethodHandlerTask = c.Resolve<Task<IInvokeMethodHandler>>();
-                        var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
-                        var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
-                        IConnectionManager connectionManager = await connectionManagerTask;
-                        IInvokeMethodHandler invokeMethodHandler = await invokeMethodHandlerTask;
-                        return new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager) as ISubscriptionProcessor;
+                        if (this.disableCloudSubscriptions)
+                        {
+                            return new NullSubscriptionProcessor() as ISubscriptionProcessor;
+                        }
+                        else
+                        {
+                            var invokeMethodHandlerTask = c.Resolve<Task<IInvokeMethodHandler>>();
+                            var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
+                            var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
+                            IConnectionManager connectionManager = await connectionManagerTask;
+                            IInvokeMethodHandler invokeMethodHandler = await invokeMethodHandlerTask;
+                            return new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager) as ISubscriptionProcessor;
+                        }
                     })
                 .As<Task<ISubscriptionProcessor>>()
                 .SingleInstance();
@@ -546,6 +559,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             base.Load(builder);
+        }
+
+        async Task<IEntityStore<string, TwinStoreEntity>> GetTwinStore(IComponentContext context)
+        {
+            string entityName = "EdgeTwin";
+            Option<IEntityStore<string, TwinStoreEntity>> twinStoreOption = Option.None<IEntityStore<string, TwinStoreEntity>>();
+            var storeProvider = context.Resolve<IStoreProvider>();
+            if (this.encryptTwinStore)
+            {
+                Option<IEncryptionProvider> encryptionProvider = await context.Resolve<Task<Option<IEncryptionProvider>>>();
+                twinStoreOption = encryptionProvider.Map(
+                    e =>
+                    {
+                        IEntityStore<string, string> underlyingEntityStore = storeProvider.GetEntityStore<string, string>($"underlying{entityName}");
+                        IKeyValueStore<string, string> es = new UpdatableEncryptedStore<string, string>(underlyingEntityStore, e);
+                        ITypeMapper<string, string> keyMapper = new JsonMapper<string>();
+                        ITypeMapper<TwinStoreEntity, string> valueMapper = new JsonMapper<TwinStoreEntity>();
+                        IKeyValueStore<string, TwinStoreEntity> dbStoreMapper = new KeyValueStoreMapper<string, string, TwinStoreEntity, string>(es, keyMapper, valueMapper);
+                        IEntityStore<string, TwinStoreEntity> tes = new EntityStore<string, TwinStoreEntity>(dbStoreMapper, entityName);
+                        return tes;
+                    });
+            }
+
+            IEntityStore<string, TwinStoreEntity> twinStore = twinStoreOption.GetOrElse(
+                () => storeProvider.GetEntityStore<string, TwinStoreEntity>(entityName));
+            return twinStore;
         }
     }
 }

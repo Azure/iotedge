@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     await Task.Delay(this.frequency, cancellationToken);
                 }
 
-                this.logger.LogDebug($"Periodic operation {this.operationName} cancelled");
+                this.logger.LogWarning($"Periodic operation {this.operationName} cancelled");
             }
             catch (Exception ex)
             {

@@ -17,6 +17,10 @@ include_directories(. ./inc)
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
+if(USE_TEST_TPM_INTERFACE_IN_MEM)
+    add_definitions(-DTEST_TPM_INTERFACE_IN_MEM)
+endif(USE_TEST_TPM_INTERFACE_IN_MEM)
+
 set(source_c_files
     ./src/certificate_info.c
     ./src/constants.c
@@ -182,3 +186,8 @@ set (CPACK_RPM_PACKAGE_LICENSE "Proprietary")
 
 include (CPack)
 
+if (${run_unittests})
+    if(WIN32)
+        target_link_libraries(iothsm shell32)
+    endif(WIN32)
+endif()

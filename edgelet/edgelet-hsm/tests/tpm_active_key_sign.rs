@@ -4,15 +4,24 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use std::str;
+use std::sync::Mutex;
 
 use bytes::Bytes;
 use hmac::{Hmac, Mac};
+use lazy_static::lazy_static;
 use sha2::Sha256;
 
 use edgelet_core::crypto::Sign;
 use edgelet_core::crypto::Signature;
 use edgelet_core::crypto::SignatureAlgorithm;
-use edgelet_hsm::TpmKeyStore;
+use edgelet_hsm::{HsmLock, TpmKeyStore};
+
+mod test_utils;
+use test_utils::TestHSMEnvSetup;
+
+lazy_static! {
+    static ref LOCK: Mutex<()> = Mutex::new(());
+}
 
 const TEST_KEY_BASE64: &str = "D7PuplFy7vIr0349blOugqCxyfMscyVZDoV9Ii0EFnA=";
 
@@ -32,7 +41,10 @@ pub fn test_helper_compute_hmac(key: &[u8], input: &[u8]) -> Vec<u8> {
 #[test]
 fn tpm_active_key_sign() {
     // arrange
-    let key_store = TpmKeyStore::new().unwrap();
+    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
+
+    let hsm_lock = HsmLock::new();
+    let key_store = TpmKeyStore::new(hsm_lock).unwrap();
 
     let decoded_key = base64::decode(TEST_KEY_BASE64).unwrap();
     let decoded_key_str = unsafe { str::from_utf8_unchecked(&decoded_key) };

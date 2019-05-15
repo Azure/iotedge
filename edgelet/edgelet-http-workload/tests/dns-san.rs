@@ -31,7 +31,7 @@ use edgelet_core::{
     Certificate, CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate,
     ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleStatus, WorkloadConfig, IOTEDGED_CA_ALIAS,
 };
-use edgelet_hsm::Crypto;
+use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_http_workload::WorkloadService;
 use edgelet_test_utils::get_unused_tcp_port;
 use edgelet_test_utils::module::{TestConfig, TestModule, TestRuntime};
@@ -82,7 +82,8 @@ impl WorkloadConfig for Config {
 }
 
 fn init_crypto() -> Crypto {
-    let crypto = Crypto::new().unwrap();
+    let hsm_lock = HsmLock::new();
+    let crypto = Crypto::new(hsm_lock).unwrap();
 
     // create the default issuing CA cert
     let edgelet_ca_props = CertificateProperties::new(

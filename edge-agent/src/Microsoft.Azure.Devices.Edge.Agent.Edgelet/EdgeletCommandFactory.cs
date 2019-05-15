@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             T config = this.combinedConfigProvider.GetCombinedConfig(next.Module, runtimeInfo);
             return new GroupCommand(
                 new PrepareUpdateCommand(this.moduleManager, next.Module, config),
-                await current.Match(c => this.StopAsync(c), () => Task.FromResult<ICommand>(NullCommand.Instance)),
+                await current.Match(this.StopAsync, () => Task.FromResult<ICommand>(NullCommand.Instance)),
                 CreateOrUpdateCommand.BuildUpdate(
                     this.moduleManager,
                     next.Module,

@@ -30,7 +30,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use failure::{Fail, ResultExt};
-use futures::future::Either;
+use futures::future::{Either, IntoFuture};
 use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future};
 use hyper::server::conn::Http;
@@ -41,19 +41,22 @@ use url::Url;
 
 use docker::models::HostConfig;
 use dps::DPS_API_VERSION;
-use edgelet_config::{Dps, Manual, Provisioning, Settings, DEFAULT_CONNECTION_STRING};
+use edgelet_config::{
+    AttestationMethod, Dps, Manual, Provisioning, Settings, SymmetricKeyAttestationInfo,
+    TpmAttestationInfo, DEFAULT_CONNECTION_STRING,
+};
 use edgelet_core::crypto::{
-    Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity,
-    KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
+    Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetIssuerAlias, GetTrustBundle,
+    KeyIdentity, KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
-    CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime, ModuleSpec, UrlExt,
-    WorkloadConfig, UNIX_SCHEME,
+    Certificate, CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime,
+    ModuleSpec, UrlExt, WorkloadConfig, UNIX_SCHEME,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
-use edgelet_hsm::Crypto;
+use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
@@ -65,8 +68,8 @@ use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
 use iothubservice::DeviceClient;
 use provisioning::provisioning::{
-    BackupProvisioning, DpsProvisioning, DpsSymmetricKeyProvisioning, ManualProvisioning,
-    Provision, ProvisioningResult,
+    BackupProvisioning, DpsSymmetricKeyProvisioning, DpsTpmProvisioning, ManualProvisioning,
+    Provision, ProvisioningResult, ReprovisioningStatus,
 };
 
 use crate::workload::WorkloadData;
@@ -146,9 +149,15 @@ const EDGE_SETTINGS_SUBDIR: &str = "cache";
 const IOTEDGED_VALIDITY: u64 = 7_776_000; // 90 days
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
-
+const IOTEDGED_MIN_EXPIRATION_DURATION: i64 = 300; // 5 mins
 const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200; // 2 hours
 const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 7_776_000; // 90 days
+
+#[derive(PartialEq)]
+enum StartApiReturnStatus {
+    Restart,
+    Shutdown,
+}
 
 pub struct Main {
     settings: Settings<DockerConfig>,
@@ -159,11 +168,10 @@ impl Main {
         Main { settings }
     }
 
-    pub fn run_until<F>(self, shutdown_signal: F) -> Result<(), Error>
-    where
-        F: Future<Item = (), Error = ()> + Send + 'static,
-    {
+    pub fn run(self) -> Result<(), Error> {
         let Main { settings } = self;
+
+        let hsm_lock = HsmLock::new();
 
         let mut tokio_runtime = tokio::runtime::Runtime::new()
             .context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
@@ -218,7 +226,8 @@ impl Main {
         info!("Finished configuring certificates.");
 
         info!("Initializing hsm...");
-        let crypto = Crypto::new().context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+        let crypto = Crypto::new(hsm_lock.clone())
+            .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
         info!("Finished initializing hsm.");
 
         // Detect if the settings were changed and if the device needs to be reconfigured
@@ -244,17 +253,20 @@ impl Main {
                     IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                     IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                 );
-                start_api(
-                    &settings,
-                    hyper_client,
-                    &runtime,
-                    &key_store,
-                    cfg,
-                    root_key,
-                    shutdown_signal,
-                    &crypto,
-                    tokio_runtime,
-                )?;
+                while {
+                    let code = start_api(
+                        &settings,
+                        hyper_client.clone(),
+                        &runtime,
+                        &key_store,
+                        cfg.clone(),
+                        root_key.clone(),
+                        signal::shutdown(),
+                        &crypto,
+                        &mut tokio_runtime,
+                    )?;
+                    code == StartApiReturnStatus::Restart
+                } {}
             }
             Provisioning::Dps(dps) => {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
@@ -269,42 +281,55 @@ impl Main {
                             IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                             IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                         );
-                        start_api(
-                            &settings,
-                            hyper_client,
-                            &$runtime,
-                            &$key_store,
-                            cfg,
-                            $root_key,
-                            shutdown_signal,
-                            &crypto,
-                            tokio_runtime,
-                        )?;
+                        while {
+                            let code = start_api(
+                                &settings,
+                                hyper_client.clone(),
+                                &$runtime,
+                                &$key_store,
+                                cfg.clone(),
+                                $root_key.clone(),
+                                signal::shutdown(),
+                                &crypto,
+                                &mut tokio_runtime,
+                            )?;
+                            code == StartApiReturnStatus::Restart
+                        } {}
                     }};
                 }
 
-                if let Some(key) = dps.symmetric_key() {
-                    info!("Staring provisioning edge device via symmetric key...");
-                    let (key_store, provisioning_result, root_key, runtime) =
-                        dps_symmetric_key_provision(
-                            &dps,
-                            hyper_client.clone(),
-                            dps_path,
-                            runtime,
-                            &mut tokio_runtime,
-                            key,
-                        )?;
-                    start_edgelet!(key_store, provisioning_result, root_key, runtime);
-                } else {
-                    info!("Staring provisioning edge device via TPM...");
-                    let (key_store, provisioning_result, root_key, runtime) = dps_tpm_provision(
-                        &dps,
-                        hyper_client.clone(),
-                        dps_path,
-                        runtime,
-                        &mut tokio_runtime,
-                    )?;
-                    start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                match dps.attestation() {
+                    AttestationMethod::Tpm(ref tpm) => {
+                        info!("Starting provisioning edge device via TPM...");
+                        let (key_store, provisioning_result, root_key, runtime) =
+                            dps_tpm_provision(
+                                &dps,
+                                hyper_client.clone(),
+                                dps_path,
+                                runtime,
+                                &mut tokio_runtime,
+                                tpm,
+                                hsm_lock.clone(),
+                            )?;
+                        start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                    }
+                    AttestationMethod::SymmetricKey(ref symmetric_key_info) => {
+                        info!("Starting provisioning edge device via symmetric key...");
+                        let (key_store, provisioning_result, root_key, runtime) =
+                            dps_symmetric_key_provision(
+                                &dps,
+                                hyper_client.clone(),
+                                dps_path,
+                                runtime,
+                                &mut tokio_runtime,
+                                symmetric_key_info,
+                            )?;
+                        start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                    }
+                    AttestationMethod::X509(ref _x509) => {
+                        panic!("Provisioning of Edge device via x509 is currently unsupported");
+                        // TODO: implement
+                    }
                 }
             }
         };
@@ -344,22 +369,51 @@ pub fn get_proxy_uri(https_proxy: Option<String>) -> Result<Option<Uri>, Error> 
 
 fn prepare_workload_ca<C>(crypto: &C) -> Result<(), Error>
 where
-    C: CreateCertificate,
+    C: CreateCertificate + GetIssuerAlias,
 {
-    let edgelet_ca_props = CertificateProperties::new(
-        IOTEDGED_VALIDITY,
-        IOTEDGED_COMMONNAME.to_string(),
-        CertificateType::Ca,
-        IOTEDGED_CA_ALIAS.to_string(),
-    )
-    .with_issuer(CertificateIssuer::DeviceCa);
-
-    crypto
-        .create_certificate(&edgelet_ca_props)
+    let issuer_alias = crypto
+        .get_issuer_alias(CertificateIssuer::DeviceCa)
         .context(ErrorKind::Initialize(
             InitializeErrorReason::PrepareWorkloadCa,
         ))?;
-    Ok(())
+
+    let issuer_ca = crypto
+        .get_certificate(issuer_alias)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::PrepareWorkloadCa,
+        ))?;
+
+    let issuer_validity = issuer_ca.get_valid_to().context(ErrorKind::Initialize(
+        InitializeErrorReason::PrepareWorkloadCa,
+    ))?;
+
+    info!("Edge issuer CA expiration date: {:?}", issuer_validity);
+
+    let now = chrono::Utc::now();
+
+    let diff = issuer_validity.timestamp() - now.timestamp();
+
+    if diff > IOTEDGED_MIN_EXPIRATION_DURATION {
+        #[allow(clippy::cast_sign_loss)]
+        let edgelet_ca_props = CertificateProperties::new(
+            diff as u64,
+            IOTEDGED_COMMONNAME.to_string(),
+            CertificateType::Ca,
+            IOTEDGED_CA_ALIAS.to_string(),
+        )
+        .with_issuer(CertificateIssuer::DeviceCa);
+
+        crypto
+            .create_certificate(&edgelet_ca_props)
+            .context(ErrorKind::Initialize(
+                InitializeErrorReason::PrepareWorkloadCa,
+            ))?;
+        Ok(())
+    } else {
+        Err(Error::from(ErrorKind::Initialize(
+            InitializeErrorReason::IssuerCAExpiration,
+        )))
+    }
 }
 
 fn destroy_workload_ca<C>(crypto: &C) -> Result<(), Error>
@@ -385,7 +439,7 @@ fn check_settings_state<M, C>(
 where
     M: ModuleRuntime,
     <M as ModuleRuntime>::RemoveAllFuture: 'static,
-    C: MasterEncryptionKey + CreateCertificate,
+    C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
     info!("Detecting if configuration file has changed...");
     let path = subdir_path.join(filename);
@@ -430,7 +484,7 @@ fn reconfigure<M, C>(
 where
     M: ModuleRuntime,
     <M as ModuleRuntime>::RemoveAllFuture: 'static,
-    C: MasterEncryptionKey + CreateCertificate,
+    C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
     // Remove all edge containers and destroy the cache (settings and dps backup)
     info!("Removing all modules...");
@@ -483,8 +537,8 @@ fn start_api<HC, K, F, C, W>(
     root_key: K,
     shutdown_signal: F,
     crypto: &C,
-    mut tokio_runtime: tokio::runtime::Runtime,
-) -> Result<(), Error>
+    tokio_runtime: &mut tokio::runtime::Runtime,
+) -> Result<StartApiReturnStatus, Error>
 where
     F: Future<Item = (), Error = ()> + Send + 'static,
     HC: ClientImpl + 'static,
@@ -526,7 +580,28 @@ where
     )
     .with_issuer(CertificateIssuer::DeviceCa);
 
-    let cert_manager = Arc::new(CertificateManager::new(crypto.clone(), edgelet_cert_props));
+    let cert_manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).context(
+        ErrorKind::Initialize(InitializeErrorReason::CreateCertificateManager),
+    )?;
+
+    // Create the certificate management timer and channel
+    let (restart_tx, restart_rx) = oneshot::channel();
+
+    let expiration_timer = if settings.listen().management_uri().scheme() == "https"
+        || settings.listen().workload_uri().scheme() == "https"
+    {
+        Either::A(
+            cert_manager
+                .schedule_expiration_timer(move || restart_tx.send(()))
+                .map_err(|err| {
+                    Error::from(err.context(ErrorKind::CertificateExpirationManagement))
+                }),
+        )
+    } else {
+        Either::B(future::ok(()))
+    };
+
+    let cert_manager = Arc::new(cert_manager);
 
     let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, cert_manager.clone());
 
@@ -545,10 +620,15 @@ where
 
     // Wait for the watchdog to finish, and then send signal to the workload and management services.
     // This way the edgeAgent can finish shutting down all modules.
-    let edge_rt_with_cleanup = edge_rt.map_err(Into::into).and_then(|_| {
+
+    let edge_rt_with_cleanup = edge_rt.select2(restart_rx).then(move |res| {
         mgmt_tx.send(()).unwrap_or(());
         work_tx.send(()).unwrap_or(());
-        future::ok(())
+
+        match res {
+            Ok(Either::B(_)) => Ok(StartApiReturnStatus::Restart).into_future(),
+            _ => Ok(StartApiReturnStatus::Shutdown).into_future(),
+        }
     });
 
     let shutdown = shutdown_signal.map(move |_| {
@@ -559,14 +639,14 @@ where
     tokio_runtime.spawn(shutdown);
 
     let services = mgmt
-        .join3(workload, edge_rt_with_cleanup)
+        .join4(workload, edge_rt_with_cleanup, expiration_timer)
         .then(|result| match result {
-            Ok(((), (), ())) => Ok(()),
+            Ok(((), (), code, ())) => Ok(code),
             Err(err) => Err(err),
         });
-    tokio_runtime.block_on(services)?;
+    let restart_code = tokio_runtime.block_on(services)?;
 
-    Ok(())
+    Ok(restart_code)
 }
 
 fn init_docker_runtime(
@@ -622,14 +702,15 @@ fn dps_symmetric_key_provision<HC, M>(
     backup_path: PathBuf,
     runtime: M,
     tokio_runtime: &mut tokio::runtime::Runtime,
-    key: &str,
+    key: &SymmetricKeyAttestationInfo,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey, M), Error>
 where
     HC: 'static + ClientImpl,
     M: ModuleRuntime + Send + 'static,
 {
     let mut memory_hsm = MemoryKeyStore::new();
-    let key_bytes = base64::decode(key).context(ErrorKind::SymmetricKeyMalformed)?;
+    let key_bytes =
+        base64::decode(key.symmetric_key()).context(ErrorKind::SymmetricKeyMalformed)?;
 
     memory_hsm
         .activate_identity_key(KeyIdentity::Device, "primary".to_string(), key_bytes)
@@ -639,7 +720,7 @@ where
         hyper_client,
         provisioning.global_endpoint().clone(),
         provisioning.scope_id().to_string(),
-        provisioning.registration_id().to_string(),
+        key.registration_id().to_string(),
         DPS_API_VERSION.to_string(),
     )
     .context(ErrorKind::Initialize(
@@ -647,41 +728,44 @@ where
     ))?;
     let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
 
-    let provision = provision_with_file_backup
-        .provision(memory_hsm.clone())
-        .map_err(|err| {
-            Error::from(err.context(ErrorKind::Initialize(
-                InitializeErrorReason::DpsProvisioningClient,
-            )))
-        })
-        .and_then(move |prov_result| {
-            if prov_result.reconfigure() {
-                info!("Successful DPS provisioning. This will trigger reconfiguration of modules.");
-                // Each time DPS provisions, it gets back a new device key. This results in obsolete
-                // module keys in IoTHub from the previous provisioning. We delete all containers
-                // after each DPS provisioning run so that IoTHub can be updated with new module
-                // keys when the deployment is executed by EdgeAgent.
-                let remove = runtime.remove_all().then(|result| {
-                    result.context(ErrorKind::Initialize(
-                        InitializeErrorReason::DpsProvisioningClient,
-                    ))?;
-                    Ok((prov_result, runtime))
-                });
-                Either::A(remove)
-            } else {
-                Either::B(future::ok((prov_result, runtime)))
-            }
-        })
-        .and_then(move |(prov_result, runtime)| {
-            let k =
-                memory_hsm
-                    .get(&KeyIdentity::Device, "primary")
-                    .context(ErrorKind::Initialize(
-                        InitializeErrorReason::DpsProvisioningClient,
-                    ))?;
-            let derived_key_store = DerivedKeyStore::new(k.clone());
-            Ok((derived_key_store, prov_result, k, runtime))
-        });
+    let provision =
+        provision_with_file_backup
+            .provision(memory_hsm.clone())
+            .map_err(|err| {
+                Error::from(err.context(ErrorKind::Initialize(
+                    InitializeErrorReason::DpsProvisioningClient,
+                )))
+            })
+            .and_then(move |prov_result| {
+                info!("Successful DPS provisioning.");
+                if prov_result.reconfigure() == ReprovisioningStatus::DeviceDataNotUpdated {
+                    Either::B(future::ok((prov_result, runtime)))
+                } else {
+                    // If there was a DPS reprovision and device key was updated results in obsolete
+                    // module keys in IoTHub from the previous provisioning. We delete all containers
+                    // after each DPS provisioning run so that IoTHub can be updated with new module
+                    // keys when the deployment is executed by EdgeAgent.
+                    info!(
+                        "Reprovisioning status {:?} will trigger reconfiguration of modules.",
+                        prov_result.reconfigure()
+                    );
+
+                    let remove = runtime.remove_all().then(|result| {
+                        result.context(ErrorKind::Initialize(
+                            InitializeErrorReason::DpsProvisioningClient,
+                        ))?;
+                        Ok((prov_result, runtime))
+                    });
+                    Either::A(remove)
+                }
+            })
+            .and_then(move |(prov_result, runtime)| {
+                let k = memory_hsm.get(&KeyIdentity::Device, "primary").context(
+                    ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient),
+                )?;
+                let derived_key_store = DerivedKeyStore::new(k.clone());
+                Ok((derived_key_store, prov_result, k, runtime))
+            });
     tokio_runtime.block_on(provision)
 }
 
@@ -691,6 +775,8 @@ fn dps_tpm_provision<HC, M>(
     backup_path: PathBuf,
     runtime: M,
     tokio_runtime: &mut tokio::runtime::Runtime,
+    tpm_attestation_info: &TpmAttestationInfo,
+    hsm_lock: Arc<HsmLock>,
 ) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey, M), Error>
 where
     HC: 'static + ClientImpl,
@@ -705,19 +791,19 @@ where
     let srk_result = tpm.get_srk().context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
-    let dps = DpsProvisioning::new(
+    let dps = DpsTpmProvisioning::new(
         hyper_client,
         provisioning.global_endpoint().clone(),
         provisioning.scope_id().to_string(),
-        provisioning.registration_id().to_string(),
-        "2018-11-01".to_string(),
+        tpm_attestation_info.registration_id().to_string(),
+        DPS_API_VERSION.to_string(),
         ek_result,
         srk_result,
     )
     .context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
-    let tpm_hsm = TpmKeyStore::from_hsm(tpm).context(ErrorKind::Initialize(
+    let tpm_hsm = TpmKeyStore::from_hsm(tpm, hsm_lock).context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
     let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
@@ -729,9 +815,11 @@ where
             )))
         })
         .and_then(|prov_result| {
-            if prov_result.reconfigure() {
+            if prov_result.reconfigure() == ReprovisioningStatus::DeviceDataNotUpdated {
+                Either::B(future::ok((prov_result, runtime)))
+            } else {
                 info!("Successful DPS provisioning. This will trigger reconfiguration of modules.");
-                // Each time DPS provisions, it gets back a new device key. This results in obsolete
+                // Each time DPS reprovisions, it gets back a new device key. This results in obsolete
                 // module keys in IoTHub from the previous provisioning. We delete all containers
                 // after each DPS provisioning run so that IoTHub can be updated with new module
                 // keys when the deployment is executed by EdgeAgent.
@@ -742,8 +830,6 @@ where
                     Ok((prov_result, runtime))
                 });
                 Either::A(remove)
-            } else {
-                Either::B(future::ok((prov_result, runtime)))
             }
         })
         .and_then(move |(prov_result, runtime)| {
@@ -973,6 +1059,7 @@ mod tests {
     use std::io::Read;
     use std::path::Path;
 
+    use chrono::{Duration, Utc};
     use tempdir::TempDir;
 
     use edgelet_core::ModuleRuntimeState;
@@ -1001,7 +1088,10 @@ mod tests {
         }
     }
 
-    struct TestCrypto {}
+    struct TestCrypto {
+        use_expired_ca: bool,
+        fail_device_ca_alias: bool,
+    }
 
     impl MasterEncryptionKey for TestCrypto {
         fn create_key(&self) -> Result<(), edgelet_core::Error> {
@@ -1029,17 +1119,104 @@ mod tests {
         fn destroy_certificate(&self, _alias: String) -> Result<(), edgelet_core::Error> {
             Ok(())
         }
+
+        fn get_certificate(
+            &self,
+            _alias: String,
+        ) -> Result<Self::Certificate, edgelet_core::Error> {
+            let ts = if self.use_expired_ca {
+                Utc::now()
+            } else {
+                Utc::now() + Duration::hours(1)
+            };
+            Ok(TestCert::default()
+                .with_cert(vec![1, 2, 3])
+                .with_private_key(PrivateKey::Key(KeyBytes::Pem("some key".to_string())))
+                .with_fail_pem(false)
+                .with_fail_private_key(false)
+                .with_valid_to(ts))
+        }
+    }
+
+    impl GetIssuerAlias for TestCrypto {
+        fn get_issuer_alias(
+            &self,
+            _issuer: CertificateIssuer,
+        ) -> Result<String, edgelet_core::Error> {
+            if self.fail_device_ca_alias {
+                Err(edgelet_core::Error::from(
+                    edgelet_core::ErrorKind::InvalidIssuer,
+                ))
+            } else {
+                Ok("test-device-ca".to_string())
+            }
+        }
     }
 
     #[test]
     fn default_settings_raise_unconfigured_error() {
         let settings = Settings::<DockerConfig>::new(None).unwrap();
         let main = Main::new(settings);
-        let shutdown_signal = signal::shutdown();
-        let result = main.run_until(shutdown_signal);
+        let result = main.run();
         match result.unwrap_err().kind() {
             ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
             kind => panic!("Expected `NotConfigured` but got {:?}", kind),
+        }
+    }
+
+    #[test]
+    fn settings_with_invalid_issuer_ca_fails() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
+        let config = TestConfig::new("microsoft/test-image".to_string());
+        let state = ModuleRuntimeState::default();
+        let module: TestModule<Error> =
+            TestModule::new("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::new(Ok(module));
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: true,
+        };
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        let result = check_settings_state(
+            tmp_dir.path().to_path_buf(),
+            "settings_state",
+            &settings,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+        );
+        match result.unwrap_err().kind() {
+            ErrorKind::Initialize(InitializeErrorReason::PrepareWorkloadCa) => (),
+            kind => panic!("Expected `PrepareWorkloadCa` but got {:?}", kind),
+        }
+    }
+
+    #[test]
+    fn settings_with_expired_issuer_ca_fails() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
+        let config = TestConfig::new("microsoft/test-image".to_string());
+        let state = ModuleRuntimeState::default();
+        let module: TestModule<Error> =
+            TestModule::new("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::new(Ok(module));
+        let crypto = TestCrypto {
+            use_expired_ca: true,
+            fail_device_ca_alias: false,
+        };
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        let result = check_settings_state(
+            tmp_dir.path().to_path_buf(),
+            "settings_state",
+            &settings,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+        );
+        match result.unwrap_err().kind() {
+            ErrorKind::Initialize(InitializeErrorReason::IssuerCAExpiration) => (),
+            kind => panic!("Expected `IssuerCAExpiration` but got {:?}", kind),
         }
     }
 
@@ -1052,7 +1229,10 @@ mod tests {
         let module: TestModule<Error> =
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
-        let crypto = TestCrypto {};
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+        };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state(
             tmp_dir.path().to_path_buf(),
@@ -1084,7 +1264,10 @@ mod tests {
         let module: TestModule<Error> =
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
-        let crypto = TestCrypto {};
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+        };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state(
             tmp_dir.path().to_path_buf(),

@@ -4,6 +4,16 @@
 #include <stddef.h>
 #include "azure_c_shared_utility/umock_c_prod.h"
 
+//##############################################################################
+// Helper macros
+//##############################################################################
+
+#define FREEIF(x) \
+    do { \
+        free((x)); \
+        (x) = NULL; \
+    } while(0)
+
 MOCKABLE_FUNCTION(, char*, concat_files_to_cstring, const char **, file_names, int, num_files);
 MOCKABLE_FUNCTION(, char*, read_file_into_cstring, const char*, file_name, size_t*, output_buffer_size);
 MOCKABLE_FUNCTION(, void*, read_file_into_buffer, const char*, file_name, size_t*, output_buffer_size);

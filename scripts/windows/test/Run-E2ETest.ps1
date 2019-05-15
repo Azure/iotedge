@@ -27,7 +27,7 @@
     .PARAMETER TestName
         Name of E2E test to be run
         Note: Valid values are:
-            "All", "DirectMethodAmqp", "DirectMethodMqtt", "QuickstartCerts", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway"
+            "All", "DirectMethodAmqp", "DirectMethodAmqpMqtt", "DirectMethodMqtt", "DirectMethodMqttAmqp", "LongHaul", "QuickstartCerts", "Stress", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway"
 
     .PARAMETER ContainerRegistry
         Host address of container registry. It could be azure container registry, docker hub, or your own hosted container registry.
@@ -46,6 +46,45 @@
 
     .PARAMETER ProxyUri
         (Optional) The URI of an HTTPS proxy server; if specified, all communications to IoT Hub will go through this proxy.
+
+    .PARAMETER LoadGenMessageFrequency
+        Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.
+
+    .PARAMETER SnitchAlertUrl
+        Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.
+
+    .PARAMETER SnitchBuildNumber
+        Build number for snitcher docker image for long haul and stress test. Default is 1.1.
+
+    .PARAMETER SnitchReportingIntervalInSecs
+        Reporting frequency in seconds to send status email for long hual and stress test. Default is 86400 (1 day) for long haul and 1700000 for stress test.
+
+    .PARAMETER SnitchStorageAccount
+        Azure blob Sstorage account for store logs used in status email for long haul and stress test.
+
+    .PARAMETER SnitchStorageMasterKey
+        Master key of snitch storage account for long haul and stress test.
+
+    .PARAMETER SnitchTestDurationInSecs
+        Test duration in seconds for long haul and stress test.
+
+    .PARAMETER LoadGen1TransportType
+        Transport type for LoadGen1 for stress test. Default is amqp.
+
+    .PARAMETER LoadGen2TransportType
+        Transport type for LoadGen2 for stress test. Default is amqp.
+
+    .PARAMETER LoadGen3TransportType
+        Transport type for LoadGen3 for stress test. Default is mqtt.
+
+    .PARAMETER LoadGen4TransportType
+        Transport type for LoadGen4 for stress test. Default is mqtt.
+
+    .PARAMETER AmqpSettingsEnabled
+        Enable amqp protocol head in Edge Hub.
+
+    .PARAMETER MqttSettingsEnabled
+        Enable mqtt protocol head in Edge Hub. 
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -94,11 +133,11 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $ArtifactImageBuildNumber = $(Throw "Artifact image build number is required"),
 
-    [ValidateSet("All", "DirectMethodAmqp", "DirectMethodMqtt", "QuickstartCerts", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway")]
+    [ValidateSet("All", "DirectMethodAmqp", "DirectMethodAmqpMqtt", "DirectMethodMqtt", "DirectMethodMqttAmqp", "LongHaul", "QuickstartCerts", "Stress", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway")]
     [string] $TestName = "All",
 
     [ValidateNotNullOrEmpty()]
-    [string] $ContainerRegistry = $(Throw "Container registry is required"),
+    [string] $ContainerRegistry = "edgebuilds.azurecr.io",
 
     [ValidateNotNullOrEmpty()]
     [string] $ContainerRegistryUsername = $(Throw "Container registry username is required"),
@@ -122,7 +161,41 @@ Param (
     [string] $EdgeE2ETestRootCAPassword = $null,
 
     [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
-    [string] $ProxyUri = $null
+    [string] $ProxyUri = $null,
+
+    [string] $LoadGenMessageFrequency = $null,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $SnitchAlertUrl = $null,
+
+    [string] $SnitchBuildNumber = "1.1",
+
+    [string] $SnitchReportingIntervalInSecs = $null,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $SnitchStorageAccount = $null,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $SnitchStorageMasterKey = $null,
+
+    [string] $SnitchTestDurationInSecs = $null,
+
+    [string] $LoadGen1TransportType = "amqp",
+
+    [string] $LoadGen2TransportType = "amqp",
+
+    [string] $LoadGen3TransportType = "mqtt",
+
+    [string] $LoadGen4TransportType = "mqtt",
+
+    [ValidateSet("true", "false")]
+    [string] $AmqpSettingsEnabled = "true",
+
+    [ValidateSet("true", "false")]
+    [string] $MqttSettingsEnabled = "true",
+
+    [switch] $BypassEdgeInstallation
+
 )
 
 Set-StrictMode -Version "Latest"
@@ -142,20 +215,10 @@ Function AppendInstallationOption([string] $testCommand)
 Function CleanUp
 {
     PrintHighlightedMessage "Test Clean Up"
-    Write-Host "Do IoT Edge Moby system prune"
-
-    Try
-    {
-        docker -H npipe:////./pipe/iotedge_moby_engine system prune -f
-    }
-    Catch
-    {
-      # Ignore error and just print it out
-      Write-Verbose "$_"
-    }
 
     Write-Host "Uninstall iotedged"
-    Uninstall-SecurityDaemon -Force
+    Invoke-Expression $InstallationScriptPath
+    Uninstall-IoTEdge -Force
 
     # This may require once IoT Edge created its only bridge network
     #Write-Host "Remove nat VM switch"
@@ -191,6 +254,26 @@ Function GetImageArchitectureLabel
     }
 
     Throw "Can't find image architecture label for $Architecture"
+}
+
+Function GetLongHaulDeploymentFilename
+{
+    If (GetImageArchitectureLabel -eq "amd64")
+    {
+        # Using versions without snitcher and influxdb, as they are currently not working in windows
+        return "long_haul_deployment.template.windows.json"
+    }
+    Throw "Unsupported long haul test architecture: $Architecture"
+}
+
+Function GetStressDeploymentFilename
+{
+    If (GetImageArchitectureLabel -eq "amd64")
+    {
+        # Using versions without snitcher and influxdb, as they are currently not working in windows
+        return "stress_deployment.template.windows.json"
+    }
+    Throw "Unsupported stress test architecture: $Architecture"
 }
 
 Function InitializeWorkingFolder
@@ -233,27 +316,74 @@ Function PrepareTestFromArtifacts
     }
 
     # Deployment file
-    If (($TestName -eq "DirectMethodAmqp") -Or
-        ($TestName -eq "DirectMethodMqtt") -Or
+    If (($TestName -like "DirectMethod*") -Or
+        ($TestName -eq "LongHaul") -Or
+        ($TestName -eq "Stress") -Or
         ($TestName -eq "TempFilter") -Or
         ($TestName -eq "TempFilterFunctions") -Or
         (($ProxyUri) -and ($TestName -in "TempSensor", "QuickstartCerts", "TransparentGateway")))
     {
-        Switch -Regex ($TestName)
+        Switch -regex ($TestName)
         {
-            "DirectMethodAmqp"
+            "DirectMethod.*"
             {
                 Write-Host "Copy deployment file from $DirectMethodModuleToModuleDeploymentArtifactFilePath"
                 Copy-Item $DirectMethodModuleToModuleDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
-                (Get-Content $DeploymentWorkingFilePath).replace('<UpstreamProtocol>','Amqp') | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<ClientTransportType>','Amqp_Tcp_Only') | Set-Content $DeploymentWorkingFilePath
+
+                Switch ($TestName)
+                {
+                    "DirectMethodAmqp"
+                    {
+                        (Get-Content $DeploymentWorkingFilePath).replace('<UpstreamProtocol>','Amqp') | Set-Content $DeploymentWorkingFilePath
+                        (Get-Content $DeploymentWorkingFilePath).replace('<ClientTransportType>','Amqp_Tcp_Only') | Set-Content $DeploymentWorkingFilePath
+                    }
+                    "DirectMethodAmqpMqtt"
+                    {
+                        (Get-Content $DeploymentWorkingFilePath).replace('<UpstreamProtocol>','Amqp') | Set-Content $DeploymentWorkingFilePath
+                        (Get-Content $DeploymentWorkingFilePath).replace('<ClientTransportType>','Mqtt_Tcp_Only') | Set-Content $DeploymentWorkingFilePath
+                    }
+                    "DirectMethodMqtt"
+                    {
+                        (Get-Content $DeploymentWorkingFilePath).replace('<UpstreamProtocol>','Mqtt') | Set-Content $DeploymentWorkingFilePath
+                        (Get-Content $DeploymentWorkingFilePath).replace('<ClientTransportType>','Mqtt_Tcp_Only') | Set-Content $DeploymentWorkingFilePath
+                    }
+                    "DirectMethodMqttAmqp"
+                    {
+                        (Get-Content $DeploymentWorkingFilePath).replace('<UpstreamProtocol>','Mqtt') | Set-Content $DeploymentWorkingFilePath
+                        (Get-Content $DeploymentWorkingFilePath).replace('<ClientTransportType>','Amqp_Tcp_Only') | Set-Content $DeploymentWorkingFilePath
+                    }
+                }
             }
-            "DirectMethodMqtt"
+            {$_ -in "LongHaul","Stress"}
             {
-                Write-Host "Copy deployment file from $DirectMethodModuleToModuleDeploymentArtifactFilePath"
-                Copy-Item $DirectMethodModuleToModuleDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
-                (Get-Content $DeploymentWorkingFilePath).replace('<UpstreamProtocol>','Mqtt') | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<ClientTransportType>','Mqtt_Tcp_Only') | Set-Content $DeploymentWorkingFilePath
+                If ($TestName -eq "LongHaul")
+                {
+                    Write-Host "Copy deployment file from $LongHaulDeploymentArtifactFilePath"
+                    Copy-Item $LongHaulDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
+                    (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
+                }
+                Else
+                {
+                    Write-Host "Copy deployment file from $StressDeploymentArtifactFilePath"
+                    Copy-Item $StressDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
+                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen1.TransportType>',$LoadGen1TransportType) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen2.TransportType>',$LoadGen2TransportType) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen3.TransportType>',$LoadGen3TransportType) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen4.TransportType>',$LoadGen4TransportType) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<amqpSettings__enabled>',$AmqpSettingsEnabled) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<mqttSettings__enabled>',$MqttSettingsEnabled) | Set-Content $DeploymentWorkingFilePath
+                }
+
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EventHubConnectionString>',$EventHubConnectionString) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
+                $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildNumber>',$SnitchBuildNumber) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$SnitchBuildNumber-$(GetImageArchitectureLabel)-linux-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.ReportingIntervalInSecs>',$SnitchReportingIntervalInSecs) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.StorageAccount>',$SnitchStorageAccount) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.StorageMasterKey>',$SnitchStorageMasterKey) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.TestDurationInSecs>',$SnitchTestDurationInSecs) | Set-Content $DeploymentWorkingFilePath
             }
             "TempFilter"
             {
@@ -270,7 +400,7 @@ Function PrepareTestFromArtifacts
                 Write-Host "Copy deployment file from $QuickstartDeploymentArtifactFilePath"
                 Copy-Item $QuickstartDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
             }
-            "QuickstartCerts|TransparentGateway" # Only when $ProxyUri is specified
+            {$_ -in "QuickstartCerts","TransparentGateway"} # Only when $ProxyUri is specified
             {
                 Write-Host "Copy deployment file from $RuntimeOnlyDeploymentArtifactFilePath"
                 Copy-Item $RuntimeOnlyDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
@@ -283,6 +413,7 @@ Function PrepareTestFromArtifacts
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Username>', $ContainerRegistryUsername) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Password>', $ContainerRegistryPassword) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('-linux-', '-windows-') | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('<Container_Registry>', $ContainerRegistry) | Set-Content $DeploymentWorkingFilePath
 
         If ($ProxyUri)
         {
@@ -354,8 +485,8 @@ Function PrintLogs
     Get-WinEvent -ea SilentlyContinue `
         -FilterHashtable @{ProviderName= "iotedged";
         LogName = "application"; StartTime = $testStartTime} |
-	    select TimeCreated, Message |
-	    sort-object @{Expression="TimeCreated";Descending=$false} |
+        select TimeCreated, Message |
+        sort-object @{Expression="TimeCreated";Descending=$false} |
         format-table -autosize -wrap | Out-Host
 
     $dockerCmd ="docker -H npipe:////./pipe/iotedge_moby_engine"
@@ -425,8 +556,16 @@ Function RunAllTests
     $TestName = "DirectMethodAmqp"
     $lastTestExitCode = RunDirectMethodAmqpTest
 
+    $TestName = "DirectMethodAmqpMqtt"
+    $testExitCode = RunDirectMethodAmqpMqttTest
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+
     $TestName = "DirectMethodMqtt"
     $testExitCode = RunDirectMethodMqttTest
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+
+    $TestName = "DirectMethodMqttAmqp"
+    $testExitCode = RunDirectMethodMqttAmqpTest
     $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "QuickstartCerts"
@@ -454,12 +593,12 @@ Function RunAllTests
 
 Function RunDirectMethodAmqpTest
 {
-    PrintHighlightedMessage "Run Direct Method Amqp test for $Architecture"
+    PrintHighlightedMessage "Run Direct Method test with Amqp/AmqpWs upstream protocol and Amqp client transport type for $Architecture"
     TestSetup
 
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DMAmqp"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
+    PrintHighlightedMessage "Run direct method test with Amqp/AmqpWs upstream protocol and Amqp client transport type on device ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
@@ -470,7 +609,41 @@ Function RunDirectMethodAmqpTest
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-            -l `"$DeploymentWorkingFilePath`""
+            -l `"$DeploymentWorkingFilePath`" ``
+            $BypassInstallationFlag"
+    If ($ProxyUri) {
+        $testCommand = "$testCommand ``
+            --upstream-protocol 'AmqpWs' ``
+            --proxy `"$ProxyUri`""
+    }
+    $testCommand = AppendInstallationOption($testCommand)
+    Invoke-Expression $testCommand | Out-Host
+    $testExitCode = $LastExitCode
+
+    PrintLogs $testStartAt $testExitCode
+    Return $testExitCode
+}
+
+Function RunDirectMethodAmqpMqttTest
+{
+    PrintHighlightedMessage "Run Direct Method test with Amqp/AmqpWs upstream protocol and Mqtt client transport type for $Architecture"
+    TestSetup
+
+    $testStartAt = Get-Date
+    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DMAmqpMqtt"
+    PrintHighlightedMessage "Run direct method test with Amqp/AmqpWs upstream protocol and Mqtt client transport type on device ""$deviceId"" started at $testStartAt"
+
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
+            -d `"$deviceId`" ``
+            -c `"$IoTHubConnectionString`" ``
+            -e `"$EventHubConnectionString`" ``
+            -n `"$env:computername`" ``
+            -r `"$ContainerRegistry`" ``
+            -u `"$ContainerRegistryUsername`" ``
+            -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
+            -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+            -l `"$DeploymentWorkingFilePath`" ``
+            $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             --upstream-protocol 'AmqpWs' ``
@@ -486,12 +659,12 @@ Function RunDirectMethodAmqpTest
 
 Function RunDirectMethodMqttTest
 {
-    PrintHighlightedMessage "Run Direct Method Mqtt test for $Architecture"
+    PrintHighlightedMessage "Run Direct Method test with Mqtt/MqttWs upstream protocol and Mqtt client transport type for $Architecture"
     TestSetup
 
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DMMqtt"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
+    PrintHighlightedMessage "Run direct method test with Mqtt/MqttWs upstream protocol and Mqtt client transport type on device ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
@@ -502,7 +675,41 @@ Function RunDirectMethodMqttTest
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-            -l `"$DeploymentWorkingFilePath`""
+            -l `"$DeploymentWorkingFilePath`" ``
+            $BypassInstallationFlag"
+    If ($ProxyUri) {
+        $testCommand = "$testCommand ``
+            --upstream-protocol 'MqttWs' ``
+            --proxy `"$ProxyUri`""
+    }
+    $testCommand = AppendInstallationOption($testCommand)
+    Invoke-Expression $testCommand | Out-Host
+    $testExitCode = $LastExitCode
+
+    PrintLogs $testStartAt $testExitCode
+    Return $testExitCode
+}
+
+Function RunDirectMethodMqttAmqpTest
+{
+    PrintHighlightedMessage "Run Direct Method test with Mqtt/MqttWs upstream protocol and Amqp client transport type for $Architecture"
+    TestSetup
+
+    $testStartAt = Get-Date
+    $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DMMqttAmqp"
+    PrintHighlightedMessage "Run direct method test with Mqtt/MqttWs upstream protocol and Amqp client transport type on device ""$deviceId"" started at $testStartAt"
+
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
+            -d `"$deviceId`" ``
+            -c `"$IoTHubConnectionString`" ``
+            -e `"$EventHubConnectionString`" ``
+            -n `"$env:computername`" ``
+            -r `"$ContainerRegistry`" ``
+            -u `"$ContainerRegistryUsername`" ``
+            -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
+            -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+            -l `"$DeploymentWorkingFilePath`" ``
+            $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             --upstream-protocol 'MqttWs' ``
@@ -523,7 +730,7 @@ Function RunQuickstartCertsTest
 
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-QuickstartCerts"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
+    PrintHighlightedMessage "Run quickstart certs test on device ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
         -d `"$deviceId`" ``
@@ -534,8 +741,10 @@ Function RunQuickstartCertsTest
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+        --optimize_for_performance=`"$OptimizeForPerformance`" ``
         --leave-running=All ``
-        --no-verify"
+        --no-verify ``
+        $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             -l `"$DeploymentWorkingFilePath`" ``
@@ -565,6 +774,70 @@ Function RunQuickstartCertsTest
     Return $testExitCode
 }
 
+Function RunLongHaulTest
+{
+    PrintHighlightedMessage "Run Long Haul test for $Architecture"
+    TestSetup
+
+    $testStartAt = Get-Date
+    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-longHaul"
+    (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
+    PrintHighlightedMessage "Run Long Haul test with -d ""$deviceId"" started at $testStartAt"
+
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
+            -d `"$deviceId`" ``
+            -c `"$IoTHubConnectionString`" ``
+            -e `"$EventHubConnectionString`" ``
+            -n `"$env:computername`" ``
+            -r `"$ContainerRegistry`" ``
+            -u `"$ContainerRegistryUsername`" ``
+            -p `"$ContainerRegistryPassword`" ``
+            -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+            --leave-running=All ``
+            -l `"$DeploymentWorkingFilePath`" ``
+            --runtime-log-level `"Info`" ``
+            --no-verify ``
+            $BypassInstallationFlag"
+    $testCommand = AppendInstallationOption($testCommand)
+    Invoke-Expression $testCommand | Out-Host
+    $testExitCode = $LastExitCode
+
+    PrintLogs $testStartAt $testExitCode
+    Return $testExitCode
+}
+
+Function RunStressTest
+{
+    PrintHighlightedMessage "Run Stress test for $Architecture"
+    TestSetup
+
+    $testStartAt = Get-Date
+    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-stress"
+    (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
+    PrintHighlightedMessage "Run Stress test with -d ""$deviceId"" started at $testStartAt"
+
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
+            -d `"$deviceId`" ``
+            -c `"$IoTHubConnectionString`" ``
+            -e `"doesNotNeed`" ``
+            -n `"$env:computername`" ``
+            -r `"$ContainerRegistry`" ``
+            -u `"$ContainerRegistryUsername`" ``
+            -p `"$ContainerRegistryPassword`" ``
+            -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+            --leave-running=All ``
+            -l `"$DeploymentWorkingFilePath`" ``
+            --runtime-log-level `"Info`" ``
+            --no-verify ``
+            $BypassInstallationFlag"
+    $testCommand = AppendInstallationOption($testCommand)
+    Invoke-Expression $testCommand | Out-Host
+    $testExitCode = $LastExitCode
+
+    PrintLogs $testStartAt $testExitCode
+    Return $testExitCode
+}
+
 Function RunTempFilterTest
 {
     PrintHighlightedMessage "Run TempFilter test for $Architecture"
@@ -572,7 +845,7 @@ Function RunTempFilterTest
 
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilter"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
+    PrintHighlightedMessage "Run TempFilter test on device ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
@@ -583,7 +856,8 @@ Function RunTempFilterTest
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilter`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-            -l `"$DeploymentWorkingFilePath`""
+            -l `"$DeploymentWorkingFilePath`" ``
+            $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             --upstream-protocol 'AmqpWs' ``
@@ -601,7 +875,7 @@ Function RunTempFilterFunctionsTest
 {
     if ($Architecture -eq "arm32v7")
     {
-        PrintHighlightedMessage "Temp Filter Functions test is not supported on $Architecture"
+        PrintHighlightedMessage "Temp Filter Functions test is not supported for $Architecture"
         Return 0
     }
 
@@ -610,7 +884,7 @@ Function RunTempFilterFunctionsTest
 
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempFilterFunc"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt"
+    PrintHighlightedMessage "Run Temp Filter Functions test on device ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$deviceId`" ``
@@ -621,7 +895,8 @@ Function RunTempFilterFunctionsTest
             -u `"$ContainerRegistryUsername`" ``
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilterFunctions`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-            -l `"$DeploymentWorkingFilePath`""
+            -l `"$DeploymentWorkingFilePath`" ``
+            $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             --upstream-protocol 'AmqpWs' ``
@@ -642,7 +917,7 @@ Function RunTempSensorTest
 
     $testStartAt = Get-Date
     $deviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-tempSensor"
-    PrintHighlightedMessage "Run quickstart test with -d ""$deviceId"" started at $testStartAt."
+    PrintHighlightedMessage "Run TempSensor test on device ""$deviceId"" started at $testStartAt."
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
         -d `"$deviceId`" ``
@@ -653,7 +928,9 @@ Function RunTempSensorTest
         -u `"$ContainerRegistryUsername`" ``
         -p `"$ContainerRegistryPassword`" ``
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-        -tw `"$TwinTestFileArtifactFilePath`""
+        -tw `"$TwinTestFileArtifactFilePath`" ``
+        --optimize_for_performance=`"$OptimizeForPerformance`" ``
+        $BypassInstallationFlag"
 
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -786,7 +1063,7 @@ Function RunTransparentGatewayTest
 
     $testStartAt = Get-Date
     $edgeDeviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-TransGW"
-    PrintHighlightedMessage "Run quickstart test with -d ""$edgeDeviceId"" started at $testStartAt."
+    PrintHighlightedMessage "Run transparent gateway test on device ""$edgeDeviceId"" started at $testStartAt."
 
     # setup certificate generation tools to create the Edge device and leaf device certificates
     PrepareCertificateTools
@@ -811,8 +1088,10 @@ Function RunTransparentGatewayTest
         --device_ca_cert `"$EdgeCertGenScriptDir\certs\iot-edge-device-$edgeDeviceId-full-chain.cert.pem`" ``
         --device_ca_pk `"$EdgeCertGenScriptDir\private\iot-edge-device-$edgeDeviceId.key.pem`" ``
         --trusted_ca_certs `"$TrustedCACertificatePath`" ``
+        --optimize_for_performance=`"$OptimizeForPerformance`" ``
         --leave-running=All ``
-        --no-verify"
+        --no-verify ``
+        $BypassInstallationFlag"
 
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -848,13 +1127,17 @@ Function RunTest
     {
         "All" { $testExitCode = RunAllTests; break }
         "DirectMethodAmqp" { $testExitCode = RunDirectMethodAmqpTest; break }
+        "DirectMethodAmqpMqtt" { $testExitCode = RunDirectMethodAmqpMqttTest; break }
         "DirectMethodMqtt" { $testExitCode = RunDirectMethodMqttTest; break }
+        "DirectMethodMqttAmqp" { $testExitCode = RunDirectMethodMqttAmqpTest; break }
         "QuickstartCerts" { $testExitCode = RunQuickstartCertsTest; break }
+        "LongHaul" { $testExitCode = RunLongHaulTest; break }
+        "Stress" { $testExitCode = RunStressTest; break }
         "TempFilter" { $testExitCode = RunTempFilterTest; break }
         "TempFilterFunctions" { $testExitCode = RunTempFilterFunctionsTest; break }
         "TempSensor" { $testExitCode = RunTempSensorTest; break }
         "TransparentGateway" { $testExitCode = RunTransparentGatewayTest; break }
-		default { Throw "$TestName test is not supported." }
+        default { Throw "$TestName test is not supported." }
     }
 
     Return $testExitCode
@@ -871,7 +1154,10 @@ Function SetEnvironmentVariable
 Function TestSetup
 {
     ValidateTestParameters
-    CleanUp | Out-Host
+    If (!$BypassEdgeInstallation)
+    {
+        CleanUp | Out-Host
+    }
     InitializeWorkingFolder
     PrepareTestFromArtifacts
     SetEnvironmentVariable
@@ -930,11 +1216,29 @@ Function ValidateTestParameters
         $validatingItems += $EdgeE2ERootCAKeyRSAFile
     }
 
+    If ($TestName -eq "LongHaul")
+    {
+        $validatingItems += $LongHaulDeploymentArtifactFilePath
+    }
+
+    If ($TestName -eq "Stress")
+    {
+        $validatingItems += $StressDeploymentArtifactFilePath
+    }
+
     $validatingItems | ForEach-Object {
         If (-Not (Test-Path -Path $_))
         {
             Throw "$_ is not found or it is empty"
         }
+    }
+
+    If ($TestName -eq "LongHaul" -Or $TestName -eq "Stress")
+    {
+        If ([string]::IsNullOrEmpty($SnitchAlertUrl)) {Throw "Required snith alert URL."}
+        If ([string]::IsNullOrEmpty($SnitchStorageAccount)) {Throw "Required snitch storage account."}
+        If ([string]::IsNullOrEmpty($SnitchStorageMasterKey)) {Throw "Required snitch storage master key."}
+        If ($ProxyUri) {Throw "Proxy not supported for $TestName test"}
     }
 }
 
@@ -946,6 +1250,11 @@ Function PrintHighlightedMessage
 }
 
 $Architecture = GetArchitecture
+$OptimizeForPerformance=$True
+If ($Architecture -eq "arm32v7") 
+{
+    $OptimizeForPerformance=$False
+}
 $E2ETestFolder = (Resolve-Path $E2ETestFolder).Path
 $DefaultOpensslInstallPath = "C:\vcpkg\installed\x64-windows\tools\openssl"
 $InstallationScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\setup\IotEdgeSecurityDaemon.ps1"
@@ -960,6 +1269,8 @@ $DirectMethodModuleToModuleDeploymentFilename = "dm_module_to_module_deployment.
 $RuntimeOnlyDeploymentFilename = 'runtime_only_deployment.template.json'
 $QuickstartDeploymentFilename = 'quickstart_deployment.template.json'
 $TwinTestFilename = "twin_test_tempSensor.json"
+$LongHaulDeploymentFilename = GetLongHaulDeploymentFilename
+$StressDeplymentFilename = GetStressDeploymentFilename
 
 $IotEdgeQuickstartArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\IotEdgeQuickstart\$Architecture"
 $LeafDeviceArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\LeafDevice\$Architecture"
@@ -973,6 +1284,8 @@ $RuntimeOnlyDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $Runti
 $QuickstartDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $QuickstartDeploymentFilename
 $TwinTestFileArtifactFilePath = Join-Path $TestFileFolder $TwinTestFilename
 $DirectMethodModuleToModuleDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $DirectMethodModuleToModuleDeploymentFilename
+$LongHaulDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $LongHaulDeploymentFilename
+$StressDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $StressDeplymentFilename
 
 $TestWorkingFolder = Join-Path $E2ETestFolder "working"
 $QuickstartWorkingFolder = (Join-Path $TestWorkingFolder "quickstart")
@@ -981,9 +1294,30 @@ $IoTEdgedWorkingFolder = (Join-Path $TestWorkingFolder "iotedged")
 $PackagesWorkingFolder = (Join-Path $TestWorkingFolder "packages")
 $IotEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuickstart.exe")
 $LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
-$DeploymentWorkingFilePath = Join-Path $QuickstartWorkingFolder "deployment.json"
+$DeploymentWorkingFilePath = Join-Path $TestWorkingFolder "deployment.json"
 
-&$InstallationScriptPath
+If ($TestName -eq "LongHaul")
+{
+    If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:01"}
+    If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "86400"}
+    If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "604800"}
+}
+
+If ($TestName -eq "Stress")
+{
+    If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:00.03"}
+    If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "1700000"}
+    If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "14400"}
+}
+
+If ($BypassEdgeInstallation)
+{
+    $BypassInstallationFlag = "--bypass-edge-installation"
+}
+Else
+{
+    $BypassInstallationFlag = $null
+}
 
 $retCode = RunTest
 Write-Host "Exit test with code $retCode"

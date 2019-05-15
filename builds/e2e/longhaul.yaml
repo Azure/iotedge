@@ -3,7 +3,8 @@ pr: none
 
 variables:
   Build.SyncSources: false
-  images.artifact.name: 'core-linux'
+  images.artifact.name.linux: 'core-linux'
+  images.artifact.name.windows: 'core-windows'
   vsts.project: $(System.TeamProjectId)
   # Variable defined in VSTS
   #azure.keyVault: ''
@@ -18,9 +19,14 @@ variables:
   #images.branchName
   #loadGen.message.frequency.amd64: 'xx:xx:xx.xx'
   #loadGen.message.frequency.arm32v7: 'xx:xx:xx.xx'
+  #loadGen.message.frequency.arm64v8: 'xx:xx:xx.xx'
   #loadGen.transportType: ''
   #run.linux.amd64.moby: 'true/false'
-  #run.linux.arm32v7.moby: 'true/false'
+  #run.linux.arm32v7.moby.amqp: 'true/false'
+  #run.linux.arm32v7.moby.mqtt: 'true/false'
+  #run.linux.arm64v8.docker.amqp: 'true/false'
+  #run.linux.arm64v8.docker.mqtt: 'true/false'
+  #run.windows.amd64.moby: 'true/false'
 
 jobs:
 ################################################################################
@@ -31,9 +37,9 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        - run-long-haul -equals true
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
+        - run-long-haul -equals true
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu-amd64'
     steps:
@@ -42,7 +48,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -51,6 +57,7 @@ jobs:
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
@@ -60,20 +67,22 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          artifactName: $(images.artifact.name)
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(images.artifact.name.linux)
           itemPattern: |
-            $(images.artifact.name)/IotEdgeQuickstart.linux-x64.tar.gz
-            $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.json
-            $(images.artifact.name)/scripts/linux/runE2ETest.sh
-            $(images.artifact.name)/artifactInfo.txt
+            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
+            $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.json
+            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(images.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
-          container.registry.credential: '$(edgebuilds-azurecr-io)'
+          container.registry.username: '$(edgebuilds-azurecr-io-username)'
+          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(IotHubStressConnString)'
           eventHub.connectionString: '$(EventHubStressConnStr)'
           snitch.build.number: '$(snitch.build.number)'
@@ -90,9 +99,10 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        - run-long-haul -equals true
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
+        - agent-osbits -equals 32
+        - run-long-haul -equals true
         - test-protocol -equals amqp
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu-armhf'
@@ -102,7 +112,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -111,6 +121,7 @@ jobs:
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
@@ -120,20 +131,22 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          artifactName: $(images.artifact.name)
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(images.artifact.name.linux)
           itemPattern: |
-            $(images.artifact.name)/IotEdgeQuickstart.linux-arm.tar.gz
-            $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.arm32v7.amqp.json
-            $(images.artifact.name)/scripts/linux/runE2ETest.sh
-            $(images.artifact.name)/artifactInfo.txt
+            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
+            $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.arm32v7.amqp.json
+            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh-amqp'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(images.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
-          container.registry.credential: '$(edgebuilds-azurecr-io)'
+          container.registry.username: '$(edgebuilds-azurecr-io-username)'
+          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(IotHubStressConnString)'
           eventHub.connectionString: '$(EventHubStressConnStr)'
           snitch.build.number: '$(snitch.build.number)'
@@ -151,9 +164,10 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        - run-long-haul -equals true
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
+        - agent-osbits -equals 32
+        - run-long-haul -equals true
         - test-protocol -equals mqtt
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu-armhf'
@@ -163,7 +177,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -172,6 +186,7 @@ jobs:
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
@@ -181,20 +196,22 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          artifactName: $(images.artifact.name)
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(images.artifact.name.linux)
           itemPattern: |
-            $(images.artifact.name)/IotEdgeQuickstart.linux-arm.tar.gz
-            $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.arm32v7.mqtt.json
-            $(images.artifact.name)/scripts/linux/runE2ETest.sh
-            $(images.artifact.name)/artifactInfo.txt
+            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
+            $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.arm32v7.mqtt.json
+            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh-mqtt'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(images.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
-          container.registry.credential: '$(edgebuilds-azurecr-io)'
+          container.registry.username: '$(edgebuilds-azurecr-io-username)'
+          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(IotHubStressConnString)'
           eventHub.connectionString: '$(EventHubStressConnStr)'
           snitch.build.number: '$(snitch.build.number)'
@@ -203,3 +220,197 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.arm32v7)'
           longHaul.protocolHead: 'mqtt'
+
+################################################################################
+  - job: linux_arm64v8_docker_amqp
+################################################################################
+    displayName: Linux ARM64v8 Docker AMQP
+    condition: eq(variables['run.linux.arm64v8.docker.amqp'], 'true')
+    pool:
+      name: $(pool.name)
+      demands:
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals ARM
+        - agent-osbits -equals 64
+        - run-long-haul -equals true
+        - test-protocol -equals amqp
+    variables:
+      edgelet.artifact.name: 'iotedged-ubuntu16.04-aarch64'
+    steps:
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Edgelet Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          branchName: $(edgelet.package.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(edgelet.artifact.name)
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Images Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(images.build)
+          branchName: $(images.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(images.artifact.name.linux)
+          itemPattern: |
+            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm64.tar.gz
+            $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.arm64v8.amqp.json
+            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
+      # Deploy long haul
+      - template: templates/longhaul-deploy.yaml
+        parameters:
+          release.label: 'lh-amqp'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
+          container.registry: '$(container.registry)'
+          container.registry.username: '$(edgebuilds-azurecr-io-username)'
+          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+          iotHub.connectionString: '$(IotHubStressConnString)'
+          eventHub.connectionString: '$(EventHubStressConnStr)'
+          snitch.build.number: '$(snitch.build.number)'
+          snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
+          snitch.storage.account: '$(snitch.storage.account)'
+          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
+          loadGen.message.frequency: '$(loadGen.message.frequency.arm64v8)'
+          longHaul.protocolHead: 'amqp'
+
+################################################################################
+  - job: linux_arm364v8_docker_mqtt
+################################################################################
+    displayName: Linux ARM64v8 Docker MQTT
+    condition: eq(variables['run.linux.arm64v8.docker.mqtt'], 'true')
+    pool:
+      name: $(pool.name)
+      demands:
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals ARM
+        - agent-osbits -equals 64
+        - run-long-haul -equals true
+        - test-protocol -equals mqtt
+    variables:
+      edgelet.artifact.name: 'iotedged-ubuntu16.04-aarch64'
+    steps:
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Edgelet Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          branchName: $(edgelet.package.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(edgelet.artifact.name)
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Images Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(images.build)
+          branchName: $(images.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(images.artifact.name.linux)
+          itemPattern: |
+            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm64.tar.gz
+            $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.arm64v8.mqtt.json
+            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
+      # Deploy long haul
+      - template: templates/longhaul-deploy.yaml
+        parameters:
+          release.label: 'lh-mqtt'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
+          container.registry: '$(container.registry)'
+          container.registry.username: '$(edgebuilds-azurecr-io-username)'
+          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+          iotHub.connectionString: '$(IotHubStressConnString)'
+          eventHub.connectionString: '$(EventHubStressConnStr)'
+          snitch.build.number: '$(snitch.build.number)'
+          snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
+          snitch.storage.account: '$(snitch.storage.account)'
+          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
+          loadGen.message.frequency: '$(loadGen.message.frequency.arm64v8)'
+          longHaul.protocolHead: 'mqtt'
+          
+################################################################################
+  - job: windows_amd64_moby
+################################################################################
+    displayName: Windows AMD64 Moby
+    condition: eq(variables['run.windows.amd64.moby'], 'true')
+    pool:
+      name: $(pool.name)
+      demands:
+        - run-long-haul -equals true
+        - Agent.OS -equals Windows_NT
+        - Agent.OSArchitecture -equals X64
+    variables:
+      edgelet.artifact.name: 'iotedged-windows'
+    steps:
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Edgelet Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          branchName: $(edgelet.package.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(edgelet.artifact.name)
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Images Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(images.build)
+          branchName: $(images.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(images.artifact.name.windows)
+          itemPattern: |
+            $(images.artifact.name.windows)/IotEdgeQuickstart/x64/*
+            $(images.artifact.name.windows)/e2e_deployment_files/long_haul_deployment.template.windows.json
+            $(images.artifact.name.windows)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1
+            $(images.artifact.name.windows)/scripts/windows/test/Run-E2ETest.ps1
+            $(images.artifact.name.windows)/artifactInfo.txt
+      # Deploy long haul
+      - template: templates/longhaul-deploy-windows.yaml
+        parameters:
+          release.label: 'lh'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.windows)'
+          container.registry: '$(container.registry)'
+          container.registry.username: '$(edgebuilds-azurecr-io-username)'
+          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+          iotHub.connectionString: '$(IotHubStressConnString)'
+          eventHub.connectionString: '$(EventHubStressConnStr)'
+          snitch.build.number: '$(snitch.build.number)'
+          snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
+          snitch.storage.account: '$(snitch.storage.account)'
+          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
+          loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+         

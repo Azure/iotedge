@@ -3,6 +3,7 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
+    clippy::default_trait_access,
     clippy::module_name_repetitions,
     clippy::too_many_arguments,
     clippy::type_complexity,
@@ -20,7 +21,7 @@ mod restart;
 mod unknown;
 mod version;
 
-pub use crate::check::Check;
+pub use crate::check::{Check, OutputFormat};
 pub use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
 pub use crate::list::List;
 pub use crate::logs::Logs;
