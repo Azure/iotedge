@@ -44,9 +44,27 @@ definitions:
         type: string
         description: The ID of the device in IoT hub.
         example: device01
+      credentials:
+        $ref: '#/definitions/Credentials'
     required:
       - hubName
       - deviceId
+      - credentials
+  Credentials:
+    type: object
+    properties:
+      type:
+        type: string
+        description: Indicates the format of the encoded certificate data.
+        enum:
+          - pem
+      bytes:
+        type: string
+        format: byte
+        description: PEM formatted byte array containing the certificate data encoded in base 64.
+    required:
+      - bytes
+      - type
 
   ErrorResponse:
     type: object
