@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             this.productInfoStore = Preconditions.CheckNotNull(productInfoStore, nameof(productInfoStore));
 
             string clientVersion = null;
-            if (this.Link.Settings?.Properties?.TryGetValue(IotHubAmqpProperty.ClientVersion, out string clientVersion) ?? false)
+            if (this.Link.Settings?.Properties?.TryGetValue(IotHubAmqpProperty.ClientVersion, out clientVersion) ?? false)
             {
                 this.ClientVersion = Option.Maybe(clientVersion);
             }
