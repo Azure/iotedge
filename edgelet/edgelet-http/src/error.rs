@@ -26,6 +26,9 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred while binding a listener to {}", _0)]
     BindListener(BindListenerType),
 
+    #[fail(display = "Unable to delete a TLS certificate")]
+    CertificateDeletionError,
+
     #[fail(display = "Unable to create a TLS certificate")]
     CertificateCreationError,
 
