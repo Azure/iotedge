@@ -9,15 +9,11 @@ use hyper_tls::HttpsConnector;
 use typed_headers::Credentials;
 use url::percent_encoding::percent_decode;
 use url::Url;
-use openssl::pkcs12::Pkcs12;
-use openssl::pkey::PKey;
-use openssl::x509::X509;
-use openssl::stack::Stack;
 
 use super::super::PemCertificate;
 use super::super::client::ClientImpl;
 use crate::error::{Error, ErrorKind, InvalidUrlReason};
-use native_tls::{Identity, TlsConnector};
+use native_tls::TlsConnector;
 
 const DNS_WORKER_THREADS: usize = 4;
 
