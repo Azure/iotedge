@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
 {
     using System;
+    using System.Runtime.InteropServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -11,6 +12,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
 
     public class Test
     {
+        IEdgeDaemon CreateEdgeDaemon(string installerPath)
+        {
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? new WindowsEdgeDaemon(installerPath)
+                : new LinuxEdgeDaemon() as IEdgeDaemon;
+        }
+
         public async Task<int> RunAsync(Args args)
         {
             LogEventLevel consoleLevel = args.Verbose
@@ -39,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
                                 iotHub,
                                 token);
 
-                            var daemon = new EdgeDaemon(args.InstallerPath);
+                            var daemon = this.CreateEdgeDaemon(args.InstallerPath);
                             await daemon.UninstallAsync(token);
                             await daemon.InstallAsync(
                                 device.ConnectionString,
