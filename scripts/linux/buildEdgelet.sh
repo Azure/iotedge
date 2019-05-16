@@ -38,7 +38,8 @@ check_arch()
         STRIP="strip"
     elif [[ "$ARCH" == "armv7l" ]]; then
         ARCH="arm32v7"
-        TOOLCHAIN="armv7-unknown-linux-gnueabihf"
+        #TOOLCHAIN="armv7-unknown-linux-gnueabihf"
+        TOOLCHAIN="armv7-unknown-linux-musleabihf"
         STRIP="arm-linux-gnueabihf-strip"
     elif [[ "$ARCH" == "aarch64" ]]; then
         ARCH="arm64v8"
