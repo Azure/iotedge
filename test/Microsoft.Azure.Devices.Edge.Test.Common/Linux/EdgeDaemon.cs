@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Profiler.Run(
                 async () =>
                 {
-                    await this.LinuxStopAsync(token);
+                    await this.InternalStopAsync(token);
 
                     const string YamlPath = "/etc/iotedge/config.yaml";
                     string text = await File.ReadAllTextAsync(YamlPath, token);
@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         File.SetAttributes(YamlPath, attr);
                     }
 
-                    await this.LinuxStartAsync(token);
+                    await this.InternalStartAsync(token);
                 },
                 "Configured edge daemon for device '{Device}' registered as '{Id}'",
                 hostname,
@@ -117,11 +117,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         public Task StartAsync(CancellationToken token)
         {
             return Profiler.Run(
-                () => this.LinuxStartAsync(token),
+                () => this.InternalStartAsync(token),
                 "Started edge daemon");
         }
 
-        async Task LinuxStartAsync(CancellationToken token)
+        async Task InternalStartAsync(CancellationToken token)
         {
             string[] output = await Process.RunAsync("systemctl", "start iotedge", token);
             Log.Verbose(string.Join("\n", output));
@@ -131,11 +131,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         public Task StopAsync(CancellationToken token)
         {
             return Profiler.Run(
-                () => this.LinuxStopAsync(token),
+                () => this.InternalStopAsync(token),
                 "Stopped edge daemon");
         }
 
-        async Task LinuxStopAsync(CancellationToken token)
+        async Task InternalStopAsync(CancellationToken token)
         {
             string[] output = await Process.RunAsync("systemctl", "stop iotedge", token);
             Log.Verbose(string.Join("\n", output));
@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             try
             {
-                await this.LinuxStopAsync(token);
+                await this.InternalStopAsync(token);
             }
             catch (Win32Exception e)
             {
