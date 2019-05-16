@@ -12,12 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
 
     public class Test
     {
-        IEdgeDaemon CreateEdgeDaemon(string installerPath)
-        {
-            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? new WindowsEdgeDaemon(installerPath)
-                : new LinuxEdgeDaemon() as IEdgeDaemon;
-        }
+        IEdgeDaemon CreateEdgeDaemon(string installerPath) => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? new Common.Windows.EdgeDaemon(installerPath)
+                : new Common.Linux.EdgeDaemon() as IEdgeDaemon;
 
         public async Task<int> RunAsync(Args args)
         {

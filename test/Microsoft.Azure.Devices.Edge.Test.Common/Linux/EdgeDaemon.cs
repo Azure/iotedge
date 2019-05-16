@@ -1,4 +1,5 @@
-namespace Microsoft.Azure.Devices.Edge.Test.Common
+// Copyright (c) Microsoft. All rights reserved.
+namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using System;
     using System.ComponentModel;
@@ -10,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Edge.Util;
     using Serilog;
 
-    public class LinuxEdgeDaemon : IEdgeDaemon
+    public class EdgeDaemon : IEdgeDaemon
     {
         public async Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {

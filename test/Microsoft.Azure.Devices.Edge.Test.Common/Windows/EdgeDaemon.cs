@@ -1,4 +1,5 @@
-namespace Microsoft.Azure.Devices.Edge.Test.Common
+// Copyright (c) Microsoft. All rights reserved.
+namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 {
     using System;
     using System.ServiceProcess;
@@ -7,11 +8,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Edge.Util;
     using Serilog;
 
-    public class WindowsEdgeDaemon : IEdgeDaemon
+    public class EdgeDaemon : IEdgeDaemon
     {
         readonly string scriptDir;
 
-        public WindowsEdgeDaemon(string scriptDir)
+        public EdgeDaemon(string scriptDir)
         {
             this.scriptDir = scriptDir;
         }
