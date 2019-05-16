@@ -87,7 +87,7 @@ fn crypto_create_cert_success() {
     let port = get_unused_tcp_port();
     let server = run_tls_tcp_server("127.0.0.1", port, server_pem.get_identity().unwrap());
     let hyper_client = MaybeProxyClient::new_with_identity_cert(None, client_pem).unwrap();
-    let url = Url::parse("http://localhost").unwrap();
+    let url = Url::parse("https://localhost").unwrap();
     let token_source: Option<StaticTokenSource> = None;
 
     let http_client = HttpClient::new(

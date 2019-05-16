@@ -22,8 +22,6 @@ use hyperlocal_windows::server::{Http as UdsHttp, Incoming as UdsIncoming};
 #[cfg(windows)]
 use mio_uds_windows::net::UnixListener as StdUnixListener;
 use tokio::net::TcpListener;
-use tokio::prelude::*;
-use native_tls::Identity;
 
 pub fn run_tcp_server<F, R>(
     ip: &str,
@@ -49,24 +47,24 @@ where
     })
 }
 
-pub fn run_tls_tcp_server(ip: &str, port: u16, server_cert_id: Identity) -> impl Future<Item = (), Error = ()> {
+pub fn run_tls_tcp_server(ip: &str, port: u16, identity: native_tls::Identity) -> impl Future<Item = (), Error = ()> {
     let addr = &format!("{}:{}", ip, port).parse().unwrap();
     let listener = TcpListener::bind(&addr).unwrap();
     let tls_acceptor = tokio_tls::TlsAcceptor::from(
-        native_tls::TlsAcceptor::builder(server_cert_id)
+        native_tls::TlsAcceptor::builder(identity)
             .build()
             .unwrap(),
     );
-
     listener.incoming()
         .for_each(move |socket| {
             let tls_accept = tls_acceptor
                 .accept(socket)
                 .and_then(move |tls_stream| {
-                    let (reader, writer) = tls_stream.split();
-                    let conn = tokio::io::copy(reader, writer)
+                    let conn = tokio::io::write_all(tls_stream, "HTTP/1.1 200 OK")
+                    //let (reader, writer) = tls_stream.split();
+                    //let conn = tokio::io::copy(reader, writer)
                         .map(|_| ())
-                        .map_err(|err| panic!("IO copy error: {:#?}", err));
+                        .map_err(|err| panic!("IO write to stream error: {:#?}", err));
 
                     tokio::spawn(conn);
                     Ok(())

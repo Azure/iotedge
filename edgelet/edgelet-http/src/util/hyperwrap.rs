@@ -6,14 +6,13 @@ use hyper::client::HttpConnector;
 use hyper::{Body, Client as HyperClient, Error as HyperError, Request, Response, StatusCode, Uri};
 use hyper_proxy::{Intercept, Proxy, ProxyConnector};
 use hyper_tls::HttpsConnector;
+use native_tls::TlsConnector;
 use typed_headers::Credentials;
 use url::percent_encoding::percent_decode;
 use url::Url;
-
 use super::super::PemCertificate;
 use super::super::client::ClientImpl;
 use crate::error::{Error, ErrorKind, InvalidUrlReason};
-use native_tls::TlsConnector;
 
 const DNS_WORKER_THREADS: usize = 4;
 
