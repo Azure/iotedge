@@ -158,14 +158,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         }
 
         [Theory]
-        [InlineData(@"{""schemaVersion"":""2.0"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidOperationException))]
-        [InlineData(@"{""schemaVersion"":""0.0"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidOperationException))]
-        [InlineData(@"{""schemaVersion"":""3.4"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidOperationException))]
+        [InlineData(@"{""schemaVersion"":""2.0"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidSchemaVersionException))]
+        [InlineData(@"{""schemaVersion"":""0.0"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidSchemaVersionException))]
+        [InlineData(@"{""schemaVersion"":""3.4"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidSchemaVersionException))]
         [InlineData(@"{""schemaVersion"":"""",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(ArgumentException))]
         [InlineData(@"{""schemaVersion"":"" "",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(ArgumentException))]
         [InlineData(@"{""schemaVersion"":""   "",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(ArgumentException))]
-        [InlineData(@"{""schemaVersion"":""abc"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(ArgumentException))]
-        [InlineData(@"{""schemaVersion"":""a.b.c"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(ArgumentException))]
+        [InlineData(@"{""schemaVersion"":""abc"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidSchemaVersionException))]
+        [InlineData(@"{""schemaVersion"":""a.b.c"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidSchemaVersionException))]
         public async Task TestLogsUploadRequestWithInvalidSchemaVersion(string payload, Type exception)
         {
             // Arrange
