@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
-    using System.Collections.Generic;
     using System.ComponentModel;
     using System.Net;
     using System.Threading.Tasks;
@@ -30,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ICredentialsCache credentialsCache;
         readonly IIdentity edgeHubIdentity;
         readonly TimeSpan operationTimeout;
+        readonly IProductInfoStore productInfoStore;
         Option<IEdgeHub> edgeHub;
 
         public CloudConnectionProvider(
@@ -44,7 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             TimeSpan idleTimeout,
             bool closeOnIdleTimeout,
             TimeSpan operationTimeout,
-            Option<IWebProxy> proxy)
+            Option<IWebProxy> proxy,
+            IProductInfoStore productInfoStore)
         {
             Preconditions.CheckRange(connectionPoolSize, 1, nameof(connectionPoolSize));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
@@ -58,6 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             this.edgeHubIdentity = Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
             this.operationTimeout = operationTimeout;
+            this.productInfoStore = Preconditions.CheckNotNull(productInfoStore, nameof(productInfoStore));
         }
 
         public void BindEdgeHub(IEdgeHub edgeHubInstance)
@@ -73,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 Events.CreatingCloudConnectionUsingClientCredentials(clientCredentials);
                 var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), clientCredentials.Identity.Id);
-
+                string productInfo = await this.productInfoStore.GetEdgeProductInfo(clientCredentials.Identity.Id);
                 if (this.edgeHubIdentity.Id.Equals(clientCredentials.Identity.Id))
                 {
                     ICloudConnection cc = await CloudConnection.Create(
@@ -86,7 +88,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         this.edgeHubTokenProvider,
                         this.idleTimeout,
                         this.closeOnIdleTimeout,
-                        this.operationTimeout);
+                        this.operationTimeout,
+                        productInfo);
                     Events.SuccessCreatingCloudConnection(clientCredentials.Identity);
                     return Try.Success(cc);
                 }
@@ -101,7 +104,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         cloudListener,
                         this.idleTimeout,
                         this.closeOnIdleTimeout,
-                        this.operationTimeout);
+                        this.operationTimeout,
+                        productInfo);
                     Events.SuccessCreatingCloudConnection(clientCredentials.Identity);
                     return Try.Success(cc);
                 }
@@ -131,6 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         async si =>
                         {
                             Events.CreatingCloudConnectionOnBehalfOf(identity);
+                            string productInfo = await this.productInfoStore.GetEdgeProductInfo(identity.Id);
                             ICloudConnection cc = await CloudConnection.Create(
                                 identity,
                                 connectionStatusChangedHandler,
@@ -141,7 +146,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                 this.edgeHubTokenProvider,
                                 this.idleTimeout,
                                 this.closeOnIdleTimeout,
-                                this.operationTimeout);
+                                this.operationTimeout,
+                                productInfo);
                             Events.SuccessCreatingCloudConnection(identity);
                             return Try.Success(cc);
                         })

@@ -17,6 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     [Unit]
     public class CloudConnectionTest
     {
+        const string DummyProductInfo = "IoTEdge 1.0.6 1.20.0-RC2";
+
         [Fact]
         public async Task GetCloudConnectionForIdentityWithKeyTest()
         {
@@ -35,7 +37,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 tokenProvider,
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                DummyProductInfo);
 
             Option<ICloudProxy> cloudProxy1 = cloudConnection.CloudProxy;
             Assert.True(cloudProxy1.HasValue);
@@ -71,14 +74,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     tokenProvider,
                     TimeSpan.FromMinutes(60),
                     true,
-                    TimeSpan.FromSeconds(20)));
+                    TimeSpan.FromSeconds(20),
+                    DummyProductInfo));
         }
 
         static IClientProvider GetMockDeviceClientProviderWithKey()
         {
             var deviceClientProvider = new Mock<IClientProvider>();
             deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>()))
-                .Returns(() => GetMockDeviceClient());
+                .Returns(GetMockDeviceClient);
             return deviceClientProvider.Object;
         }
 
