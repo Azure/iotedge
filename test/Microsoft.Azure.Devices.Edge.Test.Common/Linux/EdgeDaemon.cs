@@ -182,14 +182,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             while (true)
             {
-                string activeState;
+                Func<string, bool> stateMatchesDesired;
                 switch (desired)
                 {
                     case ServiceControllerStatus.Running:
-                        activeState = "active";
+                        stateMatchesDesired = s => s == "active";
                         break;
                     case ServiceControllerStatus.Stopped:
-                        activeState = "inactive";
+                        stateMatchesDesired = s => s == "inactive" || s == "failed";
                         break;
                     default:
                         throw new NotImplementedException($"No handler for {desired.ToString()}");
@@ -197,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
                 string[] output = await Process.RunAsync("systemctl", "-p ActiveState show iotedge", token);
                 Log.Verbose(output.First());
-                if (output.First().Split("=").Last() == activeState)
+                if (stateMatchesDesired(output.First().Split("=").Last()))
                 {
                     break;
                 }
