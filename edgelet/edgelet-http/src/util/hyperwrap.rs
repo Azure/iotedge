@@ -28,44 +28,6 @@ pub struct Config {
     identity_certificate: Option<PemCertificate>,
 }
 
-fn prepare_tls_connector(username: &str, password: &str, cert_pem: &[u8], key_pem: &[u8]) -> Result<TlsConnector, Error> {
-    let mut certs =
-        X509::stack_from_pem(cert_pem).with_context(|_| ErrorKind::CertificateConversionError)?;
-
-    // the first cert is the identity cert and the other certs are part of the CA
-    // chain; we skip the server cert and build an OpenSSL cert stack with the
-    // other certs
-    let mut ca_certs = Stack::new().with_context(|_| ErrorKind::CertificateConversionError)?;
-    for cert in certs.split_off(1) {
-        ca_certs
-            .push(cert)
-            .with_context(|_| ErrorKind::CertificateConversionError)?;
-    }
-
-    let key = PKey::private_key_from_pem(key_pem)
-                .with_context(|_| ErrorKind::CertificateConversionError)?;
-
-    let identity_cert = &certs[0];
-
-    let mut builder = Pkcs12::builder();
-    builder.ca(ca_certs);
-    let pkcs_certs = builder
-        .build(password, username, &key, &identity_cert)
-        .with_context(|_| ErrorKind::CertificateConversionError)?;
-
-    let der = pkcs_certs.to_der()
-        .with_context(|_| ErrorKind::CertificateConversionError)?;
-
-    let identity = Identity::from_pkcs12(&der, "")?;
-
-    let connector = TlsConnector::builder()
-                .identity(identity)
-                .build()
-                .with_context(|_| ErrorKind::CertificateConversionError)?;
-
-    Ok(connector)
-}
-
 impl Config {
     pub fn identity_certificate(&mut self, identity_cert: PemCertificate) -> &mut Config {
         self.identity_certificate = Some(identity_cert);
@@ -88,11 +50,11 @@ impl Config {
         } else {
             let https_connector = match &self.identity_certificate {
                 Some(id) => {
-                    let connector = prepare_tls_connector(id.username.as_ref().map_or("", String::as_str),
-                                                          id.password.as_ref().map_or("", String::as_str),
-                                                          id.cert.as_slice(),
-                                                          id.key.as_slice())?;
-
+                    let identity = id.get_identity()?;
+                    let connector = TlsConnector::builder()
+                                .identity(identity)
+                                .build()
+                                .with_context(|_| ErrorKind::CertificateConversionError)?;
                     let mut http = HttpConnector::new(DNS_WORKER_THREADS);
                     http.enforce_http(false);
                     Ok(HttpsConnector::from((http, connector)))

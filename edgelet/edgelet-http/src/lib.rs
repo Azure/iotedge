@@ -34,10 +34,14 @@ use tokio::net::TcpListener;
 use tokio_uds::UnixListener;
 use url::Url;
 
+use openssl::pkcs12::Pkcs12;
+use openssl::pkey::PKey;
+use openssl::x509::X509;
+use openssl::stack::Stack;
+
 use edgelet_core::crypto::{Certificate, CreateCertificate, PrivateKey, KeyBytes};
 use edgelet_core::{UrlExt, UNIX_SCHEME};
 use edgelet_utils::log_failure;
-#[cfg(unix)]
 use native_tls::{Identity, TlsAcceptor};
 
 pub mod authorization;
@@ -106,6 +110,38 @@ impl PemCertificate {
         };
 
         Ok(PemCertificate::new(cert, key, None, None))
+    }
+
+    pub fn get_identity(&self) -> Result<Identity, Error> {
+        let mut certs =
+            X509::stack_from_pem(&self.cert).with_context(|_| ErrorKind::IdentityCertificate)?;
+
+        // the first cert is the identity cert and the other certs are part of the CA
+        // chain; we skip the server cert and build an OpenSSL cert stack with the
+        // other certs
+        let mut ca_certs = Stack::new().with_context(|_| ErrorKind::IdentityCertificate)?;
+        for cert in certs.split_off(1) {
+            ca_certs
+                .push(cert)
+                .with_context(|_| ErrorKind::IdentityCertificate)?;
+        }
+
+        let key = PKey::private_key_from_pem(&self.key)
+                    .with_context(|_| ErrorKind::IdentityCertificate)?;
+
+        let identity_cert = &certs[0];
+
+        let mut builder = Pkcs12::builder();
+        builder.ca(ca_certs);
+        let pkcs_certs = builder
+            .build(self.password.as_ref().map_or("", String::as_str), self.username.as_ref().map_or("", String::as_str), &key, &identity_cert)
+            .with_context(|_| ErrorKind::IdentityCertificate)?;
+
+        let der = pkcs_certs.to_der()
+            .with_context(|_| ErrorKind::IdentityCertificate)?;
+
+        let identity = Identity::from_pkcs12(&der, "")?;
+        Ok(identity)
     }
 }
 
