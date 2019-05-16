@@ -59,7 +59,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                                 "curl -L https://aka.ms/libiothsm-std-linux-armhf-latest -o libiothsm-std.deb",
                                 "curl -L https://aka.ms/iotedged-linux-armhf-latest -o iotedge.deb",
                                 "dpkg --force-confnew -i libiothsm-std.deb iotedge.deb",
-                                "apt-get install -f"
+                                "apt-get install -f",
+                                "rm libiothsm-std.deb iotedge.deb"
                             };
                         default:
                             throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
