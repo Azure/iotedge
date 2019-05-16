@@ -63,7 +63,6 @@ jobs:
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.ArtifactStagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
@@ -73,7 +72,6 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.ArtifactStagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
