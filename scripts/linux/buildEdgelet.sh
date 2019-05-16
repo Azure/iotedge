@@ -22,7 +22,7 @@ DOCKERFILE=
 DOCKER_IMAGENAME=
 DEFAULT_DOCKER_NAMESPACE="microsoft"
 DOCKER_NAMESPACE=${DEFAULT_DOCKER_NAMESPACE}
-BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=""}
+BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=${BUILD_REPOSITORY_LOCALPATH}}
 EDGELET_DIR=
 BUILD_CONFIGURATION="release"
 BUILD_CONFIG_OPTION=
@@ -121,7 +121,7 @@ process_args()
     fi
 
     if [[ -z ${BUILD_BINARIESDIRECTORY} ]] || [[ ! -d ${BUILD_BINARIESDIRECTORY} ]]; then
-        echo "Bin directory does not exist or is invalid"
+        echo "Bin directory does not exist or is invalid: $BUILD_BINARIESDIRECTORY"
         print_help_and_exit
     fi
 
@@ -132,7 +132,7 @@ process_args()
         print_help_and_exit
     fi
 
-    EDGELET_DIR=${BUILD_REPOSITORY_LOCALPATH}/edgelet
+    EDGELET_DIR=${BUILD_BINARIESDIRECTORY}/edgelet
     if [[ -z ${EDGELET_DIR} ]] || [[ ! -d ${EDGELET_DIR} ]]; then
         echo "No directory for edgelet found in $BUILD_BINARIESDIRECTORY"
         print_help_and_exit
@@ -150,7 +150,7 @@ process_args()
         print_help_and_exit
     fi
 
-    if ${BUILD_CONFIG_OPTION} == "release"; then
+    if [[${BUILD_CONFIG_OPTION} eq "release"]]; then
         BUILD_CONFIGURATION='release'
         BUILD_CONFIG_OPTION='--release'
     else
@@ -159,25 +159,41 @@ process_args()
     fi
 }
 
+print_args()
+{
+    echo "Project:      $EDGELET_DIR/$PROJECT"
+    echo "Arch:         $ARCH"
+    echo "Image:        $DOCKER_IMAGENAME"
+    echo "Namespace:    $DOCKER_NAMESPACE"
+    echo "Dockerfile:   $DOCKERFILE"
+    echo
+}
+
 ###############################################################################
 # Build project and publish result
 ###############################################################################
 build_project()
 {
+    # build project with cross
+    cd ${EDGELET_DIR}
+
+    local BUILD_CMD="cross build -p ${PROJECT} ${BUILD_CONFIG_OPTION} --target ${TOOLCHAIN}"
+    echo ${BUILD_CMD}
+    ${BUILD_CMD}
+
+    ${STRIP} ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT}
+
+    # prepare docker folder
     local EXE_DOCKER_DIR=${PUBLISH_DIR}/${DOCKER_IMAGENAME}/docker/linux/${ARCH}
     mkdir -p ${EXE_DOCKER_DIR}
 
+    # copy Dockerfile to publish folder for given arch
     local EXE_DOCKERFILE=${EXE_DOCKER_DIR}/Dockerfile
-    echo "Copy Dockerfile to $EXE_DOCKERFILE"
+    echo "Copy $DOCKERFILE to $EXE_DOCKERFILE"
     cp ${DOCKERFILE} ${EXE_DOCKERFILE}
 
-    echo "Build ${EDGELET_DIR}/$PROJECT for $ARCH"
-
-    cd ${EDGELET_DIR}
-
-    cross build -p $PROJECT ${BUILD_CONFIG_OPTION} --target ${TOOLCHAIN}
-    ${STRIP} ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT}
-    cp ${EDGELET_DIR}/edgelet/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT} ${EXE_DOCKER_DIR}/${PROJECT}
+    # copy binaries to publish folder
+    cp ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT} ${EXE_DOCKER_DIR}/${PROJECT}
 }
 
 ###############################################################################
@@ -186,56 +202,5 @@ build_project()
 check_arch
 process_args "$@"
 
+print_args
 build_project
-
-
-#mkdir -p $PUBLISH_FOLDER/azureiotedge-iotedged/
-#cp -R $BUILD_REPOSITORY_LOCALPATH/edgelet/iotedged/docker $PUBLISH_FOLDER/azureiotedge-iotedged/docker
-#
-#cd "$BUILD_REPOSITORY_LOCALPATH/edgelet"
-
-#cross build -p iotedged $BUILD_CONFIG_OPTION --target x86_64-unknown-linux-musl
-#strip $BUILD_REPOSITORY_LOCALPATH/edgelet/target/x86_64-unknown-linux-musl/$BUILD_CONFIGURATION/iotedged
-#cp $BUILD_REPOSITORY_LOCALPATH/edgelet/target/x86_64-unknown-linux-musl/$BUILD_CONFIGURATION/iotedged $PUBLISH_FOLDER/azureiotedge-iotedged/docker/linux/amd64/
-
-#cross build -p iotedged $BUILD_CONFIG_OPTION --target armv7-unknown-linux-musleabihf
-#arm-linux-gnueabihf-strip $BUILD_REPOSITORY_LOCALPATH/edgelet/target/armv7-unknown-linux-musleabihf/$BUILD_CONFIGURATION/iotedged
-#cp $BUILD_REPOSITORY_LOCALPATH/edgelet/target/armv7-unknown-linux-musleabihf/$BUILD_CONFIGURATION/iotedged $PUBLISH_FOLDER/azureiotedge-diagnostics/docker/linux/arm32v7/
-
-#cross build -p iotedged $BUILD_CONFIG_OPTION --target armv7-unknown-linux-gnueabihf
-#arm-linux-gnueabihf-strip $BUILD_REPOSITORY_LOCALPATH/edgelet/target/armv7-unknown-linux-gnueabihf/$BUILD_CONFIGURATION/iotedged
-#cp $BUILD_REPOSITORY_LOCALPATH/edgelet/target/armv7-unknown-linux-gnueabihf/$BUILD_CONFIGURATION/iotedged $PUBLISH_FOLDER/azureiotedge-diagnostics/docker/linux/arm32v7/
-
-#cross build -p iotedged $BUILD_CONFIG_OPTION --target aarch64-unknown-linux-musl
-#aarch64-linux-gnu-strip $BUILD_REPOSITORY_LOCALPATH/edgelet/target/aarch64-unknown-linux-musl/$BUILD_CONFIGURATION/iotedged
-#cp $BUILD_REPOSITORY_LOCALPATH/edgelet/target/aarch64-unknown-linux-musl/$BUILD_CONFIGURATION/iotedged $PUBLISH_FOLDER/azureiotedge/docker/linux/arm64v8/
-
-
-
-#-----------------------------------
-
-
-#V1
-#mkdir -p $PUBLISH_FOLDER/azureiotedge-iotedged/
-#cp -R $BUILD_REPOSITORY_LOCALPATH/edgelet/build/debian9 $PUBLISH_FOLDER/azureiotedge-iotedged/docker
-#
-## setup libiothsm build
-#cmake -DBUILD_SHARED=ON -Drun_unittests=ON -Duse_emulator=OFF -DCMAKE_BUILD_TYPE=Release -S edgelet/hsm-sys/azure-iot-hsm-c -B edgelet/hsm-sys/azure-iot-hsm-c/build
-#
-## build libiothsm
-#make -C edgelet/hsm-sys/azure-iot-hsm-c/build iothsm
-#
-## copy libiothsm to staging folder
-#cp edgelet/hsm-sys/azure-iot-hsm-c/build/*.so* $PUBLISH_FOLDER/azureiotedge-iotedged/
-#
-## build iotedged
-#make -C edgelet
-#
-## copy iotedged to staging folder
-#cp edgelet/target/release/iotedged $PUBLISH_FOLDER/azureiotedge-iotedged/
-#
-
-
-#cp $BUILD_REPOSITORY_LOCALPATH/edge-proxy/src/run.sh $PUBLISH_FOLDER/azureiotedge-proxy/docker/linux/amd64/
-#cp $BUILD_REPOSITORY_LOCALPATH/edge-proxy/src/run.sh $PUBLISH_FOLDER/azureiotedge-proxy/docker/linux/arm32v7/
-#cp $BUILD_REPOSITORY_LOCALPATH/edge-proxy/src/run.sh $PUBLISH_FOLDER/azureiotedge-proxy/docker/linux/arm64v8/

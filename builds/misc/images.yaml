@@ -35,9 +35,8 @@ jobs:
         name: build
         displayName: Build ($(Build.Configuration))
 
-#      - script: scripts/linux/buildDiagnostics.sh $(Build.Configuration)
-      - script: scripts/linux/buildIotedged.sh -i azureiotedge-diagnostics -P iotedge-diagnostics -n microsoft -t aarch64
-        displayName: Build iotedge-diagnostics
+      - script: scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(Build.Configuration) -t aarch64
+        displayName: Build - iotedge-diagnostics - aarch64
 
       - script: scripts/linux/buildEdgeProxy.sh
         displayName: Build Edge Proxy
@@ -162,8 +161,12 @@ jobs:
         name: build
         displayName: Build ($(Build.Configuration))
 
-      - script: scripts/linux/buildDiagnostics.sh $(Build.Configuration)
-        displayName: Build iotedge-diagnostics
+      - template: templates/build-edgelet-linux.yaml
+        parameters:
+          name: iotedge-diagnostics
+          imageName: azureiotedge-diagnostics
+          project: iotedge-diagnostics
+          configuration: $(Build.Configuration)
 
       - script: scripts/linux/buildEdgeProxy.sh
         displayName: Build Edge Proxy

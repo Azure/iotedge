@@ -1,0 +1,18 @@
+parameters:
+  name: ''
+  imageName: ''
+  namespace: 'microsoft'
+  project: ''
+  configuration: "release"
+
+steps:
+  - task: Bash@3
+    displayName: Build - ${{ parameters.name }} - amd64
+    inputs:
+      filePath: scripts/linux/buildEdgelet.sh
+      arguments: -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }} -c ${{ parameters.configuration }}
+  - task: Bash@3
+    displayName: Build - ${{ parameters.name }} - arm32
+    inputs:
+      filePath: scripts/linux/buildImage.sh
+      arguments: -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch armv7l
