@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
 
             try
             {
-                using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
+                using (var cts = new CancellationTokenSource(args.Timeout))
                 {
                     Log.Information("Running tempSensor test");
                     await Profiler.Run(
@@ -119,6 +119,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
                         "Completed tempSensor test");
                 }
             }
+            catch (OperationCanceledException e)
+            {
+                Log.Error(e, "Cancelled tempSensor test after {Timeout} minutes", args.Timeout.TotalMinutes);
+            }
             catch (Exception e)
             {
                 Log.Error(e, "Failed tempSensor test");
@@ -144,6 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
             public string HubImage;
             public string SensorImage;
             public Option<(string address, string username, string password)> Registry;
+            public TimeSpan Timeout;
             public bool Verbose;
             public Option<string> LogFile;
         }

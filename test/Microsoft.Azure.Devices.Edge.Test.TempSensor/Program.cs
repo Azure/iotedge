@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
 {
     using System;
@@ -26,6 +26,7 @@ If you specify `--registry` and `--user`, the following variable must also be se
         const string DefaultAgentImage = "mcr.microsoft.com/azureiotedge-agent:1.0";
         const string DefaultHubImage = "mcr.microsoft.com/azureiotedge-hub:1.0";
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
+        const int DefaultTimeout = 5;
 
         [Required]
         [Argument(0, Name = "device-id", Description = "Device ID")]
@@ -58,6 +59,9 @@ If you specify `--registry` and `--user`, the following variable must also be se
         [Option("--user", Description = "Username for container registry login")]
         public string RegistryUser { get; }
 
+        [Option("--timeout", Description = "Time to wait, in minutes, before cancelling the test, default is '5'")]
+        public int Timeout { get; } = DefaultTimeout;
+
         [Option("--verbose", Description = "Output more information to the console")]
         public bool Verbose { get; }
 
@@ -88,6 +92,7 @@ If you specify `--registry` and `--user`, the following variable must also be se
                                 this.RegistryUser,
                                 EnvironmentVariable.Expect("E2E_CONTAINER_REGISTRY_PASSWORD")))
                         : Option.None<(string, string, string)>(),
+                    Timeout = TimeSpan.FromMinutes(this.Timeout),
                     Verbose = this.Verbose,
                     LogFile = Option.Maybe(this.LogFile)
                 });
