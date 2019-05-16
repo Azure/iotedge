@@ -35,12 +35,11 @@ jobs:
         name: build
         displayName: Build ($(Build.Configuration))
 
-#      - script: scripts/linux/buildDiagnostics.sh $(Build.Configuration)
-      - script: scripts/linux/buildIotedged.sh -i azureiotedge-diagnostics -P iotedge-diagnostics -n microsoft -t aarch64
-        displayName: Build iotedge-diagnostics
+      - script: scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(Build.Configuration) -t aarch64
+        displayName: Build - iotedge-diagnostics - aarch64
 
-      - script: scripts/linux/buildEdgeProxy.sh
-        displayName: Build Edge Proxy
+      - script: scripts/linux/buildEdgeProxy.sh -i azureiotedge-proxy -n microsoft -P edge-proxy -t aarch64
+        displayName: Build - edge-proxy - aarch64
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
@@ -48,21 +47,21 @@ jobs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-linux'
 
-     # azureiotedge-diagnostics - Not Using Template for ARM64 because we have 2 different .NET Core.
+      # azureiotedge-diagnostics - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
-        displayName: Build Image azureiotedge-diagnostics - aarch64
+        displayName: Build Image - azureiotedge-diagnostics - aarch64
         inputs:
           filePath: scripts/linux/buildImage.sh
           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-diagnostics -n microsoft -P azureiotedge-diagnostics --target-arch aarch64
 
-     # Edge Proxy - Not Using Template because it doesn't have .NET code
+      # Edge Proxy - Not Using Template because it doesn't have .NET code
       - task: Bash@3
         displayName: Build Image - Edge Proxy - aarch64
         inputs:
           filePath: scripts/linux/buildImage.sh
           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-proxy -n microsoft -P azureiotedge-proxy --target-arch aarch64
 
-    # Edge Agent - Not Using Template for ARM64 because we have 2 different .NET Core.
+      # Edge Agent - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
         displayName: Build Image - Edge Agent - aarch64
         inputs:
@@ -162,11 +161,20 @@ jobs:
         name: build
         displayName: Build ($(Build.Configuration))
 
-      - script: scripts/linux/buildDiagnostics.sh $(Build.Configuration)
-        displayName: Build iotedge-diagnostics
+      - template: templates/build-edgelet-linux.yaml
+        parameters:
+          filePath: scripts/linux/buildEdgelet.sh
+          name: iotedge-diagnostics
+          imageName: azureiotedge-diagnostics
+          project: iotedge-diagnostics
+          configuration: $(Build.Configuration)
 
-      - script: scripts/linux/buildEdgeProxy.sh
-        displayName: Build Edge Proxy
+      - template: templates/build-edgelet-linux.yaml
+        parameters:
+          filePath: scripts/linux/buildEdgeProxy.sh
+          name: edge-proxy
+          imageName: azureiotedge-proxy
+          project: edge-proxy
 
       - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
         displayName: 'Create Artifact Info File'
