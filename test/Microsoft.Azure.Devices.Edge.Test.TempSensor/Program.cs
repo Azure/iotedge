@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
 {
     using System;
     using System.ComponentModel.DataAnnotations;
+    using System.Runtime.InteropServices;
     using System.Threading.Tasks;
     using McMaster.Extensions.CommandLineUtils;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -21,6 +22,7 @@ If you specify `--registry` and `--user`, the following variable must also be se
 ")]
     [HelpOption]
     [RegistryAndUserOptionsMustBeSpecifiedTogether]
+    [InstallerPathCanOnlyBeSpecifiedOnWindows]
     class Program
     {
         const string DefaultAgentImage = "mcr.microsoft.com/azureiotedge-agent:1.0";
@@ -32,9 +34,8 @@ If you specify `--registry` and `--user`, the following variable must also be se
         [Argument(0, Name = "device-id", Description = "Device ID")]
         public string DeviceId { get; }
 
-        [Required]
         [DirectoryExists]
-        [Argument(1, Name = "installer-path", Description = "Path to IotEdgeSecurityDaemon.ps1")]
+        [Option("--installer-path", Description = "Path to Windows installer script (IotEdgeSecurityDaemon.ps1)")]
         public string InstallerPath { get; }
 
         [DirectoryExists]
@@ -100,7 +101,7 @@ If you specify `--registry` and `--user`, the following variable must also be se
     }
 
     [AttributeUsage(AttributeTargets.Class)]
-    public class RegistryAndUserOptionsMustBeSpecifiedTogether : ValidationAttribute
+    public sealed class RegistryAndUserOptionsMustBeSpecifiedTogether : ValidationAttribute
     {
         protected override ValidationResult IsValid(object value, ValidationContext context)
         {
@@ -109,6 +110,23 @@ If you specify `--registry` and `--user`, the following variable must also be se
                 if ((obj.RegistryAddress == null) ^ (obj.RegistryUser == null))
                 {
                     return new ValidationResult("--registry and --user must be specified together");
+                }
+            }
+
+            return ValidationResult.Success;
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Class)]
+    public sealed class InstallerPathCanOnlyBeSpecifiedOnWindows : ValidationAttribute
+    {
+        protected override ValidationResult IsValid(object value, ValidationContext context)
+        {
+            if (value is Program obj)
+            {
+                if (obj.InstallerPath != null && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    return new ValidationResult("--installer-path can only be specified on Windows");
                 }
             }
 
