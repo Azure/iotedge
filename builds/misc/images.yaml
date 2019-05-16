@@ -34,8 +34,22 @@ jobs:
       - script: scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(Build.Configuration) -t aarch64
         displayName: Build - iotedge-diagnostics - aarch64
 
+      # azureiotedge-diagnostics - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image - azureiotedge-diagnostics - aarch64
+        inputs:
+          filePath: scripts/linux/buildImage.sh
+          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-diagnostics -n microsoft -P azureiotedge-diagnostics --target-arch aarch64
+
       - script: scripts/linux/buildEdgeProxy.sh -i azureiotedge-proxy -n microsoft -P edge-proxy -t aarch64
         displayName: Build - edge-proxy - aarch64
+
+      # Edge Proxy - Not Using Template because it doesn't have .NET code
+      - task: Bash@3
+        displayName: Build Image - Edge Proxy - aarch64
+        inputs:
+          filePath: scripts/linux/buildImage.sh
+          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-proxy -n microsoft -P azureiotedge-proxy --target-arch aarch64
 
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin --os Unix --dotnet_runtime netcoreapp3.0
         name: build
@@ -46,20 +60,6 @@ jobs:
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-linux'
-
-     # azureiotedge-diagnostics - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - azureiotedge-diagnostics - aarch64
-        inputs:
-          filePath: scripts/linux/buildImage.sh
-          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-diagnostics -n microsoft -P azureiotedge-diagnostics --target-arch aarch64
-
-     # Edge Proxy - Not Using Template because it doesn't have .NET code
-      - task: Bash@3
-        displayName: Build Image - Edge Proxy - aarch64
-        inputs:
-          filePath: scripts/linux/buildImage.sh
-          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-proxy -n microsoft -P azureiotedge-proxy --target-arch aarch64
 
     # Edge Agent - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
