@@ -114,9 +114,9 @@ process_args()
         mkdir ${BUILD_BINARIESDIRECTORY}
     fi
 
-    DOCKER_DIR=${BUILD_BINARIESDIRECTORY}/${PROJECT}/docker
+    DOCKER_DIR=${BUILD_REPOSITORY_LOCALPATH}/${PROJECT}/docker
     if [[ -z ${DOCKER_DIR} ]] || [[ ! -d ${DOCKER_DIR} ]]; then
-        echo "No docker directory for $PROJECT at $BUILD_BINARIESDIRECTORY"
+        echo "No docker directory for $PROJECT at $BUILD_REPOSITORY_LOCALPATH"
         print_help_and_exit
     fi
 
