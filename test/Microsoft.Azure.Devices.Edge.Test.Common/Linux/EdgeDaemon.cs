@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Profiler.Run(
                 async () =>
                 {
-                    string[] output = await Process.RunAsync("bash", $"-c \"{string.Join("; ", commands)}\"");
+                    string[] output = await Process.RunAsync("bash", $"-c \"{string.Join("; ", commands)}\"", token);
                     Log.Verbose(string.Join("\n", output));
                 },
                 message,
