@@ -173,10 +173,6 @@ process_args()
 
     EXE_DOCKER_DIR=$PUBLISH_DIR/$PROJECT/docker
 
-    ls ${PUBLISH_DIR}
-    ls ${PUBLISH_DIR}/${PROJECT}
-    ls ${EXE_DOCKER_DIR}
-
     if [[ -z ${EXE_DOCKER_DIR} ]] || [[ ! -d ${EXE_DOCKER_DIR} ]]; then
         echo "No docker directory for $PROJECT at $EXE_DOCKER_DIR"
         print_help_and_exit
