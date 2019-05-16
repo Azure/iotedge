@@ -61,8 +61,6 @@ pub fn run_tls_tcp_server(ip: &str, port: u16, identity: native_tls::Identity) -
                 .accept(socket)
                 .and_then(move |tls_stream| {
                     let conn = tokio::io::write_all(tls_stream, "HTTP/1.1 200 OK")
-                    //let (reader, writer) = tls_stream.split();
-                    //let conn = tokio::io::copy(reader, writer)
                         .map(|_| ())
                         .map_err(|err| panic!("IO write to stream error: {:#?}", err));
 
