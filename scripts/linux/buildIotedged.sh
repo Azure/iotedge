@@ -12,6 +12,7 @@ set -e
 ###############################################################################
 ARCH=$(uname -m)
 TOOLCHAIN=
+STRIP=
 SCRIPT_NAME=$(basename $0)
 SOURCE_DIR=
 PUBLISH_DIR=
@@ -23,6 +24,8 @@ DEFAULT_DOCKER_NAMESPACE="microsoft"
 DOCKER_NAMESPACE=${DEFAULT_DOCKER_NAMESPACE}
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=""}
 EDGELET_DIR=
+BUILD_CONFIGURATION="release"
+BUILD_CONFIG_OPTION=
 
 ###############################################################################
 # Function to obtain the underlying architecture and check if supported
@@ -32,12 +35,15 @@ check_arch()
     if [[ "$ARCH" == "x86_64" ]]; then
         ARCH="amd64"
         TOOLCHAIN="x86_64-unknown-linux-musl"
+        STRIP="strip"
     elif [[ "$ARCH" == "armv7l" ]]; then
         ARCH="arm32v7"
         TOOLCHAIN="armv7-unknown-linux-gnueabihf"
+        STRIP="arm-linux-gnueabihf-strip"
     elif [[ "$ARCH" == "aarch64" ]]; then
         ARCH="arm64v8"
         TOOLCHAIN="aarch64-unknown-linux-musl"
+        STRIP="aarch64-linux-gnu-strip"
     else
         echo "Unsupported architecture"
         exit 1
@@ -57,6 +63,7 @@ usage()
     echo " -P, --project        Project to build image for (e.g. iotedged)"
     echo " -t, --target-arch    Target architecture (default: uname -m)"
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
+    echo " -c, --configuration  Build configuration"
     echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
     exit 1;
 }
@@ -85,10 +92,13 @@ process_args()
         elif [[ ${save_next_arg} -eq 3 ]]; then
             DOCKER_IMAGENAME="$arg"
             save_next_arg=0
-        elif [ ${save_next_arg} -eq 4 ]; then
+        elif [[ ${save_next_arg} -eq 4 ]]; then
             DOCKER_NAMESPACE="$arg"
             save_next_arg=0
-        elif [ ${save_next_arg} -eq 5 ]; then
+        elif [[ ${save_next_arg} -eq 5 ]]; then
+            BUILD_CONFIGURATION="$arg"
+            save_next_arg=0
+        elif [[ ${save_next_arg} -eq 6 ]]; then
             BUILD_BINARIESDIRECTORY="$arg"
             save_next_arg=0
         else
@@ -98,7 +108,8 @@ process_args()
                 "-P" | "--project" ) save_next_arg=2;;
                 "-i" | "--image-name" ) save_next_arg=3;;
                 "-n" | "--namespace" ) save_next_arg=4;;
-                "--bin-dir" ) save_next_arg=5;;
+                "-c" | "--configuration" ) save_next_arg=5;;
+                "--bin-dir" ) save_next_arg=6;;
                 * ) usage;;
             esac
         fi
@@ -121,7 +132,7 @@ process_args()
         print_help_and_exit
     fi
 
-    EDGELET_DIR=${BUILD_BINARIESDIRECTORY}/edgelet
+    EDGELET_DIR=${BUILD_REPOSITORY_LOCALPATH}/edgelet
     if [[ -z ${EDGELET_DIR} ]] || [[ ! -d ${EDGELET_DIR} ]]; then
         echo "No directory for edgelet found in $BUILD_BINARIESDIRECTORY"
         print_help_and_exit
@@ -138,6 +149,14 @@ process_args()
         echo "No Dockerfile at $DOCKERFILE"
         print_help_and_exit
     fi
+
+    if ${BUILD_CONFIG_OPTION} == "release"; then
+        BUILD_CONFIGURATION='release'
+        BUILD_CONFIG_OPTION='--release'
+    else
+        BUILD_CONFIGURATION='debug'
+        BUILD_CONFIG_OPTION=''
+    fi
 }
 
 ###############################################################################
@@ -152,28 +171,22 @@ build_project()
     echo "Copy Dockerfile to $EXE_DOCKERFILE"
     cp ${DOCKERFILE} ${EXE_DOCKERFILE}
 
-    #
-#BUILD_CONFIGURATION=${1:-release}
-
-#if [[ "${BUILD_CONFIGURATION,,}" == 'release' ]]; then
-    BUILD_CONFIGURATION='release'
-    BUILD_CONFIG_OPTION='--release'
-#else
-#    BUILD_CONFIGURATION='debug'
-#    BUILD_CONFIG_OPTION=''
-#fi
-
-
     echo "Build ${EDGELET_DIR}/$PROJECT for $ARCH"
 
     cd ${EDGELET_DIR}
 
     cross build -p $PROJECT ${BUILD_CONFIG_OPTION} --target ${TOOLCHAIN}
-    strip ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/$PROJECT
-    cp ${EDGELET_DIR}/edgelet/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/$PROJECT ${EXE_DOCKER_DIR}/$PROJECT
+    ${STRIP} ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT}
+    cp ${EDGELET_DIR}/edgelet/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT} ${EXE_DOCKER_DIR}/${PROJECT}
 }
 
+###############################################################################
+# Main Script Execution
+###############################################################################
+check_arch
+process_args "$@"
 
+build_project
 
 
 #mkdir -p $PUBLISH_FOLDER/azureiotedge-iotedged/
@@ -197,13 +210,6 @@ build_project()
 #aarch64-linux-gnu-strip $BUILD_REPOSITORY_LOCALPATH/edgelet/target/aarch64-unknown-linux-musl/$BUILD_CONFIGURATION/iotedged
 #cp $BUILD_REPOSITORY_LOCALPATH/edgelet/target/aarch64-unknown-linux-musl/$BUILD_CONFIGURATION/iotedged $PUBLISH_FOLDER/azureiotedge/docker/linux/arm64v8/
 
-###############################################################################
-# Main Script Execution
-###############################################################################
-check_arch
-process_args "$@"
-
-build_project
 
 
 #-----------------------------------
