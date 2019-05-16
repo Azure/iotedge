@@ -36,6 +36,7 @@ edgelet-iothub = { path = "../edgelet-iothub" }
 edgelet-utils = { path = "../edgelet-utils" }
 iothubservice = { path = "../iothubservice" }
 provisioning = { path = "../provisioning" }
+signal-future = { path = "../signal-future" }
 
 [target.'cfg(windows)'.dependencies]
 windows-service = "0.1"

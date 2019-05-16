@@ -168,7 +168,11 @@ impl Main {
         Main { settings }
     }
 
-    pub fn run(self) -> Result<(), Error> {
+    pub fn run_until<F, G>(self, make_shutdown_signal: G) -> Result<(), Error>
+    where
+        F: Future<Item = (), Error = ()> + Send + 'static,
+        G: Fn() -> F,
+    {
         let Main { settings } = self;
 
         let hsm_lock = HsmLock::new();
@@ -253,6 +257,8 @@ impl Main {
                     IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                     IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                 );
+                // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
+                // is received. If the TLS cert needs a restart, we will loop again.
                 while {
                     let code = start_api(
                         &settings,
@@ -261,7 +267,7 @@ impl Main {
                         &key_store,
                         cfg.clone(),
                         root_key.clone(),
-                        signal::shutdown(),
+                        make_shutdown_signal(),
                         &crypto,
                         &mut tokio_runtime,
                     )?;
@@ -281,6 +287,8 @@ impl Main {
                             IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                             IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                         );
+                        // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
+                        // is received. If the TLS cert needs a restart, we will loop again.
                         while {
                             let code = start_api(
                                 &settings,
@@ -289,7 +297,7 @@ impl Main {
                                 &$key_store,
                                 cfg.clone(),
                                 $root_key.clone(),
-                                signal::shutdown(),
+                                make_shutdown_signal(),
                                 &crypto,
                                 &mut tokio_runtime,
                             )?;
@@ -625,9 +633,16 @@ where
         mgmt_tx.send(()).unwrap_or(());
         work_tx.send(()).unwrap_or(());
 
+        // A -> EdgeRt Future
+        // B -> Restart Signal Future
         match res {
+            Ok(Either::A(_)) => Ok(StartApiReturnStatus::Shutdown).into_future(),
             Ok(Either::B(_)) => Ok(StartApiReturnStatus::Restart).into_future(),
-            _ => Ok(StartApiReturnStatus::Shutdown).into_future(),
+            Err(Either::A((err, _))) => Err(err).into_future(),
+            Err(Either::B(_)) => {
+                debug!("The restart signal failed, shutting down.");
+                Ok(StartApiReturnStatus::Shutdown).into_future()
+            }
         }
     });
 
@@ -1157,7 +1172,7 @@ mod tests {
     fn default_settings_raise_unconfigured_error() {
         let settings = Settings::<DockerConfig>::new(None).unwrap();
         let main = Main::new(settings);
-        let result = main.run();
+        let result = main.run_until(signal::shutdown);
         match result.unwrap_err().kind() {
             ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
             kind => panic!("Expected `NotConfigured` but got {:?}", kind),
