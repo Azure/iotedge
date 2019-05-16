@@ -163,7 +163,7 @@ build_project()
     ${COPY_DOCKERFILE_CMD}
 
     # copy executables to publish folder
-    local COPY_CMD="cp $BUILD_BINARIESDIRECTORY/edge-proxy/src/run.sh ${EXE_DOCKER_DIR}/"
+    local COPY_CMD="cp ${BUILD_REPOSITORY_LOCALPATH}/edge-proxy/src/run.sh ${EXE_DOCKER_DIR}/"
     echo ${COPY_CMD}
     ${COPY_CMD}
 }
