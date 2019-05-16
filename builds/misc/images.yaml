@@ -31,12 +31,12 @@ jobs:
       - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
         displayName: 'Install cross (fork with docker fix)'
 
+      - script: scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(Build.Configuration) -t aarch64
+        displayName: Build - iotedge-diagnostics - aarch64
+
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin --os Unix --dotnet_runtime netcoreapp3.0
         name: build
         displayName: Build ($(Build.Configuration))
-
-      - script: scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(Build.Configuration) -t aarch64
-        displayName: Build - iotedge-diagnostics - aarch64
 
       - script: scripts/linux/buildEdgeProxy.sh
         displayName: Build Edge Proxy
@@ -157,16 +157,16 @@ jobs:
       - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
         displayName: 'Install cross (fork with docker fix)'
 
-      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
-        name: build
-        displayName: Build ($(Build.Configuration))
-
       - template: templates/build-edgelet-linux.yaml
         parameters:
           name: iotedge-diagnostics
           imageName: azureiotedge-diagnostics
           project: iotedge-diagnostics
           configuration: $(Build.Configuration)
+
+      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
+        name: build
+        displayName: Build ($(Build.Configuration))
 
       - script: scripts/linux/buildEdgeProxy.sh
         displayName: Build Edge Proxy

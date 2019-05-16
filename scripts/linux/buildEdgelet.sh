@@ -22,8 +22,9 @@ DOCKERFILE=
 DOCKER_IMAGENAME=
 DEFAULT_DOCKER_NAMESPACE="microsoft"
 DOCKER_NAMESPACE=${DEFAULT_DOCKER_NAMESPACE}
-BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=${BUILD_REPOSITORY_LOCALPATH}}
-EDGELET_DIR=
+BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/target}
+PUBLISH_DIR=${BUILD_BINARIESDIRECTORY}/publish
+EDGELET_DIR=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 BUILD_CONFIGURATION="release"
 BUILD_CONFIG_OPTION=
 
@@ -121,22 +122,8 @@ process_args()
         print_help_and_exit
     fi
 
-    if [[ -z ${BUILD_BINARIESDIRECTORY} ]] || [[ ! -d ${BUILD_BINARIESDIRECTORY} ]]; then
-        echo "Bin directory does not exist or is invalid: $BUILD_BINARIESDIRECTORY"
-        print_help_and_exit
-    fi
-
-    PUBLISH_DIR=${BUILD_BINARIESDIRECTORY}/publish
-
-    if [[ ! -d ${PUBLISH_DIR} ]]; then
-        echo "Publish directory does not exist or is invalid"
-        print_help_and_exit
-    fi
-
-    EDGELET_DIR=${BUILD_BINARIESDIRECTORY}/edgelet
-    if [[ -z ${EDGELET_DIR} ]] || [[ ! -d ${EDGELET_DIR} ]]; then
-        echo "No directory for edgelet found in $BUILD_BINARIESDIRECTORY"
-        print_help_and_exit
+    if [[ ! -d ${BUILD_BINARIESDIRECTORY} ]]; then
+        mkdir ${BUILD_BINARIESDIRECTORY}
     fi
 
     DOCKER_DIR=${EDGELET_DIR}/${PROJECT}/docker
@@ -151,7 +138,7 @@ process_args()
         print_help_and_exit
     fi
 
-    if [[${BUILD_CONFIG_OPTION} eq "release"]]; then
+    if [[ ${BUILD_CONFIG_OPTION} -eq "release" ]]; then
         BUILD_CONFIGURATION='release'
         BUILD_CONFIG_OPTION='--release'
     else
@@ -190,11 +177,15 @@ build_project()
 
     # copy Dockerfile to publish folder for given arch
     local EXE_DOCKERFILE=${EXE_DOCKER_DIR}/Dockerfile
-    echo "Copy $DOCKERFILE to $EXE_DOCKERFILE"
-    cp ${DOCKERFILE} ${EXE_DOCKERFILE}
+
+    local COPY_DOCKERFILE_CMD="cp ${DOCKERFILE} ${EXE_DOCKERFILE}"
+    echo ${COPY_DOCKERFILE_CMD}
+    ${COPY_DOCKERFILE_CMD}
 
     # copy binaries to publish folder
-    cp ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT} ${EXE_DOCKER_DIR}/${PROJECT}
+    local COPY_CMD="cp ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT} ${EXE_DOCKER_DIR}/${PROJECT}"
+    echo ${COPY_CMD}
+    ${COPY_CMD}
 }
 
 ###############################################################################
