@@ -194,9 +194,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         throw new NotImplementedException($"No handler for {desired.ToString()}");
                 }
 
-                // TODO: use `systemctl is-active` instead of `systemctl show`
-                string[] output = await Process.RunAsync("bash", "-c \"systemctl --no-pager show iotedge | grep ActiveState=\"", token);
-                Log.Verbose(string.Join("\n", output));
+                string[] output = await Process.RunAsync("systemctl", "-p ActiveState show iotedge", token);
+                Log.Verbose(output.First());
                 if (output.First().Split("=").Last() == activeState)
                 {
                     break;
