@@ -37,7 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
-            Util.Metrics.RegisterGaugeCallback(() => Metrics.SetConnectedClientCountGauge(this));
         }
 
         public event EventHandler<IIdentity> CloudConnectionEstablished;
@@ -500,22 +499,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     Log.LogInformation((int)EventIds.ObtainCloudConnectionError, cloudConnection.Exception, Invariant($"Error getting cloud connection for device {identity.Id}"));
                 }
-            }
-        }
-
-        static class Metrics
-        {
-            static readonly GaugeOptions ConnectedClientGaugeOptions = new GaugeOptions
-            {
-                Name = "EdgeHubConnectedClientGauge",
-                MeasurementUnit = Unit.Events
-            };
-
-            public static void SetConnectedClientCountGauge(ConnectionManager connectionManager)
-            {
-                // Subtract EdgeHub from the list of connected clients
-                int connectedClients = connectionManager.GetConnectedClients().Count() - 1;
-                Util.Metrics.SetGauge(ConnectedClientGaugeOptions, connectedClients);
             }
         }
     }
