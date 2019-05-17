@@ -47,8 +47,11 @@ pub enum ErrorKind {
     #[fail(display = "DPS registration succeeded but returned an empty response")]
     RegisterWithAuthUnexpectedlySucceeded,
 
-    #[fail(display = "Symmetric key registration failed")]
+    #[fail(display = "Symmetric key based registration failed")]
     RegisterWithSymmetricChallengeKey,
+
+    #[fail(display = "X509 certificate based registration failed")]
+    RegisterWithX509IdentityCertificate,
 }
 
 impl Fail for Error {
