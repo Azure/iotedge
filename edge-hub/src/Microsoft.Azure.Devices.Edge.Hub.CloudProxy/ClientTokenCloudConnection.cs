@@ -35,7 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             ICloudListener cloudListener,
             TimeSpan idleTimeout,
             bool closeOnIdleTimeout,
-            TimeSpan operationTimeout)
+            TimeSpan operationTimeout,
+            string productInfo)
             : base(
                 identity,
                 connectionStatusChangedHandler,
@@ -45,7 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 cloudListener,
                 idleTimeout,
                 closeOnIdleTimeout,
-                operationTimeout)
+                operationTimeout,
+                productInfo)
         {
         }
 
@@ -60,7 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             ICloudListener cloudListener,
             TimeSpan idleTimeout,
             bool closeOnIdleTimeout,
-            TimeSpan operationTimeout)
+            TimeSpan operationTimeout,
+            string productInfo)
         {
             Preconditions.CheckNotNull(tokenCredentials, nameof(tokenCredentials));
             var cloudConnection = new ClientTokenCloudConnection(
@@ -72,7 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 cloudListener,
                 idleTimeout,
                 closeOnIdleTimeout,
-                operationTimeout);
+                operationTimeout,
+                productInfo);
             ITokenProvider tokenProvider = new ClientTokenBasedTokenProvider(tokenCredentials, cloudConnection);
             ICloudProxy cloudProxy = await cloudConnection.CreateNewCloudProxyAsync(tokenProvider);
             cloudConnection.cloudProxy = Option.Some(cloudProxy);

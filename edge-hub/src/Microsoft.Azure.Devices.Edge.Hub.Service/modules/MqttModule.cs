@@ -112,6 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
+                        var productInfoStore = c.Resolve<IProductInfoStore>();
                         var settingsProvider = c.Resolve<ISettingsProvider>();
                         var websocketListenerRegistry = c.Resolve<IWebSocketListenerRegistry>();
                         var byteBufferAllocator = c.Resolve<IByteBufferAllocator>();
@@ -131,6 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             sessionStatePersistenceProvider,
                             websocketListenerRegistry,
                             byteBufferAllocator,
+                            productInfoStore,
                             this.clientCertAuthAllowed);
                     })
                 .As<Task<MqttProtocolHead>>()
