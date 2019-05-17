@@ -10,8 +10,8 @@ use edgelet_core::{
     CertificateProperties as CoreCertificateProperties, CreateCertificate as CoreCreateCertificate,
     Decrypt as CoreDecrypt, Encrypt as CoreEncrypt, Error as CoreError, ErrorKind as CoreErrorKind,
     GetIssuerAlias as CoreGetIssuerAlias, GetTrustBundle as CoreGetTrustBundle,
-    KeyBytes as CoreKeyBytes, MasterEncryptionKey as CoreMasterEncryptionKey,
-    PrivateKey as CorePrivateKey, MakeRandom as CoreMakeRandom
+    KeyBytes as CoreKeyBytes, MakeRandom as CoreMakeRandom,
+    MasterEncryptionKey as CoreMasterEncryptionKey, PrivateKey as CorePrivateKey,
 };
 pub use hsm::{
     Buffer, Decrypt, Encrypt, GetCertificate as HsmGetCertificate, GetTrustBundle, HsmCertificate,
@@ -20,7 +20,7 @@ pub use hsm::{
 use hsm::{
     CreateCertificate as HsmCreateCertificate,
     CreateMasterEncryptionKey as HsmCreateMasterEncryptionKey, Crypto as HsmCrypto,
-    DestroyMasterEncryptionKey as HsmDestroyMasterEncryptionKey, MakeRandom as HsmMakeRandom
+    DestroyMasterEncryptionKey as HsmDestroyMasterEncryptionKey, MakeRandom as HsmMakeRandom,
 };
 
 use crate::certificate_properties::convert_properties;
@@ -174,8 +174,7 @@ impl CoreGetTrustBundle for Crypto {
 impl CoreMakeRandom for Crypto {
     fn get_random_bytes(&self, buffer: &mut [u8]) -> Result<(), CoreError> {
         let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
-        self
-            .crypto
+        self.crypto
             .get_random_bytes(buffer)
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::MakeRandom)))?;
