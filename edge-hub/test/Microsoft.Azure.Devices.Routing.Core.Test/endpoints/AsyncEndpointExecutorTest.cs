@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
                 await executor.Invoke(msg);
             }
 
-            await Task.Delay(30);
+            await Task.Delay(TimeSpan.FromSeconds(2));
             await executor.CloseAsync();
             Assert.Equal(3, endpoint.N);
             Assert.Equal(expected, endpoint.Processed);
@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             using (var executor = new AsyncEndpointExecutor(endpoint, checkpointer, MaxConfig, new AsyncEndpointExecutorOptions(1)))
             {
                 await executor.Invoke(Message1);
-                await Task.Delay(20);
+                await Task.Delay(TimeSpan.FromSeconds(2));
                 await executor.CloseAsync();
 
                 Assert.Equal(1, endpoint.N);

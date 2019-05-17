@@ -58,7 +58,7 @@ use edgelet_core::{
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
-use edgelet_hsm::Crypto;
+use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
@@ -169,8 +169,14 @@ impl Main {
         Main { settings }
     }
 
-    pub fn run(self) -> Result<(), Error> {
+    pub fn run_until<F, G>(self, make_shutdown_signal: G) -> Result<(), Error>
+    where
+        F: Future<Item = (), Error = ()> + Send + 'static,
+        G: Fn() -> F,
+    {
         let Main { settings } = self;
+
+        let hsm_lock = HsmLock::new();
 
         let mut tokio_runtime = tokio::runtime::Runtime::new()
             .context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
@@ -225,7 +231,8 @@ impl Main {
         info!("Finished configuring certificates.");
 
         info!("Initializing hsm...");
-        let crypto = Crypto::new().context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+        let crypto = Crypto::new(hsm_lock.clone())
+            .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
         info!("Finished initializing hsm.");
 
         // Detect if the settings were changed and if the device needs to be reconfigured
@@ -251,6 +258,8 @@ impl Main {
                     IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                     IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                 );
+                // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
+                // is received. If the TLS cert needs a restart, we will loop again.
                 while {
                     let code = start_api(
                         &settings,
@@ -259,7 +268,7 @@ impl Main {
                         &key_store,
                         cfg.clone(),
                         root_key.clone(),
-                        signal::shutdown(),
+                        make_shutdown_signal(),
                         &crypto,
                         &mut tokio_runtime,
                     )?;
@@ -279,6 +288,8 @@ impl Main {
                             IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                             IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                         );
+                        // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
+                        // is received. If the TLS cert needs a restart, we will loop again.
                         while {
                             let code = start_api(
                                 &settings,
@@ -287,7 +298,7 @@ impl Main {
                                 &$key_store,
                                 cfg.clone(),
                                 $root_key.clone(),
-                                signal::shutdown(),
+                                make_shutdown_signal(),
                                 &crypto,
                                 &mut tokio_runtime,
                             )?;
@@ -307,6 +318,7 @@ impl Main {
                                 runtime,
                                 &mut tokio_runtime,
                                 tpm,
+                                hsm_lock.clone(),
                             )?;
                         start_edgelet!(key_store, provisioning_result, root_key, runtime);
                     }
@@ -622,9 +634,16 @@ where
         mgmt_tx.send(()).unwrap_or(());
         work_tx.send(()).unwrap_or(());
 
+        // A -> EdgeRt Future
+        // B -> Restart Signal Future
         match res {
+            Ok(Either::A(_)) => Ok(StartApiReturnStatus::Shutdown).into_future(),
             Ok(Either::B(_)) => Ok(StartApiReturnStatus::Restart).into_future(),
-            _ => Ok(StartApiReturnStatus::Shutdown).into_future(),
+            Err(Either::A((err, _))) => Err(err).into_future(),
+            Err(Either::B(_)) => {
+                debug!("The restart signal failed, shutting down.");
+                Ok(StartApiReturnStatus::Shutdown).into_future()
+            }
         }
     });
 
@@ -773,6 +792,7 @@ fn dps_tpm_provision<HC, M>(
     runtime: M,
     tokio_runtime: &mut tokio::runtime::Runtime,
     tpm_attestation_info: &TpmAttestationInfo,
+    hsm_lock: Arc<HsmLock>,
 ) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey, M), Error>
 where
     HC: 'static + ClientImpl,
@@ -799,7 +819,7 @@ where
     .context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
-    let tpm_hsm = TpmKeyStore::from_hsm(tpm).context(ErrorKind::Initialize(
+    let tpm_hsm = TpmKeyStore::from_hsm(tpm, hsm_lock).context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
     let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
@@ -1165,7 +1185,7 @@ mod tests {
     fn default_settings_raise_unconfigured_error() {
         let settings = Settings::<DockerConfig>::new(None).unwrap();
         let main = Main::new(settings);
-        let result = main.run();
+        let result = main.run_until(signal::shutdown);
         match result.unwrap_err().kind() {
             ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
             kind => panic!("Expected `NotConfigured` but got {:?}", kind),

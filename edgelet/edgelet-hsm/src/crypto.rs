@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use chrono::{DateTime, Utc};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use failure::Fail;
 
@@ -25,41 +25,50 @@ use hsm::{
 
 use crate::certificate_properties::convert_properties;
 pub use crate::error::{Error, ErrorKind};
+use crate::HsmLock;
 
 /// The TPM Key Store.
 /// Activate a private key, and then you can use that key to sign data.
 #[derive(Clone)]
 pub struct Crypto {
-    crypto: Arc<Mutex<HsmCrypto>>,
+    crypto: Arc<HsmCrypto>,
+    hsm_lock: Arc<HsmLock>,
 }
 
+// HsmCrypto is Send and !Sync. However Crypto can be Sync since all access to Crypto::crypto
+// is controlled by the methods of Crypto, which all lock Crypto::hsm_lock first.
+//
+// For the same reason, Crypto also needs an explicit Send impl
+// since Arc<T>: Send requires T: Send + Sync.
+unsafe impl Send for Crypto {}
+unsafe impl Sync for Crypto {}
+
 impl Crypto {
-    pub fn new() -> Result<Self, Error> {
+    pub fn new(hsm_lock: Arc<HsmLock>) -> Result<Self, Error> {
         let hsm = HsmCrypto::new()?;
-        Crypto::from_hsm(hsm)
+        Crypto::from_hsm(hsm, hsm_lock)
     }
 
-    pub fn from_hsm(crypto: HsmCrypto) -> Result<Self, Error> {
+    pub fn from_hsm(crypto: HsmCrypto, hsm_lock: Arc<HsmLock>) -> Result<Self, Error> {
         Ok(Crypto {
-            crypto: Arc::new(Mutex::new(crypto)),
+            crypto: Arc::new(crypto),
+            hsm_lock,
         })
     }
 }
 
 impl CoreMasterEncryptionKey for Crypto {
     fn create_key(&self) -> Result<(), CoreError> {
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.crypto
-            .lock()
-            .expect("Lock on crypto structure failed")
             .create_master_encryption_key()
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
     }
 
     fn destroy_key(&self) -> Result<(), CoreError> {
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.crypto
-            .lock()
-            .expect("Lock on crypto structure failed")
             .destroy_master_encryption_key()
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
@@ -73,9 +82,10 @@ impl CoreCreateCertificate for Crypto {
         &self,
         properties: &CoreCertificateProperties,
     ) -> Result<Self::Certificate, CoreError> {
-        let crypto = self.crypto.lock().expect("Lock on crypto structure failed");
-        let device_ca_alias = crypto.get_device_ca_alias();
-        let cert = crypto
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        let device_ca_alias = self.crypto.get_device_ca_alias();
+        let cert = self
+            .crypto
             .create_certificate(&convert_properties(properties, &device_ca_alias))
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateCreate)))?;
@@ -83,9 +93,8 @@ impl CoreCreateCertificate for Crypto {
     }
 
     fn destroy_certificate(&self, alias: String) -> Result<(), CoreError> {
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.crypto
-            .lock()
-            .expect("Lock on crypto structure failed")
             .destroy_certificate(alias)
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateDestroy)))?;
@@ -93,10 +102,9 @@ impl CoreCreateCertificate for Crypto {
     }
 
     fn get_certificate(&self, alias: String) -> Result<Self::Certificate, CoreError> {
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         let cert = self
             .crypto
-            .lock()
-            .expect("Lock on crypto structure failed")
             .get(alias)
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateGet)))?;
@@ -113,9 +121,8 @@ impl CoreEncrypt for Crypto {
         plaintext: &[u8],
         initialization_vector: &[u8],
     ) -> Result<Self::Buffer, CoreError> {
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.crypto
-            .lock()
-            .expect("Lock on crypto structure failed")
             .encrypt(client_id, plaintext, initialization_vector)
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
@@ -131,9 +138,8 @@ impl CoreDecrypt for Crypto {
         ciphertext: &[u8],
         initialization_vector: &[u8],
     ) -> Result<Self::Buffer, CoreError> {
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         self.crypto
-            .lock()
-            .expect("Lock on crypto structure failed")
             .decrypt(client_id, ciphertext, initialization_vector)
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::KeyStore)))
@@ -143,8 +149,8 @@ impl CoreDecrypt for Crypto {
 impl CoreGetIssuerAlias for Crypto {
     fn get_issuer_alias(&self, issuer: CoreCertificateIssuer) -> Result<String, CoreError> {
         if issuer == CoreCertificateIssuer::DeviceCa {
-            let crypto = self.crypto.lock().expect("Lock on crypto structure failed");
-            Ok(crypto.get_device_ca_alias())
+            let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+            Ok(self.crypto.get_device_ca_alias())
         } else {
             Err(CoreError::from(CoreErrorKind::InvalidIssuer))
         }
@@ -155,10 +161,9 @@ impl CoreGetTrustBundle for Crypto {
     type Certificate = Certificate;
 
     fn get_trust_bundle(&self) -> Result<Self::Certificate, CoreError> {
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
         let cert = self
             .crypto
-            .lock()
-            .expect("Lock on crypto structure failed")
             .get_trust_bundle()
             .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
             .map_err(|err| CoreError::from(err.context(CoreErrorKind::CertificateGet)))?;

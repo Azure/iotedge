@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -293,7 +294,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
             var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
-            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, filter);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             var receivedBytes = new List<byte>();
 
@@ -310,7 +311,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             // Assert
             Assert.NotEmpty(receivedBytes);
             string receivedText = receivedBytes
-                .Skip(8)
                 .ToArray()
                 .FromBytes();
             Assert.Equal(TestLogTexts[0], receivedText);
@@ -329,7 +329,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
             var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
-            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, filter);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             var receivedBytes = new List<byte>();
 
@@ -366,7 +366,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
             var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
-            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter);
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             var receivedBytes = new List<byte>();
 
@@ -383,10 +383,165 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             // Assert
             Assert.NotEmpty(receivedBytes);
             string receivedText = Compression.DecompressFromGzip(receivedBytes.ToArray())
-                .Skip(8)
                 .ToArray()
                 .FromBytes();
             Assert.Equal(TestLogTexts[0], receivedText);
+        }
+
+        [Fact]
+        public async Task ProcessStreamWithSimpleFramingTest()
+        {
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "dev1";
+            string moduleId = "mod1";
+            int logLevel = 6;
+            string regex = "Starting";
+            var logMessageParser = new LogMessageParser(iotHub, deviceId);
+            var logsProcessor = new LogsProcessor(logMessageParser);
+            var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, filter, LogOutputFraming.SimpleLength, Option.None<LogsOutputGroupingConfig>(), false);
+
+            var receivedBytes = new List<byte>();
+
+            Task Callback(ArraySegment<byte> bytes)
+            {
+                receivedBytes.AddRange(bytes.ToArray());
+                return Task.CompletedTask;
+            }
+
+            // Act
+            await logsProcessor.ProcessLogsStream(moduleId, stream, logOptions, Callback);
+            await Task.Delay(TimeSpan.FromSeconds(5));
+
+            // Assert
+            Assert.NotEmpty(receivedBytes);
+            IList<string> receivedChunks = SimpleFraming.Parse(receivedBytes.ToArray())
+                .Select(r => Encoding.UTF8.GetString(r))
+                .ToList();
+            Assert.Equal(1, receivedChunks.Count);
+        }
+
+        [Fact]
+        public async Task ProcessStreamToMessageWithSimpleFramingTest()
+        {
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "dev1";
+            string moduleId = "mod1";
+            int logLevel = 6;
+            string regex = "Starting";
+            var logMessageParser = new LogMessageParser(iotHub, deviceId);
+            var logsProcessor = new LogsProcessor(logMessageParser);
+            var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.Some(logLevel), Option.Some(regex));
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, filter, LogOutputFraming.SimpleLength, Option.None<LogsOutputGroupingConfig>(), false);
+
+            var receivedBytes = new List<byte>();
+
+            Task Callback(ArraySegment<byte> bytes)
+            {
+                receivedBytes.AddRange(bytes.ToArray());
+                return Task.CompletedTask;
+            }
+
+            // Act
+            await logsProcessor.ProcessLogsStream(moduleId, stream, logOptions, Callback);
+            await Task.Delay(TimeSpan.FromSeconds(5));
+
+            // Assert
+            Assert.NotEmpty(receivedBytes);
+            IList<ModuleLogMessage> receivedChunks = SimpleFraming.Parse(receivedBytes.ToArray())
+                .Select(r => r.FromBytes<ModuleLogMessage>())
+                .ToList();
+            Assert.Equal(1, receivedChunks.Count);
+            var logMessage = receivedChunks[0];
+            Assert.Equal(iotHub, logMessage.IoTHub);
+            Assert.Equal(deviceId, logMessage.DeviceId);
+            Assert.Equal(moduleId, logMessage.ModuleId);
+            Assert.Equal(6, logMessage.LogLevel);
+            Assert.Contains(logMessage.Text, TestLogTexts[0]);
+        }
+
+        [Fact]
+        public async Task ProcessStreamWithGroupingGzipTest()
+        {
+            // Arrange
+            string iotHub = "foo.azure-devices.net";
+            string deviceId = "dev1";
+            string moduleId = "mod1";
+            var logMessageParser = new LogMessageParser(iotHub, deviceId);
+            var logsProcessor = new LogsProcessor(logMessageParser);
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.None<int>(), Option.None<string>());
+
+            var stream1 = new MemoryStream(DockerFraming.Frame(TestLogTexts));
+            var logOptions1 = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
+
+            var receivedBytes1 = new List<byte>();
+
+            Task Callback1(ArraySegment<byte> bytes)
+            {
+                receivedBytes1.AddRange(bytes.ToArray());
+                return Task.CompletedTask;
+            }
+
+            // Act
+            await logsProcessor.ProcessLogsStream(moduleId, stream1, logOptions1, Callback1);
+
+            // Assert
+            Assert.NotEmpty(receivedBytes1);
+            string receivedText1 = receivedBytes1.ToArray()
+                .FromBytes();
+            Assert.Equal(string.Join(string.Empty, TestLogTexts), receivedText1);
+
+            // Arrange
+            var stream2 = new MemoryStream(DockerFraming.Frame(TestLogTexts));
+            var logOptions2 = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
+
+            var receivedBytes2 = new List<ArraySegment<byte>>();
+
+            Task Callback2(ArraySegment<byte> bytes)
+            {
+                receivedBytes2.Add(bytes);
+                return Task.CompletedTask;
+            }
+
+            // Act
+            await logsProcessor.ProcessLogsStream(moduleId, stream2, logOptions2, Callback2);
+
+            // Assert
+            Assert.NotEmpty(receivedBytes2);
+            IEnumerable<string> receivedText2 = receivedBytes2
+                .Select(r => Compression.DecompressFromGzip(r.ToArray()))
+                .Select(r => r.FromBytes());
+            Assert.Equal(TestLogTexts, receivedText2);
+
+            // Arrange
+            var stream3 = new MemoryStream(DockerFraming.Frame(TestLogTexts));
+            var logOptions3 = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter, LogOutputFraming.None, Option.Some(new LogsOutputGroupingConfig(100, TimeSpan.FromSeconds(10))), false);
+
+            var receivedBytes3 = new List<ArraySegment<byte>>();
+
+            Task Callback3(ArraySegment<byte> bytes)
+            {
+                receivedBytes3.Add(bytes);
+                return Task.CompletedTask;
+            }
+
+            // Act
+            await logsProcessor.ProcessLogsStream(moduleId, stream3, logOptions3, Callback3);
+
+            // Assert
+            Assert.NotEmpty(receivedBytes3);
+            IEnumerable<string> receivedText3 = receivedBytes3
+                .Select(r => Compression.DecompressFromGzip(r.ToArray()))
+                .Select(r => r.FromBytes());
+            Assert.Equal(string.Join(string.Empty, TestLogTexts), receivedText3.First());
+
+            int countBytes2 = receivedBytes2.Select(r => r.Count).Sum();
+            int countBytes3 = receivedBytes3.Select(r => r.Count).Sum();
+            Assert.True(countBytes2 > countBytes3);
         }
     }
 }

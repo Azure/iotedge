@@ -1,5 +1,6 @@
 #include <openssl/err.h>
 #include <openssl/x509.h>
+
 #include "azure_c_shared_utility/gballoc.h"
 #include "edge_openssl_common.h"
 

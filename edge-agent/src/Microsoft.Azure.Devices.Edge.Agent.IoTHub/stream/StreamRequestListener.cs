@@ -15,12 +15,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
         readonly CancellationTokenSource cts = new CancellationTokenSource();
         readonly IStreamRequestHandlerProvider streamRequestHandlerProvider;
         readonly SemaphoreSlim streamLock;
+        readonly int maxConcurrentStreams;
         Task pumpTask;
 
         public StreamRequestListener(IStreamRequestHandlerProvider streamRequestHandlerProvider, int maxConcurrentStreams = 10)
         {
             this.streamRequestHandlerProvider = Preconditions.CheckNotNull(streamRequestHandlerProvider, nameof(streamRequestHandlerProvider));
             this.streamLock = new SemaphoreSlim(maxConcurrentStreams);
+            this.maxConcurrentStreams = maxConcurrentStreams;
         }
 
         public void InitPump(IModuleClient moduleClient)
@@ -67,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
                 result.ForEach(
                     r =>
                     {
-                        Events.NewStreamRequest(r.requestName, this.streamLock.CurrentCount);
+                        Events.NewStreamRequest(r.requestName, this.streamLock.CurrentCount, this.maxConcurrentStreams);
                         this.HandleRequest(r.requestName, r.clientWebSocket);
                     });
             }
@@ -167,9 +169,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
                 Log.LogInformation((int)EventIds.RequestCompleted, $"Request for {requestName} completed");
             }
 
-            public static void NewStreamRequest(string requestName, int streamLockCurrentCount)
+            public static void NewStreamRequest(string requestName, int streamLockCurrentCount, int maxConcurrentStreams)
             {
-                Log.LogInformation((int)EventIds.NewStreamRequest, $"Received new stream request for {requestName}. Streams count = {streamLockCurrentCount}");
+                Log.LogInformation((int)EventIds.NewStreamRequest, $"Received new stream request for {requestName}. Streams count = {maxConcurrentStreams - streamLockCurrentCount}");
             }
 
             public static void HandlerFound(string requestName)
