@@ -798,61 +798,56 @@ where
     Box::new(match pid {
         Pid::None => Either::A(future::ok(AuthId::None)),
         Pid::Any => Either::A(future::ok(AuthId::Any)),
-        Pid::Value(pid) => {
-            Either::B(
-                // to authenticate request we need to determine whether given pid corresponds to
-                // any pid from any module. In order to do so, we are getting a list of all running
-                // modules and for each of them execute docker top command. There can be errors
-                // during a multiple requests, so we are filtered out those modules that we active
-                // during docker inspect operation but have gone after (NotFound and TopModule errors).
-                runtime
-                    .list()
-                    .map(move |list| {
-                        stream::futures_unordered(list.into_iter().filter_map(|module| {
-                            if expected_module_id.is_none()
-                                || *expected_module_id.as_ref().unwrap() == module.name()
-                            {
-                                Some(module.top())
-                            } else {
-                                None
-                            }
-                        }))
-                    })
-                    .into_stream()
-                    .flatten()
-                    .then(|result| match result {
-                        Ok(top) => Ok(Some(top)),
-                        Err(err) => match err.kind() {
-                            ErrorKind::NotFound(_)
-                            | ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(_)) => {
-                                Ok(None)
-                            }
-                            _ => Err(err),
-                        },
-                    })
-                    .filter_map(move |top| {
-                        top.and_then(|top| {
-                            if top.process_ids().contains(&pid) {
-                                Some(top.name().to_string())
-                            } else {
-                                None
-                            }
+        Pid::Value(pid) => Either::B(
+            // to authenticate request we need to determine whether given pid corresponds to
+            // any pid from a module with provided module name. In order to do so, we are
+            // load a list of all running modules and execute docker top command only for
+            // the module that have corresponding name. There can be errors during requests,
+            // so we are filtered out those modules that we active during docker inspect
+            // operation but have gone after (NotFound and TopModule errors).
+            match expected_module_id {
+                None => Either::A(future::ok(AuthId::None)),
+                Some(expected_module_id) => Either::B(
+                    runtime
+                        .list()
+                        .map(move |list| {
+                            list.into_iter()
+                                .find(|module| expected_module_id == module.name())
                         })
-                    })
-                    .into_future()
-                    .then(move |result| match result {
-                        Ok((Some(m), _)) => Ok(AuthId::Value(m.into())),
-                        Ok((None, _)) => {
-                            info!("Unable to find a module for caller pid: {}", pid);
-                            Ok(AuthId::None)
-                        }
-                        Err((err, _)) => {
-                            log_failure(Level::Warn, &err);
-                            Err(err)
-                        }
-                    }),
-            )
-        }
+                        .and_then(|module| module.and_then(|module| Some(module.top())))
+                        .then(|result| match result {
+                            Ok(top) => Ok(top),
+                            Err(err) => match err.kind() {
+                                ErrorKind::NotFound(_)
+                                | ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(_)) => {
+                                    Ok(None)
+                                }
+                                _ => Err(err),
+                            },
+                        })
+                        .map(move |top| {
+                            top.and_then(|top| {
+                                if top.process_ids().contains(&pid) {
+                                    Some(top.name().to_string())
+                                } else {
+                                    None
+                                }
+                            })
+                        })
+                        .then(move |result| match result {
+                            Ok(Some(m)) => Ok(AuthId::Value(m.into())),
+                            Ok(None) => {
+                                info!("Unable to find a module for caller pid: {}", pid);
+                                Ok(AuthId::None)
+                            }
+                            Err(err) => {
+                                log_failure(Level::Warn, &err);
+                                Err(err)
+                            }
+                        }),
+                ),
+            },
+        ),
     })
 }
 
@@ -1321,6 +1316,7 @@ mod tests {
         let runtime = prepare_module_runtime_with_known_modules();
         let mut req = Request::default();
         req.extensions_mut().insert(Pid::Value(1000));
+        req.extensions_mut().insert(ModuleId::from("a"));
 
         let auth_id = runtime.authenticate(&req).wait().unwrap();
 
@@ -1332,6 +1328,7 @@ mod tests {
         let runtime = prepare_module_runtime_with_known_modules();
         let mut req = Request::default();
         req.extensions_mut().insert(Pid::Value(4001));
+        req.extensions_mut().insert(ModuleId::from("d"));
 
         let auth_id = runtime.authenticate(&req).wait().unwrap();
 

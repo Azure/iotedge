@@ -67,12 +67,12 @@ impl Policy {
         let name = name.map(|n| n.trim_start_matches('$'));
         match self {
             Policy::Anonymous => true,
-            Policy::Caller => self.auth_caller(name, auth_id),
-            Policy::Module(ref expected_name) => self.auth_caller(Some(expected_name), auth_id),
+            Policy::Caller => Policy::auth_caller(name, auth_id),
+            Policy::Module(ref expected_name) => Policy::auth_caller(Some(expected_name), auth_id),
         }
     }
 
-    fn auth_caller(&self, name: Option<&str>, auth_id: AuthId) -> bool {
+    fn auth_caller(name: Option<&str>, auth_id: AuthId) -> bool {
         name.map_or_else(
             || false,
             |name| match auth_id {
