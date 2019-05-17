@@ -151,5 +151,18 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 yield return current;
             }
         }
+
+        public static byte[] Combine(this IList<byte[]> arrays)
+        {
+            byte[] combinedBytes = new byte[arrays.Sum(a => a.Length)];
+            int dstOffset = 0;
+            foreach (byte[] array in arrays)
+            {
+                Buffer.BlockCopy(array, 0, combinedBytes, dstOffset, array.Length);
+                dstOffset += array.Length;
+            }
+
+            return combinedBytes;
+        }
     }
 }

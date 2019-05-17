@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 {
+    extern alias akka;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -28,30 +29,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         {
             LogsUploadRequest payload = payloadOption.Expect(() => new ArgumentException("Request payload not found"));
 
-            async Task<IList<string>> GetModuleIds()
-            {
-                if (payload.Id == Constants.AllModulesIdentifier)
-                {
-                    IEnumerable<ModuleRuntimeInfo> modules = await this.runtimeInfoProvider.GetModules(cancellationToken);
-                    return modules.Select(m => m.Name).ToList();
-                }
-                else
-                {
-                    return new List<string> { payload.Id };
-                }
-            }
-
-            var moduleLogOptions = new ModuleLogOptions(payload.Encoding, payload.ContentType, payload.Filter);
-            IList<string> moduleIds = await GetModuleIds();
-            IEnumerable<Task> uploadTasks = moduleIds.Select(m => this.UploadLogs(payload.SasUrl, m, moduleLogOptions, cancellationToken));
-            await Task.WhenAll(uploadTasks);
+            ILogsRequestToOptionsMapper requestToOptionsMapper = new LogsRequestToOptionsMapper(
+                this.runtimeInfoProvider,
+                payload.Encoding,
+                payload.ContentType,
+                LogOutputFraming.None,
+                Option.Some(new LogsOutputGroupingConfig(100, TimeSpan.FromSeconds(10))),
+                false);
+            IList<(string id, ModuleLogOptions logOptions)> logOptionsList = await requestToOptionsMapper.MapToLogOptions(payload.Items, cancellationToken);
+            IEnumerable<Task> uploadLogsTasks = logOptionsList.Select(l => this.UploadLogs(payload.SasUrl, l.id, l.logOptions, cancellationToken));
+            await Task.WhenAll(uploadLogsTasks);
             return Option.None<object>();
         }
 
         async Task UploadLogs(string sasUrl, string id, ModuleLogOptions moduleLogOptions, CancellationToken token)
         {
-            byte[] logBytes = await this.logsProvider.GetLogs(id, moduleLogOptions, token);
-            await this.logsUploader.Upload(sasUrl, id, logBytes, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
+            if (moduleLogOptions.ContentType == LogsContentType.Json)
+            {
+                byte[] logBytes = await this.logsProvider.GetLogs(id, moduleLogOptions, token);
+                await this.logsUploader.Upload(sasUrl, id, logBytes, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
+            }
+            else if (moduleLogOptions.ContentType == LogsContentType.Text)
+            {
+                Func<ArraySegment<byte>, Task> uploaderCallback = await this.logsUploader.GetUploaderCallback(sasUrl, id, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
+                await this.logsProvider.GetLogsStream(id, moduleLogOptions, uploaderCallback, token);
+            }
         }
     }
 }

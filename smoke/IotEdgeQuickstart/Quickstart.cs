@@ -11,6 +11,7 @@ namespace IotEdgeQuickstart
         readonly LeaveRunning leaveRunning;
         readonly bool noDeployment;
         readonly bool noVerify;
+        readonly bool bypassEdgeInstallation;
         readonly string verifyDataFromModule;
 
         public Quickstart(
@@ -26,6 +27,7 @@ namespace IotEdgeQuickstart
             LeaveRunning leaveRunning,
             bool noDeployment,
             bool noVerify,
+            bool bypassEdgeInstallation,
             string verifyDataFromModule,
             Option<string> deploymentFileName,
             Option<string> twinTestFileName,
@@ -40,6 +42,7 @@ namespace IotEdgeQuickstart
             this.leaveRunning = leaveRunning;
             this.noDeployment = noDeployment;
             this.noVerify = noVerify;
+            this.bypassEdgeInstallation = bypassEdgeInstallation;
             this.verifyDataFromModule = verifyDataFromModule;
         }
 
@@ -49,9 +52,12 @@ namespace IotEdgeQuickstart
             // its config. This could happen, for example, if someone were to create an at-scale deployment on the
             // test hub with the target condition: "NOT deviceId=''". Since this is an unlikely scenario, we won't
             // invest the effort to guard against it.
-            await this.VerifyEdgeIsNotAlreadyActive(); // don't accidentally overwrite an edge configuration on a dev machine
-            await this.VerifyBootstrapperDependencies();
-            await this.InstallBootstrapper();
+            if (!this.bypassEdgeInstallation)
+            {
+                await this.VerifyEdgeIsNotAlreadyActive(); // don't accidentally overwrite an edge configuration on a dev machine
+                await this.VerifyBootstrapperDependencies();
+                await this.InstallBootstrapper();
+            }
 
             try
             {
@@ -63,6 +69,7 @@ namespace IotEdgeQuickstart
                     await this.StartBootstrapper();
                     await this.VerifyEdgeAgentIsRunning();
                     await this.VerifyEdgeAgentIsConnectedToIotHub();
+
                     if (!this.noDeployment)
                     {
                         await this.DeployToEdgeDevice();

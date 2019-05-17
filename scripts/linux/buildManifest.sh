@@ -155,7 +155,10 @@ echo "Build image with following manifest:"
 cat $manifest
 
 echo "Done Building And Pushing Docker Images"
-$ROOT_FOLDER/bin/manifest-tool --debug push from-spec $IGNORE_MISSING $manifest
+
+curl -Lo /tmp/manifest-tool 'https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/manifest-tool-linux-amd64' &&
+    chmod +x /tmp/manifest-tool &&
+    /tmp/manifest-tool --debug push from-spec $IGNORE_MISSING $manifest
 [ $? -eq 0 ] || exit $?
 
 # Remove the temp file
