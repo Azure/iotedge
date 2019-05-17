@@ -12,11 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using App.Metrics.Timer;
     using Microsoft.Extensions.Configuration;
 
-    public static class Metrics
+    public static class Metrics2
     {
         static readonly object gaugeListLock;
 
-        static Metrics()
+        static Metrics2()
         {
             MetricsCollector = Option.None<IMetricsRoot>();
             Gauges = new List<Action>();
