@@ -49,12 +49,6 @@ jobs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
-      - bash: |
-            echo "build artifact staging dir=$(Build.ArtifactStagingDirectory)"
-            echo "build staging dir=$(Build.StagingDirectory)"
-            echo "system artifact dir=$(System.ArtifactsDirectory)"
-        displayName: 'Print for debug'
-        workingDirectory: '$(Agent.HomeDirectory)'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -63,6 +57,7 @@ jobs:
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
@@ -72,6 +67,7 @@ jobs:
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
@@ -111,6 +107,7 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu-armhf'
     steps:
+      - checkout: none
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
@@ -181,6 +178,7 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu-armhf'
     steps:
+      - checkout: none
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
@@ -251,6 +249,7 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu16.04-aarch64'
     steps:
+      - checkout: none
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
@@ -321,6 +320,7 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu16.04-aarch64'
     steps:
+      - checkout: none
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
@@ -389,6 +389,7 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-windows'
     steps:
+      - checkout: none
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
