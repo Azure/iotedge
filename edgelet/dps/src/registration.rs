@@ -302,19 +302,20 @@ where
 
     fn register_with_x509_auth(
         client: &Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
-        scope_id: String,
+        scope_id: &str,
         registration_id: String,
         _key_store: &A,
     ) -> Box<dyn Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
         let cli = client.clone();
-        let registration = DeviceRegistration::new().with_registration_id(registration_id.clone());
+        let uri_path = format!("{}/registrations/{}/register", scope_id, registration_id);
+        let registration = DeviceRegistration::new().with_registration_id(registration_id);
         let cli = cli.read().expect("RwLock read failure").clone();
         let f = cli
             .request::<DeviceRegistration, RegistrationOperationStatus>(
                 Method::PUT,
-                &format!("{}/registrations/{}/register", scope_id, registration_id),
+                &uri_path,
                 None,
-                Some(registration.clone()),
+                Some(registration),
                 false,
             )
             .map_err(|err| Error::from(err.context(ErrorKind::RegisterWithX509IdentityCertificate)))
@@ -491,7 +492,7 @@ where
                 use_x509_auth = true;
                 Self::register_with_x509_auth(
                     &self.client,
-                    scope_id.clone(),
+                    &scope_id,
                     registration_id.clone(),
                     &self.key_store,
                 )
@@ -776,7 +777,7 @@ mod tests {
         let empty_key_store = MemoryKeyStore::new();
         let task = DpsClient::register_with_x509_auth(
             &client,
-            "scope".to_string(),
+            "scope",
             "reg".to_string(),
             &empty_key_store,
         )
