@@ -289,12 +289,20 @@ where
         let spec = spec.with_env(env);
 
         println!("{:?}", spec.pull_policy());
-        let pull_future: Box<dyn Future<Item=_, Error=_> + Send> = match spec.pull_policy() {
-            PullPolicy::Never => Box::new(future::ok(())),
+//        let pull_future: Box<dyn Future<Item=_, Error=_> + Send> = match spec.pull_policy() {
+//            PullPolicy::Never => Box::new(future::ok(())),
+//            PullPolicy::Always =>
+//                    Box::new(runtime
+//                        .registry()
+//                        .pull(spec.clone().config()))
+//        };
+
+        let pull_future = match spec.pull_policy() {
+            PullPolicy::Never => Either::A(future::ok(())),
             PullPolicy::Always =>
-                    Box::new(runtime
-                        .registry()
-                        .pull(spec.clone().config()))
+                Either::B(runtime
+                    .registry()
+                    .pull(spec.clone().config()))
         };
 
         pull_future

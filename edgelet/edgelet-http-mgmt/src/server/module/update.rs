@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use failure::ResultExt;
+use futures::future::Either;
 use futures::{future, Future, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
@@ -11,7 +12,7 @@ use serde::Serialize;
 use serde_json;
 use url::form_urlencoded::parse as parse_query;
 
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus};
+use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus, PullPolicy};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 
@@ -77,13 +78,29 @@ where
             })
             .and_then(|(core_spec, spec, name, runtime)| {
                 debug!("Removed existing module {}", name);
-                runtime.registry().pull(core_spec.config()).then(|result| {
-                    result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
-                    Ok((core_spec, spec, name, runtime))
-                })
+
+                match core_spec.pull_policy() {
+                    PullPolicy::Always =>
+                        Either::A(runtime.
+                        registry().
+                        pull(core_spec.config()).then(|result| {
+                        result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                        Ok((core_spec, spec, name, runtime))
+                    })),
+                    PullPolicy::Never => Either::B(futures::future::ok((core_spec, spec, name, runtime)))
+                }
+
+//                runtime.registry().pull(core_spec.config()).then(|result| {
+//                    result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+//                    Ok((core_spec, spec, name, runtime))
+//                })
             })
             .and_then(|(core_spec, spec, name, runtime)| {
-                debug!("Successfully pulled new image for module {}", name);
+                match core_spec.pull_policy() {
+                    PullPolicy::Always => debug!("Successfully pulled new image for module {}", name),
+                    PullPolicy::Never => debug!("Skipped pulling image for module {} due to pull policy", name)
+                };
+
                 runtime.create(core_spec).then(|result| {
                     result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
                     Ok((name, spec, runtime))

@@ -102,6 +102,7 @@ fn build_libiothsm() {
 
     println!("#Start building shared utilities");
     let _shared = Config::new(c_shared_repo)
+        .generator("Visual Studio 16 2019")
         .define(SSL_OPTION, "ON")
         .define("CMAKE_BUILD_TYPE", "Release")
         .define("run_unittests", "OFF")
@@ -115,6 +116,7 @@ fn build_libiothsm() {
 
     println!("#Also build micro tpm library");
     let _shared = Config::new(utpm_repo)
+        .generator("Visual Studio 16 2019")
         .define(SSL_OPTION, "ON")
         .define("CMAKE_BUILD_TYPE", "Release")
         .define("run_unittests", "OFF")
@@ -138,6 +140,7 @@ fn build_libiothsm() {
     };
     println!("#Start building HSM dev-mode library");
     let iothsm = Config::new("azure-iot-hsm-c")
+        .generator("Visual Studio 16 2019")
         .define(SSL_OPTION, "ON")
         .define("CMAKE_BUILD_TYPE", "Release")
         .define("run_unittests", rut)

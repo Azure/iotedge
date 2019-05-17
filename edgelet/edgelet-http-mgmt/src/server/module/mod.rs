@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::HashMap;
+use std::str::FromStr;
 
 use failure::Fail;
 use serde::de::DeserializeOwned;
@@ -55,10 +56,11 @@ where
         Err(err) => return Err(Error::from(err.context(context))),
     };
 
-    let pull_policy = spec.pull_policy().map_or(PullPolicy::default(), |policy| match PullPolicy::from_str(policy){
+    let pull_policy = match spec.pull_policy().map_or(Ok(PullPolicy::default()),
+                                                |policy| PullPolicy::from_str(policy)) {
         Ok(pull_policy) => pull_policy,
-        Err(err) => return Err(Error::from(err.context(context)))
-    });
+        Err(_err) => return Err(Error::from(context)),
+    };
 
     let module_spec = match CoreModuleSpec::new(name, type_, config, env, pull_policy) {
         Ok(module_spec) => module_spec,
@@ -72,6 +74,7 @@ fn spec_to_details(spec: &ModuleSpec, module_status: ModuleStatus) -> ModuleDeta
     let id = spec.name().clone();
     let name = spec.name().clone();
     let type_ = spec.type_().clone();
+    let _pull_policy = spec.pull_policy().clone();
 
     let env = spec.config().env().map(|e| {
         e.iter()
@@ -85,7 +88,7 @@ fn spec_to_details(spec: &ModuleSpec, module_status: ModuleStatus) -> ModuleDeta
 
     let runtime_status = RuntimeStatus::new(module_status.to_string());
     let status = Status::new(runtime_status);
-    ModuleDetails::new(id, name, type_, config, status)
+    ModuleDetails::new(id, name, type_, config, status, "a".to_string())
 }
 
 #[cfg(test)]

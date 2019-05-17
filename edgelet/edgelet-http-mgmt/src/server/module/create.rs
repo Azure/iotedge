@@ -1,14 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use failure::{Fail, ResultExt};
+use futures::future::Either;
 use futures::{Future, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
+use log::debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;
 
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus, RuntimeOperation};
+use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus, RuntimeOperation, PullPolicy};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use management::models::*;
@@ -50,36 +52,61 @@ where
                 })
                 .and_then(move |(spec, core_spec)| {
                     let module_name = spec.name().to_string();
-                    runtime
-                        .registry()
-                        .pull(core_spec.config())
-                        .then(move |result| match result {
-                            Ok(_) => Ok(runtime.create(core_spec).then(
-                                move |result| -> Result<_, Error> {
-                                    result.with_context(|_| {
-                                        ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
-                                            module_name.clone(),
-                                        ))
-                                    })?;
-                                    let details = spec_to_details(&spec, ModuleStatus::Stopped);
-                                    let b = serde_json::to_string(&details).with_context(|_| {
-                                        ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
-                                            module_name.clone(),
-                                        ))
-                                    })?;
-                                    let response = Response::builder()
-                                        .status(StatusCode::CREATED)
-                                        .header(CONTENT_TYPE, "application/json")
-                                        .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                                        .body(b.into())
-                                        .context(ErrorKind::RuntimeOperation(
-                                            RuntimeOperation::CreateModule(module_name),
-                                        ))?;
-                                    Ok(response)
-                                },
-                            )),
+                    let pull_policy = core_spec.pull_policy().clone();
+
+                    let pull_future = match pull_policy {
+                        PullPolicy::Always => {
+                            let name = module_name.clone();
+                            Either::A(runtime.
+                                registry().
+                                pull(core_spec.config()).then(move |result| {
+                                result.with_context(|_| ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                                    name.clone(),
+                                )))?;
+                                Ok((name, pull_policy))
+                            }))
+                        },
+                        PullPolicy::Never => Either::B(futures::future::ok((module_name.clone(), pull_policy)))
+                    };
+
+                        pull_future
+//                    runtime
+//                        .registry()
+//                        .pull(core_spec.config())
+                        .then(move |result: Result<(String, PullPolicy), Error>| match result {
+                            Ok((name, pull_policy)) => {
+                                match pull_policy {
+                                    PullPolicy::Always => debug!("Successfully pulled new image for module {}", name),
+                                    PullPolicy::Never => debug!("Skipped pulling image for module {} due to pull policy", name)
+                                };
+
+                                Ok(runtime.create(core_spec).then(
+                                    move |result| -> Result<_, Error> {
+                                        result.with_context(|_| {
+                                            ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                                                name.clone(),
+                                            ))
+                                        })?;
+                                        let details = spec_to_details(&spec, ModuleStatus::Stopped);
+                                        let b = serde_json::to_string(&details).with_context(|_| {
+                                            ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                                                name.clone(),
+                                            ))
+                                        })?;
+                                        let response = Response::builder()
+                                            .status(StatusCode::CREATED)
+                                            .header(CONTENT_TYPE, "application/json")
+                                            .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                                            .body(b.into())
+                                            .context(ErrorKind::RuntimeOperation(
+                                                RuntimeOperation::CreateModule(name),
+                                            ))?;
+                                        Ok(response)
+                                    },
+                                ))
+                            },
                             Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(
-                                RuntimeOperation::CreateModule(module_name),
+                                RuntimeOperation::CreateModule(module_name.clone()),
                             )))),
                         })
                 })

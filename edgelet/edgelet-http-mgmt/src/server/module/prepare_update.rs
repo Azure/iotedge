@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use failure::ResultExt;
+use futures::future::Either;
 use futures::{Future, Stream};
 use hyper::{Body, Request, Response, StatusCode};
 use log::debug;
@@ -8,7 +9,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;
 
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime};
+use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, PullPolicy};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 
@@ -49,13 +50,23 @@ where
             })
             .and_then(|(core_spec, runtime)| {
                 let name = core_spec.name().to_string();
-                runtime.registry().pull(core_spec.config()).then(|result| {
-                    result.with_context(|_| ErrorKind::PrepareUpdateModule(name.clone()))?;
-                    Ok(name)
-                })
+                let pull_policy = core_spec.pull_policy().clone();
+                match pull_policy {
+                    PullPolicy::Always => Either::A(runtime.
+                    registry().
+                    pull(core_spec.config()).then(move |result| {
+                        result.with_context(|_| ErrorKind::PrepareUpdateModule(name.clone()))?;
+                        Ok((name, pull_policy))
+                    })),
+                    PullPolicy::Never => Either::B(futures::future::ok((name, pull_policy)))
+                }
             })
-            .and_then(|name| -> Result<_, Error> {
-                debug!("Successfully pulled new image for module {}", name);
+            .and_then(|(name, pull_policy)| -> Result<_, Error> {
+                match pull_policy {
+                    PullPolicy::Always => debug!("Successfully pulled new image for module {}", name),
+                    PullPolicy::Never => debug!("Skipped pulling image for module {} due to pull policy", name)
+                };
+
                 let response = Response::builder()
                     .status(StatusCode::NO_CONTENT)
                     .body(Body::default())
