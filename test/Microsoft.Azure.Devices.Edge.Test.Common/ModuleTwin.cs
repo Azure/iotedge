@@ -26,14 +26,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task UpdateDesiredPropertiesAsync(object patch, CancellationToken token)
         {
             return Profiler.Run(
-                $"Updating twin for module '{this.moduleId}'",
-                () => this.iotHub.UpdateTwinAsync(this.deviceId, this.moduleId, patch, token));
+                () => this.iotHub.UpdateTwinAsync(this.deviceId, this.moduleId, patch, token),
+                "Updated twin for module '{Module}'",
+                this.moduleId);
         }
 
         public Task WaitForReportedPropertyUpdatesAsync(object expectedPatch, CancellationToken token)
         {
             return Profiler.Run(
-                $"Waiting for expected twin updates for module '{this.moduleId}'",
                 () =>
                 {
                     return Retry.Do(
@@ -53,7 +53,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         null,
                         TimeSpan.FromSeconds(5),
                         token);
-                });
+                },
+                "Received expected twin updates for module '{Module}'",
+                this.moduleId);
         }
     }
 }

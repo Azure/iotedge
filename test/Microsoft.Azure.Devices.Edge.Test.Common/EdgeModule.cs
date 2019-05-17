@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Serilog;
 
     public enum EdgeModuleStatus
     {
@@ -29,9 +30,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static Task WaitForStatusAsync(EdgeModule[] modules, EdgeModuleStatus desired, CancellationToken token)
         {
-            string FormatModulesList() => modules.Length == 1
-                ? $"module '{modules.First().Id}'"
-                : $"modules ({string.Join(", ", modules.Select(module => module.Id))})";
+            (string template, string[] args) FormatModulesList() => modules.Length == 1
+                ? ("module '{0}'", new[] { modules.First().Id })
+                : ("modules ({0})", modules.Select(module => module.Id).ToArray());
+
+            string SentenceCase(string input) =>
+                $"{input.First().ToString().ToUpper()}{input.Substring(1)}";
 
             async Task WaitForStatusAsync()
             {
@@ -40,9 +44,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     await Retry.Do(
                         async () =>
                         {
-                            string[] result = await Process.RunAsync("iotedge", "list", token);
+                            string[] output = await Process.RunAsync("iotedge", "list", token);
 
-                            return result
+                            Log.Verbose(string.Join("\n", output));
+
+                            return output
                                 .Where(
                                     ln =>
                                     {
@@ -76,17 +82,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 }
                 catch (OperationCanceledException)
                 {
-                    throw new Exception($"Error: timed out waiting for {FormatModulesList()} to start");
+                    (string t, string[] a) = FormatModulesList();
+                    throw new Exception(string.Format($"Error: timed out waiting for {t} to start", a));
                 }
                 catch (Exception e)
                 {
-                    throw new Exception($"Error searching for {FormatModulesList()}: {e}");
+                    (string t, string[] a) = FormatModulesList();
+                    throw new Exception(string.Format($"Error searching for {t}: {e}", a));
                 }
             }
 
+            (string template, string[] args) = FormatModulesList();
             return Profiler.Run(
-                $"Waiting for {FormatModulesList()} to enter the '{desired.ToString().ToLower()}' state",
-                WaitForStatusAsync);
+                WaitForStatusAsync,
+                string.Format(SentenceCase(template), "{Modules}") + " entered the '{Desired}' state",
+                string.Join(", ", args),
+                desired.ToString().ToLower());
         }
 
         public Task WaitForStatusAsync(EdgeModuleStatus desired, CancellationToken token)
@@ -97,7 +108,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task WaitForEventsReceivedAsync(CancellationToken token)
         {
             return Profiler.Run(
-                $"Receiving events from device '{this.deviceId}' on Event Hub '{this.iotHub.EntityPath}'",
                 () => this.iotHub.ReceiveEventsAsync(
                     this.deviceId,
                     data =>
@@ -108,7 +118,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         return devId != null && devId.ToString().Equals(this.deviceId)
                                              && modId != null && modId.ToString().Equals(this.Id);
                     },
-                    token));
+                    token),
+                "Received events from device '{Device}' on Event Hub '{EventHub}'",
+                this.deviceId,
+                this.iotHub.EntityPath);
         }
     }
 }

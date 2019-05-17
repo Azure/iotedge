@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Serilog;
 
     public enum EdgeDaemonStatus
     {
@@ -41,12 +42,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 installCommand
             };
 
-            string message = "Installing edge daemon";
-            packagesPath.ForEach(p => message += $" from packages in '{p}'");
+            string message = "Installed edge daemon";
+            var properties = new object[] { };
+            packagesPath.ForEach(p =>
+            {
+                message += " from packages in '{InstallPackagePath}'";
+                properties = new object[] { p };
+            });
 
             return Profiler.Run(
+                async () =>
+                {
+                    string[] output =
+                        await Process.RunAsync("powershell", string.Join(";", commands), token);
+                    Log.Verbose(string.Join("\n", output));
+                },
                 message,
-                () => Process.RunAsync("powershell", string.Join(";", commands), token));
+                properties);
         }
 
         public Task UninstallAsync(CancellationToken token)
@@ -58,15 +70,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 "Uninstall-IoTEdge -Force"
             };
             return Profiler.Run(
-                "Uninstalling edge daemon",
-                () => Process.RunAsync("powershell", string.Join(";", commands), token));
+                async () =>
+                {
+                    string[] output =
+                        await Process.RunAsync("powershell", string.Join(";", commands), token);
+                    Log.Verbose(string.Join("\n", output));
+                },
+                "Uninstalled edge daemon");
         }
 
         public Task StartAsync(CancellationToken token)
         {
             var sc = new ServiceController("iotedge");
             return Profiler.Run(
-                "Starting edge daemon",
                 async () =>
                 {
                     if (sc.Status != ServiceControllerStatus.Running)
@@ -74,14 +90,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         sc.Start();
                         await this.WaitForStatusAsync(sc, ServiceControllerStatus.Running, token);
                     }
-                });
+                },
+                "Started edge daemon");
         }
 
         public Task StopAsync(CancellationToken token)
         {
             var sc = new ServiceController("iotedge");
             return Profiler.Run(
-                "Stopping edge daemon",
                 async () =>
                 {
                     if (sc.Status != ServiceControllerStatus.Stopped)
@@ -89,15 +105,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         sc.Stop();
                         await this.WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
                     }
-                });
+                },
+                "Stopped edge daemon");
         }
 
         public Task WaitForStatusAsync(EdgeDaemonStatus desired, CancellationToken token)
         {
             var sc = new ServiceController("iotedge");
             return Profiler.Run(
-                $"Waiting for edge daemon to enter the '{desired.ToString().ToLower()}' state",
-                () => this.WaitForStatusAsync(sc, (ServiceControllerStatus)desired, token));
+                () => this.WaitForStatusAsync(sc, (ServiceControllerStatus)desired, token),
+                "Edge daemon entered the '{Desired}' state",
+                desired.ToString().ToLower());
         }
 
         async Task WaitForStatusAsync(ServiceController sc, ServiceControllerStatus desired, CancellationToken token)
