@@ -785,7 +785,7 @@ fn authenticate<MR>(
 where
     MR: ModuleRuntime<Error = Error>,
     <MR as ModuleRuntime>::ListFuture: 'static,
-    MR::Module: DockerModuleTop<Error = Error>,
+    MR::Module: DockerModuleTop<Error = Error> + 'static,
 {
     let pid = req
         .extensions()
