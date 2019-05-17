@@ -308,13 +308,12 @@ where
 
 pub struct DpsX509Provisioning<C>
 where
-    C: ClientImpl
+    C: ClientImpl,
 {
     client: HttpClient<C, DpsTokenSource<MemoryKey>>,
     scope_id: String,
     registration_id: String,
 }
-
 
 impl<C> DpsX509Provisioning<C>
 where
@@ -379,7 +378,7 @@ where
                             device_id,
                             hub_name,
                             reconfigure,
-                            sha256_thumbprint: None
+                            sha256_thumbprint: None,
                         }
                     })
                     .map_err(|err| Error::from(err.context(ErrorKind::Provision))),
