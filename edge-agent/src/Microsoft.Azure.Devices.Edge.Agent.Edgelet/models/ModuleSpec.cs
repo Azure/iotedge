@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models
 
         public ModuleSpec(string name, string type, PullPolicy pullPolicy, object settings, IEnumerable<EnvVar> environmentVariables)
         {
-            this.PullPolicy = PullPolicy;
+            this.PullPolicy = pullPolicy;
             this.Name = Preconditions.CheckNonWhiteSpace(name, nameof(name));
             this.Type = Preconditions.CheckNonWhiteSpace(type, nameof(type));
             this.Settings = Preconditions.CheckNotNull(settings, nameof(settings));
