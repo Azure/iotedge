@@ -55,7 +55,12 @@ where
         Err(err) => return Err(Error::from(err.context(context))),
     };
 
-    let module_spec = match CoreModuleSpec::new(name, type_, config, env, PullPolicy::default()) {
+    let pull_policy = spec.pull_policy().map_or(PullPolicy::default(), |policy| match PullPolicy::from_str(policy){
+        Ok(pull_policy) => pull_policy,
+        Err(err) => return Err(Error::from(err.context(context)))
+    });
+
+    let module_spec = match CoreModuleSpec::new(name, type_, config, env, pull_policy) {
         Ok(module_spec) => module_spec,
         Err(err) => return Err(Error::from(err.context(context))),
     };

@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             string statusDescription,
             DateTime lastStartTimeUtc,
             DateTime lastExitTime,
+            PullPolicy pullPolicy,
             ConfigurationInfo configuration,
             IDictionary<string, EnvVal> env,
             string version = "")
@@ -32,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 0,
                 DateTime.MinValue,
                 runtimeStatus,
+                pullPolicy,
                 configuration,
                 env)
         {
@@ -70,6 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.StatusDescription,
             this.LastStartTimeUtc,
             this.LastExitTimeUtc,
+            this.PullPolicy,
             this.ConfigurationInfo,
             this.Env,
             this.Version);

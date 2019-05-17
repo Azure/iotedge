@@ -22,9 +22,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             int restartCount,
             DateTime lastRestartTime,
             ModuleStatus runtimeStatus,
+            PullPolicy pullPolicy,
             ConfigurationInfo configuration,
             IDictionary<string, EnvVal> env)
-            : base(name, version, desiredStatus, restartPolicy, config, configuration, env)
+            : base(name, version, desiredStatus, restartPolicy, config, pullPolicy, configuration, env)
         {
             this.ExitCode = exitCode;
             this.StatusDescription = statusDescription;
@@ -50,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             int restartCount,
             DateTime lastRestartTimeUtc,
             ModuleStatus runtimeStatus,
+            PullPolicy pullPolicy,
             ConfigurationInfo configurationInfo,
             IDictionary<string, EnvVal> env)
             : this(
@@ -65,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 restartCount,
                 lastRestartTimeUtc,
                 runtimeStatus,
+                pullPolicy,
                 configurationInfo,
                 env)
         {
@@ -153,6 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.RestartCount,
             this.LastRestartTimeUtc,
             newStatus,
+            this.PullPolicy,
             this.ConfigurationInfo,
             this.Env);
     }

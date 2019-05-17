@@ -81,6 +81,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         Unknown
     }
 
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum PullPolicy
+    {
+        [EnumMember(Value = "always")]
+        Always = 0,
+
+        [EnumMember(Value = "never")]
+        Never = 1,
+    }
+
     public interface IModule : IEquatable<IModule>
     {
         [JsonIgnore]
@@ -97,6 +107,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         [JsonProperty(PropertyName = "restartPolicy")]
         RestartPolicy RestartPolicy { get; }
+
+        [JsonProperty(PropertyName = "pullPolicy")]
+        PullPolicy PullPolicy { get; }
 
         [JsonIgnore]
         ConfigurationInfo ConfigurationInfo { get; }

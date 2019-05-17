@@ -1682,6 +1682,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.Generate
         [Newtonsoft.Json.JsonProperty("status", Required = Newtonsoft.Json.Required.Always)]
         public Status Status { get; set; } = new Status();
 
+        [Newtonsoft.Json.JsonProperty("pullPolicy", Required = Newtonsoft.Json.Required.Always)]
+        [Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
+        public PullPolicy PullPolicy { get; set; }
+
         public string ToJson()
         {
             return Newtonsoft.Json.JsonConvert.SerializeObject(this);
@@ -1703,6 +1707,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.Generate
 
         [Newtonsoft.Json.JsonProperty("type", Required = Newtonsoft.Json.Required.Always)]
         public string Type { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("pullPolicy", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        [Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
+        public PullPolicy? PullPolicy { get; set; }
 
         [Newtonsoft.Json.JsonProperty("config", Required = Newtonsoft.Json.Required.Always)]
         public Config Config { get; set; } = new Config();
@@ -1954,6 +1962,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.Generate
         {
             return Newtonsoft.Json.JsonConvert.DeserializeObject<ErrorResponse>(data);
         }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "9.13.2.0 (Newtonsoft.Json v11.0.0.0)")]
+    public enum PullPolicy
+    {
+        [System.Runtime.Serialization.EnumMember(Value = @"Always")]
+        Always = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Never")]
+        Never = 1,
 
     }
 

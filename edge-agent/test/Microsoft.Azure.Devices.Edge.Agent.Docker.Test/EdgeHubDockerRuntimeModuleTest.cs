@@ -27,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 0,
                 DateTime.MinValue,
                 ModuleStatus.Running,
+                PullPolicy.Always,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
 
@@ -96,6 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 0,
                 DateTime.MinValue,
                 ModuleStatus.Running,
+                PullPolicy.Always,
                 null,
                 new Dictionary<string, EnvVal>());
 
@@ -113,6 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 ModuleStatus.Running,
                 RestartPolicy.Always,
                 new DockerConfig(image),
+                PullPolicy.Always,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
 
@@ -127,6 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 0,
                 DateTime.MinValue,
                 ModuleStatus.Running,
+                PullPolicy.Always,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
 
@@ -152,6 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 0,
                 DateTime.MinValue,
                 ModuleStatus.Running,
+                PullPolicy.Always,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
             var updatedModule1 = (EdgeHubDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Running);

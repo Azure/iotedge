@@ -521,6 +521,18 @@ impl Default for PullPolicy {
     }
 }
 
+impl FromStr for PullPolicy {
+    type Err = ();
+
+    fn from_str(s: &str) -> StdResult<PullPolicy, ()> {
+        match s.to_lowercase().as_str() {
+            "always" => Ok(PullPolicy::Always),
+            "never" => Ok(PullPolicy::Never),
+            _ => Err(()),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

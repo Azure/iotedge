@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             // Arrange
             IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            var moduleSpec = new ModuleSpec("Module1", "Docker", JObject.Parse("{ \"image\": \"testimage\" }"), new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
+            var moduleSpec = new ModuleSpec("Module1", "Docker", PullPolicy.Always, JObject.Parse("{ \"image\": \"testimage\" }"), new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
 
             // Act
             await client.CreateModuleAsync(moduleSpec);
@@ -229,6 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var moduleSpec = new ModuleSpec(
                 "Module1",
                 "Docker",
+                PullPolicy.Always,
                 JObject.Parse("{ \"image\": \"testimage\" }"),
                 new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
             IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);

@@ -15,10 +15,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             ModuleStatus status,
             RestartPolicy restartPolicy,
             DockerConfig settings,
+            PullPolicy pullPolicy,
             ConfigurationInfo configuration,
             IDictionary<string, EnvVal> env,
             string version = "")
-            : base(Core.Constants.EdgeHubModuleName, version, status, restartPolicy, settings, configuration, env)
+            : base(Core.Constants.EdgeHubModuleName, version, status, restartPolicy, settings, pullPolicy, configuration, env)
         {
             Preconditions.CheckArgument(type?.Equals("docker") ?? false);
             this.DesiredStatus = Preconditions.CheckIsDefined(status);

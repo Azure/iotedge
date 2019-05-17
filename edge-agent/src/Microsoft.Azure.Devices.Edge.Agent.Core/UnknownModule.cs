@@ -21,6 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public virtual RestartPolicy RestartPolicy => RestartPolicy.Never;
 
+        public virtual PullPolicy PullPolicy => PullPolicy.Always;
+
         public virtual ConfigurationInfo ConfigurationInfo => new ConfigurationInfo();
 
         public IDictionary<string, EnvVal> Env { get; } = ImmutableDictionary<string, EnvVal>.Empty;
@@ -57,6 +59,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         [JsonIgnore]
         public override RestartPolicy RestartPolicy => RestartPolicy.Never;
+
+        [JsonIgnore]
+        public override PullPolicy PullPolicy => PullPolicy.Always;
 
         [JsonIgnore]
         public override ModuleStatus DesiredStatus => ModuleStatus.Unknown;

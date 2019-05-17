@@ -12,36 +12,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         {
             yield return new object[]
             {
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), null, null),
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), null, null),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), PullPolicy.Always, null, null),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), PullPolicy.Always, null, null),
                 true
             };
 
             yield return new object[]
             {
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("EnvVal1") }, "version1"),
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), null, null),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), PullPolicy.Always, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("EnvVal1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), PullPolicy.Always, null, null),
                 true
             };
 
             yield return new object[]
             {
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("EnvVal1") }, "version1"),
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), new ConfigurationInfo("c2"), new Dictionary<string, EnvVal> { ["Env2"] = new EnvVal("EnvVal2") }, "version2"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), PullPolicy.Always, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("EnvVal1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), PullPolicy.Always, new ConfigurationInfo("c2"), new Dictionary<string, EnvVal> { ["Env2"] = new EnvVal("EnvVal2") }, "version2"),
                 true
             };
 
             yield return new object[]
             {
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{}"), new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("EnvVal1") }, "version1"),
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}]}}}"), new ConfigurationInfo("c2"), new Dictionary<string, EnvVal> { ["Env2"] = new EnvVal("EnvVal2") }, "version2"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{}"), PullPolicy.Always, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("EnvVal1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}]}}}"), PullPolicy.Always, new ConfigurationInfo("c2"), new Dictionary<string, EnvVal> { ["Env2"] = new EnvVal("EnvVal2") }, "version2"),
                 true
             };
 
             yield return new object[]
             {
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), null, null),
-                new EdgeAgentDockerModule("docker", new DockerConfig("Bar"), null, null),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), PullPolicy.Always, null, null),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Bar"), PullPolicy.Always, null, null),
                 false
             };
         }
