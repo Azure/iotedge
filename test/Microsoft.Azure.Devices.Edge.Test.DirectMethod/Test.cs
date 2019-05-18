@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
+namespace Microsoft.Azure.Devices.Edge.Test.DirectMethod
 {
     using System;
+    using System.Runtime.InteropServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -11,7 +12,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
 
     public class Test
     {
-        public const string Name = "temp sensor";
+        public const string Name = "module-to-module direct method";
+
+        IEdgeDaemon CreateEdgeDaemon(string installerPath) => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? new Common.Windows.EdgeDaemon(installerPath)
+            : new Common.Linux.EdgeDaemon() as IEdgeDaemon;
+
         public async Task<int> RunAsync(Args args)
         {
             LogEventLevel consoleLevel = args.Verbose
@@ -40,14 +46,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
                                 iotHub,
                                 token);
 
-                            var daemon = Platform.CreateEdgeDaemon(args.InstallerPath);
+                            var daemon = this.CreateEdgeDaemon(args.InstallerPath);
                             await daemon.UninstallAsync(token);
                             await daemon.InstallAsync(
                                 device.ConnectionString,
                                 args.PackagesPath,
                                 args.Proxy,
                                 token);
-                            await daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
+
+                            await args.Proxy.Match(
+                                async p =>
+                                {
+                                    await daemon.StopAsync(token);
+                                    var yaml = new DaemonConfiguration();
+                                    yaml.AddHttpsProxy(p);
+                                    yaml.Update();
+                                    await daemon.StartAsync(token);
+                                },
+                                () => daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token));
 
                             var agent = new EdgeAgent(device.Id, iotHub);
                             await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
@@ -59,44 +75,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
                                 r => config.AddRegistryCredentials(r.address, r.username, r.password));
                             config.AddEdgeHub(args.HubImage);
                             args.Proxy.ForEach(p => config.AddProxy(p));
-                            config.AddModule("tempSensor", args.SensorImage);
+                            config.AddModule("methodSender", args.SenderImage);
+                            config.AddModule("DirectMethodReceiver", args.ReceiverImage);
                             await config.DeployAsync(token);
+                            // TODO: convert EdgeConfiguration to a builder-style (or fluent) interface, so we can do something like `config.AddModule("methodSender", ...).WithEnv(new[]{"TargetModuleId", "methodReceiver"});`
 
                             var hub = new EdgeModule("edgeHub", device.Id, iotHub);
-                            var sensor = new EdgeModule("tempSensor", device.Id, iotHub);
+                            var sender = new EdgeModule("methodSender", device.Id, iotHub);
+                            var receiver = new EdgeModule("DirectMethodReceiver", device.Id, iotHub);
                             await EdgeModule.WaitForStatusAsync(
-                                new[] { hub, sensor },
+                                new[] { hub, sender, receiver },
                                 EdgeModuleStatus.Running,
                                 token);
-                            await sensor.WaitForEventsReceivedAsync(token);
-
-                            var sensorTwin = new ModuleTwin(sensor.Id, device.Id, iotHub);
-                            await sensorTwin.UpdateDesiredPropertiesAsync(
-                                new
-                                {
-                                    properties = new
-                                    {
-                                        desired = new
-                                        {
-                                            SendData = true,
-                                            SendInterval = 10
-                                        }
-                                    }
-                                },
-                                token);
-                            await sensorTwin.WaitForReportedPropertyUpdatesAsync(
-                                new
-                                {
-                                    properties = new
-                                    {
-                                        reported = new
-                                        {
-                                            SendData = true,
-                                            SendInterval = 10
-                                        }
-                                    }
-                                },
-                                token);
+                            await sender.WaitForEventsReceivedAsync(token);
 
                             // ** teardown
                             await daemon.StopAsync(token);
@@ -133,7 +124,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
             public Option<Uri> Proxy;
             public string AgentImage;
             public string HubImage;
-            public string SensorImage;
+            public string SenderImage;
+            public string ReceiverImage;
             public Option<(string address, string username, string password)> Registry;
             public TimeSpan Timeout;
             public bool Verbose;

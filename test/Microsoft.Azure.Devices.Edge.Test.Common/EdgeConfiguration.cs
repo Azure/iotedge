@@ -126,14 +126,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             };
         }
 
-        public void AddTempSensor(string image)
+        public void AddModule(string name, string image)
         {
             this.UpdateAgentDesiredProperties(
                 desired =>
                 {
                     JObject modules = GetOrAddObject("modules", desired);
                     modules.Add(
-                        "tempSensor",
+                        name,
                         JToken.FromObject(
                             new
                             {
