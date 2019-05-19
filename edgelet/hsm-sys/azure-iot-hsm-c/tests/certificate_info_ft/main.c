@@ -6,6 +6,6 @@
 int main(void)
 {
     size_t failedTestCount = 0;
-    RUN_TEST_SUITE(certificate_info_int_tests, failedTestCount);
+    RUN_TEST_SUITE(certificate_info_func_tests, failedTestCount);
     return failedTestCount;
 }

@@ -35,16 +35,42 @@ static void* my_gballoc_realloc(void* ptr, size_t size)
 #include "umock_c_negative_tests.h"
 #include "azure_c_shared_utility/macro_utils.h"
 
+#include <openssl/pem.h>
+
 #define ENABLE_MOCKS
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/umock_c_prod.h"
 
-#include "azure_c_shared_utility/buffer_.h"
-#include "azure_c_shared_utility/base64.h"
+MOCKABLE_FUNCTION(, BIO*, BIO_new, const BIO_METHOD*, type);
+MOCKABLE_FUNCTION(, BIO_METHOD*, BIO_s_mem);
+MOCKABLE_FUNCTION(, int, BIO_write, BIO*, b, const void*, in, int, inl);
+
 #undef ENABLE_MOCKS
 
 #include "certificate_info.h"
 
+#define TEST_BIO 0x1000
+#define TEST_BIO_METHOD 0x1001
+
+
+static BIO* test_hook_BIO_new(const BIO_METHOD* type)
+{
+    (void)type;
+    return TEST_BIO;
+}
+
+static BIO_METHOD* test_hook_BIO_s_mem(void)
+{
+    return TEST_BIO_METHOD;
+}
+
+static int test_hook_BIO_write(BIO *b, const void *in, int inl)
+{
+    (void)b;
+    (void)in;
+
+    return inl;
+}
 
 #ifdef __cplusplus
 extern "C" {
@@ -420,68 +446,6 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         certificate_info_destroy(cert_handle);
     }
 
-    TEST_FUNCTION(certificate_info_create_pk_NULL_pass)
-    {
-        //arrange
-
-        //act
-        size_t pk_size = 100;
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, NULL, 0, PRIVATE_KEY_UNKNOWN);
-        const void* pk = certificate_info_get_private_key(cert_handle, &pk_size);
-        PRIVATE_KEY_TYPE pk_type = certificate_info_private_key_type(cert_handle);
-
-        //assert
-        ASSERT_IS_NOT_NULL(cert_handle);
-        ASSERT_IS_NULL(pk);
-        ASSERT_ARE_EQUAL(size_t, 0, pk_size, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(int, PRIVATE_KEY_UNKNOWN, pk_type, "Line:" TOSTRING(__LINE__));
-
-        //cleanup
-        certificate_info_destroy(cert_handle);
-    }
-
-    TEST_FUNCTION(certificate_info_create_pk_payload_pass)
-    {
-        //arrange
-
-        //act
-        size_t pk_size = 100;
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
-        const void* pk = certificate_info_get_private_key(cert_handle, &pk_size);
-        PRIVATE_KEY_TYPE pk_type = certificate_info_private_key_type(cert_handle);
-
-        //assert
-        ASSERT_IS_NOT_NULL(cert_handle);
-        ASSERT_ARE_EQUAL(size_t, TEST_PRIVATE_KEY_LEN, pk_size, "Line:" TOSTRING(__LINE__));
-        int cmp = memcmp(pk, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN);
-        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(int, PRIVATE_KEY_PAYLOAD, pk_type, "Line:" TOSTRING(__LINE__));
-
-        //cleanup
-        certificate_info_destroy(cert_handle);
-    }
-
-    TEST_FUNCTION(certificate_info_create_pk_payload_reference_pass)
-    {
-        //arrange
-
-        //act
-        size_t pk_size = 100;
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_REFERENCE);
-        const void* pk = certificate_info_get_private_key(cert_handle, &pk_size);
-        PRIVATE_KEY_TYPE pk_type = certificate_info_private_key_type(cert_handle);
-
-        //assert
-        ASSERT_IS_NOT_NULL(cert_handle);
-        ASSERT_ARE_EQUAL(size_t, TEST_PRIVATE_KEY_LEN, pk_size, "Line:" TOSTRING(__LINE__));
-        int cmp = memcmp(pk, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN);
-        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(int, PRIVATE_KEY_REFERENCE, pk_type, "Line:" TOSTRING(__LINE__));
-
-        //cleanup
-        certificate_info_destroy(cert_handle);
-    }
-
     TEST_FUNCTION(certificate_info_create_rsa_win_succeed)
     {
         //arrange
@@ -557,34 +521,6 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //assert
         ASSERT_IS_NOT_NULL(cert_handle);
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-        //cleanup
-        certificate_info_destroy(cert_handle);
-    }
-
-    TEST_FUNCTION(certificate_info_create_invalid_cert_win_succeed)
-    {
-        //arrange
-
-        //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_INVALID_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
-
-        //assert
-        ASSERT_IS_NULL(cert_handle);
-
-        //cleanup
-        certificate_info_destroy(cert_handle);
-    }
-
-    TEST_FUNCTION(certificate_info_create_invalid_cert_nix_succeed)
-    {
-        //arrange
-
-        //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_INVALID_CERT_NIX_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
-
-        //assert
-        ASSERT_IS_NULL(cert_handle);
 
         //cleanup
         certificate_info_destroy(cert_handle);
@@ -709,23 +645,6 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //cleanup
     }
 
-    TEST_FUNCTION(certificate_info_get_certificate_leaf_succeed)
-    {
-        //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
-        umock_c_reset_all_calls();
-
-        //act
-        const char* certificate = certificate_info_get_leaf_certificate(cert_handle);
-
-        //assert
-        ASSERT_IS_NOT_NULL(certificate);
-        ASSERT_ARE_EQUAL(char_ptr, TEST_RSA_CERT_WIN_EOL, certificate);
-
-        //cleanup
-        certificate_info_destroy(cert_handle);
-    }
-
     TEST_FUNCTION(certificate_info_get_certificate_leaf_fail)
     {
         //arrange
@@ -789,21 +708,6 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         certificate_info_destroy(cert_handle);
     }
 
-    TEST_FUNCTION(certificate_info_get_valid_from_success)
-    {
-        //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
-        umock_c_reset_all_calls();
-
-        //act
-        int64_t valid_from = certificate_info_get_valid_from(cert_handle);
-
-        //assert
-        ASSERT_ARE_EQUAL(int64_t, RSA_CERT_VALID_FROM_TIME, valid_from);
-
-        //cleanup
-        certificate_info_destroy(cert_handle);
-    }
 
     TEST_FUNCTION(certificate_info_get_valid_from_handle_NULL_fail)
     {
@@ -816,22 +720,6 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         ASSERT_ARE_EQUAL(int64_t, 0, valid_from);
 
         //cleanup
-    }
-
-    TEST_FUNCTION(certificate_info_get_valid_to_success)
-    {
-        //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
-        umock_c_reset_all_calls();
-
-        //act
-        int64_t valid_to = certificate_info_get_valid_to(cert_handle);
-
-        //assert
-        ASSERT_ARE_EQUAL(int64_t, RSA_CERT_VALID_TO_TIME, valid_to);
-
-        //cleanup
-        certificate_info_destroy(cert_handle);
     }
 
     TEST_FUNCTION(certificate_info_get_valid_to_handle_NULL_fail)
@@ -847,22 +735,6 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //cleanup
     }
 
-    TEST_FUNCTION(certificate_info_private_key_type_success)
-    {
-        //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
-        umock_c_reset_all_calls();
-
-        //act
-        PRIVATE_KEY_TYPE type = certificate_info_private_key_type(cert_handle);
-
-        //assert
-        ASSERT_ARE_EQUAL(int, PRIVATE_KEY_PAYLOAD, type);
-
-        //cleanup
-        certificate_info_destroy(cert_handle);
-    }
-
     TEST_FUNCTION(certificate_info_private_key_type_handle_NULL_fail)
     {
         //arrange
@@ -875,77 +747,6 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //cleanup
     }
 
-    TEST_FUNCTION(certificate_info_get_chain_no_chain_win_success)
-    {
-        //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
-        umock_c_reset_all_calls();
-
-        //act
-        const char* cert_chain = certificate_info_get_chain(cert_handle);
-
-        //assert
-        ASSERT_IS_NULL(cert_chain);
-
-        //cleanup
-        certificate_info_destroy(cert_handle);
-    }
-
-    TEST_FUNCTION(certificate_info_get_chain_no_chain_nix_success)
-    {
-        //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_NIX_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
-        umock_c_reset_all_calls();
-
-        //act
-        const char* cert_chain = certificate_info_get_chain(cert_handle);
-
-        //assert
-        ASSERT_IS_NULL(cert_chain);
-
-        //cleanup
-        certificate_info_destroy(cert_handle);
-    }
-
-    TEST_FUNCTION(certificate_info_get_chain_win_success)
-    {
-        //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_CHAIN_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
-        umock_c_reset_all_calls();
-
-        //act
-        const char* cert_chain = certificate_info_get_chain(cert_handle);
-
-        //assert
-        ASSERT_IS_NOT_NULL(cert_chain);
-        const char *expected_chain = EXPECTED_TEST_CERT_CHAIN_WIN_EOL;
-        size_t expected_len = strlen(expected_chain);
-        ASSERT_ARE_EQUAL(size_t, expected_len, strlen(cert_chain));
-        ASSERT_ARE_EQUAL(int, 0, strcmp(cert_chain, expected_chain));
-
-        //cleanup
-        certificate_info_destroy(cert_handle);
-    }
-
-    TEST_FUNCTION(certificate_info_get_chain_nix_success)
-    {
-        //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_CHAIN_NIX_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
-        umock_c_reset_all_calls();
-
-        //act
-        const char* cert_chain = certificate_info_get_chain(cert_handle);
-
-        //assert
-        ASSERT_IS_NOT_NULL(cert_chain);
-        const char *expected_chain = EXPECTED_TEST_CERT_CHAIN_NIX_EOL;
-        size_t expected_len = strlen(expected_chain);
-        ASSERT_ARE_EQUAL(size_t, expected_len, strlen(cert_chain));
-        ASSERT_ARE_EQUAL(int, 0, strcmp(cert_chain, expected_chain));
-
-        //cleanup
-        certificate_info_destroy(cert_handle);
-    }
 
     TEST_FUNCTION(certificate_info_get_chain_handle_NULL_fail)
     {
@@ -1001,104 +802,15 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //cleanup
     }
 
-    TEST_FUNCTION(get_common_name_test_mulitple_rsa_success)
+    TEST_FUNCTION(get_common_name_NULL_param_fails)
     {
         //arrange
-        const char* cert_list[] = {
-            TEST_RSA_CERT_WIN_EOL,
-            TEST_RSA_CERT_NIX_EOL,
-            TEST_RSA_CERT_WITH_ALL_SUBJECT_FIELDS
-        };
-
-        for (size_t i = 0; i < sizeof(cert_list)/sizeof(cert_list[0]); i++)
-        {
-            CERT_INFO_HANDLE cert_handle = certificate_info_create(cert_list[i],
-                                                                   TEST_PRIVATE_KEY,
-                                                                   TEST_PRIVATE_KEY_LEN,
-                                                                   PRIVATE_KEY_PAYLOAD);
-            ASSERT_IS_NOT_NULL(cert_handle);
-
-            // act
-            const char* result = certificate_info_get_common_name(cert_handle);
-
-            // assert
-            ASSERT_IS_NOT_NULL(result);
-            int cmp = strcmp("localhost", result);
-            ASSERT_ARE_EQUAL(int, 0, cmp);
-
-            //cleanup
-            certificate_info_destroy(cert_handle);
-        }
-    }
-
-    TEST_FUNCTION(get_common_name_test_mulitple_ecc_success)
-    {
-        //arrange
-        const char* cert_list[] = {
-            TEST_ECC_CERT_WIN_EOL,
-            TEST_ECC_CERT_NIX_EOL
-        };
-
-        for (size_t i = 0; i < sizeof(cert_list)/sizeof(cert_list[0]); i++)
-        {
-            CERT_INFO_HANDLE cert_handle = certificate_info_create(cert_list[i],
-                                                                   TEST_PRIVATE_KEY,
-                                                                   TEST_PRIVATE_KEY_LEN,
-                                                                   PRIVATE_KEY_PAYLOAD);
-            ASSERT_IS_NOT_NULL(cert_handle);
-
-            // act
-            const char* result = certificate_info_get_common_name(cert_handle);
-
-            // assert
-            ASSERT_IS_NOT_NULL(result);
-            int cmp = strcmp("riot-root", result);
-            ASSERT_ARE_EQUAL(int, 0, cmp);
-
-            //cleanup
-            certificate_info_destroy(cert_handle);
-        }
-    }
-
-    TEST_FUNCTION(get_common_name_test_mulitple_chain_success)
-    {
-        //arrange
-        const char* cert_list[] = {
-            TEST_CERT_CHAIN_WIN_EOL,
-            TEST_CERT_CHAIN_NIX_EOL
-        };
-
-        for (size_t i = 0; i < sizeof(cert_list)/sizeof(cert_list[0]); i++)
-        {
-            CERT_INFO_HANDLE cert_handle = certificate_info_create(cert_list[i],
-                                                                   TEST_PRIVATE_KEY,
-                                                                   TEST_PRIVATE_KEY_LEN,
-                                                                   PRIVATE_KEY_PAYLOAD);
-            ASSERT_IS_NOT_NULL(cert_handle);
-
-            // act
-            const char* result = certificate_info_get_common_name(cert_handle);
-
-            // assert
-            ASSERT_IS_NOT_NULL(result);
-            int cmp = strcmp("Edge Agent CA", result);
-            ASSERT_ARE_EQUAL(int, 0, cmp);
-
-            //cleanup
-            certificate_info_destroy(cert_handle);
-        }
-    }
-
-    TEST_FUNCTION(get_common_name_test_failed)
-    {
-        //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WITH_NO_COMMON_NAME, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
 
         // act
-        const char* result = certificate_info_get_common_name(cert_handle);
+        const char* result = certificate_info_get_common_name(NULL);
 
         // assert
         ASSERT_IS_NULL(result);
     }
 
-    END_TEST_SUITE(certificate_info_ut)
+END_TEST_SUITE(certificate_info_ut)

@@ -7,12 +7,12 @@
 #include <time.h>
 
 #include <openssl/pem.h>
-#include <openssl/x509v3.h>
 
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/xlogging.h"
 
 #include "certificate_info.h"
+#include "hsm_log.h"
 
 typedef struct CERT_DATA_INFO_TAG
 {
@@ -46,10 +46,10 @@ struct CERT_MARKER_TAG {
 };
 typedef struct CERT_MARKER_TAG CERT_MARKER;
 
-const char* BEGIN_CERT_MARKER = "-----BEGIN CERTIFICATE-----";
-size_t BEGIN_CERT_MARKER_LEN = sizeof(BEGIN_CERT_MARKER) - 1;
-const char* END_CERT_MARKER = "-----END CERTIFICATE-----";
-size_t END_CERT_MARKER_LEN = sizeof(END_CERT_MARKER_LEN) - 1;
+static const char BEGIN_CERT_MARKER[] = "-----BEGIN CERTIFICATE-----";
+static size_t BEGIN_CERT_MARKER_LEN   = sizeof(BEGIN_CERT_MARKER) - 1;
+static const char END_CERT_MARKER[]   = "-----END CERTIFICATE-----";
+static size_t END_CERT_MARKER_LEN     = sizeof(END_CERT_MARKER) - 1;
 
 // openssl ASN1 time format defines
 #define ASN1_TIME_STRING_UTC_FORMAT 0x17
@@ -85,7 +85,7 @@ static void extract_first_cert_and_chain
                 {
                     first_start = ptr;
                     first_cert_begin_marker_found = true;
-                    iterator = ptr;
+                    iterator = ptr + BEGIN_CERT_MARKER_LEN - 1;
                 }
             }
             else
@@ -102,7 +102,6 @@ static void extract_first_cert_and_chain
                         first_end++;
                     }
                     first_cert_found = true;
-                    first_cert_begin_marker_found = true;
                     iterator = first_end;
                 }
             }
@@ -164,12 +163,12 @@ time_t get_utc_time_from_asn_string(const unsigned char *time_value, size_t leng
 
     if (time_value == NULL)
     {
-        LogError("Parse time error: Invalid time_value buffer");
+        LOG_ERROR("Parse time error: Invalid time_value buffer");
         result = 0;
     }
     else if (length != TIME_FIELD_LENGTH)
     {
-        LogError("Parse time error: Invalid length field");
+        LOG_ERROR("Parse time error: Invalid length field");
         result = 0;
     }
     else
@@ -240,28 +239,25 @@ static int parse_common_name(CERT_DATA_INFO* cert_info, X509* x509_cert)
 
     if ((subj_name = X509_get_subject_name(x509_cert)) == NULL)
     {
-        LogError("Failure obtaining certificate subject name");
+        LOG_ERROR("Failure obtaining certificate subject name");
         result = __FAILURE__;
     }
     else if ((cn = malloc(cn_size)) == NULL)
     {
-        LogError("Could not allocate memory for common name");
+        LOG_ERROR("Could not allocate memory for common name");
         result = __FAILURE__;
     }
     else
     {
-        memset(cn, cn_size, 0);
+        memset(cn, 0, cn_size);
         if (X509_NAME_get_text_by_NID(subj_name, NID_commonName, cn, cn_size) == -1)
         {
-            LogError("Failure X509_NAME_get_text_by_NID for field 'CN'");
+            LOG_ERROR("X509_NAME_get_text_by_NID could not parse subject field 'CN'");
             free(cn);
-            result = __FAILURE__;
+            cn = NULL;
         }
-        else
-        {
-            cert_info->common_name = cn;
-            result = 0;
-        }
+        cert_info->common_name = cn;
+        result = 0;
     }
 
     return result;
@@ -277,12 +273,12 @@ static int parse_validity_timestamps(CERT_DATA_INFO* cert_info, X509* x509_cert)
     if ((exp_asn1->type != ASN1_TIME_STRING_UTC_FORMAT) &&
         (exp_asn1->length != ASN1_TIME_STRING_UTC_LEN))
     {
-        LogError("Unsupported not after time format in certificate");
+        LOG_ERROR("Unsupported not after time format in certificate");
         result = __FAILURE__;
     }
     else if ((not_after = get_utc_time_from_asn_string(exp_asn1->data, exp_asn1->length)) == 0)
     {
-        LogError("Could not parse not after timestamp from certificate");
+        LOG_ERROR("Could not parse not after timestamp from certificate");
         result = __FAILURE__;
     }
     else
@@ -291,12 +287,12 @@ static int parse_validity_timestamps(CERT_DATA_INFO* cert_info, X509* x509_cert)
         if ((exp_asn1->type != ASN1_TIME_STRING_UTC_FORMAT) &&
             (exp_asn1->length != ASN1_TIME_STRING_UTC_LEN))
         {
-            LogError("Unsupported not before time format in certificate");
+            LOG_ERROR("Unsupported not before time format in certificate");
             result = __FAILURE__;
         }
         else if ((not_before = get_utc_time_from_asn_string(exp_asn1->data, exp_asn1->length)) == 0)
         {
-            LogError("Could not parse not before timestamp from certificate");
+            LOG_ERROR("Could not parse not before timestamp from certificate");
             result = __FAILURE__;
         }
         else
@@ -313,9 +309,34 @@ static int parse_validity_timestamps(CERT_DATA_INFO* cert_info, X509* x509_cert)
 static X509* load_certificate(const char* certificate)
 {
     X509* result;
-    BIO* bio = BIO_new(BIO_s_mem());
-    BIO_write(bio, certificate, strlen(certificate));
-    result = PEM_read_bio_X509(bio, NULL, NULL, NULL);
+    BIO* bio;
+
+    size_t cert_len = strlen(certificate);
+    if (cert_len > INT_MAX)
+    {
+        LOG_ERROR("Unexpectedly large certificate buffer of %zu bytes", cert_len);
+        result = NULL;
+    }
+    else if ((bio = BIO_new(BIO_s_mem())) == NULL)
+    {
+        LOG_ERROR("Failure to create new BIO memory buffer");
+        result = NULL;
+    }
+    else
+    {
+        int len = BIO_write(bio, certificate, cert_len);
+        if (len != (int)cert_len)
+        {
+            LOG_ERROR("BIO_write returned %d expected %zu", len, cert_len);
+            result = NULL;
+        }
+        else
+        {
+            result = PEM_read_bio_X509(bio, NULL, NULL, NULL);
+        }
+        BIO_free_all(bio);
+    }
+
     return result;
 }
 
@@ -326,22 +347,27 @@ static int parse_certificate_details(CERT_DATA_INFO* cert_info)
 
     if ((x509_cert = load_certificate(cert_info->certificate_pem)) == NULL)
     {
-        LogError("Could not create X509 object from certificate");
-        result = __FAILURE__;
-    }
-    else if (parse_validity_timestamps(cert_info, x509_cert) != 0)
-    {
-        LogError("Could not obtain validity timestamps from certificate");
-        result = __FAILURE__;
-    }
-    else if (parse_common_name(cert_info, x509_cert) != 0)
-    {
-        LogError("Could not obtain common name from certificate");
+        LOG_ERROR("Could not create X509 object from certificate");
         result = __FAILURE__;
     }
     else
     {
-        result = 0;
+        if (parse_validity_timestamps(cert_info, x509_cert) != 0)
+        {
+            LOG_ERROR("Error obtaining validity timestamps from certificate");
+            result = __FAILURE__;
+        }
+        else if (parse_common_name(cert_info, x509_cert) != 0)
+        {
+            LOG_ERROR("Error obtaining common name from certificate");
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+
+        X509_free(x509_cert);
     }
 
     return result;
@@ -358,15 +384,15 @@ static int parse_certificate(CERT_DATA_INFO* cert_info)
 
     if ((first_cert.start == NULL) || (first_cert.end == NULL))
     {
-        LogError("Failure obtaining first certificate");
-        result = __LINE__;
+        LOG_ERROR("Failure obtaining first certificate");
+        result = __FAILURE__;
     }
     else
     {
         if (parse_certificate_details(cert_info) != 0)
         {
-            LogError("Failure obtaining first certificate");
-            result = __LINE__;
+            LOG_ERROR("Failure obtaining first certificate");
+            result = __FAILURE__;
         }
         else
         {
@@ -376,6 +402,7 @@ static int parse_certificate(CERT_DATA_INFO* cert_info)
             {
                 cert_info->cert_chain = chain_cert.start;
             }
+            result = 0;
         }
     }
 
@@ -389,39 +416,39 @@ CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* pr
 
     if (certificate == NULL)
     {
-        LogError("Invalid certificate parameter specified");
+        LOG_ERROR("Invalid certificate parameter specified");
         result = NULL;
     }
     else if ((cert_len = strlen(certificate)) == 0)
     {
-        LogError("Empty certificate string provided");
+        LOG_ERROR("Empty certificate string provided");
         result = NULL;
     }
     else if ((private_key != NULL) && (priv_key_len == 0))
     {
-        LogError("Invalid private key buffer parameters specified");
+        LOG_ERROR("Invalid private key buffer parameters specified");
         result = NULL;
     }
     else if ((private_key != NULL) &&
              (pk_type != PRIVATE_KEY_PAYLOAD) &&
              (pk_type != PRIVATE_KEY_REFERENCE))
     {
-        LogError("Invalid private key type specified");
+        LOG_ERROR("Invalid private key type specified");
         result = NULL;
     }
     else if ((private_key == NULL) && (pk_type != PRIVATE_KEY_UNKNOWN))
     {
-        LogError("Invalid private key type specified");
+        LOG_ERROR("Invalid private key type specified");
         result = NULL;
     }
     else if ((private_key == NULL) && (priv_key_len != 0))
     {
-        LogError("Invalid private key length specified");
+        LOG_ERROR("Invalid private key length specified");
         result = NULL;
     }
     else if ((result = (CERT_DATA_INFO*)malloc(sizeof(CERT_DATA_INFO))) == NULL)
     {
-        LogError("Failure allocating certificate info");
+        LOG_ERROR("Failure allocating certificate info");
     }
     else
     {
@@ -429,7 +456,7 @@ CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* pr
 
         if (cert_len == 0 || (result->certificate_pem = (char*)malloc(cert_len + 1)) == NULL)
         {
-            LogError("Failure allocating certificate");
+            LOG_ERROR("Failure allocating certificate");
             certificate_info_destroy(result);
             result = NULL;
         }
@@ -440,7 +467,7 @@ CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* pr
 
             if (parse_certificate(result) != 0)
             {
-                LogError("Failure parsing certificate");
+                LOG_ERROR("Failure parsing certificate");
                 certificate_info_destroy(result);
                 result = NULL;
             }
@@ -449,7 +476,7 @@ CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* pr
                 size_t num_bytes_first_cert = result->first_cert_end - result->first_cert_start + 1;
                 if ((result->first_certificate = (char*)malloc(num_bytes_first_cert + 1)) == NULL)
                 {
-                    LogError("Failure allocating memory to hold the main certificate");
+                    LOG_ERROR("Failure allocating memory to hold the main certificate");
                     certificate_info_destroy(result);
                     result = NULL;
                 }
@@ -462,7 +489,7 @@ CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* pr
                     {
                         if ((result->private_key = malloc(priv_key_len)) == NULL)
                         {
-                            LogError("Failure allocating private key");
+                            LOG_ERROR("Failure allocating private key");
                             certificate_info_destroy(result);
                             result = NULL;
                         }
@@ -489,7 +516,7 @@ void certificate_info_destroy(CERT_INFO_HANDLE handle)
         free(cert_info->certificate_pem);
         free(cert_info->private_key);
         free(cert_info->common_name);
-        memset(cert_info, sizeof(CERT_DATA_INFO), 0);
+        memset(cert_info, 0, sizeof(CERT_DATA_INFO));
         free(cert_info);
     }
 }
@@ -499,7 +526,7 @@ const char* certificate_info_get_leaf_certificate(CERT_INFO_HANDLE handle)
     const char* result;
     if (handle == NULL)
     {
-        LogError("Invalid parameter specified");
+        LOG_ERROR("Invalid parameter specified");
         result = NULL;
     }
     else
@@ -514,7 +541,7 @@ const char* certificate_info_get_certificate(CERT_INFO_HANDLE handle)
     const char* result;
     if (handle == NULL)
     {
-        LogError("Invalid parameter specified");
+        LOG_ERROR("Invalid parameter specified");
         result = NULL;
     }
     else
@@ -529,7 +556,7 @@ const void* certificate_info_get_private_key(CERT_INFO_HANDLE handle, size_t* pr
     void* result;
     if (handle == NULL || priv_key_len == NULL)
     {
-        LogError("Invalid parameter specified");
+        LOG_ERROR("Invalid parameter specified");
         result = NULL;
     }
     else
@@ -545,7 +572,7 @@ int64_t certificate_info_get_valid_from(CERT_INFO_HANDLE handle)
     int64_t result;
     if (handle == NULL)
     {
-        LogError("Invalid parameter specified");
+        LOG_ERROR("Invalid parameter specified");
         result = 0;
     }
     else
@@ -560,7 +587,7 @@ int64_t certificate_info_get_valid_to(CERT_INFO_HANDLE handle)
     int64_t result;
     if (handle == NULL)
     {
-        LogError("Invalid parameter specified");
+        LOG_ERROR("Invalid parameter specified");
         result = 0;
     }
     else
@@ -575,7 +602,7 @@ PRIVATE_KEY_TYPE certificate_info_private_key_type(CERT_INFO_HANDLE handle)
     PRIVATE_KEY_TYPE result;
     if (handle == NULL)
     {
-        LogError("Invalid parameter specified");
+        LOG_ERROR("Invalid parameter specified");
         result = PRIVATE_KEY_UNKNOWN;
     }
     else
@@ -590,7 +617,7 @@ const char* certificate_info_get_chain(CERT_INFO_HANDLE handle)
     const char* result;
     if (handle == NULL)
     {
-        LogError("Invalid parameter specified");
+        LOG_ERROR("Invalid parameter specified");
         result = 0;
     }
     else
@@ -605,7 +632,7 @@ const char* certificate_info_get_issuer(CERT_INFO_HANDLE handle)
     const char* result;
     if (handle == NULL)
     {
-        LogError("Invalid parameter specified");
+        LOG_ERROR("Invalid parameter specified");
         result = 0;
     }
     else
@@ -620,7 +647,7 @@ const char* certificate_info_get_common_name(CERT_INFO_HANDLE handle)
     const char* result;
     if (handle == NULL)
     {
-        LogError("Invalid parameter specified");
+        LOG_ERROR("Invalid parameter specified");
         result = 0;
     }
     else

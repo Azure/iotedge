@@ -1,7 +1,7 @@
 #Copyright (c) Microsoft. All rights reserved.
 #Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#this is CMakeLists.txt for certificate_info_int
+#this is CMakeLists.txt for certificate_info_func_tests
 cmake_minimum_required(VERSION 2.8.11)
 
 compileAsC11()
@@ -9,18 +9,17 @@ compileAsC11()
 include_directories(../../src ../test_utils)
 
 # todo change to _int after making integration tests work with c-utility tests
-set(theseTestsName certificate_info_inut)
+set(theseTestsName certificate_info_func_utests)
 
 add_definitions(-DGB_DEBUG_ALLOC)
 
 set(${theseTestsName}_test_files
     # test file
-    certificate_info_int.c
+    certificate_info_ft.c
 
     # the following files are needed when running tests using BUILD_SHARED=ON
     ../../src/certificate_info.c
-    ${SHARED_UTIL_SRC_FOLDER}/xlogging.c
-    ${SHARED_UTIL_SRC_FOLDER}/consolelogger.c
+    ../../src/hsm_log.c
 )
 
 set(${theseTestsName}_h_files
