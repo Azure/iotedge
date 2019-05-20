@@ -37,7 +37,7 @@ impl TokenSource for StaticTokenSource {
 
 impl Clone for StaticTokenSource {
     fn clone(&self) -> Self {
-        StaticTokenSource {
+        Self {
             token: self.token.clone(),
         }
     }
