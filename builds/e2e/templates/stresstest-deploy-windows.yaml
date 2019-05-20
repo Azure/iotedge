@@ -1,5 +1,5 @@
 parameters:
-  release.Label: ''
+  release.label: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
   container.registry: ''

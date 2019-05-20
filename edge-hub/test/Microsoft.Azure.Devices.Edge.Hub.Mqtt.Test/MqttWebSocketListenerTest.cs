@@ -31,7 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 Mock.Of<IByteBufferAllocator>(),
                 false,
                 0,
-                true);
+                true,
+                Mock.Of<IProductInfoStore>());
 
             Assert.Equal(Constants.WebSocketSubProtocol, listener.SubProtocol);
         }

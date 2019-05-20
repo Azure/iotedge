@@ -2,7 +2,6 @@ trigger: none
 pr: none
 
 variables:
-  Build.SyncSources: false
   images.artifact.name.linux: 'core-linux'
   images.artifact.name.windows: 'core-windows'
   vsts.project: $(System.TeamProjectId)
@@ -43,6 +42,7 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu-amd64'
     steps:
+      - checkout: none
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
@@ -107,6 +107,7 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu-armhf'
     steps:
+      - checkout: none
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
@@ -177,6 +178,7 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu-armhf'
     steps:
+      - checkout: none
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
@@ -247,6 +249,7 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu16.04-aarch64'
     steps:
+      - checkout: none
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
@@ -317,6 +320,7 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu16.04-aarch64'
     steps:
+      - checkout: none
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
@@ -385,6 +389,7 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-windows'
     steps:
+      - checkout: none
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
