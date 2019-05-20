@@ -543,6 +543,7 @@ fn container_create_handler(
         req.into_body()
             .concat2()
             .and_then(|body| {
+                println!("{:?}", body);
                 let create_options: ContainerCreateBody =
                     serde_json::from_slice(body.as_ref()).unwrap();
 

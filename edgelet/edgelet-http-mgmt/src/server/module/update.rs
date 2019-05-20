@@ -89,11 +89,6 @@ where
                     })),
                     PullPolicy::Never => Either::B(futures::future::ok((core_spec, spec, name, runtime)))
                 }
-
-//                runtime.registry().pull(core_spec.config()).then(|result| {
-//                    result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
-//                    Ok((core_spec, spec, name, runtime))
-//                })
             })
             .and_then(|(core_spec, spec, name, runtime)| {
                 match core_spec.pull_policy() {
@@ -207,7 +202,8 @@ mod tests {
     fn success_start() {
         let handler = UpdateModule::new(RUNTIME.clone());
         let config = Config::new(json!({"image":"microsoft/test-image"}));
-        let spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        spec.set_pull_policy("always".to_string());
         let request = Request::put("http://localhost/modules/test-module?start")
             .body(serde_json::to_string(&spec).unwrap().into())
             .unwrap();
@@ -321,6 +317,36 @@ mod tests {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
                     "Request body is malformed\n\tcaused by: missing field `image`",
+                    error.message()
+                );
+                Ok(())
+            })
+            .wait()
+            .unwrap();
+    }
+
+    #[test]
+    fn bad_pull_policy() {
+        let handler = UpdateModule::new(RUNTIME.clone());
+        let config = Config::new(json!({"image":"microsoft/test-image"}));
+        let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        spec.set_pull_policy("what".to_string());
+        let request = Request::put("http://localhost/modules/test-module")
+            .body(serde_json::to_string(&spec).unwrap().into())
+            .unwrap();
+
+        // act
+        let response = handler.handle(request, Parameters::new()).wait().unwrap();
+
+        // assert
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
+        response
+            .into_body()
+            .concat2()
+            .and_then(|b| {
+                let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
+                assert_eq!(
+                    "Request body is malformed",
                     error.message()
                 );
                 Ok(())

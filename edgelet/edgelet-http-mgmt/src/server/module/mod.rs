@@ -74,7 +74,6 @@ fn spec_to_details(spec: &ModuleSpec, module_status: ModuleStatus) -> ModuleDeta
     let id = spec.name().clone();
     let name = spec.name().clone();
     let type_ = spec.type_().clone();
-    let _pull_policy = spec.pull_policy().clone();
 
     let env = spec.config().env().map(|e| {
         e.iter()
@@ -88,7 +87,7 @@ fn spec_to_details(spec: &ModuleSpec, module_status: ModuleStatus) -> ModuleDeta
 
     let runtime_status = RuntimeStatus::new(module_status.to_string());
     let status = Status::new(runtime_status);
-    ModuleDetails::new(id, name, type_, config, status, "a".to_string())
+    ModuleDetails::new(id, name, type_, config, status)
 }
 
 #[cfg(test)]

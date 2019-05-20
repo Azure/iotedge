@@ -111,7 +111,8 @@ mod tests {
     fn success() {
         let handler = PrepareUpdateModule::new(RUNTIME.clone());
         let config = Config::new(json!({"image":"microsoft/test-image-2"}));
-        let spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        spec.set_pull_policy("never".to_string());
         let request = Request::post("http://localhost/modules/test-module/prepareupdate")
             .body(serde_json::to_string(&spec).unwrap().into())
             .unwrap();
@@ -202,6 +203,36 @@ mod tests {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
                     "Request body is malformed\n\tcaused by: missing field `image`",
+                    error.message()
+                );
+                Ok(())
+            })
+            .wait()
+            .unwrap();
+    }
+
+    #[test]
+    fn bad_pull_policy() {
+        let handler = PrepareUpdateModule::new(RUNTIME.clone());
+        let config = Config::new(json!({"image":"microsoft/test-image-2"}));
+        let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        spec.set_pull_policy("what".to_string());
+        let request = Request::post("http://localhost/modules/test-module/prepareupdate")
+            .body(serde_json::to_string(&spec).unwrap().into())
+            .unwrap();
+
+        // act
+        let response = handler.handle(request, Parameters::new()).wait().unwrap();
+
+        // assert
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
+        response
+            .into_body()
+            .concat2()
+            .and_then(|b| {
+                let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
+                assert_eq!(
+                    "Request body is malformed",
                     error.message()
                 );
                 Ok(())

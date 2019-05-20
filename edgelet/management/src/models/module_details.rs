@@ -27,8 +27,6 @@ pub struct ModuleDetails {
     config: crate::models::Config,
     #[serde(rename = "status")]
     status: crate::models::Status,
-    #[serde(rename = "pullPolicy")]
-    pull_policy: String,
 }
 
 impl ModuleDetails {
@@ -38,7 +36,6 @@ impl ModuleDetails {
         type_: String,
         config: crate::models::Config,
         status: crate::models::Status,
-        pull_policy: String
     ) -> Self {
         ModuleDetails {
             id,
@@ -46,7 +43,6 @@ impl ModuleDetails {
             type_,
             config,
             status,
-            pull_policy
         }
     }
 
@@ -113,18 +109,5 @@ impl ModuleDetails {
 
     pub fn status(&self) -> &crate::models::Status {
         &self.status
-    }
-
-    pub fn set_pull_policy(&mut self, pull_policy: String) {
-        self.pull_policy = pull_policy;
-    }
-
-    pub fn with_pull_policy(mut self, pull_policy: String) -> Self {
-        self.pull_policy = pull_policy;
-        self
-    }
-
-    pub fn pull_policy(&self) -> &String {
-        &self.pull_policy
     }
 }

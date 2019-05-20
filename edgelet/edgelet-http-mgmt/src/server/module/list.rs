@@ -92,8 +92,7 @@ where
         module.name().to_string(),
         module.type_().to_string(),
         config,
-        status,
-       "a".to_string(),
+        status
     ))
 }
 

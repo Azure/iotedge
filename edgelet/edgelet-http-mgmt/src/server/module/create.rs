@@ -70,9 +70,6 @@ where
                     };
 
                         pull_future
-//                    runtime
-//                        .registry()
-//                        .pull(core_spec.config())
                         .then(move |result: Result<(String, PullPolicy), Error>| match result {
                             Ok((name, pull_policy)) => {
                                 match pull_policy {
@@ -151,7 +148,8 @@ mod tests {
     fn success() {
         let handler = CreateModule::new(RUNTIME.clone());
         let config = Config::new(json!({"image":"microsoft/test-image"}));
-        let spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        spec.set_pull_policy("always".to_string());
         let request = Request::post("http://localhost/modules")
             .body(serde_json::to_string(&spec).unwrap().into())
             .unwrap();
@@ -247,7 +245,7 @@ mod tests {
     fn bad_settings() {
         let runtime = TestRuntime::new(Err(Error::General));
         let handler = CreateModule::new(runtime);
-        let config = Config::new(json!({}));
+        let config = Config::new(json!({"image":"microsoft/test-image"}));
         let spec = ModuleSpec::new("image-id".to_string(), "docker".to_string(), config);
         let request = Request::post("http://localhost/modules")
             .body(serde_json::to_string(&spec).unwrap().into())
@@ -267,6 +265,35 @@ mod tests {
                     "Request body is malformed\n\tcaused by: missing field `image`",
                     error.message()
                 );
+                Ok(())
+            })
+            .wait()
+            .unwrap();
+    }
+
+    #[test]
+    fn bad_pull_policy() {
+        let handler = CreateModule::new(RUNTIME.clone());
+        let config = Config::new(json!({"image":"microsoft/test-image"}));
+        let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        spec.set_pull_policy("what".to_string());
+        let request = Request::post("http://localhost/modules")
+            .body(serde_json::to_string(&spec).unwrap().into())
+            .unwrap();
+
+        // act
+        let response = handler.handle(request, Parameters::new()).wait().unwrap();
+
+        // assert
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
+        response
+            .into_body()
+            .concat2()
+            .and_then(|b| {
+                let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
+                let expected =
+                    "Request body is malformed";
+                assert_eq!(expected, error_response.message());
                 Ok(())
             })
             .wait()

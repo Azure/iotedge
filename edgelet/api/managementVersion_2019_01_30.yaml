@@ -466,19 +466,12 @@ definitions:
         $ref: '#/definitions/Config'
       status:
         $ref: '#/definitions/Status'
-      pullPolicy:
-        type: string
-        enum:
-          - Always
-          - Never
-        example: "Always"
     required:
       - id
       - name
       - type
       - config
       - status
-      - pullPolicy
   ModuleSpec:
     type: object
     properties:
