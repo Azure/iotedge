@@ -234,7 +234,7 @@ time_t get_utc_time_from_asn_string(const unsigned char *time_value, size_t leng
 static int parse_common_name(CERT_DATA_INFO* cert_info, X509* x509_cert)
 {
     int result;
-    size_t cn_size = MAX_LEN_COMMON_NAME + 1;
+    int cn_size = MAX_LEN_COMMON_NAME + 1;
     char *cn;
     /*const*/ X509_NAME* subj_name;
 
@@ -325,7 +325,7 @@ static X509* load_certificate(const char* certificate)
     }
     else
     {
-        int len = BIO_write(bio, certificate, cert_len);
+        int len = BIO_write(bio, certificate, (int)cert_len);
         if (len != (int)cert_len)
         {
             LOG_ERROR("BIO_write returned %d expected %zu", len, cert_len);

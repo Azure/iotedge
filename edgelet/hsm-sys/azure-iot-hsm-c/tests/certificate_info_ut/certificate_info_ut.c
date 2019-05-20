@@ -336,7 +336,8 @@ static void test_helper_parse_cert_common_callstack
     ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
-    STRICT_EXPECTED_CALL(BIO_write(TEST_BIO, IGNORED_PTR_ARG, certificate_len));
+    ASSERT_IS_FALSE(certificate_len > INT_MAX, "Line:" TOSTRING(__LINE__));
+    STRICT_EXPECTED_CALL(BIO_write(TEST_BIO, IGNORED_PTR_ARG, (int)certificate_len));
     ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
