@@ -13,6 +13,7 @@
 #include "azure_c_shared_utility/xlogging.h"
 
 #include "certificate_info.h"
+#include "hsm_err.h"
 #include "hsm_log.h"
 
 typedef struct CERT_DATA_INFO_TAG

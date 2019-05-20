@@ -5,7 +5,7 @@
 #include <openssl/pem.h>
 
 #include "azure_c_shared_utility/gballoc.h"
-#include "umock_c.h"
+#include "umock_c/umock_c.h"
 
 MOCKABLE_FUNCTION(, ASN1_TIME*, mocked_X509_get_notBefore, X509*, x509_cert);
 MOCKABLE_FUNCTION(, ASN1_TIME*, mocked_X509_get_notAfter, X509*, x509_cert);

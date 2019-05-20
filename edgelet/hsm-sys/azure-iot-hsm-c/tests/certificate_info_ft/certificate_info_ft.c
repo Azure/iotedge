@@ -10,9 +10,9 @@
 
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/crt_abstractions.h"
-#include "azure_c_shared_utility/macro_utils.h"
+#include "azure_macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
-#include "umock_c.h"
+#include "umock_c/umock_c.h"
 
 //#############################################################################
 // Interface(s) under test
@@ -26,14 +26,7 @@
 static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
 
-DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
-
-static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
-{
-    char temp_str[256];
-    (void)snprintf(temp_str, sizeof(temp_str), "umock_c reported error :%s", ENUM_TO_STRING(UMOCK_C_ERROR_CODE, error_code));
-    ASSERT_FAIL(temp_str);
-}
+MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 static const int64_t RSA_CERT_VALID_FROM_TIME = 1484940333;
 static const int64_t RSA_CERT_VALID_TO_TIME = 1800300333;
@@ -155,6 +148,17 @@ static const unsigned char TEST_PRIVATE_KEY[] = { 0x32, 0x03, 0x33, 0x34, 0x35, 
 static size_t TEST_PRIVATE_KEY_LEN = sizeof(TEST_PRIVATE_KEY)/sizeof(TEST_PRIVATE_KEY[0]);
 
 //#############################################################################
+// Test hooks
+//#############################################################################
+
+static void test_hook_on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
+{
+    char temp_str[256];
+    (void)snprintf(temp_str, sizeof(temp_str), "umock_c reported error :%s", MU_ENUM_TO_STRING(UMOCK_C_ERROR_CODE, error_code));
+    ASSERT_FAIL(temp_str);
+}
+
+//#############################################################################
 // Test cases
 //#############################################################################
 BEGIN_TEST_SUITE(certificate_info_func_tests)
@@ -164,6 +168,7 @@ BEGIN_TEST_SUITE(certificate_info_func_tests)
         TEST_INITIALIZE_MEMORY_DEBUG(g_dllByDll);
         g_testByTest = TEST_MUTEX_CREATE();
         ASSERT_IS_NOT_NULL(g_testByTest);
+        umock_c_init(test_hook_on_umock_c_error);
     }
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
