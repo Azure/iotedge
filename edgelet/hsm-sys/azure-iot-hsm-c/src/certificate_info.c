@@ -7,7 +7,7 @@
 #include "certificate_info.h"
 
 #include "azure_c_shared_utility/gballoc.h"
-#include "azure_c_shared_utility/base64.h"
+#include "azure_c_shared_utility/azure_base64.h"
 #include "azure_c_shared_utility/buffer_.h"
 #include "azure_c_shared_utility/xlogging.h"
 
@@ -180,7 +180,7 @@ static BUFFER_HANDLE decode_certificate(CERT_DATA_INFO* cert_info)
             }
             iterator++;
         }
-        result = Base64_Decoder(cert_base64);
+        result = Azure_Base64_Decode(cert_base64);
         free(cert_base64);
     }
     return result;

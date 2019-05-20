@@ -49,7 +49,7 @@ pub struct Git2Tree {
 }
 
 fn sanitize_url(url: String) -> String {
-    url.trim_right_matches(".git")
+    url.trim_end_matches(".git")
         .replace("www.", "")
         .to_string()
 }
