@@ -107,7 +107,7 @@ impl PemCertificate {
 
             Ok(Some(PrivateKey::Key(KeyBytes::Pem(buffer)))) => Some(buffer.as_ref().to_vec()),
 
-            _ => None
+            _ => None,
         };
 
         Ok(PemCertificate::new(cert, key, None, None))

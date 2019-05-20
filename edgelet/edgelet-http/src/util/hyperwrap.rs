@@ -23,7 +23,7 @@ pub struct Config {
     proxy_uri: Option<Uri>,
     null: bool,
     identity_certificate: Option<PemCertificate>,
-    trust_bundle: Option<PemCertificate>
+    trust_bundle: Option<PemCertificate>,
 }
 
 impl Config {
@@ -56,12 +56,12 @@ impl Config {
                     let identity = id.get_identity()?;
                     let mut builder = TlsConnector::builder();
                     if let Some(bundle) = &self.trust_bundle {
-                        let certs =
-                            X509::stack_from_pem(&bundle.cert).with_context(|_| ErrorKind::TrustBundle)?;
+                        let certs = X509::stack_from_pem(&bundle.cert)
+                            .with_context(|_| ErrorKind::TrustBundle)?;
                         for cert in certs {
-                            let der = cert.to_der()
-                                        .with_context(|_| ErrorKind::TrustBundle)?;
-                            let c = TlsCertificate::from_der(&der).with_context(|_| ErrorKind::TrustBundle)?;
+                            let der = cert.to_der().with_context(|_| ErrorKind::TrustBundle)?;
+                            let c = TlsCertificate::from_der(&der)
+                                .with_context(|_| ErrorKind::TrustBundle)?;
                             builder.add_root_certificate(c);
                         }
                     }

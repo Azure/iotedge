@@ -10,7 +10,8 @@ use lazy_static::lazy_static;
 use std::sync::Mutex;
 
 use edgelet_core::{
-    CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate, IOTEDGED_CA_ALIAS, GetIssuerAlias,
+    CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate, GetIssuerAlias,
+    IOTEDGED_CA_ALIAS,
 };
 mod test_utils;
 use chrono::{DateTime, Utc};
@@ -93,7 +94,8 @@ fn http_client_identtity_cert_success() {
     let client_pem = PemCertificate::from(&client_cert).unwrap();
     let port = get_unused_tcp_port();
     let server = run_tls_tcp_server("127.0.0.1", port, server_pem.get_identity().unwrap());
-    let hyper_client = MaybeProxyClient::new_with_identity_cert(None, client_pem, Some(ca_pem)).unwrap();
+    let hyper_client =
+        MaybeProxyClient::new_with_identity_cert(None, client_pem, Some(ca_pem)).unwrap();
     let url = Url::parse(&format!("https://localhost:{}", port)).unwrap();
     let token_source: Option<StaticTokenSource> = None;
 
