@@ -75,14 +75,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.DirectMethod
                                 r => config.AddRegistryCredentials(r.address, r.username, r.password));
                             config.AddEdgeHub(args.HubImage);
                             args.Proxy.ForEach(p => config.AddProxy(p));
-                            config.AddModule("methodSender", args.SenderImage);
-                            config.AddModule("DirectMethodReceiver", args.ReceiverImage);
+                            config.AddModule("methodSender", args.SenderImage)
+                                .WithEnvironment(new[] { ("TargetModuleId", "methodReceiver") });
+                            config.AddModule("methodReceiver", args.ReceiverImage);
                             await config.DeployAsync(token);
-                            // TODO: convert EdgeConfiguration to a builder-style (or fluent) interface, so we can do something like `config.AddModule("methodSender", ...).WithEnv(new[]{"TargetModuleId", "methodReceiver"});`
 
                             var hub = new EdgeModule("edgeHub", device.Id, iotHub);
                             var sender = new EdgeModule("methodSender", device.Id, iotHub);
-                            var receiver = new EdgeModule("DirectMethodReceiver", device.Id, iotHub);
+                            var receiver = new EdgeModule("methodReceiver", device.Id, iotHub);
                             await EdgeModule.WaitForStatusAsync(
                                 new[] { hub, sender, receiver },
                                 EdgeModuleStatus.Running,

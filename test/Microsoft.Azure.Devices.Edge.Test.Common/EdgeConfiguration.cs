@@ -23,6 +23,36 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly string deviceId;
         readonly IotHub iotHub;
 
+        public class Module
+        {
+            readonly string name;
+            readonly EdgeConfiguration config;
+
+            public Module(string name, EdgeConfiguration config)
+            {
+                this.name = name;
+                this.config = config;
+            }
+
+            public Module WithEnvironment(IEnumerable<ValueTuple<string, string>> env)
+            {
+                this.config.ForEachModule(
+                    (moduleName, module) =>
+                    {
+                        if (moduleName == this.name)
+                        {
+                            JObject envObj = GetOrAddObject("env", module);
+                            foreach (ValueTuple<string, string> pair in env)
+                            {
+                                envObj.Add(pair.Item1, JToken.FromObject(new { value = pair.Item2 }));
+                            }
+                        }
+                    });
+
+                return this;
+            }
+        }
+
         public EdgeConfiguration(string deviceId, string agentImage, IotHub iotHub)
         {
             this.config = GetBaseConfig(agentImage);
@@ -126,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             };
         }
 
-        public void AddModule(string name, string image)
+        public Module AddModule(string name, string image)
         {
             this.UpdateAgentDesiredProperties(
                 desired =>
@@ -146,6 +176,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                 }
                             }));
                 });
+
+            return new Module(name, this);
         }
 
         public Task DeployAsync(CancellationToken token)
