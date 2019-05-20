@@ -5,7 +5,7 @@
 #include <openssl/evp.h>
 #include <openssl/x509.h>
 
-#include "umock_c.h"
+#include "umock_c/umock_c.h"
 
 MOCKABLE_FUNCTION(, void, mocked_OpenSSL_add_all_algorithms);
 MOCKABLE_FUNCTION(, void, mocked_ERR_load_crypto_strings);
