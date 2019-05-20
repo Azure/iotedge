@@ -252,7 +252,7 @@ static int parse_common_name(CERT_DATA_INFO* cert_info, X509* x509_cert)
         memset(cn, 0, cn_size);
         if (X509_NAME_get_text_by_NID(subj_name, NID_commonName, cn, cn_size) == -1)
         {
-            LOG_ERROR("X509_NAME_get_text_by_NID could not parse subject field 'CN'");
+            LOG_INFO("X509_NAME_get_text_by_NID could not parse subject field 'CN'");
             free(cn);
             cn = NULL;
         }
@@ -273,12 +273,12 @@ static int parse_validity_timestamps(CERT_DATA_INFO* cert_info, X509* x509_cert)
     if ((exp_asn1->type != ASN1_TIME_STRING_UTC_FORMAT) &&
         (exp_asn1->length != ASN1_TIME_STRING_UTC_LEN))
     {
-        LOG_ERROR("Unsupported not after time format in certificate");
+        LOG_ERROR("Unsupported 'not after' time format in certificate");
         result = __FAILURE__;
     }
     else if ((not_after = get_utc_time_from_asn_string(exp_asn1->data, exp_asn1->length)) == 0)
     {
-        LOG_ERROR("Could not parse not after timestamp from certificate");
+        LOG_ERROR("Could not parse 'not after' timestamp from certificate");
         result = __FAILURE__;
     }
     else
@@ -287,12 +287,12 @@ static int parse_validity_timestamps(CERT_DATA_INFO* cert_info, X509* x509_cert)
         if ((exp_asn1->type != ASN1_TIME_STRING_UTC_FORMAT) &&
             (exp_asn1->length != ASN1_TIME_STRING_UTC_LEN))
         {
-            LOG_ERROR("Unsupported not before time format in certificate");
+            LOG_ERROR("Unsupported 'not before' time format in certificate");
             result = __FAILURE__;
         }
         else if ((not_before = get_utc_time_from_asn_string(exp_asn1->data, exp_asn1->length)) == 0)
         {
-            LOG_ERROR("Could not parse not before timestamp from certificate");
+            LOG_ERROR("Could not parse 'not before' timestamp from certificate");
             result = __FAILURE__;
         }
         else
