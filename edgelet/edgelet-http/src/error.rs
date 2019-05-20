@@ -107,6 +107,9 @@ pub enum ErrorKind {
     #[fail(display = "Token source error")]
     TokenSource,
 
+    #[fail(display = "Trust bundle usage error")]
+    TrustBundle,
+
     #[fail(
         display = "Could not form well-formed URL by joining {:?} with {:?}",
         _0, _1

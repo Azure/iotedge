@@ -9,10 +9,12 @@ use hyper::client::HttpConnector;
 use hyper::{Body, Client as HyperClient, Error as HyperError, Request, Response, StatusCode, Uri};
 use hyper_proxy::{Intercept, Proxy, ProxyConnector};
 use hyper_tls::HttpsConnector;
-use native_tls::TlsConnector;
+use native_tls::{Certificate as TlsCertificate, TlsConnector};
 use typed_headers::Credentials;
 use url::percent_encoding::percent_decode;
 use url::Url;
+
+use openssl::x509::X509;
 
 const DNS_WORKER_THREADS: usize = 4;
 
@@ -21,11 +23,17 @@ pub struct Config {
     proxy_uri: Option<Uri>,
     null: bool,
     identity_certificate: Option<PemCertificate>,
+    trust_bundle: Option<PemCertificate>
 }
 
 impl Config {
     pub fn identity_certificate(&mut self, identity_cert: PemCertificate) -> &mut Config {
         self.identity_certificate = Some(identity_cert);
+        self
+    }
+
+    pub fn trust_bundle(&mut self, trust_bundle: Option<PemCertificate>) -> &mut Config {
+        self.trust_bundle = trust_bundle;
         self
     }
 
@@ -46,7 +54,18 @@ impl Config {
             let https_connector = match &self.identity_certificate {
                 Some(id) => {
                     let identity = id.get_identity()?;
-                    let connector = TlsConnector::builder()
+                    let mut builder = TlsConnector::builder();
+                    if let Some(bundle) = &self.trust_bundle {
+                        let certs =
+                            X509::stack_from_pem(&bundle.cert).with_context(|_| ErrorKind::TrustBundle)?;
+                        for cert in certs {
+                            let der = cert.to_der()
+                                        .with_context(|_| ErrorKind::TrustBundle)?;
+                            let c = TlsCertificate::from_der(&der).with_context(|_| ErrorKind::TrustBundle)?;
+                            builder.add_root_certificate(c);
+                        }
+                    }
+                    let connector = builder
                         .identity(identity)
                         .build()
                         .with_context(|_| ErrorKind::CertificateConversionError)?;
@@ -140,6 +159,7 @@ impl Client {
             proxy_uri: None,
             null: false,
             identity_certificate: None,
+            trust_bundle: None,
         }
     }
 

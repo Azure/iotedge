@@ -14,20 +14,22 @@ pub struct MaybeProxyClient {
 
 impl MaybeProxyClient {
     pub fn new(proxy_uri: Option<Uri>) -> Result<Self, Error> {
-        MaybeProxyClient::create(false, proxy_uri, None)
+        MaybeProxyClient::create(false, proxy_uri, None, None)
     }
 
     pub fn new_with_identity_cert(
         proxy_uri: Option<Uri>,
         identity_certificate: PemCertificate,
+        trust_bundle: Option<PemCertificate>,
     ) -> Result<Self, Error> {
-        MaybeProxyClient::create(false, proxy_uri, Some(identity_certificate))
+        MaybeProxyClient::create(false, proxy_uri, Some(identity_certificate), trust_bundle)
     }
 
     fn create(
         null: bool,
         proxy_uri: Option<Uri>,
         identity_certificate: Option<PemCertificate>,
+        trust_bundle: Option<PemCertificate>,
     ) -> Result<Self, Error> {
         let mut config = Client::configure();
         if null {
@@ -39,6 +41,9 @@ impl MaybeProxyClient {
         if let Some(id_cert) = identity_certificate {
             config.identity_certificate(id_cert);
         }
+
+        config.trust_bundle(trust_bundle);
+
         Ok(MaybeProxyClient {
             client: config.build()?,
         })
@@ -46,7 +51,7 @@ impl MaybeProxyClient {
 
     #[cfg(test)]
     pub fn new_null() -> Result<Self, Error> {
-        MaybeProxyClient::create(true, None, None)
+        MaybeProxyClient::create(true, None, None, None)
     }
 
     #[cfg(test)]

@@ -76,7 +76,7 @@ const FD_SCHEME: &str = "fd";
 #[derive(Clone)]
 pub struct PemCertificate {
     cert: Vec<u8>,
-    key: Vec<u8>,
+    key: Option<Vec<u8>>,
     username: Option<String>,
     password: Option<String>,
 }
@@ -84,7 +84,7 @@ pub struct PemCertificate {
 impl PemCertificate {
     pub fn new(
         cert: Vec<u8>,
-        key: Vec<u8>,
+        key: Option<Vec<u8>>,
         username: Option<String>,
         password: Option<String>,
     ) -> Self {
@@ -103,11 +103,11 @@ impl PemCertificate {
         };
 
         let key = match id_cert.get_private_key() {
-            Ok(Some(PrivateKey::Ref(ref_))) => ref_.into_bytes().clone(),
+            Ok(Some(PrivateKey::Ref(ref_))) => Some(ref_.into_bytes().clone()),
 
-            Ok(Some(PrivateKey::Key(KeyBytes::Pem(buffer)))) => buffer.as_ref().to_vec(),
+            Ok(Some(PrivateKey::Key(KeyBytes::Pem(buffer)))) => Some(buffer.as_ref().to_vec()),
 
-            _ => return Err(Error::from(ErrorKind::IdentityPrivateKey)),
+            _ => None
         };
 
         Ok(PemCertificate::new(cert, key, None, None))
@@ -127,8 +127,10 @@ impl PemCertificate {
                 .with_context(|_| ErrorKind::IdentityCertificate)?;
         }
 
-        let key = PKey::private_key_from_pem(&self.key)
-            .with_context(|_| ErrorKind::IdentityCertificate)?;
+        let key = match &self.key {
+            Some(k) => PKey::private_key_from_pem(&k),
+            None => return Err(Error::from(ErrorKind::IdentityPrivateKey)),
+        }?;
 
         let identity_cert = &certs[0];
 
