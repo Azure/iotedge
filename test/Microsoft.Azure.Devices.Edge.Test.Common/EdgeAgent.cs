@@ -16,20 +16,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task PingAsync(CancellationToken token)
         {
             return Profiler.Run(
-                "Pinging module 'edgeAgent' from the cloud",
                 () =>
                 {
                     return Retry.Do(
                         () => this.iotHub.InvokeMethodAsync(
                             this.deviceId,
-                            "$edgeAgent",
+                            $"${this.Id}",
                             new CloudToDeviceMethod("ping"),
                             token),
                         result => result.Status == 200,
                         e => true,
                         TimeSpan.FromSeconds(5),
                         token);
-                });
+                },
+                "Pinged module '{Module}' from the cloud",
+                this.Id);
         }
     }
 }
