@@ -128,8 +128,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Type expectedType)
         {
             var authenticator = new Mock<IAuthenticator>();
+            var productInfoStore = Mock.Of<IProductInfoStore>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(authRetVal);
-            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), true);
+            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), productInfoStore, true);
             if (certificate != null)
             {
                 deviceIdentityProvider.RegisterConnectionCertificate(certificate, chain);
@@ -175,8 +176,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             string iotHubHostName = "foo.azure-devices.net";
             var authenticator = new Mock<IAuthenticator>();
+            var productInfoStore = Mock.Of<IProductInfoStore>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
-            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), false);
+            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), productInfoStore, false);
             deviceIdentityProvider.RegisterConnectionCertificate(new X509Certificate2(), new List<X509Certificate2> { new X509Certificate2() });
             IDeviceIdentity deviceIdentity = await deviceIdentityProvider.GetAsync(
                 "Device_2",

@@ -124,7 +124,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 // happy path
                 "abc",
                 $"{Hostname}/{DeviceId}/{ApiVersion}&{DeviceClientType}",
-                $"abc {ProductInfo}"
+                $"{ProductInfo} abc",
+                ProductInfo
             };
 
             yield return new[]
@@ -132,7 +133,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 // no DeviceClientType
                 "abc",
                 $"{Hostname}/{DeviceId}/{ApiVersion}",
-                "abc"
+                "abc",
+                string.Empty
             };
 
             yield return new[]
@@ -140,6 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 // no caller product info
                 string.Empty,
                 $"{Hostname}/{DeviceId}/{ApiVersion}&{DeviceClientType}",
+                ProductInfo,
                 ProductInfo
             };
 
@@ -148,6 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 // no DeviceClientType OR caller product info
                 string.Empty,
                 $"{Hostname}/{DeviceId}/{ApiVersion}",
+                string.Empty,
                 string.Empty
             };
         }
@@ -268,11 +272,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Theory]
         [Unit]
         [MemberData(nameof(GetIdentityWithProductInfoInputs))]
-        public async Task GetIdentityWithProductInfoTest(string productInfo, string username, string result)
+        public async Task GetIdentityWithProductInfoTest(string productInfo, string username, string result, string clientProductInfo)
         {
-            IClientCredentials clientCredentials = await GetClientCredentials(Hostname, DeviceId, username, SasToken, false, productInfo);
+            string receivedProductInfo = null;
+            var productInfoStore = new Mock<IProductInfoStore>();
+            productInfoStore.Setup(p => p.SetProductInfo(It.IsAny<string>(), It.IsAny<string>()))
+                .Callback<string, string>((_, p) => receivedProductInfo = p)
+                .Returns(Task.CompletedTask);
+
+            IClientCredentials clientCredentials = await GetClientCredentials(Hostname, DeviceId, username, SasToken, false, productInfo, productInfoStore: productInfoStore.Object);
             Assert.NotNull(clientCredentials);
             Assert.Equal(result, clientCredentials.ProductInfo);
+
+            Assert.Equal(clientProductInfo, receivedProductInfo);
+            productInfoStore.VerifyAll();
         }
 
         [Theory]
@@ -280,9 +293,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [MemberData(nameof(GetUsernameInputs))]
         public async Task ProductInfoTest(string username, string clientId, string productInfo)
         {
-            IClientCredentials clientCredentials = await GetClientCredentials(Hostname, clientId, username, SasToken);
+            string receivedProductInfo = null;
+            var productInfoStore = new Mock<IProductInfoStore>();
+            productInfoStore.Setup(p => p.SetProductInfo(It.IsAny<string>(), It.IsAny<string>()))
+                .Callback<string, string>((_, p) => receivedProductInfo = p)
+                .Returns(Task.CompletedTask);
+
+            IClientCredentials clientCredentials = await GetClientCredentials(Hostname, clientId, username, SasToken, productInfoStore: productInfoStore.Object);
             Assert.NotNull(clientCredentials);
             Assert.Equal(productInfo, clientCredentials.ProductInfo);
+            Assert.Equal(productInfo, receivedProductInfo);
+            productInfoStore.VerifyAll();
         }
 
         [Theory]
@@ -316,11 +337,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal($"{deviceId}/{moduleId}", hubModuleIdentity.Id);
         }
 
-        static async Task<IClientCredentials> GetClientCredentials(string iotHubHostName, string deviceId, string userName, string token, bool isCertAuthAllowed = false, string productInfo = "", X509Certificate2 certificate = null, IList<X509Certificate2> chain = null)
+        static async Task<IClientCredentials> GetClientCredentials(string iotHubHostName, string deviceId, string userName, string token, bool isCertAuthAllowed = false, string productInfo = "", X509Certificate2 certificate = null, IList<X509Certificate2> chain = null, IProductInfoStore productInfoStore = null)
         {
+            productInfoStore = productInfoStore ?? Mock.Of<IProductInfoStore>();
             var authenticator = Mock.Of<IAuthenticator>(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(true));
             var factory = new ClientCredentialsFactory(new IdentityProvider(iotHubHostName), productInfo);
-            var credentialIdentityProvider = new DeviceIdentityProvider(authenticator, factory, isCertAuthAllowed);
+            var credentialIdentityProvider = new DeviceIdentityProvider(authenticator, factory, productInfoStore, isCertAuthAllowed);
             if (certificate != null && chain != null)
             {
                 credentialIdentityProvider.RegisterConnectionCertificate(certificate, chain);
