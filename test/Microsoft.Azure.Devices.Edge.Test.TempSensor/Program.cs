@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
 {
     using System;
@@ -58,6 +58,12 @@ If you specify `--registry` and `--user`, the following variable must also be se
         [Option("--user", Description = "Username for container registry login")]
         public string RegistryUser { get; }
 
+        [Option("--verbose", Description = "Output more information to the console")]
+        public bool Verbose { get; }
+
+        [Option("--logfile", Description = "Also log verbose information to a file")]
+        public string LogFile { get; }
+
         static Task<int> Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args);
 
         Task<int> OnExecuteAsync()
@@ -81,7 +87,9 @@ If you specify `--registry` and `--user`, the following variable must also be se
                                 this.RegistryAddress,
                                 this.RegistryUser,
                                 EnvironmentVariable.Expect("E2E_CONTAINER_REGISTRY_PASSWORD")))
-                        : Option.None<(string, string, string)>()
+                        : Option.None<(string, string, string)>(),
+                    Verbose = this.Verbose,
+                    LogFile = Option.Maybe(this.LogFile)
                 });
         }
     }
