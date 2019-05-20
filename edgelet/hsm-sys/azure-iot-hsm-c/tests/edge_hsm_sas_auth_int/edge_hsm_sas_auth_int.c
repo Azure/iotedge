@@ -11,7 +11,7 @@
 #include "azure_c_shared_utility/sastoken.h"
 #include "azure_c_shared_utility/urlencode.h"
 #include "azure_c_shared_utility/hmacsha256.h"
-#include "azure_c_shared_utility/base64.h"
+#include "azure_c_shared_utility/azure_base64.h"
 #include "azure_c_shared_utility/agenttime.h"
 #include "azure_c_shared_utility/strings.h"
 #include "azure_c_shared_utility/buffer_.h"
@@ -132,7 +132,7 @@ static void tpm_deprovision(HSM_CLIENT_HANDLE hsm_handle)
 
 static BUFFER_HANDLE test_helper_base64_converter(const char* input)
 {
-    BUFFER_HANDLE result = Base64_Decoder(input);
+    BUFFER_HANDLE result = Azure_Base64_Decode(input);
     ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
     size_t out_len = BUFFER_length(result);
     ASSERT_ARE_NOT_EQUAL(size_t, 0, out_len, "Line:" TOSTRING(__LINE__));
@@ -211,7 +211,7 @@ static STRING_HANDLE tpm_construct_sas_token
                 size_t inLen = STRING_length(toBeHashed);
                 const unsigned char* inBuf = (const unsigned char*)STRING_c_str(toBeHashed);
                 if ((tpm_sign(hsm_handle, derived_identity, derived_identity_size, inBuf, inLen, hash) != 0) ||
-                    ((base64Signature = Base64_Encoder(hash)) == NULL) ||
+                    ((base64Signature = Azure_Base64_Encode(hash)) == NULL) ||
                     ((urlEncodedSignature = URL_Encode(base64Signature)) == NULL) ||
                     (STRING_copy(result, "SharedAccessSignature sr=") != 0) ||
                     (STRING_concat(result, scope) != 0) ||
@@ -295,8 +295,8 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
                  test_data_to_be_signed_size, test_output_digest);
 
         // assert
-        STRING_HANDLE expected = Base64_Encoder(test_expected_digest);
-        STRING_HANDLE result = Base64_Encoder(test_output_digest);
+        STRING_HANDLE expected = Azure_Base64_Encode(test_expected_digest);
+        STRING_HANDLE result = Azure_Base64_Encode(test_output_digest);
         printf("Expected: %s\r\n", STRING_c_str(expected));
         printf("Got Result: %s\r\n", STRING_c_str(result));
         ASSERT_ARE_EQUAL(int, 0, STRING_compare(expected, result));
@@ -344,8 +344,8 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
                  test_data_to_be_signed, test_data_to_be_signed_size, test_output_digest);
 
         // assert
-        STRING_HANDLE expected = Base64_Encoder(test_expected_digest);
-        STRING_HANDLE result = Base64_Encoder(test_output_digest);
+        STRING_HANDLE expected = Azure_Base64_Encode(test_expected_digest);
+        STRING_HANDLE result = Azure_Base64_Encode(test_output_digest);
         printf("Expected digest: %s, Result digest %s\r\n",
                STRING_c_str(expected), STRING_c_str(result));
         ASSERT_ARE_EQUAL(int, 0, STRING_compare(expected, result));
@@ -392,10 +392,10 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
         tpm_sign(hsm_handle, NULL, 0, (unsigned char*)secondary_fqmid, strlen(secondary_fqmid), test_output_secondary_key_buf);
 
         // assert
-        STRING_HANDLE expected_primary_key_str = Base64_Encoder(test_expected_primary_key_buf);
-        STRING_HANDLE expected_secondary_key_str = Base64_Encoder(test_expected_secondary_key_buf);
-        STRING_HANDLE result_primary_key_str = Base64_Encoder(test_output_primary_key_buf);
-        STRING_HANDLE result_secondary_key_str = Base64_Encoder(test_output_secondary_key_buf);
+        STRING_HANDLE expected_primary_key_str = Azure_Base64_Encode(test_expected_primary_key_buf);
+        STRING_HANDLE expected_secondary_key_str = Azure_Base64_Encode(test_expected_secondary_key_buf);
+        STRING_HANDLE result_primary_key_str = Azure_Base64_Encode(test_output_primary_key_buf);
+        STRING_HANDLE result_secondary_key_str = Azure_Base64_Encode(test_output_secondary_key_buf);
         printf("Expected Primary Key: %s, Result Primary Key %s\r\n",
                STRING_c_str(expected_primary_key_str), STRING_c_str(result_primary_key_str));
         printf("Expected Secondary Key: %s, Result Secondary Key %s\r\n",
