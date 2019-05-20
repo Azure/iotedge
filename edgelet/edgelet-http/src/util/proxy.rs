@@ -3,8 +3,8 @@
 use hyper::{Body, Request, Uri};
 
 use super::super::client::ClientImpl;
-use super::hyperwrap::Client;
 use super::super::PemCertificate;
+use super::hyperwrap::Client;
 use crate::error::Error;
 
 #[derive(Clone)]
@@ -12,17 +12,23 @@ pub struct MaybeProxyClient {
     client: Client,
 }
 
-impl MaybeProxyClient
-{
+impl MaybeProxyClient {
     pub fn new(proxy_uri: Option<Uri>) -> Result<Self, Error> {
         MaybeProxyClient::create(false, proxy_uri, None)
     }
 
-    pub fn new_with_identity_cert(proxy_uri: Option<Uri>, identity_certificate: PemCertificate) -> Result<Self, Error> {
+    pub fn new_with_identity_cert(
+        proxy_uri: Option<Uri>,
+        identity_certificate: PemCertificate,
+    ) -> Result<Self, Error> {
         MaybeProxyClient::create(false, proxy_uri, Some(identity_certificate))
     }
 
-    fn create(null: bool, proxy_uri: Option<Uri>, identity_certificate: Option<PemCertificate>) -> Result<Self, Error> {
+    fn create(
+        null: bool,
+        proxy_uri: Option<Uri>,
+        identity_certificate: Option<PemCertificate>,
+    ) -> Result<Self, Error> {
         let mut config = Client::configure();
         if null {
             config.null();

@@ -47,15 +47,17 @@ where
     })
 }
 
-pub fn run_tls_tcp_server(ip: &str, port: u16, identity: native_tls::Identity) -> impl Future<Item = (), Error = ()> {
+pub fn run_tls_tcp_server(
+    ip: &str,
+    port: u16,
+    identity: native_tls::Identity,
+) -> impl Future<Item = (), Error = ()> {
     let addr = &format!("{}:{}", ip, port).parse().unwrap();
     let listener = TcpListener::bind(&addr).unwrap();
-    let tls_acceptor = tokio_tls::TlsAcceptor::from(
-        native_tls::TlsAcceptor::builder(identity)
-            .build()
-            .unwrap(),
-    );
-    listener.incoming()
+    let tls_acceptor =
+        tokio_tls::TlsAcceptor::from(native_tls::TlsAcceptor::builder(identity).build().unwrap());
+    listener
+        .incoming()
         .for_each(move |socket| {
             let tls_accept = tls_acceptor
                 .accept(socket)

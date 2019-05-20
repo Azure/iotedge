@@ -4,21 +4,20 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use edgelet_hsm::{Crypto, HsmLock};
-use edgelet_http::{PemCertificate, MaybeProxyClient, Error};
 use edgelet_http::client::{Client as HttpClient, TokenSource};
+use edgelet_http::{Error, MaybeProxyClient, PemCertificate};
 use lazy_static::lazy_static;
 use std::sync::Mutex;
 
 use edgelet_core::{
-    CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate,
-    IOTEDGED_CA_ALIAS,
+    CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate, IOTEDGED_CA_ALIAS,
 };
 mod test_utils;
-use test_utils::TestHSMEnvSetup;
-use edgelet_test_utils::{get_unused_tcp_port, run_tls_tcp_server};
-use url::Url;
 use chrono::{DateTime, Utc};
-use hyper::{Method};
+use edgelet_test_utils::{get_unused_tcp_port, run_tls_tcp_server};
+use hyper::Method;
+use test_utils::TestHSMEnvSetup;
+use url::Url;
 
 lazy_static! {
     static ref LOCK: Mutex<()> = Mutex::new(());
@@ -90,21 +89,10 @@ fn crypto_create_cert_success() {
     let url = Url::parse("https://localhost").unwrap();
     let token_source: Option<StaticTokenSource> = None;
 
-    let http_client = HttpClient::new(
-        hyper_client,
-        token_source,
-        "2019-01-01".to_string(),
-        url,
-    ).unwrap();
+    let http_client =
+        HttpClient::new(hyper_client, token_source, "2019-01-01".to_string(), url).unwrap();
 
-    let request = http_client
-            .request::<(), ()>(
-                Method::GET,
-                "",
-                None,
-                None,
-                false,
-            );
+    let request = http_client.request::<(), ()>(Method::GET, "", None, None, false);
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);

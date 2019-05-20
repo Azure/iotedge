@@ -1,5 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use super::super::client::ClientImpl;
+use super::super::PemCertificate;
+use crate::error::{Error, ErrorKind, InvalidUrlReason};
 use failure::ResultExt;
 use futures::future;
 use hyper::client::HttpConnector;
@@ -10,9 +13,6 @@ use native_tls::TlsConnector;
 use typed_headers::Credentials;
 use url::percent_encoding::percent_decode;
 use url::Url;
-use super::super::PemCertificate;
-use super::super::client::ClientImpl;
-use crate::error::{Error, ErrorKind, InvalidUrlReason};
 
 const DNS_WORKER_THREADS: usize = 4;
 
@@ -47,20 +47,20 @@ impl Config {
                 Some(id) => {
                     let identity = id.get_identity()?;
                     let connector = TlsConnector::builder()
-                                .identity(identity)
-                                .build()
-                                .with_context(|_| ErrorKind::CertificateConversionError)?;
+                        .identity(identity)
+                        .build()
+                        .with_context(|_| ErrorKind::CertificateConversionError)?;
                     let mut http = HttpConnector::new(DNS_WORKER_THREADS);
                     http.enforce_http(false);
                     Ok(HttpsConnector::from((http, connector)))
-                },
-                None => {
-                    HttpsConnector::new(DNS_WORKER_THREADS).context(ErrorKind::Initialization)
-                },
+                }
+                None => HttpsConnector::new(DNS_WORKER_THREADS).context(ErrorKind::Initialization),
             }?;
 
             match &self.proxy_uri {
-                None => Ok(Client::NoProxy(HyperClient::builder().build(https_connector))),
+                None => Ok(Client::NoProxy(
+                    HyperClient::builder().build(https_connector),
+                )),
                 Some(uri) => {
                     let proxy = uri_to_proxy(uri.clone())?;
                     let conn = ProxyConnector::from_proxy(https_connector, proxy)
@@ -139,7 +139,7 @@ impl Client {
         Config {
             proxy_uri: None,
             null: false,
-            identity_certificate: None
+            identity_certificate: None,
         }
     }
 

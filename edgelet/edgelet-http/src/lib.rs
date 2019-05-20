@@ -9,6 +9,8 @@
     clippy::use_self
 )]
 
+use std::fmt;
+use std::fmt::{Debug, Display, Formatter};
 #[cfg(target_os = "linux")]
 use std::net;
 use std::net::ToSocketAddrs;
@@ -18,8 +20,6 @@ use std::os::unix::io::FromRawFd;
 use std::sync::Arc;
 #[cfg(unix)]
 use std::sync::{Arc, Mutex};
-use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
 
 use failure::{Fail, ResultExt};
 use futures::{future, Future, Poll, Stream};
@@ -36,10 +36,10 @@ use url::Url;
 
 use openssl::pkcs12::Pkcs12;
 use openssl::pkey::PKey;
-use openssl::x509::X509;
 use openssl::stack::Stack;
+use openssl::x509::X509;
 
-use edgelet_core::crypto::{Certificate, CreateCertificate, PrivateKey, KeyBytes};
+use edgelet_core::crypto::{Certificate, CreateCertificate, KeyBytes, PrivateKey};
 use edgelet_core::{UrlExt, UNIX_SCHEME};
 use edgelet_utils::log_failure;
 use native_tls::{Identity, TlsAcceptor};
@@ -82,12 +82,17 @@ pub struct PemCertificate {
 }
 
 impl PemCertificate {
-    pub fn new(cert: Vec<u8>, key: Vec<u8>, username: Option<String>, password: Option<String>) -> Self {
+    pub fn new(
+        cert: Vec<u8>,
+        key: Vec<u8>,
+        username: Option<String>,
+        password: Option<String>,
+    ) -> Self {
         PemCertificate {
-                cert,
-                key,
-                username,
-                password,
+            cert,
+            key,
+            username,
+            password,
         }
     }
 
@@ -98,13 +103,9 @@ impl PemCertificate {
         };
 
         let key = match id_cert.get_private_key() {
-            Ok(Some(PrivateKey::Ref(ref_))) => {
-                ref_.into_bytes().clone()
-            },
+            Ok(Some(PrivateKey::Ref(ref_))) => ref_.into_bytes().clone(),
 
-            Ok(Some(PrivateKey::Key(KeyBytes::Pem(buffer)))) => {
-                buffer.as_ref().to_vec()
-            },
+            Ok(Some(PrivateKey::Key(KeyBytes::Pem(buffer)))) => buffer.as_ref().to_vec(),
 
             _ => return Err(Error::from(ErrorKind::IdentityPrivateKey)),
         };
@@ -127,17 +128,23 @@ impl PemCertificate {
         }
 
         let key = PKey::private_key_from_pem(&self.key)
-                    .with_context(|_| ErrorKind::IdentityCertificate)?;
+            .with_context(|_| ErrorKind::IdentityCertificate)?;
 
         let identity_cert = &certs[0];
 
         let mut builder = Pkcs12::builder();
         builder.ca(ca_certs);
         let pkcs_certs = builder
-            .build(self.password.as_ref().map_or("", String::as_str), self.username.as_ref().map_or("", String::as_str), &key, &identity_cert)
+            .build(
+                self.password.as_ref().map_or("", String::as_str),
+                self.username.as_ref().map_or("", String::as_str),
+                &key,
+                &identity_cert,
+            )
             .with_context(|_| ErrorKind::IdentityCertificate)?;
 
-        let der = pkcs_certs.to_der()
+        let der = pkcs_certs
+            .to_der()
             .with_context(|_| ErrorKind::IdentityCertificate)?;
 
         let identity = Identity::from_pkcs12(&der, "")?;
