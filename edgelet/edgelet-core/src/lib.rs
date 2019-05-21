@@ -34,6 +34,7 @@ pub use module::{
     ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, ModuleTop,
     RegistryOperation, RuntimeOperation, SystemInfo,
 };
+pub use watchdog::RetryLimit;
 pub use workload::WorkloadConfig;
 
 lazy_static! {

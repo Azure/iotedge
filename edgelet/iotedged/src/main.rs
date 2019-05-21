@@ -7,7 +7,7 @@
 fn main() {
     if let Err(e) = iotedged::unix::run() {
         iotedged::logging::log_error(&e);
-        std::process::exit(1);
+        std::process::exit(i32::from(e.kind()));
     }
 }
 
@@ -15,6 +15,6 @@ fn main() {
 fn main() {
     if let Err(e) = iotedged::windows::run() {
         iotedged::logging::log_error(&e);
-        std::process::exit(1);
+        std::process::exit(i32::from(e.kind()));
     }
 }
