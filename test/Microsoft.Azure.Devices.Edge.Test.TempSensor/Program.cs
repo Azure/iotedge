@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
 {
     using System;
     using System.ComponentModel.DataAnnotations;
-    using System.Runtime.InteropServices;
     using System.Threading.Tasks;
     using McMaster.Extensions.CommandLineUtils;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -124,12 +123,12 @@ If you specify `--registry` and `--user`, the following variable must also be se
         {
             if (value is Program obj)
             {
-                if (obj.InstallerPath == null && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                if (obj.InstallerPath == null && Platform.IsWindows())
                 {
                     return new ValidationResult("--installer-path is required on Windows");
                 }
 
-                if (obj.InstallerPath != null && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                if (obj.InstallerPath != null && !Platform.IsWindows())
                 {
                     return new ValidationResult("--installer-path can only be specified on Windows");
                 }
