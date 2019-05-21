@@ -16,7 +16,8 @@ use edgelet_utils::log_failure;
 use crate::error::{Error, ErrorKind};
 use crate::identity::{Identity, IdentityManager, IdentitySpec};
 use crate::module::{
-    Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ModuleStatus, PullPolicy
+    Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ModuleStatus,
+    PullPolicy,
 };
 
 // Time to allow EdgeAgent to gracefully shutdown (including stopping all modules, and updating reported properties)
@@ -290,10 +291,7 @@ where
 
         let pull_future = match spec.pull_policy() {
             PullPolicy::Never => Either::A(future::ok(())),
-            PullPolicy::Always =>
-                Either::B(runtime
-                    .registry()
-                    .pull(spec.clone().config()))
+            PullPolicy::Always => Either::B(runtime.registry().pull(spec.clone().config())),
         };
 
         pull_future

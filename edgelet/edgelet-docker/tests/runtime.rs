@@ -24,7 +24,9 @@ use docker::models::{
     ContainerCreateBody, ContainerHostConfig, ContainerNetworkSettings, ContainerSummary,
     HostConfig, HostConfigPortBindings, ImageDeleteResponseItem,
 };
-use edgelet_core::{LogOptions, LogTail, Module, ModuleRegistry, ModuleRuntime, ModuleSpec, PullPolicy};
+use edgelet_core::{
+    LogOptions, LogTail, Module, ModuleRegistry, ModuleRuntime, ModuleSpec, PullPolicy,
+};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 
@@ -543,7 +545,6 @@ fn container_create_handler(
         req.into_body()
             .concat2()
             .and_then(|body| {
-                println!("{:?}", body);
                 let create_options: ContainerCreateBody =
                     serde_json::from_slice(body.as_ref()).unwrap();
 
@@ -658,7 +659,7 @@ fn container_create_succeeds() {
         "docker".to_string(),
         DockerConfig::new("nginx:latest".to_string(), create_options, None).unwrap(),
         env,
-        PullPolicy::default()
+        PullPolicy::default(),
     )
     .unwrap();
 

@@ -24,6 +24,7 @@
         "type": "docker", // Enum - values – docker
         "status": "running", // Enum - values - running, stopped
         "restartPolicy": "always", // This value should be "always"
+        "pullPolicy": "always",
         "settings": {
           "image": "someregistry/someimage:sometag", // Path to the EdgeHub Image
           "createOptions": "" // Options string to start the Edge Hub module (templated)
@@ -39,6 +40,7 @@
         "type": "docker",
         "status": "running",
         "restartPolicy": "always",
+        "pullPolicy": "always",
         "settings": {
           "image": "someregistry/someimage:sometag",
           "createOptions": ""

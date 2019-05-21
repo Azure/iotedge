@@ -32,8 +32,8 @@ pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
 pub use module::{
     LogOptions, LogTail, Module, ModuleOperation, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, ModuleTop,
-    RegistryOperation, RuntimeOperation, SystemInfo, PullPolicy
+    ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, ModuleTop, PullPolicy,
+    RegistryOperation, RuntimeOperation, SystemInfo,
 };
 pub use watchdog::RetryLimit;
 pub use workload::WorkloadConfig;

@@ -80,20 +80,26 @@ where
                 debug!("Removed existing module {}", name);
 
                 match core_spec.pull_policy() {
-                    PullPolicy::Always =>
-                        Either::A(runtime.
-                        registry().
-                        pull(core_spec.config()).then(|result| {
-                        result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
-                        Ok((core_spec, spec, name, runtime))
-                    })),
-                    PullPolicy::Never => Either::B(futures::future::ok((core_spec, spec, name, runtime)))
+                    PullPolicy::Always => {
+                        Either::A(runtime.registry().pull(core_spec.config()).then(|result| {
+                            result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                            Ok((core_spec, spec, name, runtime))
+                        }))
+                    }
+                    PullPolicy::Never => {
+                        Either::B(futures::future::ok((core_spec, spec, name, runtime)))
+                    }
                 }
             })
             .and_then(|(core_spec, spec, name, runtime)| {
                 match core_spec.pull_policy() {
-                    PullPolicy::Always => debug!("Successfully pulled new image for module {}", name),
-                    PullPolicy::Never => debug!("Skipped pulling image for module {} due to pull policy", name)
+                    PullPolicy::Always => {
+                        debug!("Successfully pulled new image for module {}", name)
+                    }
+                    PullPolicy::Never => debug!(
+                        "Skipped pulling image for module {} as per pull policy",
+                        name
+                    ),
                 };
 
                 runtime.create(core_spec).then(|result| {
@@ -345,10 +351,7 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!(
-                    "Request body is malformed",
-                    error.message()
-                );
+                assert_eq!("Request body is malformed", error.message());
                 Ok(())
             })
             .wait()

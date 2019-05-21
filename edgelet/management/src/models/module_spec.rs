@@ -31,7 +31,7 @@ impl ModuleSpec {
             name,
             type_,
             config,
-            pull_policy: None
+            pull_policy: None,
         }
     }
 

@@ -161,7 +161,7 @@ where
             type_: self.type_.clone(),
             config: self.config.clone(),
             env: self.env.clone(),
-            pull_policy: self.pull_policy.clone()
+            pull_policy: self.pull_policy,
         }
     }
 }
@@ -172,7 +172,7 @@ impl<T> ModuleSpec<T> {
         type_: String,
         config: T,
         env: HashMap<String, String>,
-        pull_policy: PullPolicy
+        pull_policy: PullPolicy,
     ) -> Result<Self> {
         ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
         ensure_not_empty_with_context(&type_, || ErrorKind::InvalidModuleType(type_.clone()))?;
@@ -182,7 +182,7 @@ impl<T> ModuleSpec<T> {
             type_,
             config,
             env,
-            pull_policy
+            pull_policy,
         })
     }
 
@@ -571,7 +571,13 @@ mod tests {
     #[test]
     fn module_config_empty_name_fails() {
         let name = "".to_string();
-        match ModuleSpec::new(name.clone(), "docker".to_string(), 10_i32, HashMap::new(), PullPolicy::default()) {
+        match ModuleSpec::new(
+            name.clone(),
+            "docker".to_string(),
+            10_i32,
+            HashMap::new(),
+            PullPolicy::default(),
+        ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
                 if let ErrorKind::InvalidModuleName(s) = err.kind() {
@@ -586,7 +592,13 @@ mod tests {
     #[test]
     fn module_config_white_space_name_fails() {
         let name = "    ".to_string();
-        match ModuleSpec::new(name.clone(), "docker".to_string(), 10_i32, HashMap::new(), PullPolicy::default()) {
+        match ModuleSpec::new(
+            name.clone(),
+            "docker".to_string(),
+            10_i32,
+            HashMap::new(),
+            PullPolicy::default(),
+        ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
                 if let ErrorKind::InvalidModuleName(s) = err.kind() {
@@ -601,7 +613,13 @@ mod tests {
     #[test]
     fn module_config_empty_type_fails() {
         let type_ = "    ".to_string();
-        match ModuleSpec::new("m1".to_string(), type_.clone(), 10_i32, HashMap::new(), PullPolicy::default()) {
+        match ModuleSpec::new(
+            "m1".to_string(),
+            type_.clone(),
+            10_i32,
+            HashMap::new(),
+            PullPolicy::default(),
+        ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
                 if let ErrorKind::InvalidModuleType(s) = err.kind() {
@@ -616,7 +634,13 @@ mod tests {
     #[test]
     fn module_config_white_space_type_fails() {
         let type_ = "    ".to_string();
-        match ModuleSpec::new("m1".to_string(), type_.clone(), 10_i32, HashMap::new(), PullPolicy::default()) {
+        match ModuleSpec::new(
+            "m1".to_string(),
+            type_.clone(),
+            10_i32,
+            HashMap::new(),
+            PullPolicy::default(),
+        ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
                 if let ErrorKind::InvalidModuleType(s) = err.kind() {

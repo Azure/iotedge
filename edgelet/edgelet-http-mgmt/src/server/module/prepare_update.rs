@@ -50,21 +50,31 @@ where
             })
             .and_then(|(core_spec, runtime)| {
                 let name = core_spec.name().to_string();
-                let pull_policy = core_spec.pull_policy().clone();
+                let pull_policy = *core_spec.pull_policy();
                 match pull_policy {
-                    PullPolicy::Always => Either::A(runtime.
-                    registry().
-                    pull(core_spec.config()).then(move |result| {
-                        result.with_context(|_| ErrorKind::PrepareUpdateModule(name.clone()))?;
-                        Ok((name, pull_policy))
-                    })),
-                    PullPolicy::Never => Either::B(futures::future::ok((name, pull_policy)))
+                    PullPolicy::Always => Either::A(
+                        runtime
+                            .registry()
+                            .pull(core_spec.config())
+                            .then(move |result| {
+                                result.with_context(|_| {
+                                    ErrorKind::PrepareUpdateModule(name.clone())
+                                })?;
+                                Ok((name, pull_policy))
+                            }),
+                    ),
+                    PullPolicy::Never => Either::B(futures::future::ok((name, pull_policy))),
                 }
             })
             .and_then(|(name, pull_policy)| -> Result<_, Error> {
                 match pull_policy {
-                    PullPolicy::Always => debug!("Successfully pulled new image for module {}", name),
-                    PullPolicy::Never => debug!("Skipped pulling image for module {} due to pull policy", name)
+                    PullPolicy::Always => {
+                        debug!("Successfully pulled new image for module {}", name)
+                    }
+                    PullPolicy::Never => debug!(
+                        "Skipped pulling image for module {} as per pull policy",
+                        name
+                    ),
                 };
 
                 let response = Response::builder()
@@ -231,10 +241,7 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!(
-                    "Request body is malformed",
-                    error.message()
-                );
+                assert_eq!("Request body is malformed", error.message());
                 Ok(())
             })
             .wait()

@@ -9,7 +9,7 @@ New-Module -Name IoTEdge -ScriptBlock {
 
 Set-Variable Windows1607 -Value 14393 -Option Constant
 Set-Variable Windows1803 -Value 17134 -Option Constant
-Set-Variable Windows1809 -Value 18362 -Option Constant
+Set-Variable Windows1809 -Value 17763 -Option Constant
 
 Set-Variable MinBuildForLinuxContainers -Value $Windows1607
 Set-Variable SupportedBuildsForWindowsContainers -Value @($Windows1809)

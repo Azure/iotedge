@@ -56,8 +56,11 @@ where
         Err(err) => return Err(Error::from(err.context(context))),
     };
 
-    let pull_policy = match spec.pull_policy().map_or(Ok(PullPolicy::default()),
-                                                |policy| PullPolicy::from_str(policy)) {
+    let pull_policy = match spec
+        .pull_policy()
+        .map_or(Ok(PullPolicy::default()), |policy| {
+            PullPolicy::from_str(policy)
+        }) {
         Ok(pull_policy) => pull_policy,
         Err(_err) => return Err(Error::from(context)),
     };

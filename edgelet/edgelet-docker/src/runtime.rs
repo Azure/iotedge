@@ -987,7 +987,7 @@ mod tests {
             DockerConfig::new("nginx:latest".to_string(), ContainerCreateBody::new(), None)
                 .unwrap(),
             HashMap::new(),
-            PullPolicy::default()
+            PullPolicy::default(),
         )
         .unwrap();
 
