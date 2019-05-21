@@ -28,10 +28,10 @@ sudo apt-get install -y git cmake build-essential curl libcurl4-openssl-dev libs
 
 1. Install necessary tools for development using [Homebrew](https://brew.sh/) package manager
     ```bash
-    brew update    
-    brew install cmake openssl 
+    brew update
+    brew install cmake openssl
     ```
-    
+
 1. Set `OPENSSL_ROOT_DIR`
     ```bash
     export OPENSSL_ROOT_DIR=/usr/local/opt/openssl
@@ -57,6 +57,7 @@ sudo apt-get install -y git cmake build-essential curl libcurl4-openssl-dev libs
 
 	```powershell
 	$env:OPENSSL_ROOT_DIR = "$PWD\installed\x64-windows"
+	$env:OPENSSL_DIR = "$PWD\installed\x64-windows"
 	```
 
 ### Cargo
