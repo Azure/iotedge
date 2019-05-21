@@ -15,6 +15,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     {
         public async Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
+            await InstallAsync(packagesPath, token);
+
+            await this.ConfigureAsync(deviceConnectionString, token);
+        }
+
+        static async Task InstallAsync(Option<string> packagesPath, CancellationToken token)
+        {
             var properties = new object[] { };
             string message = "Installed edge daemon";
             packagesPath.ForEach(
@@ -75,7 +82,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 },
                 message,
                 properties);
+        }
 
+        async Task ConfigureAsync(string deviceConnectionString, CancellationToken token)
+        {
             string hostname = (await File.ReadAllTextAsync("/proc/sys/kernel/hostname", token)).Trim();
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(deviceConnectionString);
 
@@ -114,32 +124,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 builder.DeviceId);
         }
 
-        public Task StartAsync(CancellationToken token)
-        {
-            return Profiler.Run(
-                () => this.InternalStartAsync(token),
-                "Started edge daemon");
-        }
+        public Task StartAsync(CancellationToken token) => Profiler.Run(
+            () => this.InternalStartAsync(token),
+            "Started edge daemon");
 
         async Task InternalStartAsync(CancellationToken token)
         {
             string[] output = await Process.RunAsync("systemctl", "start iotedge", token);
             Log.Verbose(string.Join("\n", output));
-            await this.WaitForStatusAsync(ServiceControllerStatus.Running, token);
+            await WaitForStatusAsync(ServiceControllerStatus.Running, token);
         }
 
-        public Task StopAsync(CancellationToken token)
-        {
-            return Profiler.Run(
-                () => this.InternalStopAsync(token),
-                "Stopped edge daemon");
-        }
+        public Task StopAsync(CancellationToken token) => Profiler.Run(
+            () => this.InternalStopAsync(token),
+            "Stopped edge daemon");
 
         async Task InternalStopAsync(CancellationToken token)
         {
             string[] output = await Process.RunAsync("systemctl", "stop iotedge", token);
             Log.Verbose(string.Join("\n", output));
-            await this.WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
+            await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
         }
 
         public async Task UninstallAsync(CancellationToken token)
@@ -170,15 +174,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             }
         }
 
-        public Task WaitForStatusAsync(EdgeDaemonStatus desired, CancellationToken token)
-        {
-            return Profiler.Run(
-                () => this.WaitForStatusAsync((ServiceControllerStatus)desired, token),
-                "Edge daemon entered the '{Desired}' state",
-                desired.ToString().ToLower());
-        }
+        public Task WaitForStatusAsync(EdgeDaemonStatus desired, CancellationToken token) => Profiler.Run(
+            () => WaitForStatusAsync((ServiceControllerStatus)desired, token),
+            "Edge daemon entered the '{Desired}' state",
+            desired.ToString().ToLower());
 
-        async Task WaitForStatusAsync(ServiceControllerStatus desired, CancellationToken token)
+        static async Task WaitForStatusAsync(ServiceControllerStatus desired, CancellationToken token)
         {
             while (true)
             {
