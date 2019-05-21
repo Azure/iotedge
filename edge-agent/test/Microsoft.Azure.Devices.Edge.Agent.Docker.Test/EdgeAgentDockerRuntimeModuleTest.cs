@@ -43,6 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     lastExitTimeUtc = lastExitTimeUtc,
                     statusDescription = string.Empty,
                     type = "docker",
+                    pullPolicy = "always",
                     settings = new
                     {
                         image = "booyah:latest",

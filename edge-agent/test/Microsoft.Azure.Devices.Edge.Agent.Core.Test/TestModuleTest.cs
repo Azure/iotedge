@@ -42,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
+      ""PullPolicy"": ""always"",
       ""Settings"": {
         ""Image"": ""image1""
       },
@@ -54,6 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""type"": ""docker"",
       ""status"": ""running"",
       ""restartpolicy"": ""on-unhealthy"",
+      ""pullpolicy"": ""always"",
       ""settings"": {
         ""image"": ""image1""
       },
@@ -66,6 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""TYPE"": ""docker"",
       ""STATUS"": ""RUNNING"",
       ""RESTARTPOLICY"": ""on-unhealthy"",
+      ""PULLPOLICY"": ""always"",
       ""SETTINGS"": {
         ""IMAGE"": ""image1""
       },
@@ -80,6 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""stopped"",
       ""RestartPolicy"": ""on-unhealthy"",
+      ""PullPolicy"": ""always"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -92,6 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""Unknown"",
       ""RestartPolicy"": ""on-unhealthy"",
+      ""PullPolicy"": ""always"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -105,6 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Version"": ""<semantic_version_number>"",
       ""Type"": ""docker"",
       ""RestartPolicy"": ""on-unhealthy"",
+      ""PullPolicy"": ""always"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -116,6 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
+      ""PullPolicy"": ""always"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -127,6 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Version"": ""<semantic_version_number>"",
       ""Status"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
+      ""PullPolicy"": ""always"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -139,6 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Settings"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
+      ""PullPolicy"": ""always"",
       ""Configuration"": {
         ""id"":""1""
       }
@@ -148,6 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
+      ""PullPolicy"": ""always"",
       ""Settings"": {},
       ""Configuration"": {
         ""id"":""1""
@@ -158,6 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""<bad_status>"",
       ""RestartPolicy"": ""on-unhealthy"",
+      ""PullPolicy"": ""always"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -170,6 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""<bad_status>"",
       ""RestartPolicy"": ""on-unhealthy"",
+      ""PullPolicy"": ""always"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       }

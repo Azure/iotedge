@@ -19,8 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             yield return new object[]
             {
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), PullPolicy.Always, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("EnvVal1") }, "version1"),
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), PullPolicy.Always, null, null),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), PullPolicy.Never, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("EnvVal1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), PullPolicy.Never, null, null),
                 true
             };
 

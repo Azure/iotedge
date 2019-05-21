@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 0,
                 DateTime.MinValue,
                 ModuleStatus.Running,
-                PullPolicy.Always,
+                PullPolicy.Never,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
 
@@ -40,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
   ""status"": ""running"",
   ""restartPolicy"": ""always"",
+  ""pullPolicy"": ""never"",
   ""exitCode"": 0,
   ""statusDescription"": """",
   ""lastStartTimeUtc"": ""0001-01-01T00:00:00"",
@@ -68,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
   ""status"": ""running"",
   ""restartPolicy"": ""always"",
+  ""pullPolicy"": ""never"",
   ""exitCode"": 0,
   ""statusDescription"": """",
   ""lastStartTimeUtc"": ""0001-01-01T00:00:00"",
@@ -97,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 0,
                 DateTime.MinValue,
                 ModuleStatus.Running,
-                PullPolicy.Always,
+                PullPolicy.Never,
                 null,
                 new Dictionary<string, EnvVal>());
 

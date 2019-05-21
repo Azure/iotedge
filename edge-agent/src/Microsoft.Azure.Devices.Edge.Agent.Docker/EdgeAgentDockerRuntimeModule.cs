@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using System;
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     public class EdgeAgentDockerRuntimeModule : DockerRuntimeModule, IEdgeAgentModule
@@ -48,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.RestartCount = 0;
             this.LastRestartTimeUtc = DateTime.MinValue;
             this.Version = version ?? string.Empty;
+            // this.PullPolicy = Preconditions.CheckIsDefined(pullPolicy);
         }
 
         [JsonIgnore]
@@ -65,6 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonIgnore]
         public override DateTime LastRestartTimeUtc { get; }
 
+        // [JsonIgnore]
+        // public override PullPolicy PullPolicy { get; }
         public override IModule WithRuntimeStatus(ModuleStatus newStatus) => new EdgeAgentDockerRuntimeModule(
             (DockerReportedConfig)this.Config,
             newStatus,

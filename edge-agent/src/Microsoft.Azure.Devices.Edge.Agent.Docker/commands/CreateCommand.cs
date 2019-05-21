@@ -170,7 +170,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             createContainerParameters.Labels[Constants.Labels.NormalizedCreateOptions] = createOptionsString;
             createContainerParameters.Labels[Constants.Labels.RestartPolicy] = module.RestartPolicy.ToString();
             createContainerParameters.Labels[Constants.Labels.DesiredStatus] = module.DesiredStatus.ToString();
-            createContainerParameters.Labels[Constants.Labels.PullPolicy] = module.PullPolicy.ToString();
 
             if (!string.IsNullOrWhiteSpace(module.Version))
             {

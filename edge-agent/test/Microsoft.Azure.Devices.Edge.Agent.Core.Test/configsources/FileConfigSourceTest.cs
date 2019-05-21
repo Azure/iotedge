@@ -28,7 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                     },
                     ""systemModules"": {
                       ""edgeAgent"": { 
-                        ""type"": ""test"", 
+                        ""type"": ""test"",
+                        ""pullPolicy"": ""always"",
                         ""settings"": {
                           ""image"": ""edge-agent""
                         },
@@ -39,7 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                       ""edgeHub"": { 
                         ""type"": ""test"", 
                         ""status"": ""running"", 
-                        ""restartPolicy"": ""always"", 
+                        ""restartPolicy"": ""always"",
+                        ""pullPolicy"": ""always"",
                         ""settings"": {
                           ""image"": ""edge-hub:latest""
                         },
@@ -54,6 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                         ""type"": ""test"",
                         ""status"": ""running"",
                         ""restartPolicy"": ""on-unhealthy"",
+                        ""pullPolicy"": ""never"",
                         ""settings"": {
                           ""image"": ""image1""
                         },
@@ -78,7 +81,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                     },
                     ""systemModules"": {
                       ""edgeAgent"": { 
-                        ""type"": ""test"", 
+                        ""type"": ""test"",
+                        ""pullPolicy"": ""always"",
                         ""settings"": {
                           ""image"": ""edge-agent""
                         },
@@ -89,7 +93,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                       ""edgeHub"": { 
                         ""type"": ""test"", 
                         ""status"": ""running"", 
-                        ""restartPolicy"": ""always"", 
+                        ""restartPolicy"": ""always"",
+                        ""pullPolicy"": ""always"",
                         ""settings"": {
                           ""image"": ""edge-hub:latest""
                         },
@@ -104,6 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                         ""type"": ""test"",
                         ""status"": ""stopped"",
                         ""restartPolicy"": ""on-unhealthy"",
+                        ""pullPolicy"": ""never"",
                         ""settings"": {
                           ""image"": ""image1""
                         },
@@ -116,6 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                         ""type"": ""test"",
                         ""status"": ""running"",
                         ""restartPolicy"": ""on-unhealthy"",
+                        ""pullPolicy"": ""never"",
                         ""settings"": {
                           ""image"": ""image1""
                         },
@@ -133,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         static readonly TestConfig Config1 = new TestConfig("image1");
 
-        static readonly IModule ValidModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.Always, ConfigurationInfo, EnvVars);
+        static readonly IModule ValidModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.Never, ConfigurationInfo, EnvVars);
 
         static readonly IEdgeHubModule EdgeHubModule = new TestHubModule("edgeHub", "test", ModuleStatus.Running, new TestConfig("edge-hub:latest"), RestartPolicy.Always, PullPolicy.Always, ConfigurationInfo, EnvVars);
 
@@ -143,9 +150,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         static readonly ModuleSet ValidSet1 = new ModuleSet(new Dictionary<string, IModule>(Modules1) { [EdgeHubModule.Name] = EdgeHubModule, [EdgeAgentModule.Name] = EdgeAgentModule });
 
-        static readonly IModule UpdatedModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, PullPolicy.Always, ConfigurationInfo, EnvVars);
+        static readonly IModule UpdatedModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, PullPolicy.Never, ConfigurationInfo, EnvVars);
 
-        static readonly IModule ValidModule2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.Always, ConfigurationInfo, EnvVars);
+        static readonly IModule ValidModule2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.Never, ConfigurationInfo, EnvVars);
 
         static readonly IDictionary<string, IModule> Modules2 = new Dictionary<string, IModule> { ["mod1"] = UpdatedModule1, ["mod2"] = ValidModule2 };
 

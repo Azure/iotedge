@@ -190,9 +190,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public override RestartPolicy RestartPolicy { get; }
 
         [JsonIgnore]
-        public override PullPolicy PullPolicy { get; }
-
-        [JsonIgnore]
         public override ModuleStatus DesiredStatus { get; }
 
         public virtual IModule WithRuntimeStatus(ModuleStatus newStatus)

@@ -1682,10 +1682,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.Generate
         [Newtonsoft.Json.JsonProperty("status", Required = Newtonsoft.Json.Required.Always)]
         public Status Status { get; set; } = new Status();
 
-        [Newtonsoft.Json.JsonProperty("pullPolicy", Required = Newtonsoft.Json.Required.Always)]
-        [Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
-        public PullPolicy PullPolicy { get; set; }
-
         public string ToJson()
         {
             return Newtonsoft.Json.JsonConvert.SerializeObject(this);
