@@ -814,7 +814,7 @@ where
                             list.into_iter()
                                 .find(|module| expected_module_id == module.name())
                         })
-                        .and_then(|module| module.and_then(|module| Some(module.top())))
+                        .and_then(|module| module.map(|module| module.top()))
                         .map(move |top| {
                             top.and_then(|top| {
                                 if top.process_ids().contains(&pid) {
