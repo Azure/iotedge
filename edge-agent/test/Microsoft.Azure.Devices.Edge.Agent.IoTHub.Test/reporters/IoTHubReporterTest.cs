@@ -230,7 +230,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
-                                }
+                                },
+                                pullPolicy = "always"
                             }
                         },
                         modules = new Dictionary<string, object>
@@ -400,7 +401,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
-                                }
+                                },
+                                pullPolicy = "always"
                             }
                         },
                         modules = new Dictionary<string, object>
@@ -578,7 +580,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
-                                }
+                                },
+                                pullPolicy = "always"
                             }
                         },
                         modules = new Dictionary<string, object>
@@ -771,7 +774,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
-                                }
+                                },
+                                pullPolicy = "always"
                             }
                         },
                         modules = new Dictionary<string, object>
@@ -1125,7 +1129,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     ModuleStatus.Running,
                     RestartPolicy.Always,
                     new DockerConfig("edge.azurecr.io/edgeHub:1.0"),
-                    PullPolicy.Always,
+                    PullPolicy.Never,
                     new ConfigurationInfo("1"),
                     new Dictionary<string, EnvVal>());
                 var edgeAgentDesiredModule = new EdgeAgentDockerModule(
@@ -1165,7 +1169,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
-                    PullPolicy.Always,
+                    PullPolicy.Never,
                     new ConfigurationInfo("1"),
                     new Dictionary<string, EnvVal> { ["foo"] = new EnvVal("Bar") });
                 ModuleSet currentModuleSet = ModuleSet.Create(
@@ -1197,7 +1201,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Running),
+                        ModuleStatus.Running,
+                        PullPolicy.Never),
                     edgeHubRuntimeModule);
 
                 var agentStateSerde = new Mock<ISerde<AgentState>>();
@@ -1252,7 +1257,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
-                                }
+                                },
+                                pullPolicy = "always"
                             }
                         },
                         modules = new
@@ -1764,7 +1770,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
-                                }
+                                },
+                                pullPolicy = "always"
                             }
                         },
                         modules = new Dictionary<string, object>
