@@ -820,7 +820,19 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
     TEST_FUNCTION(certificate_info_get_certificate_leaf_win_eol_success)
     {
+        //arrange
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        umock_c_reset_all_calls();
 
+         //act
+        const char* certificate = certificate_info_get_leaf_certificate(cert_handle);
+
+         //assert
+        ASSERT_IS_NOT_NULL(certificate);
+        ASSERT_ARE_EQUAL(char_ptr, TEST_CERT_WIN_EOL, certificate);
+
+         //cleanup
+        certificate_info_destroy(cert_handle);
     }
 
     TEST_FUNCTION(certificate_info_get_certificate_leaf_nix_eol_success)
