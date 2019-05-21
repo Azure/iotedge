@@ -15,6 +15,12 @@ Assert-Rust -Arm:$Arm
 $cargo = Get-CargoCommand -Arm:$Arm
 Write-Host $cargo
 
+rustup component add clippy
+
+if ($LastExitCode -ne 0) {
+    Throw "Unable to install clippy. Failed with $LastExitCode"
+}
+
 $oldPath = if ($Arm) { ReplacePrivateRustInPath } else { '' }
 
 $ErrorActionPreference = 'Continue'
