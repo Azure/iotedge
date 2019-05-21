@@ -49,8 +49,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             {
                 File.SetAttributes(this.configYamlFile, attr);
             }
-
-            Log.Information("Updated daemon configuration file '{ConfigFile}'", this.configYamlFile);
         }
     }
 }
