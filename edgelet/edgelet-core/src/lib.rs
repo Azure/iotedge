@@ -25,8 +25,8 @@ pub use authorization::{AuthId, ModuleId, Policy};
 pub use certificate_properties::{CertificateIssuer, CertificateProperties, CertificateType};
 pub use crypto::{
     Certificate, CreateCertificate, Decrypt, Encrypt, GetDeviceIdentityCertificate, GetIssuerAlias,
-    GetTrustBundle, KeyBytes, KeyIdentity, KeyStore, MasterEncryptionKey, PrivateKey, Signature,
-    IOTEDGED_CA_ALIAS,
+    GetTrustBundle, KeyBytes, KeyIdentity, KeyStore, MakeRandom, MasterEncryptionKey, PrivateKey,
+    Signature, IOTEDGED_CA_ALIAS,
 };
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
@@ -35,6 +35,7 @@ pub use module::{
     ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, ModuleTop,
     RegistryOperation, RuntimeOperation, SystemInfo,
 };
+pub use watchdog::RetryLimit;
 pub use workload::WorkloadConfig;
 
 lazy_static! {

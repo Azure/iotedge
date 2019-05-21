@@ -145,6 +145,33 @@ agent:
 hostname: "<ADD HOSTNAME HERE>"
 
 ###############################################################################
+# Watchdog settings
+###############################################################################
+#
+# The IoT edge daemon has a watchdog that periodically checks the health of the
+# Edge Agent module and restarts it if it's down.
+#
+# max_retries - Configures the number of retry attempts that the IoT edge daemon
+#               should make for failed operations before failing with a fatal error.
+#
+#               If this configuration is not specified, the daemon keeps retrying
+#               on errors and doesn't fail fatally.
+# 
+#               On a fatal failure, the daemon returns an exit code which
+#               signifies the kind of error encountered. Currently, the following
+#               error codes are returned by the daemon -
+#
+#               150 - Invalid Device ID specified.
+#               151 - Invalid IoT hub configuration.
+#               152 - Invalid SAS token used to call IoT hub.
+#                     This could signal an invalid SAS key.
+#               1 - All other errors.
+###############################################################################
+
+#watchdog:
+#  max_retries: 2
+
+###############################################################################
 # Connect settings
 ###############################################################################
 #
