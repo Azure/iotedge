@@ -103,12 +103,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
                     string result = doc.ToString();
 
-                    FileAttributes attr = 0;
-                    if (File.Exists(YamlPath))
-                    {
-                        attr = File.GetAttributes(YamlPath);
-                        File.SetAttributes(YamlPath, attr & ~FileAttributes.ReadOnly);
-                    }
+                    FileAttributes attr = File.GetAttributes(YamlPath);
+                    File.SetAttributes(YamlPath, attr & ~FileAttributes.ReadOnly);
 
                     await File.WriteAllTextAsync(YamlPath, result, token);
 
