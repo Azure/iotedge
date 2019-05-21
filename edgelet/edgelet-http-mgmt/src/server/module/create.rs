@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::{Fail, ResultExt};
+use failure::ResultExt;
 use futures::future::Either;
 use futures::{Future, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
@@ -42,22 +42,21 @@ where
         _params: Parameters,
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let runtime = self.runtime.clone();
-        let response = req
-            .into_body()
-            .concat2()
-            .then(|b| {
-                let b = b.context(ErrorKind::MalformedRequestBody)?;
-                let spec = serde_json::from_slice::<ModuleSpec>(&b)
-                    .context(ErrorKind::MalformedRequestBody)?;
-                let core_spec = spec_to_core::<M>(&spec, ErrorKind::MalformedRequestBody)?;
-                Ok((spec, core_spec))
-            })
-            .and_then(move |(spec, core_spec)| {
-                let module_name = spec.name().to_string();
-                let pull_policy = *core_spec.pull_policy();
+        let response =
+            req.into_body()
+                .concat2()
+                .then(|b| {
+                    let b = b.context(ErrorKind::MalformedRequestBody)?;
+                    let spec = serde_json::from_slice::<ModuleSpec>(&b)
+                        .context(ErrorKind::MalformedRequestBody)?;
+                    let core_spec = spec_to_core::<M>(&spec, ErrorKind::MalformedRequestBody)?;
+                    Ok((spec, core_spec))
+                })
+                .and_then(move |(spec, core_spec)| {
+                    let module_name = spec.name().to_string();
+                    let pull_policy = *core_spec.pull_policy();
 
-                let pull_future =
-                    match pull_policy {
+                    let pull_future = match pull_policy {
                         PullPolicy::Always => {
                             let name = module_name.clone();
                             Either::A(runtime.registry().pull(core_spec.config()).then(
@@ -76,52 +75,45 @@ where
                         }
                     };
 
-                pull_future.then(
-                    move |result: Result<(String, PullPolicy), Error>| match result {
-                        Ok((name, pull_policy)) => {
-                            match pull_policy {
-                                PullPolicy::Always => {
-                                    debug!("Successfully pulled new image for module {}", name)
-                                }
-                                PullPolicy::Never => debug!(
-                                    "Skipped pulling image for module {} as per pull policy",
-                                    name
-                                ),
-                            };
+                    pull_future.and_then(move |(name, pull_policy)| -> Result<_, Error> {
+                        match pull_policy {
+                            PullPolicy::Always => {
+                                debug!("Successfully pulled new image for module {}", name)
+                            }
+                            PullPolicy::Never => debug!(
+                                "Skipped pulling image for module {} as per pull policy",
+                                name
+                            ),
+                        };
 
-                            Ok(runtime
-                                .create(core_spec)
-                                .then(move |result| -> Result<_, Error> {
-                                    result.with_context(|_| {
-                                        ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
-                                            name.clone(),
-                                        ))
-                                    })?;
-                                    let details = spec_to_details(&spec, ModuleStatus::Stopped);
-                                    let b = serde_json::to_string(&details).with_context(|_| {
-                                        ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
-                                            name.clone(),
-                                        ))
-                                    })?;
-                                    let response = Response::builder()
-                                        .status(StatusCode::CREATED)
-                                        .header(CONTENT_TYPE, "application/json")
-                                        .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                                        .body(b.into())
-                                        .context(ErrorKind::RuntimeOperation(
-                                            RuntimeOperation::CreateModule(name),
-                                        ))?;
-                                    Ok(response)
-                                }))
-                        }
-                        Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(
-                            RuntimeOperation::CreateModule(module_name.clone()),
-                        )))),
-                    },
-                )
-            })
-            .flatten()
-            .or_else(|e| Ok(e.into_response()));
+                        Ok(runtime
+                            .create(core_spec)
+                            .then(move |result| -> Result<_, Error> {
+                                result.with_context(|_| {
+                                    ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                                        name.clone(),
+                                    ))
+                                })?;
+                                let details = spec_to_details(&spec, ModuleStatus::Stopped);
+                                let b = serde_json::to_string(&details).with_context(|_| {
+                                    ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                                        name.clone(),
+                                    ))
+                                })?;
+                                let response = Response::builder()
+                                    .status(StatusCode::CREATED)
+                                    .header(CONTENT_TYPE, "application/json")
+                                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                                    .body(b.into())
+                                    .context(ErrorKind::RuntimeOperation(
+                                        RuntimeOperation::CreateModule(name),
+                                    ))?;
+                                Ok(response)
+                            }))
+                    })
+                })
+                .flatten()
+                .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
