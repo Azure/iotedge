@@ -495,6 +495,9 @@ BEGIN_TEST_SUITE(certificate_info_func_tests)
 
         // assert
         ASSERT_IS_NULL(result);
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
     }
 
 END_TEST_SUITE(certificate_info_func_tests)

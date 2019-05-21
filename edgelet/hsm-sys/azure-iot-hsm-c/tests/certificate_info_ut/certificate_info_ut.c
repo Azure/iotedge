@@ -634,8 +634,8 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_no_private_key_succeed)
     {
         //arrange
-        size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
+        memset(failed_function_list, 0 , sizeof(failed_function_list));
         test_helper_parse_cert_common_callstack(TEST_RSA_CERT_NIX_EOL, strlen(TEST_RSA_CERT_NIX_EOL) + 1, false, failed_function_list, MAX_FAILED_FUNCTION_LIST_SIZE, NULL);
 
         //act
@@ -655,8 +655,8 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         int negativeTestsInitResult = umock_c_negative_tests_init();
         ASSERT_ARE_EQUAL(int, 0, negativeTestsInitResult);
 
-        size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
+        memset(failed_function_list, 0 , sizeof(failed_function_list));
         test_helper_parse_cert_common_callstack(TEST_RSA_CERT_WIN_EOL, strlen(TEST_RSA_CERT_WIN_EOL) + 1, false, failed_function_list, MAX_FAILED_FUNCTION_LIST_SIZE, NULL);
 
         umock_c_negative_tests_snapshot();
@@ -1094,8 +1094,8 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(get_common_name_not_in_certificate_returns_NULL)
     {
         //arrange
-        size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
+        memset(failed_function_list, 0 , sizeof(failed_function_list));
         CALLSTACK_OVERRIDE overrride = { true };
         test_helper_parse_cert_common_callstack(TEST_RSA_CERT_WIN_EOL, strlen(TEST_RSA_CERT_WIN_EOL) + 1, false, failed_function_list, MAX_FAILED_FUNCTION_LIST_SIZE, &overrride);
         CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
