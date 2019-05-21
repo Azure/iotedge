@@ -815,16 +815,6 @@ where
                                 .find(|module| expected_module_id == module.name())
                         })
                         .and_then(|module| module.and_then(|module| Some(module.top())))
-                        .then(|result| match result {
-                            Ok(top) => Ok(top),
-                            Err(err) => match err.kind() {
-                                ErrorKind::NotFound(_)
-                                | ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(_)) => {
-                                    Ok(None)
-                                }
-                                _ => Err(err),
-                            },
-                        })
                         .map(move |top| {
                             top.and_then(|top| {
                                 if top.process_ids().contains(&pid) {
@@ -840,10 +830,16 @@ where
                                 info!("Unable to find a module for caller pid: {}", pid);
                                 Ok(AuthId::None)
                             }
-                            Err(err) => {
-                                log_failure(Level::Warn, &err);
-                                Err(err)
-                            }
+                            Err(err) => match err.kind() {
+                                ErrorKind::NotFound(_)
+                                | ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(_)) => {
+                                    Ok(AuthId::None)
+                                }
+                                _ => {
+                                    log_failure(Level::Warn, &err);
+                                    Err(err)
+                                }
+                            },
                         }),
                 ),
             },
@@ -1282,6 +1278,18 @@ mod tests {
         let runtime = prepare_module_runtime_with_known_modules();
         let mut req = Request::default();
         req.extensions_mut().insert(Pid::Value(1));
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_none_when_expected_module_not_exist_anymore_with_top() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Value(2000));
+        req.extensions_mut().insert(ModuleId::from("b"));
 
         let auth_id = runtime.authenticate(&req).wait().unwrap();
 
