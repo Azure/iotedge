@@ -17,7 +17,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             this.scriptDir = scriptDir;
         }
 
-        public Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
+        public async Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
+        {
+            await this.InstallInternalAsync(deviceConnectionString, packagesPath, proxy, token);
+            await this.ConfigureAsync(proxy, token);
+        }
+
+        Task InstallInternalAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
             var properties = new object[] { };
             string message = "Installed edge daemon";
@@ -52,34 +58,59 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 properties);
         }
 
+        Task ConfigureAsync(Option<Uri> proxy, CancellationToken token)
+        {
+            return proxy.ForEachAsync(
+                p =>
+                {
+                    return Profiler.Run(
+                        async () =>
+                        {
+                            await this.InternalStopAsync(token);
+
+                            var yaml = new DaemonConfiguration();
+                            yaml.AddHttpsProxy(p);
+                            yaml.Update();
+
+                            await this.InternalStartAsync(token);
+                        },
+                        "Configured edge daemon with proxy '{ProxyUri}'",
+                        p);
+                });
+        }
+
         public Task StartAsync(CancellationToken token)
         {
-            var sc = new ServiceController("iotedge");
             return Profiler.Run(
-                async () =>
-                {
-                    if (sc.Status != ServiceControllerStatus.Running)
-                    {
-                        sc.Start();
-                        await this.WaitForStatusAsync(sc, ServiceControllerStatus.Running, token);
-                    }
-                },
+                () => this.InternalStartAsync(token),
                 "Started edge daemon");
+        }
+
+        async Task InternalStartAsync(CancellationToken token)
+        {
+            var sc = new ServiceController("iotedge");
+            if (sc.Status != ServiceControllerStatus.Running)
+            {
+                sc.Start();
+                await this.WaitForStatusAsync(sc, ServiceControllerStatus.Running, token);
+            }
         }
 
         public Task StopAsync(CancellationToken token)
         {
-            var sc = new ServiceController("iotedge");
             return Profiler.Run(
-                async () =>
-                {
-                    if (sc.Status != ServiceControllerStatus.Stopped)
-                    {
-                        sc.Stop();
-                        await this.WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
-                    }
-                },
+                () => this.InternalStopAsync(token),
                 "Stopped edge daemon");
+        }
+
+        async Task InternalStopAsync(CancellationToken token)
+        {
+            var sc = new ServiceController("iotedge");
+            if (sc.Status != ServiceControllerStatus.Stopped)
+            {
+                sc.Stop();
+                await this.WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
+            }
         }
 
         public Task UninstallAsync(CancellationToken token)

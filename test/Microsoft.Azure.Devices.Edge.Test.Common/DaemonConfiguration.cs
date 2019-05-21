@@ -28,6 +28,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.ReplaceOrAdd("agent.env.UpstreamProtocol", "AmqpWs");
         }
 
+        public void SetDeviceConnectionString(string value)
+        {
+            this.config.ReplaceOrAdd("provisioning.device_connection_string", value);
+        }
+
+        public void SetDeviceHostname(string value)
+        {
+            this.config.ReplaceOrAdd("hostname", value);
+        }
+
         public void Update()
         {
             var attr = File.GetAttributes(ConfigYamlFile);

@@ -16,8 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         public async Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
             await InstallAsync(packagesPath, token);
-
-            await this.ConfigureAsync(deviceConnectionString, token);
+            await this.ConfigureAsync(deviceConnectionString, proxy, token);
         }
 
         static async Task InstallAsync(Option<string> packagesPath, CancellationToken token)
@@ -84,40 +83,35 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 properties);
         }
 
-        async Task ConfigureAsync(string deviceConnectionString, CancellationToken token)
+        async Task ConfigureAsync(string deviceConnectionString, Option<Uri> proxy, CancellationToken token)
         {
             string hostname = (await File.ReadAllTextAsync("/proc/sys/kernel/hostname", token)).Trim();
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(deviceConnectionString);
+
+            var properties = new object[] { hostname, builder.DeviceId };
+            string message = "Configured edge daemon for device '{Device}' registered as '{Id}'";
+            proxy.ForEach(
+                p =>
+                {
+                    message += " with proxy '{ProxyUri}'";
+                    properties = properties.Concat(new object[] { p }).ToArray();
+                });
 
             await Profiler.Run(
                 async () =>
                 {
                     await this.InternalStopAsync(token);
 
-                    const string YamlPath = "/etc/iotedge/config.yaml";
-                    string text = await File.ReadAllTextAsync(YamlPath, token);
-
-                    var doc = new YamlDocument(text);
-                    doc.ReplaceOrAdd("provisioning.device_connection_string", deviceConnectionString);
-                    doc.ReplaceOrAdd("hostname", hostname);
-
-                    string result = doc.ToString();
-
-                    FileAttributes attr = File.GetAttributes(YamlPath);
-                    File.SetAttributes(YamlPath, attr & ~FileAttributes.ReadOnly);
-
-                    await File.WriteAllTextAsync(YamlPath, result, token);
-
-                    if (attr != 0)
-                    {
-                        File.SetAttributes(YamlPath, attr);
-                    }
+                    var yaml = new DaemonConfiguration();
+                    yaml.SetDeviceConnectionString(deviceConnectionString);
+                    yaml.SetDeviceHostname(hostname);
+                    proxy.ForEach(p => yaml.AddHttpsProxy(p));
+                    yaml.Update();
 
                     await this.InternalStartAsync(token);
                 },
-                "Configured edge daemon for device '{Device}' registered as '{Id}'",
-                hostname,
-                builder.DeviceId);
+                message,
+                properties);
         }
 
         public Task StartAsync(CancellationToken token) => Profiler.Run(
