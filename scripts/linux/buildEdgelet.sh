@@ -197,7 +197,7 @@ build_project()
     # copy binaries to publish folder
     execute cp ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT} ${EXE_DOCKER_DIR}/${PROJECT}
 
-    if [[ ${PROJECT,,} == "iotedged" ]]; then
+    if [[ ${PROJECT,,} == "iotedged" ]] && [[ ${BUILD_CONFIGURATION} == "release" ]]; then
         execute cp ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/build/hsm-sys-*/out/lib/*.so* ${EXE_DOCKER_DIR}/
     fi
 }
