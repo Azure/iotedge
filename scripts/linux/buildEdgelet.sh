@@ -166,7 +166,7 @@ process_args()
         print_help_and_exit
     fi
 
-    if [[ ${BUILD_CONFIGURATION} == "release" ]]; then
+    if [[ ${BUILD_CONFIGURATION,,} == "release" ]]; then
         BUILD_CONFIGURATION='release'
         BUILD_CONFIG_OPTION='--release'
     else
@@ -197,7 +197,7 @@ build_project()
     # copy binaries to publish folder
     execute cp ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT} ${EXE_DOCKER_DIR}/${PROJECT}
 
-    if [[ ${PROJECT} == "iotedged" ]]; then
+    if [[ ${PROJECT,,} == "iotedged" ]]; then
         execute cp ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/build/hsm-sys-*/out/lib/*.so* ${EXE_DOCKER_DIR}/
     fi
 }
