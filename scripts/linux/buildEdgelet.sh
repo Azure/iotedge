@@ -11,6 +11,7 @@ set -e
 # Define Environment Variables
 ###############################################################################
 ARCH=$(uname -m)
+LIBC="glibc"
 TOOLCHAIN=
 STRIP=
 SCRIPT_NAME=$(basename $0)
@@ -33,17 +34,10 @@ check_arch()
 {
     if [[ "$ARCH" == "x86_64" ]]; then
         ARCH="amd64"
-        TOOLCHAIN="x86_64-unknown-linux-musl"
-        STRIP="strip"
     elif [[ "$ARCH" == "armv7l" ]]; then
         ARCH="arm32v7"
-        #TOOLCHAIN="armv7-unknown-linux-gnueabihf"
-        TOOLCHAIN="armv7-unknown-linux-musleabihf"
-        STRIP="arm-linux-gnueabihf-strip"
     elif [[ "$ARCH" == "aarch64" ]]; then
         ARCH="arm64v8"
-        TOOLCHAIN="aarch64-unknown-linux-musl"
-        STRIP="aarch64-linux-gnu-strip"
     else
         echo "Unsupported architecture"
         exit 1
@@ -63,7 +57,8 @@ usage()
     echo " -P, --project        Project to build image for (e.g. iotedged)"
     echo " -t, --target-arch    Target architecture (default: uname -m)"
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
-    echo " -c, --configuration  Build configuration"
+    echo " -c, --configuration  Build configuration (default: release)"
+    echo " -l, --libc           libc implementation (default: glibc)"
     echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
     exit 1;
 }
@@ -72,6 +67,17 @@ print_help_and_exit()
 {
     echo "Run $SCRIPT_NAME --help for more information."
     exit 1
+}
+
+print_args()
+{
+    echo "Project:      $EDGELET_DIR/$PROJECT"
+    echo "Arch:         $ARCH"
+    echo "Toolchain:    $TOOLCHAIN"
+    echo "Image:        $DOCKER_IMAGENAME"
+    echo "Namespace:    $DOCKER_NAMESPACE"
+    echo "Dockerfile:   $DOCKERFILE"
+    echo
 }
 
 ###############################################################################
@@ -99,6 +105,9 @@ process_args()
             BUILD_CONFIGURATION="$arg"
             save_next_arg=0
         elif [[ ${save_next_arg} -eq 6 ]]; then
+            LIBC="$arg"
+            save_next_arg=0
+        elif [[ ${save_next_arg} -eq 7 ]]; then
             BUILD_BINARIESDIRECTORY="$arg"
             save_next_arg=0
         else
@@ -109,11 +118,32 @@ process_args()
                 "-i" | "--image-name" ) save_next_arg=3;;
                 "-n" | "--namespace" ) save_next_arg=4;;
                 "-c" | "--configuration" ) save_next_arg=5;;
-                "--bin-dir" ) save_next_arg=6;;
+                "-l" | "--libc") save_next_arg=6;;
+                "--bin-dir" ) save_next_arg=7;;
                 * ) usage;;
             esac
         fi
     done
+
+    if [[ ${LIBC} != "glibc" ]] && [[ ${LIBC} != "musl" ]]; then
+        echo "Unsupported libc implementation"
+        exit 1
+    fi
+
+    case ${ARCH}_${LIBC} in
+        amd64_musl) TOOLCHAIN="x86_64-unknown-linux-musl";;
+        amd64_glibc) TOOLCHAIN="x86_64-unknown-linux-gnu";;
+        arm32v7_musl) TOOLCHAIN="armv7-unknown-linux-musleabihf";;
+        arm32v7_glibc) TOOLCHAIN="armv7-unknown-linux-gnueabihf";;
+        arm64v8_musl) TOOLCHAIN="aarch64-unknown-linux-musl";;
+        arm64v8_glibc) TOOLCHAIN="aarch64-unknown-linux-gnu";;
+    esac
+
+    case ${ARCH} in
+        amd64) STRIP="strip";;
+        arm32v7) STRIP="arm-linux-gnueabihf-strip";;
+        arm64v8) STRIP="aarch64-linux-gnu-strip";;
+    esac
 
     if [[ -z ${DOCKER_IMAGENAME} ]]; then
         echo "Docker image name parameter invalid"
@@ -136,23 +166,13 @@ process_args()
         print_help_and_exit
     fi
 
-    if [[ ${BUILD_CONFIG_OPTION} -eq "release" ]]; then
+    if [[ ${BUILD_CONFIGURATION} == "release" ]]; then
         BUILD_CONFIGURATION='release'
         BUILD_CONFIG_OPTION='--release'
     else
         BUILD_CONFIGURATION='debug'
         BUILD_CONFIG_OPTION=''
     fi
-}
-
-print_args()
-{
-    echo "Project:      $EDGELET_DIR/$PROJECT"
-    echo "Arch:         $ARCH"
-    echo "Image:        $DOCKER_IMAGENAME"
-    echo "Namespace:    $DOCKER_NAMESPACE"
-    echo "Dockerfile:   $DOCKERFILE"
-    echo
 }
 
 ###############################################################################
@@ -163,11 +183,8 @@ build_project()
     # build project with cross
     cd ${EDGELET_DIR}
 
-    local BUILD_CMD="cross build -p ${PROJECT} ${BUILD_CONFIG_OPTION} --target ${TOOLCHAIN}"
-    echo ${BUILD_CMD}
-    ${BUILD_CMD}
-
-    ${STRIP} ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT}
+    execute cross build -p ${PROJECT} ${BUILD_CONFIG_OPTION} --target ${TOOLCHAIN}
+    execute ${STRIP} ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT}
 
     # prepare docker folder
     local EXE_DOCKER_DIR=${PUBLISH_DIR}/${DOCKER_IMAGENAME}/docker/linux/${ARCH}
@@ -175,15 +192,24 @@ build_project()
 
     # copy Dockerfile to publish folder for given arch
     local EXE_DOCKERFILE=${EXE_DOCKER_DIR}/Dockerfile
-
-    local COPY_DOCKERFILE_CMD="cp ${DOCKERFILE} ${EXE_DOCKERFILE}"
-    echo ${COPY_DOCKERFILE_CMD}
-    ${COPY_DOCKERFILE_CMD}
+    execute cp ${DOCKERFILE} ${EXE_DOCKERFILE}
 
     # copy binaries to publish folder
-    local COPY_CMD="cp ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT} ${EXE_DOCKER_DIR}/${PROJECT}"
-    echo ${COPY_CMD}
-    ${COPY_CMD}
+    execute cp ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT} ${EXE_DOCKER_DIR}/${PROJECT}
+
+    if [[ ${PROJECT} == "iotedged" ]]; then
+        execute cp ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/build/hsm-sys-*/out/lib/*.so* ${EXE_DOCKER_DIR}/
+    fi
+}
+
+###############################################################################
+# Print given command and execute it
+###############################################################################
+execute()
+{
+    echo "\$ $@"
+    "$@"
+    echo
 }
 
 ###############################################################################

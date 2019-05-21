@@ -3,15 +3,16 @@ parameters:
   imageName: ''
   namespace: 'microsoft'
   project: ''
-  configuration: "release"
+  configuration: 'release'
   filePath:
+  libc: 'glibc'
 
 steps:
   - task: Bash@3
     displayName: Build - ${{ parameters.name }} - amd64
     inputs:
       filePath: ${{ parameters.filePath }}
-      arguments: -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }} -c ${{ parameters.configuration }}
+      arguments: -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} -l ${{ parameters.libc }}
   - task: Bash@3
     displayName: Build - ${{ parameters.name }} - arm32
     inputs:

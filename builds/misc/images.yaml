@@ -35,11 +35,14 @@ jobs:
         name: build
         displayName: Build ($(Build.Configuration))
 
-      - script: scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(Build.Configuration) -t aarch64
-        displayName: Build - iotedge-diagnostics - aarch64
+      - script: scripts/linux/buildEdgelet.sh -i azureiotedge-iotedged -n microsoft -P iotedged -c $(Build.Configuration) -l glibc -t aarch64
+        displayName: Build - Edge Security Daemon - aarch64
 
-      - script: scripts/linux/buildEdgeProxy.sh -i azureiotedge-proxy -n microsoft -P edge-proxy -t aarch64
-        displayName: Build - edge-proxy - aarch64
+      - script: scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(Build.Configuration) -t aarch64
+        displayName: Build - Edge Diagnostics - aarch64
+
+      - script: scripts/linux/buildEdgeProxy.sh -i azureiotedge-proxy -n microsoft -P edge-proxy -t aarch64 -l musl
+        displayName: Build - Edge Proxy - aarch64
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
@@ -47,14 +50,21 @@ jobs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-linux'
 
-      # azureiotedge-diagnostics - Not Using Template for ARM64 because we have 2 different .NET Core.
+      # Edge Diagnostics - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
-        displayName: Build Image - azureiotedge-diagnostics - aarch64
+        displayName: Build Image - Edge Security Daemon - aarch64
+        inputs:
+          filePath: scripts/linux/buildImage.sh
+          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-iotedged -n microsoft -P azureiotedge-iotedged --target-arch aarch64
+
+      # Edge Diagnostics - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image - Edge Diagnostics - aarch64
         inputs:
           filePath: scripts/linux/buildImage.sh
           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-diagnostics -n microsoft -P azureiotedge-diagnostics --target-arch aarch64
 
-      # Edge Proxy - Not Using Template because it doesn't have .NET code
+      # Edge Proxy - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
         displayName: Build Image - Edge Proxy - aarch64
         inputs:
@@ -164,15 +174,25 @@ jobs:
       - template: templates/build-edgelet-linux.yaml
         parameters:
           filePath: scripts/linux/buildEdgelet.sh
-          name: iotedge-diagnostics
+          name: Edge Security Daemon
+          imageName: azureiotedge-iotedged
+          project: iotedged
+          configuration: $(Build.Configuration)
+          libc: glibc
+
+      - template: templates/build-edgelet-linux.yaml
+        parameters:
+          filePath: scripts/linux/buildEdgelet.sh
+          name: Edge Diagnostics
           imageName: azureiotedge-diagnostics
           project: iotedge-diagnostics
           configuration: $(Build.Configuration)
+          libc: musl
 
       - template: templates/build-edgelet-linux.yaml
         parameters:
           filePath: scripts/linux/buildEdgeProxy.sh
-          name: edge-proxy
+          name: Edge Proxy
           imageName: azureiotedge-proxy
           project: edge-proxy
 
@@ -185,10 +205,17 @@ jobs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-linux'
 
-      # azureiotedge-diagnostics
+      # Edge Security Daemon
       - template: templates/image-linux.yaml
         parameters:
-          name: azureiotedge-diagnostics
+          name: Edge Security Daemon
+          imageName: azureiotedge-iotedged
+          project: azureiotedge-iotedged
+
+      # Edge Diagnostics
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Edge Diagnostics
           imageName: azureiotedge-diagnostics
           project: azureiotedge-diagnostics
 
