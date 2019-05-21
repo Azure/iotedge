@@ -10,17 +10,18 @@ use failure::ResultExt;
 use lazy_static::lazy_static;
 use url::Url;
 
+mod authentication;
 mod authorization;
 mod certificate_properties;
 pub mod crypto;
 mod error;
 mod identity;
 mod module;
-pub mod pid;
 pub mod watchdog;
 pub mod workload;
 
-pub use authorization::{Authorization, Policy};
+pub use authentication::Authenticator;
+pub use authorization::{AuthId, ModuleId, Policy};
 pub use certificate_properties::{CertificateIssuer, CertificateProperties, CertificateType};
 pub use crypto::{
     Certificate, CreateCertificate, Decrypt, Encrypt, GetDeviceIdentityCertificate, GetIssuerAlias,

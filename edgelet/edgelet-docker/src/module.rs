@@ -3,18 +3,21 @@
 use std::str::FromStr;
 
 use chrono::prelude::*;
+use failure::ResultExt;
 use futures::Future;
 use hyper::client::connect::Connect;
 
+use docker::models::{InlineResponse2001, InlineResponse200State};
+use edgelet_core::{
+    Module, ModuleOperation, ModuleRuntimeState, ModuleStatus, ModuleTop, RuntimeOperation,
+};
 use edgelet_utils::ensure_not_empty_with_context;
-
-use docker::models::InlineResponse200State;
-use edgelet_core::pid::Pid;
-use edgelet_core::{Module, ModuleOperation, ModuleRuntimeState, ModuleStatus};
 
 use crate::client::DockerClient;
 use crate::config::DockerConfig;
 use crate::error::{Error, ErrorKind, Result};
+
+type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
 pub const MODULE_TYPE: &str = "docker";
 pub const MIN_DATE: &str = "0001-01-01T00:00:00Z";
@@ -25,7 +28,7 @@ pub struct DockerModule<C: Connect> {
     config: DockerConfig,
 }
 
-impl<C: Connect> DockerModule<C> {
+impl<C: 'static + Connect> DockerModule<C> {
     pub fn new(client: DockerClient<C>, name: String, config: DockerConfig) -> Result<Self> {
         ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
 
@@ -35,6 +38,82 @@ impl<C: Connect> DockerModule<C> {
             config,
         })
     }
+}
+
+pub trait DockerModuleTop {
+    type Error;
+    type ModuleTopFuture: Future<Item = ModuleTop, Error = Self::Error> + Send;
+
+    fn top(&self) -> Self::ModuleTopFuture;
+}
+
+impl<C: 'static + Connect> DockerModuleTop for DockerModule<C> {
+    type Error = Error;
+    type ModuleTopFuture = Box<dyn Future<Item = ModuleTop, Error = Self::Error> + Send>;
+
+    fn top(&self) -> Self::ModuleTopFuture {
+        let id = self.name.to_string();
+        Box::new(
+            self.client
+                .container_api()
+                .container_top(&id, "")
+                .then(|result| match result {
+                    Ok(resp) => {
+                        let p = parse_top_response::<Deserializer>(&resp).with_context(|_| {
+                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.clone()))
+                        })?;
+                        Ok(ModuleTop::new(id, p))
+                    }
+                    Err(err) => {
+                        let err = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id)),
+                        );
+                        Err(err)
+                    }
+                }),
+        )
+    }
+}
+
+fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> std::result::Result<Vec<i32>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let titles = resp
+        .titles()
+        .ok_or_else(|| serde::de::Error::missing_field("Titles"))?;
+    let pid_index = titles
+        .iter()
+        .position(|ref s| s.as_str() == "PID")
+        .ok_or_else(|| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Seq,
+                &"array including the column title 'PID'",
+            )
+        })?;
+    let processes = resp
+        .processes()
+        .ok_or_else(|| serde::de::Error::missing_field("Processes"))?;
+    let pids: std::result::Result<_, _> = processes
+        .iter()
+        .map(|ref p| {
+            let val = p.get(pid_index).ok_or_else(|| {
+                serde::de::Error::invalid_length(
+                    p.len(),
+                    &&*format!("at least {} columns", pid_index + 1),
+                )
+            })?;
+            let pid = val.parse::<i32>().map_err(|_| {
+                serde::de::Error::invalid_value(
+                    serde::de::Unexpected::Str(val),
+                    &"a process ID number",
+                )
+            })?;
+            Ok(pid)
+        })
+        .collect();
+    Ok(pids?)
 }
 
 fn status_from_exit_code(exit_code: Option<i64>) -> Option<ModuleStatus> {
@@ -78,7 +157,7 @@ pub fn runtime_state(
                     .and_then(|finished_at| DateTime::from_str(finished_at).ok()),
             )
             .with_image_id(id.map(ToOwned::to_owned))
-            .with_pid(state.pid().map_or(Pid::None, Pid::Value))
+            .with_pid(state.pid())
     })
 }
 
@@ -130,7 +209,6 @@ mod tests {
     use docker::apis::client::APIClient;
     use docker::apis::configuration::Configuration;
     use docker::models::{ContainerCreateBody, InlineResponse200, InlineResponse200State};
-    use edgelet_core::pid::Pid;
     use edgelet_core::{Module, ModuleStatus};
     use edgelet_test_utils::JsonConnector;
 
@@ -157,6 +235,7 @@ mod tests {
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
         )
         .unwrap();
+
         assert_eq!("mod1", docker_module.name());
         assert_eq!("docker", docker_module.type_());
         assert_eq!("ubuntu", docker_module.config().image());
@@ -252,6 +331,7 @@ mod tests {
             .unwrap()
             .block_on(docker_module.runtime_state())
             .unwrap();
+
         assert_eq!(ModuleStatus::Running, *runtime_state.status());
         assert_eq!(10, runtime_state.exit_code().unwrap());
         assert_eq!(&"running", &runtime_state.status_description().unwrap());
@@ -260,7 +340,7 @@ mod tests {
             finished_at,
             runtime_state.finished_at().unwrap().to_rfc3339()
         );
-        assert_eq!(Pid::Value(1234), runtime_state.pid());
+        assert_eq!(Some(1234), runtime_state.pid());
     }
 
     #[test]
@@ -288,6 +368,7 @@ mod tests {
             .unwrap()
             .block_on(docker_module.runtime_state())
             .unwrap();
+
         assert_eq!(ModuleStatus::Failed, *runtime_state.status());
         assert_eq!(10, runtime_state.exit_code().unwrap());
         assert_eq!(&"dead", &runtime_state.status_description().unwrap());
@@ -323,6 +404,7 @@ mod tests {
             .unwrap()
             .block_on(docker_module.runtime_state())
             .unwrap();
+
         assert_eq!(None, runtime_state.started_at());
     }
 
@@ -351,6 +433,7 @@ mod tests {
             .unwrap()
             .block_on(docker_module.runtime_state())
             .unwrap();
+
         assert_eq!(None, runtime_state.finished_at());
     }
 
@@ -379,7 +462,80 @@ mod tests {
             .unwrap()
             .block_on(docker_module.runtime_state())
             .unwrap();
+
         assert_eq!(None, runtime_state.started_at());
         assert_eq!(None, runtime_state.finished_at());
+    }
+
+    #[test]
+    fn parse_top_response_returns_pid_array() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["PID".to_string()])
+            .with_processes(vec![vec!["123".to_string()]]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!(vec![123], pids.unwrap());
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_titles_is_missing() {
+        let response = InlineResponse2001::new().with_processes(vec![vec!["123".to_string()]]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!("missing field `Titles`", format!("{}", pids.unwrap_err()));
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_pid_title_is_missing() {
+        let response = InlineResponse2001::new().with_titles(vec!["Command".to_string()]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!(
+            "invalid value: sequence, expected array including the column title 'PID'",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_processes_is_missing() {
+        let response = InlineResponse2001::new().with_titles(vec!["PID".to_string()]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!(
+            "missing field `Processes`",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_process_pid_is_missing() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["Command".to_string(), "PID".to_string()])
+            .with_processes(vec![vec!["sh".to_string()]]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!(
+            "invalid length 1, expected at least 2 columns",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_process_pid_is_not_i32() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["PID".to_string()])
+            .with_processes(vec![vec!["xyz".to_string()]]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!(
+            "invalid value: string \"xyz\", expected a process ID number",
+            format!("{}", pids.unwrap_err())
+        );
     }
 }
