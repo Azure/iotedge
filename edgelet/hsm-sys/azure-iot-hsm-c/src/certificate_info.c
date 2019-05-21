@@ -89,6 +89,10 @@ static void extract_first_cert_and_chain
                     first_cert_begin_marker_found = true;
                     iterator = ptr + BEGIN_CERT_MARKER_LEN - 1;
                 }
+                else
+                {
+                    break;
+                }
             }
             else
             {
@@ -105,6 +109,10 @@ static void extract_first_cert_and_chain
                     }
                     first_cert_found = true;
                     iterator = first_end;
+                }
+                else
+                {
+                    break;
                 }
             }
         }
@@ -237,7 +245,7 @@ static int parse_common_name(CERT_DATA_INFO* cert_info, X509* x509_cert)
     int result;
     int cn_size = MAX_LEN_COMMON_NAME + 1;
     char *cn;
-    /*const*/ X509_NAME* subj_name;
+    X509_NAME* subj_name;
 
     if ((subj_name = X509_get_subject_name(x509_cert)) == NULL)
     {

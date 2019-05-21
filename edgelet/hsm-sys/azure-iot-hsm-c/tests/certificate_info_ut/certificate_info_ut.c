@@ -125,7 +125,7 @@ static const int64_t RSA_CERT_VALID_TO_TIME = 1800300333;
 #define NIX_EOL_LEAF_CERT_CONTENT  "TEST_NIX_LEAF_CERT"
 #define NIX_EOL_CHAIN_CERT_CONTENT "TEST_NIX_CHAIN_CERT"
 
-static const char* TEST_RSA_CERT_WIN_EOL =
+static const char* TEST_CERT_WIN_EOL =
 "-----BEGIN CERTIFICATE-----""\r\n"
 WIN_EOL_LEAF_CERT_CONTENT"\r\n"
 "-----END CERTIFICATE-----\r\n";
@@ -143,7 +143,7 @@ WIN_EOL_LEAF_CERT_CONTENT"\r\n"
 WIN_EOL_CHAIN_CERT_CONTENT"\r\n"
 "-----END CERTIFICATE-----\r\n";
 
-static const char* TEST_RSA_CERT_NIX_EOL =
+static const char* TEST_CERT_NIX_EOL =
 "-----BEGIN CERTIFICATE-----""\n"
 NIX_EOL_LEAF_CERT_CONTENT"\n"
 "-----END CERTIFICATE-----\n";
@@ -158,6 +158,21 @@ static const char* TEST_CERT_FULL_CHAIN_NIX_EOL =
 NIX_EOL_LEAF_CERT_CONTENT"\n"
 "-----END CERTIFICATE-----""\n"
 "-----BEGIN CERTIFICATE-----""\n"
+NIX_EOL_CHAIN_CERT_CONTENT"\n"
+"-----END CERTIFICATE-----\n";
+
+static const char* TEST_CERT_NO_BEGIN_MARKER =
+NIX_EOL_CHAIN_CERT_CONTENT"\n"
+"-----END CERTIFICATE-----\n";
+
+static const char* TEST_CERT_NO_END_MARKER =
+NIX_EOL_LEAF_CERT_CONTENT"\n"
+"-----END CERTIFICATE-----\n";
+
+static const char* TEST_CERT_CHAIN_NO_BEGIN_MARKER =
+"-----BEGIN CERTIFICATE-----""\n"
+NIX_EOL_LEAF_CERT_CONTENT"\n"
+"-----END CERTIFICATE-----""\n"
 NIX_EOL_CHAIN_CERT_CONTENT"\n"
 "-----END CERTIFICATE-----\n";
 
@@ -513,7 +528,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //arrange
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_UNKNOWN);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_UNKNOWN);
 
         //assert
         ASSERT_IS_NULL(cert_handle);
@@ -528,7 +543,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         int BAD_PRIVATE_KEY_TYPE = 50;
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, (PRIVATE_KEY_TYPE)BAD_PRIVATE_KEY_TYPE);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, (PRIVATE_KEY_TYPE)BAD_PRIVATE_KEY_TYPE);
 
         //assert
         ASSERT_IS_NULL(cert_handle);
@@ -542,7 +557,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //arrange
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, NULL, 0, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, NULL, 0, PRIVATE_KEY_PAYLOAD);
 
         //assert
         ASSERT_IS_NULL(cert_handle);
@@ -556,7 +571,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //arrange
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, NULL, 0, PRIVATE_KEY_REFERENCE);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, NULL, 0, PRIVATE_KEY_REFERENCE);
 
         //assert
         ASSERT_IS_NULL(cert_handle);
@@ -570,7 +585,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //arrange
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, NULL, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_UNKNOWN);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, NULL, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_UNKNOWN);
 
         //assert
         ASSERT_IS_NULL(cert_handle);
@@ -584,7 +599,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //arrange
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, 0, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, TEST_PRIVATE_KEY, 0, PRIVATE_KEY_PAYLOAD);
 
         //assert
         ASSERT_IS_NULL(cert_handle);
@@ -599,10 +614,10 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
 
-        test_helper_parse_cert_callstack(TEST_RSA_CERT_WIN_EOL, strlen(TEST_RSA_CERT_WIN_EOL) + 1, failed_function_list, MAX_FAILED_FUNCTION_LIST_SIZE);
+        test_helper_parse_cert_callstack(TEST_CERT_WIN_EOL, strlen(TEST_CERT_WIN_EOL) + 1, failed_function_list, MAX_FAILED_FUNCTION_LIST_SIZE);
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
 
         //assert
         ASSERT_IS_NOT_NULL(cert_handle);
@@ -618,10 +633,10 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
 
-        test_helper_parse_cert_callstack(TEST_RSA_CERT_NIX_EOL, strlen(TEST_RSA_CERT_NIX_EOL) + 1, failed_function_list, MAX_FAILED_FUNCTION_LIST_SIZE);
+        test_helper_parse_cert_callstack(TEST_CERT_NIX_EOL, strlen(TEST_CERT_NIX_EOL) + 1, failed_function_list, MAX_FAILED_FUNCTION_LIST_SIZE);
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_NIX_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_NIX_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
 
         //assert
         ASSERT_IS_NOT_NULL(cert_handle);
@@ -636,10 +651,10 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //arrange
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0 , sizeof(failed_function_list));
-        test_helper_parse_cert_common_callstack(TEST_RSA_CERT_NIX_EOL, strlen(TEST_RSA_CERT_NIX_EOL) + 1, false, failed_function_list, MAX_FAILED_FUNCTION_LIST_SIZE, NULL);
+        test_helper_parse_cert_common_callstack(TEST_CERT_NIX_EOL, strlen(TEST_CERT_NIX_EOL) + 1, false, failed_function_list, MAX_FAILED_FUNCTION_LIST_SIZE, NULL);
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_NIX_EOL, NULL, 0, PRIVATE_KEY_UNKNOWN);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_NIX_EOL, NULL, 0, PRIVATE_KEY_UNKNOWN);
 
         //assert
         ASSERT_IS_NOT_NULL(cert_handle);
@@ -657,7 +672,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0 , sizeof(failed_function_list));
-        test_helper_parse_cert_common_callstack(TEST_RSA_CERT_WIN_EOL, strlen(TEST_RSA_CERT_WIN_EOL) + 1, false, failed_function_list, MAX_FAILED_FUNCTION_LIST_SIZE, NULL);
+        test_helper_parse_cert_common_callstack(TEST_CERT_WIN_EOL, strlen(TEST_CERT_WIN_EOL) + 1, false, failed_function_list, MAX_FAILED_FUNCTION_LIST_SIZE, NULL);
 
         umock_c_negative_tests_snapshot();
 
@@ -674,7 +689,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
                 sprintf(tmp_msg, "certificate_info_create failure in test %zu/%zu", index, count);
 
                 // act
-                CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+                CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
 
                 // assert
                 ASSERT_IS_NULL(cert_handle, tmp_msg);
@@ -688,7 +703,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_destroy_with_private_key_succeed)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
 
         umock_c_reset_all_calls();
         EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
@@ -709,7 +724,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_destroy_without_private_key_succeed)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, NULL, 0, PRIVATE_KEY_UNKNOWN);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, NULL, 0, PRIVATE_KEY_UNKNOWN);
         umock_c_reset_all_calls();
         EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
         EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
@@ -742,7 +757,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_get_certificate_win_eol_succees)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
 
         //act
@@ -750,8 +765,8 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
         //assert
         ASSERT_IS_NOT_NULL(certificate);
-        ASSERT_ARE_EQUAL(char_ptr, TEST_RSA_CERT_WIN_EOL, certificate);
-        int cmp = strcmp(TEST_RSA_CERT_WIN_EOL, certificate);
+        ASSERT_ARE_EQUAL(char_ptr, TEST_CERT_WIN_EOL, certificate);
+        int cmp = strcmp(TEST_CERT_WIN_EOL, certificate);
         ASSERT_ARE_EQUAL(int, 0, cmp);
 
         //cleanup
@@ -761,7 +776,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_get_certificate_nix_eol_succees)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_NIX_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_NIX_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
 
         //act
@@ -769,8 +784,8 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
         //assert
         ASSERT_IS_NOT_NULL(certificate);
-        ASSERT_ARE_EQUAL(char_ptr, TEST_RSA_CERT_NIX_EOL, certificate);
-        int cmp = strcmp(TEST_RSA_CERT_NIX_EOL, certificate);
+        ASSERT_ARE_EQUAL(char_ptr, TEST_CERT_NIX_EOL, certificate);
+        int cmp = strcmp(TEST_CERT_NIX_EOL, certificate);
         ASSERT_ARE_EQUAL(int, 0, cmp);
 
         //cleanup
@@ -805,26 +820,14 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
     TEST_FUNCTION(certificate_info_get_certificate_leaf_win_eol_success)
     {
-        //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
-        umock_c_reset_all_calls();
 
-        //act
-        const char* certificate = certificate_info_get_leaf_certificate(cert_handle);
-
-        //assert
-        ASSERT_IS_NOT_NULL(certificate);
-        ASSERT_ARE_EQUAL(char_ptr, TEST_RSA_CERT_WIN_EOL, certificate);
-
-        //cleanup
-        certificate_info_destroy(cert_handle);
     }
 
     TEST_FUNCTION(certificate_info_get_certificate_leaf_nix_eol_success)
     {
         //arrange
 
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_NIX_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_NIX_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
 
         //act
@@ -832,7 +835,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
         //assert
         ASSERT_IS_NOT_NULL(certificate);
-        ASSERT_ARE_EQUAL(char_ptr, TEST_RSA_CERT_NIX_EOL, certificate);
+        ASSERT_ARE_EQUAL(char_ptr, TEST_CERT_NIX_EOL, certificate);
 
         //cleanup
         certificate_info_destroy(cert_handle);
@@ -842,7 +845,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     {
         //arrange
         size_t pk_len;
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
 
         //act
@@ -861,7 +864,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_get_certificate_no_chain_win_eol_success)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
 
         //act
@@ -871,7 +874,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //assert
         ASSERT_IS_NOT_NULL(certificate);
         ASSERT_IS_NULL(chain);
-        ASSERT_ARE_EQUAL(char_ptr, TEST_RSA_CERT_WIN_EOL, certificate);
+        ASSERT_ARE_EQUAL(char_ptr, TEST_CERT_WIN_EOL, certificate);
 
         //cleanup
         certificate_info_destroy(cert_handle);
@@ -881,7 +884,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     {
         //arrange
 
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_NIX_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_NIX_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
 
         //act
@@ -891,7 +894,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //assert
         ASSERT_IS_NOT_NULL(certificate);
         ASSERT_IS_NULL(chain);
-        ASSERT_ARE_EQUAL(char_ptr, TEST_RSA_CERT_NIX_EOL, certificate);
+        ASSERT_ARE_EQUAL(char_ptr, TEST_CERT_NIX_EOL, certificate);
 
         //cleanup
         certificate_info_destroy(cert_handle);
@@ -910,7 +913,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //assert
         ASSERT_IS_NOT_NULL(certificate);
         ASSERT_IS_NOT_NULL(chain);
-        ASSERT_ARE_EQUAL(char_ptr, TEST_RSA_CERT_WIN_EOL, certificate);
+        ASSERT_ARE_EQUAL(char_ptr, TEST_CERT_WIN_EOL, certificate);
         ASSERT_ARE_EQUAL(char_ptr, TEST_CERT_CHAIN_WIN_EOL, chain);
 
         //cleanup
@@ -930,7 +933,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //assert
         ASSERT_IS_NOT_NULL(certificate);
         ASSERT_IS_NOT_NULL(chain);
-        ASSERT_ARE_EQUAL(char_ptr, TEST_RSA_CERT_NIX_EOL, certificate);
+        ASSERT_ARE_EQUAL(char_ptr, TEST_CERT_NIX_EOL, certificate);
         ASSERT_ARE_EQUAL(char_ptr, TEST_CERT_CHAIN_NIX_EOL, chain);
 
         //cleanup
@@ -955,7 +958,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(certificate_info_get_private_key_length_NULL_fail)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
 
         //act
@@ -1076,7 +1079,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
     TEST_FUNCTION(get_common_name_success)
     {
         //arrange
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         ASSERT_IS_NOT_NULL(cert_handle);
 
         // act
@@ -1097,8 +1100,8 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0 , sizeof(failed_function_list));
         CALLSTACK_OVERRIDE overrride = { true };
-        test_helper_parse_cert_common_callstack(TEST_RSA_CERT_WIN_EOL, strlen(TEST_RSA_CERT_WIN_EOL) + 1, false, failed_function_list, MAX_FAILED_FUNCTION_LIST_SIZE, &overrride);
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        test_helper_parse_cert_common_callstack(TEST_CERT_WIN_EOL, strlen(TEST_CERT_WIN_EOL) + 1, false, failed_function_list, MAX_FAILED_FUNCTION_LIST_SIZE, &overrride);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_WIN_EOL, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         ASSERT_IS_NOT_NULL(cert_handle);
 
         // act
@@ -1109,6 +1112,50 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
         // cleanup
         certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_create_fails_with_no_begin_marker)
+    {
+        //arrange
+
+        //act
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_NO_BEGIN_MARKER, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+
+        //assert
+        ASSERT_IS_NULL(cert_handle);
+
+        //cleanup
+    }
+
+    TEST_FUNCTION(certificate_info_create_fails_with_no_end_marker)
+    {
+        //arrange
+
+        //act
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_NO_END_MARKER, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+
+        //assert
+        ASSERT_IS_NULL(cert_handle);
+
+        //cleanup
+    }
+
+    TEST_FUNCTION(certificate_info_create_fails_with_no_begin_marker_for_chain)
+    {
+        //arrange
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_CERT_CHAIN_NO_BEGIN_MARKER, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        ASSERT_IS_NOT_NULL(cert_handle);
+
+        //act
+        const char* certificate = certificate_info_get_leaf_certificate(cert_handle);
+        const char* chain = certificate_info_get_chain(cert_handle);
+
+        //assert
+        ASSERT_IS_NOT_NULL(certificate);
+        ASSERT_IS_NULL(chain);
+        ASSERT_ARE_EQUAL(char_ptr, TEST_CERT_NIX_EOL, certificate);
+
+        //cleanup
     }
 
 END_TEST_SUITE(certificate_info_ut)
