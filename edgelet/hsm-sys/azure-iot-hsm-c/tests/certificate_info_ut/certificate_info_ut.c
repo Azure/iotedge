@@ -29,18 +29,18 @@ static void* my_gballoc_realloc(void* ptr, size_t size)
 }
 
 #include "testrunnerswitcher.h"
-#include "umock_c.h"
-#include "umocktypes_charptr.h"
-#include "umocktypes_stdint.h"
-#include "umock_c_negative_tests.h"
-#include "azure_c_shared_utility/macro_utils.h"
+#include "umock_c/umock_c.h"
+#include "umock_c/umocktypes_charptr.h"
+#include "umock_c/umocktypes_stdint.h"
+#include "umock_c/umock_c_negative_tests.h"
+#include "azure_macro_utils/macro_utils.h"
 
 #define ENABLE_MOCKS
 #include "azure_c_shared_utility/gballoc.h"
-#include "azure_c_shared_utility/umock_c_prod.h"
+#include "umock_c/umock_c_prod.h"
 
 #include "azure_c_shared_utility/buffer_.h"
-#include "azure_c_shared_utility/base64.h"
+#include "azure_c_shared_utility/azure_base64.h"
 #undef ENABLE_MOCKS
 
 #include "certificate_info.h"
@@ -51,9 +51,9 @@ extern "C" {
 #endif
 
  extern time_t get_utc_time_from_asn_string(const unsigned char *time_value, size_t length);
- extern STRING_HANDLE real_Base64_Encoder(BUFFER_HANDLE input);
+ extern STRING_HANDLE real_Azure_Base64_Encode(BUFFER_HANDLE input);
  extern STRING_HANDLE real_Base64_Encode_Bytes(const unsigned char* source, size_t size);
- extern BUFFER_HANDLE real_Base64_Decoder(const char* source);
+ extern BUFFER_HANDLE real_Azure_Base64_Decode(const char* source);
 
  extern BUFFER_HANDLE real_BUFFER_new(void);
  extern void real_BUFFER_delete(BUFFER_HANDLE handle);
@@ -187,12 +187,12 @@ static size_t TEST_PRIVATE_KEY_LEN = sizeof(TEST_PRIVATE_KEY)/sizeof(TEST_PRIVAT
 static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
 
-DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
+MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
     char temp_str[256];
-    (void)snprintf(temp_str, sizeof(temp_str), "umock_c reported error :%s", ENUM_TO_STRING(UMOCK_C_ERROR_CODE, error_code));
+    (void)snprintf(temp_str, sizeof(temp_str), "umock_c reported error :%s", MU_ENUM_TO_STRING(UMOCK_C_ERROR_CODE, error_code));
     ASSERT_FAIL(temp_str);
 }
 
@@ -237,7 +237,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         REGISTER_GLOBAL_MOCK_HOOK(BUFFER_pre_build, real_BUFFER_pre_build);
         REGISTER_GLOBAL_MOCK_FAIL_RETURN(BUFFER_pre_build, __LINE__);
 
-        REGISTER_GLOBAL_MOCK_HOOK(Base64_Decoder, real_Base64_Decoder);
+        REGISTER_GLOBAL_MOCK_HOOK(Azure_Base64_Decode, real_Azure_Base64_Decode);
     }
 
     TEST_SUITE_CLEANUP(suite_cleanup)
@@ -281,7 +281,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_NUM_ARG));
         STRICT_EXPECTED_CALL(gballoc_malloc(cert_len));
         STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_NUM_ARG));
-        STRICT_EXPECTED_CALL(Base64_Decoder(IGNORED_PTR_ARG));
+        STRICT_EXPECTED_CALL(Azure_Base64_Decode(IGNORED_PTR_ARG));
         // *************** Happens in Decoder **************
         STRICT_EXPECTED_CALL(BUFFER_new());
         STRICT_EXPECTED_CALL(BUFFER_pre_build(IGNORED_PTR_ARG, IGNORED_NUM_ARG));
