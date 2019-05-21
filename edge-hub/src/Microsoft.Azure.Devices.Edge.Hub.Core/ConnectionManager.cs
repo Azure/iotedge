@@ -82,15 +82,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task<Option<ICloudProxy>> GetCloudConnection(string id)
         {
+            Try<ICloudProxy> cloudProxyTry = await this.TryGetCloudConnection(id);
+            return cloudProxyTry
+                .Ok()
+                .Map(c => (ICloudProxy)new RetryingCloudProxy(() => this.TryGetCloudConnection(id), c));
+        }
+
+        async Task<Try<ICloudProxy>> TryGetCloudConnection(string id)
+        {
             IIdentity identity = this.identityProvider.Create(Preconditions.CheckNonWhiteSpace(id, nameof(id)));
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
 
             Try<ICloudConnection> cloudConnectionTry = await device.GetOrCreateCloudConnection(
-                c => this.cloudConnectionProvider.Connect(c.Identity, (i, status) => this.CloudConnectionStatusChangedHandler(i, status)));
+                c => this.cloudConnectionProvider.Connect(c.Identity, this.CloudConnectionStatusChangedHandler));
 
             Events.GetCloudConnection(device.Identity, cloudConnectionTry);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, device.Identity);
-            return cloudProxyTry.Ok();
+            return cloudProxyTry;
         }
 
         public void AddSubscription(string id, DeviceSubscription deviceSubscription)
@@ -154,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         static Try<ICloudProxy> GetCloudProxyFromCloudConnection(Try<ICloudConnection> cloudConnection, IIdentity identity) => cloudConnection.Success
-            ? cloudConnection.Value.CloudProxy.Map(cp => Try.Success(cp))
+            ? cloudConnection.Value.CloudProxy.Map(Try.Success)
                 .GetOrElse(() => Try<ICloudProxy>.Failure(new EdgeHubConnectionException($"Unable to get cloud proxy for device {identity.Id}")))
             : Try<ICloudProxy>.Failure(cloudConnection.Exception);
 
