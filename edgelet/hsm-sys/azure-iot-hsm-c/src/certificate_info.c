@@ -411,7 +411,13 @@ static int parse_certificate(CERT_DATA_INFO* cert_info)
     return result;
 }
 
-CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* private_key, size_t priv_key_len, PRIVATE_KEY_TYPE pk_type)
+CERT_INFO_HANDLE certificate_info_create
+(
+    const char* certificate,
+    const void* private_key,
+    size_t priv_key_len,
+    PRIVATE_KEY_TYPE pk_type
+)
 {
     CERT_DATA_INFO* result;
     size_t cert_len;
