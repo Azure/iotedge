@@ -38,6 +38,7 @@ use edgelet_utils::log_failure;
 #[cfg(unix)]
 use native_tls::{Identity, TlsAcceptor};
 
+pub mod authentication;
 pub mod authorization;
 pub mod certificate_manager;
 pub mod client;
@@ -49,14 +50,15 @@ mod unix;
 mod util;
 mod version;
 
-pub use self::certificate_manager::CertificateManager;
-pub use self::error::{BindListenerType, Error, ErrorKind, InvalidUrlReason};
-pub use self::util::proxy::MaybeProxyClient;
-pub use self::util::UrlConnector;
-pub use self::version::{Version, API_VERSION};
+pub use certificate_manager::CertificateManager;
+pub use error::{BindListenerType, Error, ErrorKind, InvalidUrlReason};
+pub use pid::Pid;
+pub use util::proxy::MaybeProxyClient;
+pub use util::UrlConnector;
+pub use version::{Version, API_VERSION};
 
-use self::pid::PidService;
-use self::util::incoming::Incoming;
+use crate::pid::PidService;
+use crate::util::incoming::Incoming;
 
 const HTTP_SCHEME: &str = "http";
 #[cfg(unix)]
@@ -97,11 +99,10 @@ pub struct Server<S> {
 impl<S> Server<S>
 where
     S: NewService<ReqBody = Body, ResBody = Body> + Send + 'static,
-    <S as NewService>::Future: Send + 'static,
-    <S as NewService>::Service: Send + 'static,
-    // <S as NewService>::InitError: std::error::Error + Send + Sync + 'static,
-    <S as NewService>::InitError: Fail,
-    <<S as NewService>::Service as Service>::Future: Send + 'static,
+    S::Future: Send + 'static,
+    S::Service: Send + 'static,
+    S::InitError: Fail,
+    <S::Service as Service>::Future: Send + 'static,
 {
     pub fn run(self) -> Run {
         self.run_until(future::empty())
