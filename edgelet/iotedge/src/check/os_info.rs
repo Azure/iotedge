@@ -41,7 +41,7 @@ impl OsInfo {
 
         unsafe {
             let mut os_version_info: OSVERSIONINFOW = std::mem::zeroed();
-            
+
             #[allow(clippy::cast_possible_truncation)]
             {
                 os_version_info.dwOSVersionInfoSize = std::mem::size_of_val(&os_version_info) as _;
