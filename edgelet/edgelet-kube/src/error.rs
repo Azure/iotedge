@@ -6,6 +6,7 @@ use std::fmt::Display;
 use edgelet_core::{ModuleRuntimeErrorReason, RuntimeOperation};
 use edgelet_docker::Error as DockerError;
 use failure::{Backtrace, Context, Fail};
+use hyper::header::ToStrError;
 use kube_client::Error as KubeClientError;
 use serde_json::Error as JsonError;
 
@@ -16,7 +17,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Fail, PartialEq)]
 pub enum ErrorKind {
     #[fail(display = "Kubernetes error")]
     Kubernetes,
@@ -38,6 +39,9 @@ pub enum ErrorKind {
 
     #[fail(display = "{}", _0)]
     RuntimeOperation(RuntimeOperation),
+
+    #[fail(display = "Invalid authentication token")]
+    ModuleAuthenticationError,
 
     #[fail(display = "Auth name not valid")]
     AuthName,
@@ -133,6 +137,13 @@ impl From<JsonError> for Error {
     fn from(error: JsonError) -> Self {
         Error {
             inner: error.context(ErrorKind::JsonError),
+        }
+    }
+}
+impl From<ToStrError> for Error {
+    fn from(error: ToStrError) -> Self {
+        Error {
+            inner: error.context(ErrorKind::ModuleAuthenticationError),
         }
     }
 }
