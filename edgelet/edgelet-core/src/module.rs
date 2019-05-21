@@ -17,7 +17,6 @@ use serde_json;
 use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};
 
 use crate::error::{Error, ErrorKind, Result};
-use crate::pid::Pid;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -56,7 +55,7 @@ pub struct ModuleRuntimeState {
     started_at: Option<DateTime<Utc>>,
     finished_at: Option<DateTime<Utc>>,
     image_id: Option<String>,
-    pid: Pid,
+    pid: Option<i32>,
 }
 
 impl Default for ModuleRuntimeState {
@@ -68,7 +67,7 @@ impl Default for ModuleRuntimeState {
             started_at: None,
             finished_at: None,
             image_id: None,
-            pid: Pid::None,
+            pid: None,
         }
     }
 }
@@ -128,11 +127,11 @@ impl ModuleRuntimeState {
         self
     }
 
-    pub fn pid(&self) -> Pid {
+    pub fn pid(&self) -> Option<i32> {
         self.pid
     }
 
-    pub fn with_pid(mut self, pid: Pid) -> Self {
+    pub fn with_pid(mut self, pid: Option<i32>) -> Self {
         self.pid = pid;
         self
     }
@@ -365,11 +364,11 @@ pub struct ModuleTop {
     /// Name of the module. Example: tempSensor
     name: String,
     /// A vector of process IDs (PIDs) representing a snapshot of all processes running inside the module.
-    process_ids: Vec<Pid>,
+    process_ids: Vec<i32>,
 }
 
 impl ModuleTop {
-    pub fn new(name: String, process_ids: Vec<Pid>) -> Self {
+    pub fn new(name: String, process_ids: Vec<i32>) -> Self {
         ModuleTop { name, process_ids }
     }
 
@@ -377,7 +376,7 @@ impl ModuleTop {
         &self.name
     }
 
-    pub fn process_ids(&self) -> &[Pid] {
+    pub fn process_ids(&self) -> &[i32] {
         &self.process_ids
     }
 }
@@ -406,7 +405,6 @@ pub trait ModuleRuntime {
     type StopFuture: Future<Item = (), Error = Self::Error> + Send;
     type SystemInfoFuture: Future<Item = SystemInfo, Error = Self::Error> + Send;
     type RemoveAllFuture: Future<Item = (), Error = Self::Error> + Send;
-    type TopFuture: Future<Item = ModuleTop, Error = Self::Error> + Send;
 
     fn init(&self) -> Self::InitFuture;
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
@@ -421,7 +419,6 @@ pub trait ModuleRuntime {
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture;
     fn registry(&self) -> &Self::ModuleRegistry;
     fn remove_all(&self) -> Self::RemoveAllFuture;
-    fn top(&self, id: &str) -> Self::TopFuture;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -461,7 +458,7 @@ impl fmt::Display for RegistryOperation {
 }
 
 // Useful for error contexts
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum RuntimeOperation {
     CreateModule(String),
     GetModule(String),

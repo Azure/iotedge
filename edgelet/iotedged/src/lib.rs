@@ -34,8 +34,10 @@ use futures::future::{Either, IntoFuture};
 use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future};
 use hyper::server::conn::Http;
-use hyper::Uri;
+use hyper::{Body, Request, Uri};
 use log::{debug, info};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 use url::Url;
 
@@ -51,8 +53,8 @@ use edgelet_core::crypto::{
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
-    Certificate, CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime,
-    ModuleSpec, UrlExt, WorkloadConfig, UNIX_SCHEME,
+    Authenticator, Certificate, CertificateIssuer, CertificateProperties, CertificateType, Module,
+    ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, UrlExt, WorkloadConfig, UNIX_SCHEME,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
@@ -64,6 +66,7 @@ use edgelet_http::{HyperExt, MaybeProxyClient, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
+pub use error::{Error, ErrorKind, InitializeErrorReason};
 use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
 use iothubservice::DeviceClient;
@@ -73,8 +76,6 @@ use provisioning::provisioning::{
 };
 
 use crate::workload::WorkloadData;
-
-pub use self::error::{Error, ErrorKind, InitializeErrorReason};
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
@@ -611,12 +612,12 @@ where
 
     let cert_manager = Arc::new(cert_manager);
 
-    let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, cert_manager.clone());
+    let mgmt = start_management(&settings, runtime, &id_man, mgmt_rx, cert_manager.clone());
 
     let workload = start_workload(
         &settings,
         key_store,
-        &runtime,
+        runtime,
         work_rx,
         crypto,
         cert_manager,
@@ -985,9 +986,9 @@ fn build_env(
     env
 }
 
-fn start_management<C, K, HC>(
+fn start_management<C, K, HC, M>(
     settings: &Settings<DockerConfig>,
-    mgmt: &DockerModuleRuntime,
+    runtime: &M,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
     cert_manager: Arc<CertificateManager<C>>,
@@ -996,19 +997,24 @@ where
     C: CreateCertificate + Clone,
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl + Send + Sync,
+    M: ModuleRuntime + Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
+    <M::AuthenticateFuture as Future>::Error: Fail,
+    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <M::Module as Module>::Config: DeserializeOwned + Serialize,
+    M::Logs: Into<Body>,
 {
     info!("Starting management API...");
 
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
 
-    ManagementService::new(mgmt, id_man)
+    ManagementService::new(runtime, id_man)
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
                 InitializeErrorReason::ManagementService,
             ))?;
             let service = LoggingService::new(label, service);
-            info!("Listening on {} with 1 thread for management API.", url);
+
             let run = Http::new()
                 .bind_url(url.clone(), service, Some(&cert_manager))
                 .map_err(|err| {
@@ -1018,15 +1024,16 @@ where
                 })?
                 .run_until(shutdown.map_err(|_| ()))
                 .map_err(|err| Error::from(err.context(ErrorKind::ManagementService)));
+            info!("Listening on {} with 1 thread for management API.", url);
             Ok(run)
         })
         .flatten()
 }
 
-fn start_workload<K, C, CE, W>(
+fn start_workload<K, C, CE, W, M>(
     settings: &Settings<DockerConfig>,
     key_store: &K,
-    runtime: &DockerModuleRuntime,
+    runtime: &M,
     shutdown: Receiver<()>,
     crypto: &C,
     cert_manager: Arc<CertificateManager<CE>>,
@@ -1045,6 +1052,11 @@ where
         + 'static,
     CE: CreateCertificate + Clone,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
+    M: ModuleRuntime + Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
+    <M::AuthenticateFuture as Future>::Error: Fail,
+    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <M::Module as Module>::Config: DeserializeOwned + Serialize,
+    M::Logs: Into<Body>,
 {
     info!("Starting workload API...");
 
@@ -1057,6 +1069,7 @@ where
                 InitializeErrorReason::WorkloadService,
             ))?;
             let service = LoggingService::new(label, service);
+
             let run = Http::new()
                 .bind_url(url.clone(), service, Some(&cert_manager))
                 .map_err(|err| {

@@ -61,6 +61,7 @@ fn get_metadata(path: &Path) -> Result<fs::Metadata, Error> {
 #[cfg(unix)]
 fn set_umask(metadata: &fs::Metadata, path: &Path) -> Mode {
     #[cfg(target_os = "macos")]
+    #[allow(clippy::cast_possible_truncation)]
     let mode = Mode::from_bits_truncate(metadata.mode() as u16);
 
     #[cfg(not(target_os = "macos"))]
