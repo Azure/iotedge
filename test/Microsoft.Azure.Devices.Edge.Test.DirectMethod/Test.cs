@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Test.DirectMethod
 {
     using System;
-    using System.Runtime.InteropServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -13,10 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.DirectMethod
     public class Test
     {
         public const string Name = "module-to-module direct method";
-
-        IEdgeDaemon CreateEdgeDaemon(string installerPath) => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? new Common.Windows.EdgeDaemon(installerPath)
-            : new Common.Linux.EdgeDaemon() as IEdgeDaemon;
 
         public async Task<int> RunAsync(Args args)
         {
@@ -46,24 +41,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.DirectMethod
                                 iotHub,
                                 token);
 
-                            var daemon = this.CreateEdgeDaemon(args.InstallerPath);
+                            var daemon = Platform.CreateEdgeDaemon(args.InstallerPath);
                             await daemon.UninstallAsync(token);
                             await daemon.InstallAsync(
                                 device.ConnectionString,
                                 args.PackagesPath,
                                 args.Proxy,
                                 token);
-
-                            await args.Proxy.Match(
-                                async p =>
-                                {
-                                    await daemon.StopAsync(token);
-                                    var yaml = new DaemonConfiguration();
-                                    yaml.AddHttpsProxy(p);
-                                    yaml.Update();
-                                    await daemon.StartAsync(token);
-                                },
-                                () => daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token));
+                            await daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
 
                             var agent = new EdgeAgent(device.Id, iotHub);
                             await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
