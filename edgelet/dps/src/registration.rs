@@ -92,6 +92,7 @@ where
 pub enum DpsAuthKind {
     Tpm { ek: Bytes, srk: Bytes },
     SymmetricKey,
+    X509,
 }
 
 pub struct DpsClient<C, K, A>
@@ -160,19 +161,21 @@ where
         scope_id: &str,
         registration_id: &str,
         registration: &DeviceRegistration,
-        key: K,
+        token_source: Option<DpsTokenSource<K>>,
     ) -> Box<dyn Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
-        let token_source =
-            DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), key);
         debug!(
             "Registration PUT, scope_id, \"{}\", registration_id \"{}\"",
             scope_id, registration_id
         );
-        let f = client
-            .write()
-            .expect("RwLock write failure")
-            .clone()
-            .with_token_source(token_source)
+        let cli = match token_source {
+            Some(ts) => client
+                .write()
+                .expect("RwLock write failure")
+                .clone()
+                .with_token_source(ts),
+            None => client.write().expect("RwLock write failure").clone(),
+        };
+        let future = cli
             .request::<DeviceRegistration, RegistrationOperationStatus>(
                 Method::PUT,
                 &format!("{}/registrations/{}/register", scope_id, registration_id),
@@ -181,7 +184,7 @@ where
                 false,
             )
             .map_err(|err| Error::from(err.context(ErrorKind::GetOperationId)));
-        Box::new(f)
+        Box::new(future)
     }
 
     fn get_operation_status(
@@ -189,14 +192,18 @@ where
         scope_id: &str,
         registration_id: &str,
         operation_id: &str,
-        key: K,
+        token_source: Option<DpsTokenSource<K>>,
     ) -> Box<dyn Future<Item = Option<DeviceRegistrationResult>, Error = Error> + Send> {
-        let token_source =
-            DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), key);
-        let request = client.read().expect("RwLock read failure")
-            .clone()
-            .with_token_source(token_source)
-            .request::<(), RegistrationOperationStatus>(
+        let c = if let Some(ts) = token_source {
+            client
+                .read()
+                .expect("RwLock read failure")
+                .clone()
+                .with_token_source(ts)
+        } else {
+            client.read().expect("RwLock read failure").clone()
+        };
+        let request = c.request::<(), RegistrationOperationStatus>(
                 Method::GET,
                 &format!(
                     "{}/registrations/{}/operations/{}",
@@ -256,7 +263,7 @@ where
         scope_id: String,
         registration_id: String,
         operation_id: String,
-        key: K,
+        token_source: Option<DpsTokenSource<K>>,
         retry_count: u64,
     ) -> Box<dyn Future<Item = Option<DeviceRegistrationResult>, Error = Error> + Send> {
         debug!(
@@ -276,7 +283,7 @@ where
                 &scope_id,
                 &registration_id,
                 &operation_id,
-                key.clone(),
+                token_source.clone(),
             )
         })
         .skip_while(Self::is_skippable_result)
@@ -290,6 +297,35 @@ where
             },
         );
         Box::new(chain)
+    }
+
+    fn register_with_x509_auth(
+        client: &Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
+        scope_id: &str,
+        registration_id: String,
+        _key_store: &A,
+    ) -> Box<dyn Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
+        let cli = client.clone();
+        let uri_path = format!("{}/registrations/{}/register", scope_id, registration_id);
+        let registration = DeviceRegistration::new().with_registration_id(registration_id);
+        let cli = cli.read().expect("RwLock read failure").clone();
+        let f = cli
+            .request::<DeviceRegistration, RegistrationOperationStatus>(
+                Method::PUT,
+                &uri_path,
+                None,
+                Some(registration),
+                false,
+            )
+            .map_err(|err| Error::from(err.context(ErrorKind::RegisterWithX509IdentityCertificate)))
+            .map(
+                move |operation_status: Option<RegistrationOperationStatus>| {
+                    debug!("{:?}", operation_status);
+                    operation_status
+                },
+            )
+            .into_future();
+        Box::new(f)
     }
 
     fn register_with_symmetric_key_auth(
@@ -393,13 +429,20 @@ where
                                 body.as_str(),
                                 &mut key_store_inner,
                             ) {
-                                Ok(key) => Either::A(Self::get_operation_id(
-                                    &client_inner.clone(),
-                                    scope_id.as_str(),
-                                    registration_id.as_str(),
-                                    &registration,
-                                    key.clone(),
-                                )),
+                                Ok(key) => {
+                                    let token_source = DpsTokenSource::new(
+                                        scope_id.to_string(),
+                                        registration_id.to_string(),
+                                        key,
+                                    );
+                                    Either::A(Self::get_operation_id(
+                                        &client_inner.clone(),
+                                        scope_id.as_str(),
+                                        registration_id.as_str(),
+                                        &registration,
+                                        Some(token_source),
+                                    ))
+                                }
                                 Err(err) => Either::B(future::err(err)),
                             },
                         )
@@ -425,13 +468,14 @@ where
         );
 
         let mut use_tpm_auth = false;
+        let mut use_x509_auth = false;
         let r = match &self.auth {
             DpsAuthKind::Tpm { ek, srk } => {
                 use_tpm_auth = true;
                 Self::register_with_tpm_auth(
                     &self.client,
-                    scope_id,
-                    registration_id,
+                    scope_id.clone(),
+                    registration_id.clone(),
                     &ek,
                     &srk,
                     &self.key_store,
@@ -439,16 +483,23 @@ where
             }
             DpsAuthKind::SymmetricKey => Self::register_with_symmetric_key_auth(
                 &self.client,
-                scope_id,
-                registration_id,
+                scope_id.clone(),
+                registration_id.clone(),
                 &self.key_store,
             ),
+            DpsAuthKind::X509 => {
+                use_x509_auth = true;
+                Self::register_with_x509_auth(
+                    &self.client,
+                    &scope_id,
+                    registration_id.clone(),
+                    &self.key_store,
+                )
+            }
         }
         .and_then(
-            move |operation_status: Option<RegistrationOperationStatus>| match key_store
-                .get(&KeyIdentity::Device, "primary")
-            {
-                Ok(k) => operation_status.map_or_else(
+            move |operation_status: Option<RegistrationOperationStatus>| {
+                operation_status.map_or_else(
                     || {
                         Either::B(future::err(Error::from(
                             ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned,
@@ -457,19 +508,40 @@ where
                     move |s| {
                         let retry_count =
                             (DPS_ASSIGNMENT_TIMEOUT_SECS / DPS_ASSIGNMENT_RETRY_INTERVAL_SECS) + 1;
-                        Either::A(Self::get_device_registration_result(
-                            client_with_token_status,
-                            scope_id_status,
-                            registration_id_status,
-                            s.operation_id().clone(),
-                            k.clone(),
-                            retry_count,
-                        ))
+                        let token_key: Result<Option<K>, ()> = if use_x509_auth {
+                            Ok(None)
+                        } else {
+                            match key_store.get(&KeyIdentity::Device, "primary") {
+                                Ok(id_key) => Ok(Some(id_key.clone())),
+                                Err(_err) => Err(()),
+                            }
+                        };
+                        match token_key {
+                            Ok(tk) => {
+                                let ts = if let Some(k) = tk {
+                                    Some(DpsTokenSource::new(
+                                        scope_id.to_string(),
+                                        registration_id.clone().to_string(),
+                                        k,
+                                    ))
+                                } else {
+                                    None
+                                };
+                                Either::A(Self::get_device_registration_result(
+                                    client_with_token_status,
+                                    scope_id_status,
+                                    registration_id_status,
+                                    s.operation_id().clone(),
+                                    ts,
+                                    retry_count,
+                                ))
+                            }
+                            Err(_err) => Either::B(future::err(Error::from(
+                                ErrorKind::RegisterWithAuthUnexpectedlyFailedOperationNotAssigned,
+                            ))),
+                        }
                     },
-                ),
-                Err(err) => Either::B(future::err(Error::from(
-                    err.context(ErrorKind::RegisterWithAuthUnexpectedlyFailed),
-                ))),
+                )
             },
         )
         .and_then(move |operation_status: Option<DeviceRegistrationResult>| {
@@ -662,6 +734,66 @@ mod tests {
     }
 
     #[test]
+    fn server_register_with_x509_auth_success() {
+        let expected_uri = "https://global.azure-devices-provisioning.net/scope/registrations/reg/register?api-version=2018-11-01";
+        let handler = move |req: Request<Body>| {
+            let (
+                http::request::Parts {
+                    method,
+                    uri,
+                    headers,
+                    ..
+                },
+                _body,
+            ) = req.into_parts();
+            assert_eq!(uri, expected_uri);
+            assert_eq!(method, Method::PUT);
+            // If authorization header does not have the shared access signature, request one
+            let auth = headers.get(hyper::header::AUTHORIZATION);
+            match auth {
+                None => {
+                    let result = RegistrationOperationStatus::new("something".to_string())
+                        .with_status("assigning".to_string());
+                    future::ok(Response::new(
+                        serde_json::to_string(&result).unwrap().into(),
+                    ))
+                }
+                Some(_) => {
+                    panic!("Did not expect authorization header");
+                }
+            }
+        };
+        let client = Arc::new(RwLock::new(
+            Client::new(
+                handler,
+                None,
+                DPS_API_VERSION.to_string(),
+                Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
+            )
+            .unwrap(),
+        ));
+
+        let empty_key_store = MemoryKeyStore::new();
+        let task = DpsClient::register_with_x509_auth(
+            &client,
+            "scope",
+            "reg".to_string(),
+            &empty_key_store,
+        )
+        .map(|result| match result {
+            Some(op) => {
+                assert_eq!(op.operation_id(), "something");
+                assert_eq!(op.status().unwrap(), "assigning");
+            }
+            None => panic!("Unexpected"),
+        });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
     fn server_register_tpm_auth_gets_404_fails() {
         let handler = |_req: Request<Body>| {
             let response = Response::builder()
@@ -741,6 +873,49 @@ mod tests {
                 ErrorKind::RegisterWithSymmetricChallengeKey => Ok::<_, Error>(()),
                 _ => panic!(
                     "Wrong error kind. Expected `RegisterWithSymmetricChallengeKey` found {:?}",
+                    err
+                ),
+            },
+        });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn server_register_x509_key_auth_gets_404_fails() {
+        let handler = |_req: Request<Body>| {
+            let response = Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(Body::empty())
+                .expect("could not build hyper::Response");
+            future::ok(response)
+        };
+        let client = Client::new(
+            handler,
+            None,
+            DPS_API_VERSION.to_string(),
+            Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
+        )
+        .unwrap();
+
+        let empty_key_store = MemoryKeyStore::new();
+        let auth = DpsAuthKind::X509;
+        let dps = DpsClient::new(
+            client,
+            "scope".to_string(),
+            "test".to_string(),
+            auth,
+            empty_key_store,
+        )
+        .unwrap();
+        let task = dps.register().then(|result| match result {
+            Ok(_) => panic!("Excepted err got success"),
+            Err(err) => match err.kind() {
+                ErrorKind::RegisterWithX509IdentityCertificate => Ok::<_, Error>(()),
+                _ => panic!(
+                    "Wrong error kind. Expected `RegisterWithX509IdentityCertificate` found {:?}",
                     err
                 ),
             },
@@ -866,6 +1041,56 @@ mod tests {
     }
 
     #[test]
+    fn server_register_x509_key_auth_gets_401_fails() {
+        let handler = |req: Request<Body>| {
+            let auth = req.headers().get(hyper::header::AUTHORIZATION);
+            match auth {
+                None => {
+                    let response = Response::builder()
+                        .status(StatusCode::UNAUTHORIZED)
+                        .body(Body::empty())
+                        .expect("could not build hyper::Response");
+                    future::ok(response)
+                }
+                Some(_) => {
+                    panic!("Did not expect a SAS token in the auth header");
+                }
+            }
+        };
+        let client = Client::new(
+            handler,
+            None,
+            DPS_API_VERSION.to_string(),
+            Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
+        )
+        .unwrap();
+        let empty_key_store = MemoryKeyStore::new();
+        let auth = DpsAuthKind::X509;
+        let dps = DpsClient::new(
+            client,
+            "scope".to_string(),
+            "test".to_string(),
+            auth,
+            empty_key_store,
+        )
+        .unwrap();
+        let task = dps.register().then(|result| match result {
+            Ok(_) => panic!("Excepted err got success"),
+            Err(err) => match err.kind() {
+                ErrorKind::RegisterWithX509IdentityCertificate => Ok::<_, Error>(()),
+                _ => panic!(
+                    "Wrong error kind. Expected `RegisterWithX509IdentityCertificate` found {:?}",
+                    err
+                ),
+            },
+        });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
     fn get_device_registration_result_success() {
         let reg_op_status_vanilla = Response::new(
             serde_json::to_string(&RegistrationOperationStatus::new("operation".to_string()))
@@ -915,12 +1140,13 @@ mod tests {
             ))
             .clone(),
         ));
+        let token_source = DpsTokenSource::new("scope_id".to_string(), "reg".to_string(), key);
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_device_registration_result(
             client,
             "scope_id".to_string(),
             "reg".to_string(),
             "operation".to_string(),
-            key,
+            Some(token_source),
             3,
         );
         let task = dps_operation.map(|result| match result {
@@ -958,12 +1184,13 @@ mod tests {
             ))
             .clone(),
         ));
+        let token_source = DpsTokenSource::new("scope_id".to_string(), "reg".to_string(), key);
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_device_registration_result(
             client,
             "scope_id".to_string(),
             "reg".to_string(),
             "operation".to_string(),
-            key,
+            Some(token_source),
             3,
         );
         let task = dps_operation.map(|result| match result {
@@ -1003,12 +1230,14 @@ mod tests {
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         )
         .unwrap();
+        let key = MemoryKey::new("key".to_string());
+        let token_source = DpsTokenSource::new("scope_id".to_string(), "reg".to_string(), key);
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_operation_status(
             &Arc::new(RwLock::new(client.clone())),
             "scope_id",
             "reg",
             "operation",
-            MemoryKey::new("key".to_string()),
+            Some(token_source),
         );
         let task = dps_operation.map(|result| match result {
             Some(op) => {
@@ -1039,12 +1268,14 @@ mod tests {
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         )
         .unwrap();
+        let key = MemoryKey::new("key".to_string());
+        let token_source = DpsTokenSource::new("scope_id".to_string(), "reg".to_string(), key);
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_operation_status(
             &Arc::new(RwLock::new(client.clone())),
             "scope_id",
             "reg",
             "operation",
-            MemoryKey::new("key".to_string()),
+            Some(token_source),
         );
         let task = dps_operation.then(|result| match result {
             Ok(_) => panic!("Excepted err got success"),
