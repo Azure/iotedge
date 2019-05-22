@@ -67,8 +67,8 @@ impl Future for SignalFuture {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::{Duration, Instant};
     use std::sync::atomic::{AtomicBool, Ordering};
+    use std::time::{Duration, Instant};
 
     use tokio::timer::Delay;
 
@@ -86,9 +86,7 @@ mod tests {
             .map(move |_| sf.signal());
 
         let signalled_copy = signalled.clone();
-        let t2 = sf2.map(move |_| {
-            signalled_copy.store(true, Ordering::SeqCst)
-        });
+        let t2 = sf2.map(move |_| signalled_copy.store(true, Ordering::SeqCst));
 
         tokio::run(t1.join(t2).map(|_| ()));
         assert_eq!(true, signalled.load(Ordering::SeqCst));
