@@ -1168,6 +1168,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         ASSERT_ARE_EQUAL(char_ptr, TEST_CERT_NIX_EOL, certificate);
 
         //cleanup
+        certificate_info_destroy(cert_handle);
     }
 
 END_TEST_SUITE(certificate_info_ut)
