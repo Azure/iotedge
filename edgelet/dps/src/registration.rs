@@ -167,16 +167,15 @@ where
             "Registration PUT, scope_id, \"{}\", registration_id \"{}\"",
             scope_id, registration_id
         );
-        let c = if let Some(ts) = token_source {
-            client
+        let cli = match token_source {
+            Some(ts) => client
                 .write()
                 .expect("RwLock write failure")
                 .clone()
-                .with_token_source(ts)
-        } else {
-            client.write().expect("RwLock write failure").clone()
+                .with_token_source(ts),
+            None => client.write().expect("RwLock write failure").clone(),
         };
-        let f = c
+        let future = cli
             .request::<DeviceRegistration, RegistrationOperationStatus>(
                 Method::PUT,
                 &format!("{}/registrations/{}/register", scope_id, registration_id),
@@ -185,7 +184,7 @@ where
                 false,
             )
             .map_err(|err| Error::from(err.context(ErrorKind::GetOperationId)));
-        Box::new(f)
+        Box::new(future)
     }
 
     fn get_operation_status(
