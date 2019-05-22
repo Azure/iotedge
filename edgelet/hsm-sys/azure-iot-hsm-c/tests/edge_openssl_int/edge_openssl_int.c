@@ -22,7 +22,6 @@
 #include "test_utils.h"
 #include "hsm_client_store.h"
 #include "hsm_log.h"
-#include "hsm_log.h"
 #include "hsm_utils.h"
 
 //#############################################################################
