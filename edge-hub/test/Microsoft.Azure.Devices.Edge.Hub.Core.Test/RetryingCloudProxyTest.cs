@@ -309,8 +309,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await Task.WhenAll(tasks);
 
             // Assert
-            Assert.Equal(18, clientWatcher.OpenAsyncCount);
-            Assert.Equal(18, clientWatcher.ReceivedProductInfos.Count());
             Assert.Equal(50, clientWatcher.GetTwinCount);
             List<string> expectedMessageIds = messagesToSend
                 .Select(m => m.SystemProperties[SystemProperties.MessageId])
@@ -477,7 +475,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             {
                 lock (this.stateLock)
                 {
-                    if (++this.operationCount % this.throwAfterOperationsCount == 0)
+                    if (++this.operationCount % this.throwAfterOperationsCount == 0 || !this.IsActive)
                     {
                         throw new ObjectDisposedException("Object is disposed");
                     }
