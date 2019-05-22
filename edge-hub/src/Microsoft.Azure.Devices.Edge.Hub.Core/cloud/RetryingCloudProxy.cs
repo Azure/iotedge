@@ -13,15 +13,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
         readonly AsyncLock cloudProxyLock = new AsyncLock();
         readonly Func<Task<Try<ICloudProxy>>> cloudProxyGetter;
 
-        ICloudProxy cloudProxyImplementation;
+        ICloudProxy innerCloudProxy;
 
         public RetryingCloudProxy(Func<Task<Try<ICloudProxy>>> cloudProxyGetter, ICloudProxy cloudProxyImplementation)
         {
             this.cloudProxyGetter = Preconditions.CheckNotNull(cloudProxyGetter, nameof(cloudProxyGetter));
-            this.cloudProxyImplementation = Preconditions.CheckNotNull(cloudProxyImplementation, nameof(cloudProxyImplementation));
+            this.innerCloudProxy = Preconditions.CheckNotNull(cloudProxyImplementation, nameof(cloudProxyImplementation));
         }
 
-        public bool IsActive => this.cloudProxyImplementation.IsActive;
+        public bool IsActive => this.innerCloudProxy.IsActive;
 
         public Task<bool> CloseAsync() => this.ExecuteOperation(c => c.CloseAsync());
 
@@ -46,6 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
         public Task RemoveDesiredPropertyUpdatesAsync() => this.ExecuteOperation(c => c.RemoveDesiredPropertyUpdatesAsync());
 
         public Task StartListening() => this.ExecuteOperation(c => c.StartListening());
+
+        internal ICloudProxy InnerCloudProxy => this.innerCloudProxy;
 
         Task ExecuteOperation(Func<ICloudProxy, Task> func) => this.ExecuteOperation(
             async c =>
@@ -78,11 +80,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         async Task<ICloudProxy> GetCloudProxy()
         {
-            if (!this.cloudProxyImplementation.IsActive)
+            if (!this.innerCloudProxy.IsActive)
             {
                 using (await this.cloudProxyLock.LockAsync())
                 {
-                    if (!this.cloudProxyImplementation.IsActive)
+                    if (!this.innerCloudProxy.IsActive)
                     {
                         Try<ICloudProxy> cloudProxyTry = await this.cloudProxyGetter();
                         if (!cloudProxyTry.Success)
@@ -90,12 +92,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
                             throw new EdgeHubIOException("Unable to create IoTHub connection", cloudProxyTry.Exception);
                         }
 
-                        this.cloudProxyImplementation = cloudProxyTry.Value;
+                        this.innerCloudProxy = cloudProxyTry.Value;
                     }
                 }
             }
 
-            return this.cloudProxyImplementation;
+            return this.innerCloudProxy;
         }
     }
 }

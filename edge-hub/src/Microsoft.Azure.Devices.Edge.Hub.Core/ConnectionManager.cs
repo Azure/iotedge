@@ -142,7 +142,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Try<ICloudConnection> newCloudConnection = await device.CreateOrUpdateCloudConnection(c => this.CreateOrUpdateCloudConnection(c, credentials));
             Events.NewCloudConnection(credentials.Identity, newCloudConnection);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(newCloudConnection, credentials.Identity);
-            return cloudProxyTry;
+            return cloudProxyTry.Success
+                ? Try.Success((ICloudProxy)new RetryingCloudProxy(() => this.TryGetCloudConnection(credentials.Identity.Id), cloudProxyTry.Value))
+                : cloudProxyTry;
         }
 
         // This method is not used, but it has important logic and this will be useful for offline scenarios.
@@ -158,7 +160,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Try<ICloudConnection> cloudConnectionTry = await device.GetOrCreateCloudConnection((c) => this.CreateOrUpdateCloudConnection(c, credentials));
             Events.GetCloudConnection(credentials.Identity, cloudConnectionTry);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, credentials.Identity);
-            return cloudProxyTry;
+            return cloudProxyTry.Success
+                ? Try.Success((ICloudProxy)new RetryingCloudProxy(() => this.TryGetCloudConnection(credentials.Identity.Id), cloudProxyTry.Value))
+                : cloudProxyTry;
         }
 
         static Try<ICloudProxy> GetCloudProxyFromCloudConnection(Try<ICloudConnection> cloudConnection, IIdentity identity) => cloudConnection.Success
