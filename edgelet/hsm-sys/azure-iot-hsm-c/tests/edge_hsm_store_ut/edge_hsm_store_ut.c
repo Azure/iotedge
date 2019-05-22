@@ -33,9 +33,9 @@ static void test_hook_gballoc_free(void* ptr)
 }
 
 #include "testrunnerswitcher.h"
-#include "umock_c.h"
-#include "umock_c_negative_tests.h"
-#include "umocktypes_charptr.h"
+#include "umock_c/umock_c.h"
+#include "umock_c/umock_c_negative_tests.h"
+#include "umock_c/umocktypes_charptr.h"
 
 //#############################################################################
 // Declare and enable MOCK definitions
@@ -97,7 +97,7 @@ MOCKABLE_FUNCTION(, const char*, get_issuer_alias, CERT_PROPS_HANDLE, handle);
 #define SAS_KEY_ID_2_STRING_HANDLE (STRING_HANDLE)0x6011
 #define SAS_KEY_ID_2_LIST_ITEM_HANDLE (LIST_ITEM_HANDLE) 0x6012
 
-DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
+MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
@@ -110,7 +110,7 @@ static void test_hook_on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
     char temp_str[256];
     (void)snprintf(temp_str, sizeof(temp_str), "umock_c reported error :%s",
-                   ENUM_TO_STRING(UMOCK_C_ERROR_CODE, error_code));
+                   MU_ENUM_TO_STRING(UMOCK_C_ERROR_CODE, error_code));
     ASSERT_FAIL(temp_str);
 }
 

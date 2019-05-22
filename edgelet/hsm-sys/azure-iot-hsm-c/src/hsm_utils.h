@@ -2,7 +2,7 @@
 #define HSM_UTILS_H
 
 #include <stddef.h>
-#include "azure_c_shared_utility/umock_c_prod.h"
+#include "umock_c/umock_c_prod.h"
 
 //##############################################################################
 // Helper macros

@@ -11,7 +11,7 @@
 #include "test_utils.h"
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/hmacsha256.h"
-#include "azure_c_shared_utility/base64.h"
+#include "azure_c_shared_utility/azure_base64.h"
 #include "azure_c_shared_utility/agenttime.h"
 #include "azure_c_shared_utility/strings.h"
 #include "azure_c_shared_utility/buffer_.h"
@@ -93,7 +93,7 @@ static CERT_PROPS_HANDLE test_helper_create_certificate_props
 
 static BUFFER_HANDLE test_helper_base64_converter(const char* input)
 {
-    BUFFER_HANDLE result = Base64_Decoder(input);
+    BUFFER_HANDLE result = Azure_Base64_Decode(input);
     ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
     size_t out_len = BUFFER_length(result);
     ASSERT_ARE_NOT_EQUAL(size_t, 0, out_len, "Line:" TOSTRING(__LINE__));
@@ -337,8 +337,8 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
                                  test_output_digest);
 
         // assert
-        STRING_HANDLE expected_buffer = Base64_Encoder(test_expected_digest);
-        STRING_HANDLE result_buffer = Base64_Encoder(test_output_digest);
+        STRING_HANDLE expected_buffer = Azure_Base64_Encode(test_expected_digest);
+        STRING_HANDLE result_buffer = Azure_Base64_Encode(test_output_digest);
         printf("Expected: %s\r\n", STRING_c_str(expected_buffer));
         printf("Got Result: %s\r\n", STRING_c_str(result_buffer));
         ASSERT_ARE_EQUAL(int, 0, STRING_compare(expected_buffer, result_buffer));

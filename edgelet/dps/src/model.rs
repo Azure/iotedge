@@ -523,7 +523,7 @@ pub struct DeviceRegistrationResult {
     #[serde(rename = "tpm", skip_serializing_if = "Option::is_none")]
     tpm: Option<TpmRegistrationResult>,
     /// Registration result returned when using X509 attestation
-    #[serde(skip_deserializing)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     x509: Option<X509RegistrationResult>,
     /// Registration result returned when using SymmetricKey attestation
     #[serde(rename = "symmetricKey", skip_serializing_if = "Option::is_none")]
