@@ -80,7 +80,7 @@ impl SetPlatformDefines for Config {
     }
 }
 
-fn main() {
+fn build_libiothsm() {
     // Clone Azure C -shared library
     let c_shared_repo = "azure-iot-hsm-c/deps/c-shared";
     let utpm_repo = "azure-iot-hsm-c/deps/utpm";
@@ -191,4 +191,14 @@ fn main() {
 
     #[cfg(unix)]
     println!("cargo:rustc-link-lib=crypto");
+}
+
+fn main() {
+    if env::var_os("LIBIOTHSM_NOBUILD").is_some() {
+        // libiothsm-std is expected to be built and installed out of band
+        println!("cargo:rustc-link-lib=iothsm");
+    } else {
+        // build libiothsm-std as part of hsm-sys build
+        build_libiothsm();
+    }
 }

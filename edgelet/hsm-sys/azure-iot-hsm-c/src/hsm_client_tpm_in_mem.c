@@ -7,6 +7,7 @@
 #include "azure_c_shared_utility/gballoc.h"
 #include "hsm_client_data.h"
 #include "hsm_client_store.h"
+#include "hsm_err.h"
 #include "hsm_log.h"
 #include "hsm_constants.h"
 
