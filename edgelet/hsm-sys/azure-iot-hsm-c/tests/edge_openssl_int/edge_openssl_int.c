@@ -15,13 +15,12 @@
 #include <openssl/x509v3.h>
 
 #include "azure_c_shared_utility/gballoc.h"
-#include "azure_c_shared_utility/base64.h"
+#include "azure_c_shared_utility/azure_base64.h"
 #include "azure_c_shared_utility/crt_abstractions.h"
 #include "azure_c_shared_utility/strings.h"
 #include "testrunnerswitcher.h"
 #include "test_utils.h"
 #include "hsm_client_store.h"
-#include "hsm_log.h"
 #include "hsm_log.h"
 #include "hsm_utils.h"
 
@@ -1033,7 +1032,7 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         // assert
         ASSERT_IS_NOT_NULL(digest, "Line:" TOSTRING(__LINE__));
         ASSERT_ARE_EQUAL(int, HMAC_SHA256_DIGEST_LEN, digest_size, "Line:" TOSTRING(__LINE__));
-        output_b64 = Base64_Encode_Bytes(digest, digest_size);
+        output_b64 = Azure_Base64_Encode_Bytes(digest, digest_size);
         ASSERT_ARE_EQUAL(int, 0, strcmp(expected_base64_sig, STRING_c_str(output_b64)), "Line:" TOSTRING(__LINE__));
 
         // cleanup

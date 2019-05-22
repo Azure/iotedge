@@ -9,6 +9,6 @@ pub mod provisioning;
 
 pub use crate::error::Error;
 pub use crate::provisioning::{
-    BackupProvisioning, DpsSymmetricKeyProvisioning, DpsTpmProvisioning, Provision,
-    ProvisioningResult, ReprovisioningStatus,
+    BackupProvisioning, DpsSymmetricKeyProvisioning, DpsTpmProvisioning, DpsX509Provisioning,
+    Provision, ProvisioningResult, ReprovisioningStatus,
 };

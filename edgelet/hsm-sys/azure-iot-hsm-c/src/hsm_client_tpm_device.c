@@ -9,15 +9,16 @@
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/sastoken.h"
 #include "azure_c_shared_utility/sha.h"
-#include "hsm_log.h"
 #include "azure_c_shared_utility/crt_abstractions.h"
-
-#include "hsm_client_data.h"
-#include "edge_sas_perform_sign_with_key.h"
 #include "azure_utpm_c/tpm_comm.h"
 #include "azure_utpm_c/tpm_codec.h"
-
 #include "azure_utpm_c/Marshal_fp.h"     // for activation blob unmarshaling
+
+#include "hsm_client_data.h"
+#include "hsm_err.h"
+#include "hsm_log.h"
+#include "edge_sas_perform_sign_with_key.h"
+
 
 #define EPOCH_TIME_T_VALUE          0
 #define HMAC_LENGTH                 32
