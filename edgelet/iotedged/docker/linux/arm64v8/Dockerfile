@@ -1,9 +1,4 @@
-FROM arm64v8/debian:9
-
-RUN apt-get update && apt-get install -y \
-  libssl1.0.2 \
-  ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+FROM azureiotedge/azureiotedge-iotedged-base:1.0-arm64v8
 
 WORKDIR /app
 ADD ./docker/linux/arm64v8/libiothsm.so* /app/
