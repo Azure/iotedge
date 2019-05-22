@@ -53,6 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         async Task<MethodResponse> MethodCallback(MethodRequest methodRequest, object _)
         {
+            Events.ReceivedMethodCallback(methodRequest);
             (int responseStatus, Option<string> responsePayload) = await this.requestManager.ProcessRequest(methodRequest.Name, methodRequest.DataAsJson);
             return responsePayload
                 .Map(r => new MethodResponse(Encoding.UTF8.GetBytes(r), responseStatus))
@@ -78,6 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                             }
 
                             this.moduleClient = Option.Some(mc);
+                            Events.InitializedNewModuleClient(this.enableSubscriptions);
                             return mc;
                         });
                 return moduleClient;
@@ -88,8 +90,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                Events.ModuleClientClosed();
-                await this.InitModuleClient();
+                Events.ModuleClientClosed(this.enableSubscriptions);
+                if (this.enableSubscriptions)
+                {
+                    await this.InitModuleClient();
+                }
             }
             catch (Exception ex)
             {
@@ -104,32 +109,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             enum EventIds
             {
-                ClosingModuleClient = IdStart,
-                ExceptionInHandleException,
-                TimedOutClosing,
-                ErrorClosingClient,
+                InitializedNewModuleClient = IdStart,
                 ErrorHandlingModuleClosedEvent,
-                ModuleClientClosed
-            }
-
-            public static void ClosingModuleClient(Exception ex)
-            {
-                Log.LogWarning((int)EventIds.ClosingModuleClient, ex, "Closing module client");
-            }
-
-            public static void ExceptionInHandleException(ModuleClient moduleClient, Exception ex, Exception e)
-            {
-                Log.LogWarning((int)EventIds.ExceptionInHandleException, "Encountered error - {e} while trying to handle error {ex.Message}");
-            }
-
-            public static void ErrorClosingClient(Exception ex)
-            {
-                Log.LogWarning((int)EventIds.ErrorClosingClient, ex, "Error closing module client");
-            }
-
-            public static void TimedOutClosing()
-            {
-                Log.LogInformation((int)EventIds.TimedOutClosing, "Edge agent module client timed out due to inactivity, closing...");
+                ModuleClientClosed,
+                ReceivedMethodCallback
             }
 
             public static void ErrorHandlingModuleClosedEvent(Exception ex)
@@ -137,9 +120,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 Log.LogWarning((int)EventIds.ErrorHandlingModuleClosedEvent, ex, "Error handling module client closed event");
             }
 
-            public static void ModuleClientClosed()
+            public static void ModuleClientClosed(bool enableSubscriptions)
             {
-                Log.LogInformation((int)EventIds.ModuleClientClosed, "Current module client closed. Initializing a new one...");
+                string message = enableSubscriptions
+                    ? "Current module client closed. Initializing a new one"
+                    : "Module client closed. Not initializing a new one since subscriptions are disabled.";
+                Log.LogInformation((int)EventIds.ModuleClientClosed, message);
+            }
+
+            public static void InitializedNewModuleClient(bool enableSubscriptions)
+            {
+                string subscriptionsState = enableSubscriptions ? "enabled" : "disabled";
+                Log.LogInformation((int)EventIds.InitializedNewModuleClient, $"Initialized new module client with subscriptions {subscriptionsState}");
+            }
+
+            public static void ReceivedMethodCallback(MethodRequest methodRequest)
+            {
+                Log.LogInformation((int)EventIds.ReceivedMethodCallback, $"Received direct method call - {methodRequest?.Name ?? string.Empty}");
             }
         }
     }

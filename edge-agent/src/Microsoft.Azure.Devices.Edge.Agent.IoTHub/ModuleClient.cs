@@ -152,8 +152,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         Task CloseOnInactivity()
         {
-            Events.TimedOutClosing();
-            return this.CloseAsync();
+            if (this.isActive.Get())
+            {
+                Events.TimedOutClosing();
+                return this.CloseAsync();
+            }
+
+            return Task.CompletedTask;
         }
 
         async Task HandleException(Exception ex)
