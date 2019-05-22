@@ -5,6 +5,12 @@ use std::fmt::Display;
 #[cfg(windows)]
 use std::sync::Mutex;
 
+use edgelet_core::Error as CoreError;
+use edgelet_core::ErrorKind as CoreErrorKind;
+use edgelet_http::Error as HttpError;
+use edgelet_http::ErrorKind as HttpErrorKind;
+use iothubservice::Error as HubServiceError;
+
 use failure::{Backtrace, Context, Fail};
 #[cfg(windows)]
 use windows_service::Error as WindowsServiceError;
@@ -24,6 +30,9 @@ pub enum ErrorKind {
 
     #[fail(display = "The daemon could not start up successfully: {}", _0)]
     Initialize(InitializeErrorReason),
+
+    #[fail(display = "Invalid signed token was provided.")]
+    InvalidSignedToken,
 
     #[fail(display = "The management service encountered an error")]
     ManagementService,
@@ -72,9 +81,71 @@ impl From<ErrorKind> for Error {
     }
 }
 
+impl From<CoreError> for Error {
+    fn from(error: CoreError) -> Self {
+        let fail: &dyn Fail = &error;
+        let mut error_kind = ErrorKind::Watchdog;
+
+        for cause in fail.iter_causes() {
+            if let Some(service_err) = cause.downcast_ref::<HubServiceError>() {
+                let hub_failure: &dyn Fail = service_err;
+
+                for cause in hub_failure.iter_causes() {
+                    if let Some(err) = cause.downcast_ref::<HttpError>() {
+                        match HttpError::kind(err) {
+                            HttpErrorKind::Http => {
+                                error_kind =
+                                    ErrorKind::Initialize(InitializeErrorReason::InvalidHubConfig);
+                            }
+                            HttpErrorKind::HttpWithErrorResponse(code, _message) => {
+                                if code.as_u16() == 401 {
+                                    error_kind = ErrorKind::InvalidSignedToken;
+                                }
+                            }
+                            _ => {}
+                        };
+
+                        break;
+                    }
+                }
+
+                break;
+            }
+        }
+
+        let error_kind_result = match error.kind() {
+            CoreErrorKind::EdgeRuntimeIdentityNotFound => {
+                ErrorKind::Initialize(InitializeErrorReason::InvalidDeviceConfig)
+            }
+            _ => error_kind,
+        };
+
+        Error::from(error.context(error_kind_result))
+    }
+}
+
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
+    }
+}
+
+impl From<&ErrorKind> for i32 {
+    fn from(err: &ErrorKind) -> Self {
+        match err {
+            // Using 150 as the starting base for custom IoT edge error codes so as to avoid
+            // collisions with -
+            // 1. The standard error codes defined by the BSD ecosystem
+            // (https://www.freebsd.org/cgCould not get module i/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+11.2-stable&arch=default&format=html)
+            // that is recommended by the Rust docs
+            // (https://rust-lang-nursery.github.io/cli-wg/in-depth/exit-code.html)
+            // 2. Bash scripting exit codes with special meanings
+            // (http://www.tldp.org/LDP/abs/html/exitcodes.html)
+            ErrorKind::Initialize(InitializeErrorReason::InvalidDeviceConfig) => 150,
+            ErrorKind::Initialize(InitializeErrorReason::InvalidHubConfig) => 151,
+            ErrorKind::InvalidSignedToken => 152,
+            _ => 1,
+        }
     }
 }
 
@@ -90,6 +161,8 @@ pub enum InitializeErrorReason {
     EdgeRuntime,
     Hsm,
     HttpClient,
+    InvalidDeviceConfig,
+    InvalidHubConfig,
     InvalidProxyUri,
     InvalidSocketUri,
     IssuerCAExpiration,
@@ -143,6 +216,14 @@ impl fmt::Display for InitializeErrorReason {
             InitializeErrorReason::Hsm => write!(f, "Could not initialize HSM"),
 
             InitializeErrorReason::HttpClient => write!(f, "Could not initialize HTTP client"),
+
+            InitializeErrorReason::InvalidDeviceConfig => {
+                write!(f, "Invalid device configuration was provided")
+            }
+
+            InitializeErrorReason::InvalidHubConfig => {
+                write!(f, "Invalid IoT hub configuration was provided")
+            }
 
             InitializeErrorReason::InvalidProxyUri => write!(f, "Invalid proxy URI"),
 
