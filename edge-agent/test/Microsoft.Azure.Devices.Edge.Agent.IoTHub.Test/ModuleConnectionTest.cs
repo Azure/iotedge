@@ -150,8 +150,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.True(optionResultModuleClient.HasValue);
             moduleClientProvider.Verify(m => m.Create(connectionStatusChangesHandler), Times.Once);
             Mock<IModuleClient> moduleClient = Mock.Get(resultModuleClient);
-            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Once);
-            moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Once);
+            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Never);
+            moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Never);
 
             // Act - Set the client to not active and try to get a Get a module client
             moduleClient.Setup(m => m.IsActive).Returns(false);
@@ -169,14 +169,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.True(optionResultModuleClient.HasValue);
             moduleClient = Mock.Get(resultModuleClient);
             moduleClientProvider.Verify(m => m.Create(connectionStatusChangesHandler), Times.Exactly(2));
-            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Once);
-            moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Once);
+            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Never);
+            moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Never);
 
             // Act - Set the client to not active and raise the client closed event
             moduleClient.Setup(m => m.IsActive).Returns(false);
             moduleClient.Raise(m => m.Closed += null, new EventArgs());
 
-            // Wait for some time. The ModuleClient should not get automatically reinitialized since subscriptions are disabled. 
+            // Wait for some time. The ModuleClient should not get automatically reinitialized since subscriptions are disabled.
             await Task.Delay(TimeSpan.FromSeconds(5));
 
             optionResultModuleClient = moduleConnection.GetModuleClient();
@@ -185,8 +185,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.False(optionResultModuleClient.HasValue);
             moduleClient = Mock.Get(resultModuleClient);
             moduleClientProvider.Verify(m => m.Create(connectionStatusChangesHandler), Times.Exactly(2));
-            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Once);
-            moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Once);
+            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Never);
+            moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Never);
 
             // Act
             resultModuleClient = await moduleConnection.GetOrCreateModuleClient();
@@ -195,8 +195,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.NotNull(resultModuleClient);
             moduleClient = Mock.Get(resultModuleClient);
             moduleClientProvider.Verify(m => m.Create(connectionStatusChangesHandler), Times.Exactly(3));
-            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Once);
-            moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Once);
+            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Never);
+            moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Never);
 
             // Act
             optionResultModuleClient = moduleConnection.GetModuleClient();
