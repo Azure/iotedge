@@ -37,8 +37,10 @@ impl Config {
             Ok(Client::Null)
         } else {
             let config = self.clone();
+
             let https =
                 HttpsConnector::new(DNS_WORKER_THREADS).context(ErrorKind::Initialization)?;
+
             match config.proxy_uri {
                 None => Ok(Client::NoProxy(HyperClient::builder().build(https))),
                 Some(uri) => {

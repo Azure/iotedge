@@ -3,8 +3,9 @@
 #include "azure_c_shared_utility/buffer_.h"
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/hmacsha256.h"
-#include "azure_c_shared_utility/macro_utils.h"
+#include "azure_macro_utils/macro_utils.h"
 
+#include "hsm_err.h"
 #include "hsm_log.h"
 
 int perform_sign_with_key

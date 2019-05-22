@@ -11,6 +11,8 @@ set (iothsm_VERSION_PATCH 8)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 include_directories(./deps/c-shared/inc)
+include_directories(./deps/c-shared/deps/azure-macro-utils-c/inc)
+include_directories(./deps/c-shared/deps/umock-c/inc)
 include_directories(./deps/utpm/inc)
 include_directories(. ./inc)
 

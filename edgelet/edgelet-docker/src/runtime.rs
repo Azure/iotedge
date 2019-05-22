@@ -7,9 +7,10 @@ use std::time::Duration;
 
 use base64;
 use failure::{Fail, ResultExt};
+use futures::future::Either;
 use futures::prelude::*;
 use futures::{future, stream, Async, Stream};
-use hyper::{Body, Chunk as HyperChunk, Client};
+use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
 use serde_json;
@@ -17,18 +18,21 @@ use url::Url;
 
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
-use docker::models::{ContainerCreateBody, InlineResponse200, InlineResponse2001, NetworkConfig};
+use docker::models::{ContainerCreateBody, InlineResponse200, NetworkConfig};
 use edgelet_core::{
-    pid::Pid, LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    ModuleTop, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
+    AuthId, Authenticator, LogOptions, Module, ModuleId, ModuleRegistry, ModuleRuntime,
+    ModuleRuntimeState, ModuleSpec, RegistryOperation, RuntimeOperation,
+    SystemInfo as CoreSystemInfo, UrlExt,
 };
-use edgelet_http::UrlConnector;
+use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 
 use crate::client::DockerClient;
 use crate::config::DockerConfig;
 use crate::error::{Error, ErrorKind, Result};
-use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
+use crate::module::{
+    runtime_state, DockerModule, DockerModuleTop, MODULE_TYPE as DOCKER_MODULE_TYPE,
+};
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -201,46 +205,6 @@ where
     Ok(name)
 }
 
-fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> std::result::Result<Vec<Pid>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let titles = resp
-        .titles()
-        .ok_or_else(|| serde::de::Error::missing_field("Titles"))?;
-    let pid_index = titles
-        .iter()
-        .position(|ref s| s.as_str() == "PID")
-        .ok_or_else(|| {
-            serde::de::Error::invalid_value(
-                serde::de::Unexpected::Seq,
-                &"array including the column title 'PID'",
-            )
-        })?;
-    let processes = resp
-        .processes()
-        .ok_or_else(|| serde::de::Error::missing_field("Processes"))?;
-    let pids: std::result::Result<_, _> = processes
-        .iter()
-        .map(|ref p| {
-            let val = p.get(pid_index).ok_or_else(|| {
-                serde::de::Error::invalid_length(
-                    p.len(),
-                    &&*format!("at least {} columns", pid_index + 1),
-                )
-            })?;
-            let pid = val.parse::<i32>().map_err(|_| {
-                serde::de::Error::invalid_value(
-                    serde::de::Unexpected::Str(val),
-                    &"a process ID number",
-                )
-            })?;
-            Ok(Pid::Value(pid))
-        })
-        .collect();
-    Ok(pids?)
-}
-
 impl ModuleRuntime for DockerModuleRuntime {
     type Error = Error;
     type Config = DockerConfig;
@@ -263,7 +227,6 @@ impl ModuleRuntime for DockerModuleRuntime {
     type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type TopFuture = Box<dyn Future<Item = ModuleTop, Error = Self::Error> + Send>;
 
     fn init(&self) -> Self::InitFuture {
         info!("Initializing module runtime...");
@@ -717,29 +680,15 @@ impl ModuleRuntime for DockerModuleRuntime {
             future::join_all(n).map(|_| ())
         }))
     }
+}
 
-    fn top(&self, id: &str) -> Self::TopFuture {
-        let id = id.to_string();
-        Box::new(
-            self.client
-                .container_api()
-                .container_top(&id, "")
-                .then(|result| match result {
-                    Ok(resp) => {
-                        let p = parse_top_response::<Deserializer>(&resp).with_context(|_| {
-                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.clone()))
-                        })?;
-                        Ok(ModuleTop::new(id, p))
-                    }
-                    Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id)),
-                        );
-                        Err(err)
-                    }
-                }),
-        )
+impl Authenticator for DockerModuleRuntime {
+    type Error = Error;
+    type Request = Request<Body>;
+    type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
+
+    fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
+        authenticate(self, req)
     }
 }
 
@@ -829,6 +778,75 @@ where
     )
 }
 
+fn authenticate<MR>(
+    runtime: &MR,
+    req: &Request<Body>,
+) -> Box<dyn Future<Item = AuthId, Error = Error> + Send>
+where
+    MR: ModuleRuntime<Error = Error>,
+    <MR as ModuleRuntime>::ListFuture: 'static,
+    MR::Module: DockerModuleTop<Error = Error> + 'static,
+{
+    let pid = req
+        .extensions()
+        .get::<Pid>()
+        .cloned()
+        .unwrap_or_else(|| Pid::None);
+
+    let expected_module_id = req.extensions().get::<ModuleId>().cloned();
+
+    Box::new(match pid {
+        Pid::None => Either::A(future::ok(AuthId::None)),
+        Pid::Any => Either::A(future::ok(AuthId::Any)),
+        Pid::Value(pid) => Either::B(
+            // to authenticate request we need to determine whether given pid corresponds to
+            // any pid from a module with provided module name. In order to do so, we are
+            // load a list of all running modules and execute docker top command only for
+            // the module that have corresponding name. There can be errors during requests,
+            // so we are filtered out those modules that we active during docker inspect
+            // operation but have gone after (NotFound and TopModule errors).
+            match expected_module_id {
+                None => Either::A(future::ok(AuthId::None)),
+                Some(expected_module_id) => Either::B(
+                    runtime
+                        .list()
+                        .map(move |list| {
+                            list.into_iter()
+                                .find(|module| expected_module_id == module.name())
+                        })
+                        .and_then(|module| module.map(|module| module.top()))
+                        .map(move |top| {
+                            top.and_then(|top| {
+                                if top.process_ids().contains(&pid) {
+                                    Some(top.name().to_string())
+                                } else {
+                                    None
+                                }
+                            })
+                        })
+                        .then(move |result| match result {
+                            Ok(Some(m)) => Ok(AuthId::Value(m.into())),
+                            Ok(None) => {
+                                info!("Unable to find a module for caller pid: {}", pid);
+                                Ok(AuthId::None)
+                            }
+                            Err(err) => match err.kind() {
+                                ErrorKind::NotFound(_)
+                                | ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(_)) => {
+                                    Ok(AuthId::None)
+                                }
+                                _ => {
+                                    log_failure(Level::Warn, &err);
+                                    Err(err)
+                                }
+                            },
+                        }),
+                ),
+            },
+        ),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -841,8 +859,7 @@ mod tests {
     use url::Url;
 
     use docker::models::ContainerCreateBody;
-    use edgelet_core::pid::Pid;
-    use edgelet_core::ModuleRegistry;
+    use edgelet_core::{ModuleId, ModuleRegistry, ModuleTop};
 
     use crate::error::{Error, ErrorKind};
 
@@ -1229,94 +1246,128 @@ mod tests {
 
     #[test]
     fn list_with_details_filters_out_deleted_containers() {
-        let runtime = TestModuleList {
-            modules: vec![
-                TestModule {
-                    name: "a".to_string(),
-                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-                },
-                TestModule {
-                    name: "b".to_string(),
-                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
-                },
-                TestModule {
-                    name: "c".to_string(),
-                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
-                },
-                TestModule {
-                    name: "d".to_string(),
-                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-                },
-            ],
-        };
+        let runtime = prepare_module_runtime_with_known_modules();
 
         assert_eq!(
             runtime.list_with_details().collect().wait().unwrap(),
             vec![
                 (
-                    TestModule {
-                        name: "a".to_string(),
-                        runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-                    },
-                    ModuleRuntimeState::default().with_pid(Pid::Any)
+                    runtime.modules[0].clone(),
+                    ModuleRuntimeState::default().with_pid(Some(1000))
                 ),
                 (
-                    TestModule {
-                        name: "d".to_string(),
-                        runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-                    },
-                    ModuleRuntimeState::default().with_pid(Pid::Any)
+                    runtime.modules[3].clone(),
+                    ModuleRuntimeState::default().with_pid(Some(4000))
                 ),
             ]
         );
     }
 
     #[test]
-    fn top_fails_for_empty_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "";
+    fn authenticate_returns_none_when_no_pid_provided() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let req = Request::default();
 
-        let task = ModuleRuntime::top(&mri, name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(TopModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
 
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
+        assert_eq!(AuthId::None, auth_id);
     }
 
     #[test]
-    fn top_fails_for_white_space_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "    ";
+    fn authenticate_returns_none_when_unknown_pid_provided() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Value(1));
 
-        let task = ModuleRuntime::top(&mri, name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(TopModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
 
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
+        assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_none_when_expected_module_not_exist_anymore_with_top() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Value(2000));
+        req.extensions_mut().insert(ModuleId::from("b"));
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_none_when_expected_module_not_found() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Value(1000));
+        req.extensions_mut().insert(ModuleId::from("x"));
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_any_when_any_provided() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Any);
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::Any, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_any_when_module_pid_provided() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Value(1000));
+        req.extensions_mut().insert(ModuleId::from("a"));
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::Value("a".into()), auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_any_when_any_pid_of_module_provided() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Value(4001));
+        req.extensions_mut().insert(ModuleId::from("d"));
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::Value("d".into()), auth_id);
+    }
+
+    fn prepare_module_runtime_with_known_modules() -> TestModuleList {
+        TestModuleList {
+            modules: vec![
+                TestModule {
+                    name: "a".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
+                    process_ids: vec![1000],
+                },
+                TestModule {
+                    name: "b".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
+                    process_ids: vec![2000, 2001],
+                },
+                TestModule {
+                    name: "c".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
+                    process_ids: vec![3000],
+                },
+                TestModule {
+                    name: "d".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
+                    process_ids: vec![4000, 4001],
+                },
+            ],
+        }
     }
 
     #[test]
@@ -1335,72 +1386,6 @@ mod tests {
         assert_eq!("missing field `Name`", format!("{}", name.unwrap_err()));
     }
 
-    #[test]
-    fn parse_top_response_returns_pid_array() {
-        let response = InlineResponse2001::new()
-            .with_titles(vec!["PID".to_string()])
-            .with_processes(vec![vec!["123".to_string()]]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_ok());
-        assert_eq!(vec![Pid::Value(123)], pids.unwrap());
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_titles_is_missing() {
-        let response = InlineResponse2001::new().with_processes(vec![vec!["123".to_string()]]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_err());
-        assert_eq!("missing field `Titles`", format!("{}", pids.unwrap_err()));
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_pid_title_is_missing() {
-        let response = InlineResponse2001::new().with_titles(vec!["Command".to_string()]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_err());
-        assert_eq!(
-            "invalid value: sequence, expected array including the column title \'PID\'",
-            format!("{}", pids.unwrap_err())
-        );
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_processes_is_missing() {
-        let response = InlineResponse2001::new().with_titles(vec!["PID".to_string()]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_err());
-        assert_eq!(
-            "missing field `Processes`",
-            format!("{}", pids.unwrap_err())
-        );
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_process_pid_is_missing() {
-        let response = InlineResponse2001::new()
-            .with_titles(vec!["Command".to_string(), "PID".to_string()])
-            .with_processes(vec![vec!["sh".to_string()]]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_err());
-        assert_eq!(
-            "invalid length 1, expected at least 2 columns",
-            format!("{}", pids.unwrap_err())
-        );
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_process_pid_is_not_i32() {
-        let response = InlineResponse2001::new()
-            .with_titles(vec!["PID".to_string()])
-            .with_processes(vec![vec!["xyz".to_string()]]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_err());
-        assert_eq!(
-            "invalid value: string \"xyz\", expected a process ID number",
-            format!("{}", pids.unwrap_err())
-        );
-    }
-
     struct TestConfig;
 
     #[derive(Clone, Copy, Debug, PartialEq)]
@@ -1413,6 +1398,7 @@ mod tests {
     struct TestModule {
         name: String,
         runtime_state_behavior: TestModuleRuntimeStateBehavior,
+        process_ids: Vec<i32>,
     }
 
     impl Module for TestModule {
@@ -1435,7 +1421,8 @@ mod tests {
         fn runtime_state(&self) -> Self::RuntimeStateFuture {
             match self.runtime_state_behavior {
                 TestModuleRuntimeStateBehavior::Default => {
-                    future::ok(ModuleRuntimeState::default().with_pid(Pid::Any))
+                    let top_pid = self.process_ids.first().cloned();
+                    future::ok(ModuleRuntimeState::default().with_pid(top_pid))
                 }
                 TestModuleRuntimeStateBehavior::NotFound => {
                     future::err(ErrorKind::NotFound(String::new()).into())
@@ -1464,6 +1451,22 @@ mod tests {
         }
     }
 
+    impl DockerModuleTop for TestModule {
+        type Error = Error;
+        type ModuleTopFuture = FutureResult<ModuleTop, Self::Error>;
+
+        fn top(&self) -> Self::ModuleTopFuture {
+            match self.runtime_state_behavior {
+                TestModuleRuntimeStateBehavior::Default => {
+                    future::ok(ModuleTop::new(self.name.clone(), self.process_ids.clone()))
+                }
+                TestModuleRuntimeStateBehavior::NotFound => {
+                    future::err(ErrorKind::NotFound(String::new()).into())
+                }
+            }
+        }
+    }
+
     impl ModuleRuntime for TestModuleList {
         type Error = Error;
         type Config = TestConfig;
@@ -1485,7 +1488,6 @@ mod tests {
         type StopFuture = FutureResult<(), Self::Error>;
         type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
         type RemoveAllFuture = FutureResult<(), Self::Error>;
-        type TopFuture = FutureResult<ModuleTop, Self::Error>;
 
         fn init(&self) -> Self::InitFuture {
             unimplemented!()
@@ -1538,9 +1540,15 @@ mod tests {
         fn remove_all(&self) -> Self::RemoveAllFuture {
             unimplemented!()
         }
+    }
 
-        fn top(&self, _id: &str) -> Self::TopFuture {
-            unimplemented!()
+    impl Authenticator for TestModuleList {
+        type Error = Error;
+        type Request = Request<Body>;
+        type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
+
+        fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
+            authenticate(self, req)
         }
     }
 }
