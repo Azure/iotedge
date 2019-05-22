@@ -68,6 +68,7 @@ impl Future for SignalFuture {
 mod tests {
     use super::*;
     use std::time::{Duration, Instant};
+    use std::sync::atomic::{AtomicBool, Ordering};
 
     use tokio::timer::Delay;
 
@@ -78,7 +79,7 @@ mod tests {
         let mut sf = signal();
         let sf2 = sf.clone();
 
-        let signalled = Arc::new(Mutex::new(false));
+        let signalled = Arc::new(AtomicBool::new(false));
 
         let t1 = Delay::new(Instant::now() + Duration::from_secs(WAIT_SECS))
             .map_err(|_| ())
@@ -86,11 +87,10 @@ mod tests {
 
         let signalled_copy = signalled.clone();
         let t2 = sf2.map(move |_| {
-            let mut signalled = signalled_copy.lock().unwrap();
-            *signalled = true;
+            signalled_copy.store(true, Ordering::SeqCst)
         });
 
         tokio::run(t1.join(t2).map(|_| ()));
-        assert_eq!(true, *signalled.lock().unwrap());
+        assert_eq!(true, signalled.load(Ordering::SeqCst));
     }
 }
