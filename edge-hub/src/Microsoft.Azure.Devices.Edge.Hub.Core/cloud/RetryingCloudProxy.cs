@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
     public class RetryingCloudProxy : ICloudProxy
     {
+        const int RetryCount = 3;
         readonly AsyncLock cloudProxyLock = new AsyncLock();
         readonly Func<Task<Try<ICloudProxy>>> cloudProxyGetter;
 
@@ -55,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         async Task<T> ExecuteOperation<T>(Func<ICloudProxy, Task<T>> func)
         {
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < RetryCount; i++)
             {
                 ICloudProxy cloudProxy = await this.GetCloudProxy();
                 try

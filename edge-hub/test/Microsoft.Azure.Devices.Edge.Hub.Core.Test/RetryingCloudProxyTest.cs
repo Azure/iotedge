@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
-    using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -26,8 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task TestSendMessages()
         {
             // Arrange
-            const string id = "id1";
-            var identity = Mock.Of<IIdentity>(i => i.Id == id);
+            const string Id = "id1";
+            var identity = Mock.Of<IIdentity>(i => i.Id == Id);
             var twinMessageConverter = new TwinMessageConverter();
             var twinCollectionMessageConverter = new TwinCollectionMessageConverter();
             var messageConverterProvider = new MessageConverterProvider(
@@ -47,19 +46,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(() => new ThrowingClient(clientWatcher, 3));
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(id, false))
-                .ReturnsAsync(Option.Some(
-                                  new ServiceIdentity(
-                                      id, "dummy", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("foo", "bar")), ServiceIdentityStatus.Enabled)));
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id, false))
+                .ReturnsAsync(
+                    Option.Some(
+                        new ServiceIdentity(
+                            Id,
+                            "dummy",
+                            new List<string>(),
+                            new ServiceAuthentication(new SymmetricKeyAuthentication("foo", "bar")),
+                            ServiceIdentityStatus.Enabled)));
 
             var edgeHubIdentity = Mock.Of<IIdentity>();
 
             var productInfoStore = new Mock<IProductInfoStore>();
-            productInfoStore.Setup(p => p.GetEdgeProductInfo(id))
+            productInfoStore.Setup(p => p.GetEdgeProductInfo(Id))
                 .ReturnsAsync("ProdInfo1");
 
             var identityProvider = new Mock<IIdentityProvider>();
-            identityProvider.Setup(i => i.Create(id)).Returns(identity);
+            identityProvider.Setup(i => i.Create(Id)).Returns(identity);
 
             var credentialsCache = new Mock<ICredentialsCache>();
             var edgeHub = new Mock<IEdgeHub>();
@@ -85,16 +89,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             for (int i = 0; i < 10; i++)
             {
                 var message = new EdgeMessage.Builder(new byte[i])
-                    .SetSystemProperties(new Dictionary<string, string>()
-                    {
-                        [SystemProperties.MessageId] = i.ToString()
-                    })
+                    .SetSystemProperties(
+                        new Dictionary<string, string>()
+                        {
+                            [SystemProperties.MessageId] = i.ToString()
+                        })
                     .Build();
                 messagesToSend.Add(message);
             }
 
             // Act
-            Option<ICloudProxy> cloudProxyOption = await connectionManager.GetCloudConnection(id);
+            Option<ICloudProxy> cloudProxyOption = await connectionManager.GetCloudConnection(Id);
 
             // Assert
             Assert.True(cloudProxyOption.HasValue);
@@ -105,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await RunSendMessages(cloudProxy, messagesToSend);
 
             // Assert
-            Assert.Equal(messagesToSend.Count, clientWatcher.ReceivedMessages.Count);
+            Assert.Equal(messagesToSend.Count, clientWatcher.ReceivedMessages.Count());
             Assert.Equal(5, clientWatcher.OpenAsyncCount);
             Assert.True(cloudProxy.IsActive);
 
@@ -118,8 +123,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task TestGetTwin()
         {
             // Arrange
-            const string id = "id1";
-            var identity = Mock.Of<IIdentity>(i => i.Id == id);
+            const string Id = "id1";
+            var identity = Mock.Of<IIdentity>(i => i.Id == Id);
             var twinMessageConverter = new TwinMessageConverter();
             var twinCollectionMessageConverter = new TwinCollectionMessageConverter();
             var messageConverterProvider = new MessageConverterProvider(
@@ -139,19 +144,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(() => new ThrowingClient(clientWatcher, 3));
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(id, false))
-                .ReturnsAsync(Option.Some(
-                                  new ServiceIdentity(
-                                      id, "dummy", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("foo", "bar")), ServiceIdentityStatus.Enabled)));
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id, false))
+                .ReturnsAsync(
+                    Option.Some(
+                        new ServiceIdentity(
+                            Id,
+                            "dummy",
+                            new List<string>(),
+                            new ServiceAuthentication(new SymmetricKeyAuthentication("foo", "bar")),
+                            ServiceIdentityStatus.Enabled)));
 
             var edgeHubIdentity = Mock.Of<IIdentity>();
 
             var productInfoStore = new Mock<IProductInfoStore>();
-            productInfoStore.Setup(p => p.GetEdgeProductInfo(id))
+            productInfoStore.Setup(p => p.GetEdgeProductInfo(Id))
                 .ReturnsAsync("ProdInfo1");
 
             var identityProvider = new Mock<IIdentityProvider>();
-            identityProvider.Setup(i => i.Create(id)).Returns(identity);
+            identityProvider.Setup(i => i.Create(Id)).Returns(identity);
 
             var credentialsCache = new Mock<ICredentialsCache>();
             var edgeHub = new Mock<IEdgeHub>();
@@ -175,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var connectionManager = new ConnectionManager(connectionProvider, credentialsCache.Object, identityProvider.Object);
 
             // Act
-            Option<ICloudProxy> cloudProxyOption = await connectionManager.GetCloudConnection(id);
+            Option<ICloudProxy> cloudProxyOption = await connectionManager.GetCloudConnection(Id);
 
             // Assert
             Assert.True(cloudProxyOption.HasValue);
@@ -195,8 +205,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task TestMultipleOperations()
         {
             // Arrange
-            const string id = "id1";
-            var identity = Mock.Of<IIdentity>(i => i.Id == id);
+            const string Id = "id1";
+            var identity = Mock.Of<IIdentity>(i => i.Id == Id);
             var twinMessageConverter = new TwinMessageConverter();
             var twinCollectionMessageConverter = new TwinCollectionMessageConverter();
             var messageConverterProvider = new MessageConverterProvider(
@@ -216,19 +226,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(() => new ThrowingClient(clientWatcher, 5));
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(id, false))
-                .ReturnsAsync(Option.Some(
-                                  new ServiceIdentity(
-                                      id, "dummy", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("foo", "bar")), ServiceIdentityStatus.Enabled)));
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id, false))
+                .ReturnsAsync(
+                    Option.Some(
+                        new ServiceIdentity(
+                            Id,
+                            "dummy",
+                            new List<string>(),
+                            new ServiceAuthentication(new SymmetricKeyAuthentication("foo", "bar")),
+                            ServiceIdentityStatus.Enabled)));
 
             var edgeHubIdentity = Mock.Of<IIdentity>();
 
             var productInfoStore = new Mock<IProductInfoStore>();
-            productInfoStore.Setup(p => p.GetEdgeProductInfo(id))
+            productInfoStore.Setup(p => p.GetEdgeProductInfo(Id))
                 .ReturnsAsync("ProdInfo1");
 
             var identityProvider = new Mock<IIdentityProvider>();
-            identityProvider.Setup(i => i.Create(id)).Returns(identity);
+            identityProvider.Setup(i => i.Create(Id)).Returns(identity);
 
             var credentialsCache = new Mock<ICredentialsCache>();
             var edgeHub = new Mock<IEdgeHub>();
@@ -254,7 +269,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             async Task<ICloudProxy> GetCloudProxy(IConnectionManager cm)
             {
                 // Act
-                Option<ICloudProxy> cloudProxyOption = await cm.GetCloudConnection(id);
+                Option<ICloudProxy> cloudProxyOption = await cm.GetCloudConnection(Id);
 
                 // Assert
                 Assert.True(cloudProxyOption.HasValue);
@@ -267,10 +282,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             for (int i = 0; i < 60; i++)
             {
                 var message = new EdgeMessage.Builder(new byte[i])
-                    .SetSystemProperties(new Dictionary<string, string>()
-                    {
-                        [SystemProperties.MessageId] = i.ToString()
-                    })
+                    .SetSystemProperties(
+                        new Dictionary<string, string>()
+                        {
+                            [SystemProperties.MessageId] = i.ToString()
+                        })
                     .Build();
                 messagesToSend.Add(message);
             }
@@ -294,7 +310,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Assert
             Assert.Equal(18, clientWatcher.OpenAsyncCount);
-            Assert.Equal(18, clientWatcher.ReceivedProductInfos.Count);
+            Assert.Equal(18, clientWatcher.ReceivedProductInfos.Count());
             Assert.Equal(50, clientWatcher.GetTwinCount);
             List<string> expectedMessageIds = messagesToSend
                 .Select(m => m.SystemProperties[SystemProperties.MessageId])
@@ -336,6 +352,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             }
         }
 
+        class ClientWatcher
+        {
+            readonly List<Message> receivedMessages = new List<Message>();
+            readonly List<string> receivedProductInfos = new List<string>();
+
+            int getTwinCount;
+            int openAsyncCount;
+
+            public IEnumerable<Message> ReceivedMessages => this.receivedMessages;
+
+            public IEnumerable<string> ReceivedProductInfos => this.receivedProductInfos;
+
+            public int OpenAsyncCount => this.openAsyncCount;
+
+            public int GetTwinCount => this.getTwinCount;
+
+            public void IncrementGetTwinCount() => Interlocked.Increment(ref this.getTwinCount);
+
+            public void IncrementOpenAsyncCount() => Interlocked.Increment(ref this.openAsyncCount);
+
+            public void AddReceivedMessage(Message message) => this.receivedMessages.Add(message);
+
+            public void AddReceivedMessages(IEnumerable<Message> messages) => this.receivedMessages.AddRange(messages);
+
+            public void AddReceivedProductInfo(string productInfo) => this.receivedProductInfos.Add(productInfo);
+        }
+
         class ThrowingClient : IClient
         {
             readonly object stateLock = new object();
@@ -351,14 +394,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 this.throwAfterOperationsCount = throwAfterOperationsCount;
             }
 
-            public void Dispose() => throw new NotImplementedException();
-
             public bool IsActive { get; private set; }
+
+            public void Dispose() => throw new NotImplementedException();
 
             public async Task<Shared.Twin> GetTwinAsync()
             {
                 this.UpdateOperationCounter();
-                this.clientWatcher.GetTwinCount++;
+                this.clientWatcher.IncrementGetTwinCount();
                 await Task.Delay(TimeSpan.FromMilliseconds(100 + this.random.Next(50)));
                 return new Shared.Twin();
             }
@@ -367,14 +410,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             {
                 this.UpdateOperationCounter();
                 await Task.Delay(TimeSpan.FromMilliseconds(100 + this.random.Next(50)));
-                this.clientWatcher.ReceivedMessages.Add(message);
+                this.clientWatcher.AddReceivedMessage(message);
             }
 
             public async Task SendEventBatchAsync(IEnumerable<Message> messages)
             {
                 this.UpdateOperationCounter();
                 await Task.Delay(TimeSpan.FromMilliseconds(50 + this.random.Next(50)));
-                this.clientWatcher.ReceivedMessages.AddRange(messages);
+                this.clientWatcher.AddReceivedMessages(messages);
             }
 
             public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) => throw new NotImplementedException();
@@ -397,7 +440,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             public void SetProductInfo(string productInfo)
             {
-                this.clientWatcher.ReceivedProductInfos.Add(productInfo);
+                this.clientWatcher.AddReceivedProductInfo(productInfo);
             }
 
             public Task OpenAsync()
@@ -409,7 +452,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                         throw new InvalidOperationException("Open called when client is active.");
                     }
 
-                    this.clientWatcher.OpenAsyncCount++;
+                    this.clientWatcher.IncrementOpenAsyncCount();
                     this.IsActive = true;
                 }
 
@@ -421,134 +464,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 lock (this.stateLock)
                 {
                     this.IsActive = false;
-                }
-
-                return Task.CompletedTask;
-            }
-
-            public Task RejectAsync(string messageId) => throw new NotImplementedException();
-
-            public Task<Message> ReceiveAsync(TimeSpan receiveMessageTimeout) => throw new NotImplementedException();
-
-            void UpdateOperationCounter()
-            {
-                lock (this.stateLock)
-                {
-                    if (++this.operationCount % this.throwAfterOperationsCount == 0)
-                    {
-                        throw new ObjectDisposedException("Object is disposed");
-                    }
-                }
-            }
-        }
-
-        class ClientWatcher
-        {
-            public List<Message> ReceivedMessages { get; } = new List<Message>();
-
-            public List<string> ReceivedProductInfos { get; } = new List<string>();
-
-            public int OpenAsyncCount { get; set; }
-
-            public int GetTwinCount { get; set; }
-        }
-
-        class ThrowingClient2 : IClient
-        {
-            readonly object stateLock = new object();
-            readonly List<Message> receivedMessages = new List<Message>();
-            readonly List<string> receivedProductInfos = new List<string>();
-            readonly int throwAfterOperationsCount;
-            readonly Random random = new Random();
-
-            int operationCount;
-            bool isActive;
-            int initializationsCount;
-            int getTwinCount;
-
-            public ThrowingClient2(int throwAfterOperationsCount)
-            {
-                this.throwAfterOperationsCount = throwAfterOperationsCount;
-            }
-
-            public IList<Message> ReceivedMessages => this.receivedMessages;
-
-            public IList<string> ReceivedProductInfos => this.receivedProductInfos;
-
-            public int InitializationsCount => this.initializationsCount;
-
-            public int GetTwinCount => this.getTwinCount;
-
-            public void Dispose() => throw new NotImplementedException();
-
-            public bool IsActive => this.isActive;
-
-            public async Task<Shared.Twin> GetTwinAsync()
-            {
-                this.UpdateOperationCounter();
-                Interlocked.Increment(ref this.getTwinCount);
-                await Task.Delay(TimeSpan.FromMilliseconds(100 + this.random.Next(50)));
-                return new Shared.Twin();
-            }
-
-            public async Task SendEventAsync(Message message)
-            {
-                this.UpdateOperationCounter();
-                await Task.Delay(TimeSpan.FromMilliseconds(100 + this.random.Next(50)));
-                this.receivedMessages.Add(message);
-            }
-
-            public async Task SendEventBatchAsync(IEnumerable<Message> messages)
-            {
-                this.UpdateOperationCounter();
-                await Task.Delay(TimeSpan.FromMilliseconds(50 + this.random.Next(50)));
-                this.receivedMessages.AddRange(messages);
-            }
-
-            public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) => throw new NotImplementedException();
-
-            public Task CompleteAsync(string messageId) => throw new NotImplementedException();
-
-            public Task AbandonAsync(string messageId) => throw new NotImplementedException();
-
-            public Task SetMethodDefaultHandlerAsync(MethodCallback methodHandler, object userContext) => Task.CompletedTask;
-
-            public Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyUpdates1, object userContext) => Task.CompletedTask;
-
-            public void SetOperationTimeoutInMilliseconds(uint defaultOperationTimeoutMilliseconds)
-            {
-            }
-
-            public void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler handler)
-            {
-            }
-
-            public void SetProductInfo(string productInfo)
-            {
-                this.receivedProductInfos.Add(productInfo);
-            }
-
-            public Task OpenAsync()
-            {
-                lock (this.stateLock)
-                {
-                    if (this.isActive)
-                    {
-                        throw new InvalidOperationException("Open called when client is active.");
-                    }
-
-                    this.initializationsCount++;
-                    this.isActive = true;
-                }
-
-                return Task.CompletedTask;
-            }
-
-            public Task CloseAsync()
-            {
-                lock (this.stateLock)
-                {
-                    this.isActive = false;
                 }
 
                 return Task.CompletedTask;
