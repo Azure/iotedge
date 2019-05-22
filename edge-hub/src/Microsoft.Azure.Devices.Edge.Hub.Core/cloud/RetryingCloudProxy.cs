@@ -55,21 +55,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         async Task<T> ExecuteOperation<T>(Func<ICloudProxy, Task<T>> func)
         {
-            ICloudProxy cloudProxy = await this.GetCloudProxy();
-            try
+            for (int i = 0; i < 3; i++)
             {
-                return await func(cloudProxy);
-            }
-            catch (Exception)
-            {
-                if (cloudProxy.IsActive)
+                ICloudProxy cloudProxy = await this.GetCloudProxy();
+                try
                 {
-                    throw;
+                    return await func(cloudProxy);
                 }
-
-                cloudProxy = await this.GetCloudProxy();
-                return await func(cloudProxy);
+                catch (Exception)
+                {
+                    if (cloudProxy.IsActive || i + 1 == 3)
+                    {
+                        throw;
+                    }
+                }
             }
+
+            // Should never get here
+            return default(T);
         }
 
         async Task<ICloudProxy> GetCloudProxy()
