@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public ProductInfoStore(IKeyValueStore<string, string> productInfoEntityStore, string edgeProductInfo)
         {
             this.productInfoEntityStore = Preconditions.CheckNotNull(productInfoEntityStore, nameof(productInfoEntityStore));
-            this.edgeProductInfo = Preconditions.CheckNonWhiteSpace(edgeProductInfo, nameof(edgeProductInfo));
+            this.edgeProductInfo = Preconditions.CheckNotNull(edgeProductInfo, nameof(edgeProductInfo));
         }
 
         public Task SetProductInfo(string id, string productInfo)
