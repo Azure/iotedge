@@ -64,6 +64,16 @@ print_help_and_exit()
     exit 1
 }
 
+print_args()
+{
+    echo "Project:      $BUILD_BINARIESDIRECTORY/$PROJECT"
+    echo "Arch:         $ARCH"
+    echo "Image:        $DOCKER_IMAGENAME"
+    echo "Namespace:    $DOCKER_NAMESPACE"
+    echo "Dockerfile:   $DOCKERFILE"
+    echo
+}
+
 ###############################################################################
 # Obtain and validate the options supported by this script
 ###############################################################################
@@ -135,37 +145,31 @@ process_args()
     fi
 }
 
-print_args()
-{
-    echo "Project:      $BUILD_BINARIESDIRECTORY/$PROJECT"
-    echo "Arch:         $ARCH"
-    echo "Image:        $DOCKER_IMAGENAME"
-    echo "Namespace:    $DOCKER_NAMESPACE"
-    echo "Dockerfile:   $DOCKERFILE"
-    echo
-}
-
 ###############################################################################
 # Build project and publish result
 ###############################################################################
 build_project()
 {
-
     # prepare docker folder
     local EXE_DOCKER_DIR=${PUBLISH_DIR}/${DOCKER_IMAGENAME}/docker/linux/${ARCH}
     mkdir -p ${EXE_DOCKER_DIR}
 
     # copy Dockerfile to publish folder for given arch
     local EXE_DOCKERFILE=${EXE_DOCKER_DIR}/Dockerfile
-
-    local COPY_DOCKERFILE_CMD="cp ${DOCKERFILE} ${EXE_DOCKERFILE}"
-    echo ${COPY_DOCKERFILE_CMD}
-    ${COPY_DOCKERFILE_CMD}
+    execute cp ${DOCKERFILE} ${EXE_DOCKERFILE}
 
     # copy executables to publish folder
-    local COPY_CMD="cp ${BUILD_REPOSITORY_LOCALPATH}/edge-proxy/src/run.sh ${EXE_DOCKER_DIR}/"
-    echo ${COPY_CMD}
-    ${COPY_CMD}
+    execute cp ${BUILD_REPOSITORY_LOCALPATH}/edge-proxy/src/run.sh ${EXE_DOCKER_DIR}/
+}
+
+###############################################################################
+# Print given command and execute it
+###############################################################################
+execute()
+{
+    echo "\$ $@"
+    "$@"
+    echo
 }
 
 ###############################################################################

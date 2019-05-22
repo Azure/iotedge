@@ -11,7 +11,6 @@ set -e
 # Define Environment Variables
 ###############################################################################
 ARCH=$(uname -m)
-LIBC="glibc"
 TOOLCHAIN=
 STRIP=
 SCRIPT_NAME=$(basename $0)
@@ -58,7 +57,6 @@ usage()
     echo " -t, --target-arch    Target architecture (default: uname -m)"
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -c, --configuration  Build configuration (default: release)"
-    echo " -l, --libc           libc implementation (default: glibc)"
     echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
     exit 1;
 }
@@ -105,9 +103,6 @@ process_args()
             BUILD_CONFIGURATION="$arg"
             save_next_arg=0
         elif [[ ${save_next_arg} -eq 6 ]]; then
-            LIBC="$arg"
-            save_next_arg=0
-        elif [[ ${save_next_arg} -eq 7 ]]; then
             BUILD_BINARIESDIRECTORY="$arg"
             save_next_arg=0
         else
@@ -118,16 +113,16 @@ process_args()
                 "-i" | "--image-name" ) save_next_arg=3;;
                 "-n" | "--namespace" ) save_next_arg=4;;
                 "-c" | "--configuration" ) save_next_arg=5;;
-                "-l" | "--libc") save_next_arg=6;;
-                "--bin-dir" ) save_next_arg=7;;
+                "--bin-dir" ) save_next_arg=6;;
                 * ) usage;;
             esac
         fi
     done
 
-    if [[ ${LIBC} != "glibc" ]] && [[ ${LIBC} != "musl" ]]; then
-        echo "Unsupported libc implementation"
-        exit 1
+    if [[ ${PROJECT,,} == "iotedged" ]]; then
+        LIBC="glibc"
+    else
+        LIBC="musl"
     fi
 
     case ${ARCH}_${LIBC} in
@@ -195,7 +190,7 @@ build_project()
     execute cp ${DOCKERFILE} ${EXE_DOCKERFILE}
 
     # copy binaries to publish folder
-    execute cp ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT} ${EXE_DOCKER_DIR}/${PROJECT}
+    execute cp ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT} ${EXE_DOCKER_DIR}/
 
     if [[ ${PROJECT,,} == "iotedged" ]] && [[ ${BUILD_CONFIGURATION} == "release" ]]; then
         execute cp ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/build/hsm-sys-*/out/lib/*.so* ${EXE_DOCKER_DIR}/

@@ -35,13 +35,13 @@ jobs:
         name: build
         displayName: Build ($(Build.Configuration))
 
-      - script: scripts/linux/buildEdgelet.sh -i azureiotedge-iotedged -n microsoft -P iotedged -c $(Build.Configuration) -l glibc -t aarch64
+      - script: scripts/linux/buildEdgelet.sh -i azureiotedge-iotedged -n microsoft -P iotedged -c $(Build.Configuration) -t aarch64
         displayName: Build - Edge Security Daemon - aarch64
 
       - script: scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(Build.Configuration) -t aarch64
         displayName: Build - Edge Diagnostics - aarch64
 
-      - script: scripts/linux/buildEdgeProxy.sh -i azureiotedge-proxy -n microsoft -P edge-proxy -t aarch64 -l musl
+      - script: scripts/linux/buildEdgeProxy.sh -i azureiotedge-proxy -n microsoft -P edge-proxy -t aarch64
         displayName: Build - Edge Proxy - aarch64
 
       - task: PublishBuildArtifacts@1
@@ -178,7 +178,6 @@ jobs:
           imageName: azureiotedge-iotedged
           project: iotedged
           configuration: $(Build.Configuration)
-          libc: glibc
 
       - template: templates/build-edgelet-linux.yaml
         parameters:
@@ -187,7 +186,6 @@ jobs:
           imageName: azureiotedge-diagnostics
           project: iotedge-diagnostics
           configuration: $(Build.Configuration)
-          libc: musl
 
       - template: templates/build-edgelet-linux.yaml
         parameters:
