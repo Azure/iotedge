@@ -1587,10 +1587,6 @@ function Set-ProvisioningMode {
             $replacementContent = ''
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
 
-            New-Item "HKLM:\SYSTEM\CurrentControlSet\Services\$EdgeServiceName" -Force | Out-Null
-            New-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\$EdgeServiceName" `
-                -Name 'Environment' -Value 'IOTEDGE_USE_TPM_DEVICE=ON' -PropertyType 'MultiString' -Force | Out-Null
-
             Write-HostGreen 'Configured device for DPS provisioning.'
             return $configurationYaml
         }
