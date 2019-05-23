@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
                 }
                 catch (Exception)
                 {
-                    if (cloudProxy.IsActive || i + 1 == 3)
+                    if (cloudProxy.IsActive || i + 1 == RetryCount)
                     {
                         throw;
                     }
