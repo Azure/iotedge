@@ -23,6 +23,9 @@ use hyperlocal_windows::server::{Http as UdsHttp, Incoming as UdsIncoming};
 use mio_uds_windows::net::UnixListener as StdUnixListener;
 use tokio::net::TcpListener;
 
+use rustls::{RootCertStore, ServerConfig, Session};
+use rustls::AllowAnyAuthenticatedClient;
+
 pub fn run_tcp_server<F, R>(
     ip: &str,
     port: u16,
@@ -75,6 +78,48 @@ pub fn run_tls_tcp_server(
             Ok(())
         })
         .map_err(|err| panic!("server error: {:#?}", err))
+}
+
+pub fn run_tls_tcp_server_with_mutual_auth(
+    ip: &str,
+    port: u16,
+    server_cert: PemCertificate,
+) -> impl Future<Item = (), Error = ()> {
+    let addr = &format!("{}:{}", ip, port).parse().unwrap();
+    let listener = TcpListener::bind(&addr).unwrap();
+
+    let mut client_auth_roots = RootCertStore::empty();
+
+    //let is_leaf = true;
+    let certs = X509::stack_from_pem(server_cert.get_full_certificate())?;
+    for cert in certs {
+        let der = cert.to_der()?;
+        client_auth_roots.add(&der).unwrap();
+    }
+    let client_auth = AllowAnyAuthenticatedClient::new(client_auth_roots);
+    let mut config = ServerConfig::new(client_auth);
+    config.set_single_cert(server_cert.get_full_certificate(), ::load_private_key("test-ca/rsa/end.key"));
+    let config = Arc::new(config);
+
+    let connections = socket.incoming();
+
+    let tls_handshake = connections.map(|(socket, _addr)| {
+        socket.set_nodelay(true).unwrap();
+        config.accept_async(socket)
+    });
+
+    let server = tls_handshake.map(|acceptor| {
+        let handle = handle.clone();
+        acceptor.and_then(move |stream| {
+            let conn = tokio::io::write_all(tls_stream, "HTTP/1.1 200 OK")
+                .map(|_| ())
+                .map_err(|err| panic!("IO write to stream error: {:#?}", err));
+
+            tokio::spawn(tls_accept);
+            Ok(())
+        })
+    })
+    .map_err(|err| panic!("server error: {:#?}", err));
 }
 
 pub fn run_uds_server<F, R>(path: &str, handler: F) -> impl Future<Item = (), Error = io::Error>

@@ -98,6 +98,10 @@ impl PemCertificate {
         }
     }
 
+    pub fn get_full_certificate(&self) -> [u8] {
+        &self.cert
+    }
+
     pub fn from<C: Certificate>(id_cert: &C) -> Result<Self, Error> {
         let cert = match id_cert.pem() {
             Ok(cert_buffer) => cert_buffer.as_ref().to_owned(),
