@@ -34,8 +34,10 @@ use futures::future::{Either, IntoFuture};
 use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future};
 use hyper::server::conn::Http;
-use hyper::Uri;
+use hyper::{Body, Request, Uri};
 use log::{debug, info};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 use url::Url;
 
@@ -51,8 +53,8 @@ use edgelet_core::crypto::{
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
-    Certificate, CertificateIssuer, CertificateProperties, CertificateType, ModuleRuntime,
-    ModuleSpec, UrlExt, WorkloadConfig, UNIX_SCHEME,
+    Authenticator, Certificate, CertificateIssuer, CertificateProperties, CertificateType, Module,
+    ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, UrlExt, WorkloadConfig, UNIX_SCHEME,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
@@ -64,6 +66,7 @@ use edgelet_http::{HyperExt, MaybeProxyClient, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
+pub use error::{Error, ErrorKind, InitializeErrorReason};
 use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
 use iothubservice::DeviceClient;
@@ -73,8 +76,6 @@ use provisioning::provisioning::{
 };
 
 use crate::workload::WorkloadData;
-
-pub use self::error::{Error, ErrorKind, InitializeErrorReason};
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
@@ -168,7 +169,11 @@ impl Main {
         Main { settings }
     }
 
-    pub fn run(self) -> Result<(), Error> {
+    pub fn run_until<F, G>(self, make_shutdown_signal: G) -> Result<(), Error>
+    where
+        F: Future<Item = (), Error = ()> + Send + 'static,
+        G: Fn() -> F,
+    {
         let Main { settings } = self;
 
         let hsm_lock = HsmLock::new();
@@ -253,6 +258,8 @@ impl Main {
                     IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                     IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                 );
+                // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
+                // is received. If the TLS cert needs a restart, we will loop again.
                 while {
                     let code = start_api(
                         &settings,
@@ -261,7 +268,7 @@ impl Main {
                         &key_store,
                         cfg.clone(),
                         root_key.clone(),
-                        signal::shutdown(),
+                        make_shutdown_signal(),
                         &crypto,
                         &mut tokio_runtime,
                     )?;
@@ -281,6 +288,8 @@ impl Main {
                             IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                             IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                         );
+                        // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
+                        // is received. If the TLS cert needs a restart, we will loop again.
                         while {
                             let code = start_api(
                                 &settings,
@@ -289,7 +298,7 @@ impl Main {
                                 &$key_store,
                                 cfg.clone(),
                                 $root_key.clone(),
-                                signal::shutdown(),
+                                make_shutdown_signal(),
                                 &crypto,
                                 &mut tokio_runtime,
                             )?;
@@ -603,12 +612,12 @@ where
 
     let cert_manager = Arc::new(cert_manager);
 
-    let mgmt = start_management(&settings, &runtime, &id_man, mgmt_rx, cert_manager.clone());
+    let mgmt = start_management(&settings, runtime, &id_man, mgmt_rx, cert_manager.clone());
 
     let workload = start_workload(
         &settings,
         key_store,
-        &runtime,
+        runtime,
         work_rx,
         crypto,
         cert_manager,
@@ -625,9 +634,16 @@ where
         mgmt_tx.send(()).unwrap_or(());
         work_tx.send(()).unwrap_or(());
 
+        // A -> EdgeRt Future
+        // B -> Restart Signal Future
         match res {
+            Ok(Either::A(_)) => Ok(StartApiReturnStatus::Shutdown).into_future(),
             Ok(Either::B(_)) => Ok(StartApiReturnStatus::Restart).into_future(),
-            _ => Ok(StartApiReturnStatus::Shutdown).into_future(),
+            Err(Either::A((err, _))) => Err(err).into_future(),
+            Err(Either::B(_)) => {
+                debug!("The restart signal failed, shutting down.");
+                Ok(StartApiReturnStatus::Shutdown).into_future()
+            }
         }
     });
 
@@ -876,10 +892,14 @@ where
         ],
     )?;
 
-    let watchdog = Watchdog::new(runtime.clone(), id_man.clone());
+    let watchdog = Watchdog::new(
+        runtime.clone(),
+        id_man.clone(),
+        settings.watchdog().max_retries().clone(),
+    );
     let runtime_future = watchdog
         .run_until(spec, EDGE_RUNTIME_MODULEID, shutdown.map_err(|_| ()))
-        .map_err(|err| Error::from(err.context(ErrorKind::Watchdog)));
+        .map_err(Error::from);
 
     Ok(runtime_future)
 }
@@ -966,9 +986,9 @@ fn build_env(
     env
 }
 
-fn start_management<C, K, HC>(
+fn start_management<C, K, HC, M>(
     settings: &Settings<DockerConfig>,
-    mgmt: &DockerModuleRuntime,
+    runtime: &M,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
     cert_manager: Arc<CertificateManager<C>>,
@@ -977,19 +997,24 @@ where
     C: CreateCertificate + Clone,
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl + Send + Sync,
+    M: ModuleRuntime + Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
+    <M::AuthenticateFuture as Future>::Error: Fail,
+    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <M::Module as Module>::Config: DeserializeOwned + Serialize,
+    M::Logs: Into<Body>,
 {
     info!("Starting management API...");
 
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
 
-    ManagementService::new(mgmt, id_man)
+    ManagementService::new(runtime, id_man)
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
                 InitializeErrorReason::ManagementService,
             ))?;
             let service = LoggingService::new(label, service);
-            info!("Listening on {} with 1 thread for management API.", url);
+
             let run = Http::new()
                 .bind_url(url.clone(), service, Some(&cert_manager))
                 .map_err(|err| {
@@ -999,15 +1024,16 @@ where
                 })?
                 .run_until(shutdown.map_err(|_| ()))
                 .map_err(|err| Error::from(err.context(ErrorKind::ManagementService)));
+            info!("Listening on {} with 1 thread for management API.", url);
             Ok(run)
         })
         .flatten()
 }
 
-fn start_workload<K, C, CE, W>(
+fn start_workload<K, C, CE, W, M>(
     settings: &Settings<DockerConfig>,
     key_store: &K,
-    runtime: &DockerModuleRuntime,
+    runtime: &M,
     shutdown: Receiver<()>,
     crypto: &C,
     cert_manager: Arc<CertificateManager<CE>>,
@@ -1026,6 +1052,11 @@ where
         + 'static,
     CE: CreateCertificate + Clone,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
+    M: ModuleRuntime + Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
+    <M::AuthenticateFuture as Future>::Error: Fail,
+    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <M::Module as Module>::Config: DeserializeOwned + Serialize,
+    M::Logs: Into<Body>,
 {
     info!("Starting workload API...");
 
@@ -1038,6 +1069,7 @@ where
                 InitializeErrorReason::WorkloadService,
             ))?;
             let service = LoggingService::new(label, service);
+
             let run = Http::new()
                 .bind_url(url.clone(), service, Some(&cert_manager))
                 .map_err(|err| {
@@ -1157,7 +1189,7 @@ mod tests {
     fn default_settings_raise_unconfigured_error() {
         let settings = Settings::<DockerConfig>::new(None).unwrap();
         let main = Main::new(settings);
-        let result = main.run();
+        let result = main.run_until(signal::shutdown);
         match result.unwrap_err().kind() {
             ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
             kind => panic!("Expected `NotConfigured` but got {:?}", kind),

@@ -2,7 +2,6 @@
 
 extern crate clap;
 extern crate env_logger;
-#[macro_use]
 extern crate failure;
 extern crate edgelet_utils;
 extern crate git2;

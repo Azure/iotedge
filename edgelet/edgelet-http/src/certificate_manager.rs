@@ -143,10 +143,18 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
     }
 
     fn create_cert(&self) -> Result<Certificate, Error> {
-        let cert = self
-            .crypto
-            .create_certificate(&self.props)
-            .with_context(|_| ErrorKind::CertificateCreationError)?;
+        // In some use cases, the CA cert might change - to protect against that,
+        // we will retry once (after attempting to delete) if the cert creation fails.
+        let cert = if let Ok(val) = self.crypto.create_certificate(&self.props) {
+            val
+        } else {
+            self.crypto
+                .destroy_certificate(self.props.alias().to_string())
+                .with_context(|_| ErrorKind::CertificateDeletionError)?;
+            self.crypto
+                .create_certificate(&self.props)
+                .with_context(|_| ErrorKind::CertificateCreationError)?
+        };
 
         let cert_pem = cert
             .pem()

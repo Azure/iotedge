@@ -7,6 +7,7 @@
 
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/crt_abstractions.h"
+#include "hsm_err.h"
 #include "hsm_log.h"
 #include "hsm_utils.h"
 
