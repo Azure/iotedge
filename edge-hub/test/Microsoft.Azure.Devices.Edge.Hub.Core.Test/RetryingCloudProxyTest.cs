@@ -223,7 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var clientProvider = new Mock<IClientProvider>();
             clientProvider.Setup(c => c.Create(identity, edgeHubTokenProvider.Object, It.IsAny<ITransportSettings[]>()))
-                .Returns(() => new ThrowingClient(clientWatcher, 5));
+                .Returns(() => new ThrowingClient(clientWatcher, 15));
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id, false))
