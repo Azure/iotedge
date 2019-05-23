@@ -75,6 +75,9 @@ pub enum ErrorKind {
     #[fail(display = "Item not found.")]
     KeyStoreItemNotFound,
 
+    #[fail(display = "An error occured when generating a random number.")]
+    MakeRandom,
+
     #[fail(display = "A module runtime error occurred.")]
     ModuleRuntime,
 

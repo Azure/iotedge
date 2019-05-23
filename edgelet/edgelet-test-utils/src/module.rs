@@ -9,7 +9,7 @@ use futures::future::{self, FutureResult};
 use futures::prelude::*;
 use futures::stream;
 use futures::IntoFuture;
-use hyper::Body;
+use hyper::{Body, Request};
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
@@ -119,6 +119,19 @@ where
     }
 }
 
+impl<E> Authenticator for TestRuntime<E>
+where
+    E: Clone + Fail,
+{
+    type Error = E;
+    type Request = Request<Body>;
+    type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
+
+    fn authenticate(&self, _req: &Self::Request) -> Self::AuthenticateFuture {
+        Box::new(future::ok(AuthId::Any))
+    }
+}
+
 pub struct EmptyBody<E> {
     phantom: PhantomData<E>,
 }
@@ -173,7 +186,6 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     type StopFuture = FutureResult<(), Self::Error>;
     type SystemInfoFuture = FutureResult<SystemInfo, Self::Error>;
     type RemoveAllFuture = FutureResult<(), Self::Error>;
-    type TopFuture = FutureResult<ModuleTop, Self::Error>;
 
     fn system_info(&self) -> Self::SystemInfoFuture {
         match self.module {
@@ -264,18 +276,5 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
 
     fn remove_all(&self) -> Self::RemoveAllFuture {
         future::ok(())
-    }
-
-    fn top(&self, id: &str) -> Self::TopFuture {
-        match self.module {
-            Ok(ref m) => {
-                assert_eq!(id, m.name());
-                match m.state {
-                    Ok(ref s) => future::ok(ModuleTop::new(m.name.clone(), vec![s.pid()])),
-                    Err(ref e) => future::err(e.clone()),
-                }
-            }
-            Err(ref e) => future::err(e.clone()),
-        }
     }
 }
