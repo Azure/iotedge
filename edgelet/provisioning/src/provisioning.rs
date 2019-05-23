@@ -170,7 +170,7 @@ where
     ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
         let result = self
             .client
-            .get_device_connection_information()
+            .get_device_provisioning_information()
             .map_err(|err| Error::from(err.context(ErrorKind::Provision)))
             .and_then(move |device_connection_info| {
                 info!(
@@ -586,7 +586,7 @@ mod tests {
     use super::*;
 
     use edgelet_config::{Manual, ParseManualDeviceConnectionStringError};
-    use external_provisioning::models::DeviceConnectionInfo;
+    use external_provisioning::models::DeviceProvisioningInfo;
     use failure::Fail;
     use std::fmt::{self, Display};
     use tempdir::TempDir;
@@ -911,13 +911,13 @@ mod tests {
     impl ExternalProvisioningInterface for TestExternalProvisioningInterface {
         type Error = TestError;
 
-        type DeviceConnectionInformationFuture =
-            Box<dyn Future<Item = DeviceConnectionInfo, Error = Self::Error> + Send>;
+        type DeviceProvisioningInformationFuture =
+            Box<dyn Future<Item = DeviceProvisioningInfo, Error = Self::Error> + Send>;
 
-        fn get_device_connection_information(&self) -> Self::DeviceConnectionInformationFuture {
+        fn get_device_provisioning_information(&self) -> Self::DeviceProvisioningInformationFuture {
             match self.error.as_ref() {
                 None => Box::new(
-                    Ok(DeviceConnectionInfo::new(
+                    Ok(DeviceProvisioningInfo::new(
                         "TestHub".to_string(),
                         "TestDevice".to_string(),
                     ))

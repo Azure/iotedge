@@ -19,10 +19,10 @@ use crate::error::{Error, ErrorKind};
 pub trait ExternalProvisioningInterface {
     type Error: Fail;
 
-    type DeviceConnectionInformationFuture: Future<Item = DeviceConnectionInfo, Error = Self::Error>
+    type DeviceProvisioningInformationFuture: Future<Item = DeviceProvisioningInfo, Error = Self::Error>
         + Send;
 
-    fn get_device_connection_information(&self) -> Self::DeviceConnectionInformationFuture;
+    fn get_device_provisioning_information(&self) -> Self::DeviceProvisioningInformationFuture;
 }
 
 pub trait GetApi {
@@ -78,18 +78,18 @@ impl Clone for ExternalProvisioningClient {
 impl ExternalProvisioningInterface for ExternalProvisioningClient {
     type Error = Error;
 
-    type DeviceConnectionInformationFuture =
-        Box<dyn Future<Item = DeviceConnectionInfo, Error = Self::Error> + Send>;
+    type DeviceProvisioningInformationFuture =
+        Box<dyn Future<Item = DeviceProvisioningInfo, Error = Self::Error> + Send>;
 
-    fn get_device_connection_information(&self) -> Self::DeviceConnectionInformationFuture {
+    fn get_device_provisioning_information(&self) -> Self::DeviceProvisioningInformationFuture {
         let connection_info = self
             .client
             .get_api()
-            .get_device_connection_information(crate::EXTERNAL_PROVISIONING_API_VERSION)
+            .get_device_provisioning_information(crate::EXTERNAL_PROVISIONING_API_VERSION)
             .map_err(|err| {
                 Error::from_external_provisioning_error(
                     err,
-                    ErrorKind::GetDeviceConnectionInformation,
+                    ErrorKind::GetDeviceProvisioningInformation,
                 )
             });
         Box::new(connection_info)
@@ -149,18 +149,18 @@ mod tests {
     }
 
     impl ExternalProvisioningApi for TestExternalProvisioningApi {
-        fn get_device_connection_information(
+        fn get_device_provisioning_information(
             &self,
             _api_version: &str,
         ) -> Box<
             dyn Future<
-                    Item = external_provisioning::models::DeviceConnectionInfo,
+                    Item = external_provisioning::models::DeviceProvisioningInfo,
                     Error = ExternalProvisioningError<serde_json::Value>,
                 > + Send,
         > {
             match self.error.as_ref() {
                 None => Box::new(
-                    Ok(DeviceConnectionInfo::new(
+                    Ok(DeviceProvisioningInfo::new(
                         "hub".to_string(),
                         "device".to_string(),
                     ))
@@ -172,7 +172,7 @@ mod tests {
     }
 
     #[test]
-    fn get_device_connection_info_error() {
+    fn get_device_provisioning_info_error() {
         let external_provisioning_error =
             TestExternalProvisioningApiError(ExternalProvisioningApiError {
                 code: hyper::StatusCode::from_u16(400).unwrap(),
@@ -186,13 +186,13 @@ mod tests {
         };
 
         let res = client
-            .get_device_connection_information()
+            .get_device_provisioning_information()
             .then(|result| match result {
                 Ok(_) => panic!("Expected a failure."),
                 Err(err) => match err.kind() {
-                    ErrorKind::GetDeviceConnectionInformation => Ok::<_, Error>(()),
+                    ErrorKind::GetDeviceProvisioningInformation => Ok::<_, Error>(()),
                     _ => panic!(
-                        "Expected `GetDeviceConnectionInformation` but got {:?}",
+                        "Expected `GetDeviceProvisioningInformation` but got {:?}",
                         err
                     ),
                 },
@@ -204,14 +204,14 @@ mod tests {
     }
 
     #[test]
-    fn get_device_connection_info_success() {
+    fn get_device_provisioning_info_success() {
         let external_provisioning_api = TestExternalProvisioningApi { error: None };
         let client = ExternalProvisioningClient {
             client: Arc::new(external_provisioning_api),
         };
 
         let res = client
-            .get_device_connection_information()
+            .get_device_provisioning_information()
             .then(|result| match result {
                 Ok(item) => {
                     assert_eq!("hub", item.hub_name());

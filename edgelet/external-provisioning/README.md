@@ -21,12 +21,13 @@ All URIs are relative to *http://localhost*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
-*ExternalProvisioningApi* | [**get_device_connection_information**](docs/ExternalProvisioningApi.md#get_device_connection_information) | **Get** /edge/device/connectioninformation | Gets the IoT hub connection information of the device.
+*ExternalProvisioningApi* | [**get_device_provisioning_information**](docs/ExternalProvisioningApi.md#get_device_provisioning_information) | **Get** /edge/device/provisioninginformation | Gets the IoT hub provisioning information of the device.
 
 
 ## Documentation For Models
 
- - [DeviceConnectionInfo](docs/DeviceConnectionInfo.md)
+ - [Credentials](docs/Credentials.md)
+ - [DeviceProvisioningInfo](docs/DeviceProvisioningInfo.md)
  - [ErrorResponse](docs/ErrorResponse.md)
 
 

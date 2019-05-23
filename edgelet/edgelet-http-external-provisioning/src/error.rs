@@ -18,8 +18,8 @@ pub enum ErrorKind {
     #[fail(display = "Client error")]
     Client(ExternalProvisioningError<serde_json::Value>),
 
-    #[fail(display = "Could not get device connection info")]
-    GetDeviceConnectionInformation,
+    #[fail(display = "Could not get device provisioning info")]
+    GetDeviceProvisioningInformation,
 
     #[fail(display = "External provisioning client initialization")]
     InitializeExternalProvisioningClient,

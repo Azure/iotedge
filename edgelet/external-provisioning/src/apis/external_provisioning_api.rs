@@ -33,11 +33,11 @@ impl<C: hyper::client::connect::Connect> ExternalProvisioningApiClient<C> {
 }
 
 pub trait ExternalProvisioningApi: Send + Sync {
-    fn get_device_connection_information(
+    fn get_device_provisioning_information(
         &self,
         api_version: &str,
     ) -> Box<
-        dyn Future<Item = crate::models::DeviceConnectionInfo, Error = Error<serde_json::Value>>
+        dyn Future<Item = crate::models::DeviceProvisioningInfo, Error = Error<serde_json::Value>>
             + Send,
     >;
 }
@@ -49,11 +49,11 @@ where
     <C as hyper::client::connect::Connect>::Transport: 'static,
     <C as hyper::client::connect::Connect>::Future: 'static,
 {
-    fn get_device_connection_information(
+    fn get_device_provisioning_information(
         &self,
         api_version: &str,
     ) -> Box<
-        dyn Future<Item = crate::models::DeviceConnectionInfo, Error = Error<serde_json::Value>>
+        dyn Future<Item = crate::models::DeviceProvisioningInfo, Error = Error<serde_json::Value>>
             + Send,
     > {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
@@ -63,7 +63,7 @@ where
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
             .finish();
-        let uri_str = format!("/edge/device/connectioninformation?{}", query);
+        let uri_str = format!("/device/provisioninginformation?{}", query);
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
         // TODO(farcaller): handle error
@@ -104,7 +104,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<crate::models::DeviceConnectionInfo, _> =
+                    let parsed: Result<crate::models::DeviceProvisioningInfo, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),

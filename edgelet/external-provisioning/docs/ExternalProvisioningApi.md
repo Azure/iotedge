@@ -4,13 +4,14 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**get_device_connection_information**](ExternalProvisioningApi.md#get_device_connection_information) | **Get** /edge/device/connectioninformation | Gets the IoT hub connection information of the device.
+[**get_device_provisioning_information**](ExternalProvisioningApi.md#get_device_provisioning_information) | **Get** /edge/device/provisioninginformation | Gets the IoT hub provisioning information of the device.
 
-# **get_device_connection_information**
-> ::models::DeviceConnectionInfo get_device_connection_information(api_version)
-Gets the IoT hub connection information of the device.
 
-This returns the IoT hub connection information of the device. 
+# **get_device_provisioning_information**
+> ::models::DeviceProvisioningInfo get_device_provisioning_information(api_version)
+Gets the IoT hub provisioning information of the device.
+
+This returns the IoT hub provisioning information of the device. 
 
 ### Required Parameters
 
@@ -20,7 +21,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**::models::DeviceConnectionInfo**](DeviceConnectionInfo.md)
+[**::models::DeviceProvisioningInfo**](DeviceProvisioningInfo.md)
 
 ### Authorization
 
@@ -32,3 +33,4 @@ No authorization required
  - **Accept**: application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
