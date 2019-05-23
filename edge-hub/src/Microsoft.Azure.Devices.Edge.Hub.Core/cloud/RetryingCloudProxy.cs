@@ -58,7 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         async Task<T> ExecuteOperation<T>(Func<ICloudProxy, Task<T>> func)
         {
-            for (int i = 0; i < RetryCount; i++)
+            int i = 0;
+            while(true)
             {
                 ICloudProxy cloudProxy = await this.GetCloudProxy();
                 try
@@ -67,15 +68,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
                 }
                 catch (Exception)
                 {
-                    if (cloudProxy.IsActive || i + 1 == RetryCount)
+                    if (cloudProxy.IsActive || ++i == RetryCount)
                     {
                         throw;
                     }
                 }
             }
-
-            // Should never get here
-            return default(T);
         }
 
         async Task<ICloudProxy> GetCloudProxy()
