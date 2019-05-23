@@ -141,6 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     10,
                     10,
                     false,
+                    false,
                     TimeSpan.FromHours(1)));
 
             builder.RegisterModule(new HttpModule());

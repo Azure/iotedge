@@ -41,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             catch (Exception ex)
             {
                 Events.InitializingError(ex);
+                throw;
             }
         }
 
