@@ -25,6 +25,7 @@ use sha2::{Digest, Sha256};
 use url::Url;
 
 use edgelet_core::crypto::MemoryKey;
+use edgelet_core::watchdog::RetryLimit;
 use edgelet_core::ModuleSpec;
 use edgelet_utils::log_failure;
 
@@ -358,6 +359,18 @@ impl Certificates {
     }
 }
 
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct WatchdogSettings {
+    #[serde(default)]
+    max_retries: RetryLimit,
+}
+
+impl WatchdogSettings {
+    pub fn max_retries(&self) -> &RetryLimit {
+        &self.max_retries
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Settings<T> {
     provisioning: Provisioning,
@@ -368,6 +381,8 @@ pub struct Settings<T> {
     homedir: PathBuf,
     moby_runtime: MobyRuntime,
     certificates: Option<Certificates>,
+    #[serde(default)]
+    watchdog: WatchdogSettings,
 }
 
 impl<T> Settings<T>
@@ -430,6 +445,10 @@ where
 
     pub fn certificates(&self) -> Option<&Certificates> {
         self.certificates.as_ref()
+    }
+
+    pub fn watchdog(&self) -> &WatchdogSettings {
+        &self.watchdog
     }
 
     pub fn diff_with_cached(&self, path: &Path) -> bool {
@@ -510,6 +529,7 @@ mod tests {
     use super::*;
     use config::{Config, File, FileFormat};
     use edgelet_docker::DockerConfig;
+    use std::cmp::Ordering;
     use std::fs::File as FsFile;
     use std::io::Write;
     use tempdir::TempDir;
@@ -829,5 +849,15 @@ mod tests {
 
         let create_options = settings.agent().config().create_options();
         assert_eq!(create_options.hostname(), Some("VAluE3"));
+    }
+
+    #[test]
+    fn watchdog_settings_are_read() {
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS)));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+        let watchdog_settings = s.watchdog();
+        assert_eq!(watchdog_settings.max_retries().compare(3), Ordering::Equal);
     }
 }

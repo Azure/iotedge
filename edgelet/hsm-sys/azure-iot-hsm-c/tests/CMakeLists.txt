@@ -18,6 +18,7 @@ set(SHARED_UTIL_REAL_TEST_FOLDER ${SHARED_UTIL_SRC_FOLDER}/../tests/real_test_fi
 add_subdirectory(hsm_certificate_props_ut)
 add_subdirectory(hsm_tpm_select_ut)
 add_subdirectory(certificate_info_ut)
+add_subdirectory(certificate_info_ft)
 add_subdirectory(edge_hsm_client_x509_int)
 add_subdirectory(edge_hsm_tpm_ut)
 add_subdirectory(edge_hsm_key_intf_sas_ut)
