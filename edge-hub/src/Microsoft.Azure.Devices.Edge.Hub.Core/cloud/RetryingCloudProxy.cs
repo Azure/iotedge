@@ -23,6 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         public bool IsActive => this.innerCloudProxy.IsActive;
 
+        internal ICloudProxy InnerCloudProxy => this.innerCloudProxy;
+
         public Task<bool> CloseAsync() => this.ExecuteOperation(c => c.CloseAsync());
 
         public Task<bool> OpenAsync() => this.ExecuteOperation(c => c.OpenAsync());
@@ -47,8 +49,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         public Task StartListening() => this.ExecuteOperation(c => c.StartListening());
 
-        internal ICloudProxy InnerCloudProxy => this.innerCloudProxy;
-
         Task ExecuteOperation(Func<ICloudProxy, Task> func) => this.ExecuteOperation(
             async c =>
             {
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
         async Task<T> ExecuteOperation<T>(Func<ICloudProxy, Task<T>> func)
         {
             int i = 0;
-            while(true)
+            while (true)
             {
                 ICloudProxy cloudProxy = await this.GetCloudProxy();
                 try
