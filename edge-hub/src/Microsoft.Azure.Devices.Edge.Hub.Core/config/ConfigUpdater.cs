@@ -14,43 +14,69 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     {
         readonly Router router;
         readonly IMessageStore messageStore;
+        readonly TimeSpan configUpdateFrequency;
         readonly AsyncLock updateLock = new AsyncLock();
 
-        public ConfigUpdater(Router router, IMessageStore messageStore)
+        Option<PeriodicTask> configUpdater;
+        Option<EdgeHubConfig> currentConfig;
+        Option<IConfigSource> configProvider;
+
+        public ConfigUpdater(Router router, IMessageStore messageStore, TimeSpan configUpdateFrequency)
         {
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.messageStore = messageStore;
+            this.configUpdateFrequency = configUpdateFrequency;
         }
 
-        public async Task Init(IConfigSource configProvider)
+        public void Init(IConfigSource configProvider)
         {
             Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             try
             {
-                using (await this.updateLock.LockAsync())
-                {
-                    configProvider.SetConfigUpdatedCallback(this.UpdateConfig);
-                    Option<EdgeHubConfig> edgeHubConfig = await configProvider.GetConfig();
+                configProvider.SetConfigUpdatedCallback(this.UpdateConfig);
+                this.configProvider = Option.Some(configProvider);
+                this.configUpdater = Option.Some(new PeriodicTask(this.PullConfig, this.configUpdateFrequency, TimeSpan.Zero, Events.Log, "Get EdgeHub config"));
+                Events.Initialized();
+            }
+            catch (Exception ex)
+            {
+                Events.InitializingError(ex);
+                throw;
+            }
+        }
 
-                    if (!edgeHubConfig.HasValue)
-                    {
-                        Events.EmptyConfigReceived();
-                    }
-                    else
+        async Task PullConfig()
+        {
+            try
+            {
+                Option<EdgeHubConfig> edgeHubConfig = await this.configProvider
+                    .Map(c => c.GetConfig())
+                    .GetOrElse(Task.FromResult(Option.None<EdgeHubConfig>()));
+                if (!edgeHubConfig.HasValue)
+                {
+                    Events.EmptyConfigReceived();
+                }
+                else
+                {
+                    using (await this.updateLock.LockAsync())
                     {
                         await edgeHubConfig.ForEachAsync(
                             async ehc =>
                             {
-                                await this.UpdateRoutes(ehc.Routes, false);
-                                this.UpdateStoreAndForwardConfig(ehc.StoreAndForwardConfiguration);
+                                bool hasUpdates = this.currentConfig.Map(cc => !cc.Equals(ehc)).GetOrElse(true);
+                                if (hasUpdates)
+                                {
+                                    await this.UpdateRoutes(ehc.Routes, this.currentConfig.HasValue);
+                                    this.UpdateStoreAndForwardConfig(ehc.StoreAndForwardConfiguration);
+                                    this.currentConfig = Option.Some(ehc);
+                                }
                             });
-                        Events.Initialized();
                     }
                 }
             }
             catch (Exception ex)
             {
-                Events.InitializingError(ex);
+                Events.ErrorPullingConfig(ex);
             }
         }
 
@@ -72,12 +98,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             }
         }
 
-        async Task UpdateRoutes(IEnumerable<(string Name, string Value, Route Route)> routes, bool replaceExisting)
+        async Task UpdateRoutes(IReadOnlyDictionary<string, RouteConfig> routes, bool replaceExisting)
         {
             if (routes != null)
             {
-                List<(string Name, string Value, Route Route)> routesList = routes.ToList();
-                ISet<Route> routeSet = new HashSet<Route>(routesList.Select(r => r.Route));
+                ISet<Route> routeSet = new HashSet<Route>(routes.Select(r => r.Value.Route));
                 if (replaceExisting)
                 {
                     await this.router.ReplaceRoutes(routeSet);
@@ -90,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                     }
                 }
 
-                Events.RoutesUpdated(routesList);
+                Events.RoutesUpdated(routes);
             }
         }
 
@@ -105,8 +130,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
         static class Events
         {
+            public static readonly ILogger Log = Logger.Factory.CreateLogger<ConfigUpdater>();
             const int IdStart = HubCoreEventIds.ConfigUpdater;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ConfigUpdater>();
 
             enum EventIds
             {
@@ -116,7 +141,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 UpdatingConfig,
                 UpdatedRoutes,
                 UpdatedStoreAndForwardConfig,
-                EmptyConfig
+                EmptyConfig,
+                ErrorPullingConfig
+            }
+
+            public static void ErrorPullingConfig(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorPullingConfig, ex, FormattableString.Invariant($"Error getting edge hub configuration."));
             }
 
             internal static void Initialized()
@@ -145,12 +176,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 Log.LogInformation((int)EventIds.UpdatingConfig, "Updating edge hub configuration");
             }
 
-            internal static void RoutesUpdated(List<(string Name, string Value, Route Route)> routes)
+            internal static void RoutesUpdated(IReadOnlyDictionary<string, RouteConfig> routes)
             {
                 if (routes.Count > 0)
                 {
                     Log.LogInformation((int)EventIds.UpdatedRoutes, $"Set the following {routes.Count} route(s) in edge hub");
-                    routes.ForEach(r => Log.LogInformation((int)EventIds.UpdatedRoutes, $"{r.Name}: {r.Value}"));
+                    foreach (KeyValuePair<string, RouteConfig> route in routes)
+                    {
+                        Log.LogInformation((int)EventIds.UpdatedRoutes, $"{route.Value.Name}: {route.Value.Value}");
+                    }
                 }
                 else
                 {
