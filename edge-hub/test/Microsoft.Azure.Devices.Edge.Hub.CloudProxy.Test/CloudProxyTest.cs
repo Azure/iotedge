@@ -162,12 +162,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             ICloudProxy cloudProxy = await this.GetCloudProxyWithConnectionStringKey(deviceConnectionStringKey);
 
             // Act/assert
-            // Without setting up the cloudlistener, the following methods should not throw.
+            // Without setting up the CloudListener, the following methods should not throw.
             await cloudProxy.SetupCallMethodAsync();
             await cloudProxy.RemoveCallMethodAsync();
             await cloudProxy.SetupDesiredPropertyUpdatesAsync();
             await cloudProxy.RemoveDesiredPropertyUpdatesAsync();
-            cloudProxy.StartListening();
+            await cloudProxy.StartListening();
         }
 
         [Fact]
