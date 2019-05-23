@@ -186,6 +186,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Test.DirectMethod", "test\Microsoft.Azure.Devices.Edge.Test.DirectMethod\Microsoft.Azure.Devices.Edge.Test.DirectMethod.csproj", "{99B86C5A-AA47-4A50-B7FB-620C0481CF03}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Test", "test\Microsoft.Azure.Devices.Edge.Test\Microsoft.Azure.Devices.Edge.Test.csproj", "{50C99452-B263-4CDC-B161-82D3ABD1A78B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CheckInBuild|Any CPU = CheckInBuild|Any CPU
@@ -594,6 +596,14 @@ Global
 		{99B86C5A-AA47-4A50-B7FB-620C0481CF03}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{99B86C5A-AA47-4A50-B7FB-620C0481CF03}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{99B86C5A-AA47-4A50-B7FB-620C0481CF03}.Release|Any CPU.Build.0 = Release|Any CPU
+		{50C99452-B263-4CDC-B161-82D3ABD1A78B}.CheckInBuild|Any CPU.ActiveCfg = Debug|Any CPU
+		{50C99452-B263-4CDC-B161-82D3ABD1A78B}.CheckInBuild|Any CPU.Build.0 = Debug|Any CPU
+		{50C99452-B263-4CDC-B161-82D3ABD1A78B}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{50C99452-B263-4CDC-B161-82D3ABD1A78B}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{50C99452-B263-4CDC-B161-82D3ABD1A78B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50C99452-B263-4CDC-B161-82D3ABD1A78B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50C99452-B263-4CDC-B161-82D3ABD1A78B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50C99452-B263-4CDC-B161-82D3ABD1A78B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -666,6 +676,7 @@ Global
 		{FCF94FF4-A608-4CC1-8D1D-215B6F88F203} = {2300ED4C-1D5A-460F-8691-7C85E1162E0C}
 		{B63C506E-5CB5-4DE8-8275-F7BA8354799E} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{99B86C5A-AA47-4A50-B7FB-620C0481CF03} = {2300ED4C-1D5A-460F-8691-7C85E1162E0C}
+		{50C99452-B263-4CDC-B161-82D3ABD1A78B} = {2300ED4C-1D5A-460F-8691-7C85E1162E0C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}
