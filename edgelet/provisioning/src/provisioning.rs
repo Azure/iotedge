@@ -139,8 +139,6 @@ impl Provision for ManualProvisioning {
 }
 
 pub struct ExternalProvisioning<T, U>
-where
-    U: 'static + Activate + KeyStore + Send,
 {
     client: T,
 
@@ -150,8 +148,6 @@ where
 }
 
 impl<T, U> ExternalProvisioning<T, U>
-where
-    U: 'static + Activate + KeyStore + Send,
 {
     pub fn new(client: T) -> Self {
         ExternalProvisioning {
