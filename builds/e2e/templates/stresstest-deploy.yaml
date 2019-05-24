@@ -32,7 +32,11 @@ steps:
       SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
       CleanTargetFolder: true
-  - bash: |
+  - task: Bash@3
+    displayName: 'Run Stress Test Deployment'
+    inputs:
+      targetType: inline
+      script: |
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
         testName="Stress"
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
@@ -42,5 +46,4 @@ steps:
         durationToStop=$(($(snitcher.test.duration.in.mins)+30))
         echo "Duration to stop iotedge=$durationToStop"
         echo "sudo systemctl stop iotedge" | at now + $durationToStop minutes && atq
-    displayName: 'Run Stress Test Deployment'
-    workingDirectory: '$(Agent.HomeDirectory)/..'
+      workingDirectory: '$(Agent.HomeDirectory)/..'

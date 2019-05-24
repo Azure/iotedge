@@ -133,6 +133,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int maxUpstreamBatchSize = this.configuration.GetValue("MaxUpstreamBatchSize", 10);
             int upstreamFanOutFactor = this.configuration.GetValue("UpstreamFanOutFactor", 10);
             bool encryptTwinStore = this.configuration.GetValue("EncryptTwinStore", false);
+            bool disableCloudSubscriptions = this.configuration.GetValue("DisableCloudSubscriptions", false);
+            int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
+            TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -157,12 +160,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     useV1TwinManager,
                     maxUpstreamBatchSize,
                     upstreamFanOutFactor,
-                    encryptTwinStore));
+                    encryptTwinStore,
+                    disableCloudSubscriptions,
+                    configUpdateFrequency));
         }
 
         void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)
         {
-            string productInfo = VersionInfo.Get(Constants.VersionInfoFileName).ToString();
             bool cacheTokens = this.configuration.GetValue("CacheTokens", false);
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
             Option<string> workloadApiVersion = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadAPiVersion);
@@ -177,6 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
 
             string proxy = this.configuration.GetValue("https_proxy", string.Empty);
+            string productInfo = GetProductInfo();
 
             // Register modules
             builder.RegisterModule(
@@ -198,6 +203,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     cacheTokens,
                     this.trustBundle,
                     proxy));
+        }
+
+        static string GetProductInfo()
+        {
+            string version = VersionInfo.Get(Constants.VersionInfoFileName).ToString();
+            string productInfo = $"{Core.Constants.IoTEdgeProductInfoIdentifier}/{version}";
+            return productInfo;
         }
 
         (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) GetStoreAndForwardConfiguration()
