@@ -118,7 +118,7 @@ process_args()
         fi
     done
 
-    if [[ ${PROJECT,,} == "iotedged" ]]; then
+    if [[ ${PROJECT:l} == "iotedged" ]]; then
         LIBC="glibc"
     else
         LIBC="musl"
@@ -160,7 +160,7 @@ process_args()
         print_help_and_exit
     fi
 
-    if [[ ${BUILD_CONFIGURATION,,} == "release" ]]; then
+    if [[ ${BUILD_CONFIGURATION:l} == "release" ]]; then
         BUILD_CONFIGURATION='release'
         BUILD_CONFIG_OPTION='--release'
     else
@@ -191,8 +191,8 @@ build_project()
     # copy binaries to publish folder
     execute cp "$EDGELET_DIR/target/$TOOLCHAIN/$BUILD_CONFIGURATION/$PROJECT" "$EXE_DOCKER_DIR/"
 
-    if [[ ${PROJECT,,} == "iotedged" ]] && [[ ${BUILD_CONFIGURATION} == "release" ]]; then
-        execute cp "$EDGELET_DIR/target/$TOOLCHAIN/$BUILD_CONFIGURATION/build/hsm-sys-*/out/lib/*.so*" "$EXE_DOCKER_DIR/"
+    if [[ ${PROJECT:l} == "iotedged" ]] && [[ ${BUILD_CONFIGURATION} == "release" ]]; then
+        execute cp "$EDGELET_DIR"/target/"$TOOLCHAIN"/"$BUILD_CONFIGURATION"/build/hsm-sys-*/out/lib/*.so* "$EXE_DOCKER_DIR/"
     fi
 }
 
