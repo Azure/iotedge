@@ -191,8 +191,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             client.VerifyAll();
         }
 
-        [Fact]
-        public async Task TestHandlNre()
+        [Theory]
+        [InlineData(typeof(NullReferenceException))]
+        [InlineData(typeof(ObjectDisposedException))]
+        public async Task TestHandleNonRecoverableExceptions(Type exceptionType)
         {
             // Arrange
             var messageConverter = Mock.Of<IMessageConverter<Message>>(m => m.FromMessage(It.IsAny<IMessage>()) == new Message());
@@ -202,13 +204,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             TimeSpan idleTimeout = TimeSpan.FromSeconds(60);
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler = (s, status) => { };
             var client = new Mock<IClient>(MockBehavior.Strict);
-            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).ThrowsAsync(new NullReferenceException());
+            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).ThrowsAsync((Exception)Activator.CreateInstance(exceptionType, "dummy message"));
             client.Setup(c => c.CloseAsync()).Returns(Task.CompletedTask);
             var cloudProxy = new CloudProxy(client.Object, messageConverterProvider, clientId, connectionStatusChangedHandler, cloudListener, idleTimeout, false);
             IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
 
             // Act
-            await Assert.ThrowsAsync<NullReferenceException>(() => cloudProxy.SendMessageAsync(message));
+            await Assert.ThrowsAsync(exceptionType, () => cloudProxy.SendMessageAsync(message));
 
             // Assert.
             client.VerifyAll();
