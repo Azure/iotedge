@@ -118,7 +118,7 @@ process_args()
         fi
     done
 
-    if [[ ${PROJECT:l} == "iotedged" ]]; then
+    if [[ ${PROJECT:,,} == "iotedged" ]]; then
         LIBC="glibc"
     else
         LIBC="musl"
@@ -160,7 +160,7 @@ process_args()
         print_help_and_exit
     fi
 
-    if [[ ${BUILD_CONFIGURATION:l} == "release" ]]; then
+    if [[ ${BUILD_CONFIGURATION:,,} == "release" ]]; then
         BUILD_CONFIGURATION='release'
         BUILD_CONFIG_OPTION='--release'
     else
