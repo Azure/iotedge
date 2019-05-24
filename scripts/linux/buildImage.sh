@@ -13,7 +13,7 @@ set -e
 # Define Environment Variables
 ###############################################################################
 ARCH=$(uname -m)
-SCRIPT_NAME=$(basename $0)
+SCRIPT_NAME=$(basename "$0")
 PUBLISH_DIR=
 BASE_TAG=
 PROJECT=
@@ -76,7 +76,7 @@ print_help_and_exit()
 process_args()
 {
     save_next_arg=0
-    for arg in $@
+    for arg in "$@"
     do
         if [[ ${save_next_arg} -eq 1 ]]; then
             DOCKER_REGISTRY="$arg"
@@ -151,7 +151,7 @@ process_args()
     fi
 
     if [[ -z ${DOCKER_IMAGEVERSION} ]]; then
-        if [[ ! -z "${BUILD_BUILDNUMBER}" ]]; then
+        if [[ -n "${BUILD_BUILDNUMBER}" ]]; then
             DOCKER_IMAGEVERSION=${BUILD_BUILDNUMBER}
         else
             echo "Docker image version not found."
@@ -202,7 +202,7 @@ docker_build_and_tag_and_push()
     arch="$2"
     dockerfile="$3"
     context_path="$4"
-    build_args="${@:5}"
+    build_args="$5"
 
     if [[ -z "${imagename}" ]] || [[ -z "${arch}" ]] || [[ -z "${context_path}" ]]; then
         echo "Error: Arguments are invalid [$imagename] [$arch] [$context_path]"
@@ -212,16 +212,14 @@ docker_build_and_tag_and_push()
     echo "Building and pushing Docker image $imagename for $arch"
     docker_build_cmd="docker build --no-cache"
     docker_build_cmd+=" -t $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
-    if [[ ! -z "${dockerfile}" ]]; then
+    if [[ -n "${dockerfile}" ]]; then
         docker_build_cmd+=" --file $dockerfile"
     fi
     docker_build_cmd+=" $build_args $context_path"
     
     echo "Running... $docker_build_cmd"
 
-    ${docker_build_cmd}
-
-    if [[ $? -ne 0 ]]; then
+    if [[ ! ${docker_build_cmd} ]]; then
         echo "Docker build failed with exit code $?"
         exit 1
     fi
@@ -229,8 +227,8 @@ docker_build_and_tag_and_push()
     if [[ ${SKIP_PUSH} -eq 0 ]]; then
         docker_push_cmd="docker push $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
         echo "Running... $docker_push_cmd"
-        ${docker_push_cmd}
-        if [[ $? -ne 0 ]]; then
+
+        if [[ ! ${docker_push_cmd} ]]; then
             echo "Docker push failed with exit code $?"
             exit 1
         fi
@@ -247,8 +245,8 @@ process_args "$@"
 
 # log in to container registry
 if [[ ${SKIP_PUSH} -eq 0 ]]; then
-    docker login ${DOCKER_REGISTRY} -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
-    if [[ $? -ne 0 ]]; then
+
+    if ! docker login "${DOCKER_REGISTRY}" -u "${DOCKER_USERNAME}" -p "${DOCKER_PASSWORD}"; then
         echo "Docker login failed!"
         exit 1
     fi

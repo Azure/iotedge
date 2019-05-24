@@ -13,9 +13,8 @@ set -e
 ARCH=$(uname -m)
 TOOLCHAIN=
 STRIP=
-SCRIPT_NAME=$(basename $0)
+SCRIPT_NAME=$(basename "$0")
 PROJECT=
-SRC_DOCKERFILE=
 DOCKERFILE=
 DOCKER_IMAGENAME=
 DEFAULT_DOCKER_NAMESPACE="microsoft"
@@ -84,7 +83,7 @@ print_args()
 process_args()
 {
     save_next_arg=0
-    for arg in $@
+    for arg in "$@"
     do
         if [[ ${save_next_arg} -eq 1 ]]; then
             ARCH="$arg"
@@ -146,7 +145,7 @@ process_args()
     fi
 
     if [[ ! -d ${BUILD_BINARIESDIRECTORY} ]]; then
-        mkdir ${BUILD_BINARIESDIRECTORY}
+        mkdir "${BUILD_BINARIESDIRECTORY}"
     fi
 
     DOCKER_DIR=${EDGELET_DIR}/${PROJECT}/docker
@@ -176,24 +175,24 @@ process_args()
 build_project()
 {
     # build project with cross
-    cd ${EDGELET_DIR}
+    cd "$EDGELET_DIR"
 
-    execute cross build -p ${PROJECT} ${BUILD_CONFIG_OPTION} --target ${TOOLCHAIN}
-    execute ${STRIP} ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT}
+    execute cross build -p "$PROJECT" "$BUILD_CONFIG_OPTION" --target "$TOOLCHAIN"
+    execute "$STRIP" "$EDGELET_DIR/target/$TOOLCHAIN/$BUILD_CONFIGURATION/$PROJECT"
 
     # prepare docker folder
-    local EXE_DOCKER_DIR=${PUBLISH_DIR}/${DOCKER_IMAGENAME}/docker/linux/${ARCH}
-    mkdir -p ${EXE_DOCKER_DIR}
+    local EXE_DOCKER_DIR="$PUBLISH_DIR/$DOCKER_IMAGENAME/docker/linux/$ARCH"
+    mkdir -p "$EXE_DOCKER_DIR"
 
     # copy Dockerfile to publish folder for given arch
-    local EXE_DOCKERFILE=${EXE_DOCKER_DIR}/Dockerfile
-    execute cp ${DOCKERFILE} ${EXE_DOCKERFILE}
+    local EXE_DOCKERFILE="$EXE_DOCKER_DIR/Dockerfile"
+    execute cp "$DOCKERFILE" "$EXE_DOCKERFILE"
 
     # copy binaries to publish folder
-    execute cp ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/${PROJECT} ${EXE_DOCKER_DIR}/
+    execute cp "$EDGELET_DIR/target/$TOOLCHAIN/$BUILD_CONFIGURATION/$PROJECT" "$EXE_DOCKER_DIR/"
 
     if [[ ${PROJECT,,} == "iotedged" ]] && [[ ${BUILD_CONFIGURATION} == "release" ]]; then
-        execute cp ${EDGELET_DIR}/target/${TOOLCHAIN}/${BUILD_CONFIGURATION}/build/hsm-sys-*/out/lib/*.so* ${EXE_DOCKER_DIR}/
+        execute cp "$EDGELET_DIR/target/$TOOLCHAIN/$BUILD_CONFIGURATION/build/hsm-sys-*/out/lib/*.so*" "$EXE_DOCKER_DIR/"
     fi
 }
 
@@ -202,7 +201,7 @@ build_project()
 ###############################################################################
 execute()
 {
-    echo "\$ $@"
+    echo "\$ $*"
     "$@"
     echo
 }

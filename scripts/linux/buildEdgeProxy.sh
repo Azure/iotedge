@@ -11,9 +11,8 @@ set -e
 # Define Environment Variables
 ###############################################################################
 ARCH=$(uname -m)
-SCRIPT_NAME=$(basename $0)
+SCRIPT_NAME=$(basename "$0")
 PROJECT=
-SRC_DOCKERFILE=
 DOCKERFILE=
 DOCKER_IMAGENAME=
 DEFAULT_DOCKER_NAMESPACE="microsoft"
@@ -21,7 +20,6 @@ DOCKER_NAMESPACE=${DEFAULT_DOCKER_NAMESPACE}
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH}
 PUBLISH_DIR=${BUILD_BINARIESDIRECTORY}/publish
 BUILD_CONFIGURATION="release"
-BUILD_CONFIG_OPTION=
 
 ###############################################################################
 # Function to obtain the underlying architecture and check if supported
@@ -80,7 +78,7 @@ print_args()
 process_args()
 {
     save_next_arg=0
-    for arg in $@
+    for arg in "$@"
     do
         if [[ ${save_next_arg} -eq 1 ]]; then
             ARCH="$arg"
@@ -121,10 +119,10 @@ process_args()
     fi
 
     if [[ ! -d ${BUILD_BINARIESDIRECTORY} ]]; then
-        mkdir ${BUILD_BINARIESDIRECTORY}
+        mkdir "$BUILD_BINARIESDIRECTORY"
     fi
 
-    DOCKER_DIR=${BUILD_REPOSITORY_LOCALPATH}/${PROJECT}/docker
+    DOCKER_DIR="$BUILD_REPOSITORY_LOCALPATH/$PROJECT/docker"
     if [[ -z ${DOCKER_DIR} ]] || [[ ! -d ${DOCKER_DIR} ]]; then
         echo "No docker directory for $PROJECT at $BUILD_REPOSITORY_LOCALPATH"
         print_help_and_exit
@@ -135,14 +133,6 @@ process_args()
         echo "No Dockerfile at $DOCKERFILE"
         print_help_and_exit
     fi
-
-    if [[ ${BUILD_CONFIG_OPTION} -eq "release" ]]; then
-        BUILD_CONFIGURATION='release'
-        BUILD_CONFIG_OPTION='--release'
-    else
-        BUILD_CONFIGURATION='debug'
-        BUILD_CONFIG_OPTION=''
-    fi
 }
 
 ###############################################################################
@@ -151,15 +141,15 @@ process_args()
 build_project()
 {
     # prepare docker folder
-    local EXE_DOCKER_DIR=${PUBLISH_DIR}/${DOCKER_IMAGENAME}/docker/linux/${ARCH}
-    mkdir -p ${EXE_DOCKER_DIR}
+    local EXE_DOCKER_DIR="$PUBLISH_DIR/$DOCKER_IMAGENAME/docker/linux/$ARCH"
+    mkdir -p "$EXE_DOCKER_DIR"
 
     # copy Dockerfile to publish folder for given arch
-    local EXE_DOCKERFILE=${EXE_DOCKER_DIR}/Dockerfile
-    execute cp ${DOCKERFILE} ${EXE_DOCKERFILE}
+    local EXE_DOCKERFILE="$EXE_DOCKER_DIR/Dockerfile"
+    execute cp "$DOCKERFILE" "$EXE_DOCKERFILE"
 
     # copy executables to publish folder
-    execute cp ${BUILD_REPOSITORY_LOCALPATH}/edge-proxy/src/run.sh ${EXE_DOCKER_DIR}/
+    execute cp "$BUILD_REPOSITORY_LOCALPATH/edge-proxy/src/run.sh" "$EXE_DOCKER_DIR/"
 }
 
 ###############################################################################
@@ -167,7 +157,7 @@ build_project()
 ###############################################################################
 execute()
 {
-    echo "\$ $@"
+    echo "\$" "$*"
     "$@"
     echo
 }
