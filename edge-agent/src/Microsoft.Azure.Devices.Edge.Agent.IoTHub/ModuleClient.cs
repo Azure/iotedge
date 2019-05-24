@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System;
     using System.Collections.Generic;
     using System.ComponentModel;
+    using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -23,6 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
+
+        static readonly Type[] NonRecoverableExceptions =
+        {
+            typeof(NullReferenceException),
+            typeof(ObjectDisposedException)
+        };
 
         readonly Client.ModuleClient deviceClient;
 
@@ -48,9 +55,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public void Dispose() => this.deviceClient.Dispose();
 
-        public Task<Twin> GetTwinAsync() => this.deviceClient.GetTwinAsync();
+        public async Task<Twin> GetTwinAsync()
+        {
+            try
+            {
+                return await this.deviceClient.GetTwinAsync();
+            }
+            catch (Exception ex)
+            {
+                if (NonRecoverableExceptions.Any(e => e.IsInstanceOfType(ex)))
+                {
+                    Events.NonRecoverableException(ex, "GetTwinAsync");
+                    Environment.Exit(1);
+                }
 
-        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) => this.deviceClient.UpdateReportedPropertiesAsync(reportedProperties);
+                throw;
+            }
+        }
+
+        public async Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties)
+        {
+            try
+            {
+                await this.deviceClient.UpdateReportedPropertiesAsync(reportedProperties);
+            }
+            catch (Exception ex)
+            {
+                if (NonRecoverableExceptions.Any(e => e.IsInstanceOfType(ex)))
+                {
+                    Events.NonRecoverableException(ex, "UpdateReportedProperties");
+                    Environment.Exit(1);
+                }
+
+                throw;
+            }
+        }
 
         internal static Task<Client.ModuleClient> CreateDeviceClientForUpstreamProtocol(
             Option<UpstreamProtocol> upstreamProtocol,
@@ -197,7 +236,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 DeviceClientCreated,
                 DeviceConnectionError,
                 RetryingDeviceClientConnection,
-                DeviceClientSetupFailed
+                DeviceClientSetupFailed,
+                NonRecoverableException
             }
 
             public static void AttemptingConnectionWithTransport(TransportType transport)
@@ -230,6 +270,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             public static void DeviceClientSetupFailed(Exception ex)
             {
                 Log.LogError((int)EventIds.DeviceClientSetupFailed, ex, "Device client threw non-transient exception during setup");
+            }
+
+            public static void NonRecoverableException(Exception ex, string operation)
+            {
+                Log.LogError((int)EventIds.NonRecoverableException, ex, $"Got non-recoverable exception during operation {operation}");
             }
         }
     }
