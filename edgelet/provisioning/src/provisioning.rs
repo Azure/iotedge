@@ -37,6 +37,36 @@ pub enum ReprovisioningStatus {
     DeviceDataReset,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SymmetricKeyCredential {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    key: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct X509Credential {
+    identity_cert: String,
+    identity_private_key: String,
+}
+
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
+pub enum AuthType {
+    SymmetricKey(SymmetricKeyCredential),
+    X509(X509Credential)
+}
+
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
+pub enum CredentialSource {
+    Payload,
+    Hsm
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Credentials {
+    auth_type: AuthType,
+    source: CredentialSource,
+}
+
 impl From<&str> for ReprovisioningStatus {
     fn from(s: &str) -> ReprovisioningStatus {
         // TODO: check with DPS substatus value for DeviceDataUpdated when it is implemented on service side
@@ -66,6 +96,8 @@ pub struct ProvisioningResult {
     sha256_thumbprint: Option<String>,
     #[serde(skip)]
     reconfigure: ReprovisioningStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    credentials: Option<Credentials>,
 }
 
 impl ProvisioningResult {
@@ -79,6 +111,10 @@ impl ProvisioningResult {
 
     pub fn reconfigure(&self) -> ReprovisioningStatus {
         self.reconfigure
+    }
+
+    pub fn credentials(&self) -> Option<&Credentials> {
+        self.credentials.as_ref()
     }
 }
 
@@ -132,6 +168,7 @@ impl Provision for ManualProvisioning {
                 hub_name: hub,
                 reconfigure: ReprovisioningStatus::DeviceDataNotUpdated,
                 sha256_thumbprint: None,
+                credentials: None,
             })
             .map_err(|err| Error::from(err.context(ErrorKind::Provision)));
         Box::new(result.into_future())
@@ -172,12 +209,15 @@ where
             .client
             .get_device_provisioning_information()
             .map_err(|err| Error::from(err.context(ErrorKind::Provision)))
-            .and_then(move |device_connection_info| {
+            .and_then(move |device_provisioning_info| {
                 info!(
                     "External device registration information: Device \"{}\" in hub \"{}\"",
-                    device_connection_info.device_id(),
-                    device_connection_info.hub_name()
+                    device_provisioning_info.device_id(),
+                    device_provisioning_info.hub_name()
                 );
+
+                let credentials = device_provisioning_info.credentials();
+
 
                 // Passing a sentinel value as key because in the external mode, the external provisioning
                 // environment itself creates and activates the actual key. The sentinel is
@@ -191,8 +231,8 @@ where
                     .context(ErrorKind::Provision)?;
 
                 Ok(ProvisioningResult {
-                    device_id: device_connection_info.device_id().to_string(),
-                    hub_name: device_connection_info.hub_name().to_string(),
+                    device_id: device_provisioning_info.device_id().to_string(),
+                    hub_name: device_provisioning_info.hub_name().to_string(),
                     reconfigure: ReprovisioningStatus::DeviceDataNotUpdated,
                     sha256_thumbprint: None,
                 })
@@ -282,6 +322,7 @@ where
                             // keys when the deployment is executed by EdgeAgent.
                             reconfigure: ReprovisioningStatus::InitialAssignment,
                             sha256_thumbprint: None,
+                            credentials: None,
                         }
                     })
                     .map_err(|err| Error::from(err.context(ErrorKind::Provision))),
@@ -364,6 +405,7 @@ where
                             hub_name,
                             reconfigure,
                             sha256_thumbprint: None,
+                            credentials: None,
                         }
                     })
                     .map_err(|err| Error::from(err.context(ErrorKind::Provision))),
@@ -447,6 +489,7 @@ where
                             hub_name,
                             reconfigure,
                             sha256_thumbprint: None,
+                            credentials: None,
                         }
                     })
                     .map_err(|err| Error::from(err.context(ErrorKind::Provision))),
@@ -608,6 +651,7 @@ mod tests {
                 hub_name: "TestHub".to_string(),
                 reconfigure: ReprovisioningStatus::DeviceDataUpdated,
                 sha256_thumbprint: None,
+                credentials: None,
             }))
         }
     }
@@ -626,6 +670,7 @@ mod tests {
                 hub_name: "TestHubUpdated".to_string(),
                 reconfigure: ReprovisioningStatus::DeviceDataUpdated,
                 sha256_thumbprint: None,
+                credentials: None,
             }))
         }
     }
@@ -885,6 +930,7 @@ mod tests {
             hub_name: "something".to_string(),
             reconfigure: ReprovisioningStatus::DeviceDataNotUpdated,
             sha256_thumbprint: None,
+            credentials: None,
         })
         .unwrap();
         assert_eq!(
@@ -929,7 +975,7 @@ mod tests {
     }
 
     #[test]
-    fn external_get_connection_info_success() {
+    fn external_get_provisioning_info_success() {
         let provisioning =
             ExternalProvisioning::new(TestExternalProvisioningInterface { error: None });
         let memory_hsm = MemoryKeyStore::new();
@@ -950,7 +996,7 @@ mod tests {
     }
 
     #[test]
-    fn external_get_connection_info_failure() {
+    fn external_get_provisioning_info_failure() {
         let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
             error: Some(TestError {}),
         });
