@@ -34,10 +34,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     context.GetValue("methodReceiver", string.Empty),
                     context.GetValue("logFile", string.Empty),
                     context.GetValue("verbose", false),
-                    context.GetValue("timeoutMinutes", 5));
+                    context.GetValue("setupTimeoutMinutes", 5),
+                    context.GetValue("teardownTimeoutMinutes", 2),
+                    context.GetValue("testTimeoutMinutes", 5));
             });
 
-        public Context(string connectionString, string eventHubEndpoint, string deviceId, string installerPath, string packagePath, string proxy, string registry, string user, string password, string edgeAgent, string edgeHub, string tempSensor, string methodSender, string methodReceiver, string logFile, bool verbose, int timeout)
+        public Context(string connectionString, string eventHubEndpoint, string deviceId, string installerPath, string packagePath, string proxy, string registry, string user, string password, string edgeAgent, string edgeHub, string tempSensor, string methodSender, string methodReceiver, string logFile, bool verbose, int setupTimeout, int teardownTimeout, int testTimeout)
         {
             string CreateDeviceId()
             {
@@ -58,7 +60,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
             this.MethodReceiver = string.IsNullOrEmpty(methodReceiver) ? Option.None<string>() : Option.Some(methodReceiver);
             this.LogFile = string.IsNullOrEmpty(logFile) ? Option.None<string>() : Option.Some(logFile);
             this.Verbose = verbose;
-            this.Timeout = TimeSpan.FromMinutes(timeout);
+            this.SetupTimeout = TimeSpan.FromMinutes(setupTimeout);
+            this.TeardownTimeout = TimeSpan.FromMinutes(teardownTimeout);
+            this.TestTimeout = TimeSpan.FromMinutes(testTimeout);
         }
 
         public static Context Current => Default.Value;
@@ -77,6 +81,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public Option<string> MethodReceiver { get; }
         public Option<string> LogFile { get; }
         public bool Verbose { get; }
-        public TimeSpan Timeout { get; }
+        public TimeSpan SetupTimeout { get; }
+        public TimeSpan TeardownTimeout { get; }
+        public TimeSpan TestTimeout { get; }
     }
 }
