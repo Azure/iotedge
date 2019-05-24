@@ -224,12 +224,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public Task RemoveDesiredPropertyUpdatesAsync() =>
             this.EnsureCloudReceiver(nameof(this.RemoveDesiredPropertyUpdatesAsync)) ? this.cloudReceiver.RemoveDesiredPropertyUpdatesAsync() : Task.CompletedTask;
 
-        public void StartListening()
+        public Task StartListening()
         {
             if (this.EnsureCloudReceiver(nameof(this.RemoveDesiredPropertyUpdatesAsync)))
             {
                 this.cloudReceiver.StartListening();
             }
+
+            return Task.CompletedTask;
         }
 
         // This API is to be used for Tests only.
