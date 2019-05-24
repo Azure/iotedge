@@ -50,7 +50,7 @@ jobs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-linux'
 
-      # Edge Diagnostics - Not Using Template for ARM64 because we have 2 different .NET Core.
+      # Edge Security Daemon - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
         displayName: Build Image - Edge Security Daemon - aarch64
         inputs:
