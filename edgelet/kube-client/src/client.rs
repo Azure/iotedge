@@ -10,10 +10,10 @@ use hyper::service::Service;
 use hyper::Request;
 use hyper::{Body, Error as HyperError};
 use hyper_tls::HttpsConnector;
-use k8s_openapi::v1_10::api::apps::v1 as apps;
-use k8s_openapi::v1_10::api::authentication::v1 as auth;
-use k8s_openapi::v1_10::api::core::v1 as api_core;
-use k8s_openapi::v1_10::apimachinery::pkg::apis::meta::v1 as api_meta;
+use k8s_openapi::api::apps::v1 as apps;
+use k8s_openapi::api::authentication::v1 as auth;
+use k8s_openapi::api::core::v1 as api_core;
+use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 use k8s_openapi::{http, Response as K8sResponse};
 use log::debug;
 
@@ -29,8 +29,8 @@ where
 {
     type ReqBody = B;
     type ResBody = Body;
-    type Future = ResponseFuture;
     type Error = HyperError;
+    type Future = ResponseFuture;
 
     fn call(&mut self, req: Request<B>) -> Self::Future {
         self.0.request(req)
@@ -81,13 +81,13 @@ where
         namespace: &str,
         config_map: &api_core::ConfigMap,
     ) -> impl Future<Item = api_core::ConfigMap, Error = Error> {
-        api_core::ConfigMap::create_core_v1_namespaced_config_map(namespace, config_map, None)
+        api_core::ConfigMap::create_namespaced_config_map(namespace, config_map, Default::default())
             .map_err(Error::from)
-            .map(|req| {
+            .map(|(req, _)| {
                 self.request(req).and_then(|response| match response {
-                    api_core::CreateCoreV1NamespacedConfigMapResponse::Ok(config_map)
-                    | api_core::CreateCoreV1NamespacedConfigMapResponse::Created(config_map)
-                    | api_core::CreateCoreV1NamespacedConfigMapResponse::Accepted(config_map) => {
+                    api_core::CreateNamespacedConfigMapResponse::Ok(config_map)
+                    | api_core::CreateNamespacedConfigMapResponse::Created(config_map)
+                    | api_core::CreateNamespacedConfigMapResponse::Accepted(config_map) => {
                         Ok(config_map)
                     }
                     err => {
@@ -105,19 +105,17 @@ where
         namespace: &str,
         name: &str,
     ) -> impl Future<Item = (), Error = Error> {
-        api_core::ConfigMap::delete_core_v1_namespaced_config_map(
-            name, namespace, None, None, None, None,
-        )
-        .map_err(Error::from)
-        .map(|req| {
-            self.request(req).and_then(|response| match response {
-                api_core::DeleteCoreV1NamespacedConfigMapResponse::OkStatus(_)
-                | api_core::DeleteCoreV1NamespacedConfigMapResponse::OkValue(_) => Ok(()),
-                _ => Err(Error::from(ErrorKind::Response)),
+        api_core::ConfigMap::delete_namespaced_config_map(name, namespace, Default::default())
+            .map_err(Error::from)
+            .map(|(req, _)| {
+                self.request(req).and_then(|response| match response {
+                    api_core::DeleteNamespacedConfigMapResponse::OkStatus(_)
+                    | api_core::DeleteNamespacedConfigMapResponse::OkValue(_) => Ok(()),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
             })
-        })
-        .into_future()
-        .flatten()
+            .into_future()
+            .flatten()
     }
 
     pub fn create_deployment(
@@ -125,15 +123,13 @@ where
         namespace: &str,
         deployment: &apps::Deployment,
     ) -> impl Future<Item = apps::Deployment, Error = Error> {
-        apps::Deployment::create_apps_v1_namespaced_deployment(namespace, &deployment, None)
+        apps::Deployment::create_namespaced_deployment(namespace, &deployment, Default::default())
             .map_err(Error::from)
-            .map(|req| {
+            .map(|(req, _)| {
                 self.request(req).and_then(|response| match response {
-                    apps::CreateAppsV1NamespacedDeploymentResponse::Accepted(deployment)
-                    | apps::CreateAppsV1NamespacedDeploymentResponse::Created(deployment)
-                    | apps::CreateAppsV1NamespacedDeploymentResponse::Ok(deployment) => {
-                        Ok(deployment)
-                    }
+                    apps::CreateNamespacedDeploymentResponse::Accepted(deployment)
+                    | apps::CreateNamespacedDeploymentResponse::Created(deployment)
+                    | apps::CreateNamespacedDeploymentResponse::Ok(deployment) => Ok(deployment),
                     _ => Err(Error::from(ErrorKind::Response)),
                 })
             })
@@ -143,23 +139,26 @@ where
 
     pub fn replace_deployment(
         &mut self,
-        name: &str,
         namespace: &str,
+        name: &str,
         deployment: &apps::Deployment,
     ) -> impl Future<Item = apps::Deployment, Error = Error> {
-        apps::Deployment::replace_apps_v1_namespaced_deployment(name, namespace, deployment, None)
-            .map_err(Error::from)
-            .map(|req| {
-                self.request(req).and_then(|response| match response {
-                    apps::ReplaceAppsV1NamespacedDeploymentResponse::Created(deployment)
-                    | apps::ReplaceAppsV1NamespacedDeploymentResponse::Ok(deployment) => {
-                        Ok(deployment)
-                    }
-                    _ => Err(Error::from(ErrorKind::Response)),
-                })
+        apps::Deployment::replace_namespaced_deployment(
+            name,
+            namespace,
+            deployment,
+            Default::default(),
+        )
+        .map_err(Error::from)
+        .map(|(req, _)| {
+            self.request(req).and_then(|response| match response {
+                apps::ReplaceNamespacedDeploymentResponse::Created(deployment)
+                | apps::ReplaceNamespacedDeploymentResponse::Ok(deployment) => Ok(deployment),
+                _ => Err(Error::from(ErrorKind::Response)),
             })
-            .into_future()
-            .flatten()
+        })
+        .into_future()
+        .flatten()
     }
 
     pub fn delete_deployment(
@@ -168,24 +167,23 @@ where
         name: &str,
         options: Option<&api_meta::DeleteOptions>,
     ) -> impl Future<Item = (()), Error = Error> {
-        apps::Deployment::delete_apps_v1_namespaced_deployment(
-            name,
-            namespace,
-            options.and_then(|o| o.grace_period_seconds),
-            None,
-            None,
-            options.and_then(|o| o.propagation_policy.as_ref().map(AsRef::as_ref)),
-        )
-        .map_err(Error::from)
-        .map(|req| {
-            self.request(req).and_then(|response| match response {
-                apps::DeleteAppsV1NamespacedDeploymentResponse::OkStatus(_)
-                | apps::DeleteAppsV1NamespacedDeploymentResponse::OkValue(_) => Ok(()),
-                _ => Err(Error::from(ErrorKind::Response)),
+        let params = apps::DeleteNamespacedDeploymentOptional {
+            grace_period_seconds: options.and_then(|o| o.grace_period_seconds),
+            propagation_policy: options
+                .and_then(|o| o.propagation_policy.as_ref().map(AsRef::as_ref)),
+            ..Default::default()
+        };
+        apps::Deployment::delete_namespaced_deployment(name, namespace, params)
+            .map_err(Error::from)
+            .map(|(req, _)| {
+                self.request(req).and_then(|response| match response {
+                    apps::DeleteNamespacedDeploymentResponse::OkStatus(_)
+                    | apps::DeleteNamespacedDeploymentResponse::OkValue(_) => Ok(()),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
             })
-        })
-        .into_future()
-        .flatten()
+            .into_future()
+            .flatten()
     }
 
     pub fn list_deployments(
@@ -196,27 +194,21 @@ where
     ) -> impl Future<Item = apps::DeploymentList, Error = Error> {
         let field_selector =
             name.and_then(|deployment_name| Some(format!("metadata.name={}", deployment_name)));
-        apps::Deployment::list_apps_v1_namespaced_deployment(
-            namespace,
-            None,
-            field_selector.as_ref().map(String::as_ref),
-            None,
+        let params = apps::ListNamespacedDeploymentOptional {
+            field_selector: field_selector.as_ref().map(String::as_ref),
             label_selector,
-            None,
-            None,
-            None,
-            None,
-            None,
-        )
-        .map_err(Error::from)
-        .map(|req| {
-            self.request(req).and_then(|response| match response {
-                apps::ListAppsV1NamespacedDeploymentResponse::Ok(deployments) => Ok(deployments),
-                _ => Err(Error::from(ErrorKind::Response)),
+            ..Default::default()
+        };
+        apps::Deployment::list_namespaced_deployment(namespace, params)
+            .map_err(Error::from)
+            .map(|(req, _)| {
+                self.request(req).and_then(|response| match response {
+                    apps::ListNamespacedDeploymentResponse::Ok(deployments) => Ok(deployments),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
             })
-        })
-        .into_future()
-        .flatten()
+            .into_future()
+            .flatten()
     }
 
     pub fn list_pods(
@@ -224,27 +216,20 @@ where
         namespace: &str,
         label_selector: Option<&str>,
     ) -> impl Future<Item = api_core::PodList, Error = Error> {
-        api_core::Pod::list_core_v1_namespaced_pod(
-            namespace,
-            None,
-            None,
-            None,
+        let params = api_core::ListNamespacedPodOptional {
             label_selector,
-            None,
-            None,
-            None,
-            None,
-            None,
-        )
-        .map_err(Error::from)
-        .map(|req| {
-            self.request(req).and_then(|response| match response {
-                api_core::ListCoreV1NamespacedPodResponse::Ok(pod_list) => Ok(pod_list),
-                _ => Err(Error::from(ErrorKind::Response)),
+            ..Default::default()
+        };
+        api_core::Pod::list_namespaced_pod(namespace, params)
+            .map_err(Error::from)
+            .map(|(req, _)| {
+                self.request(req).and_then(|response| match response {
+                    api_core::ListNamespacedPodResponse::Ok(pod_list) => Ok(pod_list),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
             })
-        })
-        .into_future()
-        .flatten()
+            .into_future()
+            .flatten()
     }
 
     pub fn list_secrets(
@@ -254,27 +239,20 @@ where
     ) -> impl Future<Item = api_core::SecretList, Error = Error> {
         let field_selector =
             name.and_then(|secret_name| Some(format!("metadata.name={}", secret_name)));
-        api_core::Secret::list_core_v1_namespaced_secret(
-            namespace,
-            None,
-            field_selector.as_ref().map(String::as_ref),
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-        )
-        .map_err(Error::from)
-        .map(|req| {
-            self.request(req).and_then(|response| match response {
-                api_core::ListCoreV1NamespacedSecretResponse::Ok(secrets) => Ok(secrets),
-                _ => Err(Error::from(ErrorKind::Response)),
+        let params = api_core::ListNamespacedSecretOptional {
+            field_selector: field_selector.as_ref().map(String::as_ref),
+            ..Default::default()
+        };
+        api_core::Secret::list_namespaced_secret(namespace, params)
+            .map_err(Error::from)
+            .map(|(req, _)| {
+                self.request(req).and_then(|response| match response {
+                    api_core::ListNamespacedSecretResponse::Ok(secrets) => Ok(secrets),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
             })
-        })
-        .into_future()
-        .flatten()
+            .into_future()
+            .flatten()
     }
 
     pub fn create_secret(
@@ -282,13 +260,13 @@ where
         namespace: &str,
         secret: &api_core::Secret,
     ) -> impl Future<Item = api_core::Secret, Error = Error> {
-        api_core::Secret::create_core_v1_namespaced_secret(namespace, secret, None)
+        api_core::Secret::create_namespaced_secret(namespace, secret, Default::default())
             .map_err(Error::from)
-            .map(|req| {
+            .map(|(req, _)| {
                 self.request(req).and_then(|response| match response {
-                    api_core::CreateCoreV1NamespacedSecretResponse::Accepted(s)
-                    | api_core::CreateCoreV1NamespacedSecretResponse::Created(s)
-                    | api_core::CreateCoreV1NamespacedSecretResponse::Ok(s) => Ok(s),
+                    api_core::CreateNamespacedSecretResponse::Accepted(s)
+                    | api_core::CreateNamespacedSecretResponse::Created(s)
+                    | api_core::CreateNamespacedSecretResponse::Ok(s) => Ok(s),
                     _ => Err(Error::from(ErrorKind::Response)),
                 })
             })
@@ -298,16 +276,16 @@ where
 
     pub fn replace_secret(
         &mut self,
-        name: &str,
         namespace: &str,
+        name: &str,
         secret: &api_core::Secret,
     ) -> impl Future<Item = api_core::Secret, Error = Error> {
-        api_core::Secret::replace_core_v1_namespaced_secret(name, namespace, secret, None)
+        api_core::Secret::replace_namespaced_secret(name, namespace, secret, Default::default())
             .map_err(Error::from)
-            .map(|req| {
+            .map(|(req, _)| {
                 self.request(req).and_then(|response| match response {
-                    api_core::ReplaceCoreV1NamespacedSecretResponse::Created(s)
-                    | api_core::ReplaceCoreV1NamespacedSecretResponse::Ok(s) => Ok(s),
+                    api_core::ReplaceNamespacedSecretResponse::Created(s)
+                    | api_core::ReplaceNamespacedSecretResponse::Ok(s) => Ok(s),
                     _ => Err(Error::from(ErrorKind::Response)),
                 })
             })
@@ -317,22 +295,26 @@ where
 
     pub fn token_review(
         &mut self,
+        namespace: &str,
         token: &str,
     ) -> impl Future<Item = auth::TokenReview, Error = Error> {
         let token = auth::TokenReview {
-            kind: Some("TokenReview".to_string()),
+            metadata: Some(api_meta::ObjectMeta {
+                namespace: Some(namespace.to_string()),
+                ..Default::default()
+            }),
             spec: auth::TokenReviewSpec {
                 token: Some(token.to_string()),
             },
             ..auth::TokenReview::default()
         };
 
-        auth::TokenReview::create_authentication_v1_token_review(&token, None)
+        auth::TokenReview::create_token_review(&token, Default::default())
             .map_err(Error::from)
-            .map(|req| {
+            .map(|(req, _)| {
                 self.request(req).and_then(|response| match response {
-                    auth::CreateAuthenticationV1TokenReviewResponse::Created(t)
-                    | auth::CreateAuthenticationV1TokenReviewResponse::Ok(t) => Ok(t),
+                    auth::CreateTokenReviewResponse::Created(t)
+                    | auth::CreateTokenReviewResponse::Ok(t) => Ok(t),
                     _ => Err(Error::from(ErrorKind::Response)),
                 })
             })
@@ -406,12 +388,14 @@ where
 #[cfg(test)]
 mod tests {
 
+    #![allow(unused_imports)]
+
     use super::*;
     use crate::config::{Config, TokenSource};
     use hyper::service::service_fn;
     use hyper::{Body, Error as HyperError, Request, Response, StatusCode};
-    use k8s_openapi::v1_10::api::apps::v1 as apps;
-    use k8s_openapi::v1_10::apimachinery::pkg::apis::meta::v1 as api_meta;
+    use k8s_openapi::api::apps::v1 as apps;
+    use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
     use native_tls::TlsConnector;
     use serde_json;
     use tokio::runtime::Runtime;
@@ -430,7 +414,7 @@ mod tests {
     }
 
     const STATUS_SUCCESS: &str = r###"{"kind":"Status", "status":"Success"}"###;
-    const DEPLOYMENT_JSON: &str = r##"{"kind":"Deployment"}"##;
+    const DEPLOYMENT_JSON: &str = r##"{"apiVersion":"apps/v1","kind":"Deployment"}"##;
 
     #[test]
     fn create_deployment_success() {
@@ -601,10 +585,6 @@ mod tests {
         let fut = client
             .list_deployments(NAMESPACE, Some(NAME), Some(LABEL_SELECTOR))
             .map(|deployments| {
-                assert!(deployments
-                    .kind
-                    .as_ref()
-                    .map_or(false, |k| k == "DeploymentList"));
                 assert_eq!(1, deployments.items.len());
             });
 
@@ -615,16 +595,16 @@ mod tests {
     }
 
     const LIST_POD_RESPONSE: &str = r###"{
-        "kind" : "PodList",
-        "items" : [
-            {
-                "kind" : "Pod"
-            },
-            {
-                "kind" : "Pod"
-            }
-        ]
-    }"###;
+            "kind" : "PodList",
+            "items" : [
+                {
+                    "kind" : "Pod"
+                },
+                {
+                    "kind" : "Pod"
+                }
+            ]
+        }"###;
 
     #[test]
     fn list_pods_success() {
@@ -645,7 +625,6 @@ mod tests {
         let fut = client
             .list_pods(NAMESPACE, Some(LABEL_SELECTOR))
             .map(|pods| {
-                assert!(pods.kind.as_ref().map_or(false, |k| k == "PodList"));
                 assert_eq!(2, pods.items.len());
             });
 
@@ -669,7 +648,6 @@ mod tests {
         let mut client = make_test_client(service);
 
         let fut = client.list_pods(NAMESPACE, None).map(|pods| {
-            assert!(pods.kind.as_ref().map_or(false, |k| k == "PodList"));
             assert_eq!(2, pods.items.len());
         });
 
@@ -846,13 +824,13 @@ mod tests {
     }
 
     const LIST_SECRET_RESPONSE: &str = r###"{
-        "kind" : "SecretList",
-        "items" : [
-            {
-                "kind" : "Secret"
-            }
-        ]
-        }"###;
+            "kind" : "SecretList",
+            "items" : [
+                {
+                    "kind" : "Secret"
+                }
+            ]
+            }"###;
     #[test]
     fn list_secrets_with_name_success() {
         const NAMESPACE: &str = "custom-namespace";
@@ -870,7 +848,6 @@ mod tests {
         let mut client = make_test_client(service);
 
         let fut = client.list_secrets(NAMESPACE, Some(NAME)).map(|secrets| {
-            assert!(secrets.kind.as_ref().map_or(false, |k| k == "SecretList"));
             assert_eq!(1, secrets.items.len());
         });
 
@@ -880,7 +857,7 @@ mod tests {
             .expect("Expected future to be OK");
     }
 
-    const SECRET_JSON: &str = r##"{"kind":"Secret"}"##;
+    const SECRET_JSON: &str = r##"{"apiVersion":"v1","kind":"Secret"}"##;
     #[test]
     fn create_secret_success() {
         const NAMESPACE: &str = "custom-namespace";
@@ -910,8 +887,10 @@ mod tests {
         );
 
         let mut client = make_test_client(service1);
+        let result = serde_json::from_str(SECRET_JSON);
+        let result = result.map_err(|e| println!("{:?}", e));
 
-        let secret: api_core::Secret = serde_json::from_str(SECRET_JSON).unwrap();
+        let secret: api_core::Secret = result.unwrap();
         let fut = client.create_secret(NAMESPACE, &secret);
 
         Runtime::new()
@@ -999,7 +978,7 @@ mod tests {
         }
     }
 
-    const TOKEN_REVIEW_JSON: &str = r###"{"kind":"TokenReview","spec":{"token":"BEARERTOKEN"}}"###;
+    const TOKEN_REVIEW_JSON: &str = r###"{"apiVersion":"authentication.k8s.io/v1","kind":"TokenReview","metadata":{"namespace":"NAMESPACE"},"spec":{"token":"BEARERTOKEN"}}"###;
 
     const TOKEN_REVIEW_AUTHENTICATED_RESPONSE_JSON: &str = r###"{
         "kind": "TokenReview",
@@ -1036,7 +1015,7 @@ mod tests {
 
         let mut client = make_test_client(service_fn);
         let token = "BEARERTOKEN";
-        let fut = client.token_review(token);
+        let fut = client.token_review("NAMESPACE", token);
 
         Runtime::new()
             .unwrap()
@@ -1064,7 +1043,7 @@ mod tests {
 
         let mut client = make_test_client(service_fn);
         let token = "BEARERTOKEN";
-        let fut = client.token_review(token);
+        let fut = client.token_review("NAMESPACE", token);
 
         if let Ok(r) = Runtime::new().unwrap().block_on(fut) {
             panic!("expected an error result {:?}", r);

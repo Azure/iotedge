@@ -1,12 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use docker::models::ContainerCreateBody;
+use edgelet_docker::DockerConfig;
+use k8s_openapi::api::core::v1 as api_core;
+use log::debug;
+
 use crate::constants::*;
 use crate::error::{Error, ErrorKind, Result};
 use crate::KubeModule;
-use docker::models::ContainerCreateBody;
-use edgelet_docker::DockerConfig;
-use k8s_openapi::v1_10::api::core::v1 as api_core;
-use log::debug;
 
 fn get_container_by_name<'a>(
     name: &str,
@@ -65,7 +66,7 @@ mod tests {
 
     use super::*;
     use edgelet_core::Module;
-    use k8s_openapi::v1_10::api::core::v1 as api_core;
+    use k8s_openapi::api::core::v1 as api_core;
     use serde_json;
 
     const POD_SUCCESS: &str = r###"
