@@ -2,15 +2,13 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
-    using System.Globalization;
     using System.IO;
     using NUnit.Framework;
     using Serilog;
+    using Serilog.Configuration;
     using Serilog.Core;
     using Serilog.Events;
-    using Serilog.Configuration;
     using Serilog.Formatting;
-    using Serilog.Parsing;
 
     public class NUnitSink : ILogEventSink
     {
