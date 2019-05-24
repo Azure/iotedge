@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Try<ICloudProxy> cloudProxyTry = await this.TryGetCloudConnection(id);
             return cloudProxyTry
                 .Ok()
-                .Map(c => (ICloudProxy)new RetryingCloudProxy(() => this.TryGetCloudConnection(id), c));
+                .Map(c => (ICloudProxy)new RetryingCloudProxy(id, () => this.TryGetCloudConnection(id), c));
         }
 
         async Task<Try<ICloudProxy>> TryGetCloudConnection(string id)
@@ -143,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Events.NewCloudConnection(credentials.Identity, newCloudConnection);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(newCloudConnection, credentials.Identity);
             return cloudProxyTry.Success
-                ? Try.Success((ICloudProxy)new RetryingCloudProxy(() => this.TryGetCloudConnection(credentials.Identity.Id), cloudProxyTry.Value))
+                ? Try.Success((ICloudProxy)new RetryingCloudProxy(credentials.Identity.Id, () => this.TryGetCloudConnection(credentials.Identity.Id), cloudProxyTry.Value))
                 : cloudProxyTry;
         }
 
@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Events.GetCloudConnection(credentials.Identity, cloudConnectionTry);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, credentials.Identity);
             return cloudProxyTry.Success
-                ? Try.Success((ICloudProxy)new RetryingCloudProxy(() => this.TryGetCloudConnection(credentials.Identity.Id), cloudProxyTry.Value))
+                ? Try.Success((ICloudProxy)new RetryingCloudProxy(credentials.Identity.Id, () => this.TryGetCloudConnection(credentials.Identity.Id), cloudProxyTry.Value))
                 : cloudProxyTry;
         }
 
