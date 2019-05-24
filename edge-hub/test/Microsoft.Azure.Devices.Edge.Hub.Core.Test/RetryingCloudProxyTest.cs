@@ -58,10 +58,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var edgeHubIdentity = Mock.Of<IIdentity>();
 
-            var productInfoStore = new Mock<IProductInfoStore>();
-            productInfoStore.Setup(p => p.GetEdgeProductInfo(Id))
-                .ReturnsAsync("ProdInfo1");
-
             var identityProvider = new Mock<IIdentityProvider>();
             identityProvider.Setup(i => i.Create(Id)).Returns(identity);
 
@@ -80,8 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(10),
                 false,
                 TimeSpan.FromMinutes(10),
-                Option.None<IWebProxy>(),
-                productInfoStore.Object);
+                Option.None<IWebProxy>());
             connectionProvider.BindEdgeHub(edgeHub.Object);
 
             var connectionManager = new ConnectionManager(connectionProvider, credentialsCache.Object, identityProvider.Object);
@@ -156,10 +151,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var edgeHubIdentity = Mock.Of<IIdentity>();
 
-            var productInfoStore = new Mock<IProductInfoStore>();
-            productInfoStore.Setup(p => p.GetEdgeProductInfo(Id))
-                .ReturnsAsync("ProdInfo1");
-
             var identityProvider = new Mock<IIdentityProvider>();
             identityProvider.Setup(i => i.Create(Id)).Returns(identity);
 
@@ -178,8 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(10),
                 false,
                 TimeSpan.FromMinutes(10),
-                Option.None<IWebProxy>(),
-                productInfoStore.Object);
+                Option.None<IWebProxy>());
             connectionProvider.BindEdgeHub(edgeHub.Object);
 
             var connectionManager = new ConnectionManager(connectionProvider, credentialsCache.Object, identityProvider.Object);
@@ -238,10 +228,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var edgeHubIdentity = Mock.Of<IIdentity>();
 
-            var productInfoStore = new Mock<IProductInfoStore>();
-            productInfoStore.Setup(p => p.GetEdgeProductInfo(Id))
-                .ReturnsAsync("ProdInfo1");
-
             var identityProvider = new Mock<IIdentityProvider>();
             identityProvider.Setup(i => i.Create(Id)).Returns(identity);
 
@@ -260,8 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(10),
                 false,
                 TimeSpan.FromMinutes(10),
-                Option.None<IWebProxy>(),
-                productInfoStore.Object);
+                Option.None<IWebProxy>());
             connectionProvider.BindEdgeHub(edgeHub.Object);
 
             var connectionManager = new ConnectionManager(connectionProvider, credentialsCache.Object, identityProvider.Object);
@@ -333,9 +318,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             }
             else
             {
-                var batches = messages.Batch(batchSize);
-                foreach (IEnumerable<IMessage> batch in batches)
+                IList<IMessage> messagesList = messages.ToList();
+                for (int i = 0; i < messagesList.Count / batchSize; i++)
                 {
+                    IEnumerable<IMessage> batch = messagesList.Skip(i * batchSize).Take(batchSize);
                     await cloudProxy.SendMessageBatchAsync(batch);
                 }
             }
