@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
     using Xunit;
 
     [Unit]
@@ -55,6 +56,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 Assert.Equal(kvp.Value, receivedDeviceInfos[kvp.Key]);
                 Assert.Equal($"{kvp.Value} {edgeProductInfo}", receivedEdgeDeviceInfos[kvp.Key]);
             }
+        }
+
+        [Fact]
+        public void ProductInfoCtorTest()
+        {
+            new ProductInfoStore(Mock.Of<IKeyValueStore<string, string>>(), "Foo bar");
+
+            new ProductInfoStore(Mock.Of<IKeyValueStore<string, string>>(), string.Empty);
+
+            Assert.Throws<ArgumentNullException>(() => new ProductInfoStore(Mock.Of<IKeyValueStore<string, string>>(), null));
+
+            Assert.Throws<ArgumentNullException>(() => new ProductInfoStore(null, string.Empty));
         }
     }
 }

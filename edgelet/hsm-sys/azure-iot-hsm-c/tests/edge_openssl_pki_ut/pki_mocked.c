@@ -7,7 +7,7 @@
 #include <openssl/x509.h>
 
 #include "azure_c_shared_utility/gballoc.h"
-#include "umock_c.h"
+#include "umock_c/umock_c.h"
 
 #define ASN1_TIME_STRING_UTC_FORMAT 0x17
 #define ASN1_TIME_STRING_UTC_LEN    13
