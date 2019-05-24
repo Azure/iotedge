@@ -588,7 +588,7 @@ mod tests {
         }
     }
 
-    #[allow(clippy::cyclomatic_complexity)]
+    #[allow(clippy::cognitive_complexity)]
     #[test]
     fn deployment_success() {
         let runtime = KubeRuntimeTest::new(
