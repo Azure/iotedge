@@ -25,6 +25,7 @@ members = [
     "management",
     "mini-sntp",
     "provisioning",
+    "signal-future",
     "systemd",
     "tokio-named-pipe",
     "win-logger",

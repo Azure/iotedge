@@ -136,11 +136,6 @@ function Initialize-IoTEdge {
         [ValidateNotNullOrEmpty()]
         [String] $RegistrationId,
 
-        # The DPS device ID.
-        [Parameter(ParameterSetName = 'DPS')]
-        [ValidateNotNullOrEmpty()]
-        [String] $DeviceId,
-
         # The DPS symmetric key to provision the Edge device identity
         [Parameter(ParameterSetName = 'DPS')]
         [ValidateNotNullOrEmpty()]
@@ -480,11 +475,6 @@ function Install-IoTEdge {
         [ValidateNotNullOrEmpty()]
         [String] $RegistrationId,
 
-        # The DPS device ID.
-        [Parameter(ParameterSetName = 'DPS')]
-        [ValidateNotNullOrEmpty()]
-        [String] $DeviceId,
-
         # The DPS symmetric key to provision the Edge device identity
         [Parameter(ParameterSetName = 'DPS')]
         [ValidateNotNullOrEmpty()]
@@ -594,7 +584,6 @@ function Install-IoTEdge {
     if ($ScopeId) { $Params["-ScopeId"] = $ScopeId }
     if ($RegistrationId) { $Params["-RegistrationId"] = $RegistrationId }
     if ($SymmetricKey) { $Params["-SymmetricKey"] = $SymmetricKey }
-    if ($DeviceId) { $Params["-DeviceId"] = $DeviceId }
     if ($X509IdentityCertificate) { $Params["-X509IdentityCertificate"] = $X509IdentityCertificate }
     if ($X509IdentityPrivateKey) { $Params["-X509IdentityPrivateKey"] = $X509IdentityPrivateKey }
     if ($AutoGenX509IdentityCertificate) { $Params["-AutoGenX509IdentityCertificate"] = $AutoGenX509IdentityCertificate }
@@ -866,7 +855,7 @@ function Setup-Environment {
             'See https://aka.ms/iotedge-platsup for more details.')
         $preRequisitesMet = $false
     }
-    
+
     if (Test-IoTCore) {
         if (-not (Get-Service vmcompute -ErrorAction SilentlyContinue) -or (-not [bool] (Get-Package $ContainersFeaturePackageName)) -or (-not [bool] (Get-Package $ContainersFeatureLangPackageName))) {
             Write-HostRed "The container host does not have 'Containers Feature' enabled. Please build an Iot Core image with 'Containers Feature' enabled."
@@ -1583,9 +1572,6 @@ function Set-ProvisioningMode {
             if ($RegistrationId) {
                 $replacementContent += "    registration_id: '$RegistrationId'"
             }
-            if ($DeviceId) {
-                $replacementContent += "    device_id: '$DeviceId'"
-            }
             if ($SymmetricKey) {
                 $replacementContent += "    symmetric_key: '$SymmetricKey'"
             }
@@ -1600,10 +1586,6 @@ function Set-ProvisioningMode {
             $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
             $replacementContent = ''
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
-
-            New-Item "HKLM:\SYSTEM\CurrentControlSet\Services\$EdgeServiceName" -Force | Out-Null
-            New-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\$EdgeServiceName" `
-                -Name 'Environment' -Value 'IOTEDGE_USE_TPM_DEVICE=ON' -PropertyType 'MultiString' -Force | Out-Null
 
             Write-HostGreen 'Configured device for DPS provisioning.'
             return $configurationYaml

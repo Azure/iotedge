@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
     using System.IO;
+    using Serilog;
 
     public class DaemonConfiguration
     {
@@ -39,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 File.SetAttributes(ConfigYamlFile, attr);
             }
 
-            Console.WriteLine($"Updated daemon configuration file '{ConfigYamlFile}'");
+            Log.Information("Updated daemon configuration file '{ConfigFile}'", ConfigYamlFile);
         }
     }
 }

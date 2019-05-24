@@ -49,6 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly int maxUpstreamBatchSize;
         readonly int upstreamFanOutFactor;
         readonly bool encryptTwinStore;
+        readonly bool disableCloudSubscriptions;
+        readonly TimeSpan configUpdateFrequency;
 
         public RoutingModule(
             string iotHubName,
@@ -72,7 +74,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool useV1TwinManager,
             int maxUpstreamBatchSize,
             int upstreamFanOutFactor,
-            bool encryptTwinStore)
+            bool encryptTwinStore,
+            bool disableCloudSubscriptions,
+            TimeSpan configUpdateFrequency)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -96,6 +100,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.maxUpstreamBatchSize = maxUpstreamBatchSize;
             this.upstreamFanOutFactor = upstreamFanOutFactor;
             this.encryptTwinStore = encryptTwinStore;
+            this.disableCloudSubscriptions = disableCloudSubscriptions;
+            this.configUpdateFrequency = configUpdateFrequency;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -191,6 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
+                        var productInfoStore = c.Resolve<IProductInfoStore>();
                         var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
                         var clientProvider = c.Resolve<IClientProvider>();
                         var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
@@ -212,7 +219,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.cloudConnectionIdleTimeout,
                             this.closeCloudConnectionOnIdleTimeout,
                             this.operationTimeout,
-                            proxy);
+                            proxy,
+                            productInfoStore);
                         return cloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()
@@ -448,12 +456,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var invokeMethodHandlerTask = c.Resolve<Task<IInvokeMethodHandler>>();
-                        var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
-                        var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
-                        IConnectionManager connectionManager = await connectionManagerTask;
-                        IInvokeMethodHandler invokeMethodHandler = await invokeMethodHandlerTask;
-                        return new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager) as ISubscriptionProcessor;
+                        if (this.disableCloudSubscriptions)
+                        {
+                            return new NullSubscriptionProcessor() as ISubscriptionProcessor;
+                        }
+                        else
+                        {
+                            var invokeMethodHandlerTask = c.Resolve<Task<IInvokeMethodHandler>>();
+                            var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
+                            var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
+                            IConnectionManager connectionManager = await connectionManagerTask;
+                            IInvokeMethodHandler invokeMethodHandler = await invokeMethodHandlerTask;
+                            return new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager) as ISubscriptionProcessor;
+                        }
                     })
                 .As<Task<ISubscriptionProcessor>>()
                 .SingleInstance();
@@ -492,7 +507,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         IMessageStore messageStore = this.isStoreAndForwardEnabled ? c.Resolve<IMessageStore>() : null;
                         Router router = await c.Resolve<Task<Router>>();
-                        var configUpdater = new ConfigUpdater(router, messageStore);
+                        var configUpdater = new ConfigUpdater(router, messageStore, this.configUpdateFrequency);
                         return configUpdater;
                     })
                 .As<Task<ConfigUpdater>>()

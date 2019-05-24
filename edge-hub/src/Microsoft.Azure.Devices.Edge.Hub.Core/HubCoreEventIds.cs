@@ -19,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const int PeriodicConnectionAuthenticator = EventIdStart + 1300;
         public const int DeviceScopeAuthenticator = EventIdStart + 1400;
         public const int SubscriptionProcessor = EventIdStart + 1500;
+        public const int RetryingCloudProxy = EventIdStart + 1600;
         const int EventIdStart = 1000;
     }
 }

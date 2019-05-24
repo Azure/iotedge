@@ -33,14 +33,14 @@ impl TokenSource for ValueToken {
 }
 
 #[derive(Clone)]
-pub struct Config<T: Clone> {
+pub struct Config<T> {
     host: Url,
     api_path: String,
     token_source: T,
     tls_connector: TlsConnector,
 }
 
-impl<T: TokenSource + Clone> Config<T> {
+impl<T: TokenSource> Config<T> {
     pub fn new(
         host: Url,
         api_path: String,

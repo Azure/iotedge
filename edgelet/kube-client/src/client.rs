@@ -11,6 +11,7 @@ use hyper::Request;
 use hyper::{Body, Error as HyperError};
 use hyper_tls::HttpsConnector;
 use k8s_openapi::v1_10::api::apps::v1 as apps;
+use k8s_openapi::v1_10::api::authentication::v1 as auth;
 use k8s_openapi::v1_10::api::core::v1 as api_core;
 use k8s_openapi::v1_10::apimachinery::pkg::apis::meta::v1 as api_meta;
 use k8s_openapi::{http, Response as K8sResponse};
@@ -37,7 +38,7 @@ where
 }
 
 #[derive(Clone)]
-pub struct Client<T: Clone, S> {
+pub struct Client<T, S> {
     config: Config<T>,
     client: S,
 }
@@ -54,6 +55,14 @@ impl<T: TokenSource + Clone> Client<T, HttpClient<HttpsConnector<HttpConnector>,
             config,
             client: HttpClient(HyperClient::builder().build::<_, Body>(connector)),
         }
+    }
+}
+
+// with_client method lives in its own block because we don't need whole set of constrains
+// everywhere in the code, in tests for instance
+impl<T: TokenSource + Clone, S> Client<T, S> {
+    pub fn with_client(config: Config<T>, client: S) -> Self {
+        Client { config, client }
     }
 }
 
@@ -299,6 +308,31 @@ where
                 self.request(req).and_then(|response| match response {
                     api_core::ReplaceCoreV1NamespacedSecretResponse::Created(s)
                     | api_core::ReplaceCoreV1NamespacedSecretResponse::Ok(s) => Ok(s),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
+            })
+            .into_future()
+            .flatten()
+    }
+
+    pub fn token_review(
+        &mut self,
+        token: &str,
+    ) -> impl Future<Item = auth::TokenReview, Error = Error> {
+        let token = auth::TokenReview {
+            kind: Some("TokenReview".to_string()),
+            spec: auth::TokenReviewSpec {
+                token: Some(token.to_string()),
+            },
+            ..auth::TokenReview::default()
+        };
+
+        auth::TokenReview::create_authentication_v1_token_review(&token, None)
+            .map_err(Error::from)
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    auth::CreateAuthenticationV1TokenReviewResponse::Created(t)
+                    | auth::CreateAuthenticationV1TokenReviewResponse::Ok(t) => Ok(t),
                     _ => Err(Error::from(ErrorKind::Response)),
                 })
             })
@@ -959,6 +993,78 @@ mod tests {
         let mut client = make_test_client(service_fn);
         let secret: api_core::Secret = serde_json::from_str(SECRET_JSON).unwrap();
         let fut = client.replace_secret("NAME", "NAMESPACE", &secret);
+
+        if let Ok(r) = Runtime::new().unwrap().block_on(fut) {
+            panic!("expected an error result {:?}", r);
+        }
+    }
+
+    const TOKEN_REVIEW_JSON: &str = r###"{"kind":"TokenReview","spec":{"token":"BEARERTOKEN"}}"###;
+
+    const TOKEN_REVIEW_AUTHENTICATED_RESPONSE_JSON: &str = r###"{
+        "kind": "TokenReview",
+        "spec": { "token": "BEARERTOKEN" },
+        "status": {
+            "authenticated": true,
+            "user": {
+                "username": "module-abc"
+            }
+        }
+        }"###;
+
+    #[test]
+    fn token_review_success() {
+        let service_fn = service_fn(|req: Request<Body>| -> Result<Response<Body>, HyperError> {
+            req.into_body()
+                .map_err(|_| ())
+                .fold(BytesMut::new(), |mut buf, chunk| {
+                    buf.extend_from_slice(chunk.as_ref());
+                    future::ok::<_, ()>(buf)
+                })
+                .map_err(|_| ())
+                .and_then(move |buf| {
+                    assert_eq!(::std::str::from_utf8(&buf).unwrap(), TOKEN_REVIEW_JSON);
+                    future::ok(())
+                })
+                .wait()
+                .expect("Unexpected result");
+
+            let mut res = Response::new(Body::from(TOKEN_REVIEW_AUTHENTICATED_RESPONSE_JSON));
+            *res.status_mut() = StatusCode::CREATED;
+            Ok(res)
+        });
+
+        let mut client = make_test_client(service_fn);
+        let token = "BEARERTOKEN";
+        let fut = client.token_review(token);
+
+        Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .map(|r| {
+                let status = r.status.unwrap();
+                assert_eq!(Some(true), status.authenticated);
+                assert_eq!(
+                    Some("module-abc".to_string()),
+                    status.user.unwrap().username
+                );
+            })
+            .expect("Expected future to be OK");
+    }
+
+    #[test]
+    fn token_review_error_response() {
+        let service_fn = service_fn(
+            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let mut res = Response::new(Body::empty());
+                *res.status_mut() = StatusCode::SERVICE_UNAVAILABLE;
+                Ok(res)
+            },
+        );
+
+        let mut client = make_test_client(service_fn);
+        let token = "BEARERTOKEN";
+        let fut = client.token_review(token);
 
         if let Ok(r) = Runtime::new().unwrap().block_on(fut) {
             panic!("expected an error result {:?}", r);

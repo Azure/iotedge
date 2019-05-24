@@ -28,6 +28,7 @@
 #include "azure_c_shared_utility/hmacsha256.h"
 #include "edge_openssl_common.h"
 
+#include "hsm_err.h"
 #include "hsm_key.h"
 #include "hsm_log.h"
 #include "hsm_utils.h"

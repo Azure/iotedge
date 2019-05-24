@@ -12,6 +12,7 @@
 #include "azure_c_shared_utility/crt_abstractions.h"
 #include "hsm_client_data.h"
 #include "hsm_constants.h"
+#include "hsm_err.h"
 #include "hsm_log.h"
 #include "hsm_utils.h"
 
