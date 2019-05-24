@@ -216,8 +216,19 @@ where
                     device_provisioning_info.hub_name()
                 );
 
-                let credentials = device_provisioning_info.credentials();
-
+                let credentials_info = device_provisioning_info.credentials();
+                let credentials = match credentials_info.auth_type() {
+                    "symmetric-key" => {
+                        match credentials_info.source() {
+                            "payload" => Credentials { auth_type: AuthType::SymmetricKey(SymmetricKeyCredential{ key: credentials_info.key() }), source: CredentialSource::Payload },
+                            "hsm" => Credentials { auth_type: AuthType::SymmetricKey(SymmetricKeyCredential{ key: credentials_info.key() }), source: CredentialSource::Hsm },
+                        }
+                    },
+                    "x509" => {
+                        panic!("Provisioning of Edge device via x509 is currently unsupported");
+                        // TODO: implement
+                    }
+                };
 
                 // Passing a sentinel value as key because in the external mode, the external provisioning
                 // environment itself creates and activates the actual key. The sentinel is
@@ -235,6 +246,7 @@ where
                     hub_name: device_provisioning_info.hub_name().to_string(),
                     reconfigure: ReprovisioningStatus::DeviceDataNotUpdated,
                     sha256_thumbprint: None,
+                    credentials: Some(credentials)
                 })
             });
 
