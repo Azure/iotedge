@@ -20,12 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             using (var cts = new CancellationTokenSource(Context.Current.TestTimeout))
             {
+                CancellationToken token = cts.Token;
+
                 Log.Information("Running test '{Name}'", name);
                 await Profiler.Run(
                     async () =>
                     {
-                        CancellationToken token = cts.Token;
-
                         var iotHub = new IotHub(
                             Context.Current.ConnectionString,
                             Context.Current.EventHubEndpoint,
