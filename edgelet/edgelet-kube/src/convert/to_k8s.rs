@@ -665,34 +665,31 @@ mod tests {
         }
     }
 
-    //    #[test]
-    //    fn auth_to_image_pull_secret_success() {
-    //        let mut auths = BTreeMap::new();
-    //        auths.insert(
-    //            "REGISTRY".to_string(),
-    //            AuthEntry::new("USER".to_string(), "a password".to_string()),
-    //        );
-    //        let json_data = serde_json::to_string(&Auth::new(auths)).unwrap();
-    //        let auth_config = AuthConfig::new()
-    //            .with_password(String::from("a password"))
-    //            .with_username(String::from("USER"))
-    //            .with_serveraddress(String::from("REGISTRY"));
-    //        let (name, secret) = auth_to_image_pull_secret("namespace", &auth_config).unwrap();
-    //        assert_eq!(name, "user-registry");
-    //        assert_eq!(
-    //            secret.kind.as_ref().unwrap(),
-    //            "kubernetes.io/dockerconfigjson"
-    //        );
-    //        assert!(secret.metadata.is_some());
-    //        if let Some(meta) = secret.metadata.as_ref() {
-    //            assert_eq!(meta.name, Some(name));
-    //            assert_eq!(meta.namespace, Some("namespace".to_string()));
-    //        }
-    //        assert_eq!(
-    //            str::from_utf8(secret.data.unwrap()[".dockerconfigjson"].0.as_slice()).unwrap(),
-    //            json_data
-    //        );
-    //    }
+    #[test]
+    fn auth_to_image_pull_secret_success() {
+        let mut auths = BTreeMap::new();
+        auths.insert(
+            "REGISTRY".to_string(),
+            AuthEntry::new("USER".to_string(), "a password".to_string()),
+        );
+        let json_data = serde_json::to_string(&Auth::new(auths)).unwrap();
+        let auth_config = AuthConfig::new()
+            .with_password(String::from("a password"))
+            .with_username(String::from("USER"))
+            .with_serveraddress(String::from("REGISTRY"));
+        let (name, secret) = auth_to_image_pull_secret("namespace", &auth_config).unwrap();
+        assert_eq!(name, "user-registry");
+
+        assert!(secret.metadata.is_some());
+        if let Some(meta) = secret.metadata.as_ref() {
+            assert_eq!(meta.name, Some(name));
+            assert_eq!(meta.namespace, Some("namespace".to_string()));
+        }
+        assert_eq!(
+            str::from_utf8(secret.data.unwrap()[".dockerconfigjson"].0.as_slice()).unwrap(),
+            json_data
+        );
+    }
 
     #[test]
     fn auth_to_image_pull_secret_failure() {
