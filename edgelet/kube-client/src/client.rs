@@ -81,23 +81,27 @@ where
         namespace: &str,
         config_map: &api_core::ConfigMap,
     ) -> impl Future<Item = api_core::ConfigMap, Error = Error> {
-        api_core::ConfigMap::create_namespaced_config_map(namespace, config_map, Default::default())
-            .map_err(Error::from)
-            .map(|(req, _)| {
-                self.request(req).and_then(|response| match response {
-                    api_core::CreateNamespacedConfigMapResponse::Ok(config_map)
-                    | api_core::CreateNamespacedConfigMapResponse::Created(config_map)
-                    | api_core::CreateNamespacedConfigMapResponse::Accepted(config_map) => {
-                        Ok(config_map)
-                    }
-                    err => {
-                        debug!("Create config map failed with {:#?}", err);
-                        Err(Error::from(ErrorKind::Response))
-                    }
-                })
+        api_core::ConfigMap::create_namespaced_config_map(
+            namespace,
+            config_map,
+            api_core::CreateNamespacedConfigMapOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|(req, _)| {
+            self.request(req).and_then(|response| match response {
+                api_core::CreateNamespacedConfigMapResponse::Ok(config_map)
+                | api_core::CreateNamespacedConfigMapResponse::Created(config_map)
+                | api_core::CreateNamespacedConfigMapResponse::Accepted(config_map) => {
+                    Ok(config_map)
+                }
+                err => {
+                    debug!("Create config map failed with {:#?}", err);
+                    Err(Error::from(ErrorKind::Response))
+                }
             })
-            .into_future()
-            .flatten()
+        })
+        .into_future()
+        .flatten()
     }
 
     pub fn delete_config_map(
@@ -105,17 +109,21 @@ where
         namespace: &str,
         name: &str,
     ) -> impl Future<Item = (), Error = Error> {
-        api_core::ConfigMap::delete_namespaced_config_map(name, namespace, Default::default())
-            .map_err(Error::from)
-            .map(|(req, _)| {
-                self.request(req).and_then(|response| match response {
-                    api_core::DeleteNamespacedConfigMapResponse::OkStatus(_)
-                    | api_core::DeleteNamespacedConfigMapResponse::OkValue(_) => Ok(()),
-                    _ => Err(Error::from(ErrorKind::Response)),
-                })
+        api_core::ConfigMap::delete_namespaced_config_map(
+            name,
+            namespace,
+            api_core::DeleteNamespacedConfigMapOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|(req, _)| {
+            self.request(req).and_then(|response| match response {
+                api_core::DeleteNamespacedConfigMapResponse::OkStatus(_)
+                | api_core::DeleteNamespacedConfigMapResponse::OkValue(_) => Ok(()),
+                _ => Err(Error::from(ErrorKind::Response)),
             })
-            .into_future()
-            .flatten()
+        })
+        .into_future()
+        .flatten()
     }
 
     pub fn create_deployment(
@@ -123,18 +131,22 @@ where
         namespace: &str,
         deployment: &apps::Deployment,
     ) -> impl Future<Item = apps::Deployment, Error = Error> {
-        apps::Deployment::create_namespaced_deployment(namespace, &deployment, Default::default())
-            .map_err(Error::from)
-            .map(|(req, _)| {
-                self.request(req).and_then(|response| match response {
-                    apps::CreateNamespacedDeploymentResponse::Accepted(deployment)
-                    | apps::CreateNamespacedDeploymentResponse::Created(deployment)
-                    | apps::CreateNamespacedDeploymentResponse::Ok(deployment) => Ok(deployment),
-                    _ => Err(Error::from(ErrorKind::Response)),
-                })
+        apps::Deployment::create_namespaced_deployment(
+            namespace,
+            &deployment,
+            apps::CreateNamespacedDeploymentOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|(req, _)| {
+            self.request(req).and_then(|response| match response {
+                apps::CreateNamespacedDeploymentResponse::Accepted(deployment)
+                | apps::CreateNamespacedDeploymentResponse::Created(deployment)
+                | apps::CreateNamespacedDeploymentResponse::Ok(deployment) => Ok(deployment),
+                _ => Err(Error::from(ErrorKind::Response)),
             })
-            .into_future()
-            .flatten()
+        })
+        .into_future()
+        .flatten()
     }
 
     pub fn replace_deployment(
@@ -147,7 +159,7 @@ where
             name,
             namespace,
             deployment,
-            Default::default(),
+            apps::ReplaceNamespacedDeploymentOptional::default(),
         )
         .map_err(Error::from)
         .map(|(req, _)| {
@@ -171,7 +183,7 @@ where
             grace_period_seconds: options.and_then(|o| o.grace_period_seconds),
             propagation_policy: options
                 .and_then(|o| o.propagation_policy.as_ref().map(AsRef::as_ref)),
-            ..Default::default()
+            ..apps::DeleteNamespacedDeploymentOptional::default()
         };
         apps::Deployment::delete_namespaced_deployment(name, namespace, params)
             .map_err(Error::from)
@@ -197,7 +209,7 @@ where
         let params = apps::ListNamespacedDeploymentOptional {
             field_selector: field_selector.as_ref().map(String::as_ref),
             label_selector,
-            ..Default::default()
+            ..apps::ListNamespacedDeploymentOptional::default()
         };
         apps::Deployment::list_namespaced_deployment(namespace, params)
             .map_err(Error::from)
@@ -218,7 +230,7 @@ where
     ) -> impl Future<Item = api_core::PodList, Error = Error> {
         let params = api_core::ListNamespacedPodOptional {
             label_selector,
-            ..Default::default()
+            ..api_core::ListNamespacedPodOptional::default()
         };
         api_core::Pod::list_namespaced_pod(namespace, params)
             .map_err(Error::from)
@@ -241,7 +253,7 @@ where
             name.and_then(|secret_name| Some(format!("metadata.name={}", secret_name)));
         let params = api_core::ListNamespacedSecretOptional {
             field_selector: field_selector.as_ref().map(String::as_ref),
-            ..Default::default()
+            ..api_core::ListNamespacedSecretOptional::default()
         };
         api_core::Secret::list_namespaced_secret(namespace, params)
             .map_err(Error::from)
@@ -260,18 +272,22 @@ where
         namespace: &str,
         secret: &api_core::Secret,
     ) -> impl Future<Item = api_core::Secret, Error = Error> {
-        api_core::Secret::create_namespaced_secret(namespace, secret, Default::default())
-            .map_err(Error::from)
-            .map(|(req, _)| {
-                self.request(req).and_then(|response| match response {
-                    api_core::CreateNamespacedSecretResponse::Accepted(s)
-                    | api_core::CreateNamespacedSecretResponse::Created(s)
-                    | api_core::CreateNamespacedSecretResponse::Ok(s) => Ok(s),
-                    _ => Err(Error::from(ErrorKind::Response)),
-                })
+        api_core::Secret::create_namespaced_secret(
+            namespace,
+            secret,
+            api_core::CreateNamespacedSecretOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|(req, _)| {
+            self.request(req).and_then(|response| match response {
+                api_core::CreateNamespacedSecretResponse::Accepted(s)
+                | api_core::CreateNamespacedSecretResponse::Created(s)
+                | api_core::CreateNamespacedSecretResponse::Ok(s) => Ok(s),
+                _ => Err(Error::from(ErrorKind::Response)),
             })
-            .into_future()
-            .flatten()
+        })
+        .into_future()
+        .flatten()
     }
 
     pub fn replace_secret(
@@ -280,17 +296,22 @@ where
         name: &str,
         secret: &api_core::Secret,
     ) -> impl Future<Item = api_core::Secret, Error = Error> {
-        api_core::Secret::replace_namespaced_secret(name, namespace, secret, Default::default())
-            .map_err(Error::from)
-            .map(|(req, _)| {
-                self.request(req).and_then(|response| match response {
-                    api_core::ReplaceNamespacedSecretResponse::Created(s)
-                    | api_core::ReplaceNamespacedSecretResponse::Ok(s) => Ok(s),
-                    _ => Err(Error::from(ErrorKind::Response)),
-                })
+        api_core::Secret::replace_namespaced_secret(
+            name,
+            namespace,
+            secret,
+            api_core::ReplaceNamespacedSecretOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|(req, _)| {
+            self.request(req).and_then(|response| match response {
+                api_core::ReplaceNamespacedSecretResponse::Created(s)
+                | api_core::ReplaceNamespacedSecretResponse::Ok(s) => Ok(s),
+                _ => Err(Error::from(ErrorKind::Response)),
             })
-            .into_future()
-            .flatten()
+        })
+        .into_future()
+        .flatten()
     }
 
     pub fn token_review(
@@ -301,7 +322,7 @@ where
         let token = auth::TokenReview {
             metadata: Some(api_meta::ObjectMeta {
                 namespace: Some(namespace.to_string()),
-                ..Default::default()
+                ..api_meta::ObjectMeta::default()
             }),
             spec: auth::TokenReviewSpec {
                 token: Some(token.to_string()),
@@ -309,7 +330,7 @@ where
             ..auth::TokenReview::default()
         };
 
-        auth::TokenReview::create_token_review(&token, Default::default())
+        auth::TokenReview::create_token_review(&token, auth::CreateTokenReviewOptional::default())
             .map_err(Error::from)
             .map(|(req, _)| {
                 self.request(req).and_then(|response| match response {
