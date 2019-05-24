@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json.Linq;
 
-    public enum UpstreamProtocolType
+    public enum Protocol
     {
         Amqp,
         AmqpWs,
@@ -51,11 +51,43 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                 return this;
             }
+
+            public Module WithProxy(Option<Uri> proxy, Protocol protocol)
+            {
+                proxy.ForEach(
+                    p =>
+                    {
+                        string proxyProtocol;
+                        switch (protocol)
+                        {
+                            case Protocol.Amqp:
+                                proxyProtocol = Protocol.AmqpWs.ToString();
+                                break;
+                            case Protocol.Mqtt:
+                                proxyProtocol = Protocol.MqttWs.ToString();
+                                break;
+                            case Protocol.AmqpWs:
+                            case Protocol.MqttWs:
+                                proxyProtocol = protocol.ToString();
+                                break;
+                            default:
+                                throw new ArgumentException("Unknown protocol");
+                        }
+
+                        this.WithEnvironment(new[]
+                        {
+                            ("https_proxy", p.ToString()),
+                            ("UpstreamProtocol", proxyProtocol)
+                        });
+                    });
+
+                return this;
+            }
         }
 
-        public EdgeConfiguration(string deviceId, string agentImage, IotHub iotHub)
+        public EdgeConfiguration(string deviceId, IotHub iotHub)
         {
-            this.config = GetBaseConfig(agentImage);
+            this.config = GetBaseConfig();
             this.deviceId = deviceId;
             this.iotHub = iotHub;
         }
@@ -91,39 +123,40 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 });
         }
 
-        // Adds proxy information to each module in Edge Agent's desired properties. Call this
-        // method after you've added all the modules that need proxy information.
-        public void AddProxy(Uri proxy)
+        public Module AddEdgeAgent(string image)
         {
-            this.ForEachModule(
-                (name, module) =>
-                {
-                    JObject env = GetOrAddObject("env", module);
-                    env.Add(
-                        "https_proxy",
-                        JToken.FromObject(
-                            new
-                            {
-                                value = proxy.ToString()
-                            }));
-                    env.Add(
-                        "UpstreamProtocol",
-                        JToken.FromObject(
-                            new
-                            {
-                                value = UpstreamProtocolType.AmqpWs.ToString()
-                            }));
-                });
-        }
+            const string Name = "edgeAgent";
 
-        public void AddEdgeHub(string image)
-        {
             this.UpdateAgentDesiredProperties(
                 desired =>
                 {
-                    JObject systemModules = desired.Get<JObject>("systemModules");
+                    JObject systemModules = GetOrAddObject("systemModules", desired);
                     systemModules.Add(
-                        "edgeHub",
+                        Name,
+                        JToken.FromObject(
+                            new
+                            {
+                                type = "docker",
+                                settings = new
+                                {
+                                    image = image
+                                }
+                            }));
+                });
+
+            return new Module(Name, this);
+        }
+
+        public Module AddEdgeHub(string image)
+        {
+            const string Name = "edgeHub";
+
+            this.UpdateAgentDesiredProperties(
+                desired =>
+                {
+                    JObject systemModules = GetOrAddObject("systemModules", desired);
+                    systemModules.Add(
+                        Name,
                         JToken.FromObject(
                             new
                             {
@@ -154,6 +187,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     }
                 }
             };
+
+            return new Module(Name, this);
         }
 
         public Module AddModule(string name, string image)
@@ -200,7 +235,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return parent.Get<JObject>(name);
         }
 
-        static ConfigurationContent GetBaseConfig(string agentImage) => new ConfigurationContent
+        static ConfigurationContent GetBaseConfig() => new ConfigurationContent
         {
             ModulesContent = new Dictionary<string, IDictionary<string, object>>
             {
@@ -215,17 +250,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             settings = new
                             {
                                 minDockerVersion = "v1.25"
-                            }
-                        },
-                        systemModules = new
-                        {
-                            edgeAgent = new
-                            {
-                                type = "docker",
-                                settings = new
-                                {
-                                    image = agentImage
-                                }
                             }
                         }
                     }

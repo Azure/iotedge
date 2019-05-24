@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
     using Serilog;
 
@@ -30,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string edgeAgent = Context.Current.EdgeAgent.Expect(() => new ArgumentException());
             string edgeHub = Context.Current.EdgeHub.Expect(() => new ArgumentException());
             string tempSensor = Context.Current.TempSensor.Expect(() => new ArgumentException());
+            Option<Uri> proxy = Context.Current.Proxy;
 
             CancellationToken token = this.cts.Token;
 
@@ -41,18 +43,18 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     var iotHub = new IotHub(
                         Context.Current.ConnectionString,
                         Context.Current.EventHubEndpoint,
-                        Context.Current.Proxy);
+                        proxy);
 
                     EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                         Context.Current.DeviceId,
                         iotHub,
                         token);
 
-                    var config = new EdgeConfiguration(device.Id, edgeAgent, iotHub);
+                    var config = new EdgeConfiguration(device.Id, iotHub);
                     Context.Current.Registry.ForEach(
                         r => config.AddRegistryCredentials(r.address, r.username, r.password));
-                    config.AddEdgeHub(edgeHub);
-                    Context.Current.Proxy.ForEach(p => config.AddProxy(p));
+                    config.AddEdgeAgent(edgeAgent).WithProxy(proxy, Protocol.Amqp);
+                    config.AddEdgeHub(edgeHub).WithProxy(proxy, Protocol.Amqp);
                     config.AddModule("tempSensor", tempSensor);
                     await config.DeployAsync(token);
 
@@ -97,16 +99,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        public async Task ModuleToModuleDirectMethod()
+        public async Task ModuleToModuleDirectMethod(
+            [Values("Amqp", "Mqtt")] string edgeToCloud,
+            [Values("Amqp", "Mqtt")] string moduleToEdge)
         {
             string edgeAgent = Context.Current.EdgeAgent.Expect(() => new ArgumentException());
             string edgeHub = Context.Current.EdgeHub.Expect(() => new ArgumentException());
-            string methodSender = Context.Current.MethodSender.Expect(() => new ArgumentException());
-            string methodReceiver = Context.Current.MethodReceiver.Expect(() => new ArgumentException());
+            string senderImage = Context.Current.MethodSender.Expect(() => new ArgumentException());
+            string receiverImage = Context.Current.MethodReceiver.Expect(() => new ArgumentException());
+            Option<Uri> proxy = Context.Current.Proxy;
 
             CancellationToken token = this.cts.Token;
 
-            string name = "module-to-module direct method";
+            string name = $"module-to-module direct method (upstream:{edgeToCloud}, modules:{moduleToEdge})";
             Log.Information("Running test '{Name}'", name);
             await Profiler.Run(
                 async () =>
@@ -114,26 +119,38 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     var iotHub = new IotHub(
                         Context.Current.ConnectionString,
                         Context.Current.EventHubEndpoint,
-                        Context.Current.Proxy);
+                        proxy);
 
                     EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                         Context.Current.DeviceId,
                         iotHub,
                         token);
 
-                    var config = new EdgeConfiguration(device.Id, edgeAgent, iotHub);
+                    string methodSender = $"methodSender-{edgeToCloud}-{moduleToEdge}";
+                    string methodReceiver = $"methodReceiver-{edgeToCloud}-{moduleToEdge}";
+
+                    var config = new EdgeConfiguration(device.Id, iotHub);
                     Context.Current.Registry.ForEach(
                         r => config.AddRegistryCredentials(r.address, r.username, r.password));
-                    config.AddEdgeHub(edgeHub);
-                    Context.Current.Proxy.ForEach(p => config.AddProxy(p));
-                    config.AddModule("methodSender", methodSender)
-                        .WithEnvironment(new[] { ("TargetModuleId", "methodReceiver") });
-                    config.AddModule("methodReceiver", methodReceiver);
+                    config.AddEdgeAgent(edgeAgent)
+                        .WithEnvironment(new[] { ("UpstreamProtocol", edgeToCloud) })
+                        .WithProxy(proxy, Enum.Parse<Protocol>(edgeToCloud));
+                    config.AddEdgeHub(edgeHub)
+                        .WithEnvironment(new[] { ("UpstreamProtocol", edgeToCloud) })
+                        .WithProxy(proxy, Enum.Parse<Protocol>(edgeToCloud));
+                    config.AddModule(methodSender, senderImage)
+                        .WithEnvironment(new[]
+                        {
+                            ("UpstreamProtocol", moduleToEdge),
+                            ("TargetModuleId", methodReceiver)
+                        });
+                    config.AddModule(methodReceiver, receiverImage)
+                        .WithEnvironment(new[] { ("UpstreamProtocol", moduleToEdge) });
                     await config.DeployAsync(token);
 
                     var hub = new EdgeModule("edgeHub", device.Id, iotHub);
-                    var sender = new EdgeModule("methodSender", device.Id, iotHub);
-                    var receiver = new EdgeModule("methodReceiver", device.Id, iotHub);
+                    var sender = new EdgeModule(methodSender, device.Id, iotHub);
+                    var receiver = new EdgeModule(methodReceiver, device.Id, iotHub);
                     await EdgeModule.WaitForStatusAsync(
                         new[] { hub, sender, receiver },
                         EdgeModuleStatus.Running,
