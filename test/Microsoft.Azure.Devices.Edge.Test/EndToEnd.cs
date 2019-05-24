@@ -45,10 +45,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         Context.Current.EventHubEndpoint,
                         proxy);
 
-                    EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
+                    EdgeDevice device = (await EdgeDevice.GetIdentityAsync(
                         Context.Current.DeviceId,
                         iotHub,
-                        token);
+                        token)).Expect(() => new Exception("Device should have already been created in setup fixture"));
 
                     var config = new EdgeConfiguration(device.Id, iotHub);
                     Context.Current.Registry.ForEach(
@@ -121,10 +121,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         Context.Current.EventHubEndpoint,
                         proxy);
 
-                    EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
+                    EdgeDevice device = (await EdgeDevice.GetIdentityAsync(
                         Context.Current.DeviceId,
                         iotHub,
-                        token);
+                        token)).Expect(() => new Exception("Device should have already been created in setup fixture"));
 
                     string methodSender = $"methodSender-{edgeToCloud}-{moduleToEdge}";
                     string methodReceiver = $"methodReceiver-{edgeToCloud}-{moduleToEdge}";
@@ -139,11 +139,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         .WithEnvironment(new[] { ("UpstreamProtocol", edgeToCloud) })
                         .WithProxy(proxy, Enum.Parse<Protocol>(edgeToCloud));
                     config.AddModule(methodSender, senderImage)
-                        .WithEnvironment(new[]
-                        {
-                            ("UpstreamProtocol", moduleToEdge),
-                            ("TargetModuleId", methodReceiver)
-                        });
+                        .WithEnvironment(
+                            new[]
+                            {
+                                ("UpstreamProtocol", moduleToEdge),
+                                ("TargetModuleId", methodReceiver)
+                            });
                     config.AddModule(methodReceiver, receiverImage)
                         .WithEnvironment(new[] { ("UpstreamProtocol", moduleToEdge) });
                     await config.DeployAsync(token);

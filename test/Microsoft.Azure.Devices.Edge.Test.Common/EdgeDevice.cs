@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Serilog;
 
     public class EdgeDevice
@@ -43,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 iotHub.Hostname);
         }
 
-        public static async Task<EdgeDevice> GetOrCreateIdentityAsync(
+        public static async Task<Option<EdgeDevice>> GetIdentityAsync(
             string deviceId,
             IotHub iotHub,
             CancellationToken token)
@@ -56,16 +57,30 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     throw new InvalidOperationException($"Device '{device.Id}' exists, but is not an edge device");
                 }
 
-                Log.Information(
-                    "Device '{Device}' already exists on hub '{IotHub}'",
-                    device.Id,
-                    iotHub.Hostname);
-                return new EdgeDevice(device, false, iotHub);
+                return Option.Some(new EdgeDevice(device, false, iotHub));
             }
             else
             {
-                return await CreateIdentityAsync(deviceId, iotHub, token);
+                return Option.None<EdgeDevice>();
             }
+        }
+
+        public static async Task<EdgeDevice> GetOrCreateIdentityAsync(
+            string deviceId,
+            IotHub iotHub,
+            CancellationToken token)
+        {
+            Option<EdgeDevice> device = await GetIdentityAsync(deviceId, iotHub, token);
+            return await device.Match(
+                d =>
+                {
+                    Log.Information(
+                        "Device '{Device}' already exists on hub '{IotHub}'",
+                        d.Id,
+                        iotHub.Hostname);
+                    return Task.FromResult(d);
+                },
+                () => CreateIdentityAsync(deviceId, iotHub, token));
         }
 
         public Task DeleteIdentityAsync(CancellationToken token)

@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     {
         readonly IEdgeDaemon daemon;
         readonly IotHub iotHub;
+        EdgeDevice device;
 
         public SetupFixture()
         {
@@ -48,20 +49,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 // we have our own timeout mechanism.
                 CancellationToken token = cts.Token;
 
-                EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
+                Assert.IsNull(this.device);
+                this.device = await EdgeDevice.GetOrCreateIdentityAsync(
                     Context.Current.DeviceId,
                     this.iotHub,
                     token);
 
                 await this.daemon.UninstallAsync(token);
                 await this.daemon.InstallAsync(
-                    device.ConnectionString,
+                    this.device.ConnectionString,
                     Context.Current.PackagePath,
                     Context.Current.Proxy,
                     token);
                 await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
 
-                var agent = new EdgeAgent(device.Id, this.iotHub);
+                var agent = new EdgeAgent(this.device.Id, this.iotHub);
                 await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
                 await agent.PingAsync(token);
             }
@@ -78,11 +80,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     await this.daemon.StopAsync(token);
 
-                    EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
-                        Context.Current.DeviceId,
-                        this.iotHub,
-                        token);
-                    await device.MaybeDeleteIdentityAsync(token);
+                    Assert.IsNotNull(this.device);
+                    await this.device.MaybeDeleteIdentityAsync(token);
                 }
             }
 
