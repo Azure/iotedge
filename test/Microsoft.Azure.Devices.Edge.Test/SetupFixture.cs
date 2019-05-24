@@ -85,6 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     await device.MaybeDeleteIdentityAsync(token);
                 }
             }
+
             // According to C# reference docs for 'try-finally', the finally
             // block may or may not run for unhandled exceptions. The
             // workaround is to catch the exception here and rethrow,

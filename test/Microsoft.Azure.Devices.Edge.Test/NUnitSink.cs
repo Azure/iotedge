@@ -12,11 +12,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
     public class NUnitSink : ILogEventSink
     {
-        // It would be nice to use the TextWriter sink that comes with Serilog,
-        // but it doesn't play well with NUnit--each token in the message
-        // template ends up on a new line. This custom sink renders the
-        // complete message as a string before sending it to NUnit's TextWriter
-        // (NUnit.Framework.TestContext.Progress).
+        /*
+         * It would be nice to use the TextWriter sink that comes with Serilog,
+         * but it doesn't play well with NUnit--each token in the message
+         * template ends up on a new line. This custom sink renders the
+         * complete message as a string before sending it to NUnit's TextWriter
+         * (NUnit.Framework.TestContext.Progress).
+         */
 
         readonly ITextFormatter formatter;
 
