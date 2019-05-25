@@ -219,7 +219,9 @@ docker_build_and_tag_and_push()
     
     echo "Running... $docker_build_cmd"
 
-    if [[ ! ${docker_build_cmd} ]]; then
+    ${docker_build_cmd}
+
+    if [[ $? -ne 0 ]]; then
         echo "Docker build failed with exit code $?"
         exit 1
     fi
@@ -227,8 +229,8 @@ docker_build_and_tag_and_push()
     if [[ ${SKIP_PUSH} -eq 0 ]]; then
         docker_push_cmd="docker push $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
         echo "Running... $docker_push_cmd"
-
-        if [[ ! ${docker_push_cmd} ]]; then
+        ${docker_push_cmd}
+        if [[ $? -ne 0 ]]; then
             echo "Docker push failed with exit code $?"
             exit 1
         fi
@@ -245,8 +247,8 @@ process_args "$@"
 
 # log in to container registry
 if [[ ${SKIP_PUSH} -eq 0 ]]; then
-
-    if ! docker login "${DOCKER_REGISTRY}" -u "${DOCKER_USERNAME}" -p "${DOCKER_PASSWORD}"; then
+    docker login "${DOCKER_REGISTRY}" -u "${DOCKER_USERNAME}" -p "${DOCKER_PASSWORD}"
+    if [[ $? -ne 0 ]]; then
         echo "Docker login failed!"
         exit 1
     fi
