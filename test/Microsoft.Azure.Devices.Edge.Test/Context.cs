@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.IO;
+    using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
@@ -17,7 +18,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     .AddEnvironmentVariables("E2E_")
                     .Build();
 
-                string GetStr(string name) => context.GetValue<string>(name);
+                string GetString(string name) => context.GetValue<string>(name);
+
+                string GetStringOr(string name, string alternate)
+                {
+                    string value = GetString(name);
+                    return string.IsNullOrEmpty(value) ? alternate : value;
+                }
 
                 Option<(string, string, string)> AllOrNothing(string a, string b, string c) =>
                     string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) || string.IsNullOrEmpty(c)
@@ -26,19 +33,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                 return new Context
                 {
-                    ConnectionString = GetStr("IOT_HUB_CONNECTION_STRING"),
-                    EventHubEndpoint = GetStr("EVENT_HUB_ENDPOINT"),
-                    DeviceId = context.GetValue("deviceId", $"end-to-end-{DateTime.Now:yyyy'-'MM'-'dd'T'HH'-'mm'-'ss'-'fff}"),
-                    InstallerPath = Option.Maybe(GetStr("installerPath")),
-                    PackagePath = Option.Maybe(GetStr("packagePath")),
+                    ConnectionString = GetString("IOT_HUB_CONNECTION_STRING"),
+                    EventHubEndpoint = GetString("EVENT_HUB_ENDPOINT"),
+                    DeviceId = GetStringOr("deviceId", $"end-to-end-{DateTime.Now:yyyy'-'MM'-'dd'T'HH'-'mm'-'ss'-'fff}"),
+                    InstallerPath = Option.Maybe(GetString("installerPath")),
+                    PackagePath = Option.Maybe(GetString("packagePath")),
                     Proxy = Option.Maybe(context.GetValue<Uri>("proxy")),
-                    Registry = AllOrNothing(GetStr("registry"), GetStr("user"), GetStr("CONTAINER_REGISTRY_PASSWORD")),
-                    EdgeAgent = Option.Maybe(GetStr("edgeAgent")),
-                    EdgeHub = Option.Maybe(GetStr("edgeHub")),
-                    TempSensor = Option.Maybe(GetStr("tempSensor")),
-                    MethodSender = Option.Maybe(GetStr("methodSender")),
-                    MethodReceiver = Option.Maybe(GetStr("methodReceiver")),
-                    LogFile = Option.Maybe(GetStr("logFile")),
+                    Registry = AllOrNothing(GetString("registry"), GetString("user"), GetString("CONTAINER_REGISTRY_PASSWORD")),
+                    EdgeAgent = Option.Maybe(GetString("edgeAgent")),
+                    EdgeHub = Option.Maybe(GetString("edgeHub")),
+                    TempSensor = Option.Maybe(GetString("tempSensor")),
+                    MethodSender = Option.Maybe(GetString("methodSender")),
+                    MethodReceiver = Option.Maybe(GetString("methodReceiver")),
+                    LogFile = Option.Maybe(GetString("logFile")),
                     Verbose = context.GetValue("verbose", false),
                     SetupTimeout = TimeSpan.FromMinutes(context.GetValue("setupTimeoutMinutes", 5)),
                     TeardownTimeout = TimeSpan.FromMinutes(context.GetValue("teardownTimeoutMinutes", 2)),
