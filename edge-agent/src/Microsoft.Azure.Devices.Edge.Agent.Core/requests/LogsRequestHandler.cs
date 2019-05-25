@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class LogsRequestHandler : RequestHandlerBase<LogsRequest, IEnumerable<LogsResponse>>
@@ -28,17 +29,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
             ILogsRequestToOptionsMapper requestToOptionsMapper = new LogsRequestToOptionsMapper(
                 this.runtimeInfoProvider,
-                LogsContentEncoding.None,
+                payload.Encoding,
                 payload.ContentType,
                 LogOutputFraming.None,
                 Option.None<LogsOutputGroupingConfig>(),
                 false);
+
             IList<(string id, ModuleLogOptions logOptions)> logOptionsList = await requestToOptionsMapper.MapToLogOptions(payload.Items, cancellationToken);
-            IEnumerable<Task<LogsResponse>> uploadLogsTasks = logOptionsList.Select(async l =>
-            {
-                byte[] moduleLogs = await this.logsProvider.GetLogs(l.id, l.logOptions, cancellationToken);
-                return new LogsResponse(l.id, moduleLogs);
-            });
+            IEnumerable<Task<LogsResponse>> uploadLogsTasks = logOptionsList.Select(
+                async l =>
+                {
+                    ModuleLogOptions logOptions = l.logOptions.Filter.Tail
+                        .Filter(t => t < 1000)
+                        .Map(t => l.logOptions)
+                        .GetOrElse(
+                            () =>
+                            {
+                                var filter = new ModuleLogFilter(Option.Some(1000), l.logOptions.Filter.Since, l.logOptions.Filter.LogLevel, l.logOptions.Filter.RegexString);
+                                return new ModuleLogOptions(l.logOptions.ContentEncoding, l.logOptions.ContentType, filter, l.logOptions.OutputFraming, l.logOptions.OutputGroupingConfig, l.logOptions.Follow);
+                            });
+
+                    byte[] moduleLogs = await this.logsProvider.GetLogs(l.id, logOptions, cancellationToken);
+
+                    Console.WriteLine($"Logs size - {moduleLogs.Length}");
+                    return logOptions.ContentEncoding == LogsContentEncoding.Gzip
+                        ? new LogsResponse(l.id, moduleLogs)
+                        : new LogsResponse(l.id, moduleLogs.FromBytes());
+                });
             IEnumerable<LogsResponse> response = await Task.WhenAll(uploadLogsTasks);
             return Option.Some(response);
         }
