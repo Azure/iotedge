@@ -17,72 +17,69 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     .AddEnvironmentVariables("E2E_")
                     .Build();
 
-                return new Context(
-                    context.GetValue<string>("IOT_HUB_CONNECTION_STRING"),
-                    context.GetValue<string>("EVENT_HUB_ENDPOINT"),
-                    context.GetValue("deviceId", string.Empty),
-                    context.GetValue("installerPath", string.Empty),
-                    context.GetValue("packagePath", string.Empty),
-                    context.GetValue("proxy", string.Empty),
-                    context.GetValue("registry", string.Empty),
-                    context.GetValue("user", string.Empty),
-                    context.GetValue("CONTAINER_REGISTRY_PASSWORD", string.Empty),
-                    context.GetValue("edgeAgent", string.Empty),
-                    context.GetValue("edgeHub", string.Empty),
-                    context.GetValue("tempSensor", string.Empty),
-                    context.GetValue("methodSender", string.Empty),
-                    context.GetValue("methodReceiver", string.Empty),
-                    context.GetValue("logFile", string.Empty),
-                    context.GetValue("verbose", false),
-                    context.GetValue("setupTimeoutMinutes", 5),
-                    context.GetValue("teardownTimeoutMinutes", 2),
-                    context.GetValue("testTimeoutMinutes", 5));
+                string GetStr(string name) => context.GetValue<string>(name);
+
+                Option<(string, string, string)> AllOrNothing(string a, string b, string c) =>
+                    string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) || string.IsNullOrEmpty(c)
+                        ? Option.None<(string, string, string)>()
+                        : Option.Some((a, b, c));
+
+                return new Context
+                {
+                    ConnectionString = GetStr("IOT_HUB_CONNECTION_STRING"),
+                    EventHubEndpoint = GetStr("EVENT_HUB_ENDPOINT"),
+                    DeviceId = context.GetValue("deviceId", $"end-to-end-{DateTime.Now:yyyy'-'MM'-'dd'T'HH'-'mm'-'ss'-'fff}"),
+                    InstallerPath = Option.Maybe(GetStr("installerPath")),
+                    PackagePath = Option.Maybe(GetStr("packagePath")),
+                    Proxy = Option.Maybe(context.GetValue<Uri>("proxy")),
+                    Registry = AllOrNothing(GetStr("registry"), GetStr("user"), GetStr("CONTAINER_REGISTRY_PASSWORD")),
+                    EdgeAgent = Option.Maybe(GetStr("edgeAgent")),
+                    EdgeHub = Option.Maybe(GetStr("edgeHub")),
+                    TempSensor = Option.Maybe(GetStr("tempSensor")),
+                    MethodSender = Option.Maybe(GetStr("methodSender")),
+                    MethodReceiver = Option.Maybe(GetStr("methodReceiver")),
+                    LogFile = Option.Maybe(GetStr("logFile")),
+                    Verbose = context.GetValue("verbose", false),
+                    SetupTimeout = TimeSpan.FromMinutes(context.GetValue("setupTimeoutMinutes", 5)),
+                    TeardownTimeout = TimeSpan.FromMinutes(context.GetValue("teardownTimeoutMinutes", 2)),
+                    TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5))
+                };
             });
-
-        public Context(string connectionString, string eventHubEndpoint, string deviceId, string installerPath, string packagePath, string proxy, string registry, string user, string password, string edgeAgent, string edgeHub, string tempSensor, string methodSender, string methodReceiver, string logFile, bool verbose, int setupTimeout, int teardownTimeout, int testTimeout)
-        {
-            string CreateDeviceId()
-            {
-                return $"end-to-end-{DateTime.Now:yyyy'-'MM'-'dd'T'HH'-'mm'-'ss'-'fff}";
-            }
-
-            this.ConnectionString = connectionString;
-            this.EventHubEndpoint = eventHubEndpoint;
-            this.DeviceId = string.IsNullOrEmpty(deviceId) ? CreateDeviceId() : deviceId;
-            this.InstallerPath = string.IsNullOrEmpty(installerPath) ? Option.None<string>() : Option.Some(installerPath);
-            this.PackagePath = string.IsNullOrEmpty(packagePath) ? Option.None<string>() : Option.Some(packagePath);
-            this.Proxy = string.IsNullOrEmpty(proxy) ? Option.None<Uri>() : Option.Some(new Uri(proxy));
-            this.Registry = string.IsNullOrEmpty(registry) || string.IsNullOrEmpty(user) || string.IsNullOrEmpty(password) ? Option.None<(string, string, string)>() : Option.Some((registry, user, password));
-            this.EdgeAgent = string.IsNullOrEmpty(edgeAgent) ? Option.None<string>() : Option.Some(edgeAgent);
-            this.EdgeHub = string.IsNullOrEmpty(edgeHub) ? Option.None<string>() : Option.Some(edgeHub);
-            this.TempSensor = string.IsNullOrEmpty(tempSensor) ? Option.None<string>() : Option.Some(tempSensor);
-            this.MethodSender = string.IsNullOrEmpty(methodSender) ? Option.None<string>() : Option.Some(methodSender);
-            this.MethodReceiver = string.IsNullOrEmpty(methodReceiver) ? Option.None<string>() : Option.Some(methodReceiver);
-            this.LogFile = string.IsNullOrEmpty(logFile) ? Option.None<string>() : Option.Some(logFile);
-            this.Verbose = verbose;
-            this.SetupTimeout = TimeSpan.FromMinutes(setupTimeout);
-            this.TeardownTimeout = TimeSpan.FromMinutes(teardownTimeout);
-            this.TestTimeout = TimeSpan.FromMinutes(testTimeout);
-        }
 
         public static Context Current => Default.Value;
 
-        public string ConnectionString { get; }
-        public string EventHubEndpoint { get; }
-        public string DeviceId { get; }
-        public Option<string> InstallerPath { get; }
-        public Option<string> PackagePath { get; }
-        public Option<Uri> Proxy { get; }
-        public Option<(string address, string username, string password)> Registry;
-        public Option<string> EdgeAgent { get; }
-        public Option<string> EdgeHub { get; }
-        public Option<string> TempSensor { get; }
-        public Option<string> MethodSender { get; }
-        public Option<string> MethodReceiver { get; }
-        public Option<string> LogFile { get; }
-        public bool Verbose { get; }
-        public TimeSpan SetupTimeout { get; }
-        public TimeSpan TeardownTimeout { get; }
-        public TimeSpan TestTimeout { get; }
+        public string ConnectionString { get; private set; }
+
+        public string EventHubEndpoint { get; private set; }
+
+        public string DeviceId { get; private set; }
+
+        public Option<string> InstallerPath { get; private set; }
+
+        public Option<string> PackagePath { get; private set; }
+
+        public Option<Uri> Proxy { get; private set; }
+
+        public Option<(string address, string username, string password)> Registry { get; private set; }
+
+        public Option<string> EdgeAgent { get; private set; }
+
+        public Option<string> EdgeHub { get; private set; }
+
+        public Option<string> TempSensor { get; private set; }
+
+        public Option<string> MethodSender { get; private set; }
+
+        public Option<string> MethodReceiver { get; private set; }
+
+        public Option<string> LogFile { get; private set; }
+
+        public bool Verbose { get; private set; }
+
+        public TimeSpan SetupTimeout { get; private set; }
+
+        public TimeSpan TeardownTimeout { get; private set; }
+
+        public TimeSpan TestTimeout { get; private set; }
     }
 }
