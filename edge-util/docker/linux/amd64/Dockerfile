@@ -1,7 +1,7 @@
 # docker file for azureiotedge/azureiotedge-runtime-base:1.1-linux-amd64
-ARG num_procs=4
-
 FROM alpine:3.7
+
+ARG num_procs=4
 
 # Build RocksDB for alpine
 RUN apk update && \
