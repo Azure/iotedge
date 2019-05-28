@@ -8,13 +8,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class DaemonConfiguration
     {
-        const string ConfigYamlFile = @"C:\ProgramData\iotedge\config.yaml";
-
-        YamlDocument config;
+        readonly string configYamlFile;
+        readonly YamlDocument config;
 
         public DaemonConfiguration()
         {
-            string contents = File.ReadAllText(ConfigYamlFile);
+            this.configYamlFile = Platform.GetConfigYamlPath();
+            string contents = File.ReadAllText(this.configYamlFile);
             this.config = new YamlDocument(contents);
         }
 
@@ -28,19 +28,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.ReplaceOrAdd("agent.env.UpstreamProtocol", "AmqpWs");
         }
 
+        public void SetDeviceConnectionString(string value)
+        {
+            this.config.ReplaceOrAdd("provisioning.device_connection_string", value);
+        }
+
+        public void SetDeviceHostname(string value)
+        {
+            this.config.ReplaceOrAdd("hostname", value);
+        }
+
         public void Update()
         {
-            var attr = File.GetAttributes(ConfigYamlFile);
-            File.SetAttributes(ConfigYamlFile, attr & ~FileAttributes.ReadOnly);
+            var attr = File.GetAttributes(this.configYamlFile);
+            File.SetAttributes(this.configYamlFile, attr & ~FileAttributes.ReadOnly);
 
-            File.WriteAllText(ConfigYamlFile, this.config.ToString());
+            File.WriteAllText(this.configYamlFile, this.config.ToString());
 
             if (attr != 0)
             {
-                File.SetAttributes(ConfigYamlFile, attr);
+                File.SetAttributes(this.configYamlFile, attr);
             }
-
-            Log.Information("Updated daemon configuration file '{ConfigFile}'", ConfigYamlFile);
         }
     }
 }
