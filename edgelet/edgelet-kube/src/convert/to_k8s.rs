@@ -411,8 +411,6 @@ pub fn spec_to_deployment<R: KubeRuntimeData>(
 
 #[cfg(test)]
 mod tests {
-    #![allow(unused_imports)]
-
     use super::spec_to_deployment;
     use crate::constants;
     use crate::convert::to_k8s::auth_to_image_pull_secret;
