@@ -39,57 +39,44 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             async Task WaitForStatusAsync()
             {
-                try
-                {
-                    await Retry.Do(
-                        async () =>
-                        {
-                            string[] output = await Process.RunAsync("iotedge", "list", token);
+                await Retry.Do(
+                    async () =>
+                    {
+                        string[] output = await Process.RunAsync("iotedge", "list", token);
 
-                            Log.Verbose(string.Join("\n", output));
+                        Log.Verbose(string.Join("\n", output));
 
-                            return output
-                                .Where(
-                                    ln =>
+                        return output
+                            .Where(
+                                ln =>
+                                {
+                                    var columns = ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
+                                    foreach (var module in modules)
                                     {
-                                        var columns = ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
-                                        foreach (var module in modules)
+                                        // each line is "name status"
+                                        if (columns[0] == module.Id &&
+                                            columns[1].Equals(desired.ToString(), StringComparison.OrdinalIgnoreCase))
                                         {
-                                            // each line is "name status"
-                                            if (columns[0] == module.Id &&
-                                                columns[1].Equals(desired.ToString(), StringComparison.OrdinalIgnoreCase))
-                                            {
-                                                return true;
-                                            }
+                                            return true;
                                         }
+                                    }
 
-                                        return false;
-                                    }).ToArray();
-                        },
-                        a => a.Length == modules.Length,
-                        e =>
-                        {
-                            // Retry if iotedged's management endpoint is still starting up,
-                            // and therefore isn't responding to `iotedge list` yet
-                            bool DaemonNotReady(string details) =>
-                                details.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
-                                details.Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase);
+                                    return false;
+                                }).ToArray();
+                    },
+                    a => a.Length == modules.Length,
+                    e =>
+                    {
+                        // Retry if iotedged's management endpoint is still starting up,
+                        // and therefore isn't responding to `iotedge list` yet
+                        bool DaemonNotReady(string details) =>
+                            details.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
+                            details.Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase);
 
-                            return DaemonNotReady(e.ToString());
-                        },
-                        TimeSpan.FromSeconds(5),
-                        token);
-                }
-                catch (OperationCanceledException)
-                {
-                    (string t, string[] a) = FormatModulesList();
-                    throw new Exception(string.Format($"Error: timed out waiting for {t} to start", a));
-                }
-                catch (Exception e)
-                {
-                    (string t, string[] a) = FormatModulesList();
-                    throw new Exception(string.Format($"Error searching for {t}: {e}", a));
-                }
+                        return DaemonNotReady(e.ToString());
+                    },
+                    TimeSpan.FromSeconds(5),
+                    token);
             }
 
             (string template, string[] args) = FormatModulesList();

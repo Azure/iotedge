@@ -3,20 +3,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
+    using System.Collections.ObjectModel;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Routing.Core;
     using Xunit;
 
     [Unit]
     public class EdgeHubConfigTest
     {
+        public static IEnumerable<object[]> GetConstructorInvalidParameters()
+        {
+            yield return new object[] { null, new Dictionary<string, RouteConfig>(), new StoreAndForwardConfiguration(1000) };
+            yield return new object[] { "1.0", null, new StoreAndForwardConfiguration(1000) };
+            yield return new object[] { "1.0", new Dictionary<string, RouteConfig>(), null };
+        }
+
         [Fact]
         public void ConstructorHappyPath()
         {
             // Arrange
-            IEnumerable<(string Name, string Value, Route route)> routes = Enumerable.Empty<(string Name, string Value, Route route)>();
+            IReadOnlyDictionary<string, RouteConfig> routes = new ReadOnlyDictionary<string, RouteConfig>(new Dictionary<string, RouteConfig>());
             var snfConfig = new StoreAndForwardConfiguration(1000);
 
             // Act
@@ -28,17 +34,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         [Theory]
         [MemberData(nameof(GetConstructorInvalidParameters))]
-        public void ConstructorInvalidParameters(string schemaVersion, IEnumerable<(string Name, string Value, Route Route)> routes, StoreAndForwardConfiguration configuration)
+        public void ConstructorInvalidParameters(string schemaVersion, Dictionary<string, RouteConfig> routes, StoreAndForwardConfiguration configuration)
         {
             // Act & Assert
             Assert.ThrowsAny<ArgumentException>(() => new EdgeHubConfig(schemaVersion, routes, configuration));
-        }
-
-        public static IEnumerable<object[]> GetConstructorInvalidParameters()
-        {
-            yield return new object[] { null, new List<(string Name, string Value, Route route)>(), new StoreAndForwardConfiguration(1000) };
-            yield return new object[] { "1.0", null, new StoreAndForwardConfiguration(1000) };
-            yield return new object[] { "1.0", new List<(string Name, string Value, Route route)>(), null };
         }
     }
 }

@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
 
             try
             {
-                using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
+                using (var cts = new CancellationTokenSource(args.Timeout))
                 {
                     Log.Information("Running tempSensor test");
                     await Profiler.Run(
@@ -39,24 +39,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
                                 iotHub,
                                 token);
 
-                            var daemon = new EdgeDaemon(args.InstallerPath);
+                            var daemon = Platform.CreateEdgeDaemon(args.InstallerPath);
                             await daemon.UninstallAsync(token);
                             await daemon.InstallAsync(
                                 device.ConnectionString,
                                 args.PackagesPath,
                                 args.Proxy,
                                 token);
-
-                            await args.Proxy.Match(
-                                async p =>
-                                {
-                                    await daemon.StopAsync(token);
-                                    var yaml = new DaemonConfiguration();
-                                    yaml.AddHttpsProxy(p);
-                                    yaml.Update();
-                                    await daemon.StartAsync(token);
-                                },
-                                () => daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token));
+                            await daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
 
                             var agent = new EdgeAgent(device.Id, iotHub);
                             await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
@@ -114,6 +104,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
                         "Completed tempSensor test");
                 }
             }
+            catch (OperationCanceledException e)
+            {
+                Log.Error(e, "Cancelled tempSensor test after {Timeout} minutes", args.Timeout.TotalMinutes);
+            }
             catch (Exception e)
             {
                 Log.Error(e, "Failed tempSensor test");
@@ -139,6 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.TempSensor
             public string HubImage;
             public string SensorImage;
             public Option<(string address, string username, string password)> Registry;
+            public TimeSpan Timeout;
             public bool Verbose;
             public Option<string> LogFile;
         }

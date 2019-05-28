@@ -1,13 +1,13 @@
-
 # Configures the provisioning mode
 provisioning:
   source: "dps"
   global_endpoint: "scheme://jibba-jabba.net"
   scope_id: "i got no time for the jibba-jabba"
   attestation:
-    method: "symmetric_key"
+    method: "x509"
     registration_id: "register me fool"
-    symmetric_key: "key"
+    identity_cert: "some/path/mr.t.cer.pem"
+    identity_pk: "some/path/mr.t.pk.pem"
 
 agent:
   name: "edgeAgent"
