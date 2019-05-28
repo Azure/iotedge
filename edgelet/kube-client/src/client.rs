@@ -14,7 +14,7 @@ use k8s_openapi::api::apps::v1 as apps;
 use k8s_openapi::api::authentication::v1 as auth;
 use k8s_openapi::api::core::v1 as api_core;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
-use k8s_openapi::{http, Response as K8sResponse};
+use k8s_openapi::{http, Response as K8sResponse, ResponseBody};
 use log::debug;
 
 use crate::config::{Config, TokenSource};
@@ -87,7 +87,7 @@ where
             api_core::CreateNamespacedConfigMapOptional::default(),
         )
         .map_err(Error::from)
-        .map(|(req, _)| {
+        .map(|req| {
             self.request(req).and_then(|response| match response {
                 api_core::CreateNamespacedConfigMapResponse::Ok(config_map)
                 | api_core::CreateNamespacedConfigMapResponse::Created(config_map)
@@ -115,7 +115,7 @@ where
             api_core::DeleteNamespacedConfigMapOptional::default(),
         )
         .map_err(Error::from)
-        .map(|(req, _)| {
+        .map(|req| {
             self.request(req).and_then(|response| match response {
                 api_core::DeleteNamespacedConfigMapResponse::OkStatus(_)
                 | api_core::DeleteNamespacedConfigMapResponse::OkValue(_) => Ok(()),
@@ -137,7 +137,7 @@ where
             apps::CreateNamespacedDeploymentOptional::default(),
         )
         .map_err(Error::from)
-        .map(|(req, _)| {
+        .map(|req| {
             self.request(req).and_then(|response| match response {
                 apps::CreateNamespacedDeploymentResponse::Accepted(deployment)
                 | apps::CreateNamespacedDeploymentResponse::Created(deployment)
@@ -162,7 +162,7 @@ where
             apps::ReplaceNamespacedDeploymentOptional::default(),
         )
         .map_err(Error::from)
-        .map(|(req, _)| {
+        .map(|req| {
             self.request(req).and_then(|response| match response {
                 apps::ReplaceNamespacedDeploymentResponse::Created(deployment)
                 | apps::ReplaceNamespacedDeploymentResponse::Ok(deployment) => Ok(deployment),
@@ -187,7 +187,7 @@ where
         };
         apps::Deployment::delete_namespaced_deployment(name, namespace, params)
             .map_err(Error::from)
-            .map(|(req, _)| {
+            .map(|req| {
                 self.request(req).and_then(|response| match response {
                     apps::DeleteNamespacedDeploymentResponse::OkStatus(_)
                     | apps::DeleteNamespacedDeploymentResponse::OkValue(_) => Ok(()),
@@ -213,7 +213,7 @@ where
         };
         apps::Deployment::list_namespaced_deployment(namespace, params)
             .map_err(Error::from)
-            .map(|(req, _)| {
+            .map(|req| {
                 self.request(req).and_then(|response| match response {
                     apps::ListNamespacedDeploymentResponse::Ok(deployments) => Ok(deployments),
                     _ => Err(Error::from(ErrorKind::Response)),
@@ -234,7 +234,7 @@ where
         };
         api_core::Pod::list_namespaced_pod(namespace, params)
             .map_err(Error::from)
-            .map(|(req, _)| {
+            .map(|req| {
                 self.request(req).and_then(|response| match response {
                     api_core::ListNamespacedPodResponse::Ok(pod_list) => Ok(pod_list),
                     _ => Err(Error::from(ErrorKind::Response)),
@@ -257,7 +257,7 @@ where
         };
         api_core::Secret::list_namespaced_secret(namespace, params)
             .map_err(Error::from)
-            .map(|(req, _)| {
+            .map(|req| {
                 self.request(req).and_then(|response| match response {
                     api_core::ListNamespacedSecretResponse::Ok(secrets) => Ok(secrets),
                     _ => Err(Error::from(ErrorKind::Response)),
@@ -278,7 +278,7 @@ where
             api_core::CreateNamespacedSecretOptional::default(),
         )
         .map_err(Error::from)
-        .map(|(req, _)| {
+        .map(|req| {
             self.request(req).and_then(|response| match response {
                 api_core::CreateNamespacedSecretResponse::Accepted(s)
                 | api_core::CreateNamespacedSecretResponse::Created(s)
@@ -303,7 +303,7 @@ where
             api_core::ReplaceNamespacedSecretOptional::default(),
         )
         .map_err(Error::from)
-        .map(|(req, _)| {
+        .map(|req| {
             self.request(req).and_then(|response| match response {
                 api_core::ReplaceNamespacedSecretResponse::Created(s)
                 | api_core::ReplaceNamespacedSecretResponse::Ok(s) => Ok(s),
@@ -332,7 +332,7 @@ where
 
         auth::TokenReview::create_token_review(&token, auth::CreateTokenReviewOptional::default())
             .map_err(Error::from)
-            .map(|(req, _)| {
+            .map(|req| {
                 self.request(req).and_then(|response| match response {
                     auth::CreateTokenReviewResponse::Created(t)
                     | auth::CreateTokenReviewResponse::Ok(t) => Ok(t),
@@ -345,7 +345,10 @@ where
 
     fn request<R: K8sResponse>(
         &mut self,
-        req: http::Request<Vec<u8>>,
+        (req, _response_body): (
+            http::Request<Vec<u8>>,
+            fn(http::StatusCode) -> ResponseBody<R>,
+        ),
     ) -> impl Future<Item = R, Error = Error> {
         let next = |response: http::Response<Body>| {
             let status_code = response.status();
