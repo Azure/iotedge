@@ -7,7 +7,6 @@ provisioning:
   attestation:
     method: "tpm"
     registration_id: "register me fool"
-    device_id: "d1"
 
 agent:
   name: "edgeAgent"
