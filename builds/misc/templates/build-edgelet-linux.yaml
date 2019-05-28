@@ -4,7 +4,7 @@ parameters:
   namespace: 'microsoft'
   project: ''
   configuration: 'release'
-  filePath:
+  filePath: ''
 
 steps:
   - task: Bash@3
