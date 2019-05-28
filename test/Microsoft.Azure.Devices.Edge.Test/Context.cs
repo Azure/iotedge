@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.IO;
-    using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 

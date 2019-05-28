@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                 type = "docker",
                                 settings = new
                                 {
-                                    image = image
+                                    image
                                 }
                             }));
                 });
