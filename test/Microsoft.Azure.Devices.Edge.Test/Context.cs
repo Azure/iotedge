@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.IO;
+    using System.Net;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
@@ -34,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     ConnectionString = GetString("IOT_HUB_CONNECTION_STRING"),
                     EventHubEndpoint = GetString("EVENT_HUB_ENDPOINT"),
-                    DeviceId = GetStringOr("deviceId", $"end-to-end-{DateTime.Now:yyyy'-'MM'-'dd'T'HH'-'mm'-'ss'-'fff}"),
+                    DeviceId = GetStringOr("deviceId", $"end-to-end-{Dns.GetHostName()}-{DateTime.Now:yyyy'-'MM'-'dd'T'HH'-'mm'-'ss'-'fff}"),
                     InstallerPath = Option.Maybe(GetString("installerPath")),
                     PackagePath = Option.Maybe(GetString("packagePath")),
                     Proxy = Option.Maybe(context.GetValue<Uri>("proxy")),
