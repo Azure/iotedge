@@ -28,8 +28,8 @@ use edgelet_http::MaybeProxyClient;
 use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
 use crate::LatestVersions;
 
-mod os_info;
-use self::os_info::OsInfo;
+mod additional_info;
+use self::additional_info::AdditionalInfo;
 
 mod stdout;
 use self::stdout::Stdout;
@@ -44,7 +44,7 @@ pub struct Check {
     output_format: OutputFormat,
     verbose: bool,
 
-    os_info: OsInfo,
+    additional_info: AdditionalInfo,
 
     // These optional fields are populated by the checks
     settings: Option<Settings<DockerConfig>>,
@@ -202,7 +202,8 @@ impl Check {
                 output_format,
                 verbose,
 
-                os_info: OsInfo::new(),
+                additional_info: AdditionalInfo::new(),
+
                 settings: None,
                 docker_host_arg: None,
                 docker_server_version: None,
@@ -322,19 +323,20 @@ impl Check {
         ];
 
         let mut check_results = CheckResultsSerializable {
-            os_info: self.os_info.clone(),
+            additional_info: self.additional_info.clone(),
             checks: Default::default(),
         };
 
         let mut stdout = Stdout::new(self.output_format);
 
-        let mut have_warnings = false;
-        let mut have_skipped = false;
-        let mut have_fatal = false;
-        let mut have_errors = false;
+        let mut num_successful = 0_usize;
+        let mut num_warnings = 0_usize;
+        let mut num_skipped = 0_usize;
+        let mut num_fatal = 0_usize;
+        let mut num_errors = 0_usize;
 
         for (section_name, section_checks) in CHECKS {
-            if have_fatal {
+            if num_fatal > 0 {
                 break;
             }
 
@@ -344,24 +346,26 @@ impl Check {
             }
 
             for (check_id, check_name, check) in *section_checks {
-                if have_fatal {
+                if num_fatal > 0 {
                     break;
                 }
 
                 match check(self) {
                     Ok(CheckResult::Ok) => {
+                        num_successful += 1;
+
                         check_results
                             .checks
                             .insert(check_id, CheckResultSerializable::Ok);
 
                         stdout.write_success(|stdout| {
-                            writeln!(stdout, "\u{221a} {}", check_name)?;
+                            writeln!(stdout, "\u{221a} {} - OK", check_name)?;
                             Ok(())
                         });
                     }
 
                     Ok(CheckResult::Warning(warning)) => {
-                        have_warnings = true;
+                        num_warnings += 1;
 
                         check_results.checks.insert(
                             check_id,
@@ -371,7 +375,7 @@ impl Check {
                         );
 
                         stdout.write_warning(|stdout| {
-                            writeln!(stdout, "\u{203c} {}", check_name)?;
+                            writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
 
                             let message = warning.to_string();
 
@@ -399,7 +403,7 @@ impl Check {
                     }
 
                     Ok(CheckResult::Skipped) => {
-                        have_skipped = true;
+                        num_skipped += 1;
 
                         check_results
                             .checks
@@ -407,7 +411,7 @@ impl Check {
 
                         if self.verbose {
                             stdout.write_warning(|stdout| {
-                                writeln!(stdout, "\u{203c} {}", check_name)?;
+                                writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
                                 writeln!(stdout, "    skipping because of previous failures")?;
                                 Ok(())
                             });
@@ -415,7 +419,7 @@ impl Check {
                     }
 
                     Ok(CheckResult::Fatal(err)) => {
-                        have_fatal = true;
+                        num_fatal += 1;
 
                         check_results.checks.insert(
                             check_id,
@@ -425,7 +429,7 @@ impl Check {
                         );
 
                         stdout.write_error(|stdout| {
-                            writeln!(stdout, "\u{00d7} {}", check_name)?;
+                            writeln!(stdout, "\u{00d7} {} - Error", check_name)?;
 
                             let message = err.to_string();
 
@@ -447,7 +451,7 @@ impl Check {
                     }
 
                     Err(err) => {
-                        have_errors = true;
+                        num_errors += 1;
 
                         check_results.checks.insert(
                             check_id,
@@ -457,7 +461,7 @@ impl Check {
                         );
 
                         stdout.write_error(|stdout| {
-                            writeln!(stdout, "\u{00d7} {}", check_name)?;
+                            writeln!(stdout, "\u{00d7} {} - Error", check_name)?;
 
                             let message = err.to_string();
 
@@ -485,60 +489,55 @@ impl Check {
             }
         }
 
-        let result = match (have_warnings, have_skipped, have_fatal || have_errors) {
-            (false, false, false) => {
-                stdout.write_success(|stdout| {
-                    writeln!(stdout, "All checks succeeded.")?;
-                    Ok(())
-                });
+        stdout.write_success(|stdout| {
+            writeln!(stdout, "{} check(s) succeeded.", num_successful)?;
+            Ok(())
+        });
 
+        if num_warnings > 0 {
+            stdout.write_warning(|stdout| {
+                write!(stdout, "{} check(s) raised warnings.", num_warnings)?;
+                if self.verbose {
+                    writeln!(stdout)?;
+                } else {
+                    writeln!(stdout, " Re-run with --verbose for more details.")?;
+                }
                 Ok(())
-            }
+            });
+        }
 
-            (_, _, true) => {
-                stdout.write_error(|stdout| {
-                    write!(stdout, "One or more checks raised errors.")?;
-                    if self.verbose {
-                        writeln!(stdout)?;
-                    } else {
-                        writeln!(stdout, " Re-run with --verbose for more details.")?;
-                    }
-                    Ok(())
-                });
-
-                Err(ErrorKind::Diagnostics.into())
-            }
-
-            (_, true, _) => {
-                stdout.write_warning(|stdout| {
-                    write!(
-                        stdout,
-                        "One or more checks were skipped due to errors from other checks."
-                    )?;
-                    if self.verbose {
-                        writeln!(stdout)?;
-                    } else {
-                        writeln!(stdout, " Re-run with --verbose for more details.")?;
-                    }
-                    Ok(())
-                });
-
+        if num_fatal + num_errors > 0 {
+            stdout.write_error(|stdout| {
+                write!(stdout, "{} check(s) raised errors.", num_fatal + num_errors)?;
+                if self.verbose {
+                    writeln!(stdout)?;
+                } else {
+                    writeln!(stdout, " Re-run with --verbose for more details.")?;
+                }
                 Ok(())
-            }
+            });
+        }
 
-            (true, _, _) => {
-                stdout.write_warning(|stdout| {
-                    write!(stdout, "One or more checks raised warnings.")?;
-                    if self.verbose {
-                        writeln!(stdout)?;
-                    } else {
-                        writeln!(stdout, " Re-run with --verbose for more details.")?;
-                    }
-                    Ok(())
-                });
-
+        if num_skipped > 0 {
+            stdout.write_warning(|stdout| {
+                write!(
+                    stdout,
+                    "{} check(s) were skipped due to errors from other checks.",
+                    num_skipped,
+                )?;
+                if self.verbose {
+                    writeln!(stdout)?;
+                } else {
+                    writeln!(stdout, " Re-run with --verbose for more details.")?;
+                }
                 Ok(())
-            }
+            });
+        }
+
+        let result = if num_fatal + num_errors > 0 {
+            Err(ErrorKind::Diagnostics.into())
+        } else {
+            Ok(())
         };
 
         if self.output_format == OutputFormat::Json {
@@ -907,7 +906,7 @@ fn iotedged_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
     if version != latest_versions.iotedged {
         return Ok(CheckResult::Warning(
             Context::new(format!(
-                "Installed IoT Edge daemon has version {} but version {} is available.\n\
+                "Installed IoT Edge daemon has version {} but {} is the latest stable version available.\n\
                  Please see https://aka.ms/iotedge-update-runtime for update instructions.",
                 version, latest_versions.iotedged,
             ))
@@ -1520,7 +1519,7 @@ fn write_lines<'a>(
 
 #[derive(Debug, serde_derive::Serialize)]
 struct CheckResultsSerializable {
-    os_info: OsInfo,
+    additional_info: AdditionalInfo,
     checks: BTreeMap<&'static str, CheckResultSerializable>,
 }
 

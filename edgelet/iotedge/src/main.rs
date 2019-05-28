@@ -160,7 +160,7 @@ fn run() -> Result<(), Error> {
                         .long("output")
                         .short("o")
                         .value_name("FORMAT")
-                        .help("Output format.")
+                        .help("Output format. Note that JSON output contains some additional host information like OS name and version.")
                         .takes_value(true)
                         .possible_values(&["json", "text"])
                         .default_value("text"),

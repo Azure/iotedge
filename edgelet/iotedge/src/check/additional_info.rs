@@ -1,3 +1,19 @@
+/// Additional info for the JSON output of `iotedge check`
+#[derive(Clone, Debug, serde_derive::Serialize)]
+pub(super) struct AdditionalInfo {
+    now: chrono::DateTime<chrono::Utc>,
+    os: OsInfo,
+}
+
+impl AdditionalInfo {
+    pub(super) fn new() -> Self {
+        AdditionalInfo {
+            now: chrono::Utc::now(),
+            os: OsInfo::new(),
+        }
+    }
+}
+
 /// A subset of the fields from /etc/os-release.
 ///
 /// Examples:
@@ -36,6 +52,8 @@ impl OsInfo {
         let mut result = OsInfo {
             id: Some("windows".to_owned()),
             version_id: None,
+            // Technically wrong if someone compiles and runs a x86 build on an x64 OS, but we don't provide
+            // Windows x86 builds.
             bitness: std::mem::size_of::<usize>() * 8,
         };
 
@@ -81,6 +99,8 @@ impl OsInfo {
         let mut result = OsInfo {
             id: None,
             version_id: None,
+            // Technically wrong if someone runs an arm32 build on arm64,
+            // but we have dedicated arm64 builds so hopefully they don't.
             bitness: std::mem::size_of::<usize>() * 8,
         };
 
