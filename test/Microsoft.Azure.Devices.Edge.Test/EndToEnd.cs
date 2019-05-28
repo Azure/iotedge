@@ -14,16 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
         CancellationTokenSource cts;
 
         [SetUp]
-        public void Setup()
-        {
-            this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
-        }
+        public void Setup() => this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
 
         [TearDown]
-        public void Teardown()
-        {
-            this.cts.Dispose();
-        }
+        public void Teardown() => this.cts.Dispose();
 
         [Test]
         public async Task TempSensor()
