@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             JObject envObj = envToken.Value<JObject>();
                             if (envObj.TryGetValue(key, StringComparison.OrdinalIgnoreCase, out JToken valueToken))
                             {
-                                value = Option.Maybe(valueToken.Value<string>());
+                                value = Option.Maybe(valueToken.Value<JObject>().Value<string>("value"));
                             }
                         }
                     });
@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             JObject envObj = envToken.Value<JObject>();
                             if (envObj.TryGetValue(key, StringComparison.OrdinalIgnoreCase, out JToken valueToken))
                             {
-                                valueToken.Remove();
+                                valueToken.Parent.Remove();
                             }
                         }
                     });
