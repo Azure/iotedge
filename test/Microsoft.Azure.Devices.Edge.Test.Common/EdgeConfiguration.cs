@@ -36,16 +36,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             public Module WithEnvironment(IEnumerable<ValueTuple<string, string>> env)
             {
-                this.config.ForEachModule(
-                    (moduleName, module) =>
+                this.config.UpdateModule(
+                    this.name,
+                    module =>
                     {
-                        if (moduleName == this.name)
+                        JObject envObj = GetOrAddObject("env", module);
+                        foreach (ValueTuple<string, string> pair in env)
                         {
-                            JObject envObj = GetOrAddObject("env", module);
-                            foreach (ValueTuple<string, string> pair in env)
-                            {
-                                envObj.Add(pair.Item1, JToken.FromObject(new { value = pair.Item2 }));
-                            }
+                            envObj.Add(pair.Item1, JToken.FromObject(new { value = pair.Item2 }));
                         }
                     });
 
@@ -74,14 +72,72 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                 throw new ArgumentException("Unknown protocol");
                         }
 
-                        this.WithEnvironment(new[]
+                        // If UpstreamProtocol was already set in this config to a compatible value,
+                        // remove it so we can add the proxy-compatible value. If it's not compatible,
+                        // throw an error. The caller will need to fix the conflict in their code.
+                        Option<string> upstreamProtocol = this.GetEnvironmentVariable("UpstreamProtocol");
+                        if (upstreamProtocol.Exists(u => u == protocol.ToString() || u == proxyProtocol))
                         {
-                            ("https_proxy", p.ToString()),
-                            ("UpstreamProtocol", proxyProtocol)
-                        });
+                            this.RemoveEnvironmentVariable("UpstreamProtocol");
+                        }
+                        else
+                        {
+                            upstreamProtocol.ForEach(
+                                u =>
+                                {
+                                    string message = $"Setting \"UpstreamProtocol\" to \"{proxyProtocol}\"" +
+                                                     $"would overwrite incompatible value \"{u}\"";
+                                    throw new ArgumentException(message);
+                                });
+                        }
+
+                        this.WithEnvironment(
+                            new[]
+                            {
+                                ("https_proxy", p.ToString()),
+                                ("UpstreamProtocol", proxyProtocol)
+                            });
                     });
 
                 return this;
+            }
+
+            Option<string> GetEnvironmentVariable(string key)
+            {
+                Option<string> value = Option.None<string>();
+
+                this.config.UpdateModule(
+                    this.name,
+                    module =>
+                    {
+                        if (module.TryGetValue("env", StringComparison.OrdinalIgnoreCase, out JToken envToken))
+                        {
+                            JObject envObj = envToken.Value<JObject>();
+                            if (envObj.TryGetValue(key, StringComparison.OrdinalIgnoreCase, out JToken valueToken))
+                            {
+                                value = Option.Maybe(valueToken.Value<string>());
+                            }
+                        }
+                    });
+
+                return value;
+            }
+
+            void RemoveEnvironmentVariable(string key)
+            {
+                this.config.UpdateModule(
+                    this.name,
+                    module =>
+                    {
+                        if (module.TryGetValue("env", StringComparison.OrdinalIgnoreCase, out JToken envToken))
+                        {
+                            JObject envObj = envToken.Value<JObject>();
+                            if (envObj.TryGetValue(key, StringComparison.OrdinalIgnoreCase, out JToken valueToken))
+                            {
+                                valueToken.Remove();
+                            }
+                        }
+                    });
             }
         }
 
@@ -256,6 +312,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 }
             }
         };
+
+        void UpdateModule(string name, Action<JObject> action) => this.ForEachModule(
+            (moduleName, module) =>
+            {
+                if (moduleName == name)
+                {
+                    action(module);
+                }
+            });
 
         void ForEachModule(Action<string, JObject> action)
         {
