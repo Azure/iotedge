@@ -39,16 +39,6 @@ pub(super) struct OsInfo {
 impl OsInfo {
     #[cfg(windows)]
     pub(super) fn new() -> Self {
-        use winapi::shared::ntdef::NTSTATUS;
-        use winapi::shared::ntstatus::STATUS_SUCCESS;
-        use winapi::um::winnt::{LPOSVERSIONINFOW, OSVERSIONINFOW};
-
-        extern "system" {
-            // Can't use GetVersion(Ex) since it reports version N if the caller doesn't have a manifest indicating that it supports Windows N + 1.
-            // Rust binaries don't have a manifest by default, so GetVersion(Ex) always reports Windows 8.
-            pub(super) fn RtlGetVersion(lpVersionInformation: LPOSVERSIONINFOW) -> NTSTATUS;
-        }
-
         let mut result = OsInfo {
             id: Some("windows".to_owned()),
             version_id: None,
@@ -57,36 +47,16 @@ impl OsInfo {
             bitness: std::mem::size_of::<usize>() * 8,
         };
 
-        unsafe {
-            let mut os_version_info: OSVERSIONINFOW = std::mem::zeroed();
-
-            #[allow(clippy::cast_possible_truncation)]
-            {
-                os_version_info.dwOSVersionInfoSize = std::mem::size_of_val(&os_version_info) as _;
-            }
-
-            if RtlGetVersion(&mut os_version_info) == STATUS_SUCCESS {
-                let csd_version = os_version_info
-                    .szCSDVersion
-                    .iter()
-                    .position(|&c| c == 0)
-                    .map(|len| {
-                        std::os::windows::ffi::OsStringExt::from_wide(
-                            &os_version_info.szCSDVersion[..len],
-                        )
-                    })
-                    .and_then(|csd_version: std::ffi::OsString| csd_version.into_string().ok())
-                    .unwrap_or_else(String::new);
-
-                result.version_id = Some(format!(
-                    "{}.{}.{} {}",
-                    os_version_info.dwMajorVersion,
-                    os_version_info.dwMinorVersion,
-                    os_version_info.dwBuildNumber,
-                    csd_version,
-                ));
-            }
-        }
+        result.version_id = os_version()
+            .map(
+                |(major_version, minor_version, build_number, csd_version)| {
+                    format!(
+                        "{}.{}.{} {}",
+                        major_version, minor_version, build_number, csd_version,
+                    )
+                },
+            )
+            .ok();
 
         result
     }
@@ -153,4 +123,60 @@ fn parse_os_release_line(line: &str) -> Option<(&str, &str)> {
     };
 
     Some((key, value))
+}
+
+#[cfg(windows)]
+pub(super) fn os_version() -> Result<
+    (
+        winapi::shared::minwindef::DWORD,
+        winapi::shared::minwindef::DWORD,
+        winapi::shared::minwindef::DWORD,
+        String,
+    ),
+    failure::Error,
+> {
+    use winapi::shared::ntdef::NTSTATUS;
+    use winapi::shared::ntstatus::STATUS_SUCCESS;
+    use winapi::um::winnt::{LPOSVERSIONINFOW, OSVERSIONINFOW};
+
+    extern "system" {
+        // Can't use GetVersion(Ex) since it reports version N if the caller doesn't have a manifest indicating that it supports Windows N + 1.
+        // Rust binaries don't have a manifest by default, so GetVersion(Ex) always reports Windows 8.
+        pub(super) fn RtlGetVersion(lpVersionInformation: LPOSVERSIONINFOW) -> NTSTATUS;
+    }
+
+    unsafe {
+        let mut os_version_info: OSVERSIONINFOW = std::mem::zeroed();
+
+        #[allow(clippy::cast_possible_truncation)]
+        {
+            os_version_info.dwOSVersionInfoSize = std::mem::size_of_val(&os_version_info) as _;
+        }
+
+        let status = RtlGetVersion(&mut os_version_info);
+        if status != STATUS_SUCCESS {
+            return Err(Context::new(format!("RtlGetVersion failed with 0x{:08x}", status)).into());
+        }
+
+        let len = os_version_info
+            .szCSDVersion
+            .iter()
+            .position(|&c| c == 0)
+            .ok_or_else(|| {
+                Context::new("null terminator not found in szCSDVersion returned by RtlGetVersion")
+            })?;
+        let csd_version: std::ffi::OsString =
+            std::os::windows::ffi::OsStringExt::from_wide(&os_version_info.szCSDVersion[..len])
+                .context("could not parse szCSDVersion returned by RtlGetVersion")?;
+        let csd_version = csd_version
+            .into_string()
+            .context("could not parse szCSDVersion returned by RtlGetVersion")?;
+
+        Ok((
+            os_version_info.dwMajorVersion,
+            os_version_info.dwMinorVersion,
+            os_version_info.dwBuildNumber,
+            csd_version,
+        ));
+    }
 }

@@ -235,6 +235,7 @@ impl Check {
                         "container engine is installed and functional",
                         container_engine,
                     ),
+                    ("windows-host-version", "Windows host version is supported", host_version),
                     ("hostname", "config.yaml has correct hostname", settings_hostname),
                     (
                         "connect-management-uri",
@@ -700,6 +701,53 @@ fn container_engine(check: &mut Check) -> Result<CheckResult, failure::Error> {
     check.docker_server_version = Some(String::from_utf8_lossy(&output).into_owned());
 
     Ok(CheckResult::Ok)
+}
+
+fn host_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    #[cfg(unix)]
+    {
+        let _ = check;
+        Ok(CheckResult::Ignored)
+    }
+
+    #[cfg(windows)]
+    {
+        let settings = if let Some(settings) = &check.settings {
+            settings
+        } else {
+            return Ok(CheckResult::Skipped);
+        };
+
+        let moby_runtime_uri = settings.moby_runtime().uri().to_string();
+
+        if moby_runtime_uri != "npipe://./pipe/iotedge_moby_engine" {
+            // Host OS version restriction only applies when using Windows containers,
+            // which in turn only happens when using Moby
+            return Ok(CheckResult::Ignored);
+        }
+
+        let (major_version, minor_version, build_number, _) =
+            self::additional_info::os_version().context(|_| "Could not get OS version")?;
+
+        match (major_version, minor_version, build_number) {
+            // When using Windows containers, the host OS version must match the container OS version.
+            // Since our containers are built with 10.0.17763 base images, we require the same for the host OS.
+            //
+            // If this needs to be changed, also update the host OS version check in the Windows install script
+            // (scripts/windows/setup/IotEdgeSecurityDaemon.ps1)
+            (10, 0, 17763) => (),
+
+            (major_version, minor_version, build_number, _) => {
+                return Ok(CheckResult::Fatal(Context::new(format!(
+                    "Windows host with OS version {}.{}.{} is not supported for running Windows containers.\n\
+                     Please see https://aka.ms/iotedge-platsup#tier-1 for details.",
+                    major_version, minor_version, build_number,
+                ))))
+            }
+        }
+
+        Ok(CheckResult::Ok)
+    }
 }
 
 fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
