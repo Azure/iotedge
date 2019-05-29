@@ -8,6 +8,7 @@ then
     token=`cat ${file}`
 else
     echo "Could not find file ${file}"
+    exit 1
 fi
 
 config_src="/etc/traefik/traefik.toml"
