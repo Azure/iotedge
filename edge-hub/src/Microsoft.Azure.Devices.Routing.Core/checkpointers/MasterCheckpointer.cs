@@ -8,8 +8,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core.Util;
-    using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
 
@@ -212,7 +212,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         {
             using (await this.sync.LockAsync())
             {
-                this.childCheckpointers.GetAndSet(this.ChildCheckpointers.SetItem(checkpointer.Id, checkpointer));
+                this.childCheckpointers.Value = this.ChildCheckpointers.SetItem(checkpointer.Id, checkpointer);
             }
         }
 
@@ -220,7 +220,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         {
             using (await this.sync.LockAsync())
             {
-                this.childCheckpointers.GetAndSet(this.ChildCheckpointers.Remove(id));
+                this.childCheckpointers.Value = this.ChildCheckpointers.Remove(id);
             }
         }
 
