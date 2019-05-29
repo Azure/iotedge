@@ -1,21 +1,23 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use crate::constants::*;
-use crate::convert::sanitize_dns_value;
-use crate::error::{ErrorKind, Result};
-use crate::runtime::KubeRuntimeData;
+use std::collections::BTreeMap;
+
 use base64;
 use docker::models::{AuthConfig, HostConfig};
 use edgelet_core::ModuleSpec;
 use edgelet_docker::DockerConfig;
-use k8s_openapi::v1_10::api::apps::v1 as apps;
-use k8s_openapi::v1_10::api::core::v1 as api_core;
-use k8s_openapi::v1_10::apimachinery::pkg::apis::meta::v1 as api_meta;
+use k8s_openapi::api::apps::v1 as apps;
+use k8s_openapi::api::core::v1 as api_core;
+use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 use k8s_openapi::ByteString;
 use log::warn;
 use serde_derive::{Deserialize, Serialize};
 use serde_json;
-use std::collections::BTreeMap;
+
+use crate::constants::*;
+use crate::convert::sanitize_dns_value;
+use crate::error::{ErrorKind, Result};
+use crate::runtime::KubeRuntimeData;
 
 // Use username and server from Docker AuthConfig to construct an image pull secret name.
 fn auth_to_pull_secret_name(auth: &AuthConfig) -> Option<String> {
@@ -95,7 +97,6 @@ pub fn auth_to_image_pull_secret(
         secret_name.clone(),
         api_core::Secret {
             data: Some(secret_data),
-            kind: Some(PULL_SECRET_TYPE.to_string()),
             metadata: Some(api_meta::ObjectMeta {
                 name: Some(secret_name),
                 namespace: Some(namespace.to_string()),
@@ -410,7 +411,6 @@ pub fn spec_to_deployment<R: KubeRuntimeData>(
 
 #[cfg(test)]
 mod tests {
-
     use super::spec_to_deployment;
     use crate::constants;
     use crate::convert::to_k8s::auth_to_image_pull_secret;
@@ -422,7 +422,7 @@ mod tests {
     use docker::models::Mount;
     use edgelet_core::ModuleSpec;
     use edgelet_docker::DockerConfig;
-    use k8s_openapi::v1_10::apimachinery::pkg::apis::meta::v1 as api_meta;
+    use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
     use serde_json;
     use std::collections::BTreeMap;
     use std::collections::HashMap;
@@ -677,10 +677,7 @@ mod tests {
             .with_serveraddress(String::from("REGISTRY"));
         let (name, secret) = auth_to_image_pull_secret("namespace", &auth_config).unwrap();
         assert_eq!(name, "user-registry");
-        assert_eq!(
-            secret.kind.as_ref().unwrap(),
-            "kubernetes.io/dockerconfigjson"
-        );
+
         assert!(secret.metadata.is_some());
         if let Some(meta) = secret.metadata.as_ref() {
             assert_eq!(meta.name, Some(name));
