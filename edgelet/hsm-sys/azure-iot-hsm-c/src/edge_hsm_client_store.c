@@ -2502,7 +2502,14 @@ static int verify_certificate_helper
 
         if ((issuer_cert_path == NULL) || !is_file_valid(issuer_cert_path))
         {
-            LOG_ERROR("Could not find issuer certificate file %s", issuer_cert_path);
+            if (issuer_cert_path == NULL)
+            {
+                LOG_ERROR("Could not find issuer certificate file (null)");
+            }
+            else
+            {
+                LOG_ERROR("Could not find issuer certificate file %s", issuer_cert_path);
+            }
             result = __FAILURE__;
         }
         else if (verify_certificate(cert_file_path, key_file_path, issuer_cert_path, cert_verified) != 0)

@@ -142,24 +142,15 @@ pub enum AttestationMethod {
 #[serde(rename_all = "lowercase")]
 pub struct TpmAttestationInfo {
     registration_id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    device_id: Option<String>,
 }
 
 impl TpmAttestationInfo {
     pub fn new(registration_id: String) -> Self {
-        TpmAttestationInfo {
-            registration_id,
-            device_id: None,
-        }
+        TpmAttestationInfo { registration_id }
     }
 
     pub fn registration_id(&self) -> &str {
         &self.registration_id
-    }
-
-    pub fn device_id(&self) -> Option<&str> {
-        self.device_id.as_ref().map(AsRef::as_ref)
     }
 }
 
@@ -168,8 +159,6 @@ impl TpmAttestationInfo {
 pub struct SymmetricKeyAttestationInfo {
     registration_id: String,
     symmetric_key: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    device_id: Option<String>,
 }
 
 impl SymmetricKeyAttestationInfo {
@@ -179,10 +168,6 @@ impl SymmetricKeyAttestationInfo {
 
     pub fn symmetric_key(&self) -> &str {
         &self.symmetric_key
-    }
-
-    pub fn device_id(&self) -> Option<&str> {
-        self.device_id.as_ref().map(AsRef::as_ref)
     }
 }
 
@@ -700,7 +685,6 @@ mod tests {
                 match dps.attestation() {
                     AttestationMethod::Tpm(ref tpm) => {
                         assert_eq!(tpm.registration_id(), "register me fool");
-                        assert_eq!(tpm.device_id(), None);
                     }
                     _ => unreachable!(),
                 }
@@ -723,7 +707,6 @@ mod tests {
                 match dps.attestation() {
                     AttestationMethod::Tpm(ref tpm) => {
                         assert_eq!(tpm.registration_id(), "register me fool");
-                        assert_eq!(tpm.device_id(), Some("d1"));
                     }
                     _ => unreachable!(),
                 }
@@ -747,7 +730,6 @@ mod tests {
                     AttestationMethod::SymmetricKey(ref key) => {
                         assert_eq!(key.symmetric_key(), "key");
                         assert_eq!(key.registration_id(), "register me fool");
-                        assert_eq!(key.device_id(), Some("d1"));
                     }
                     _ => unreachable!(),
                 }
