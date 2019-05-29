@@ -845,6 +845,22 @@ fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
         .into());
     }
 
+    // Some software like Kubernetes and the IoT Hub SDKs for downstream clients require the device hostname to follow RFC 1035.
+    // For example, the IoT Hub C# SDK cannot connect to a hostname that contains an `_`.
+    if !is_rfc_1035_valid(config_hostname) {
+        return Ok(CheckResult::Warning(Context::new(format!(
+            "config.yaml has hostname {} which is not RFC 1035 compliant.\n\
+             \n\
+             - Hostname must be between 1 and 255 octets inclusive.\n\
+             - Each label in the hostname (component separated by \".\") must be between 1 and 63 octets inclusive.\n\
+             - Each label must start with an ASCII alphabet (a-z) and must contain only ASCII alphanumeric characters (a-z, 0-9).\n\
+             \n\
+             Adhering to RFC 1035 is recommended for maximum compatibility with modules and downstream devices.",
+            config_hostname,
+        ))
+        .into()));
+    }
+
     Ok(CheckResult::Ok)
 }
 
@@ -1611,6 +1627,43 @@ fn resolve_and_tls_handshake(
     Ok(())
 }
 
+fn is_rfc_1035_valid(name: &str) -> bool {
+    if name.len() > 255 {
+        return false;
+    }
+
+    let mut labels = name.split('.');
+
+    let all_labels_valid = labels.all(|label| {
+        if label.len() > 63 {
+            return false;
+        }
+
+        let first_char = match label.chars().next() {
+            Some(c) => c,
+            None => return false,
+        };
+
+        if first_char < 'a' || first_char > 'z' {
+            return false;
+        }
+
+        if label
+            .chars()
+            .any(|c| (c < 'a' || c > 'z') && (c < '0' || c > '9'))
+        {
+            return false;
+        }
+
+        true
+    });
+    if !all_labels_valid {
+        return false;
+    }
+
+    true
+}
+
 fn write_lines<'a>(
     writer: &mut (impl Write + ?Sized),
     first_line_indent: &str,
@@ -1940,5 +1993,38 @@ mod tests {
                 filename, check_result
             ),
         }
+    }
+
+    #[test]
+    fn test_is_rfc_1035_valid() {
+        let longest_valid_label = "a".repeat(63);
+        let longest_valid_name = format!(
+            "{label}.{label}.{label}.{label_rest}",
+            label = longest_valid_label,
+            label_rest = "a".repeat(255 - 63 * 3 - 3)
+        );
+        assert_eq!(longest_valid_name.len(), 255);
+
+        assert!(super::is_rfc_1035_valid("foobar"));
+        assert!(super::is_rfc_1035_valid("foobar.baz"));
+        assert!(super::is_rfc_1035_valid(&longest_valid_label));
+        assert!(super::is_rfc_1035_valid(&format!(
+            "{label}.{label}.{label}",
+            label = longest_valid_label
+        )));
+        assert!(super::is_rfc_1035_valid(&longest_valid_name));
+
+        assert!(!super::is_rfc_1035_valid(&format!(
+            "{}a",
+            longest_valid_label
+        )));
+        assert!(!super::is_rfc_1035_valid(&format!(
+            "{}a",
+            longest_valid_name
+        )));
+        assert!(!super::is_rfc_1035_valid("01.org"));
+        assert!(!super::is_rfc_1035_valid("\u{4eca}\u{65e5}\u{306f}"));
+        assert!(!super::is_rfc_1035_valid("\u{4eca}\u{65e5}\u{306f}.com"));
+        assert!(!super::is_rfc_1035_valid("a\u{4eca}.b\u{65e5}.c\u{306f}"));
     }
 }
