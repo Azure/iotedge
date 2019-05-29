@@ -821,9 +821,25 @@ fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
             .to_owned()
     };
 
-    if config_hostname != machine_hostname {
+    // Technically the value of config_hostname doesn't matter as long as it resolves to this device.
+    // However determining that the value resolves to *this device* is not trivial.
+    //
+    // We could start a server and verify that we can connect to ourselves via that hostname, but starting a
+    // publicly-available server is not something to be done trivially.
+    //
+    // We could enumerate the network interfaces of the device and verify that the IP that the hostname resolves to
+    // belongs to one of them, but this requires non-trivial OS-specific code
+    // (`getifaddrs` on Linux, `GetIpAddrTable` on Windows).
+    //
+    // Instead, we punt on this check and assume that everything's fine if config_hostname is identical to the device hostname,
+    // or starts with it.
+    if config_hostname != machine_hostname
+        && !config_hostname.starts_with(&format!("{}.", machine_hostname))
+    {
         return Err(Context::new(format!(
-            "config.yaml has hostname {} but device reports hostname {}",
+            "config.yaml has hostname {} but device reports hostname {}. \
+             Hostname in config.yaml must either be identical to the device hostname \
+             or be an FQDN that has the device hostname as the first component",
             config_hostname, machine_hostname,
         ))
         .into());
