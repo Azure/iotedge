@@ -268,6 +268,11 @@ impl Check {
                 "Connectivity checks",
                 &[
                     (
+                        "host-connect-dps-endpoint",
+                        "host can connect to and perform TLS handshake with DPS endpoint",
+                        connection_to_dps_endpoint,
+                    ),
+                    (
                         "host-connect-iothub-amqp",
                         "host can connect to and perform TLS handshake with IoT Hub AMQP port",
                         |check| connection_to_iot_hub_host(check, 5671),
@@ -1332,6 +1337,28 @@ fn container_engine_logrotate(check: &mut Check) -> Result<CheckResult, failure:
     Ok(CheckResult::Ok)
 }
 
+fn connection_to_dps_endpoint(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    let settings = if let Some(settings) = &check.settings {
+        settings
+    } else {
+        return Ok(CheckResult::Skipped);
+    };
+
+    let dps_endpoint = if let Provisioning::Dps(dps) = settings.provisioning() {
+        dps.global_endpoint()
+    } else {
+        return Ok(CheckResult::Ignored);
+    };
+
+    let dps_hostname = dps_endpoint.host_str().ok_or_else(|| {
+        Context::new("URL specified in provisioning.global_endpoint does not have a host")
+    })?;
+
+    resolve_and_tls_handshake(&dps_endpoint, dps_hostname, dps_hostname)?;
+
+    Ok(CheckResult::Ok)
+}
+
 fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResult, failure::Error> {
     let iothub_hostname = if let Some(iothub_hostname) = &check.iothub_hostname {
         iothub_hostname
@@ -1339,39 +1366,11 @@ fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResul
         return Ok(CheckResult::Skipped);
     };
 
-    let iothub_host = std::net::ToSocketAddrs::to_socket_addrs(&(&**iothub_hostname, port))
-        .with_context(|_| {
-            format!(
-                "Could not connect to {}:{} : could not resolve hostname",
-                iothub_hostname, port,
-            )
-        })?
-        .next()
-        .ok_or_else(|| {
-            Context::new(format!(
-                "Could not connect to {}:{} : could not resolve hostname: no addresses found",
-                iothub_hostname, port,
-            ))
-        })?;
-
-    let stream = TcpStream::connect_timeout(&iothub_host, std::time::Duration::from_secs(10))
-        .with_context(|_| format!("Could not connect to {}:{}", iothub_hostname, port))?;
-
-    let tls_connector = native_tls::TlsConnector::new().with_context(|_| {
-        format!(
-            "Could not connect to {}:{} : could not create TLS connector",
-            iothub_hostname, port,
-        )
-    })?;
-
-    let _ = tls_connector
-        .connect(iothub_hostname, stream)
-        .with_context(|_| {
-            format!(
-                "Could not connect to {}:{} : could not complete TLS handshake",
-                iothub_hostname, port,
-            )
-        })?;
+    resolve_and_tls_handshake(
+        &(&**iothub_hostname, port),
+        iothub_hostname,
+        &format!("{}:{}", iothub_hostname, port),
+    )?;
 
     Ok(CheckResult::Ok)
 }
@@ -1546,6 +1545,54 @@ where
     }
 
     Ok(output.stdout)
+}
+
+// Resolves the given `ToSocketAddrs`, then connects to the first address via TCP and completes a TLS handshake.
+//
+// `tls_hostname` is used for SNI validation and certificate hostname validation.
+//
+// `hostname_display` is used for the error messages.
+fn resolve_and_tls_handshake(
+    to_socket_addrs: &impl std::net::ToSocketAddrs,
+    tls_hostname: &str,
+    hostname_display: &str,
+) -> Result<(), failure::Error> {
+    let host_addr = to_socket_addrs
+        .to_socket_addrs()
+        .with_context(|_| {
+            format!(
+                "Could not connect to {} : could not resolve hostname",
+                hostname_display,
+            )
+        })?
+        .next()
+        .ok_or_else(|| {
+            Context::new(format!(
+                "Could not connect to {} : could not resolve hostname: no addresses found",
+                hostname_display,
+            ))
+        })?;
+
+    let stream = TcpStream::connect_timeout(&host_addr, std::time::Duration::from_secs(10))
+        .with_context(|_| format!("Could not connect to {}", hostname_display))?;
+
+    let tls_connector = native_tls::TlsConnector::new().with_context(|_| {
+        format!(
+            "Could not connect to {} : could not create TLS connector",
+            hostname_display,
+        )
+    })?;
+
+    let _ = tls_connector
+        .connect(tls_hostname, stream)
+        .with_context(|_| {
+            format!(
+                "Could not connect to {} : could not complete TLS handshake",
+                hostname_display,
+            )
+        })?;
+
+    Ok(())
 }
 
 fn write_lines<'a>(
