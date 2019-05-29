@@ -853,7 +853,8 @@ fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
              \n\
              - Hostname must be between 1 and 255 octets inclusive.\n\
              - Each label in the hostname (component separated by \".\") must be between 1 and 63 octets inclusive.\n\
-             - Each label must start with an ASCII alphabet (a-z) and must contain only ASCII alphanumeric characters (a-z, 0-9).\n\
+             - Each label must start with an ASCII alphabet (a-z), end with an ASCII alphanumeric characters (a-z, 0-9), \
+               and must contain only ASCII alphanumeric characters or hyphens (a-z, 0-9, \"-\").\n\
              \n\
              Adhering to RFC 1035 is recommended for maximum compatibility with modules and downstream devices.",
             config_hostname,
@@ -1643,15 +1644,22 @@ fn is_rfc_1035_valid(name: &str) -> bool {
             Some(c) => c,
             None => return false,
         };
-
         if first_char < 'a' || first_char > 'z' {
             return false;
         }
 
         if label
             .chars()
-            .any(|c| (c < 'a' || c > 'z') && (c < '0' || c > '9'))
+            .any(|c| (c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '-')
         {
+            return false;
+        }
+
+        let last_char = label
+            .chars()
+            .last()
+            .expect("label has at least one character");
+        if (last_char < 'a' || last_char > 'z') && (last_char < '0' || last_char > '9') {
             return false;
         }
 
@@ -2013,6 +2021,8 @@ mod tests {
             label = longest_valid_label
         )));
         assert!(super::is_rfc_1035_valid(&longest_valid_name));
+        assert!(super::is_rfc_1035_valid("xn--v9ju72g90p.com"));
+        assert!(super::is_rfc_1035_valid("xn--a-kz6a.xn--b-kn6b.xn--c-ibu"));
 
         assert!(!super::is_rfc_1035_valid(&format!(
             "{}a",
