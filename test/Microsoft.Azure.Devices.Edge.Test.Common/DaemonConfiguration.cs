@@ -21,8 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             this.config.ReplaceOrAdd("agent.env.https_proxy", proxy.ToString());
             // The config.yaml file is configured during test suite
-            // initialization, before we know which protocol a given test will
-            // use. Always use AmqpWs, and when each tests deploys a
+            // initialization, before we know which protocol a given test
+            // will use. Always use AmqpWs, and when each test deploys a
             // configuration, it can use whatever it wants.
             this.config.ReplaceOrAdd("agent.env.UpstreamProtocol", "AmqpWs");
         }
