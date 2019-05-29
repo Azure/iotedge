@@ -135,6 +135,7 @@ pub(super) fn os_version() -> Result<
     ),
     failure::Error,
 > {
+    use failure::Context;
     use winapi::shared::ntdef::NTSTATUS;
     use winapi::shared::ntstatus::STATUS_SUCCESS;
     use winapi::um::winnt::{LPOSVERSIONINFOW, OSVERSIONINFOW};
@@ -166,17 +167,16 @@ pub(super) fn os_version() -> Result<
                 Context::new("null terminator not found in szCSDVersion returned by RtlGetVersion")
             })?;
         let csd_version: std::ffi::OsString =
-            std::os::windows::ffi::OsStringExt::from_wide(&os_version_info.szCSDVersion[..len])
-                .context("could not parse szCSDVersion returned by RtlGetVersion")?;
+            std::os::windows::ffi::OsStringExt::from_wide(&os_version_info.szCSDVersion[..len]);
         let csd_version = csd_version
             .into_string()
-            .context("could not parse szCSDVersion returned by RtlGetVersion")?;
+            .map_err(|_| Context::new("could not parse szCSDVersion returned by RtlGetVersion: contains invalid unicode codepoints"))?;
 
         Ok((
             os_version_info.dwMajorVersion,
             os_version_info.dwMinorVersion,
             os_version_info.dwBuildNumber,
             csd_version,
-        ));
+        ))
     }
 }

@@ -731,23 +731,21 @@ fn host_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
             return Ok(CheckResult::Ignored);
         }
 
-        let (major_version, minor_version, build_number, _) =
-            self::additional_info::os_version().context(|_| "Could not get OS version")?;
-
-        match (major_version, minor_version, build_number) {
+        let os_version = self::additional_info::os_version().context("Could not get OS version")?;
+        match os_version {
             // When using Windows containers, the host OS version must match the container OS version.
             // Since our containers are built with 10.0.17763 base images, we require the same for the host OS.
             //
             // If this needs to be changed, also update the host OS version check in the Windows install script
             // (scripts/windows/setup/IotEdgeSecurityDaemon.ps1)
-            (10, 0, 17763) => (),
+            (10, 0, 17763, _) => (),
 
             (major_version, minor_version, build_number, _) => {
                 return Ok(CheckResult::Fatal(Context::new(format!(
                     "Windows host with OS version {}.{}.{} is not supported for running Windows containers.\n\
                      Please see https://aka.ms/iotedge-platsup#tier-1 for details.",
                     major_version, minor_version, build_number,
-                ))))
+                )).into()))
             }
         }
 
