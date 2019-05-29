@@ -87,19 +87,18 @@ where
             api_core::CreateNamespacedConfigMapOptional::default(),
         )
         .map_err(Error::from)
-        .map(|(req, request_body)| {
-            self.request(req, request_body)
-                .and_then(|response| match response {
-                    api_core::CreateNamespacedConfigMapResponse::Ok(config_map)
-                    | api_core::CreateNamespacedConfigMapResponse::Created(config_map)
-                    | api_core::CreateNamespacedConfigMapResponse::Accepted(config_map) => {
-                        Ok(config_map)
-                    }
-                    err => {
-                        debug!("Create config map failed with {:#?}", err);
-                        Err(Error::from(ErrorKind::Response))
-                    }
-                })
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                api_core::CreateNamespacedConfigMapResponse::Ok(config_map)
+                | api_core::CreateNamespacedConfigMapResponse::Created(config_map)
+                | api_core::CreateNamespacedConfigMapResponse::Accepted(config_map) => {
+                    Ok(config_map)
+                }
+                err => {
+                    debug!("Create config map failed with {:#?}", err);
+                    Err(Error::from(ErrorKind::Response))
+                }
+            })
         })
         .into_future()
         .flatten()
@@ -116,13 +115,12 @@ where
             api_core::DeleteNamespacedConfigMapOptional::default(),
         )
         .map_err(Error::from)
-        .map(|(req, request_body)| {
-            self.request(req, request_body)
-                .and_then(|response| match response {
-                    api_core::DeleteNamespacedConfigMapResponse::OkStatus(_)
-                    | api_core::DeleteNamespacedConfigMapResponse::OkValue(_) => Ok(()),
-                    _ => Err(Error::from(ErrorKind::Response)),
-                })
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                api_core::DeleteNamespacedConfigMapResponse::OkStatus(_)
+                | api_core::DeleteNamespacedConfigMapResponse::OkValue(_) => Ok(()),
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
         })
         .into_future()
         .flatten()
@@ -139,14 +137,13 @@ where
             apps::CreateNamespacedDeploymentOptional::default(),
         )
         .map_err(Error::from)
-        .map(|(req, request_body)| {
-            self.request(req, request_body)
-                .and_then(|response| match response {
-                    apps::CreateNamespacedDeploymentResponse::Accepted(deployment)
-                    | apps::CreateNamespacedDeploymentResponse::Created(deployment)
-                    | apps::CreateNamespacedDeploymentResponse::Ok(deployment) => Ok(deployment),
-                    _ => Err(Error::from(ErrorKind::Response)),
-                })
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                apps::CreateNamespacedDeploymentResponse::Accepted(deployment)
+                | apps::CreateNamespacedDeploymentResponse::Created(deployment)
+                | apps::CreateNamespacedDeploymentResponse::Ok(deployment) => Ok(deployment),
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
         })
         .into_future()
         .flatten()
@@ -165,13 +162,12 @@ where
             apps::ReplaceNamespacedDeploymentOptional::default(),
         )
         .map_err(Error::from)
-        .map(|(req, request_body)| {
-            self.request(req, request_body)
-                .and_then(|response| match response {
-                    apps::ReplaceNamespacedDeploymentResponse::Created(deployment)
-                    | apps::ReplaceNamespacedDeploymentResponse::Ok(deployment) => Ok(deployment),
-                    _ => Err(Error::from(ErrorKind::Response)),
-                })
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                apps::ReplaceNamespacedDeploymentResponse::Created(deployment)
+                | apps::ReplaceNamespacedDeploymentResponse::Ok(deployment) => Ok(deployment),
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
         })
         .into_future()
         .flatten()
@@ -191,13 +187,12 @@ where
         };
         apps::Deployment::delete_namespaced_deployment(name, namespace, params)
             .map_err(Error::from)
-            .map(|(req, request_body)| {
-                self.request(req, request_body)
-                    .and_then(|response| match response {
-                        apps::DeleteNamespacedDeploymentResponse::OkStatus(_)
-                        | apps::DeleteNamespacedDeploymentResponse::OkValue(_) => Ok(()),
-                        _ => Err(Error::from(ErrorKind::Response)),
-                    })
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    apps::DeleteNamespacedDeploymentResponse::OkStatus(_)
+                    | apps::DeleteNamespacedDeploymentResponse::OkValue(_) => Ok(()),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
             })
             .into_future()
             .flatten()
@@ -218,12 +213,11 @@ where
         };
         apps::Deployment::list_namespaced_deployment(namespace, params)
             .map_err(Error::from)
-            .map(|(req, request_body)| {
-                self.request(req, request_body)
-                    .and_then(|response| match response {
-                        apps::ListNamespacedDeploymentResponse::Ok(deployments) => Ok(deployments),
-                        _ => Err(Error::from(ErrorKind::Response)),
-                    })
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    apps::ListNamespacedDeploymentResponse::Ok(deployments) => Ok(deployments),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
             })
             .into_future()
             .flatten()
@@ -240,12 +234,11 @@ where
         };
         api_core::Pod::list_namespaced_pod(namespace, params)
             .map_err(Error::from)
-            .map(|(req, request_body)| {
-                self.request(req, request_body)
-                    .and_then(|response| match response {
-                        api_core::ListNamespacedPodResponse::Ok(pod_list) => Ok(pod_list),
-                        _ => Err(Error::from(ErrorKind::Response)),
-                    })
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    api_core::ListNamespacedPodResponse::Ok(pod_list) => Ok(pod_list),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
             })
             .into_future()
             .flatten()
@@ -264,12 +257,11 @@ where
         };
         api_core::Secret::list_namespaced_secret(namespace, params)
             .map_err(Error::from)
-            .map(|(req, request_body)| {
-                self.request(req, request_body)
-                    .and_then(|response| match response {
-                        api_core::ListNamespacedSecretResponse::Ok(secrets) => Ok(secrets),
-                        _ => Err(Error::from(ErrorKind::Response)),
-                    })
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    api_core::ListNamespacedSecretResponse::Ok(secrets) => Ok(secrets),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
             })
             .into_future()
             .flatten()
@@ -286,14 +278,13 @@ where
             api_core::CreateNamespacedSecretOptional::default(),
         )
         .map_err(Error::from)
-        .map(|(req, request_body)| {
-            self.request(req, request_body)
-                .and_then(|response| match response {
-                    api_core::CreateNamespacedSecretResponse::Accepted(s)
-                    | api_core::CreateNamespacedSecretResponse::Created(s)
-                    | api_core::CreateNamespacedSecretResponse::Ok(s) => Ok(s),
-                    _ => Err(Error::from(ErrorKind::Response)),
-                })
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                api_core::CreateNamespacedSecretResponse::Accepted(s)
+                | api_core::CreateNamespacedSecretResponse::Created(s)
+                | api_core::CreateNamespacedSecretResponse::Ok(s) => Ok(s),
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
         })
         .into_future()
         .flatten()
@@ -312,13 +303,12 @@ where
             api_core::ReplaceNamespacedSecretOptional::default(),
         )
         .map_err(Error::from)
-        .map(|(req, request_body)| {
-            self.request(req, request_body)
-                .and_then(|response| match response {
-                    api_core::ReplaceNamespacedSecretResponse::Created(s)
-                    | api_core::ReplaceNamespacedSecretResponse::Ok(s) => Ok(s),
-                    _ => Err(Error::from(ErrorKind::Response)),
-                })
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                api_core::ReplaceNamespacedSecretResponse::Created(s)
+                | api_core::ReplaceNamespacedSecretResponse::Ok(s) => Ok(s),
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
         })
         .into_future()
         .flatten()
@@ -342,22 +332,24 @@ where
 
         auth::TokenReview::create_token_review(&token, auth::CreateTokenReviewOptional::default())
             .map_err(Error::from)
-            .map(|(req, request_body)| {
-                self.request(req, request_body)
-                    .and_then(|response| match response {
-                        auth::CreateTokenReviewResponse::Created(t)
-                        | auth::CreateTokenReviewResponse::Ok(t) => Ok(t),
-                        _ => Err(Error::from(ErrorKind::Response)),
-                    })
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    auth::CreateTokenReviewResponse::Created(t)
+                    | auth::CreateTokenReviewResponse::Ok(t) => Ok(t),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
             })
             .into_future()
             .flatten()
     }
 
+    #[allow(clippy::type_complexity)]
     fn request<R: K8sResponse>(
         &mut self,
-        req: http::Request<Vec<u8>>,
-        _response_body: fn(http::StatusCode) -> ResponseBody<R>,
+        (req, _response_body): (
+            http::Request<Vec<u8>>,
+            fn(http::StatusCode) -> ResponseBody<R>,
+        ),
     ) -> impl Future<Item = R, Error = Error> {
         let next = |response: http::Response<Body>| {
             let status_code = response.status();
