@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
     public class LogsStreamRequestHandler : IStreamRequestHandler
     {
         const int MaxLogRequestSizeBytes = 8192; // 8kb
+        static readonly Version ExpectedSchemaVersion = new Version("1.0");
         readonly ILogsProvider logsProvider;
         readonly IRuntimeInfoProvider runtimeInfoProvider;
 
@@ -32,6 +33,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             {
                 LogsStreamRequest streamRequest = await this.ReadLogsStreamingRequest(clientWebSocket, cancellationToken);
                 Events.RequestData(streamRequest);
+
+                if (ExpectedSchemaVersion.CompareMajorVersion(streamRequest.SchemaVersion, "logs stream request schema") != 0)
+                {
+                    Events.MismatchedMinorVersions(streamRequest.SchemaVersion, ExpectedSchemaVersion);
+                }
 
                 var socketCancellationTokenSource = new CancellationTokenSource();
 
@@ -96,7 +102,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
                 ErrorHandlingRequest = IdStart,
                 RequestData,
                 StreamingCompleted,
-                WebSocketNotOpen
+                WebSocketNotOpen,
+                MismatchedMinorVersions
             }
 
             public static void ErrorHandlingRequest(Exception e)
@@ -122,6 +129,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             }
 
             static string GetIds(LogsStreamRequest logStreamRequest) => logStreamRequest.Items.Select(i => i.Id).Join(",");
+
+            public static void MismatchedMinorVersions(string streamRequestSchemaVersion, Version expectedSchemaVersion)
+            {
+                Log.LogWarning((int)EventIds.MismatchedMinorVersions, $"Logs stream request schema version {streamRequestSchemaVersion} does not match expected schema version {expectedSchemaVersion}. Some settings may not be supported.");
+            }
         }
     }
 }
