@@ -6,7 +6,7 @@ passthrough = [
 ]
 
 [target.x86_64-unknown-linux-gnu]
-image = "edgebuilds.azurecr.io/debian-build:9.5-1"
+image = "azureiotedge/debian-build:9.5-1"
 
 [target.armv7-unknown-linux-gnueabihf]
 image = "azureiotedge/gcc-linaro-7.3.1-2018.05-x86_64_arm-linux-gnueabihf:debian_9.5-1"
