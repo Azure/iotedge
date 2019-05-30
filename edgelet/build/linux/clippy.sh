@@ -16,8 +16,8 @@ BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 SCRIPT_NAME=$(basename "$0")
 TOOLCHAIN='stable'
-RUSTUP="$HOME/.cargo/bin/rustup"
-CARGO="$HOME/.cargo/bin/cargo"
+RUSTUP="$CARGO_HOME/bin/rustup"
+CARGO="$CARGO_HOME/bin/cargo"
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
