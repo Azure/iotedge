@@ -1,7 +1,5 @@
 New-Module -Name IoTEdge -ScriptBlock {
 
-[Console]::OutputEncoding = New-Object -typename System.Text.ASCIIEncoding
-
 <#
  # Installs the IoT Edge Security Daemon on Windows.
  #>
