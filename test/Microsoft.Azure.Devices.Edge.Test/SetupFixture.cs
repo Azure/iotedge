@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
-    using System;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -18,8 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         public SetupFixture()
         {
-            this.daemon = Platform.CreateEdgeDaemon(
-                Context.Current.InstallerPath.Expect(() => new ArgumentException()));
+            this.daemon = Platform.CreateEdgeDaemon(Context.Current.InstallerPath);
             this.iotHub = new IotHub(
                 Context.Current.ConnectionString,
                 Context.Current.EventHubEndpoint,
