@@ -456,14 +456,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
+                        var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
                         if (this.disableCloudSubscriptions)
                         {
-                            return new NullSubscriptionProcessor() as ISubscriptionProcessor;
+                            return new LocalSubscriptionProcessor(await connectionManagerTask) as ISubscriptionProcessor;
                         }
                         else
                         {
                             var invokeMethodHandlerTask = c.Resolve<Task<IInvokeMethodHandler>>();
-                            var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
                             var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
                             IConnectionManager connectionManager = await connectionManagerTask;
                             IInvokeMethodHandler invokeMethodHandler = await invokeMethodHandlerTask;

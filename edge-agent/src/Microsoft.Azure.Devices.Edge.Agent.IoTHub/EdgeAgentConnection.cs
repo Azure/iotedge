@@ -120,19 +120,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         internal static void ValidateSchemaVersion(string schemaVersion)
         {
-            if (string.IsNullOrWhiteSpace(schemaVersion) || !Version.TryParse(schemaVersion, out Version version))
+            if (ExpectedSchemaVersion.CompareMajorVersion(schemaVersion, "desired properties schema") != 0)
             {
-                throw new InvalidSchemaVersionException($"Invalid desired properties schema version {schemaVersion ?? string.Empty}");
-            }
-
-            if (ExpectedSchemaVersion.Major != version.Major)
-            {
-                throw new InvalidSchemaVersionException($"Desired properties schema version {schemaVersion} is not compatible with the expected version {ExpectedSchemaVersion}");
-            }
-
-            if (ExpectedSchemaVersion.Minor != version.Minor)
-            {
-                Events.MismatchedMinorVersions(version, ExpectedSchemaVersion);
+                Events.MismatchedMinorVersions(schemaVersion, ExpectedSchemaVersion);
             }
         }
 
@@ -337,7 +327,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 Log.LogDebug((int)EventIds.ConnectionStatusChanged, $"Connection status changed to {status} with reason {reason}");
             }
 
-            public static void MismatchedMinorVersions(Version receivedVersion, Version expectedVersion)
+            public static void MismatchedMinorVersions(string receivedVersion, Version expectedVersion)
             {
                 Log.LogWarning(
                     (int)EventIds.MismatchedSchemaVersion,

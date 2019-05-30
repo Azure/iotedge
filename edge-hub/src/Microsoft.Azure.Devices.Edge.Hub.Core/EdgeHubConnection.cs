@@ -105,19 +105,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         internal static void ValidateSchemaVersion(string schemaVersion)
         {
-            if (string.IsNullOrWhiteSpace(schemaVersion) || !Version.TryParse(schemaVersion, out Version version))
+            if (Constants.ConfigSchemaVersion.CompareMajorVersion(schemaVersion, "desired properties schema") != 0)
             {
-                throw new ArgumentException($"Invalid desired properties schema version {schemaVersion ?? string.Empty}");
-            }
-
-            if (Constants.ConfigSchemaVersion.Major != version.Major)
-            {
-                throw new InvalidOperationException($"Desired properties schema version {schemaVersion} is not compatible with the expected version is {Constants.ConfigSchemaVersion}");
-            }
-
-            if (Constants.ConfigSchemaVersion.Minor != version.Minor)
-            {
-                Events.MismatchedMinorVersions(version, Constants.ConfigSchemaVersion);
+                Events.MismatchedMinorVersions(schemaVersion, Constants.ConfigSchemaVersion);
             }
         }
 
@@ -543,7 +533,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     Invariant($"Error getting edge hub config from twin desired properties"));
             }
 
-            public static void MismatchedMinorVersions(Version receivedVersion, Version expectedVersion)
+            public static void MismatchedMinorVersions(string receivedVersion, Version expectedVersion)
             {
                 Log.LogWarning(
                     (int)EventIds.MismatchedSchemaVersion,
