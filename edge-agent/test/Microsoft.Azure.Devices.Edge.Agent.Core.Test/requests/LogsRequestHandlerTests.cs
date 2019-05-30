@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             var logsProvider = new Mock<ILogsProvider>();
 
             var module1LogOptions = new ModuleLogOptions(contentEncoding, contentType, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
-            string mod1Logs = new []
+            string mod1Logs = new[]
             {
                 "Log line 1\n",
                 "Log line 2\n",
