@@ -742,8 +742,8 @@ fn host_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
 
             (major_version, minor_version, build_number, _) => {
                 return Ok(CheckResult::Fatal(Context::new(format!(
-                    "Windows host with OS version {}.{}.{} is not supported for running Windows containers.\n\
-                     Please see https://aka.ms/iotedge-platsup#tier-1 for details.",
+                    "The host has an unsupported OS version {}.{}.{}. IoT Edge on Windows only supports OS version 10.0.17763.\n\
+                     Please see https://aka.ms/iotedge-platsup for details.",
                     major_version, minor_version, build_number,
                 )).into()))
             }
@@ -835,9 +835,9 @@ fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
         && !config_hostname.starts_with(&format!("{}.", machine_hostname))
     {
         return Err(Context::new(format!(
-            "config.yaml has hostname {} but device reports hostname {}. \
+            "config.yaml has hostname {} but device reports hostname {}.\n\
              Hostname in config.yaml must either be identical to the device hostname \
-             or be an FQDN that has the device hostname as the first component",
+             or be a fully-qualified domain name that has the device hostname as the first component.",
             config_hostname, machine_hostname,
         ))
         .into());
@@ -847,14 +847,14 @@ fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
     // For example, the IoT Hub C# SDK cannot connect to a hostname that contains an `_`.
     if !is_rfc_1035_valid(config_hostname) {
         return Ok(CheckResult::Warning(Context::new(format!(
-            "config.yaml has hostname {} which is not RFC 1035 compliant.\n\
+            "config.yaml has hostname {} which does not comply with RFC 1035.\n\
              \n\
              - Hostname must be between 1 and 255 octets inclusive.\n\
              - Each label in the hostname (component separated by \".\") must be between 1 and 63 octets inclusive.\n\
              - Each label must start with an ASCII alphabet (a-z), end with an ASCII alphanumeric characters (a-z, 0-9), \
                and must contain only ASCII alphanumeric characters or hyphens (a-z, 0-9, \"-\").\n\
              \n\
-             Adhering to RFC 1035 is recommended for maximum compatibility with modules and downstream devices.",
+             Not complying with RFC 1035 may cause errors during the TLS handshake with modules and downstream devices.",
             config_hostname,
         ))
         .into()));
