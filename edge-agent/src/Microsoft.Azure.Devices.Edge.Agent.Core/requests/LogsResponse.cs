@@ -7,18 +7,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
     public class LogsResponse
     {
-        public LogsResponse(string id, byte[] payload)
+        public LogsResponse(string id, byte[] payloadBytes)
+            : this(id, null, payloadBytes)
         {
-            this.Id = Preconditions.CheckNonWhiteSpace(id, nameof(id));
-            this.PayloadBytes = Option.Some(Preconditions.CheckNotNull(payload, nameof(payload)));
-            this.Payload = Option.None<string>();
         }
 
         public LogsResponse(string id, string payload)
+            : this(id, payload, null)
+        {
+        }
+
+        [JsonConstructor]
+        LogsResponse(string id, string payload, byte[] payloadBytes)
         {
             this.Id = Preconditions.CheckNonWhiteSpace(id, nameof(id));
-            this.Payload = Option.Some(Preconditions.CheckNotNull(payload, nameof(payload)));
-            this.PayloadBytes = Option.None<byte[]>();
+            this.PayloadBytes = Option.Maybe(payloadBytes);
+            this.Payload = Option.Maybe(payload);
         }
 
         [JsonProperty("id")]
