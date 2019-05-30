@@ -36,11 +36,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
 
             sasUrl = $"https://test1.blob.core.windows.net/cont2?st={Guid.NewGuid()}";
             filter = new ModuleLogFilter(Option.None<int>(), Option.Some(1501000), Option.None<int>(), Option.Some("ERR"));
-            yield return new object[] { @"{""schemaVersion"":""1.0"",""sasUrl"":""<sasurl>"",""items"":{""id"":""edgeAgent"",""filter"":<filter>}}".Replace("<sasurl>", sasUrl).Replace("<filter>", filter.ToJson()), "edgeAgent", sasUrl, LogsContentEncoding.None, LogsContentType.Json, filter };
+            yield return new object[] { @"{""schemaVersion"":""1.5"",""sasUrl"":""<sasurl>"",""items"":{""id"":""edgeAgent"",""filter"":<filter>}}".Replace("<sasurl>", sasUrl).Replace("<filter>", filter.ToJson()), "edgeAgent", sasUrl, LogsContentEncoding.None, LogsContentType.Json, filter };
 
             sasUrl = $"https://test1.blob.core.windows.net/cont2?st={Guid.NewGuid()}";
             filter = new ModuleLogFilter(Option.Some(100), Option.None<int>(), Option.Some(3), Option.None<string>());
-            yield return new object[] { @"{""schemaVersion"":""1.0"",""sasUrl"":""<sasurl>"",""items"":{""id"":""edgeAgent"",""filter"":<filter>}}".Replace("<sasurl>", sasUrl).Replace("<filter>", filter.ToJson()), "edgeAgent", sasUrl, LogsContentEncoding.None, LogsContentType.Json, filter };
+            yield return new object[] { @"{""schemaVersion"":""1.2"",""sasUrl"":""<sasurl>"",""items"":{""id"":""edgeAgent"",""filter"":<filter>}}".Replace("<sasurl>", sasUrl).Replace("<filter>", filter.ToJson()), "edgeAgent", sasUrl, LogsContentEncoding.None, LogsContentType.Json, filter };
         }
 
         [Theory]
@@ -155,6 +155,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             logsProvider.VerifyAll();
             logsUploader.VerifyAll();
             runtimeInfoProvider.VerifyAll();
+        }
+
+        [Theory]
+        [InlineData(@"{""schemaVersion"":""2.0"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidSchemaVersionException))]
+        [InlineData(@"{""schemaVersion"":""0.0"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidSchemaVersionException))]
+        [InlineData(@"{""schemaVersion"":""3.4"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidSchemaVersionException))]
+        [InlineData(@"{""schemaVersion"":"""",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(ArgumentException))]
+        [InlineData(@"{""schemaVersion"":"" "",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(ArgumentException))]
+        [InlineData(@"{""schemaVersion"":""   "",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(ArgumentException))]
+        [InlineData(@"{""schemaVersion"":""abc"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidSchemaVersionException))]
+        [InlineData(@"{""schemaVersion"":""a.b.c"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidSchemaVersionException))]
+        public async Task TestLogsUploadRequestWithInvalidSchemaVersion(string payload, Type exception)
+        {
+            // Arrange
+            var logsUploader = new Mock<ILogsUploader>();
+            var logsProvider = new Mock<ILogsProvider>();
+
+            var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>();
+
+            // Act
+            var logsUploadRequestHandler = new LogsUploadRequestHandler(logsUploader.Object, logsProvider.Object, runtimeInfoProvider);
+            await Assert.ThrowsAsync(exception, () => logsUploadRequestHandler.HandleRequest(Option.Maybe(payload), CancellationToken.None));
         }
     }
 }
