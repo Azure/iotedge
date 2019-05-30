@@ -144,6 +144,7 @@ impl From<&ErrorKind> for i32 {
             ErrorKind::Initialize(InitializeErrorReason::InvalidDeviceConfig) => 150,
             ErrorKind::Initialize(InitializeErrorReason::InvalidHubConfig) => 151,
             ErrorKind::InvalidSignedToken => 152,
+            ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => 153,
             _ => 1,
         }
     }
