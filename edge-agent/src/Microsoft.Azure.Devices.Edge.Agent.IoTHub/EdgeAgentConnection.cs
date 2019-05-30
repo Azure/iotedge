@@ -97,27 +97,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public async Task UpdateReportedPropertiesAsync(TwinCollection patch)
         {
-            if (await this.WaitForDeviceClientInitialization())
+            Events.UpdatingReportedProperties();
+            try
             {
-                await this.moduleClient.ForEachAsync(d => d.UpdateReportedPropertiesAsync(patch));
+                if (!this.moduleClient.HasValue)
+                {
+                    Events.UpdateReportedPropertiesDeviceClientEmpty();
+                }
+
+                if (await this.WaitForDeviceClientInitialization())
+                {
+                    await this.moduleClient.ForEachAsync(d => d.UpdateReportedPropertiesAsync(patch));
+                    Events.UpdatedReportedProperties();
+                }
+            }
+            catch (Exception e)
+            {
+                Events.ErrorUpdatingReportedProperties(e);
+                throw;
             }
         }
 
         internal static void ValidateSchemaVersion(string schemaVersion)
         {
-            if (string.IsNullOrWhiteSpace(schemaVersion) || !Version.TryParse(schemaVersion, out Version version))
+            if (ExpectedSchemaVersion.CompareMajorVersion(schemaVersion, "desired properties schema") != 0)
             {
-                throw new InvalidSchemaVersionException($"Invalid desired properties schema version {schemaVersion ?? string.Empty}");
-            }
-
-            if (ExpectedSchemaVersion.Major != version.Major)
-            {
-                throw new InvalidSchemaVersionException($"Desired properties schema version {schemaVersion} is not compatible with the expected version {ExpectedSchemaVersion}");
-            }
-
-            if (ExpectedSchemaVersion.Minor != version.Minor)
-            {
-                Events.MismatchedMinorVersions(version, ExpectedSchemaVersion);
+                Events.MismatchedMinorVersions(schemaVersion, ExpectedSchemaVersion);
             }
         }
 
@@ -198,6 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 IModuleClient dc = this.moduleClient.Expect(() => new InvalidOperationException("DeviceClient not yet initialized"));
                 Twin twin = await retryPolicy.ExecuteAsync(() => dc.GetTwinAsync());
 
+                Events.GotTwin(twin);
                 this.desiredProperties = twin.Properties.Desired;
                 this.reportedProperties = Option.Some(twin.Properties.Reported);
                 await this.UpdateDeploymentConfig();
@@ -303,7 +309,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 RetryingGetTwin,
                 MismatchedSchemaVersion,
                 TwinRefreshInit,
-                TwinRefreshStart
+                TwinRefreshStart,
+                GotTwin,
+                UpdatingReportedProperties,
+                UpdateReportedPropertiesDeviceClientEmpty,
+                UpdatedReportedProperties,
+                ErrorUpdatingReportedProperties
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -316,7 +327,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 Log.LogDebug((int)EventIds.ConnectionStatusChanged, $"Connection status changed to {status} with reason {reason}");
             }
 
-            public static void MismatchedMinorVersions(Version receivedVersion, Version expectedVersion)
+            public static void MismatchedMinorVersions(string receivedVersion, Version expectedVersion)
             {
                 Log.LogWarning(
                     (int)EventIds.MismatchedSchemaVersion,
@@ -376,6 +387,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             internal static void RetryingGetTwin(RetryingEventArgs args)
             {
                 Log.LogDebug((int)EventIds.RetryingGetTwin, $"Edge agent is retrying GetTwinAsync. Attempt #{args.CurrentRetryCount}. Last error: {args.LastException?.Message}");
+            }
+
+            public static void GotTwin(Twin twin)
+            {
+                long reportedPropertiesVersion = twin?.Properties?.Reported?.Version ?? -1;
+                long desiredPropertiesVersion = twin?.Properties?.Desired?.Version ?? -1;
+                Log.LogInformation((int)EventIds.GotTwin, $"Obtained Edge agent twin from IoTHub with desired properties version {desiredPropertiesVersion} and reported properties version {reportedPropertiesVersion}.");
+            }
+
+            public static void UpdatingReportedProperties()
+            {
+                Log.LogDebug((int)EventIds.UpdatingReportedProperties, "Updating reported properties in IoT Hub");
+            }
+
+            public static void UpdateReportedPropertiesDeviceClientEmpty()
+            {
+                Log.LogDebug((int)EventIds.UpdateReportedPropertiesDeviceClientEmpty, "Updating reported properties in IoT Hub");
+            }
+
+            public static void UpdatedReportedProperties()
+            {
+                Log.LogDebug((int)EventIds.UpdatedReportedProperties, "Updated reported properties in IoT Hub");
+            }
+
+            public static void ErrorUpdatingReportedProperties(Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorUpdatingReportedProperties, ex, "Error updating reported properties in IoT Hub");
             }
         }
     }

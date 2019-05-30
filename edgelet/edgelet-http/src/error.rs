@@ -26,11 +26,23 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred while binding a listener to {}", _0)]
     BindListener(BindListenerType),
 
+    #[fail(display = "Unable to delete a TLS certificate")]
+    CertificateDeletionError,
+
     #[fail(display = "Unable to create a TLS certificate")]
     CertificateCreationError,
 
     #[fail(display = "Unable to convert a TLS certificate into a PKCS#12 certificate")]
     CertificateConversionError,
+
+    #[fail(display = "Unable to create a certificate expiration timer")]
+    CertificateTimerCreationError,
+
+    #[fail(display = "The certificate timer callback failed")]
+    CertificateTimerRuntimeError,
+
+    #[fail(display = "A valid certificate was not found")]
+    CertificateNotFound,
 
     #[fail(display = "Could not perform HTTP request")]
     Http,

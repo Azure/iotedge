@@ -90,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(client1)
                 .Returns(client2);
 
+            var productInfoStore = Mock.Of<IProductInfoStore>();
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
 
             var cloudConnectionProvider = new CloudConnectionProvider(
@@ -104,7 +105,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
-                Option.None<IWebProxy>());
+                Option.None<IWebProxy>(),
+                productInfoStore);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
 
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider());
@@ -118,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             returnedValue = await connectionManager.GetCloudConnection(deviceCredentials1.Identity.Id);
             Assert.True(returnedValue.HasValue);
-            Assert.Equal(cloudProxy1.Value, returnedValue.OrDefault());
+            Assert.Equal(((RetryingCloudProxy)cloudProxy1.Value).InnerCloudProxy, ((RetryingCloudProxy)returnedValue.OrDefault()).InnerCloudProxy);
 
             Try<ICloudProxy> cloudProxy2 = await connectionManager.CreateCloudConnectionAsync(deviceCredentials2);
             Assert.True(cloudProxy2.Success);
@@ -197,6 +199,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>()))
                 .Returns(client);
 
+            var productInfoStore = Mock.Of<IProductInfoStore>();
             var credentialsManager = Mock.Of<ICredentialsCache>();
             var edgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "edgeDevice/$edgeHub");
             var cloudConnectionProvider = new CloudConnectionProvider(
@@ -211,7 +214,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
-                Option.None<IWebProxy>());
+                Option.None<IWebProxy>(),
+                productInfoStore);
 
             cloudConnectionProvider.BindEdgeHub(edgeHub.Object);
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsManager, GetIdentityProvider());
@@ -280,9 +284,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(cloudProxy1.Success);
             Assert.True(cloudProxy2.Success);
             Assert.True(cloudProxy3.Success);
-            Assert.Equal(cloudProxyMock1, cloudProxy1.Value);
-            Assert.Equal(cloudProxyMock2, cloudProxy2.Value);
-            Assert.Equal(cloudProxyMock1, cloudProxy3.Value);
+            Assert.Equal(cloudProxyMock1, ((RetryingCloudProxy)cloudProxy1.Value).InnerCloudProxy);
+            Assert.Equal(cloudProxyMock2, ((RetryingCloudProxy)cloudProxy2.Value).InnerCloudProxy);
+            Assert.Equal(cloudProxyMock1, ((RetryingCloudProxy)cloudProxy3.Value).InnerCloudProxy);
             cloudProxyProviderMock.Verify(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()), Times.Exactly(2));
         }
 
@@ -302,7 +306,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>()))
                 .Returns(client1)
                 .Returns(client2);
-
+            var productInfoStore = Mock.Of<IProductInfoStore>();
             var credentialsCache = Mock.Of<ICredentialsCache>();
             var edgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "edgeDevice/$edgeHub");
             var cloudConnectionProvider = new CloudConnectionProvider(
@@ -317,7 +321,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
-                Option.None<IWebProxy>());
+                Option.None<IWebProxy>(),
+                productInfoStore);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider());
 
@@ -328,9 +333,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.NotEqual(cloudProxies[0].Value, cloudProxies[1].Value);
 
             Option<ICloudProxy> currentCloudProxyId1 = await connectionManager.GetCloudConnection(module1Credentials.Identity.Id);
-            ICloudProxy currentCloudProxy = currentCloudProxyId1.OrDefault();
-            ICloudProxy cloudProxy1 = cloudProxies[0].Value;
-            ICloudProxy cloudProxy2 = cloudProxies[1].Value;
+            ICloudProxy currentCloudProxy = ((RetryingCloudProxy)currentCloudProxyId1.OrDefault()).InnerCloudProxy;
+            ICloudProxy cloudProxy1 = ((RetryingCloudProxy)cloudProxies[0].Value).InnerCloudProxy;
+            ICloudProxy cloudProxy2 = ((RetryingCloudProxy)cloudProxies[1].Value).InnerCloudProxy;
             Assert.True(currentCloudProxy == cloudProxy1 || currentCloudProxy == cloudProxy2);
             if (currentCloudProxy == cloudProxy1)
             {
@@ -428,8 +433,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceClientProvider = new Mock<IClientProvider>();
             deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>()))
                 .Callback<IIdentity, ITokenProvider, ITransportSettings[]>((i, s, t) => receivedTokenProvider = s)
-                .Returns(() => GetDeviceClient());
+                .Returns(GetDeviceClient);
 
+            var productInfoStore = Mock.Of<IProductInfoStore>();
             var credentialsCache = Mock.Of<ICredentialsCache>();
             var edgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "edgeDevice/$edgeHub");
             var cloudConnectionProvider = new CloudConnectionProvider(
@@ -444,7 +450,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
-                Option.None<IWebProxy>());
+                Option.None<IWebProxy>(),
+                productInfoStore);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider());
 
@@ -486,6 +493,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Throws(new UnauthorizedException("connstr2 is invalid!"))
                 .Throws(new UnauthorizedException("connstr2 is invalid!"));
 
+            var productInfoStore = Mock.Of<IProductInfoStore>();
             var credentialsCache = Mock.Of<ICredentialsCache>();
             var edgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "edgeDevice/$edgeHub");
             var cloudConnectionProvider = new CloudConnectionProvider(
@@ -500,7 +508,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
-                Option.None<IWebProxy>());
+                Option.None<IWebProxy>(),
+                productInfoStore);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider());
 
@@ -760,7 +769,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
             await credentialsCache.Add(module1Credentials);
-
+            var productInfoStore = Mock.Of<IProductInfoStore>();
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
                 1,
@@ -773,7 +782,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
-                Option.None<IWebProxy>());
+                Option.None<IWebProxy>(),
+                productInfoStore);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider());
 
@@ -815,7 +825,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
             await credentialsCache.Add(module1Credentials);
-
+            var productInfoStore = Mock.Of<IProductInfoStore>();
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
                 1,
@@ -828,7 +838,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
-                Option.None<IWebProxy>());
+                Option.None<IWebProxy>(),
+                productInfoStore);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider());
 
@@ -844,9 +855,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(cloudProxies[1].HasValue);
             Assert.True(cloudProxies[2].HasValue);
             Assert.True(cloudProxies[3].HasValue);
-            Assert.Equal(cloudProxies[0].OrDefault(), cloudProxies[1].OrDefault());
-            Assert.Equal(cloudProxies[0].OrDefault(), cloudProxies[2].OrDefault());
-            Assert.Equal(cloudProxies[0].OrDefault(), cloudProxies[3].OrDefault());
+            Assert.Equal(((RetryingCloudProxy)cloudProxies[0].OrDefault()).InnerCloudProxy, ((RetryingCloudProxy)cloudProxies[1].OrDefault()).InnerCloudProxy);
+            Assert.Equal(((RetryingCloudProxy)cloudProxies[0].OrDefault()).InnerCloudProxy, ((RetryingCloudProxy)cloudProxies[2].OrDefault()).InnerCloudProxy);
+            Assert.Equal(((RetryingCloudProxy)cloudProxies[0].OrDefault()).InnerCloudProxy, ((RetryingCloudProxy)cloudProxies[3].OrDefault()).InnerCloudProxy);
 
             // Act
             await cloudProxies[0].OrDefault().CloseAsync();

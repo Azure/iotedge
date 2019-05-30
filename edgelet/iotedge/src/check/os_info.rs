@@ -41,7 +41,11 @@ impl OsInfo {
 
         unsafe {
             let mut os_version_info: OSVERSIONINFOW = std::mem::zeroed();
-            os_version_info.dwOSVersionInfoSize = std::mem::size_of_val(&os_version_info) as _;
+
+            #[allow(clippy::cast_possible_truncation)]
+            {
+                os_version_info.dwOSVersionInfoSize = std::mem::size_of_val(&os_version_info) as _;
+            }
 
             if RtlGetVersion(&mut os_version_info) == STATUS_SUCCESS {
                 let csd_version = os_version_info

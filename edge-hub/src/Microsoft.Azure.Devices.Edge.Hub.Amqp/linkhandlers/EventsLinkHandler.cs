@@ -27,8 +27,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             Uri requestUri,
             IDictionary<string, string> boundVariables,
             IConnectionHandler connectionHandler,
-            IMessageConverter<AmqpMessage> messageConverter)
-            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter)
+            IMessageConverter<AmqpMessage> messageConverter,
+            IProductInfoStore productInfoStore)
+            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore)
         {
         }
 
@@ -58,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                     };
 
                 List<IMessage> outgoingMessages = messages.Select(m => this.MessageConverter.ToMessage(m)).ToList();
-                outgoingMessages.ForEach(m => this.AddMessageSystemProperties(m));
+                outgoingMessages.ForEach(this.AddMessageSystemProperties);
                 await this.DeviceListener.ProcessDeviceMessageBatchAsync(outgoingMessages);
                 Events.ProcessedMessages(messages, this);
             }

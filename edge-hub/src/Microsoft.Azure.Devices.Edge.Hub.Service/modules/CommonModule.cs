@@ -146,6 +146,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IDbStoreProvider>()
                 .SingleInstance();
 
+            // IProductInfoStore
+            builder.Register(c =>
+                {
+                    var storeProvider = c.Resolve<IStoreProvider>();
+                    IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ProductInfo");
+                    return new ProductInfoStore(entityStore, this.productInfo);
+                })
+                .As<IProductInfoStore>()
+                .SingleInstance();
+
             // Task<Option<IEncryptionProvider>>
             builder.Register(
                     async c =>

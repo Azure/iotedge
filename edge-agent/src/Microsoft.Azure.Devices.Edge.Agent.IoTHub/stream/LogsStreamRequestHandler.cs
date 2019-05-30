@@ -17,11 +17,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
     public class LogsStreamRequestHandler : IStreamRequestHandler
     {
         const int MaxLogRequestSizeBytes = 8192; // 8kb
+        static readonly Version ExpectedSchemaVersion = new Version("1.0");
         readonly ILogsProvider logsProvider;
+        readonly IRuntimeInfoProvider runtimeInfoProvider;
 
-        public LogsStreamRequestHandler(ILogsProvider logsProvider)
+        public LogsStreamRequestHandler(ILogsProvider logsProvider, IRuntimeInfoProvider runtimeInfoProvider)
         {
             this.logsProvider = Preconditions.CheckNotNull(logsProvider, nameof(logsProvider));
+            this.runtimeInfoProvider = Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider));
         }
 
         public async Task Handle(IClientWebSocket clientWebSocket, CancellationToken cancellationToken)
@@ -30,6 +33,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             {
                 LogsStreamRequest streamRequest = await this.ReadLogsStreamingRequest(clientWebSocket, cancellationToken);
                 Events.RequestData(streamRequest);
+
+                if (ExpectedSchemaVersion.CompareMajorVersion(streamRequest.SchemaVersion, "logs stream request schema") != 0)
+                {
+                    Events.MismatchedMinorVersions(streamRequest.SchemaVersion, ExpectedSchemaVersion);
+                }
 
                 var socketCancellationTokenSource = new CancellationTokenSource();
 
@@ -47,7 +55,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
                     }
                 }
 
-                IList<(string id, ModuleLogOptions logOptions)> logOptionsList = streamRequest.Items.Select(i => (i.Id, new ModuleLogOptions(streamRequest.Encoding, streamRequest.ContentType, i.Filter))).ToList();
+                ILogsRequestToOptionsMapper requestToOptionsMapper = new LogsRequestToOptionsMapper(
+                    this.runtimeInfoProvider,
+                    streamRequest.Encoding,
+                    streamRequest.ContentType,
+                    LogOutputFraming.SimpleLength,
+                    Option.None<LogsOutputGroupingConfig>(),
+                    true);
+                IList<(string id, ModuleLogOptions logOptions)> logOptionsList = await requestToOptionsMapper.MapToLogOptions(streamRequest.Items, cancellationToken);
 
                 using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, socketCancellationTokenSource.Token))
                 {
@@ -87,7 +102,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
                 ErrorHandlingRequest = IdStart,
                 RequestData,
                 StreamingCompleted,
-                WebSocketNotOpen
+                WebSocketNotOpen,
+                MismatchedMinorVersions
             }
 
             public static void ErrorHandlingRequest(Exception e)
@@ -113,6 +129,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             }
 
             static string GetIds(LogsStreamRequest logStreamRequest) => logStreamRequest.Items.Select(i => i.Id).Join(",");
+
+            public static void MismatchedMinorVersions(string streamRequestSchemaVersion, Version expectedSchemaVersion)
+            {
+                Log.LogWarning((int)EventIds.MismatchedMinorVersions, $"Logs stream request schema version {streamRequestSchemaVersion} does not match expected schema version {expectedSchemaVersion}. Some settings may not be supported.");
+            }
         }
     }
 }

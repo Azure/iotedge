@@ -11,6 +11,8 @@ set (iothsm_VERSION_PATCH 8)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 include_directories(./deps/c-shared/inc)
+include_directories(./deps/c-shared/deps/azure-macro-utils-c/inc)
+include_directories(./deps/c-shared/deps/umock-c/inc)
 include_directories(./deps/utpm/inc)
 include_directories(. ./inc)
 
@@ -186,3 +188,8 @@ set (CPACK_RPM_PACKAGE_LICENSE "Proprietary")
 
 include (CPack)
 
+if (${run_unittests})
+    if(WIN32)
+        target_link_libraries(iothsm shell32)
+    endif(WIN32)
+endif()

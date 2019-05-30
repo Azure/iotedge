@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.IsType<TokenCredentials>(identityTry1);
             Assert.Equal(sasToken, (identityTry1 as ITokenCredentials)?.Token);
             Assert.Equal("device1", identityTry1.Identity.Id);
-            Assert.Equal($"{callerProductInfo} customDeviceClient1", identityTry1.ProductInfo);
+            Assert.Equal($"customDeviceClient1 {callerProductInfo}", identityTry1.ProductInfo);
             Assert.Equal(AuthenticationType.Token, identityTry1.AuthenticationType);
 
             // module test
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.IsType<TokenCredentials>(identityTry2);
             Assert.Equal(sasToken, (identityTry2 as ITokenCredentials)?.Token);
             Assert.Equal("device1/module1", identityTry2.Identity.Id);
-            Assert.Equal($"{callerProductInfo} customDeviceClient2", identityTry2.ProductInfo);
+            Assert.Equal($"customDeviceClient2 {callerProductInfo}", identityTry2.ProductInfo);
             Assert.Equal(AuthenticationType.Token, identityTry2.AuthenticationType);
         }
 
@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(clientCertificate, (identityTry1 as ICertificateCredentials)?.ClientCertificate);
             Assert.Equal(clientCertChain, (identityTry1 as ICertificateCredentials)?.ClientCertificateChain);
             Assert.Equal("device1", identityTry1.Identity.Id);
-            Assert.Equal($"{callerProductInfo} customDeviceClient1", identityTry1.ProductInfo);
+            Assert.Equal($"customDeviceClient1 {callerProductInfo}", identityTry1.ProductInfo);
             Assert.Equal(AuthenticationType.X509Cert, identityTry1.AuthenticationType);
 
             // module test
@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(clientCertificate, (identityTry2 as ICertificateCredentials)?.ClientCertificate);
             Assert.Equal(clientCertChain, (identityTry2 as ICertificateCredentials)?.ClientCertificateChain);
             Assert.Equal("device1/module1", identityTry2.Identity.Id);
-            Assert.Equal($"{callerProductInfo} customDeviceClient1", identityTry2.ProductInfo);
+            Assert.Equal($"customDeviceClient1 {callerProductInfo}", identityTry2.ProductInfo);
             Assert.Equal(AuthenticationType.X509Cert, identityTry1.AuthenticationType);
         }
 

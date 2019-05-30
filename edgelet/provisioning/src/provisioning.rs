@@ -54,7 +54,7 @@ impl Default for ReprovisioningStatus {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ProvisioningResult {
     device_id: String,
     hub_name: String,
@@ -306,6 +306,89 @@ where
     }
 }
 
+pub struct DpsX509Provisioning<C>
+where
+    C: ClientImpl,
+{
+    client: HttpClient<C, DpsTokenSource<MemoryKey>>,
+    scope_id: String,
+    registration_id: String,
+}
+
+impl<C> DpsX509Provisioning<C>
+where
+    C: ClientImpl,
+{
+    pub fn new(
+        client_impl: C,
+        endpoint: Url,
+        scope_id: String,
+        registration_id: String,
+        api_version: String,
+    ) -> Result<Self, Error> {
+        let client = HttpClient::new(
+            client_impl,
+            None as Option<DpsTokenSource<MemoryKey>>,
+            api_version,
+            endpoint,
+        )
+        .context(ErrorKind::DpsInitialization)?;
+        let result = DpsX509Provisioning {
+            client,
+            scope_id,
+            registration_id,
+        };
+        Ok(result)
+    }
+}
+
+impl<C> Provision for DpsX509Provisioning<C>
+where
+    C: 'static + ClientImpl,
+{
+    type Hsm = MemoryKeyStore;
+
+    fn provision(
+        self,
+        key_activator: Self::Hsm,
+    ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
+        let c = DpsClient::new(
+            self.client.clone(),
+            self.scope_id.clone(),
+            self.registration_id.clone(),
+            DpsAuthKind::X509,
+            key_activator,
+        );
+
+        let d = match c {
+            Ok(c) => Either::A(
+                c.register()
+                    .map(|(device_id, hub_name, substatus)| {
+                        info!(
+                            "DPS registration assigned device \"{}\" in hub \"{}\"",
+                            device_id, hub_name
+                        );
+                        let reconfigure = substatus.map_or_else(
+                            || ReprovisioningStatus::InitialAssignment,
+                            |s| ReprovisioningStatus::from(s.as_ref()),
+                        );
+                        // note DPS does not send the SHA2 thumbprint currently
+                        // future DPS APIs will possibly support this
+                        ProvisioningResult {
+                            device_id,
+                            hub_name,
+                            reconfigure,
+                            sha256_thumbprint: None,
+                        }
+                    })
+                    .map_err(|err| Error::from(err.context(ErrorKind::Provision))),
+            ),
+            Err(err) => Either::B(future::err(Error::from(err.context(ErrorKind::Provision)))),
+        };
+        Box::new(d)
+    }
+}
+
 pub struct BackupProvisioning<P>
 where
     P: 'static + Provision,
@@ -399,6 +482,7 @@ where
             self.underlying
                 .provision(key_activator)
                 .and_then(move |mut prov_result| {
+                    debug!("Provisioning result {:?}", prov_result);
                     let reconfigure = match prov_result.reconfigure {
                         ReprovisioningStatus::DeviceDataUpdated => {
                             if Self::diff_with_backup(restore_path, &prov_result) {

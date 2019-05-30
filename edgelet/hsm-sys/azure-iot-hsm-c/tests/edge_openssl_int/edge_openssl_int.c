@@ -15,13 +15,12 @@
 #include <openssl/x509v3.h>
 
 #include "azure_c_shared_utility/gballoc.h"
-#include "azure_c_shared_utility/base64.h"
+#include "azure_c_shared_utility/azure_base64.h"
 #include "azure_c_shared_utility/crt_abstractions.h"
 #include "azure_c_shared_utility/strings.h"
 #include "testrunnerswitcher.h"
 #include "test_utils.h"
 #include "hsm_client_store.h"
-#include "hsm_log.h"
 #include "hsm_log.h"
 #include "hsm_utils.h"
 
@@ -169,6 +168,10 @@ static char* TEST_RSA_PUBLIC_KEY_FILE = NULL;
 
 #define MAX_PATHLEN_STRING_SIZE 32
 #define MAX_X509_EXT_SIZE 512
+
+#define TEST_RAND_SIZE_BYTES_SMALL    5
+#define TEST_RAND_SIZE_BYTES_MEDIUM   32
+#define TEST_RAND_SIZE_BYTES_LARGE    256
 
 //#############################################################################
 // Test helpers
@@ -1029,13 +1032,116 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         // assert
         ASSERT_IS_NOT_NULL(digest, "Line:" TOSTRING(__LINE__));
         ASSERT_ARE_EQUAL(int, HMAC_SHA256_DIGEST_LEN, digest_size, "Line:" TOSTRING(__LINE__));
-        output_b64 = Base64_Encode_Bytes(digest, digest_size);
+        output_b64 = Azure_Base64_Encode_Bytes(digest, digest_size);
         ASSERT_ARE_EQUAL(int, 0, strcmp(expected_base64_sig, STRING_c_str(output_b64)), "Line:" TOSTRING(__LINE__));
 
         // cleanup
         free(digest);
         key_destroy(key_handle);
         STRING_delete(output_b64);
+    }
+
+    TEST_FUNCTION(test_rand_small_buf)
+    {
+        // arrange
+        unsigned char unexpected_buffer[TEST_RAND_SIZE_BYTES_SMALL];
+        unsigned char output_buffer[TEST_RAND_SIZE_BYTES_SMALL];
+        size_t buffer_sz = sizeof(unexpected_buffer);
+
+        memset(unexpected_buffer, 0xF1, buffer_sz);
+        memset(output_buffer, 0xF1, buffer_sz);
+
+        // act
+        int result = generate_rand_buffer(output_buffer, buffer_sz);
+
+        // assert
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        // if this assertion fails it implies that the call to generate_rand_buffer
+        // never updated the buffer and yet returned a success OR
+        // the statistically improbable event occured that the random bytes returned
+        // exactly what the unexpected_buffer of size N was setup with
+        // P(test failure) = P(0xF1) * P(0xF1) * ... * P(0xF1) = ((1/256) ^ N) == very small
+        ASSERT_ARE_NOT_EQUAL(int, 0, memcmp(unexpected_buffer, output_buffer, buffer_sz), "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+    }
+
+    TEST_FUNCTION(test_rand_medium_buf)
+    {
+        // arrange
+        unsigned char unexpected_buffer[TEST_RAND_SIZE_BYTES_MEDIUM];
+        unsigned char output_buffer[TEST_RAND_SIZE_BYTES_MEDIUM];
+        size_t buffer_sz = sizeof(unexpected_buffer);
+
+        memset(unexpected_buffer, 0xF1, buffer_sz);
+        memset(output_buffer, 0xF1, buffer_sz);
+
+        // act
+        int result = generate_rand_buffer(output_buffer, buffer_sz);
+
+        // assert
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        // if this assertion fails it implies that the call to generate_rand_buffer
+        // never updated the buffer and yet returned a success OR
+        // the statistically improbable event occured that the random bytes returned
+        // exactly what the unexpected_buffer of size N was setup with
+        // P(test failure) = P(0xF1) * P(0xF1) * ... * P(0xF1) = ((1/256) ^ N) == very small
+        ASSERT_ARE_NOT_EQUAL(int, 0, memcmp(unexpected_buffer, output_buffer, buffer_sz), "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+    }
+
+    TEST_FUNCTION(test_rand_large_buf)
+    {
+        // arrange
+        unsigned char unexpected_buffer[TEST_RAND_SIZE_BYTES_LARGE];
+        unsigned char output_buffer[TEST_RAND_SIZE_BYTES_LARGE];
+        size_t buffer_sz = sizeof(unexpected_buffer);
+
+        memset(unexpected_buffer, 0xF1, buffer_sz);
+        memset(output_buffer, 0xF1, buffer_sz);
+
+        // act
+        int result = generate_rand_buffer(output_buffer, buffer_sz);
+
+        // assert
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        // if this assertion fails it implies that the call to generate_rand_buffer
+        // never updated the buffer and yet returned a success OR
+        // the statistically improbable event occured that the random bytes returned
+        // exactly what the unexpected_buffer of size N was setup with
+        // P(test failure) = P(0xF1) * P(0xF1) * ... * P(0xF1) = ((1/256) ^ N) == very small
+        ASSERT_ARE_NOT_EQUAL(int, 0, memcmp(unexpected_buffer, output_buffer, buffer_sz), "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+    }
+
+    TEST_FUNCTION(test_rand_multiple_calls)
+    {
+        // arrange
+        int result_1, result_2;
+        unsigned char output_buffer_1[TEST_RAND_SIZE_BYTES_LARGE];
+        unsigned char output_buffer_2[TEST_RAND_SIZE_BYTES_LARGE];
+        size_t buffer_sz = sizeof(output_buffer_1);
+
+        memset(output_buffer_1, 0xF1, buffer_sz);
+        memset(output_buffer_2, 0xF1, buffer_sz);
+
+        // act
+        result_1 = generate_rand_buffer(output_buffer_1, buffer_sz);
+        result_2 = generate_rand_buffer(output_buffer_2, buffer_sz);
+
+        // assert
+        ASSERT_ARE_EQUAL(int, 0, result_1, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result_2, "Line:" TOSTRING(__LINE__));
+        // if this assertion fails it implies that the call to generate_rand_buffer
+        // never updated the buffer and yet returned a success OR
+        // the statistically improbable event occured that the random bytes returned
+        // exactly what the output_buffer_2 of size N was setup with
+        // P(test failure) = P(0xF1) * P(0xF1) * ... * P(0xF1) = ((1/256) ^ N) == very small
+        ASSERT_ARE_NOT_EQUAL(int, 0, memcmp(output_buffer_1, output_buffer_2, buffer_sz), "Line:" TOSTRING(__LINE__));
+
+        //cleanup
     }
 
 END_TEST_SUITE(edge_openssl_int_tests)
