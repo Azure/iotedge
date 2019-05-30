@@ -26,7 +26,7 @@ use sha2::{Digest, Sha256};
 
 use crate::error::{Error, ErrorKind};
 
-const EXTERNAL_PROVISIONING_KEY_SENTINEL: &str = "_SENTINEL_";
+//const EXTERNAL_PROVISIONING_KEY_SENTINEL: &str = "_SENTINEL_";
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum ReprovisioningStatus {
@@ -43,13 +43,29 @@ pub struct SymmetricKeyCredential {
     key: Option<String>,
 }
 
+impl SymmetricKeyCredential {
+    pub fn key(&self) -> Option<&str> {
+        self.key.as_ref().map(AsRef::as_ref)
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct X509Credential {
     identity_cert: String,
     identity_private_key: String,
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
+impl X509Credential {
+    pub fn identity_cert(&self) -> &str {
+        self.identity_cert.as_str()
+    }
+
+    pub fn identity_private_key(&self) -> &str {
+        self.identity_private_key.as_str()
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum AuthType {
     SymmetricKey(SymmetricKeyCredential),
     X509(X509Credential)
@@ -65,6 +81,16 @@ pub enum CredentialSource {
 pub struct Credentials {
     auth_type: AuthType,
     source: CredentialSource,
+}
+
+impl Credentials {
+    pub fn auth_type(&self) -> &AuthType {
+        &self.auth_type
+    }
+
+    pub fn source(&self) -> &CredentialSource {
+        &self.source
+    }
 }
 
 impl From<&str> for ReprovisioningStatus {
@@ -203,7 +229,7 @@ where
 
     fn provision(
         self,
-        mut key_activator: Self::Hsm,
+        mut _key_activator: Self::Hsm,
     ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
         let result = self
             .client
@@ -220,26 +246,34 @@ where
                 let credentials = match credentials_info.auth_type() {
                     "symmetric-key" => {
                         match credentials_info.source() {
-                            "payload" => Credentials { auth_type: AuthType::SymmetricKey(SymmetricKeyCredential{ key: credentials_info.key() }), source: CredentialSource::Payload },
-                            "hsm" => Credentials { auth_type: AuthType::SymmetricKey(SymmetricKeyCredential{ key: credentials_info.key() }), source: CredentialSource::Hsm },
+                            "payload" => Ok(Credentials { auth_type: AuthType::SymmetricKey(SymmetricKeyCredential{ key: credentials_info.key().map(ToOwned::to_owned) }), source: CredentialSource::Payload }),
+                            "hsm" => Ok(Credentials { auth_type: AuthType::SymmetricKey(SymmetricKeyCredential{ key: None }), source: CredentialSource::Hsm }),
+                            _ => {
+                                debug!(
+                                    "Unexpected authentication type \"{}\"",
+                                    credentials_info.source()
+                                );
+                                Err(Error::from(ErrorKind::Provision))
+                            }
                         }
                     },
-                    "x509" => {
-                        panic!("Provisioning of Edge device via x509 is currently unsupported");
+                    _ => {
+                        debug!("External Provisioning is currently only supported for the symmetric_key authentication type.");
+                        Err(Error::from(ErrorKind::Provision))
                         // TODO: implement
                     }
-                };
+                }?;
 
                 // Passing a sentinel value as key because in the external mode, the external provisioning
                 // environment itself creates and activates the actual key. The sentinel is
                 // simply ignored.
-                key_activator
-                    .activate_identity_key(
-                        KeyIdentity::Device,
-                        "primary".to_string(),
-                        &Bytes::from(EXTERNAL_PROVISIONING_KEY_SENTINEL),
-                    )
-                    .context(ErrorKind::Provision)?;
+//                key_activator
+//                    .activate_identity_key(
+//                        KeyIdentity::Device,
+//                        "primary".to_string(),
+//                        &Bytes::from(EXTERNAL_PROVISIONING_KEY_SENTINEL),
+//                    )
+//                    .context(ErrorKind::Provision)?;
 
                 Ok(ProvisioningResult {
                     device_id: device_provisioning_info.device_id().to_string(),
