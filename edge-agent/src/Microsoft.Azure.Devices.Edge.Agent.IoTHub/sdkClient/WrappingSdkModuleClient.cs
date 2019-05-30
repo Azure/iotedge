@@ -38,14 +38,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
         public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties)
             => this.sdkModuleClient.UpdateReportedPropertiesAsync(reportedProperties);
 
-        public Task<DeviceStreamRequest> WaitForDeviceStreamRequestAsync(CancellationToken cancellationToken)
-            => this.sdkModuleClient.WaitForDeviceStreamRequestAsync(cancellationToken);
+        ////public Task<DeviceStreamRequest> WaitForDeviceStreamRequestAsync(CancellationToken cancellationToken)
+        ////    => this.sdkModuleClient.WaitForDeviceStreamRequestAsync(cancellationToken);
 
-        public async Task<IClientWebSocket> AcceptDeviceStreamingRequestAndConnect(DeviceStreamRequest deviceStreamRequest, CancellationToken cancellationToken)
-        {
-            await this.sdkModuleClient.AcceptDeviceStreamRequestAsync(deviceStreamRequest, cancellationToken);
-            return await EdgeClientWebSocket.Connect(deviceStreamRequest.Url, deviceStreamRequest.AuthorizationToken, cancellationToken);
-        }
+        ////public async Task<IClientWebSocket> AcceptDeviceStreamingRequestAndConnect(DeviceStreamRequest deviceStreamRequest, CancellationToken cancellationToken)
+        ////{
+        ////    await this.sdkModuleClient.AcceptDeviceStreamRequestAsync(deviceStreamRequest, cancellationToken);
+        ////    return await EdgeClientWebSocket.Connect(deviceStreamRequest.Url, deviceStreamRequest.AuthorizationToken, cancellationToken);
+        ////}
 
         public Task CloseAsync() => this.sdkModuleClient.CloseAsync();
     }

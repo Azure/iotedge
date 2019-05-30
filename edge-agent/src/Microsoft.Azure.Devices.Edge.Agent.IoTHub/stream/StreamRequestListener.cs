@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             // Don't dispose the cts here as it can cause an ObjectDisposedException.
         }
 
-        async Task Pump(IModuleConnection moduleConnection)
+        Task Pump(IModuleConnection moduleConnection)
         {
             return Task.CompletedTask;
             ////while (!this.cts.IsCancellationRequested)

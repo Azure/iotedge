@@ -106,33 +106,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        public async Task<DeviceStreamRequest> WaitForDeviceStreamRequestAsync(CancellationToken cancellationToken)
-        {
-            try
-            {
-                this.inactivityTimer.Reset();
-                return await this.inner.WaitForDeviceStreamRequestAsync(cancellationToken);
-            }
-            catch (Exception e)
-            {
-                await this.HandleException(e);
-                throw;
-            }
-        }
+        ////public async Task<DeviceStreamRequest> WaitForDeviceStreamRequestAsync(CancellationToken cancellationToken)
+        ////{
+        ////    try
+        ////    {
+        ////        this.inactivityTimer.Reset();
+        ////        return await this.inner.WaitForDeviceStreamRequestAsync(cancellationToken);
+        ////    }
+        ////    catch (Exception e)
+        ////    {
+        ////        await this.HandleException(e);
+        ////        throw;
+        ////    }
+        ////}
 
-        public async Task<IClientWebSocket> AcceptDeviceStreamingRequestAndConnect(DeviceStreamRequest deviceStreamRequest, CancellationToken cancellationToken)
-        {
-            try
-            {
-                this.inactivityTimer.Reset();
-                return await this.inner.AcceptDeviceStreamingRequestAndConnect(deviceStreamRequest, cancellationToken);
-            }
-            catch (Exception e)
-            {
-                await this.HandleException(e);
-                throw;
-            }
-        }
+        ////public async Task<IClientWebSocket> AcceptDeviceStreamingRequestAndConnect(DeviceStreamRequest deviceStreamRequest, CancellationToken cancellationToken)
+        ////{
+        ////    try
+        ////    {
+        ////        this.inactivityTimer.Reset();
+        ////        return await this.inner.AcceptDeviceStreamingRequestAndConnect(deviceStreamRequest, cancellationToken);
+        ////    }
+        ////    catch (Exception e)
+        ////    {
+        ////        await this.HandleException(e);
+        ////        throw;
+        ////    }
+        ////}
 
         public async Task CloseAsync()
         {
