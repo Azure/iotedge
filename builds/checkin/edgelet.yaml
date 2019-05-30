@@ -36,7 +36,7 @@ jobs:
     variables:
       IOTEDGE_HOMEDIR: /tmp
     steps:
-      - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
+      - bash: 'echo "##vso[task.setvariable variable=PATH;]${CARGO_HOME:-"$HOME/.cargo"}/bin:$PATH"'
         displayName: Modify path
       - bash: |
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`

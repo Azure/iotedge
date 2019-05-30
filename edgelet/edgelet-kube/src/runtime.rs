@@ -470,7 +470,7 @@ where
                         .lock()
                         .expect("Unexpected lock error")
                         .borrow_mut()
-                        .token_review(token)
+                        .token_review(&self.namespace, token)
                         .map_err(|err| {
                             log_failure(Level::Warn, &err);
                             Error::from(err)

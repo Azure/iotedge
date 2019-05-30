@@ -9,7 +9,7 @@ set -e
 ###############################################################################
 # Define Environment Variables
 ###############################################################################
-CARGO="$HOME/.cargo/bin/cargo"
+CARGO="${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
 
 $CARGO install cross
 
