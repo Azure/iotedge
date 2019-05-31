@@ -54,6 +54,33 @@ jobs:
         displayName: armv7-unknown-linux-gnueabihf test
         workingDirectory: $(Build.SourcesDirectory)/edgelet
 
+  ################################################################################
+  - job: linux_arm64v8
+    ################################################################################
+    displayName: Linux arm64v8
+    pool:
+      vmImage: 'ubuntu-16.04'
+    variables:
+      IOTEDGE_HOMEDIR: /tmp
+    steps:
+      - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
+        displayName: Modify path
+      - bash: |
+          BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+          VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+          echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+        displayName: Set Version
+      - script: edgelet/build/linux/install.sh
+        displayName: Install Rust
+      - script: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
+        displayName: 'Install cross (fork with docker fix)'
+      - script: 'cross build --target aarch64-unknown-linux-gnu'
+        displayName: aarch64-unknown-linux-gnu build
+        workingDirectory: $(Build.SourcesDirectory)/edgelet
+      - script: 'cross test --target aarch64-unknown-linux-gnu'
+        displayName: aarch64-unknown-linux-gnu test
+        workingDirectory: $(Build.SourcesDirectory)/edgelet
+
 ################################################################################
   - job: windows_amd64
 ################################################################################
