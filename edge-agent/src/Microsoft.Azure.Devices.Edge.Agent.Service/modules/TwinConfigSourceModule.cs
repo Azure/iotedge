@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -30,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string iotHubHostName;
         readonly bool enableStreams;
         readonly TimeSpan requestTimeout;
+        readonly bool enableSubscriptions;
 
         public TwinConfigSourceModule(
             string iotHubHostname,
@@ -39,7 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             VersionInfo versionInfo,
             TimeSpan configRefreshFrequency,
             bool enableStreams,
-            TimeSpan requestTimeout)
+            TimeSpan requestTimeout,
+            bool enableSubscriptions)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -49,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.configRefreshFrequency = configRefreshFrequency;
             this.enableStreams = enableStreams;
             this.requestTimeout = requestTimeout;
+            this.enableSubscriptions = enableSubscriptions;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -67,27 +71,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     return new LogsProvider(runtimeInfoProvider, logsProcessor) as ILogsProvider;
                 })
                 .As<Task<ILogsProvider>>()
-                .SingleInstance();
-
-            // Task<IStreamRequestListener>
-            builder.Register(
-                    async c =>
-                    {
-                        if (this.enableStreams)
-                        {
-                            var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
-                            var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
-                            IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
-                            ILogsProvider logsProvider = await logsProviderTask;
-                            var streamRequestHandlerProvider = new StreamRequestHandlerProvider(logsProvider, runtimeInfoProvider);
-                            return new StreamRequestListener(streamRequestHandlerProvider) as IStreamRequestListener;
-                        }
-                        else
-                        {
-                            return new NullStreamRequestListener() as IStreamRequestListener;
-                        }
-                    })
-                .As<Task<IStreamRequestListener>>()
                 .SingleInstance();
 
             // Task<IRequestManager>
@@ -109,20 +92,46 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<Task<IRequestManager>>()
                 .SingleInstance();
 
+            // ISdkModuleClientProvider
+            builder.Register(c => new SdkModuleClientProvider())
+                .As<ISdkModuleClientProvider>()
+                .SingleInstance();
+
             // Task<IEdgeAgentConnection>
             builder.Register(
                 async c =>
                 {
                     var serde = c.Resolve<ISerde<DeploymentConfig>>();
                     var deviceClientprovider = c.Resolve<IModuleClientProvider>();
-                    var streamRequestListenerTask = c.Resolve<Task<IStreamRequestListener>>();
                     var requestManagerTask = c.Resolve<Task<IRequestManager>>();
-                    IStreamRequestListener streamRequestListener = await streamRequestListenerTask;
                     IRequestManager requestManager = await requestManagerTask;
-                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, streamRequestListener, this.configRefreshFrequency);
+                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, this.enableSubscriptions, this.configRefreshFrequency);
                     return edgeAgentConnection;
                 })
                 .As<Task<IEdgeAgentConnection>>()
+                .SingleInstance();
+
+            // Task<IStreamRequestListener>
+            builder.Register(
+                    async c =>
+                    {
+                        if (this.enableStreams)
+                        {
+                            var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
+                            var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
+                            var edgeAgentConnectionTask = c.Resolve<Task<IEdgeAgentConnection>>();
+                            IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
+                            ILogsProvider logsProvider = await logsProviderTask;
+                            IEdgeAgentConnection edgeAgentConnection = await edgeAgentConnectionTask;
+                            var streamRequestHandlerProvider = new StreamRequestHandlerProvider(logsProvider, runtimeInfoProvider);
+                            return new StreamRequestListener(streamRequestHandlerProvider, edgeAgentConnection) as IStreamRequestListener;
+                        }
+                        else
+                        {
+                            return new NullStreamRequestListener() as IStreamRequestListener;
+                        }
+                    })
+                .As<Task<IStreamRequestListener>>()
                 .SingleInstance();
 
             // Task<IConfigSource>

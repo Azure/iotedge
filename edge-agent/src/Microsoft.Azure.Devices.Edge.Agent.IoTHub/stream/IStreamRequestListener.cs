@@ -3,6 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
 {
     public interface IStreamRequestListener
     {
-        void InitPump(IModuleClient moduleClient);
+        void InitPump();
     }
 }

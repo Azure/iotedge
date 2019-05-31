@@ -2,64 +2,101 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
     using Xunit;
     using ModuleClient = Microsoft.Azure.Devices.Edge.Agent.IoTHub.ModuleClient;
 
+    [Unit]
     public class ModuleClientTest
     {
-        [Theory]
-        [InlineData(UpstreamProtocol.AmqpWs)]
-        [InlineData(UpstreamProtocol.Amqp)]
-        [InlineData(UpstreamProtocol.MqttWs)]
-        [InlineData(UpstreamProtocol.Mqtt)]
-        [Unit]
-        public async Task CreateForUpstreamProtocolTest(UpstreamProtocol upstreamProtocol)
+        [Fact]
+        public async Task CloseOnInactivityTest()
         {
             // Arrange
-            Option<UpstreamProtocol> receivedProtocol = Option.None<UpstreamProtocol>();
-            Task<Client.ModuleClient> ModuleClientCreator(UpstreamProtocol up)
-            {
-                receivedProtocol = Option.Some(up);
-                return Task.FromResult((Client.ModuleClient)null);
-            }
+            var sdkModuleClient = new Mock<ISdkModuleClient>(MockBehavior.Strict);
+            sdkModuleClient.Setup(s => s.CloseAsync())
+                .Returns(Task.CompletedTask);
+
+            TimeSpan idleTimeout = TimeSpan.FromSeconds(2);
+            bool closeOnIdleTimeout = true;
 
             // Act
-            await ModuleClient.CreateDeviceClientForUpstreamProtocol(Option.Some(upstreamProtocol), ModuleClientCreator);
+            var moduleClient = new ModuleClient(sdkModuleClient.Object, idleTimeout, closeOnIdleTimeout);
 
             // Assert
-            Assert.Equal(Option.Some(upstreamProtocol), receivedProtocol);
+            Assert.True(moduleClient.IsActive);
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            Assert.False(moduleClient.IsActive);
+            sdkModuleClient.Verify(s => s.CloseAsync(), Times.Once);
         }
 
-        [Unit]
         [Fact]
-        public async Task CreateForNoUpstreamProtocolTest()
+        public async Task CloseOnInactivityGetsResetTest()
         {
             // Arrange
-            var receivedProtocols = new List<UpstreamProtocol>();
-            Task<Client.ModuleClient> DeviceClientCreator(UpstreamProtocol up)
-            {
-                receivedProtocols.Add(up);
-                return receivedProtocols.Count == 1
-                    ? Task.FromException<Client.ModuleClient>(new InvalidOperationException())
-                    : Task.FromResult(
-                        Client.ModuleClient.Create(
-                            "example.com",
-                            new ModuleAuthenticationWithToken("deviceid", "moduleid", TokenHelper.CreateSasToken("foo.azure-devices.net"))));
-            }
+            MethodCallback testMethodCallback = (request, context) => Task.FromResult(new MethodResponse(200));
+
+            var sdkModuleClient = new Mock<ISdkModuleClient>(MockBehavior.Strict);
+            sdkModuleClient.Setup(s => s.CloseAsync())
+                .Returns(Task.CompletedTask);
+            sdkModuleClient.Setup(s => s.SetDefaultMethodHandlerAsync(testMethodCallback))
+                .Returns(Task.CompletedTask);
+
+            TimeSpan idleTimeout = TimeSpan.FromSeconds(3);
+            bool closeOnIdleTimeout = true;
 
             // Act
-            await ModuleClient.CreateDeviceClientForUpstreamProtocol(Option.None<UpstreamProtocol>(), DeviceClientCreator);
+            var moduleClient = new ModuleClient(sdkModuleClient.Object, idleTimeout, closeOnIdleTimeout);
+            Assert.True(moduleClient.IsActive);
 
             // Assert
-            Assert.Equal(2, receivedProtocols.Count);
-            Assert.Equal(UpstreamProtocol.Amqp, receivedProtocols[0]);
-            Assert.Equal(UpstreamProtocol.AmqpWs, receivedProtocols[1]);
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            await moduleClient.SetDefaultMethodHandlerAsync(testMethodCallback);
+            Assert.True(moduleClient.IsActive);
+
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            await moduleClient.SetDefaultMethodHandlerAsync(testMethodCallback);
+            Assert.True(moduleClient.IsActive);
+
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            await moduleClient.SetDefaultMethodHandlerAsync(testMethodCallback);
+            Assert.True(moduleClient.IsActive);
+
+            Assert.True(moduleClient.IsActive);
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            Assert.False(moduleClient.IsActive);
+            sdkModuleClient.Verify(s => s.CloseAsync(), Times.Once);
+        }
+
+        [Theory]
+        [InlineData(typeof(ObjectDisposedException))]
+        [InlineData(typeof(NullReferenceException))]
+        public async Task HandleExceptionsTest(Type exception)
+        {
+            // Arrange
+            MethodCallback testMethodCallback = (request, context) => Task.FromResult(new MethodResponse(200));
+
+            var sdkModuleClient = new Mock<ISdkModuleClient>(MockBehavior.Strict);
+            sdkModuleClient.Setup(s => s.CloseAsync())
+                .Returns(Task.CompletedTask);
+            sdkModuleClient.Setup(s => s.SetDefaultMethodHandlerAsync(testMethodCallback))
+                .ThrowsAsync((Exception)Activator.CreateInstance(exception, "Dummy exception"));
+
+            TimeSpan idleTimeout = TimeSpan.FromMinutes(3);
+            bool closeOnIdleTimeout = false;
+
+            // Act
+            var moduleClient = new ModuleClient(sdkModuleClient.Object, idleTimeout, closeOnIdleTimeout);
+            Assert.True(moduleClient.IsActive);
+            await Assert.ThrowsAsync(exception, () => moduleClient.SetDefaultMethodHandlerAsync(testMethodCallback));
+
+            // Assert
+            sdkModuleClient.Verify(s => s.SetDefaultMethodHandlerAsync(testMethodCallback), Times.Once);
+            sdkModuleClient.Verify(s => s.CloseAsync(), Times.Once);
         }
     }
 }

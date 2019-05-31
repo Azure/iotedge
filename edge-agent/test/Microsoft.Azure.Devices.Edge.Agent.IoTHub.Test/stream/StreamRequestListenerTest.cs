@@ -38,6 +38,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
         ////    moduleClient.Setup(m => m.AcceptDeviceStreamingRequestAndConnect(deviceStreamRequest3, It.IsAny<CancellationToken>()))
         ////        .Returns(Task.FromResult(clientWebSocket3.Object));
 
+        ////    var moduleConnection = Mock.Of<IModuleConnection>(m => m.GetOrCreateModuleClient() == Task.FromResult(moduleClient.Object));
+        ////    var edgeAgentConnection = Mock.Of<IEdgeAgentConnection>(e => e.ModuleConnection == moduleConnection);
+
         ////    var requestHandler1TaskCompletionSource = new TaskCompletionSource<bool>();
         ////    var streamRequestHandlerType1Mock = new Mock<IStreamRequestHandler>();
         ////    streamRequestHandlerType1Mock.Setup(s => s.Handle(clientWebSocket1.Object, It.IsAny<CancellationToken>()))
@@ -62,10 +65,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
         ////    streamRequestHandlerProvider.Setup(s => s.TryGetHandler("Type2", out streamRequestHandlerType2)).Returns(true);
         ////    streamRequestHandlerProvider.Setup(s => s.TryGetHandler("Type3", out streamRequestHandlerType3)).Returns(true);
 
-        ////    var streamRequestListener = new StreamRequestListener(streamRequestHandlerProvider.Object, 2);
+        ////    var streamRequestListener = new StreamRequestListener(streamRequestHandlerProvider.Object, edgeAgentConnection, 2);
 
         ////    // Act
-        ////    streamRequestListener.InitPump(moduleClient.Object);
+        ////    streamRequestListener.InitPump();
 
         ////    // Assert
         ////    await Task.Delay(TimeSpan.FromSeconds(5));
