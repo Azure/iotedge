@@ -26,11 +26,6 @@
     <OutputPath>bin\CodeCoverage</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="util\concurrency\**" />
-    <EmbeddedResource Remove="util\concurrency\**" />
-    <None Remove="util\concurrency\**" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Autofac" Version="4.9.1" />
