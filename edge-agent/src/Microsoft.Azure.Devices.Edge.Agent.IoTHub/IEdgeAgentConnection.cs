@@ -11,6 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     {
         Option<TwinCollection> ReportedProperties { get; }
 
+        IModuleConnection ModuleConnection { get; }
+
         Task<Option<DeploymentConfigInfo>> GetDeploymentConfigInfoAsync();
 
         Task UpdateReportedPropertiesAsync(TwinCollection patch);
