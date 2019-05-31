@@ -7,8 +7,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Shared;
 
-    public interface IModuleClient : IDisposable
+    public interface IModuleClient
     {
+        event EventHandler Closed;
+
+        bool IsActive { get; }
+
         Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyChanged);
 
         Task SetMethodHandlerAsync(string methodName, MethodCallback callback);
@@ -22,5 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         ////Task<DeviceStreamRequest> WaitForDeviceStreamRequestAsync(CancellationToken cancellationToken);
 
         ////Task<IClientWebSocket> AcceptDeviceStreamingRequestAndConnect(DeviceStreamRequest deviceStreamRequest, CancellationToken cancellationToken);
+
+        Task CloseAsync();
     }
 }

@@ -1,0 +1,143 @@
+// Copyright (c) Microsoft. All rights reserved.
+namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
+{
+    using System;
+    using System.Text;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Extensions.Logging;
+
+    public class ModuleConnection : IModuleConnection
+    {
+        readonly IModuleClientProvider moduleClientProvider;
+        readonly AsyncLock stateLock = new AsyncLock();
+        readonly IRequestManager requestManager;
+        readonly ConnectionStatusChangesHandler connectionStatusChangesHandler;
+        readonly DesiredPropertyUpdateCallback desiredPropertyUpdateCallback;
+        readonly bool enableSubscriptions;
+
+        Option<IModuleClient> moduleClient;
+
+        public ModuleConnection(
+            IModuleClientProvider moduleClientProvider,
+            IRequestManager requestManager,
+            ConnectionStatusChangesHandler connectionStatusChangesHandler,
+            DesiredPropertyUpdateCallback desiredPropertyUpdateCallback,
+            bool enableSubscriptions)
+        {
+            this.moduleClientProvider = Preconditions.CheckNotNull(moduleClientProvider, nameof(moduleClientProvider));
+            this.requestManager = Preconditions.CheckNotNull(requestManager, nameof(requestManager));
+            this.connectionStatusChangesHandler = Preconditions.CheckNotNull(connectionStatusChangesHandler, nameof(connectionStatusChangesHandler));
+            this.desiredPropertyUpdateCallback = Preconditions.CheckNotNull(desiredPropertyUpdateCallback, nameof(desiredPropertyUpdateCallback));
+            this.enableSubscriptions = enableSubscriptions;
+
+            // Run initialize module client to create the module client. But we don't need to wait for the result.
+            // The subsequent calls will automatically wait because of the lock
+            Task.Run(this.InitModuleClient);
+        }
+
+        public async Task<IModuleClient> GetOrCreateModuleClient()
+        {
+            IModuleClient moduleClient = await this.moduleClient
+                .Filter(m => m.IsActive)
+                .Map(Task.FromResult)
+                .GetOrElse(this.InitModuleClient);
+            return moduleClient;
+        }
+
+        public Option<IModuleClient> GetModuleClient() => this.moduleClient.Filter(m => m.IsActive);
+
+        async Task<MethodResponse> MethodCallback(MethodRequest methodRequest, object _)
+        {
+            Events.ReceivedMethodCallback(methodRequest);
+            (int responseStatus, Option<string> responsePayload) = await this.requestManager.ProcessRequest(methodRequest.Name, methodRequest.DataAsJson);
+            return responsePayload
+                .Map(r => new MethodResponse(Encoding.UTF8.GetBytes(r), responseStatus))
+                .GetOrElse(() => new MethodResponse(responseStatus));
+        }
+
+        async Task<IModuleClient> InitModuleClient()
+        {
+            using (await this.stateLock.LockAsync())
+            {
+                IModuleClient moduleClient = await this.moduleClient
+                    .Filter(m => m.IsActive)
+                    .Map(Task.FromResult)
+                    .GetOrElse(
+                        async () =>
+                        {
+                            IModuleClient mc = await this.moduleClientProvider.Create(this.connectionStatusChangesHandler);
+                            mc.Closed += this.OnModuleClientClosed;
+                            if (this.enableSubscriptions)
+                            {
+                                await mc.SetDefaultMethodHandlerAsync(this.MethodCallback);
+                                await mc.SetDesiredPropertyUpdateCallbackAsync(this.desiredPropertyUpdateCallback);
+                            }
+
+                            this.moduleClient = Option.Some(mc);
+                            Events.InitializedNewModuleClient(this.enableSubscriptions);
+                            return mc;
+                        });
+                return moduleClient;
+            }
+        }
+
+        async void OnModuleClientClosed(object sender, EventArgs e)
+        {
+            try
+            {
+                Events.ModuleClientClosed(this.enableSubscriptions);
+                if (this.enableSubscriptions)
+                {
+                    await this.InitModuleClient();
+                }
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorHandlingModuleClosedEvent(ex);
+            }
+        }
+
+        static class Events
+        {
+            const int IdStart = AgentEventIds.ModuleClientProvider;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleClient>();
+
+            enum EventIds
+            {
+                InitializedNewModuleClient = IdStart,
+                ErrorHandlingModuleClosedEvent,
+                ModuleClientClosed,
+                ReceivedMethodCallback
+            }
+
+            public static void ErrorHandlingModuleClosedEvent(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorHandlingModuleClosedEvent, ex, "Error handling module client closed event");
+            }
+
+            public static void ModuleClientClosed(bool enableSubscriptions)
+            {
+                string message = enableSubscriptions
+                    ? "Current module client closed. Initializing a new one"
+                    : "Module client closed. Not initializing a new one since subscriptions are disabled.";
+                Log.LogInformation((int)EventIds.ModuleClientClosed, message);
+            }
+
+            public static void InitializedNewModuleClient(bool enableSubscriptions)
+            {
+                string subscriptionsState = enableSubscriptions ? "enabled" : "disabled";
+                Log.LogInformation((int)EventIds.InitializedNewModuleClient, $"Initialized new module client with subscriptions {subscriptionsState}");
+            }
+
+            public static void ReceivedMethodCallback(MethodRequest methodRequest)
+            {
+                Log.LogInformation((int)EventIds.ReceivedMethodCallback, $"Received direct method call - {methodRequest?.Name ?? string.Empty}");
+            }
+        }
+    }
+}

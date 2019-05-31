@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
-    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -33,20 +32,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly Task initTask;
         readonly RetryStrategy retryStrategy;
         readonly PeriodicTask refreshTwinTask;
-        readonly IRequestManager requestManager;
-        readonly IStreamRequestListener streamRequestListener;
+        readonly IModuleConnection moduleConnection;
+        readonly bool pullOnReconnect;
 
-        Option<IModuleClient> moduleClient;
-        TwinCollection desiredProperties;
+        Option<TwinCollection> desiredProperties;
         Option<TwinCollection> reportedProperties;
         Option<DeploymentConfigInfo> deploymentConfigInfo;
 
         public EdgeAgentConnection(
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
-            IRequestManager requestManager,
-            IStreamRequestListener streamRequestListener)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, streamRequestListener, TransientRetryStrategy, DefaultConfigRefreshFrequency)
+            IRequestManager requestManager)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy)
         {
         }
 
@@ -54,9 +51,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
             IRequestManager requestManager,
-            IStreamRequestListener streamRequestListener,
+            bool enableSubscriptions,
             TimeSpan configRefreshFrequency)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, streamRequestListener, TransientRetryStrategy, configRefreshFrequency)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy)
         {
         }
 
@@ -64,24 +61,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
             IRequestManager requestManager,
-            IStreamRequestListener streamRequestListener,
-            RetryStrategy retryStrategy,
-            TimeSpan refreshConfigFrequency)
+            bool enableSubscriptions,
+            TimeSpan refreshConfigFrequency,
+            RetryStrategy retryStrategy)
         {
             this.desiredPropertiesSerDe = Preconditions.CheckNotNull(desiredPropertiesSerDe, nameof(desiredPropertiesSerDe));
             this.deploymentConfigInfo = Option.None<DeploymentConfigInfo>();
             this.reportedProperties = Option.None<TwinCollection>();
-            this.moduleClient = Option.None<IModuleClient>();
+            this.moduleConnection = new ModuleConnection(moduleClientProvider, requestManager, this.OnConnectionStatusChanged, this.OnDesiredPropertiesUpdated, enableSubscriptions);
             this.retryStrategy = Preconditions.CheckNotNull(retryStrategy, nameof(retryStrategy));
             this.refreshTwinTask = new PeriodicTask(this.ForceRefreshTwin, refreshConfigFrequency, refreshConfigFrequency, Events.Log, "refresh twin config");
-            this.streamRequestListener = Preconditions.CheckNotNull(streamRequestListener, nameof(streamRequestListener));
-            this.initTask = this.CreateAndInitDeviceClient(Preconditions.CheckNotNull(moduleClientProvider, nameof(moduleClientProvider)));
-            this.requestManager = Preconditions.CheckNotNull(requestManager, nameof(requestManager));
-
+            this.initTask = this.ForceRefreshTwin();
+            this.pullOnReconnect = enableSubscriptions;
             Events.TwinRefreshInit(refreshConfigFrequency);
         }
 
         public Option<TwinCollection> ReportedProperties => this.reportedProperties;
+
+        public IModuleConnection ModuleConnection => this.moduleConnection;
 
         public async Task<Option<DeploymentConfigInfo>> GetDeploymentConfigInfoAsync()
         {
@@ -91,7 +88,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public void Dispose()
         {
-            this.moduleClient.ForEach(d => d.Dispose());
             this.refreshTwinTask.Dispose();
         }
 
@@ -100,16 +96,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             Events.UpdatingReportedProperties();
             try
             {
-                if (!this.moduleClient.HasValue)
+                Option<IModuleClient> moduleClient = this.moduleConnection.GetModuleClient();
+                if (!moduleClient.HasValue)
                 {
                     Events.UpdateReportedPropertiesDeviceClientEmpty();
+                    return;
                 }
 
-                if (await this.WaitForDeviceClientInitialization())
-                {
-                    await this.moduleClient.ForEachAsync(d => d.UpdateReportedPropertiesAsync(patch));
-                    Events.UpdatedReportedProperties();
-                }
+                await moduleClient.ForEachAsync(d => d.UpdateReportedPropertiesAsync(patch));
+                Events.UpdatedReportedProperties();
             }
             catch (Exception e)
             {
@@ -126,29 +121,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        async Task CreateAndInitDeviceClient(IModuleClientProvider moduleClientProvider)
+        async Task ForceRefreshTwin()
         {
             using (await this.twinLock.LockAsync())
             {
-                IModuleClient moduleClient = await moduleClientProvider.Create(
-                    this.OnConnectionStatusChanged,
-                    async m =>
-                    {
-                        await m.SetDesiredPropertyUpdateCallbackAsync(this.OnDesiredPropertiesUpdated);
-                        await m.SetDefaultMethodHandlerAsync(this.MethodCallback);
-                    });
-                this.moduleClient = Option.Some(moduleClient);
-                this.streamRequestListener.InitPump(moduleClient);
                 await this.RefreshTwinAsync();
             }
-        }
-
-        async Task<MethodResponse> MethodCallback(MethodRequest methodRequest, object _)
-        {
-            (int responseStatus, Option<string> responsePayload) = await this.requestManager.ProcessRequest(methodRequest.Name, methodRequest.DataAsJson);
-            return responsePayload
-                .Map(r => new MethodResponse(Encoding.UTF8.GetBytes(r), responseStatus))
-                .GetOrElse(() => new MethodResponse(responseStatus));
         }
 
         async void OnConnectionStatusChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
@@ -156,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             try
             {
                 Events.ConnectionStatusChanged(status, reason);
-                if (this.initTask.IsCompleted && status == ConnectionStatus.Connected)
+                if (this.pullOnReconnect && this.initTask.IsCompleted && status == ConnectionStatus.Connected)
                 {
                     using (await this.twinLock.LockAsync())
                     {
@@ -175,14 +153,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             Events.DesiredPropertiesUpdated();
             using (await this.twinLock.LockAsync())
             {
-                if (this.desiredProperties == null || this.desiredProperties.Version + 1 != desiredPropertiesPatch.Version)
-                {
-                    await this.RefreshTwinAsync();
-                }
-                else
-                {
-                    await this.ApplyPatchAsync(desiredPropertiesPatch);
-                }
+                await this.desiredProperties
+                    .Filter(d => d.Version + 1 == desiredPropertiesPatch.Version)
+                    .Map(d => this.ApplyPatchAsync(d, desiredPropertiesPatch))
+                    .GetOrElse(this.RefreshTwinAsync);
             }
         }
 
@@ -193,6 +167,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 Events.TwinRefreshStart();
 
+                Events.GettingModuleClient();
+                IModuleClient moduleClient = await this.moduleConnection.GetOrCreateModuleClient();
+                Events.GotModuleClient();
+
                 // if GetTwinAsync fails its possible that it might be due to transient network errors or because
                 // we are getting throttled by IoT Hub; if we didn't attempt a retry then this object would be
                 // stuck in an "error" state till either the connection status on the underlying device connection
@@ -200,61 +178,53 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 // recover from this situation
                 var retryPolicy = new RetryPolicy(AllButFatalErrorDetectionStrategy, this.retryStrategy);
                 retryPolicy.Retrying += (_, args) => Events.RetryingGetTwin(args);
-                IModuleClient dc = this.moduleClient.Expect(() => new InvalidOperationException("DeviceClient not yet initialized"));
-                Twin twin = await retryPolicy.ExecuteAsync(() => dc.GetTwinAsync());
+                Twin twin = await retryPolicy.ExecuteAsync(moduleClient.GetTwinAsync);
 
                 Events.GotTwin(twin);
-                this.desiredProperties = twin.Properties.Desired;
+                this.desiredProperties = Option.Some(twin.Properties.Desired);
                 this.reportedProperties = Option.Some(twin.Properties.Reported);
-                await this.UpdateDeploymentConfig();
+                await this.UpdateDeploymentConfig(twin.Properties.Desired);
                 Events.TwinRefreshSuccess();
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
-                this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(this.desiredProperties?.Version ?? 0, ex));
+                this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(this.desiredProperties.Map(d => d.Version).GetOrElse(0), ex));
                 Events.TwinRefreshError(ex);
             }
         }
 
-        async Task ForceRefreshTwin()
-        {
-            using (await this.twinLock.LockAsync())
-            {
-                await this.RefreshTwinAsync();
-            }
-        }
-
         // This method updates local state and should be called only after acquiring twinLock
-        async Task ApplyPatchAsync(TwinCollection patch)
+        async Task ApplyPatchAsync(TwinCollection desiredProperties, TwinCollection patch)
         {
             try
             {
-                string mergedJson = JsonEx.Merge(this.desiredProperties, patch, true);
-                this.desiredProperties = new TwinCollection(mergedJson);
-                await this.UpdateDeploymentConfig();
+                string mergedJson = JsonEx.Merge(desiredProperties, patch, true);
+                desiredProperties = new TwinCollection(mergedJson);
+                this.desiredProperties = Option.Some(desiredProperties);
+                await this.UpdateDeploymentConfig(desiredProperties);
                 Events.DesiredPropertiesPatchApplied();
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
-                this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(this.desiredProperties?.Version ?? 0, ex));
+                this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(desiredProperties?.Version ?? 0, ex));
                 Events.DesiredPropertiesPatchFailed(ex);
                 // Update reported properties with last desired status
             }
         }
 
-        Task UpdateDeploymentConfig()
+        Task UpdateDeploymentConfig(TwinCollection desiredProperties)
         {
             DeploymentConfig deploymentConfig;
 
             try
             {
                 // if the twin is empty then throw an appropriate error
-                if (this.desiredProperties.Count == 0)
+                if (desiredProperties.Count == 0)
                 {
                     throw new ConfigEmptyException("This device has an empty configuration for the edge agent. Please set a deployment manifest.");
                 }
 
-                string desiredPropertiesJson = this.desiredProperties.ToJson();
+                string desiredPropertiesJson = desiredProperties.ToJson();
                 deploymentConfig = this.desiredPropertiesSerDe.Deserialize(desiredPropertiesJson);
             }
             catch (ConfigEmptyException)
@@ -274,7 +244,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 // Do any validation on deploymentConfig if necessary
                 ValidateSchemaVersion(deploymentConfig.SchemaVersion);
-                this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(this.desiredProperties.Version, deploymentConfig));
+                this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(desiredProperties.Version, deploymentConfig));
                 Events.UpdatedDeploymentConfig();
             }
             catch (Exception ex) when (!ex.IsFatal())
@@ -314,7 +284,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 UpdatingReportedProperties,
                 UpdateReportedPropertiesDeviceClientEmpty,
                 UpdatedReportedProperties,
-                ErrorUpdatingReportedProperties
+                ErrorUpdatingReportedProperties,
+                GotModuleClient,
+                GettingModuleClient
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -332,6 +304,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 Log.LogWarning(
                     (int)EventIds.MismatchedSchemaVersion,
                     $"Desired properties schema version {receivedVersion} does not match expected schema version {expectedVersion}. Some settings may not be supported.");
+            }
+
+            public static void GotTwin(Twin twin)
+            {
+                long reportedPropertiesVersion = twin?.Properties?.Reported?.Version ?? -1;
+                long desiredPropertiesVersion = twin?.Properties?.Desired?.Version ?? -1;
+                Log.LogInformation((int)EventIds.GotTwin, $"Obtained Edge agent twin from IoTHub with desired properties version {desiredPropertiesVersion} and reported properties version {reportedPropertiesVersion}.");
+            }
+
+            public static void UpdatingReportedProperties()
+            {
+                Log.LogDebug((int)EventIds.UpdatingReportedProperties, "Updating reported properties in IoT Hub");
+            }
+
+            public static void UpdateReportedPropertiesDeviceClientEmpty()
+            {
+                Log.LogDebug((int)EventIds.UpdateReportedPropertiesDeviceClientEmpty, "Updating reported properties in IoT Hub");
+            }
+
+            public static void UpdatedReportedProperties()
+            {
+                Log.LogDebug((int)EventIds.UpdatedReportedProperties, "Updated reported properties in IoT Hub");
+            }
+
+            public static void ErrorUpdatingReportedProperties(Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorUpdatingReportedProperties, ex, "Error updating reported properties in IoT Hub");
+            }
+
+            public static void GettingModuleClient()
+            {
+                Log.LogDebug((int)EventIds.GettingModuleClient, "Getting module client to refresh the twin");
+            }
+
+            public static void GotModuleClient()
+            {
+                Log.LogDebug((int)EventIds.GotModuleClient, "Got module client to refresh the twin");
             }
 
             internal static void DesiredPropertiesUpdated()
@@ -387,33 +396,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             internal static void RetryingGetTwin(RetryingEventArgs args)
             {
                 Log.LogDebug((int)EventIds.RetryingGetTwin, $"Edge agent is retrying GetTwinAsync. Attempt #{args.CurrentRetryCount}. Last error: {args.LastException?.Message}");
-            }
-
-            public static void GotTwin(Twin twin)
-            {
-                long reportedPropertiesVersion = twin?.Properties?.Reported?.Version ?? -1;
-                long desiredPropertiesVersion = twin?.Properties?.Desired?.Version ?? -1;
-                Log.LogInformation((int)EventIds.GotTwin, $"Obtained Edge agent twin from IoTHub with desired properties version {desiredPropertiesVersion} and reported properties version {reportedPropertiesVersion}.");
-            }
-
-            public static void UpdatingReportedProperties()
-            {
-                Log.LogDebug((int)EventIds.UpdatingReportedProperties, "Updating reported properties in IoT Hub");
-            }
-
-            public static void UpdateReportedPropertiesDeviceClientEmpty()
-            {
-                Log.LogDebug((int)EventIds.UpdateReportedPropertiesDeviceClientEmpty, "Updating reported properties in IoT Hub");
-            }
-
-            public static void UpdatedReportedProperties()
-            {
-                Log.LogDebug((int)EventIds.UpdatedReportedProperties, "Updated reported properties in IoT Hub");
-            }
-
-            public static void ErrorUpdatingReportedProperties(Exception ex)
-            {
-                Log.LogDebug((int)EventIds.ErrorUpdatingReportedProperties, ex, "Error updating reported properties in IoT Hub");
             }
         }
     }
