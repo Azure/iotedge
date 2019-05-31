@@ -9,8 +9,8 @@ BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 
 BUILD_DIR=$PROJECT_ROOT/target/hsm/build
-CARGO_HOME="$HOME/.cargo/"
-RUSTUP_HOME="$HOME/.rustup"
+CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo/"}
+RUSTUP_HOME=${RUSTUP_HOME:-"$HOME/.rustup"}
 IMAGE="edgebuilds.azurecr.io/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabihf:0.2"
 
 PACKAGE_NAME="libiothsm-std"
