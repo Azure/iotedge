@@ -15,8 +15,8 @@ DIR=$(cd "$(dirname "$0")" && pwd)
 SCRIPT_NAME=$(basename "$0")
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
-RUSTUP="$HOME/.cargo/bin/rustup"
-CARGO="$HOME/.cargo/bin/cargo"
+RUSTUP="${CARGO_HOME:-"$HOME/.cargo"}/bin/rustup"
+CARGO="${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
