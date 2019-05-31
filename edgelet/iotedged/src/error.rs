@@ -136,7 +136,7 @@ impl From<&ErrorKind> for i32 {
             // Using 150 as the starting base for custom IoT edge error codes so as to avoid
             // collisions with -
             // 1. The standard error codes defined by the BSD ecosystem
-            // (https://www.freebsd.org/cgCould not get module i/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+11.2-stable&arch=default&format=html)
+            // (https://www.freebsd.org/cgi/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+11.2-stable&arch=default&format=html)
             // that is recommended by the Rust docs
             // (https://rust-lang-nursery.github.io/cli-wg/in-depth/exit-code.html)
             // 2. Bash scripting exit codes with special meanings
@@ -144,6 +144,7 @@ impl From<&ErrorKind> for i32 {
             ErrorKind::Initialize(InitializeErrorReason::InvalidDeviceConfig) => 150,
             ErrorKind::Initialize(InitializeErrorReason::InvalidHubConfig) => 151,
             ErrorKind::InvalidSignedToken => 152,
+            ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => 153,
             _ => 1,
         }
     }
