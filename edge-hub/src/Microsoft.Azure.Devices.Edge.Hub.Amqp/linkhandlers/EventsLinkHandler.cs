@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
 
     /// <summary>
@@ -61,6 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 List<IMessage> outgoingMessages = messages.Select(m => this.MessageConverter.ToMessage(m)).ToList();
                 outgoingMessages.ForEach(this.AddMessageSystemProperties);
                 await this.DeviceListener.ProcessDeviceMessageBatchAsync(outgoingMessages);
+                Metrics.AddMessages(this.Identity, messages.Count);
                 Events.ProcessedMessages(messages, this);
             }
             catch (Exception e) when (!e.IsFatal())
@@ -143,6 +145,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             internal static void ProcessedMessages(IList<AmqpMessage> messages, EventsLinkHandler handler)
             {
                 Log.LogDebug((int)EventIds.ProcessedMessages, $"EventsLinkHandler processed {messages.Count} messages for {handler.ClientId}");
+            }
+        }
+
+        static class Metrics
+        {
+            static readonly ICounter MessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+                "edgehub_messages_received_total",
+                new Dictionary<string, string>
+                {
+                    ["Protocol"] = "Amqp"
+                });
+
+            public static void AddMessages(IIdentity identity, long count)
+            {
+                MessagesCounter.Increment(count, new Dictionary<string, string>
+                {
+                    ["Id"] = identity.Id
+                });
             }
         }
     }

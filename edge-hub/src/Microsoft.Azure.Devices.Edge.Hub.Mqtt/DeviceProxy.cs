@@ -2,12 +2,14 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
     using Microsoft.Extensions.Logging;
@@ -78,6 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 message.SystemProperties[SystemProperties.OutboundUri] = Constants.OutboundUriModuleEndpoint;
                 IProtocolGatewayMessage pgMessage = this.messageConverter.FromMessage(message);
                 this.channel.Handle(pgMessage);
+                Metrics.AddSentMessage(this.Identity);
                 result = true;
             }
 
@@ -153,6 +156,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             public static void SentDesiredPropertyUpdate(IIdentity identity)
             {
                 Log.LogDebug((int)EventIds.SendingDesiredPropertyUpdate, Invariant($"Sent desired properties update to {identity.Id}"));
+            }
+        }
+
+        static class Metrics
+        {
+            static readonly ICounter SentMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+                "edgehub_messages_sent_total",
+                new Dictionary<string, string>
+                {
+                    ["Protocol"] = "Mqtt"
+                });
+
+            public static void AddSentMessage(IIdentity identity)
+            {
+                SentMessagesCounter.Increment(1, new Dictionary<string, string>
+                {
+                    ["Id"] = identity.Id
+                });
             }
         }
     }
