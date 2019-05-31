@@ -23,7 +23,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using Newtonsoft.Json.Linq;
     using Xunit;
     using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
-    using ModuleClient = Microsoft.Azure.Devices.Edge.Agent.IoTHub.ModuleClient;
     using ServiceClient = Microsoft.Azure.Devices.ServiceClient;
 
     public class EdgeAgentConnectionTest
@@ -467,7 +466,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             // Act
             var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout));
+
+            // Assert
+            // The connection hasn't been created yet. So wait for it.
+            await Task.Delay(TimeSpan.FromSeconds(3));
             Assert.NotNull(connectionStatusChangesHandler);
+
+            // Act
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
 
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
@@ -513,7 +518,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             // Act
             var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout));
+
+            // Assert
+            // The connection hasn't been created yet. So wait for it.
+            await Task.Delay(TimeSpan.FromSeconds(3));
             Assert.NotNull(connectionStatusChangesHandler);
+
+            // Act
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
 
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
@@ -576,7 +587,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             // Act
             var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout));
+
+            // Assert
+            // The connection hasn't been created yet. So wait for it.
+            await Task.Delay(TimeSpan.FromSeconds(3));
             Assert.NotNull(connectionStatusChangesHandler);
+
+            // Act
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
@@ -632,7 +649,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             // Act
             IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), true, TimeSpan.FromHours(1), retryStrategy.Object);
+
+            // Assert
+            // The connection hasn't been created yet. So wait for it.
+            await Task.Delay(TimeSpan.FromSeconds(3));
             Assert.NotNull(connectionStatusChangesHandler);
+
+            // Act
             connectionStatusChangesHandler.Invoke(
                 ConnectionStatus.Connected,
                 ConnectionStatusChangeReason.Connection_Ok);
