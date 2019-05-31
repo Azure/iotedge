@@ -89,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         public void Dispose()
         {
             this.refreshTwinTask.Dispose();
+            this.moduleConnection.Dispose();
         }
 
         public async Task UpdateReportedPropertiesAsync(TwinCollection patch)
