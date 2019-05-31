@@ -102,6 +102,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
+        public async void Dispose()
+        {
+            try
+            {
+                Events.DisposingModuleConnection();
+                await this.moduleClient.ForEachAsync(
+                    mc =>
+                    {
+                        mc.Closed -= this.OnModuleClientClosed;
+                        return mc.CloseAsync();
+                    });
+                Events.DisposedModuleConnection();
+            }
+            catch (Exception e)
+            {
+                Events.ErrorDisposingModuleConnection(e);
+            }
+        }
+
         static class Events
         {
             const int IdStart = AgentEventIds.ModuleClientProvider;
@@ -112,7 +131,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 InitializedNewModuleClient = IdStart,
                 ErrorHandlingModuleClosedEvent,
                 ModuleClientClosed,
-                ReceivedMethodCallback
+                ReceivedMethodCallback,
+                DisposingModuleConnection,
+                DisposedModuleConnection,
+                ErrorDisposingModuleConnection
             }
 
             public static void ErrorHandlingModuleClosedEvent(Exception ex)
@@ -137,6 +159,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             public static void ReceivedMethodCallback(MethodRequest methodRequest)
             {
                 Log.LogInformation((int)EventIds.ReceivedMethodCallback, $"Received direct method call - {methodRequest?.Name ?? string.Empty}");
+            }
+
+            public static void DisposingModuleConnection()
+            {
+                Log.LogInformation((int)EventIds.DisposingModuleConnection, "Disposing module connection object");
+            }
+
+            public static void DisposedModuleConnection()
+            {
+                Log.LogInformation((int)EventIds.DisposedModuleConnection, "Disposed module connection object");
+            }
+
+            public static void ErrorDisposingModuleConnection(Exception ex)
+            {
+                Log.LogInformation((int)EventIds.ErrorDisposingModuleConnection, ex, "Error disposing module connection object");
             }
         }
     }
