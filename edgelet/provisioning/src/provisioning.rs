@@ -68,13 +68,13 @@ impl X509Credential {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum AuthType {
     SymmetricKey(SymmetricKeyCredential),
-    X509(X509Credential)
+    X509(X509Credential),
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum CredentialSource {
     Payload,
-    Hsm
+    Hsm,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -201,8 +201,7 @@ impl Provision for ManualProvisioning {
     }
 }
 
-pub struct ExternalProvisioning<T, U>
-{
+pub struct ExternalProvisioning<T, U> {
     client: T,
 
     // ExternalProvisioning is not restricted to a single HSM implementation, so it uses
@@ -210,8 +209,7 @@ pub struct ExternalProvisioning<T, U>
     phantom: PhantomData<U>,
 }
 
-impl<T, U> ExternalProvisioning<T, U>
-{
+impl<T, U> ExternalProvisioning<T, U> {
     pub fn new(client: T) -> Self {
         ExternalProvisioning {
             client,

@@ -19,8 +19,10 @@ use crate::error::{Error, ErrorKind};
 pub trait ExternalProvisioningInterface {
     type Error: Fail;
 
-    type DeviceProvisioningInformationFuture: Future<Item = DeviceProvisioningInfo, Error = Self::Error>
-        + Send;
+    type DeviceProvisioningInformationFuture: Future<
+            Item = DeviceProvisioningInfo,
+            Error = Self::Error,
+        > + Send;
 
     fn get_device_provisioning_information(&self) -> Self::DeviceProvisioningInformationFuture;
 }

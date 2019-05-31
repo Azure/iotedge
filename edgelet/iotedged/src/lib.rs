@@ -3,10 +3,10 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
-    clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
-    clippy::module_name_repetitions,
-    clippy::shadow_unrelated,
-    clippy::use_self,
+clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
+clippy::module_name_repetitions,
+clippy::shadow_unrelated,
+clippy::use_self,
 )]
 
 pub mod app;
@@ -44,7 +44,7 @@ use url::Url;
 use docker::models::HostConfig;
 use dps::DPS_API_VERSION;
 use edgelet_config::{
-    AttestationMethod, Dps, External, Manual, Provisioning, Settings, SymmetricKeyAttestationInfo,
+    AttestationMethod, Dps, Manual, Provisioning, Settings, SymmetricKeyAttestationInfo,
     TpmAttestationInfo, DEFAULT_CONNECTION_STRING,
 };
 use edgelet_core::crypto::{
@@ -72,8 +72,8 @@ use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
 use iothubservice::DeviceClient;
 use provisioning::provisioning::{
-    AuthType, SymmetricKeyCredential, BackupProvisioning, DpsSymmetricKeyProvisioning, DpsTpmProvisioning, ExternalProvisioning,
-    ManualProvisioning, Provision, ProvisioningResult, ReprovisioningStatus,
+    AuthType, BackupProvisioning, DpsSymmetricKeyProvisioning, DpsTpmProvisioning,
+    ExternalProvisioning, ManualProvisioning, Provision, ProvisioningResult, ReprovisioningStatus,
 };
 
 use crate::workload::WorkloadData;
@@ -152,11 +152,14 @@ const EDGE_SETTINGS_STATE_FILENAME: &str = "settings_state";
 const EDGE_SETTINGS_SUBDIR: &str = "cache";
 
 /// These are the properties of the workload CA certificate
-const IOTEDGED_VALIDITY: u64 = 7_776_000; // 90 days
+const IOTEDGED_VALIDITY: u64 = 7_776_000;
+// 90 days
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
-const IOTEDGED_MIN_EXPIRATION_DURATION: i64 = 300; // 5 mins
-const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200; // 2 hours
+const IOTEDGED_MIN_EXPIRATION_DURATION: i64 = 300;
+// 5 mins
+const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200;
+// 2 hours
 const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 7_776_000; // 90 days
 
 #[derive(PartialEq)]
@@ -177,9 +180,9 @@ impl Main {
     // Allowing cyclomatic complexity errors for now. TODO: Refactor method later.
     #[allow(clippy::cyclomatic_complexity)]
     pub fn run_until<F, G>(self, make_shutdown_signal: G) -> Result<(), Error>
-    where
-        F: Future<Item = (), Error = ()> + Send + 'static,
-        G: Fn() -> F,
+        where
+            F: Future<Item=(), Error=()> + Send + 'static,
+            G: Fn() -> F + Send + 'static,
     {
         let Main { settings } = self;
 
@@ -265,30 +268,30 @@ impl Main {
             ($key_store:ident, $provisioning_result:ident, $root_key:ident, $runtime:ident) => {{
                 info!("Finished provisioning edge device.");
 
-                        let cfg = WorkloadData::new(
-                            $provisioning_result.hub_name().to_string(),
-                            $provisioning_result.device_id().to_string(),
-                            IOTEDGE_ID_CERT_MAX_DURATION_SECS,
-                            IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
-                        );
-                        // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
-                        // is received. If the TLS cert needs a restart, we will loop again.
-                        while {
-                            let code = start_api(
-                                &settings,
-                                hyper_client.clone(),
-                                &$runtime,
-                                &$key_store,
-                                cfg.clone(),
-                                $root_key.clone(),
-                                make_shutdown_signal(),
-                                &crypto,
-                                &mut tokio_runtime,
-                            )?;
-                            code == StartApiReturnStatus::Restart
-                        } {}
-                    }};
-                }
+                let cfg = WorkloadData::new(
+                    $provisioning_result.hub_name().to_string(),
+                    $provisioning_result.device_id().to_string(),
+                    IOTEDGE_ID_CERT_MAX_DURATION_SECS,
+                    IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
+                );
+                // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
+                // is received. If the TLS cert needs a restart, we will loop again.
+                while {
+                    let code = start_api(
+                        &settings,
+                        hyper_client.clone(),
+                        &$runtime,
+                        &$key_store,
+                        cfg.clone(),
+                        $root_key.clone(),
+                        make_shutdown_signal(),
+                        &crypto,
+                        &mut tokio_runtime,
+                    )?;
+                    code == StartApiReturnStatus::Restart
+                } {}
+            }};
+        }
 
         info!("Provisioning edge device...");
         match settings.provisioning() {
@@ -300,9 +303,52 @@ impl Main {
             }
             Provisioning::External(external) => {
                 info!("Starting provisioning edge device via external hosted mode...");
-                let (key_store, provisioning_result, root_key) =
-                    external_provision(&external, &mut tokio_runtime, hsm_lock.clone())?;
-                start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                let external_provisioning_client = ExternalProvisioningClient::new(external.endpoint())
+                    .context(ErrorKind::Initialize(
+                        InitializeErrorReason::ExternalProvisioningClient,
+                    ))?;
+                let external_provisioning = ExternalProvisioning::new(external_provisioning_client);
+
+                external_provisioning
+                    .provision(MemoryKeyStore::new())
+                    .map_err(|err| {
+                        Error::from(err.context(ErrorKind::Initialize(
+                            InitializeErrorReason::ExternalProvisioningClient,
+                        )))
+                    })
+                    .and_then(move |prov_result| {
+                        prov_result
+                            .credentials()
+                            .map(|credentials| match credentials.auth_type() {
+                                AuthType::SymmetricKey(symmetric_key) => {
+                                    symmetric_key
+                                        .key()
+                                        .map(|key| {
+                                            let (derived_key_store, memory_key) = external_provision_payload(key);
+                                            start_edgelet!(derived_key_store, prov_result, memory_key, runtime);
+                                            Ok(())
+                                        })
+                                        .unwrap_or_else(|| {
+                                            let (derived_key_store, tpm_key) = external_provision_tpm(hsm_lock.clone())?;
+                                            start_edgelet!(derived_key_store, prov_result, tpm_key, runtime);
+                                            Ok(())
+                                        })
+                                },
+                                _ => {
+                                    debug!("Unexpected auth type. Only symmetric keys are expected");
+                                    Err(Error::from(ErrorKind::Initialize(
+                                        InitializeErrorReason::ExternalProvisioningClient,
+                                    )))
+                                }
+                            })
+                            .unwrap_or_else(|| {
+                                debug!("Credentials are expected to be populated for external provisioning.");
+                                Err(Error::from(ErrorKind::Initialize(
+                                    InitializeErrorReason::ExternalProvisioningClient,
+                                )))
+                            })
+                    });
+//                tokio_runtime.clone().block_on(prov);
             }
             Provisioning::Dps(dps) => {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
@@ -377,8 +423,8 @@ pub fn get_proxy_uri(https_proxy: Option<String>) -> Result<Option<Uri>, Error> 
 }
 
 fn prepare_workload_ca<C>(crypto: &C) -> Result<(), Error>
-where
-    C: CreateCertificate + GetIssuerAlias,
+    where
+        C: CreateCertificate + GetIssuerAlias,
 {
     let issuer_alias = crypto
         .get_issuer_alias(CertificateIssuer::DeviceCa)
@@ -404,13 +450,13 @@ where
 
     if diff > IOTEDGED_MIN_EXPIRATION_DURATION {
         #[allow(clippy::cast_sign_loss)]
-        let edgelet_ca_props = CertificateProperties::new(
+            let edgelet_ca_props = CertificateProperties::new(
             diff as u64,
             IOTEDGED_COMMONNAME.to_string(),
             CertificateType::Ca,
             IOTEDGED_CA_ALIAS.to_string(),
         )
-        .with_issuer(CertificateIssuer::DeviceCa);
+            .with_issuer(CertificateIssuer::DeviceCa);
 
         crypto
             .create_certificate(&edgelet_ca_props)
@@ -426,8 +472,8 @@ where
 }
 
 fn destroy_workload_ca<C>(crypto: &C) -> Result<(), Error>
-where
-    C: CreateCertificate,
+    where
+        C: CreateCertificate,
 {
     crypto
         .destroy_certificate(IOTEDGED_CA_ALIAS.to_string())
@@ -445,10 +491,10 @@ fn check_settings_state<M, C>(
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(), Error>
-where
-    M: ModuleRuntime,
-    <M as ModuleRuntime>::RemoveAllFuture: 'static,
-    C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
+    where
+        M: ModuleRuntime,
+        <M as ModuleRuntime>::RemoveAllFuture: 'static,
+        C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
     info!("Detecting if configuration file has changed...");
     let path = subdir_path.join(filename);
@@ -461,7 +507,7 @@ where
         info!("No change to configuration file detected.");
 
         #[allow(clippy::single_match_else)]
-        match prepare_workload_ca(crypto) {
+            match prepare_workload_ca(crypto) {
             Ok(()) => info!("Obtaining workload CA succeeded."),
             Err(_) => {
                 reconfig_reqd = true;
@@ -490,10 +536,10 @@ fn reconfigure<M, C>(
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(), Error>
-where
-    M: ModuleRuntime,
-    <M as ModuleRuntime>::RemoveAllFuture: 'static,
-    C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
+    where
+        M: ModuleRuntime,
+        <M as ModuleRuntime>::RemoveAllFuture: 'static,
+        C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
     // Remove all edge containers and destroy the cache (settings and dps backup)
     info!("Removing all modules...");
@@ -548,11 +594,11 @@ fn start_api<HC, K, F, C, W>(
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<StartApiReturnStatus, Error>
-where
-    F: Future<Item = (), Error = ()> + Send + 'static,
-    HC: ClientImpl + 'static,
-    K: Sign + Clone + Send + Sync + 'static,
-    C: CreateCertificate
+    where
+        F: Future<Item=(), Error=()> + Send + 'static,
+        HC: ClientImpl + 'static,
+        K: Sign + Clone + Send + Sync + 'static,
+        C: CreateCertificate
         + Decrypt
         + Encrypt
         + GetTrustBundle
@@ -561,7 +607,7 @@ where
         + Send
         + Sync
         + 'static,
-    W: WorkloadConfig + Clone + Send + Sync + 'static,
+        W: WorkloadConfig + Clone + Send + Sync + 'static,
 {
     let hub_name = workload_config.iot_hub_name().to_string();
     let device_id = workload_config.device_id().to_string();
@@ -573,7 +619,7 @@ where
         IOTHUB_API_VERSION.to_string(),
         Url::parse(&hostname).context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?,
     )
-    .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
+        .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
     let device_client = DeviceClient::new(http_client, device_id.clone())
         .context(ErrorKind::Initialize(InitializeErrorReason::DeviceClient))?;
     let id_man = HubIdentityManager::new(key_store.clone(), device_client);
@@ -587,7 +633,7 @@ where
         CertificateType::Server,
         "iotedge-tls".to_string(),
     )
-    .with_issuer(CertificateIssuer::DeviceCa);
+        .with_issuer(CertificateIssuer::DeviceCa);
 
     let cert_manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).context(
         ErrorKind::Initialize(InitializeErrorReason::CreateCertificateManager),
@@ -712,87 +758,136 @@ fn manual_provision(
     tokio_runtime.block_on(provision)
 }
 
-fn external_provision<K>(
-    provisioning: &External,
-    tokio_runtime: &mut tokio::runtime::Runtime,
-    hsm_lock: Arc<HsmLock>,
-) -> Result<(DerivedKeyStore<K>, ProvisioningResult, K), Error>
-where K: 'static + Sign + Clone + Send + Sync,
+fn external_provision_payload(
+    key: &str,
+) -> (DerivedKeyStore<MemoryKey>, MemoryKey)
 {
-    let external_provisioning_client = ExternalProvisioningClient::new(provisioning.endpoint())
-        .context(ErrorKind::Initialize(
-            InitializeErrorReason::ExternalProvisioningClient,
-        ))?;
+    let memory_key = MemoryKey::new(key.clone());
+    let mut memory_hsm = MemoryKeyStore::new();
+    memory_hsm.insert(
+        &KeyIdentity::Device,
+        "primary",
+        memory_key.clone(),
+    );
 
-    let external = ExternalProvisioning::new(external_provisioning_client);
+    let derived_key_store = DerivedKeyStore::new(memory_key.clone());
+    (derived_key_store, memory_key)
+}
 
-    let provision = external
-        .provision(MemoryKeyStore::new())
+fn external_provision_tpm(
+    hsm_lock: Arc<HsmLock>,
+) -> Result<(DerivedKeyStore<TpmKey>, TpmKey), Error>
+{
+    let tpm = Tpm::new().context(ErrorKind::Initialize(
+        InitializeErrorReason::ExternalProvisioningClient,
+    ))?;
+
+    let tpm_hsm = TpmKeyStore::from_hsm(tpm, hsm_lock).context(ErrorKind::Initialize(
+        InitializeErrorReason::ExternalProvisioningClient,
+    ))?;
+
+    tpm_hsm
+        .get(&KeyIdentity::Device, "primary")
         .map_err(|err| {
             Error::from(err.context(ErrorKind::Initialize(
                 InitializeErrorReason::ExternalProvisioningClient,
             )))
         })
-        .and_then(move |prov_result| {
-            prov_result.credentials().map(|credentials|
-                {
-                    match credentials.auth_type() {
-                        AuthType::SymmetricKey(symmetric_key) => {
-                             Either::A(symmetric_key.key().map(|key| {
-                                let memory_key = MemoryKey::new(key.clone());
-                                let mut memory_hsm = MemoryKeyStore::new();
-                                memory_hsm.insert(&KeyIdentity::Device, "primary", memory_key.clone());
-
-                                let derived_key_store = DerivedKeyStore::new(memory_key.clone());
-                                Either::A(future::ok((derived_key_store, prov_result, memory_key)))
-                            })
-                                .unwrap_or_else(|| {
-                                    let tpm = Tpm::new()
-                                        .map_err(|err| {
-                    Error::from(err.context(ErrorKind::Initialize(
-                        InitializeErrorReason::ExternalProvisioningClient,
-                    )))
-                })
-                                        .and_then(|re| {
-
-                                        let tpm_hsm = TpmKeyStore::from_hsm(re, hsm_lock).context(ErrorKind::Initialize(
-                                            InitializeErrorReason::ExternalProvisioningClient,
-                                        ))?;
-
-                                        tpm_hsm
-                                        .get(&KeyIdentity::Device, "primary")
-                                        .map_err(|err| {
-                                            Error::from(err.context(ErrorKind::Initialize(
-                                                InitializeErrorReason::ExternalProvisioningClient,
-                                            )))
-                                        })
-                                        .and_then(|k| {
-                                            let derived_key_store = DerivedKeyStore::new(k.clone());
-                                            Ok((derived_key_store, prov_result, k))
-                                        })
-                                    });
-
-                                    Either::B(tpm.into_future())
-                                }
-                                )
-                             )
-                        },
-                        _ => {
-                            debug!("Unexpected auth type. Only symmetric keys are expected");
-                            Either::B(future::err(Error::from(ErrorKind::Initialize(
-                                InitializeErrorReason::ExternalProvisioningClient,
-                            ))))
-                        }
-                    }
-                }).unwrap_or_else(|| {
-                debug!("Credentials are expected to be populated for external provisioning.");
-                Either::B(future::err(Error::from(ErrorKind::Initialize(
-                    InitializeErrorReason::ExternalProvisioningClient,
-                ))))
-            })
-        });
-    tokio_runtime.block_on(provision)
+        .and_then(|k| {
+            let derived_key_store = DerivedKeyStore::new(k.clone());
+            Ok((derived_key_store, k))
+        })
 }
+
+//fn external_provision<K>(
+//    provisioning: &External,
+//    tokio_runtime: &mut tokio::runtime::Runtime,
+//    hsm_lock: Arc<HsmLock>,
+//) -> Result<(DerivedKeyStore<K>, ProvisioningResult, K), Error>
+//    where
+//        K: 'static + Sign + Clone + Send + Sync,
+////    where K: Box<dyn Sign + Clone + Send + Sync>,
+//{
+//    let external_provisioning_client = ExternalProvisioningClient::new(provisioning.endpoint())
+//        .context(ErrorKind::Initialize(
+//            InitializeErrorReason::ExternalProvisioningClient,
+//        ))?;
+//
+//    let external = ExternalProvisioning::new(external_provisioning_client);
+//
+//    let provision = external
+//        .provision(MemoryKeyStore::new())
+//        .map_err(|err| {
+//            Error::from(err.context(ErrorKind::Initialize(
+//                InitializeErrorReason::ExternalProvisioningClient,
+//            )))
+//        })
+//        .and_then(move |prov_result| {
+//            prov_result
+//                .credentials()
+//                .map(|credentials| match credentials.auth_type() {
+//                    AuthType::SymmetricKey(symmetric_key) => Either::A(
+//                        symmetric_key
+//                            .key()
+//                            .map(|key| {
+//                                let memory_key = MemoryKey::new(key.clone());
+//                                let mut memory_hsm = MemoryKeyStore::new();
+//                                memory_hsm.insert(
+//                                    &KeyIdentity::Device,
+//                                    "primary",
+//                                    memory_key.clone(),
+//                                );
+//
+//                                let derived_key_store = DerivedKeyStore::new(memory_key.clone());
+//                                Either::A(future::ok((derived_key_store, prov_result, memory_key)))
+//                            })
+//                            .unwrap_or_else(|| {
+//                                let tpm = Tpm::new()
+//                                    .map_err(|err| {
+//                                        Error::from(err.context(ErrorKind::Initialize(
+//                                            InitializeErrorReason::ExternalProvisioningClient,
+//                                        )))
+//                                    })
+//                                    .and_then(|re| {
+//                                        let tpm_hsm =
+//                                            TpmKeyStore::from_hsm(re, hsm_lock)
+//                                                .context(ErrorKind::Initialize(
+//                                                    InitializeErrorReason::ExternalProvisioningClient,
+//                                                ))?;
+//
+//                                        tpm_hsm
+//                                            .get(&KeyIdentity::Device, "primary")
+//                                            .map_err(|err| {
+//                                                Error::from(err.context(ErrorKind::Initialize(
+//                                                    InitializeErrorReason::ExternalProvisioningClient,
+//                                                )))
+//                                            })
+//                                            .and_then(|k| {
+//                                                let derived_key_store =
+//                                                    DerivedKeyStore::new(k.clone());
+//                                                Ok((derived_key_store, prov_result, k))
+//                                            })
+//                                    });
+//
+//                                Either::B(tpm.into_future())
+//                            }),
+//                    ),
+//                    _ => {
+//                        debug!("Unexpected auth type. Only symmetric keys are expected");
+//                        Either::B(future::err(Error::from(ErrorKind::Initialize(
+//                            InitializeErrorReason::ExternalProvisioningClient,
+//                        ))))
+//                    }
+//                })
+//                .unwrap_or_else(|| {
+//                    debug!("Credentials are expected to be populated for external provisioning.");
+//                    Either::B(future::err(Error::from(ErrorKind::Initialize(
+//                        InitializeErrorReason::ExternalProvisioningClient,
+//                    ))))
+//                })
+//        });
+//    tokio_runtime.block_on(provision)
+//}
 
 fn dps_symmetric_key_provision<HC, M>(
     provisioning: &Dps,
@@ -802,9 +897,9 @@ fn dps_symmetric_key_provision<HC, M>(
     tokio_runtime: &mut tokio::runtime::Runtime,
     key: &SymmetricKeyAttestationInfo,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey, M), Error>
-where
-    HC: 'static + ClientImpl,
-    M: ModuleRuntime + Send + 'static,
+    where
+        HC: 'static + ClientImpl,
+        M: ModuleRuntime + Send + 'static,
 {
     let mut memory_hsm = MemoryKeyStore::new();
     let key_bytes =
@@ -821,9 +916,9 @@ where
         key.registration_id().to_string(),
         DPS_API_VERSION.to_string(),
     )
-    .context(ErrorKind::Initialize(
-        InitializeErrorReason::DpsProvisioningClient,
-    ))?;
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::DpsProvisioningClient,
+        ))?;
     let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
 
     let provision =
@@ -876,9 +971,9 @@ fn dps_tpm_provision<HC, M>(
     tpm_attestation_info: &TpmAttestationInfo,
     hsm_lock: Arc<HsmLock>,
 ) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey, M), Error>
-where
-    HC: 'static + ClientImpl,
-    M: ModuleRuntime + Send + 'static,
+    where
+        HC: 'static + ClientImpl,
+        M: ModuleRuntime + Send + 'static,
 {
     let tpm = Tpm::new().context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
@@ -898,9 +993,9 @@ where
         ek_result,
         srk_result,
     )
-    .context(ErrorKind::Initialize(
-        InitializeErrorReason::DpsProvisioningClient,
-    ))?;
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::DpsProvisioningClient,
+        ))?;
     let tpm_hsm = TpmKeyStore::from_hsm(tpm, hsm_lock).context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
@@ -950,10 +1045,10 @@ fn start_runtime<K, HC>(
     device_id: &str,
     settings: &Settings<DockerConfig>,
     shutdown: Receiver<()>,
-) -> Result<impl Future<Item = (), Error = Error>, Error>
-where
-    K: 'static + Sign + Clone + Send + Sync,
-    HC: 'static + ClientImpl,
+) -> Result<impl Future<Item=(), Error=Error>, Error>
+    where
+        K: 'static + Sign + Clone + Send + Sync,
+        HC: 'static + ClientImpl,
 {
     let spec = settings.agent().clone();
     let env = build_env(spec.env(), hostname, device_id, settings);
@@ -963,7 +1058,7 @@ where
         spec.config().clone(),
         env,
     )
-    .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
+        .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
 
     // volume mount management and workload URIs
     vol_mount_uri(
@@ -1005,7 +1100,7 @@ fn vol_mount_uri(config: &mut DockerConfig, uris: &[&Url]) -> Result<(), Error> 
             // On Windows we mount the parent folder because we can't mount the
             // socket files directly
             #[cfg(windows)]
-            let path = path
+                let path = path
                 .parent()
                 .ok_or_else(|| ErrorKind::Initialize(InitializeErrorReason::InvalidSocketUri))?;
             let path = path
@@ -1074,16 +1169,16 @@ fn start_management<C, K, HC, M>(
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
     cert_manager: Arc<CertificateManager<C>>,
-) -> impl Future<Item = (), Error = Error>
-where
-    C: CreateCertificate + Clone,
-    K: 'static + Sign + Clone + Send + Sync,
-    HC: 'static + ClientImpl + Send + Sync,
-    M: ModuleRuntime + Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
-    <M::AuthenticateFuture as Future>::Error: Fail,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-    <M::Module as Module>::Config: DeserializeOwned + Serialize,
-    M::Logs: Into<Body>,
+) -> impl Future<Item=(), Error=Error>
+    where
+        C: CreateCertificate + Clone,
+        K: 'static + Sign + Clone + Send + Sync,
+        HC: 'static + ClientImpl + Send + Sync,
+        M: ModuleRuntime + Authenticator<Request=Request<Body>> + Send + Sync + Clone + 'static,
+        <M::AuthenticateFuture as Future>::Error: Fail,
+        for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+        <M::Module as Module>::Config: DeserializeOwned + Serialize,
+        M::Logs: Into<Body>,
 {
     info!("Starting management API...");
 
@@ -1120,10 +1215,10 @@ fn start_workload<K, C, CE, W, M>(
     crypto: &C,
     cert_manager: Arc<CertificateManager<CE>>,
     config: W,
-) -> impl Future<Item = (), Error = Error>
-where
-    K: KeyStore + Clone + Send + Sync + 'static,
-    C: CreateCertificate
+) -> impl Future<Item=(), Error=Error>
+    where
+        K: KeyStore + Clone + Send + Sync + 'static,
+        C: CreateCertificate
         + Decrypt
         + Encrypt
         + GetTrustBundle
@@ -1132,13 +1227,13 @@ where
         + Send
         + Sync
         + 'static,
-    CE: CreateCertificate + Clone,
-    W: WorkloadConfig + Clone + Send + Sync + 'static,
-    M: ModuleRuntime + Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
-    <M::AuthenticateFuture as Future>::Error: Fail,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-    <M::Module as Module>::Config: DeserializeOwned + Serialize,
-    M::Logs: Into<Body>,
+        CE: CreateCertificate + Clone,
+        W: WorkloadConfig + Clone + Send + Sync + 'static,
+        M: ModuleRuntime + Authenticator<Request=Request<Body>> + Send + Sync + Clone + 'static,
+        <M::AuthenticateFuture as Future>::Error: Fail,
+        for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+        <M::Module as Module>::Config: DeserializeOwned + Serialize,
+        M::Logs: Into<Body>,
 {
     info!("Starting workload API...");
 
@@ -1356,7 +1451,7 @@ mod tests {
             &crypto,
             &mut tokio_runtime,
         )
-        .unwrap();
+            .unwrap();
         let expected = serde_json::to_string(&settings).unwrap();
         let expected_sha = Sha256::digest_str(&expected);
         let expected_base64 = base64::encode(&expected_sha);
@@ -1391,7 +1486,7 @@ mod tests {
             &crypto,
             &mut tokio_runtime,
         )
-        .unwrap();
+            .unwrap();
         let mut written = String::new();
         File::open(tmp_dir.path().join("settings_state"))
             .unwrap()
@@ -1408,7 +1503,7 @@ mod tests {
             &crypto,
             &mut tokio_runtime,
         )
-        .unwrap();
+            .unwrap();
         let expected = serde_json::to_string(&settings1).unwrap();
         let expected_sha = Sha256::digest_str(&expected);
         let expected_base64 = base64::encode(&expected_sha);
