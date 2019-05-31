@@ -309,7 +309,7 @@ impl Main {
                     ))?;
                 let external_provisioning = ExternalProvisioning::new(external_provisioning_client);
 
-                external_provisioning
+                let f = external_provisioning
                     .provision(MemoryKeyStore::new())
                     .map_err(|err| {
                         Error::from(err.context(ErrorKind::Initialize(
@@ -325,13 +325,15 @@ impl Main {
                                         .key()
                                         .map(|key| {
                                             let (derived_key_store, memory_key) = external_provision_payload(key);
-                                            start_edgelet!(derived_key_store, prov_result, memory_key, runtime);
-                                            Ok(())
+//                                            start_edgelet!(derived_key_store, prov_result, memory_key, runtime);
+                                            Either::A(future::ok((derived_key_store, prov_result, memory_key)))
+//                                            Ok(())
                                         })
                                         .unwrap_or_else(|| {
                                             let (derived_key_store, tpm_key) = external_provision_tpm(hsm_lock.clone())?;
-                                            start_edgelet!(derived_key_store, prov_result, tpm_key, runtime);
-                                            Ok(())
+//                                            start_edgelet!(derived_key_store, prov_result, tpm_key, runtime);
+                                            Either::B(future::ok((derived_key_store, prov_result, tpm_key)))
+//                                            Ok(())
                                         })
                                 },
                                 _ => {
@@ -348,6 +350,9 @@ impl Main {
                                 )))
                             })
                     });
+
+                let (key_store, provisioning_result, root_key) = tokio_runtime.block_on(f)?;
+                start_edgelet!(derived_key_store, prov_result, memory_key, runtime);
 //                tokio_runtime.clone().block_on(prov);
             }
             Provisioning::Dps(dps) => {
