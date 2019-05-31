@@ -730,7 +730,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             // Act
             IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), true, TimeSpan.FromHours(1), retryStrategy.Object);
+
+            // Assert
+            // The connection hasn't been created yet. So wait for it.
+            await Task.Delay(TimeSpan.FromSeconds(3));
             Assert.NotNull(connectionStatusChangesHandler);
+
+            // Act
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
             // Assert
@@ -793,10 +799,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
             var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout));
 
-            await Task.Delay(TimeSpan.FromSeconds(5));
-
-            // this will cause the initial desired props to get set in the connection object
+            // Assert
+            // The connection hasn't been created yet. So wait for it.
+            await Task.Delay(TimeSpan.FromSeconds(3));
             Assert.NotNull(connectionStatusChangesHandler);
+
+            // Act
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
 
             // Act
