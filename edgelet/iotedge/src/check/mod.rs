@@ -279,7 +279,7 @@ impl Check {
                     ),
                     (
                         "host-connect-iothub-https",
-                        "host can connect to and perform TLS handshake with IoT Hub HTTPS port",
+                        "host can connect to and perform TLS handshake with IoT Hub HTTPS / WebSockets port",
                         |check| connection_to_iot_hub_host(check, 443),
                     ),
                     (
@@ -287,42 +287,66 @@ impl Check {
                         "host can connect to and perform TLS handshake with IoT Hub MQTT port",
                         |check| connection_to_iot_hub_host(check, 8883),
                     ),
-                    ("container-default-connect-iothub-amqp", "container on the default network can connect to IoT Hub AMQP port", |check| {
-                        if cfg!(windows) {
-                            // The default network is the same as the IoT Edge module network,
-                            // so let the module network checks handle it.
-                            Ok(CheckResult::Ignored)
-                        } else {
-                            connection_to_iot_hub_container(check, 5671, false)
-                        }
-                    }),
-                    ("container-default-connect-iothub-https", "container on the default network can connect to IoT Hub HTTPS port", |check| {
-                        if cfg!(windows) {
-                            // The default network is the same as the IoT Edge module network,
-                            // so let the module network checks handle it.
-                            Ok(CheckResult::Ignored)
-                        } else {
-                            connection_to_iot_hub_container(check, 443, false)
-                        }
-                    }),
-                    ("container-default-connect-iothub-mqtt", "container on the default network can connect to IoT Hub MQTT port", |check| {
-                        if cfg!(windows) {
-                            // The default network is the same as the IoT Edge module network,
-                            // so let the module network checks handle it.
-                            Ok(CheckResult::Ignored)
-                        } else {
-                            connection_to_iot_hub_container(check, 8883, false)
-                        }
-                    }),
-                    ("container-module-connect-iothub-amqp", "container on the IoT Edge module network can connect to IoT Hub AMQP port", |check| {
-                        connection_to_iot_hub_container(check, 5671, true)
-                    }),
-                    ("container-module-connect-iothub-https", "container on the IoT Edge module network can connect to IoT Hub HTTPS port", |check| {
-                        connection_to_iot_hub_container(check, 443, true)
-                    }),
-                    ("container-module-connect-iothub-mqtt", "container on the IoT Edge module network can connect to IoT Hub MQTT port", |check| {
-                        connection_to_iot_hub_container(check, 8883, true)
-                    }),
+                    (
+                        "container-default-connect-iothub-amqp",
+                        "container on the default network can connect to IoT Hub AMQP port",
+                        |check| {
+                            if cfg!(windows) {
+                                // The default network is the same as the IoT Edge module network,
+                                // so let the module network checks handle it.
+                                Ok(CheckResult::Ignored)
+                            } else {
+                                connection_to_iot_hub_container(check, 5671, false)
+                            }
+                        },
+                    ),
+                    (
+                        "container-default-connect-iothub-https",
+                        "container on the default network can connect to IoT Hub HTTPS / WebSockets port",
+                        |check| {
+                            if cfg!(windows) {
+                                // The default network is the same as the IoT Edge module network,
+                                // so let the module network checks handle it.
+                                Ok(CheckResult::Ignored)
+                            } else {
+                                connection_to_iot_hub_container(check, 443, false)
+                            }
+                        },
+                    ),
+                    (
+                        "container-default-connect-iothub-mqtt",
+                        "container on the default network can connect to IoT Hub MQTT port",
+                        |check| {
+                            if cfg!(windows) {
+                                // The default network is the same as the IoT Edge module network,
+                                // so let the module network checks handle it.
+                                Ok(CheckResult::Ignored)
+                            } else {
+                                connection_to_iot_hub_container(check, 8883, false)
+                            }
+                        },
+                    ),
+                    (
+                        "container-module-connect-iothub-amqp",
+                        "container on the IoT Edge module network can connect to IoT Hub AMQP port",
+                        |check| {
+                            connection_to_iot_hub_container(check, 5671, true)
+                        },
+                    ),
+                    (
+                        "container-module-connect-iothub-https",
+                        "container on the IoT Edge module network can connect to IoT Hub HTTPS / WebSockets port",
+                        |check| {
+                            connection_to_iot_hub_container(check, 443, true)
+                        },
+                    ),
+                    (
+                        "container-module-connect-iothub-mqtt",
+                        "container on the IoT Edge module network can connect to IoT Hub MQTT port",
+                        |check| {
+                            connection_to_iot_hub_container(check, 8883, true)
+                        },
+                    ),
                     ("edgehub-host-ports", "Edge Hub can bind to ports on host", edge_hub_ports_on_host),
                 ],
             ),
