@@ -26,8 +26,6 @@ use sha2::{Digest, Sha256};
 
 use crate::error::{Error, ErrorKind};
 
-//const EXTERNAL_PROVISIONING_KEY_SENTINEL: &str = "_SENTINEL_";
-
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum ReprovisioningStatus {
     DeviceDataNotUpdated,
@@ -248,7 +246,7 @@ where
                             "hsm" => Ok(Credentials { auth_type: AuthType::SymmetricKey(SymmetricKeyCredential{ key: None }), source: CredentialSource::Hsm }),
                             _ => {
                                 debug!(
-                                    "Unexpected authentication type \"{}\"",
+                                    "Unexpected value of credential source \"{}\" received from external environment.",
                                     credentials_info.source()
                                 );
                                 Err(Error::from(ErrorKind::Provision))
@@ -256,22 +254,11 @@ where
                         }
                     },
                     _ => {
-                        debug!("External Provisioning is currently only supported for the symmetric_key authentication type.");
+                        info!("External Provisioning is currently only supported for the 'symmetric_key' authentication type.");
                         Err(Error::from(ErrorKind::Provision))
                         // TODO: implement
                     }
                 }?;
-
-                // Passing a sentinel value as key because in the external mode, the external provisioning
-                // environment itself creates and activates the actual key. The sentinel is
-                // simply ignored.
-//                key_activator
-//                    .activate_identity_key(
-//                        KeyIdentity::Device,
-//                        "primary".to_string(),
-//                        &Bytes::from(EXTERNAL_PROVISIONING_KEY_SENTINEL),
-//                    )
-//                    .context(ErrorKind::Provision)?;
 
                 Ok(ProvisioningResult {
                     device_id: device_provisioning_info.device_id().to_string(),
