@@ -182,7 +182,7 @@ impl Main {
     pub fn run_until<F, G>(self, make_shutdown_signal: G) -> Result<(), Error>
     where
         F: Future<Item = (), Error = ()> + Send + 'static,
-        G: Fn() -> F + Send + 'static,
+        G: Fn() -> F,
     {
         let Main { settings } = self;
 
@@ -322,34 +322,34 @@ impl Main {
                 provisioning.and_then(move |prov_result| {
                     prov_result
                         .credentials()
-                        .map(|credentials| match credentials.auth_type() {
-                            AuthType::SymmetricKey(symmetric_key) => {
-                                symmetric_key
-                                    .key()
-                                    .map(|key| {
-                                        let (derived_key_store, memory_key) = external_provision_payload(key);
-                                        start_edgelet!(derived_key_store, prov_result, memory_key, runtime);
-                                        Ok(())
-                                    })
-                                    .unwrap_or_else(|| {
-                                        let (derived_key_store, tpm_key) = external_provision_tpm(hsm_lock.clone())?;
-                                        start_edgelet!(derived_key_store, prov_result, tpm_key, runtime);
-                                        Ok(())
-                                    })
-                            },
-                            _ => {
-                                info!("Unexpected auth type. Only symmetric keys are expected");
+                        .map_or_else(
+                            || {
+                                info!("Credentials are expected to be populated for external provisioning.");
                                 Err(Error::from(ErrorKind::Initialize(
                                     InitializeErrorReason::ExternalProvisioningClient,
                                 )))
-                            }
-                        })
-                        .unwrap_or_else(|| {
-                            info!("Credentials are expected to be populated for external provisioning.");
-                            Err(Error::from(ErrorKind::Initialize(
-                                InitializeErrorReason::ExternalProvisioningClient,
-                            )))
-                        })})?;
+                            },
+                            |credentials| {
+                                if let AuthType::SymmetricKey(symmetric_key) = credentials.auth_type() {
+                                    if let Some(key) = symmetric_key.key() {
+                                        let (derived_key_store, memory_key) = external_provision_payload(key);
+                                        start_edgelet!(derived_key_store, prov_result, memory_key, runtime);
+                                        Ok(())
+                                    }
+                                    else {
+                                        let (derived_key_store, tpm_key) = external_provision_tpm(hsm_lock.clone())?;
+                                        start_edgelet!(derived_key_store, prov_result, tpm_key, runtime);
+                                        Ok(())
+                                    }
+                                }
+                                else {
+                                    info!("Unexpected auth type. Only symmetric keys are expected");
+                                    Err(Error::from(ErrorKind::Initialize(
+                                        InitializeErrorReason::ExternalProvisioningClient,
+                                    )))
+                                }
+                            })
+                })?;
             }
             Provisioning::Dps(dps) => {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
@@ -760,7 +760,7 @@ fn manual_provision(
 }
 
 fn external_provision_payload(key: &str) -> (DerivedKeyStore<MemoryKey>, MemoryKey) {
-    let memory_key = MemoryKey::new(key.clone());
+    let memory_key = MemoryKey::new(key);
     let mut memory_hsm = MemoryKeyStore::new();
     memory_hsm.insert(&KeyIdentity::Device, "primary", memory_key.clone());
 

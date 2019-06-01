@@ -239,26 +239,35 @@ where
                 );
 
                 let credentials_info = device_provisioning_info.credentials();
-                let credentials = match credentials_info.auth_type() {
-                    "symmetric-key" => {
+                let credentials = if let "symmetric-key" = credentials_info.auth_type() {
                         match credentials_info.source() {
-                            "payload" => Ok(Credentials { auth_type: AuthType::SymmetricKey(SymmetricKeyCredential{ key: credentials_info.key().map(ToOwned::to_owned) }), source: CredentialSource::Payload }),
+                            "payload" => {
+                                credentials_info.key().map_or_else(
+                                    || {
+                                        info!(
+                                            "A key is expected in the response with the 'symmetric-key' authentication type and the 'source' set to 'payload'.");
+                                        Err(Error::from(ErrorKind::Provision))
+                                    },
+                                    |key| {
+                                        Ok(Credentials { auth_type: AuthType::SymmetricKey(SymmetricKeyCredential{ key: Some(key.to_string()) }), source: CredentialSource::Payload })
+                                    })
+
+                            },
                             "hsm" => Ok(Credentials { auth_type: AuthType::SymmetricKey(SymmetricKeyCredential{ key: None }), source: CredentialSource::Hsm }),
                             _ => {
-                                debug!(
+                                info!(
                                     "Unexpected value of credential source \"{}\" received from external environment.",
                                     credentials_info.source()
                                 );
                                 Err(Error::from(ErrorKind::Provision))
                             }
                         }
-                    },
-                    _ => {
-                        info!("External Provisioning is currently only supported for the 'symmetric_key' authentication type.");
+                    }
+                    else {
+                        info!("External Provisioning is currently only supported for the 'symmetric-key' authentication type.");
                         Err(Error::from(ErrorKind::Provision))
                         // TODO: implement
-                    }
-                }?;
+                    }?;
 
                 Ok(ProvisioningResult {
                     device_id: device_provisioning_info.device_id().to_string(),
