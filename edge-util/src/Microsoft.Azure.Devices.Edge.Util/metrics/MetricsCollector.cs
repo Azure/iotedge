@@ -3,27 +3,53 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics;
 
-    public class Metrics
+    public static class Metrics
     {
-        public static IMetricsProvider Instance { get; }
+        static IMetricsProvider instance = new NullMetricsProvider();
+
+        public static IMetricsProvider Instance => instance;
+
+        public static void InitPrometheusMetrics(string url)
+        {
+            instance = MetricsProvider.CreatePrometheusExporter(url);
+        }
+    }
+
+    public class NullMetricsProvider : IMetricsProvider
+    {
+        public ICounter CreateCounter(string name, Dictionary<string, string> tags) => new NullCounter();
+    }
+
+    public class NullCounter : ICounter
+    {
+        public void Increment(long amount) { }
+
+        public void Decrement(long amount)
+        {
+        }
+
+        public void Increment(long amount, Dictionary<string, string> tags)
+        {
+        }
+
+        public void Decrement(long amount, Dictionary<string, string> tags)
+        { }
     }
 
     public interface IMetricsProvider
     {
-        ICounter CreateCounter(string name, IDictionary<string, string> tags);
-
-        IGauge CreateGauge(string name, IDictionary<string, string> gauge);
-
-        IMetricsTimer CreateTimer(string name);
+        ICounter CreateCounter(string name, Dictionary<string, string> tags);
     }
 
     public interface ICounter
     {
         void Increment(long amount);
         void Decrement(long amount);
-        void Increment(long amount, IDictionary<string, string> tags);
-        void Decrement(long amount, IDictionary<string, string> tags);
+        void Increment(long amount, Dictionary<string, string> tags);
+        void Decrement(long amount, Dictionary<string, string> tags);
     }
 
     public interface IGauge

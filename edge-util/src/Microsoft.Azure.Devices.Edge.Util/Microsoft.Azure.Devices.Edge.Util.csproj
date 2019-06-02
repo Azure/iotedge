@@ -22,11 +22,15 @@
 
   <ItemGroup>
     <PackageReference Include="App.Metrics" Version="3.0.0" />
+    <PackageReference Include="App.Metrics.Formatters.Prometheus" Version="3.2.0-dev0002" />
+    <PackageReference Include="App.Metrics.Reporting.Http" Version="3.2.0-dev0002" />
     <PackageReference Include="App.Metrics.Reporting.InfluxDB" Version="3.0.0" />
     <PackageReference Include="App.Metrics.Reporting.TextFile" Version="3.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="2.2.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
     <PackageReference Include="Nito.AsyncEx" Version="5.0.0-pre-05" />
+    <PackageReference Include="OpenCensus" Version="0.1.0-alpha-42253" />
+    <PackageReference Include="OpenCensus.Exporter.Prometheus" Version="0.1.0-alpha-42253" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.5" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="2.0.2" />
     <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />

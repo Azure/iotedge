@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
@@ -38,6 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
             Logger.SetLogLevel(logLevel);
+
+            Metrics.InitPrometheusMetrics("http://localhost:18181/metrics/");
 
             // Set the LoggerFactory used by the Routing code.
             if (configuration.GetValue("EnableRoutingLogging", false))

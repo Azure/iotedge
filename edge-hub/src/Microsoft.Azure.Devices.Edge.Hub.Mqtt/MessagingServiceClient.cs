@@ -166,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 IMessage coreMessage = this.messageConverter.ToMessage(message);
                 Events.ProcessMessage(this.deviceListener.Identity);
-                Metrics.AddMessage(this.deviceListener.Identity);
+                Metrics.AddReceivedMessage(this.deviceListener.Identity);
                 return this.deviceListener.ProcessDeviceMessageAsync(coreMessage);
             }
             catch (Exception e)
@@ -237,24 +237,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     ["Protocol"] = "Mqtt"
                 });
 
-            static readonly ICounter SentMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
-                "edgehub_messages_sent_total",
-                new Dictionary<string, string>
-                {
-                    ["Protocol"] = "Mqtt"
-                });
-
             public static void AddReceivedMessage(IIdentity identity)
             {
                 ReceivedMessagesCounter.Increment(1, new Dictionary<string, string>
-                {
-                    ["Id"] = identity.Id
-                });
-            }
-
-            public static void AddSentMessage(IIdentity identity)
-            {
-                SentMessagesCounter.Increment(1, new Dictionary<string, string>
                 {
                     ["Id"] = identity.Id
                 });
