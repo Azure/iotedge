@@ -51,17 +51,6 @@ provisioning:
 #     registration_id: "{registration_id}"
 #     symmetric_key: "{symmetric_key}"
 
-# DPS X.509 provisioning configuration
-# provisioning:
-#   source: "dps"
-#   global_endpoint: "https://global.azure-devices-provisioning.net"
-#   scope_id: "{scope_id}"
-#   attestation:
-#     method: "x509"
-#     registration_id: "<OPTIONAL REGISTRATION ID. IF UNSPECIFIED CAN BE OBTAINED FROM CN OF identity_cert"
-#     identity_cert: "<REQUIRED PATH TO DEVICE IDENTITY CERTIFICATE HERE>"
-#     identity_pk: "<REQUIRED PATH TO DEVICE IDENTITY PRIVATE KEY HERE>"
-
 ###############################################################################
 # Certificate settings
 ###############################################################################
@@ -153,7 +142,7 @@ hostname: "<ADD HOSTNAME HERE>"
 #
 #               If this configuration is not specified, the daemon keeps retrying
 #               on errors and doesn't fail fatally.
-# 
+#
 #               On a fatal failure, the daemon returns an exit code which
 #               signifies the kind of error encountered. Currently, the following
 #               error codes are returned by the daemon -
