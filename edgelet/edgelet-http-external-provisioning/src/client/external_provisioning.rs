@@ -161,13 +161,18 @@ mod tests {
                 > + Send,
         > {
             match self.error.as_ref() {
-                None => Box::new(
-                    Ok(DeviceProvisioningInfo::new(
-                        "hub".to_string(),
-                        "device".to_string(),
-                    ))
-                    .into_future(),
-                ),
+                None => {
+                    let mut credentials =
+                        Credentials::new("symmetric-key".to_string(), "payload".to_string());
+                    credentials.set_key("test-key".to_string());
+                    let provisioning_info = DeviceProvisioningInfo::new(
+                        "TestHub".to_string(),
+                        "TestDevice".to_string(),
+                        credentials,
+                    );
+
+                    Box::new(Ok(provisioning_info).into_future())
+                }
                 Some(s) => Box::new(Err(ExternalProvisioningError::Api(s.clone().0)).into_future()),
             }
         }
@@ -216,8 +221,17 @@ mod tests {
             .get_device_provisioning_information()
             .then(|result| match result {
                 Ok(item) => {
-                    assert_eq!("hub", item.hub_name());
-                    assert_eq!("device", item.device_id());
+                    assert_eq!("TestHub", item.hub_name());
+                    assert_eq!("TestDevice", item.device_id());
+                    assert_eq!("symmetric-key", item.credentials().auth_type());
+                    assert_eq!("payload", item.credentials().source());
+
+                    if let Some(key) = item.credentials().key() {
+                        assert_eq!(key, "test-key");
+                    } else {
+                        panic!("A key was expected in the response.")
+                    }
+
                     Ok::<_, Error>(())
                 }
                 Err(_err) => panic!("Did not expect a failure."),

@@ -1078,7 +1078,7 @@ mod tests {
 
                     if let Some(credentials) = result.credentials() {
                         if let AuthType::SymmetricKey(symmetric_key) = credentials.auth_type() {
-                            if let Some(_) = &symmetric_key.key {
+                            if symmetric_key.key.is_some() {
                                 panic!("No key was expected in the response.")
                             }
                         } else {
