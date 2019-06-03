@@ -1,14 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
 {
-    using System;
     using System.Collections.Generic;
-    using System.IO;
-    using System.Net;
-    using System.Runtime.Serialization;
-    using System.Text;
-    using System.Threading;
-    using System.Threading.Tasks;
     using App.Metrics;
 
     public class MetricsProvider : IMetricsProvider
@@ -20,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
         {
             this.metricsRoot = metricsRoot;
             this.metricsListener = metricsListener;
-}
+        }
 
         public static MetricsProvider CreatePrometheusExporter(string url)
         {
@@ -46,52 +39,5 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
 
         public IMetricsTimer CreateTimer(string name, Dictionary<string, string> defaultTags)
             => new MetricsTimer(name, this.metricsRoot.Measure.Timer, defaultTags);
-    }
-
-
-    public class MetricsListener : IDisposable
-    {
-        readonly HttpListener httpListener;
-        readonly CancellationTokenSource cts = new CancellationTokenSource();
-        readonly IMetricsRoot metricsRoot;
-        readonly Task processTask;
-
-        public MetricsListener(string url, IMetricsRoot metricsRoot)
-        {
-            this.httpListener = new HttpListener();
-            this.httpListener.Prefixes.Add(url);
-            this.httpListener.Start();
-            this.metricsRoot = metricsRoot;
-            this.processTask = this.ProcessRequests();
-        }
-
-        async Task ProcessRequests()
-        {
-            try
-            {
-                while (!this.cts.IsCancellationRequested)
-                {
-                    HttpListenerContext context = await this.httpListener.GetContextAsync();
-                    using (var output = context.Response.OutputStream)
-                    {
-                        var metricsData = this.metricsRoot.Snapshot.Get();
-                        var formatter = this.metricsRoot.DefaultOutputMetricsFormatter;
-                        await formatter.WriteAsync(output, metricsData, this.cts.Token);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
-        }
-
-        public void Dispose()
-        {
-            this.cts.Cancel();
-            this.processTask.Wait();
-            this.httpListener.Stop();
-            ((IDisposable)this.httpListener)?.Dispose();
-        }
     }
 }

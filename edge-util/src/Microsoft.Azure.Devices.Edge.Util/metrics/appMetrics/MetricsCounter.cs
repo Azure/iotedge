@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
 {
+    using System;
     using System.Collections.Generic;
-    using System.Linq;
     using App.Metrics;
     using App.Metrics.Counter;
-    using ICounter = Microsoft.Azure.Devices.Edge.Util.Metrics.ICounter;
 
-    public class MetricsCounter : ICounter
+    public class MetricsCounter : IMetricsCounter
     {
         readonly IMeasureCounterMetrics counterMetrics;
         readonly MetricTags defaultTags;
@@ -24,9 +23,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
             };
         }
 
-        public void Increment(long amount) => throw new System.NotImplementedException();
+        public void Increment(long amount) => throw new NotImplementedException();
 
-        public void Decrement(long amount) => throw new System.NotImplementedException();
+        public void Decrement(long amount) => throw new NotImplementedException();
 
         public void Increment(long amount, Dictionary<string, string> tags)
         {
@@ -34,6 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
             this.counterMetrics.Increment(this.counterOptions, metricTags, amount);
         }
 
-        public void Decrement(long amount, Dictionary<string, string> tags) => throw new System.NotImplementedException();
+        public void Decrement(long amount, Dictionary<string, string> tags) => throw new NotImplementedException();
     }
 }
