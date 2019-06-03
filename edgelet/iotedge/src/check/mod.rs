@@ -352,10 +352,7 @@ impl Check {
             ),
         ];
 
-        let mut check_results = CheckResultsSerializable {
-            additional_info: self.additional_info.clone(),
-            checks: Default::default(),
-        };
+        let mut checks: BTreeMap<&str, _> = Default::default();
 
         let mut stdout = Stdout::new(self.output_format);
 
@@ -384,9 +381,7 @@ impl Check {
                     Ok(CheckResult::Ok) => {
                         num_successful += 1;
 
-                        check_results
-                            .checks
-                            .insert(check_id, CheckResultSerializable::Ok);
+                        checks.insert(check_id, CheckResultSerializable::Ok);
 
                         stdout.write_success(|stdout| {
                             writeln!(stdout, "\u{221a} {} - OK", check_name)?;
@@ -397,7 +392,7 @@ impl Check {
                     Ok(CheckResult::Warning(warning)) => {
                         num_warnings += 1;
 
-                        check_results.checks.insert(
+                        checks.insert(
                             check_id,
                             CheckResultSerializable::Warning {
                                 details: warning.iter_chain().map(ToString::to_string).collect(),
@@ -427,17 +422,13 @@ impl Check {
                     }
 
                     Ok(CheckResult::Ignored) => {
-                        check_results
-                            .checks
-                            .insert(check_id, CheckResultSerializable::Ignored);
+                        checks.insert(check_id, CheckResultSerializable::Ignored);
                     }
 
                     Ok(CheckResult::Skipped) => {
                         num_skipped += 1;
 
-                        check_results
-                            .checks
-                            .insert(check_id, CheckResultSerializable::Skipped);
+                        checks.insert(check_id, CheckResultSerializable::Skipped);
 
                         if self.verbose {
                             stdout.write_warning(|stdout| {
@@ -451,7 +442,7 @@ impl Check {
                     Ok(CheckResult::Fatal(err)) => {
                         num_fatal += 1;
 
-                        check_results.checks.insert(
+                        checks.insert(
                             check_id,
                             CheckResultSerializable::Fatal {
                                 details: err.iter_chain().map(ToString::to_string).collect(),
@@ -483,7 +474,7 @@ impl Check {
                     Err(err) => {
                         num_errors += 1;
 
-                        check_results.checks.insert(
+                        checks.insert(
                             check_id,
                             CheckResultSerializable::Error {
                                 details: err.iter_chain().map(ToString::to_string).collect(),
@@ -571,6 +562,11 @@ impl Check {
         };
 
         if self.output_format == OutputFormat::Json {
+            let check_results = CheckResultsSerializable {
+                additional_info: &self.additional_info,
+                checks,
+            };
+
             if let Err(err) = serde_json::to_writer(std::io::stdout(), &check_results) {
                 eprintln!("Could not write JSON output: {}", err,);
                 return Err(ErrorKind::Diagnostics.into());
@@ -727,7 +723,8 @@ fn container_engine(check: &mut Check) -> Result<CheckResult, failure::Error> {
 
     check.docker_host_arg = Some(docker_host_arg);
 
-    check.docker_server_version = Some(String::from_utf8_lossy(&output).into_owned());
+    check.docker_server_version = Some(String::from_utf8_lossy(&output).trim().to_owned());
+    check.additional_info.docker_version = check.docker_server_version.clone();
 
     Ok(CheckResult::Ok)
 }
@@ -1010,6 +1007,8 @@ fn iotedged_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
         .get(1)
         .expect("unreachable: regex defines one capturing group")
         .as_str();
+
+    check.additional_info.iotedged_version = Some(version.to_owned());
 
     if version != latest_versions.iotedged {
         return Ok(CheckResult::Warning(
@@ -1712,8 +1711,8 @@ fn write_lines<'a>(
 }
 
 #[derive(Debug, serde_derive::Serialize)]
-struct CheckResultsSerializable {
-    additional_info: AdditionalInfo,
+struct CheckResultsSerializable<'a> {
+    additional_info: &'a AdditionalInfo,
     checks: BTreeMap<&'static str, CheckResultSerializable>,
 }
 

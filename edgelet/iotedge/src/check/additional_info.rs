@@ -1,6 +1,8 @@
 /// Additional info for the JSON output of `iotedge check`
 #[derive(Clone, Debug, serde_derive::Serialize)]
 pub(super) struct AdditionalInfo {
+    pub(super) docker_version: Option<String>,
+    pub(super) iotedged_version: Option<String>,
     now: chrono::DateTime<chrono::Utc>,
     os: OsInfo,
 }
@@ -8,6 +10,8 @@ pub(super) struct AdditionalInfo {
 impl AdditionalInfo {
     pub(super) fn new() -> Self {
         AdditionalInfo {
+            docker_version: None,
+            iotedged_version: None,
             now: chrono::Utc::now(),
             os: OsInfo::new(),
         }
