@@ -27,6 +27,16 @@ Need Support?
 
 ## Context (Environment)
 
+### Output of `iotedge check --output json`
+
+<details>
+<summary>Click here</summary>
+
+```json
+// Paste here
+```
+</details>
+
 ### Device (Host) Operating System
 <!-- Ubuntu 16.04, Ubuntu 18.04, Windows IoT Core, etc. -->
 
@@ -48,13 +58,39 @@ Need Support?
 <!-- Image tag (i.e. 1.0.0) -->
 
 #### Docker
-<!-- Run `docker version` -->
+
+```
+<Run `docker version` (`docker -H npipe:////./pipe/iotedge_moby_engine version` for Moby on Windows) and paste here>
+```
 
 ## Logs
 <!-- Please share as many logs as possible. This will help debugging -->
 <!-- Follow [diagnostic steps](https://docs.microsoft.com/en-us/azure/iot-edge/troubleshoot#standard-diagnostic-steps) to help extract useful information. -->
-<!-- If logs are long, considering putting them in a [gist](https://gist.github.com/) and adding the link here. This helps keep this issue report smaller. -->
 <!-- Don't forget to remove any connection string information! -->
+
+<details>
+<summary>iotedged logs</summary>
+
+```
+<Paste here>
+```
+</details>
+
+<details>
+<summary>edge-agent logs</summary>
+
+```
+<Paste here>
+```
+</details>
+
+<details>
+<summary>edge-hub logs</summary>
+
+```
+<Paste here>
+```
+</details>
 
 ## Additional Information
 <!-- Please provide any additional information that may be helpful in understanding the issue. -->
