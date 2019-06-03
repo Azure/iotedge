@@ -177,8 +177,8 @@ impl Main {
         Main { settings }
     }
 
-    // Allowing cyclomatic complexity errors for now. TODO: Refactor method later.
-    #[allow(clippy::cyclomatic_complexity)]
+    // Allowing cognitive complexity errors for now. TODO: Refactor method later.
+    #[allow(clippy::cognitive_complexity)]
     pub fn run_until<F, G>(self, make_shutdown_signal: G) -> Result<(), Error>
     where
         F: Future<Item = (), Error = ()> + Send + 'static,
