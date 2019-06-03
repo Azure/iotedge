@@ -46,8 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 Routing.LoggerFactory = Logger.Factory;
             }
 
-            string metricsUrl = configuration.GetValue("MetricsListenerUrl", "http://localhost:18181/metrics/");
-            Metrics.InitPrometheusMetrics(metricsUrl);
+            Metrics.InitPrometheusMetrics(configuration.GetSection("metrics"));
 
             EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration);
             bool clientCertAuthEnabled = configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
