@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         static class Metrics
         {
-            static readonly ICounter SentMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+            static readonly IMetricsCounter SentMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "edgehub_messages_sent_total",
                 new Dictionary<string, string>
                 {

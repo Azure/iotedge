@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 
     public class Metrics : IDisposable
     {
-        const string MetricsUrlPrefixFormat = "http://*/{0}/";
+        const string MetricsUrlPrefixFormat = "http://localhost/{0}/";
         static readonly object StateLock = new object();
         static Option<MetricsListener> metricsListener = Option.None<MetricsListener>();
 

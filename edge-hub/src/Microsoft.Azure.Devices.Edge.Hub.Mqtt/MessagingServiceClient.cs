@@ -230,7 +230,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         static class Metrics
         {
-            static readonly ICounter ReceivedMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+            static readonly IMetricsCounter ReceivedMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "edgehub_messages_received_total",
                 new Dictionary<string, string>
                 {
