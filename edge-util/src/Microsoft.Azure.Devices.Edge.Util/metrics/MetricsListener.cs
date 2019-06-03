@@ -1,27 +1,25 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
+namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 {
     using System;
     using System.IO;
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
-    using App.Metrics;
-    using App.Metrics.Formatters;
 
     public class MetricsListener : IDisposable
     {
         readonly HttpListener httpListener;
         readonly CancellationTokenSource cts = new CancellationTokenSource();
-        readonly IMetricsRoot metricsRoot;
+        readonly IMetricsProvider metricsProvider;
         readonly Task processTask;
 
-        public MetricsListener(string url, IMetricsRoot metricsRoot)
+        public MetricsListener(string url, IMetricsProvider metricsProvider)
         {
             this.httpListener = new HttpListener();
             this.httpListener.Prefixes.Add(url);
             this.httpListener.Start();
-            this.metricsRoot = metricsRoot;
+            this.metricsProvider = metricsProvider;
             this.processTask = this.ProcessRequests();
         }
 
@@ -42,9 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
                     HttpListenerContext context = await this.httpListener.GetContextAsync();
                     using (Stream output = context.Response.OutputStream)
                     {
-                        MetricsDataValueSource metricsData = this.metricsRoot.Snapshot.Get();
-                        IMetricsOutputFormatter formatter = this.metricsRoot.DefaultOutputMetricsFormatter;
-                        await formatter.WriteAsync(output, metricsData, this.cts.Token);
+                        byte[] snapshot = await this.metricsProvider.GetSnapshot(this.cts.Token);
+                        await output.WriteAsync(snapshot, 0, snapshot.Length, this.cts.Token);
                     }
                 }
             }

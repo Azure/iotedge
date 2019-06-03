@@ -2,10 +2,13 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics
 {
     using System.Collections.Generic;
+    using System.IO;
+    using System.Threading;
+    using System.Threading.Tasks;
 
     public class NullMetricsProvider : IMetricsProvider
     {
-        public ICounter CreateCounter(string name, Dictionary<string, string> tags)
+        public IMetricsCounter CreateCounter(string name, Dictionary<string, string> tags)
             => new NullMetricsCounter();
 
         public IMetricsGauge CreateGauge(string name, Dictionary<string, string> defaultTags)
@@ -19,5 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics
 
         public IMetricsTimer CreateTimer(string name, Dictionary<string, string> defaultTags)
             => new NullMetricsTimer();
+
+        public Task<byte[]> GetSnapshot(CancellationToken cancellationToken)
+            => Task.FromResult(new byte[0]);
     }
 }

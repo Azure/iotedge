@@ -2,10 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 {
     using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
 
     public interface IMetricsProvider
     {
-        ICounter CreateCounter(string name, Dictionary<string, string> tags);
+        IMetricsCounter CreateCounter(string name, Dictionary<string, string> tags);
 
         IMetricsGauge CreateGauge(string name, Dictionary<string, string> defaultTags);
 
@@ -14,5 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
         IMetricsTimer CreateTimer(string name, Dictionary<string, string> defaultTags);
 
         IMetricsHistogram CreateHistogram(string name, Dictionary<string, string> defaultTags);
+
+        Task<byte[]> GetSnapshot(CancellationToken cancellationToken);
     }
 }

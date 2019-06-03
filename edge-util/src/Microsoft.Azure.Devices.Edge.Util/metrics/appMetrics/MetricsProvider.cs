@@ -2,30 +2,31 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
 {
     using System.Collections.Generic;
+    using System.IO;
+    using System.Threading;
+    using System.Threading.Tasks;
     using App.Metrics;
+    using App.Metrics.Formatters;
 
     public class MetricsProvider : IMetricsProvider
     {
         readonly IMetricsRoot metricsRoot;
-        readonly MetricsListener metricsListener;
 
-        MetricsProvider(IMetricsRoot metricsRoot, MetricsListener metricsListener)
+        MetricsProvider(IMetricsRoot metricsRoot)
         {
             this.metricsRoot = metricsRoot;
-            this.metricsListener = metricsListener;
         }
 
-        public static MetricsProvider CreatePrometheusExporter(string url)
+        public static MetricsProvider Create()
         {
             IMetricsRoot metricsRoot = new MetricsBuilder()
                 .OutputMetrics.AsPrometheusPlainText()
                 .Build();
-            var metricsListener = new MetricsListener(url, metricsRoot);
-            var metricsProvider = new MetricsProvider(metricsRoot, metricsListener);
+            var metricsProvider = new MetricsProvider(metricsRoot);
             return metricsProvider;
         }
 
-        public ICounter CreateCounter(string name, Dictionary<string, string> tags) =>
+        public IMetricsCounter CreateCounter(string name, Dictionary<string, string> tags) =>
             new MetricsCounter(name, this.metricsRoot.Measure.Counter, tags);
 
         public IMetricsGauge CreateGauge(string name, Dictionary<string, string> defaultTags)
@@ -39,5 +40,16 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
 
         public IMetricsTimer CreateTimer(string name, Dictionary<string, string> defaultTags)
             => new MetricsTimer(name, this.metricsRoot.Measure.Timer, defaultTags);
+
+        public async Task<byte[]> GetSnapshot(CancellationToken cancellationToken)
+        {
+            using (var ms = new MemoryStream())
+            {
+                MetricsDataValueSource metricsData = this.metricsRoot.Snapshot.Get();
+                IMetricsOutputFormatter formatter = this.metricsRoot.DefaultOutputMetricsFormatter;
+                await formatter.WriteAsync(ms, metricsData, cancellationToken);
+                return ms.ToArray();
+            }
+        }
     }
 }
