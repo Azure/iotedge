@@ -9,9 +9,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 
     public class Metrics : IDisposable
     {
-        const string DefaultSuffix = "metrics";
+        const string DefaultHost = "*";
         const int DefaultPort = 80;
-        const string MetricsUrlPrefixFormat = "http://*:{0}/{1}/";
+        const string DefaultSuffix = "metrics";
+        const string MetricsUrlPrefixFormat = "http://{0}:{1}/{2}/";
         static readonly object StateLock = new object();
         static Option<MetricsListener> metricsListener = Option.None<MetricsListener>();
 
@@ -23,39 +24,36 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
             if (enabled)
             {
                 string suffix = DefaultSuffix;
+                string host = DefaultHost;
                 int port = DefaultPort;
                 IConfiguration listenerConfiguration = configuration.GetSection("listener");
                 if (listenerConfiguration != null)
                 {
                     suffix = listenerConfiguration.GetValue("suffix", DefaultSuffix);
                     port = listenerConfiguration.GetValue("port", DefaultPort);
+                    host = listenerConfiguration.GetValue("host", DefaultHost);
                 }
 
-                InitPrometheusMetrics(port, suffix);
+                string url = GetMetricsListenerUrlPrefix(host, port, suffix);
+                InitPrometheusMetrics(url);
             }
         }
 
-        public static void InitPrometheusMetrics(int port, string urlSuffix)
+        public static void InitPrometheusMetrics(string prefixUrl)
         {
             lock (StateLock)
             {
                 if (!metricsListener.HasValue)
                 {
                     Instance = MetricsProvider.Create();
-                    string url = GetMetricsListenerUrlPrefix(port, urlSuffix);
-                    metricsListener = Option.Some(InitMetricsListener(url, Instance));
+                    metricsListener = Option.Some(new MetricsListener(prefixUrl, Instance));
                 }
             }
         }
 
         public void Dispose() => metricsListener.ForEach(m => m.Dispose());
 
-        static MetricsListener InitMetricsListener(string url, IMetricsProvider metricsProvider)
-        {
-            return new MetricsListener(url, metricsProvider);
-        }
-
-        static string GetMetricsListenerUrlPrefix(int port, string urlSuffix)
-            => string.Format(CultureInfo.InvariantCulture, MetricsUrlPrefixFormat, port.ToString(), urlSuffix.Trim('/', ' '));
+        static string GetMetricsListenerUrlPrefix(string host, int port, string urlSuffix)
+            => string.Format(CultureInfo.InvariantCulture, MetricsUrlPrefixFormat, host, port.ToString(), urlSuffix.Trim('/', ' '));
     }
 }

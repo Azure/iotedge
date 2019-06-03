@@ -91,8 +91,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
 
-            // Metrics.BuildMetricsCollector(configuration);
-
             using (IProtocolHead protocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting))
             using (var renewal = new CertificateRenewal(certificates, logger))
             {

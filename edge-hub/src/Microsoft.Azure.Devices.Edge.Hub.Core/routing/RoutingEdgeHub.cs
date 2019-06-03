@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
     using Serilog.Events;
@@ -146,11 +147,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     : Constants.DownstreamOriginInterface;
                 message.SystemProperties[SystemProperties.EdgeHubOriginInterface] = edgeHubOriginInterface;
             }
+
+            message.SystemProperties[SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o");
         }
 
         static void ValidateMessageSize(IRoutingMessage messageToBeValidated)
         {
             long messageSize = messageToBeValidated.Size();
+            Metrics.AddMessageSize(messageSize);
             if (messageSize > Constants.MaxMessageSize)
             {
                 throw new EdgeHubMessageTooLargeException($"Message size is {messageSize} bytes which is greater than the max size {Constants.MaxMessageSize} bytes allowed");
@@ -240,6 +244,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static void UpdateDesiredPropertiesCallReceived(string id)
             {
                 Log.LogDebug((int)EventIds.DesiredPropertiesUpdateReceived, Invariant($"Desired properties update message received for {id ?? string.Empty}"));
+            }
+        }
+
+        static class Metrics
+        {
+            static readonly IMetricsHistogram MessagesHistogram = Util.Metrics.Metrics.Instance.CreateHistogram(
+                "edgehub_message_size",
+                new Dictionary<string, string>());
+
+            public static void AddMessageSize(long size)
+            {
+                MessagesHistogram.Update(size);
             }
         }
     }

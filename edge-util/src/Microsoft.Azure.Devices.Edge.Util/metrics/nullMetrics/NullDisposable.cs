@@ -5,9 +5,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics
 
     public class NullDisposable : IDisposable
     {
-        NullDisposable() { }
-
         public static IDisposable Instance = new NullDisposable();
+
+        NullDisposable()
+        {
+        }
 
         public void Dispose()
         {

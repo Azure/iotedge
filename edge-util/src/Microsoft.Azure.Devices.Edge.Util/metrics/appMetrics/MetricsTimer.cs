@@ -1,10 +1,11 @@
-using System;
-using System.Collections.Generic;
-using App.Metrics;
-using App.Metrics.Timer;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
 {
+    using System;
+    using System.Collections.Generic;
+    using App.Metrics;
+    using App.Metrics.Timer;
+
     public class MetricsTimer : IMetricsTimer
     {
         readonly IMeasureTimerMetrics timerMetrics;

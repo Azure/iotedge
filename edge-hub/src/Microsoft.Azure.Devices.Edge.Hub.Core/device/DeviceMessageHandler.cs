@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
 
@@ -234,6 +235,86 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             }
         }
 
+        #region IDeviceProxy
+
+        public Task SendC2DMessageAsync(IMessage message) => this.underlyingProxy.SendC2DMessageAsync(message);
+
+        /// <summary>
+        /// This method sends the message to the device, and adds the TaskCompletionSource (that awaits the response) to the messageTaskCompletionSources list.
+        /// When the message feedback call comes back, ProcessMessageFeedback sets the TaskCompletionSource value, which results in the awaiting task to be completed.
+        /// If no response comes back, then it times out.
+        /// </summary>
+        public async Task SendMessageAsync(IMessage message, string input)
+        {
+            // Locking here since multiple queues could be sending to the same module
+            // The messages need to be processed in order.
+            using (await this.serializeMessagesLock.LockAsync())
+            {
+                string lockToken = Guid.NewGuid().ToString();
+                message.SystemProperties[SystemProperties.LockToken] = lockToken;
+
+                var taskCompletionSource = new TaskCompletionSource<bool>();
+                this.messageTaskCompletionSources.TryAdd(lockToken, taskCompletionSource);
+                Task completedTask;
+
+                using (Metrics.Time(this.Identity))
+                {
+                    Metrics.MessageProcessingLatency(this.Identity, message);
+                    Events.SendingMessage(this.Identity, lockToken);
+                    await this.underlyingProxy.SendMessageAsync(message, input);
+
+                    completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(MessageResponseTimeout));
+                }
+
+                if (completedTask != taskCompletionSource.Task)
+                {
+                    Events.MessageFeedbackTimedout(this.Identity, lockToken);
+                    taskCompletionSource.SetException(new TimeoutException("Message completion response not received"));
+                    this.messageTaskCompletionSources.TryRemove(lockToken, out taskCompletionSource);
+                }
+
+                await taskCompletionSource.Task;
+            }
+        }
+
+        /// <summary>
+        /// This method invokes the method on the device, and adds the TaskCompletionSource (that awaits the response) to the methodCallTaskCompletionSources list.
+        /// When the response comes back, SendMethodResponse sets the TaskCompletionSource value, which results in the awaiting task to be completed.
+        /// If no response comes back, then it times out.
+        /// </summary>
+        public async Task<DirectMethodResponse> InvokeMethodAsync(DirectMethodRequest request)
+        {
+            var taskCompletion = new TaskCompletionSource<DirectMethodResponse>();
+
+            this.methodCallTaskCompletionSources.TryAdd(request.CorrelationId.ToLowerInvariant(), taskCompletion);
+            await this.underlyingProxy.InvokeMethodAsync(request);
+            Events.MethodCallSentToClient(this.Identity, request.Id, request.CorrelationId);
+
+            Task completedTask = await Task.WhenAny(taskCompletion.Task, Task.Delay(request.ResponseTimeout));
+            if (completedTask != taskCompletion.Task)
+            {
+                Events.MethodResponseTimedout(this.Identity, request.Id, request.CorrelationId);
+                taskCompletion.TrySetResult(new DirectMethodResponse(new EdgeHubTimeoutException($"Timed out waiting for device to respond to method request {request.CorrelationId}"), HttpStatusCode.GatewayTimeout));
+                this.methodCallTaskCompletionSources.TryRemove(request.CorrelationId.ToLowerInvariant(), out taskCompletion);
+            }
+
+            return await taskCompletion.Task;
+        }
+
+        public Task OnDesiredPropertyUpdates(IMessage twinUpdates) => this.underlyingProxy.OnDesiredPropertyUpdates(twinUpdates);
+
+        public Task SendTwinUpdate(IMessage twin) => this.underlyingProxy.SendTwinUpdate(twin);
+
+        public Task CloseAsync(Exception ex) => this.underlyingProxy.CloseAsync(ex);
+
+        public void SetInactive() => this.underlyingProxy.SetInactive();
+
+        public bool IsActive => this.underlyingProxy.IsActive;
+
+        public Task<Option<IClientCredentials>> GetUpdatedIdentity() => this.underlyingProxy.GetUpdatedIdentity();
+
+        #endregion
+
         static class Events
         {
             const int IdStart = HubCoreEventIds.DeviceListener;
@@ -328,78 +409,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             }
         }
 
-        #region IDeviceProxy
-
-        public Task SendC2DMessageAsync(IMessage message) => this.underlyingProxy.SendC2DMessageAsync(message);
-
-        /// <summary>
-        /// This method sends the message to the device, and adds the TaskCompletionSource (that awaits the response) to the messageTaskCompletionSources list.
-        /// When the message feedback call comes back, ProcessMessageFeedback sets the TaskCompletionSource value, which results in the awaiting task to be completed.
-        /// If no response comes back, then it times out.
-        /// </summary>
-        public async Task SendMessageAsync(IMessage message, string input)
+        static class Metrics
         {
-            // Locking here since multiple queues could be sending to the same module
-            // The messages need to be processed in order.
-            using (await this.serializeMessagesLock.LockAsync())
-            {
-                string lockToken = Guid.NewGuid().ToString();
-                message.SystemProperties[SystemProperties.LockToken] = lockToken;
-
-                var taskCompletionSource = new TaskCompletionSource<bool>();
-                this.messageTaskCompletionSources.TryAdd(lockToken, taskCompletionSource);
-
-                Events.SendingMessage(this.Identity, lockToken);
-                await this.underlyingProxy.SendMessageAsync(message, input);
-
-                Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(MessageResponseTimeout));
-                if (completedTask != taskCompletionSource.Task)
+            static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "edgehub_message_send_latency",
+                new Dictionary<string, string>
                 {
-                    Events.MessageFeedbackTimedout(this.Identity, lockToken);
-                    taskCompletionSource.SetException(new TimeoutException("Message completion response not received"));
-                    this.messageTaskCompletionSources.TryRemove(lockToken, out taskCompletionSource);
-                }
+                    ["Target"] = "module"
+                });
 
-                await taskCompletionSource.Task;
-            }
-        }
+            static readonly IMetricsHistogram MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateHistogram(
+                "edgehub_message_process_latency",
+                new Dictionary<string, string>());
 
-        /// <summary>
-        /// This method invokes the method on the device, and adds the TaskCompletionSource (that awaits the response) to the methodCallTaskCompletionSources list.
-        /// When the response comes back, SendMethodResponse sets the TaskCompletionSource value, which results in the awaiting task to be completed.
-        /// If no response comes back, then it times out.
-        /// </summary>
-        public async Task<DirectMethodResponse> InvokeMethodAsync(DirectMethodRequest request)
-        {
-            var taskCompletion = new TaskCompletionSource<DirectMethodResponse>();
-
-            this.methodCallTaskCompletionSources.TryAdd(request.CorrelationId.ToLowerInvariant(), taskCompletion);
-            await this.underlyingProxy.InvokeMethodAsync(request);
-            Events.MethodCallSentToClient(this.Identity, request.Id, request.CorrelationId);
-
-            Task completedTask = await Task.WhenAny(taskCompletion.Task, Task.Delay(request.ResponseTimeout));
-            if (completedTask != taskCompletion.Task)
+            public static IDisposable Time(IIdentity identity)
             {
-                Events.MethodResponseTimedout(this.Identity, request.Id, request.CorrelationId);
-                taskCompletion.TrySetResult(new DirectMethodResponse(new EdgeHubTimeoutException($"Timed out waiting for device to respond to method request {request.CorrelationId}"), HttpStatusCode.GatewayTimeout));
-                this.methodCallTaskCompletionSources.TryRemove(request.CorrelationId.ToLowerInvariant(), out taskCompletion);
+                return MessagesTimer.GetTimer(
+                    new Dictionary<string, string>
+                    {
+                        ["Id"] = identity.Id
+                    });
             }
 
-            return await taskCompletion.Task;
+            public static void MessageProcessingLatency(IIdentity identity, IMessage message)
+            {
+                if (message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
+                    && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
+                {
+                    TimeSpan duration = DateTime.UtcNow - enqueuedTime;
+                    MessagesProcessLatency.Update(
+                        (long)duration.TotalMilliseconds,
+                        new Dictionary<string, string>
+                        {
+                            ["Id"] = identity.Id
+                        });
+                }
+            }
         }
-
-        public Task OnDesiredPropertyUpdates(IMessage twinUpdates) => this.underlyingProxy.OnDesiredPropertyUpdates(twinUpdates);
-
-        public Task SendTwinUpdate(IMessage twin) => this.underlyingProxy.SendTwinUpdate(twin);
-
-        public Task CloseAsync(Exception ex) => this.underlyingProxy.CloseAsync(ex);
-
-        public void SetInactive() => this.underlyingProxy.SetInactive();
-
-        public bool IsActive => this.underlyingProxy.IsActive;
-
-        public Task<Option<IClientCredentials>> GetUpdatedIdentity() => this.underlyingProxy.GetUpdatedIdentity();
-
-        #endregion
     }
 }

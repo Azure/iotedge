@@ -165,7 +165,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 "edgehub_messages_sent_total",
                 new Dictionary<string, string>
                 {
-                    ["Protocol"] = "Mqtt"
+                    ["Protocol"] = "Mqtt",
+                    ["Target"] = "module",
                 });
 
             public static void AddSentMessage(IIdentity identity)

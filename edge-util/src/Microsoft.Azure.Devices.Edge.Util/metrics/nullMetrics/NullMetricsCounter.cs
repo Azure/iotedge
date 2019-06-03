@@ -5,7 +5,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics
 
     public class NullMetricsCounter : IMetricsCounter
     {
-        public void Increment(long amount) { }
+        public void Increment(long amount)
+        {
+        }
 
         public void Decrement(long amount)
         {
@@ -16,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics
         }
 
         public void Decrement(long amount, Dictionary<string, string> tags)
-        { }
+        {
+        }
     }
 }

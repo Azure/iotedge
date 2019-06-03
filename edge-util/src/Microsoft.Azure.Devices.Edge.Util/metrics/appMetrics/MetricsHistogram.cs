@@ -1,12 +1,10 @@
-using System;
-using System.Collections.Generic;
-using App.Metrics;
-using App.Metrics.Histogram;
-using App.Metrics.Meter;
-using Microsoft.Azure.Devices.Edge.Util.Metrics;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
 {
+    using System.Collections.Generic;
+    using App.Metrics;
+    using App.Metrics.Histogram;
+
     public class MetricsHistogram : IMetricsHistogram
     {
         readonly IMeasureHistogramMetrics histogramMetrics;

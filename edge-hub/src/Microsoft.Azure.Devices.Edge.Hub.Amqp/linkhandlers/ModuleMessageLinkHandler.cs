@@ -49,7 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 "edgehub_messages_sent_total",
                 new Dictionary<string, string>
                 {
-                    ["Protocol"] = "Amqp"
+                    ["Protocol"] = "Amqp",
+                    ["Target"] = "module",
                 });
 
             public static void AddSentMessage(IIdentity identity)

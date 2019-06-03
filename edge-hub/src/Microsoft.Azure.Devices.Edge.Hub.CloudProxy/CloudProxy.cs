@@ -11,7 +11,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -130,8 +132,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.timer.Reset();
             try
             {
-                await this.client.SendEventAsync(message);
-                Events.SendMessage(this);
+                using (Metrics.Time(this.clientId))
+                {
+                    await this.client.SendEventAsync(message);
+                    Events.SendMessage(this);
+                    Metrics.AddSentMessages(this.clientId, 1);
+                }
             }
             catch (Exception ex)
             {
@@ -144,13 +150,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public async Task SendMessageBatchAsync(IEnumerable<IMessage> inputMessages)
         {
             IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
-            IEnumerable<Message> messages = Preconditions.CheckNotNull(inputMessages, nameof(inputMessages))
-                .Select(inputMessage => converter.FromMessage(inputMessage));
+            IList<Message> messages = Preconditions.CheckNotNull(inputMessages, nameof(inputMessages))
+                .Select(inputMessage => converter.FromMessage(inputMessage))
+                .ToList();
             this.timer.Reset();
             try
             {
-                await this.client.SendEventBatchAsync(messages);
-                Events.SendMessage(this);
+                using (Metrics.Time(this.clientId))
+                {
+                    await this.client.SendEventBatchAsync(messages);
+                    Events.SendMessage(this);
+                    Metrics.AddSentMessages(this.clientId, messages.Count);
+                }
             }
             catch (Exception ex)
             {
@@ -582,6 +593,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             internal static void CloudReceiverNull(string clientId, string operation)
             {
                 Log.LogWarning((int)EventIds.CloudReceiverNull, Invariant($"Cannot complete operation {operation} for device {clientId} because cloud receiver is null"));
+            }
+        }
+
+        static class Metrics
+        {
+            static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "edgehub_message_send_latency",
+                new Dictionary<string, string>
+                {
+                    ["Target"] = "IoTHub"
+                });
+
+            static readonly IMetricsCounter SentMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+                "edgehub_messages_sent_total",
+                new Dictionary<string, string>
+                {
+                    ["Target"] = "IoTHub"
+                });
+
+            public static void AddSentMessages(string id, int count)
+            {
+                SentMessagesCounter.Increment(
+                    count,
+                    new Dictionary<string, string>
+                    {
+                        ["Id"] = id
+                    });
+            }
+
+            public static IDisposable Time(string id)
+            {
+                return MessagesTimer.GetTimer(new Dictionary<string, string>
+                {
+                    ["Id"] = id
+                });
             }
         }
     }
