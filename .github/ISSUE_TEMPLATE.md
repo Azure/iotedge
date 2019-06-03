@@ -60,7 +60,7 @@ Need Support?
 #### Docker
 
 ```
-<Run `docker version` and paste here>
+<Run `docker version` (`docker -H npipe:////./pipe/iotedge_moby_engine version` for Moby on Windows) and paste here>
 ```
 
 ## Logs
@@ -72,7 +72,7 @@ Need Support?
 <summary>iotedged logs</summary>
 
 ```
-<paste here>
+<Paste here>
 ```
 </details>
 
@@ -80,7 +80,7 @@ Need Support?
 <summary>edge-agent logs</summary>
 
 ```
-<paste here>
+<Paste here>
 ```
 </details>
 
@@ -88,7 +88,7 @@ Need Support?
 <summary>edge-hub logs</summary>
 
 ```
-<paste here>
+<Paste here>
 ```
 </details>
 
