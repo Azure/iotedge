@@ -69,14 +69,6 @@ impl ExternalProvisioningClient {
     }
 }
 
-impl Clone for ExternalProvisioningClient {
-    fn clone(&self) -> Self {
-        ExternalProvisioningClient {
-            client: self.client.clone(),
-        }
-    }
-}
-
 impl ExternalProvisioningInterface for ExternalProvisioningClient {
     type Error = Error;
 

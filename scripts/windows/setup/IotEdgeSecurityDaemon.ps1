@@ -113,7 +113,7 @@ PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -C
 
 .EXAMPLE
 
-PS> Initialize-IoTEdge -External -Endpoint $endpoint -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+PS> Initialize-IoTEdge -External -ExternalProvisioningEndpoint $externalProvisioningEndpoint -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
 #>
 function Initialize-IoTEdge {
     [CmdletBinding(DefaultParameterSetName = 'Manual')]
@@ -177,7 +177,7 @@ function Initialize-IoTEdge {
         # The external provisioning environment endpoint for the External provisioning mode.
         [Parameter(Mandatory = $true, ParameterSetName = 'External')]
         [ValidateNotNullOrEmpty()]
-        [String] $Endpoint,
+        [String] $ExternalProvisioningEndpoint,
 
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
@@ -466,7 +466,7 @@ PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -Cont
 
 .EXAMPLE
 
-PS> Install-IoTEdge -External -Endpoint $endpoint -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+PS> Install-IoTEdge -External -ExternalProvisioningEndpoint $externalProvisioningEndpoint -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
 #>
 function Install-IoTEdge {
     [CmdletBinding(DefaultParameterSetName = 'Manual')]
@@ -530,7 +530,7 @@ function Install-IoTEdge {
         # The external provisioning environment endpoint for the External provisioning mode.
         [Parameter(Mandatory = $true, ParameterSetName = 'External')]
         [ValidateNotNullOrEmpty()]
-        [String] $Endpoint,
+        [String] $ExternalProvisioningEndpoint,
 
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
@@ -548,21 +548,12 @@ function Install-IoTEdge {
         [String] $OfflineInstallationPath,
 
         # IoT Edge Agent image to pull for the initial configuration.
-        [Parameter(ParameterSetName = 'Manual')]
-        [Parameter(ParameterSetName = 'DPS')]
-        [Parameter(ParameterSetName = 'External')]
         [String] $AgentImage,
 
         # Username used to access the container registry and pull the IoT Edge Agent image.
-        [Parameter(ParameterSetName = 'Manual')]
-        [Parameter(ParameterSetName = 'DPS')]
-        [Parameter(ParameterSetName = 'External')]
         [String] $Username,
 
         # Password used to access the container registry and pull the IoT Edge Agent image.
-        [Parameter(ParameterSetName = 'Manual')]
-        [Parameter(ParameterSetName = 'DPS')]
-        [Parameter(ParameterSetName = 'External')]
         [SecureString] $Password,
 
         # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
@@ -620,7 +611,7 @@ function Install-IoTEdge {
     if ($DeviceCACertificate) { $Params["-DeviceCACertificate"] = $DeviceCACertificate }
     if ($DeviceCAPrivateKey) { $Params["-DeviceCAPrivateKey"] = $DeviceCAPrivateKey }
     if ($DeviceTrustbundle) { $Params["-DeviceTrustbundle"] = $DeviceTrustbundle }
-    if ($Endpoint) { $Params["-Endpoint"] = $Endpoint }
+    if ($ExternalProvisioningEndpoint) { $Params["-ExternalProvisioningEndpoint"] = $ExternalProvisioningEndpoint }
     if ($AgentImage) { $Params["-AgentImage"] = $AgentImage }
     if ($Username) { $Params["-Username"] = $Username }
     if ($Password) { $Params["-Password"] = $Password }
@@ -1584,12 +1575,12 @@ function Set-ProvisioningMode {
             Write-HostGreen 'Configured device for manual provisioning.'
             return $configurationYaml
         }
-        elseif ($External -or $Endpoint){
+        elseif ($External -or $ExternalProvisioningEndpoint){
             $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*endpoint:\s*".*"'
             $replacementContent = @(
                 'provisioning:',
                 '  source: ''external''',
-                "  endpoint: '$Endpoint'")
+                "  endpoint: '$ExternalProvisioningEndpoint'")
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
             Write-HostGreen 'Configured device for external provisioning.'
             return $configurationYaml

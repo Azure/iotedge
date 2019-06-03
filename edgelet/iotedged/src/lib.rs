@@ -3,10 +3,10 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
-clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
-clippy::module_name_repetitions,
-clippy::shadow_unrelated,
-clippy::use_self,
+    clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
+    clippy::module_name_repetitions,
+    clippy::shadow_unrelated,
+    clippy::use_self,
 )]
 
 pub mod app;
@@ -276,7 +276,7 @@ impl Main {
                 );
                 // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
                 // is received. If the TLS cert needs a restart, we will loop again.
-                while {
+                loop {
                     let code = start_api(
                         &settings,
                         hyper_client.clone(),
@@ -288,8 +288,11 @@ impl Main {
                         &crypto,
                         &mut tokio_runtime,
                     )?;
-                    code == StartApiReturnStatus::Restart
-                } {}
+
+                    if code != StartApiReturnStatus::Restart {
+                        break;
+                    }
+                }
             }};
         }
 
@@ -317,39 +320,39 @@ impl Main {
                         )))
                     });
 
-                let provisioning = tokio_runtime.block_on(provision_fut);
+                let prov_result = tokio_runtime.block_on(provision_fut)?;
 
-                provisioning.and_then(move |prov_result| {
-                    prov_result
-                        .credentials()
-                        .map_or_else(
-                            || {
-                                info!("Credentials are expected to be populated for external provisioning.");
-                                Err(Error::from(ErrorKind::Initialize(
-                                    InitializeErrorReason::ExternalProvisioningClient,
-                                )))
-                            },
-                            |credentials| {
-                                if let AuthType::SymmetricKey(symmetric_key) = credentials.auth_type() {
-                                    if let Some(key) = symmetric_key.key() {
-                                        let (derived_key_store, memory_key) = external_provision_payload(key);
-                                        start_edgelet!(derived_key_store, prov_result, memory_key, runtime);
-                                        Ok(())
-                                    }
-                                    else {
-                                        let (derived_key_store, tpm_key) = external_provision_tpm(hsm_lock.clone())?;
-                                        start_edgelet!(derived_key_store, prov_result, tpm_key, runtime);
-                                        Ok(())
-                                    }
-                                }
-                                else {
-                                    info!("Unexpected auth type. Only symmetric keys are expected");
-                                    Err(Error::from(ErrorKind::Initialize(
-                                        InitializeErrorReason::ExternalProvisioningClient,
-                                    )))
-                                }
-                            })
-                })?;
+                prov_result.credentials().map_or_else(
+                    || {
+                        info!(
+                            "Credentials are expected to be populated for external provisioning."
+                        );
+                        Err(Error::from(ErrorKind::Initialize(
+                            InitializeErrorReason::ExternalProvisioningClient,
+                        )))
+                    },
+                    |credentials| match credentials.auth_type() {
+                        AuthType::SymmetricKey(symmetric_key) => {
+                            if let Some(key) = symmetric_key.key() {
+                                let (derived_key_store, memory_key) =
+                                    external_provision_payload(key);
+                                start_edgelet!(derived_key_store, prov_result, memory_key, runtime);
+                                Ok(())
+                            } else {
+                                let (derived_key_store, tpm_key) =
+                                    external_provision_tpm(hsm_lock.clone())?;
+                                start_edgelet!(derived_key_store, prov_result, tpm_key, runtime);
+                                Ok(())
+                            }
+                        }
+                        AuthType::X509(_) => {
+                            info!("Unexpected auth type. Only symmetric keys are expected");
+                            Err(Error::from(ErrorKind::Initialize(
+                                InitializeErrorReason::ExternalProvisioningClient,
+                            )))
+                        }
+                    },
+                )?
             }
             Provisioning::Dps(dps) => {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
@@ -791,96 +794,6 @@ fn external_provision_tpm(
             Ok((derived_key_store, k))
         })
 }
-
-//fn external_provision<K>(
-//    provisioning: &External,
-//    tokio_runtime: &mut tokio::runtime::Runtime,
-//    hsm_lock: Arc<HsmLock>,
-//) -> Result<(DerivedKeyStore<K>, ProvisioningResult, K), Error>
-//    where
-//        K: 'static + Sign + Clone + Send + Sync,
-////    where K: Box<dyn Sign + Clone + Send + Sync>,
-//{
-//    let external_provisioning_client = ExternalProvisioningClient::new(provisioning.endpoint())
-//        .context(ErrorKind::Initialize(
-//            InitializeErrorReason::ExternalProvisioningClient,
-//        ))?;
-//
-//    let external = ExternalProvisioning::new(external_provisioning_client);
-//
-//    let provision = external
-//        .provision(MemoryKeyStore::new())
-//        .map_err(|err| {
-//            Error::from(err.context(ErrorKind::Initialize(
-//                InitializeErrorReason::ExternalProvisioningClient,
-//            )))
-//        })
-//        .and_then(move |prov_result| {
-//            prov_result
-//                .credentials()
-//                .map(|credentials| match credentials.auth_type() {
-//                    AuthType::SymmetricKey(symmetric_key) => Either::A(
-//                        symmetric_key
-//                            .key()
-//                            .map(|key| {
-//                                let memory_key = MemoryKey::new(key.clone());
-//                                let mut memory_hsm = MemoryKeyStore::new();
-//                                memory_hsm.insert(
-//                                    &KeyIdentity::Device,
-//                                    "primary",
-//                                    memory_key.clone(),
-//                                );
-//
-//                                let derived_key_store = DerivedKeyStore::new(memory_key.clone());
-//                                Either::A(future::ok((derived_key_store, prov_result, memory_key)))
-//                            })
-//                            .unwrap_or_else(|| {
-//                                let tpm = Tpm::new()
-//                                    .map_err(|err| {
-//                                        Error::from(err.context(ErrorKind::Initialize(
-//                                            InitializeErrorReason::ExternalProvisioningClient,
-//                                        )))
-//                                    })
-//                                    .and_then(|re| {
-//                                        let tpm_hsm =
-//                                            TpmKeyStore::from_hsm(re, hsm_lock)
-//                                                .context(ErrorKind::Initialize(
-//                                                    InitializeErrorReason::ExternalProvisioningClient,
-//                                                ))?;
-//
-//                                        tpm_hsm
-//                                            .get(&KeyIdentity::Device, "primary")
-//                                            .map_err(|err| {
-//                                                Error::from(err.context(ErrorKind::Initialize(
-//                                                    InitializeErrorReason::ExternalProvisioningClient,
-//                                                )))
-//                                            })
-//                                            .and_then(|k| {
-//                                                let derived_key_store =
-//                                                    DerivedKeyStore::new(k.clone());
-//                                                Ok((derived_key_store, prov_result, k))
-//                                            })
-//                                    });
-//
-//                                Either::B(tpm.into_future())
-//                            }),
-//                    ),
-//                    _ => {
-//                        debug!("Unexpected auth type. Only symmetric keys are expected");
-//                        Either::B(future::err(Error::from(ErrorKind::Initialize(
-//                            InitializeErrorReason::ExternalProvisioningClient,
-//                        ))))
-//                    }
-//                })
-//                .unwrap_or_else(|| {
-//                    debug!("Credentials are expected to be populated for external provisioning.");
-//                    Either::B(future::err(Error::from(ErrorKind::Initialize(
-//                        InitializeErrorReason::ExternalProvisioningClient,
-//                    ))))
-//                })
-//        });
-//    tokio_runtime.block_on(provision)
-//}
 
 fn dps_symmetric_key_provision<HC, M>(
     provisioning: &Dps,

@@ -249,11 +249,23 @@ where
                                         Err(Error::from(ErrorKind::Provision))
                                     },
                                     |key| {
-                                        Ok(Credentials { auth_type: AuthType::SymmetricKey(SymmetricKeyCredential{ key: Some(key.to_string()) }), source: CredentialSource::Payload })
+                                        Ok(Credentials {
+                                            auth_type: AuthType::SymmetricKey(
+                                                SymmetricKeyCredential {
+                                                    key: Some(key.to_string())
+                                                }),
+                                            source: CredentialSource::Payload
+                                        })
                                     })
 
                             },
-                            "hsm" => Ok(Credentials { auth_type: AuthType::SymmetricKey(SymmetricKeyCredential{ key: None }), source: CredentialSource::Hsm }),
+                            "hsm" => Ok(Credentials {
+                                auth_type: AuthType::SymmetricKey(
+                                    SymmetricKeyCredential {
+                                        key: None
+                                    }),
+                                source: CredentialSource::Hsm
+                            }),
                             _ => {
                                 info!(
                                     "Unexpected value of credential source \"{}\" received from external environment.",
