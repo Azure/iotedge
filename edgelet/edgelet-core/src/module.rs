@@ -522,13 +522,13 @@ impl Default for PullPolicy {
 }
 
 impl FromStr for PullPolicy {
-    type Err = ();
+    type Err = Error;
 
-    fn from_str(s: &str) -> StdResult<PullPolicy, ()> {
+    fn from_str(s: &str) -> StdResult<PullPolicy, Self::Err> {
         match s.to_lowercase().as_str() {
             "always" => Ok(PullPolicy::Always),
             "never" => Ok(PullPolicy::Never),
-            _ => Err(()),
+            _ => Err(Error::from(ErrorKind::InvalidPullPolicy(s.to_string()))),
         }
     }
 }

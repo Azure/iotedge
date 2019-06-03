@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::HashMap;
-use std::str::FromStr;
 
 use failure::Fail;
 use serde::de::DeserializeOwned;
@@ -58,11 +57,10 @@ where
 
     let pull_policy = match spec
         .pull_policy()
-        .map_or(Ok(PullPolicy::default()), |policy| {
-            PullPolicy::from_str(policy)
-        }) {
+        .map_or(Ok(PullPolicy::default()), str::parse)
+    {
         Ok(pull_policy) => pull_policy,
-        Err(_err) => return Err(Error::from(context)),
+        Err(err) => return Err(Error::from(err.context(context))),
     };
 
     let module_spec = match CoreModuleSpec::new(name, type_, config, env, pull_policy) {

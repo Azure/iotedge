@@ -69,6 +69,9 @@ pub enum ErrorKind {
     #[fail(display = "Invalid module type {:?}", _0)]
     InvalidModuleType(String),
 
+    #[fail(display = "Invalid pull policy configuration {:?}", _0)]
+    InvalidPullPolicy(String),
+
     #[fail(display = "Invalid URL {:?}", _0)]
     InvalidUrl(String),
 
