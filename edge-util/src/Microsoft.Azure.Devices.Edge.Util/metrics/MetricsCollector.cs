@@ -14,24 +14,23 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 
         public static IMetricsProvider Instance { get; private set; } = new NullMetricsProvider();
 
-        public static void InitPrometheusMetrics(string urlSuffix)
+        public static void InitPrometheusMetrics(string url)
         {
             lock (StateLock)
             {
                 if (!metricsListener.HasValue)
                 {
                     Instance = MetricsProvider.Create();
-                    metricsListener = Option.Some(InitMetricsListener(urlSuffix, Instance));
+                    metricsListener = Option.Some(InitMetricsListener(url, Instance));
                 }
             }
         }
 
         public void Dispose() => metricsListener.ForEach(m => m.Dispose());
 
-        static MetricsListener InitMetricsListener(string urlSuffix, IMetricsProvider metricsProvider)
+        static MetricsListener InitMetricsListener(string url, IMetricsProvider metricsProvider)
         {
-            string metricsListenerUrlPrefix = GetMetricsListenerUrlPrefix(urlSuffix);
-            return new MetricsListener(metricsListenerUrlPrefix, metricsProvider);
+            return new MetricsListener(url, metricsProvider);
         }
 
         static string GetMetricsListenerUrlPrefix(string urlSuffix)

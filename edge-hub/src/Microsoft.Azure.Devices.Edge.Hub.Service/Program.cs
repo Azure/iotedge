@@ -40,13 +40,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
             Logger.SetLogLevel(logLevel);
 
-            Metrics.InitPrometheusMetrics("metrics");
-
             // Set the LoggerFactory used by the Routing code.
             if (configuration.GetValue("EnableRoutingLogging", false))
             {
                 Routing.LoggerFactory = Logger.Factory;
             }
+
+            string metricsUrl = configuration.GetValue("MetricsListenerUrl", "http://localhost:18181/metrics/");
+            Metrics.InitPrometheusMetrics(metricsUrl);
 
             EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration);
             bool clientCertAuthEnabled = configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
