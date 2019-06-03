@@ -343,6 +343,82 @@ where
             .flatten()
     }
 
+    pub fn list_service_accounts(
+        &mut self,
+        namespace: &str,
+        name: Option<&str>,
+        label_selector: Option<&str>,
+    ) -> impl Future<Item = api_core::ServiceAccountList, Error = Error> {
+        let field_selector = name.and_then(|service_account_name| {
+            Some(format!("metadata.name={}", service_account_name))
+        });
+        let params = api_core::ListNamespacedServiceAccountOptional {
+            field_selector: field_selector.as_ref().map(String::as_ref),
+            label_selector,
+            ..api_core::ListNamespacedServiceAccountOptional::default()
+        };
+
+        api_core::ServiceAccount::list_namespaced_service_account(namespace, params)
+            .map_err(Error::from)
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    api_core::ListNamespacedServiceAccountResponse::Ok(service_acoount_list) => {
+                        Ok(service_acoount_list)
+                    }
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
+            })
+            .into_future()
+            .flatten()
+    }
+
+    pub fn create_service_account(
+        &mut self,
+        namespace: &str,
+        service_account: &api_core::ServiceAccount,
+    ) -> impl Future<Item = api_core::ServiceAccount, Error = Error> {
+        api_core::ServiceAccount::create_namespaced_service_account(
+            namespace,
+            &service_account,
+            api_core::CreateNamespacedServiceAccountOptional::default(),
+        )
+            .map_err(Error::from)
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    api_core::CreateNamespacedServiceAccountResponse::Accepted(deployment)
+                    | api_core::CreateNamespacedServiceAccountResponse::Created(deployment)
+                    | api_core::CreateNamespacedServiceAccountResponse::Ok(deployment) => Ok(deployment),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
+            })
+            .into_future()
+            .flatten()
+    }
+
+    pub fn replace_service_account(
+        &mut self,
+        namespace: &str,
+        name: &str,
+        service_account: &api_core::ServiceAccount,
+    ) -> impl Future<Item = api_core::ServiceAccount, Error = Error> {
+        api_core::ServiceAccount::replace_namespaced_service_account(
+            name,
+            namespace,
+            service_account,
+            api_core::ReplaceNamespacedServiceAccountOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                api_core::ReplaceNamespacedServiceAccountResponse::Created(deployment)
+                | api_core::ReplaceNamespacedServiceAccountResponse::Ok(deployment) => Ok(deployment),
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
+        })
+        .into_future()
+        .flatten()
+    }
+
     #[allow(clippy::type_complexity)]
     fn request<R: K8sResponse>(
         &mut self,

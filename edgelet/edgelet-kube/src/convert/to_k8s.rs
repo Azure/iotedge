@@ -310,7 +310,7 @@ fn spec_to_podspec<R: KubeRuntimeData>(
     let service_account_name = if EDGE_EDGE_AGENT_NAME == module_label_value {
         Some(runtime.service_account_name().to_string())
     } else {
-        None
+        None // todo specify module_label_value service-account for other modules
     };
 
     Ok(api_core::PodSpec {
@@ -407,6 +407,28 @@ pub fn spec_to_deployment<R: KubeRuntimeData>(
         ..apps::Deployment::default()
     };
     Ok((deployment_name, deployment))
+}
+
+pub fn spec_to_service_account<R: KubeRuntimeData>(
+    runtime: &R,
+    spec: &ModuleSpec<DockerConfig>,
+) -> Result<api_core::ServiceAccount> {
+    let module_label_value = sanitize_dns_value(spec.name())?;
+    let service_account_name = format!("{}-service-account", module_label_value);
+
+    let service_account_labels = BTreeMap::new(); // todo what labels?
+
+    let service_account = api_core::ServiceAccount {
+        metadata: Some(api_meta::ObjectMeta {
+            name: Some(service_account_name),
+            namespace: Some(runtime.namespace().to_string()),
+            labels: Some(service_account_labels),
+            ..api_meta::ObjectMeta::default()
+        }),
+        ..api_core::ServiceAccount::default()
+    };
+
+    Ok(service_account)
 }
 
 #[cfg(test)]
