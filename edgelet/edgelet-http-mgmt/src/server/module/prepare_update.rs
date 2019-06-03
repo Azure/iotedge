@@ -241,7 +241,7 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("Request body is malformed", error.message());
+                assert_eq!("Request body is malformed\n\tcaused by: Invalid pull policy configuration \"what\"", error.message());
                 Ok(())
             })
             .wait()
