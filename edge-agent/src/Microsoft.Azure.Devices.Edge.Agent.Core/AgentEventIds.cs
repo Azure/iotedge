@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const int KubernetesCommand = EventIdStart + 2300;
         public const int KubernetesOperator = EventIdStart + 2400;
         public const int LogsUploadRequestHandler = EventIdStart + 2500;
+        public const int ModuleClientProvider = EventIdStart + 2600;
         const int EventIdStart = 100000;
     }
 }

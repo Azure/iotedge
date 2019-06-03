@@ -35,8 +35,14 @@ jobs:
         name: build
         displayName: Build ($(Build.Configuration))
 
-      - script: scripts/linux/buildDiagnostics.sh $(Build.Configuration)
-        displayName: Build iotedge-diagnostics
+      - script: scripts/linux/buildEdgelet.sh -i azureiotedge-iotedged -n microsoft -P iotedged -c $(Build.Configuration) -t aarch64
+        displayName: Build - Edge Security Daemon - aarch64
+
+      - script: scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(Build.Configuration) -t aarch64
+        displayName: Build - Edge Diagnostics - aarch64
+
+      - script: scripts/linux/buildEdgeProxy.sh -i azureiotedge-proxy -n microsoft -P edge-proxy -t aarch64
+        displayName: Build - Edge Proxy - aarch64
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
@@ -44,82 +50,96 @@ jobs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-linux'
 
-     # azureiotedge-diagnostics - Not Using Template for ARM64 because we have 2 different .NET Core.
+      # Edge Security Daemon - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
-        displayName: Build Image azureiotedge-diagnostics - aarch64
-        inputs: 
-           filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-diagnostics -n microsoft -P azureiotedge-diagnostics --target-arch aarch64
+        displayName: Build Image - Edge Security Daemon - aarch64
+        inputs:
+          filePath: scripts/linux/buildImage.sh
+          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-iotedged -n microsoft -P azureiotedge-iotedged --target-arch aarch64
 
-    # Edge Agent - Not Using Template for ARM64 because we have 2 different .NET Core.
+      # Edge Diagnostics - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
-        displayName: Build Edge Agent Image - aarch64
-        inputs: 
+        displayName: Build Image - Edge Diagnostics - aarch64
+        inputs:
+          filePath: scripts/linux/buildImage.sh
+          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-diagnostics -n microsoft -P azureiotedge-diagnostics --target-arch aarch64
+
+      # Edge Proxy - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image - Edge Proxy - aarch64
+        inputs:
+          filePath: scripts/linux/buildImage.sh
+          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-proxy -n microsoft -P azureiotedge-proxy --target-arch aarch64
+
+      # Edge Agent - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image - Edge Agent - aarch64
+        inputs:
            filePath: scripts/linux/buildImage.sh
            arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-agent -n microsoft -P Microsoft.Azure.Devices.Edge.Agent.Service --target-arch aarch64
 
      # Edge Hub - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
-        displayName: Build Edge Hub Image - aarch64
-        inputs: 
+        displayName: Build Image - Edge Hub - aarch64
+        inputs:
            filePath: scripts/linux/buildImage.sh
            arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-hub -n microsoft -P Microsoft.Azure.Devices.Edge.Hub.Service --target-arch aarch64
 
      # Simulated Temperature Sensor - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
-        displayName: Build Image Temperature Sensor - aarch64
-        inputs: 
+        displayName: Build Image - Temperature Sensor - aarch64
+        inputs:
            filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-simulated-temperature-sensor -n microsoft -P SimulatedTemperatureSensor --target-arch aarch64     
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-simulated-temperature-sensor -n microsoft -P SimulatedTemperatureSensor --target-arch aarch64
 
       # Temperature Filter - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
-        displayName: Build Image Temperature Filter - aarch64
-        inputs: 
+        displayName: Build Image - Temperature Filter - aarch64
+        inputs:
            filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-temperature-filter -n microsoft -P TemperatureFilter --target-arch aarch64     
-           
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-temperature-filter -n microsoft -P TemperatureFilter --target-arch aarch64
+
       # Load Gen - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
-        displayName: Build Image Load Gen - aarch64
-        inputs: 
+        displayName: Build Image - Load Gen - aarch64
+        inputs:
            filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-load-gen -n microsoft -P load-gen --target-arch aarch64     
-           
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-load-gen -n microsoft -P load-gen --target-arch aarch64
+
       # Messages Analyzer - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
-        displayName: Build Image Messages Analyzer - aarch64
-        inputs: 
+        displayName: Build Image - Messages Analyzer - aarch64
+        inputs:
            filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-analyzer -n microsoft -P MessagesAnalyzer --target-arch aarch64     
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-analyzer -n microsoft -P MessagesAnalyzer --target-arch aarch64
 
-      # Functions Sample - Not Using Template for ARM64 because we have 2 different .NET Core.//TODO: Enable this once Functions supports arm64v8. Right now they are not ready. 
+      # Functions Sample - Not Using Template for ARM64 because we have 2 different .NET Core.//TODO: Enable this once Functions supports arm64v8. Right now they are not ready.
       #- task: Bash@3
-      #  displayName: Build Image Functions Sample - aarch64
-      #  inputs: 
+      #  displayName: Build Image - Functions Sample - aarch64
+      #  inputs:
       #     filePath: scripts/linux/buildImage.sh
-      #     arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-functions-filter -n azureiotedge -P EdgeHubTriggerCSharp --target-arch aarch64     
+      #     arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-functions-filter -n azureiotedge -P EdgeHubTriggerCSharp --target-arch aarch64
 
       # Direct Method Sender - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
-        displayName: Build Image Direct Method Sender - aarch64
-        inputs: 
+        displayName: Build Image - Direct Method Sender - aarch64
+        inputs:
            filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-direct-method-sender -n microsoft -P DirectMethodSender --target-arch aarch64           
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-direct-method-sender -n microsoft -P DirectMethodSender --target-arch aarch64
 
       # Direct Method Receiver - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
-        displayName: Build Image Direct Method Receiver - aarch64
-        inputs: 
+        displayName: Build Image - Direct Method Receiver - aarch64
+        inputs:
            filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-direct-method-receiver -n microsoft -P DirectMethodReceiver --target-arch aarch64           
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-direct-method-receiver -n microsoft -P DirectMethodReceiver --target-arch aarch64
 
       # Direct Method Cloud Sender - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
-        displayName: Build Image Direct Method Cloud Sender - aarch64
-        inputs: 
+        displayName: Build Image - Direct Method Cloud Sender - aarch64
+        inputs:
            filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-direct-method-cloud-sender -n microsoft -P DirectMethodCloudSender --target-arch aarch64           
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-direct-method-cloud-sender -n microsoft -P DirectMethodCloudSender --target-arch aarch64
            
           
 ################################################################################
@@ -151,8 +171,28 @@ jobs:
         name: build
         displayName: Build ($(Build.Configuration))
 
-      - script: scripts/linux/buildDiagnostics.sh $(Build.Configuration)
-        displayName: Build iotedge-diagnostics
+      - template: templates/build-edgelet-linux.yaml
+        parameters:
+          filePath: scripts/linux/buildEdgelet.sh
+          name: Edge Security Daemon
+          imageName: azureiotedge-iotedged
+          project: iotedged
+          configuration: $(Build.Configuration)
+
+      - template: templates/build-edgelet-linux.yaml
+        parameters:
+          filePath: scripts/linux/buildEdgelet.sh
+          name: Edge Diagnostics
+          imageName: azureiotedge-diagnostics
+          project: iotedge-diagnostics
+          configuration: $(Build.Configuration)
+
+      - template: templates/build-edgelet-linux.yaml
+        parameters:
+          filePath: scripts/linux/buildEdgeProxy.sh
+          name: Edge Proxy
+          imageName: azureiotedge-proxy
+          project: edge-proxy
 
       - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
         displayName: 'Create Artifact Info File'
@@ -163,12 +203,26 @@ jobs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-linux'
 
-      # azureiotedge-diagnostics
+      # Edge Security Daemon
       - template: templates/image-linux.yaml
         parameters:
-          name: azureiotedge-diagnostics
+          name: Edge Security Daemon
+          imageName: azureiotedge-iotedged
+          project: azureiotedge-iotedged
+
+      # Edge Diagnostics
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Edge Diagnostics
           imageName: azureiotedge-diagnostics
           project: azureiotedge-diagnostics
+
+      # Edge Proxy
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Edge Proxy
+          imageName: azureiotedge-proxy
+          project: azureiotedge-proxy
 
       # Edge Agent
       - template: templates/image-linux.yaml
@@ -375,5 +429,9 @@ jobs:
       displayName: 'Publish Edge Hub Manifest'
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish Temperature Sensor Manifest'
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedged/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+      displayName: 'Publish azureiotedge-iotedged Manifest'
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedge-diagnostics/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish azureiotedge-diagnostics Manifest'
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-proxy/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+      displayName: 'Publish azureiotedge-proxy Manifest'
