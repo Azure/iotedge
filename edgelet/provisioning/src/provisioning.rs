@@ -669,7 +669,7 @@ mod tests {
     use super::*;
 
     use edgelet_config::{Manual, ParseManualDeviceConnectionStringError};
-    use external_provisioning::models::{DeviceProvisioningInfo, Credentials};
+    use external_provisioning::models::{Credentials, DeviceProvisioningInfo};
     use failure::Fail;
     use std::fmt::{self, Display};
     use tempdir::TempDir;
@@ -983,6 +983,7 @@ mod tests {
 
     struct TestExternalProvisioningInterface {
         pub error: Option<TestError>,
+        pub provisioning_info: DeviceProvisioningInfo,
     }
 
     #[derive(Debug, Fail)]
@@ -1002,27 +1003,26 @@ mod tests {
 
         fn get_device_provisioning_information(&self) -> Self::DeviceProvisioningInformationFuture {
             match self.error.as_ref() {
-                None => {
-                    let mut credentials = Credentials::new("symmetric-key".to_string(), "payload".to_string());
-                    credentials.set_key("test-key".to_string());
-                    Box::new(
-                        Ok(DeviceProvisioningInfo::new(
-                            "TestHub".to_string(),
-                            "TestDevice".to_string(),
-                            credentials
-                        ))
-                            .into_future(),
-                    )
-                },
+                None => Box::new(Ok(self.provisioning_info.clone()).into_future()),
                 Some(_s) => Box::new(Err(TestError {}).into_future()),
             }
         }
     }
 
     #[test]
-    fn external_get_provisioning_info_success() {
-        let provisioning =
-            ExternalProvisioning::new(TestExternalProvisioningInterface { error: None });
+    fn external_get_provisioning_info_symmetric_key_payload_success() {
+        let mut credentials = Credentials::new("symmetric-key".to_string(), "payload".to_string());
+        credentials.set_key("test-key".to_string());
+        let provisioning_info = DeviceProvisioningInfo::new(
+            "TestHub".to_string(),
+            "TestDevice".to_string(),
+            credentials,
+        );
+
+        let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
+            error: None,
+            provisioning_info,
+        });
         let memory_hsm = MemoryKeyStore::new();
         let task = provisioning
             .provision(memory_hsm.clone())
@@ -1035,16 +1035,13 @@ mod tests {
                         if let AuthType::SymmetricKey(symmetric_key) = credentials.auth_type() {
                             if let Some(key) = &symmetric_key.key {
                                 assert_eq!(key, "test-key");
-                            }
-                            else{
+                            } else {
                                 panic!("A key was expected in the response.")
                             }
-                        }
-                        else {
+                        } else {
                             panic!("Unexpected authentication type.")
                         }
-                    }
-                    else {
+                    } else {
                         panic!("No credentials found. This is unexpected")
                     }
 
@@ -1059,9 +1056,118 @@ mod tests {
     }
 
     #[test]
+    fn external_get_provisioning_info_symmetric_key_hsm_success() {
+        let credentials = Credentials::new("symmetric-key".to_string(), "hsm".to_string());
+        let provisioning_info = DeviceProvisioningInfo::new(
+            "TestHub".to_string(),
+            "TestDevice".to_string(),
+            credentials,
+        );
+
+        let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
+            error: None,
+            provisioning_info,
+        });
+        let memory_hsm = MemoryKeyStore::new();
+        let task = provisioning
+            .provision(memory_hsm.clone())
+            .then(|result| match result {
+                Ok(result) => {
+                    assert_eq!(result.hub_name, "TestHub".to_string());
+                    assert_eq!(result.device_id, "TestDevice".to_string());
+
+                    if let Some(credentials) = result.credentials() {
+                        if let AuthType::SymmetricKey(symmetric_key) = credentials.auth_type() {
+                            if let Some(_) = &symmetric_key.key {
+                                panic!("No key was expected in the response.")
+                            }
+                        } else {
+                            panic!("Unexpected authentication type.")
+                        }
+                    } else {
+                        panic!("No credentials found. This is unexpected")
+                    }
+
+                    Ok::<_, Error>(())
+                }
+                Err(err) => panic!("Unexpected {:?}", err),
+            });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn external_get_provisioning_info_invalid_credentials_source() {
+        let credentials = Credentials::new("symmetric-key".to_string(), "xyz".to_string());
+        let provisioning_info = DeviceProvisioningInfo::new(
+            "TestHub".to_string(),
+            "TestDevice".to_string(),
+            credentials,
+        );
+
+        let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
+            error: None,
+            provisioning_info,
+        });
+        let memory_hsm = MemoryKeyStore::new();
+        let task = provisioning
+            .provision(memory_hsm.clone())
+            .then(|result| match result {
+                Ok(_) => panic!("Expected a failure."),
+                Err(err) => match err.kind() {
+                    ErrorKind::Provision => Ok::<_, Error>(()),
+                    _ => panic!("Expected `Provision` but got {:?}", err),
+                },
+            });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn external_get_provisioning_info_x509_unsupported() {
+        let credentials = Credentials::new("x509".to_string(), "payload".to_string());
+        let provisioning_info = DeviceProvisioningInfo::new(
+            "TestHub".to_string(),
+            "TestDevice".to_string(),
+            credentials,
+        );
+
+        let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
+            error: None,
+            provisioning_info,
+        });
+        let memory_hsm = MemoryKeyStore::new();
+        let task = provisioning
+            .provision(memory_hsm.clone())
+            .then(|result| match result {
+                Ok(_) => panic!("Expected a failure."),
+                Err(err) => match err.kind() {
+                    ErrorKind::Provision => Ok::<_, Error>(()),
+                    _ => panic!("Expected `Provision` but got {:?}", err),
+                },
+            });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
     fn external_get_provisioning_info_failure() {
+        let credentials = Credentials::new("symmetric-key".to_string(), "payload".to_string());
+        let provisioning_info = DeviceProvisioningInfo::new(
+            "TestHub".to_string(),
+            "TestDevice".to_string(),
+            credentials,
+        );
+
         let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
             error: Some(TestError {}),
+            provisioning_info,
         });
         let memory_hsm = MemoryKeyStore::new();
         let task = provisioning

@@ -12,7 +12,7 @@ use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DeviceProvisioningInfo {
     /// The host name of the IoT hub.
     #[serde(rename = "hubName")]
