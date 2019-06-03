@@ -669,7 +669,7 @@ mod tests {
     use super::*;
 
     use edgelet_config::{Manual, ParseManualDeviceConnectionStringError};
-    use external_provisioning::models::DeviceProvisioningInfo;
+    use external_provisioning::models::{DeviceProvisioningInfo, Credentials};
     use failure::Fail;
     use std::fmt::{self, Display};
     use tempdir::TempDir;
@@ -1002,13 +1002,18 @@ mod tests {
 
         fn get_device_provisioning_information(&self) -> Self::DeviceProvisioningInformationFuture {
             match self.error.as_ref() {
-                None => Box::new(
-                    Ok(DeviceProvisioningInfo::new(
-                        "TestHub".to_string(),
-                        "TestDevice".to_string(),
-                    ))
-                    .into_future(),
-                ),
+                None => {
+                    let mut credentials = Credentials::new("symmetric-key".to_string(), "payload".to_string());
+                    credentials.set_key("test-key".to_string());
+                    Box::new(
+                        Ok(DeviceProvisioningInfo::new(
+                            "TestHub".to_string(),
+                            "TestDevice".to_string(),
+                            credentials
+                        ))
+                            .into_future(),
+                    )
+                },
                 Some(_s) => Box::new(Err(TestError {}).into_future()),
             }
         }
@@ -1025,6 +1030,24 @@ mod tests {
                 Ok(result) => {
                     assert_eq!(result.hub_name, "TestHub".to_string());
                     assert_eq!(result.device_id, "TestDevice".to_string());
+
+                    if let Some(credentials) = result.credentials() {
+                        if let AuthType::SymmetricKey(symmetric_key) = credentials.auth_type() {
+                            if let Some(key) = &symmetric_key.key {
+                                assert_eq!(key, "test-key");
+                            }
+                            else{
+                                panic!("A key was expected in the response.")
+                            }
+                        }
+                        else {
+                            panic!("Unexpected authentication type.")
+                        }
+                    }
+                    else {
+                        panic!("No credentials found. This is unexpected")
+                    }
+
                     Ok::<_, Error>(())
                 }
                 Err(err) => panic!("Unexpected {:?}", err),
