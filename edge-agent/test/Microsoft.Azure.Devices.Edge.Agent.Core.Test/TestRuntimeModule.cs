@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             int restartCount,
             DateTime lastRestartTimeUtc,
             ModuleStatus runtimeStatus,
-            PullPolicy pullPolicy = PullPolicy.IfNotPresent,
+            PullPolicy pullPolicy = PullPolicy.None,
             ConfigurationInfo deploymentInfo = null,
             IDictionary<string, EnvVal> env = null)
             : base(name, version, type, desiredStatus, config, restartPolicy, pullPolicy, deploymentInfo, env)

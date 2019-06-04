@@ -235,6 +235,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             GeneratedCode.PullPolicy? resultantPullPolicy = null;
             switch (pullPolicy)
             {
+                case Core.PullPolicy.None:
                 case Core.PullPolicy.IfNotPresent:
                     resultantPullPolicy = GeneratedCode.PullPolicy.IfNotPresent;
                     break;

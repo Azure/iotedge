@@ -19,6 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const RestartPolicy DefaultRestartPolicy = RestartPolicy.OnUnhealthy;
 
+        public const PullPolicy DefaultPullPolicy = PullPolicy.None;
+
         public const ModuleStatus DefaultDesiredStatus = ModuleStatus.Running;
 
         public const string EdgeHubModuleName = "edgeHub";

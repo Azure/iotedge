@@ -265,6 +265,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.Equal(
                 Version_2019_01_30.GeneratedCode.PullPolicy.Never,
                 Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy(PullPolicy.Never));
+            Assert.Equal(
+                Version_2019_01_30.GeneratedCode.PullPolicy.IfNotPresent,
+                Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy(PullPolicy.None));
             Assert.Null(
                 Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy((PullPolicy)int.MaxValue));
         }

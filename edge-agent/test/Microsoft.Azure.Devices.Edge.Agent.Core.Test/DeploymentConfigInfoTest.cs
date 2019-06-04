@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             "edgeAgent",
             "docker",
             new TestConfig("microsoft/edgeAgent:1.0"),
-            PullPolicy.IfNotPresent,
+            PullPolicy.None,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             "edgeAgent",
             "docker",
             new TestConfig("microsoft/edgeAgent:1.0"),
-            PullPolicy.IfNotPresent,
+            PullPolicy.None,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("mod2:v0"),
             RestartPolicy.Always,
-            PullPolicy.IfNotPresent,
+            PullPolicy.Never,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("mod2:v0"),
             RestartPolicy.Always,
-            PullPolicy.IfNotPresent,
+            PullPolicy.Never,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 

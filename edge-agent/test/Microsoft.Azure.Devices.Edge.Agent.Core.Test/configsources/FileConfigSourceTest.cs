@@ -29,7 +29,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                     ""systemModules"": {
                       ""edgeAgent"": { 
                         ""type"": ""test"",
-                        ""pullPolicy"": ""always"",
                         ""settings"": {
                           ""image"": ""edge-agent""
                         },
@@ -41,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                         ""type"": ""test"", 
                         ""status"": ""running"", 
                         ""restartPolicy"": ""always"",
-                        ""pullPolicy"": ""always"",
+                        ""pullPolicy"": ""if-not-present"",
                         ""settings"": {
                           ""image"": ""edge-hub:latest""
                         },
@@ -82,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                     ""systemModules"": {
                       ""edgeAgent"": { 
                         ""type"": ""test"",
-                        ""pullPolicy"": ""always"",
+                        ""pullPolicy"": ""if-not-present"",
                         ""settings"": {
                           ""image"": ""edge-agent""
                         },
@@ -94,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                         ""type"": ""test"", 
                         ""status"": ""running"", 
                         ""restartPolicy"": ""always"",
-                        ""pullPolicy"": ""always"",
+                        ""pullPolicy"": ""if-not-present"",
                         ""settings"": {
                           ""image"": ""edge-hub:latest""
                         },
@@ -122,7 +121,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                         ""type"": ""test"",
                         ""status"": ""running"",
                         ""restartPolicy"": ""on-unhealthy"",
-                        ""pullPolicy"": ""never"",
                         ""settings"": {
                           ""image"": ""image1""
                         },
@@ -144,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         static readonly IEdgeHubModule EdgeHubModule = new TestHubModule("edgeHub", "test", ModuleStatus.Running, new TestConfig("edge-hub:latest"), RestartPolicy.Always, PullPolicy.IfNotPresent, ConfigurationInfo, EnvVars);
 
-        static readonly IEdgeAgentModule EdgeAgentModule = new TestAgentModule("edgeAgent", "test", new TestConfig("edge-agent"), PullPolicy.IfNotPresent, ConfigurationInfo, null);
+        static readonly IEdgeAgentModule EdgeAgentModule = new TestAgentModule("edgeAgent", "test", new TestConfig("edge-agent"), PullPolicy.None, ConfigurationInfo, null);
 
         static readonly IDictionary<string, IModule> Modules1 = new Dictionary<string, IModule> { ["mod1"] = ValidModule1 };
 
@@ -152,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         static readonly IModule UpdatedModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, PullPolicy.Never, ConfigurationInfo, EnvVars);
 
-        static readonly IModule ValidModule2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.Never, ConfigurationInfo, EnvVars);
+        static readonly IModule ValidModule2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.None, ConfigurationInfo, EnvVars);
 
         static readonly IDictionary<string, IModule> Modules2 = new Dictionary<string, IModule> { ["mod1"] = UpdatedModule1, ["mod2"] = ValidModule2 };
 

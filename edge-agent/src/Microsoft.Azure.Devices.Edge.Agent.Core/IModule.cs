@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.Runtime.Serialization;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
@@ -84,11 +85,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     [JsonConverter(typeof(StringEnumConverter))]
     public enum PullPolicy
     {
+        None = 0,
+
         [EnumMember(Value = "if-not-present")]
-        IfNotPresent = 0,
+        IfNotPresent = 1,
 
         [EnumMember(Value = "never")]
-        Never = 1,
+        Never = 2,
     }
 
     public interface IModule : IEquatable<IModule>
@@ -108,7 +111,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         [JsonProperty(PropertyName = "restartPolicy")]
         RestartPolicy RestartPolicy { get; }
 
-        [JsonProperty(PropertyName = "pullPolicy")]
+        [JsonProperty(
+            PropertyName = "pullPolicy",
+            DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [DefaultValue(Constants.DefaultPullPolicy)]
         PullPolicy PullPolicy { get; }
 
         [JsonIgnore]

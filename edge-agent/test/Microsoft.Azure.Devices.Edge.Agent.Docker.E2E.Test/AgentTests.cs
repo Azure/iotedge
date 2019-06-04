@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     ModuleStatus.Running,
                     global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy,
                     dockerConfig,
-                    PullPolicy.IfNotPresent,
+                    PullPolicy.None,
                     null,
                     null);
                 var modules = new Dictionary<string, IModule> { [testConfig.Name] = dockerModule };

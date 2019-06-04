@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         static readonly TestModule Module8 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.IfNotPresent, DefaultConfigurationInfo, EnvVars);
 
         static readonly IModule ValidJsonModule = new TestModule("<module_name>", "<semantic_version_number>", "docker", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.IfNotPresent, DefaultConfigurationInfo, EnvVars);
-        static readonly string serializedModule = "{\"version\":\"version1\",\"type\":\"type1\",\"status\":\"running\",\"settings\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\",\"pullPolicy\":\"always\",\"configuration\":{\"id\":\"1\"}}";
+        static readonly string serializedModule = "{\"version\":\"version1\",\"type\":\"type1\",\"status\":\"running\",\"settings\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\",\"pullPolicy\":\"if-not-present\",\"configuration\":{\"id\":\"1\"}}";
 
         static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(
             @"
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""PullPolicy"": ""always"",
+      ""PullPolicy"": ""if-not-present"",
       ""Settings"": {
         ""Image"": ""image1""
       },
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""type"": ""docker"",
       ""status"": ""running"",
       ""restartpolicy"": ""on-unhealthy"",
-      ""pullpolicy"": ""always"",
+      ""pullpolicy"": ""if-not-present"",
       ""settings"": {
         ""image"": ""image1""
       },
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""TYPE"": ""docker"",
       ""STATUS"": ""RUNNING"",
       ""RESTARTPOLICY"": ""on-unhealthy"",
-      ""PULLPOLICY"": ""always"",
+      ""PULLPOLICY"": ""if-not-present"",
       ""SETTINGS"": {
         ""IMAGE"": ""image1""
       },
@@ -83,7 +83,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""stopped"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""PullPolicy"": ""always"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -96,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""Unknown"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""PullPolicy"": ""always"",
+      ""PullPolicy"": ""if-not-present"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -110,7 +109,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Version"": ""<semantic_version_number>"",
       ""Type"": ""docker"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""PullPolicy"": ""always"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -122,7 +120,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""PullPolicy"": ""always"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -134,7 +131,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Version"": ""<semantic_version_number>"",
       ""Status"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""PullPolicy"": ""always"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -147,7 +143,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Settings"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""PullPolicy"": ""always"",
       ""Configuration"": {
         ""id"":""1""
       }
@@ -157,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""PullPolicy"": ""always"",
+      ""PullPolicy"": ""if-not-present"",
       ""Settings"": {},
       ""Configuration"": {
         ""id"":""1""
@@ -168,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""<bad_status>"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""PullPolicy"": ""always"",
+      ""PullPolicy"": ""never"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -181,7 +176,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""<bad_status>"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""PullPolicy"": ""always"",
+      ""Settings"": {
+        ""Image"": ""<docker_image_name>""
+      }
+    },
+    {
+      ""Version"": ""<semantic_version_number>"",
+      ""Type"": ""docker"",
+      ""Status"": ""<bad_status>"",
+      ""RestartPolicy"": ""on-unhealthy"",
+      ""PullPolicy"": ""<bad_pull_policy>"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       }

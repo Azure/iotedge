@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.ComponentModel;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
@@ -85,7 +86,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [JsonProperty(Required = Required.Always, PropertyName = "restartPolicy")]
         public virtual RestartPolicy RestartPolicy { get; }
 
-        [JsonProperty(Required = Required.Always, PropertyName = "pullPolicy")]
+        [JsonProperty(
+            PropertyName = "pullPolicy",
+            DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [DefaultValue(Constants.DefaultPullPolicy)]
+
         public virtual PullPolicy PullPolicy { get; }
 
         [JsonProperty(Required = Required.Always, PropertyName = "status")]

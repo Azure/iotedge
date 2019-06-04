@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             var module1 = new DockerModule("module1", "v1", ModuleStatus.Stopped, RestartPolicy.Always, new DockerConfig("mod1:v1", "{\"Env\":[\"foo=bar\"]}"), PullPolicy.IfNotPresent, new ConfigurationInfo(), null);
             var module2 = new DockerModule("module2", "v2", ModuleStatus.Running, RestartPolicy.OnUnhealthy, new DockerConfig("mod2:v2", "{\"Env\":[\"foo2=bar2\"]}"), PullPolicy.Never, new ConfigurationInfo(), null);
-            var edgeHubModule = new EdgeHubDockerModule("docker", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("edgehub:v1", "{\"Env\":[\"foo3=bar3\"]}"), PullPolicy.IfNotPresent, new ConfigurationInfo(), null);
+            var edgeHubModule = new EdgeHubDockerModule("docker", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("edgehub:v1", "{\"Env\":[\"foo3=bar3\"]}"), PullPolicy.None, new ConfigurationInfo(), null);
             var edgeAgentModule = new EdgeAgentDockerModule("docker", new DockerConfig("edgeAgent:v1", string.Empty), PullPolicy.IfNotPresent, new ConfigurationInfo(), null);
             var deploymentConfig = new DeploymentConfig(
                 "1.0",
@@ -213,7 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(string.Empty, receivedDockerEdgeHub.Version);
             Assert.Equal(ModuleStatus.Running, receivedDockerEdgeHub.DesiredStatus);
             Assert.Equal(RestartPolicy.Always, receivedDockerEdgeHub.RestartPolicy);
-            Assert.Equal(PullPolicy.IfNotPresent, receivedDockerEdgeHub.PullPolicy);
+            Assert.Equal(PullPolicy.None, receivedDockerEdgeHub.PullPolicy);
             Assert.Equal("edgehub:v1", receivedDockerEdgeHub.Config.Image);
             Assert.Equal("{\"Env\":[\"foo3=bar3\"]}", JsonConvert.SerializeObject(receivedDockerEdgeHub.Config.CreateOptions));
             Assert.Equal(ModuleStatus.Running, receivedDockerEdgeHub.RuntimeStatus);
