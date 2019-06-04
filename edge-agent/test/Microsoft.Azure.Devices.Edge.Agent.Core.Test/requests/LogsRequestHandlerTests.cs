@@ -271,5 +271,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             Assert.True(logsResponse.PayloadBytes.HasValue);
             Assert.Equal(mod1LogBytes, logsResponse.PayloadBytes.OrDefault());
         }
+
+        [Fact]
+        public void InvalidCtorTest()
+        {
+            Assert.Throws<ArgumentNullException>(() => new LogsRequestHandler(null, Mock.Of<IRuntimeInfoProvider>()));
+
+            Assert.Throws<ArgumentNullException>(() => new LogsRequestHandler(Mock.Of<ILogsProvider>(), null));
+        }
+
+        [Fact]
+        public async Task InvalidInputsTest()
+        {
+            var logsRequestHandler = new LogsRequestHandler(Mock.Of<ILogsProvider>(), Mock.Of<IRuntimeInfoProvider>());
+            await Assert.ThrowsAsync<ArgumentException>(() => logsRequestHandler.HandleRequest(Option.None<string>(), CancellationToken.None));
+
+            string payload = @"{
+                    ""items"": {
+                        ""id"": ""m1"",
+                        ""filter"": <filter>
+                    },
+                    ""encoding"": ""gzip"",
+                    ""contentType"": ""text""
+                }";
+            await Assert.ThrowsAsync<ArgumentException>(() => logsRequestHandler.HandleRequest(Option.Some(payload), CancellationToken.None));
+        }
     }
 }
