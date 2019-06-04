@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public virtual RestartPolicy RestartPolicy => RestartPolicy.Never;
 
-        public virtual PullPolicy PullPolicy => PullPolicy.Always;
+        public virtual PullPolicy PullPolicy => PullPolicy.IfNotPresent;
 
         public virtual ConfigurationInfo ConfigurationInfo => new ConfigurationInfo();
 
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public override RestartPolicy RestartPolicy => RestartPolicy.Never;
 
         [JsonIgnore]
-        public override PullPolicy PullPolicy => PullPolicy.Always;
+        public override PullPolicy PullPolicy => PullPolicy.IfNotPresent;
 
         [JsonIgnore]
         public override ModuleStatus DesiredStatus => ModuleStatus.Unknown;

@@ -1056,13 +1056,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
 
             var runtimeInfo = new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.0", null));
-            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", string.Empty), PullPolicy.Always, null, null);
+            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", string.Empty), PullPolicy.IfNotPresent, null, null);
             var edgeHubDockerModule = new EdgeHubDockerModule(
                 "docker",
                 ModuleStatus.Running,
                 RestartPolicy.Always,
                 new DockerConfig("image", string.Empty),
-                PullPolicy.Always,
+                PullPolicy.IfNotPresent,
                 null,
                 null);
             var deploymentConfig = new DeploymentConfig(

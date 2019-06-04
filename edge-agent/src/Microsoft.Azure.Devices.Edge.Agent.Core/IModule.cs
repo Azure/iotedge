@@ -84,8 +84,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     [JsonConverter(typeof(StringEnumConverter))]
     public enum PullPolicy
     {
-        [EnumMember(Value = "always")]
-        Always = 0,
+        [EnumMember(Value = "if-not-present")]
+        IfNotPresent = 0,
 
         [EnumMember(Value = "never")]
         Never = 1,

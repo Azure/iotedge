@@ -209,7 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             }
         }
 
-        private static GeneratedCode.ModuleSpec MapToModuleSpec(ModuleSpec moduleSpec)
+        static GeneratedCode.ModuleSpec MapToModuleSpec(ModuleSpec moduleSpec)
         {
             return new GeneratedCode.ModuleSpec()
             {
@@ -230,13 +230,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             };
         }
 
-        private static GeneratedCode.PullPolicy? ToGeneratedCodePullPolicy(Core.PullPolicy pullPolicy)
+        internal static GeneratedCode.PullPolicy? ToGeneratedCodePullPolicy(Core.PullPolicy pullPolicy)
         {
             GeneratedCode.PullPolicy? resultantPullPolicy = null;
             switch (pullPolicy)
             {
-                case Core.PullPolicy.Always:
-                    resultantPullPolicy = GeneratedCode.PullPolicy.Always;
+                case Core.PullPolicy.IfNotPresent:
+                    resultantPullPolicy = GeneratedCode.PullPolicy.IfNotPresent;
                     break;
                 case Core.PullPolicy.Never:
                     resultantPullPolicy = GeneratedCode.PullPolicy.Never;

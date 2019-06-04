@@ -291,7 +291,7 @@ where
 
         let pull_future = match spec.pull_policy() {
             PullPolicy::Never => Either::A(future::ok(())),
-            PullPolicy::Always => Either::B(runtime.registry().pull(spec.clone().config())),
+            PullPolicy::IfNotPresent => Either::B(runtime.registry().pull(spec.clone().config())),
         };
 
         pull_future

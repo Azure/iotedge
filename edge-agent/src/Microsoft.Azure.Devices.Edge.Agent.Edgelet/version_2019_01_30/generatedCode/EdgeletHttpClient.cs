@@ -1964,8 +1964,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.Generate
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "9.13.2.0 (Newtonsoft.Json v11.0.0.0)")]
     public enum PullPolicy
     {
-        [System.Runtime.Serialization.EnumMember(Value = @"Always")]
-        Always = 0,
+        [System.Runtime.Serialization.EnumMember(Value = @"IfNotPresent")]
+        IfNotPresent = 0,
 
         [System.Runtime.Serialization.EnumMember(Value = @"Never")]
         Never = 1,

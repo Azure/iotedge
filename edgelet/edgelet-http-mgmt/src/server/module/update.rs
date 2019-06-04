@@ -80,7 +80,7 @@ where
                 debug!("Removed existing module {}", name);
 
                 match core_spec.pull_policy() {
-                    PullPolicy::Always => {
+                    PullPolicy::IfNotPresent => {
                         Either::A(runtime.registry().pull(core_spec.config()).then(|result| {
                             result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
                             Ok((core_spec, spec, name, runtime))
@@ -93,7 +93,7 @@ where
             })
             .and_then(|(core_spec, spec, name, runtime)| {
                 match core_spec.pull_policy() {
-                    PullPolicy::Always => {
+                    PullPolicy::IfNotPresent => {
                         debug!("Successfully pulled new image for module {}", name)
                     }
                     PullPolicy::Never => debug!(
@@ -209,7 +209,7 @@ mod tests {
         let handler = UpdateModule::new(RUNTIME.clone());
         let config = Config::new(json!({"image":"microsoft/test-image"}));
         let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
-        spec.set_pull_policy("always".to_string());
+        spec.set_pull_policy("if-not-present".to_string());
         let request = Request::put("http://localhost/modules/test-module?start")
             .body(serde_json::to_string(&spec).unwrap().into())
             .unwrap();

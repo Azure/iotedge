@@ -511,13 +511,14 @@ impl fmt::Display for RuntimeOperation {
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PullPolicy {
-    Always,
+    #[serde(rename = "if-not-present")]
+    IfNotPresent,
     Never,
 }
 
 impl Default for PullPolicy {
     fn default() -> Self {
-        PullPolicy::Always
+        PullPolicy::IfNotPresent
     }
 }
 
@@ -526,7 +527,7 @@ impl FromStr for PullPolicy {
 
     fn from_str(s: &str) -> StdResult<PullPolicy, Self::Err> {
         match s.to_lowercase().as_str() {
-            "always" => Ok(PullPolicy::Always),
+            "if-not-present" => Ok(PullPolicy::IfNotPresent),
             "never" => Ok(PullPolicy::Never),
             _ => Err(Error::from(ErrorKind::InvalidPullPolicy(s.to_string()))),
         }

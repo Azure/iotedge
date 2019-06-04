@@ -485,9 +485,9 @@ definitions:
       pullPolicy:
         type: string
         enum:
-          - Always
+          - IfNotPresent
           - Never
-        example: "Always"
+        example: "IfNotPresent"
       config:
         $ref: '#/definitions/Config'
     required:

@@ -52,7 +52,7 @@ where
                 let name = core_spec.name().to_string();
                 let pull_policy = *core_spec.pull_policy();
                 match pull_policy {
-                    PullPolicy::Always => Either::A(
+                    PullPolicy::IfNotPresent => Either::A(
                         runtime
                             .registry()
                             .pull(core_spec.config())
@@ -68,7 +68,7 @@ where
             })
             .and_then(|(name, pull_policy)| -> Result<_, Error> {
                 match pull_policy {
-                    PullPolicy::Always => {
+                    PullPolicy::IfNotPresent => {
                         debug!("Successfully pulled new image for module {}", name)
                     }
                     PullPolicy::Never => debug!(
