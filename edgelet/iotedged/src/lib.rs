@@ -322,37 +322,34 @@ impl Main {
 
                 let prov_result = tokio_runtime.block_on(provision_fut)?;
 
-                prov_result.credentials().map_or_else(
-                    || {
-                        info!(
-                            "Credentials are expected to be populated for external provisioning."
-                        );
-                        Err(Error::from(ErrorKind::Initialize(
+                let credentials = if let Some(credentials) = prov_result.credentials() {
+                    credentials
+                } else {
+                    info!("Credentials are expected to be populated for external provisioning.");
+
+                    return Err(Error::from(ErrorKind::Initialize(
+                        InitializeErrorReason::ExternalProvisioningClient,
+                    )));
+                };
+
+                match credentials.auth_type() {
+                    AuthType::SymmetricKey(symmetric_key) => {
+                        if let Some(key) = symmetric_key.key() {
+                            let (derived_key_store, memory_key) = external_provision_payload(key);
+                            start_edgelet!(derived_key_store, prov_result, memory_key, runtime);
+                        } else {
+                            let (derived_key_store, tpm_key) =
+                                external_provision_tpm(hsm_lock.clone())?;
+                            start_edgelet!(derived_key_store, prov_result, tpm_key, runtime);
+                        }
+                    }
+                    AuthType::X509(_) => {
+                        info!("Unexpected auth type. Only symmetric keys are expected");
+                        return Err(Error::from(ErrorKind::Initialize(
                             InitializeErrorReason::ExternalProvisioningClient,
-                        )))
-                    },
-                    |credentials| match credentials.auth_type() {
-                        AuthType::SymmetricKey(symmetric_key) => {
-                            if let Some(key) = symmetric_key.key() {
-                                let (derived_key_store, memory_key) =
-                                    external_provision_payload(key);
-                                start_edgelet!(derived_key_store, prov_result, memory_key, runtime);
-                                Ok(())
-                            } else {
-                                let (derived_key_store, tpm_key) =
-                                    external_provision_tpm(hsm_lock.clone())?;
-                                start_edgelet!(derived_key_store, prov_result, tpm_key, runtime);
-                                Ok(())
-                            }
-                        }
-                        AuthType::X509(_) => {
-                            info!("Unexpected auth type. Only symmetric keys are expected");
-                            Err(Error::from(ErrorKind::Initialize(
-                                InitializeErrorReason::ExternalProvisioningClient,
-                            )))
-                        }
-                    },
-                )?
+                        )));
+                    }
+                };
             }
             Provisioning::Dps(dps) => {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);

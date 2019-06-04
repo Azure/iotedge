@@ -252,9 +252,9 @@ where
                                         Ok(Credentials {
                                             auth_type: AuthType::SymmetricKey(
                                                 SymmetricKeyCredential {
-                                                    key: Some(key.to_string())
+                                                    key: Some(key.to_string()),
                                                 }),
-                                            source: CredentialSource::Payload
+                                            source: CredentialSource::Payload,
                                         })
                                     })
 
@@ -262,9 +262,9 @@ where
                             "hsm" => Ok(Credentials {
                                 auth_type: AuthType::SymmetricKey(
                                     SymmetricKeyCredential {
-                                        key: None
+                                        key: None,
                                     }),
-                                source: CredentialSource::Hsm
+                                source: CredentialSource::Hsm,
                             }),
                             _ => {
                                 info!(
