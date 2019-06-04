@@ -47,7 +47,7 @@ This check validates that a container engine is installed and running, and is ac
 
 If the device is running Windows and set to use Windows containers, this check validates that the Windows version is supported.
 
-While the Windows installer script does prevent installing on an unsupported OS version, it is possible to install on a supported OS version that then gets updated to a newer version that isn't supported.
+While the Windows installer script prevents installing on an unsupported OS version, it is possible to install on a supported OS version that then gets updated to a newer version that isn't supported.
 
 ## config.yaml has correct hostname
 
