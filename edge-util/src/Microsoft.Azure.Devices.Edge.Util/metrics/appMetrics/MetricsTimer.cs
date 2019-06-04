@@ -19,7 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
             {
                 Name = name,
                 MeasurementUnit = Unit.Items,
-                Tags = defaultMetricsTags
+                Tags = defaultMetricsTags,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Milliseconds
             };
         }
 

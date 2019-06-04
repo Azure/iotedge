@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Shared;

@@ -436,7 +436,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 if (message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
                     && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
                 {
-                    TimeSpan duration = DateTime.UtcNow - enqueuedTime;
+                    TimeSpan duration = DateTime.UtcNow - enqueuedTime.ToUniversalTime();
                     MessagesProcessLatency.Update(
                         (long)duration.TotalMilliseconds,
                         new Dictionary<string, string>
