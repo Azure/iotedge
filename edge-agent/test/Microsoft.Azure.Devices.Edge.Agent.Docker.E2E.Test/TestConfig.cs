@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
-using Microsoft.Azure.Devices.Edge.Util;
-using Microsoft.Azure.Devices.Edge.Util.Json;
-using Newtonsoft.Json;
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 {
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
+    using Newtonsoft.Json;
+
     public class TestConfig
     {
         [JsonConstructor]
