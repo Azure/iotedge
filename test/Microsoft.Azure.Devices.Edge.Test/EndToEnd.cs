@@ -2,6 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
+    using System.IO;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -18,7 +20,56 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public void Setup() => this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
 
         [TearDown]
-        public void Teardown() => this.cts.Dispose();
+        public async Task TeardownAsync()
+        {
+            await Profiler.Run(
+                async () =>
+                {
+                    try
+                    {
+                        using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
+                        {
+                            CancellationToken token = cts.Token;
+
+                            string prefix = $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
+
+                            // Save module logs
+                            string[] output = await Process.RunAsync("iotedge", "list", token);
+                            string[] modules = output.Select(ln => ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries).First()).Skip(1).ToArray();
+
+                            foreach (string name in modules)
+                            {
+                                string moduleLog = $"{prefix}-{name}.log";
+                                output = await Process.RunAsync("iotedge", $"logs {name}", token);
+                                await File.WriteAllLinesAsync(moduleLog, output, token);
+                                TestContext.AddTestAttachment(moduleLog, $"Module '{name}' log");
+                            }
+
+                            // Save daemon logs
+                            string eventLogCommand =
+                                "Get-WinEvent -ea SilentlyContinue " +
+                                $"-FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{Context.Current.StartTime}'}} " +
+                                "| Select TimeCreated, Message " +
+                                "| Sort-Object @{Expression=\'TimeCreated\';Descending=$false}";
+
+                            string daemonLog = $"{prefix}-iotedged.log";
+                            output = await Process.RunAsync("powershell", eventLogCommand, token);
+                            await File.WriteAllLinesAsync(daemonLog, output, token);
+                            TestContext.AddTestAttachment(daemonLog, "Daemon log");
+                        }
+                    }
+                    // ReSharper disable once RedundantCatchClause
+                    catch (Exception)
+                    {
+                        throw;
+                    }
+                    finally
+                    {
+                        this.cts.Dispose();
+                    }
+                },
+                "Completed test teardown");
+        }
 
         [Test]
         public async Task TempSensor()

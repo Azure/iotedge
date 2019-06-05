@@ -59,6 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 this.SetupTimeout = TimeSpan.FromMinutes(context.GetValue("setupTimeoutMinutes", 5));
                 this.TeardownTimeout = TimeSpan.FromMinutes(context.GetValue("teardownTimeoutMinutes", 2));
                 this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
+                this.StartTime = DateTime.Now;
         }
 
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
@@ -98,5 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public TimeSpan TeardownTimeout { get; }
 
         public TimeSpan TestTimeout { get; }
+
+        public DateTime StartTime { get; }
     }
 }

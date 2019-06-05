@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 await Profiler.Run(
                     async () =>
                     {
-                        using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
+                        using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
                         {
                             CancellationToken token = cts.Token;
 
