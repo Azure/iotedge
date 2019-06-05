@@ -101,16 +101,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string osType = string.Empty;
             string arch = string.Empty;
             string version = string.Empty;
-            V1Node firstNode = k8SNodes.Items.FirstOrDefault();
-            if (firstNode?.Status?.NodeInfo != null)
+            if (k8SNodes.Items != null)
             {
-                osType = firstNode.Status.NodeInfo.OperatingSystem;
-                arch = firstNode.Status.NodeInfo.Architecture;
-                version = firstNode.Status.NodeInfo.OsImage;
-            }
-            else
-            {
-                Events.NullNodeInfoResponse(firstNode?.Metadata?.Name ?? "UNKNOWN");
+                V1Node firstNode = k8SNodes.Items.FirstOrDefault();
+
+                if (firstNode?.Status?.NodeInfo != null)
+                {
+                    osType = firstNode.Status.NodeInfo.OperatingSystem;
+                    arch = firstNode.Status.NodeInfo.Architecture;
+                    version = firstNode.Status.NodeInfo.OsImage;
+                }
+                else
+                {
+                    Events.NullNodeInfoResponse(firstNode?.Metadata?.Name ?? "UNKNOWN");
+                } 
             }
             return new SystemInfo(osType, arch, version);
         }
