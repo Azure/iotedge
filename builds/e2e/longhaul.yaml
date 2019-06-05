@@ -427,7 +427,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-		- is-server -equals true
+        - is-server -equals true
         - run-long-haul -equals true
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
