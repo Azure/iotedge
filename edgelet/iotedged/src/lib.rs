@@ -63,6 +63,7 @@ use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
 use edgelet_http::{HyperExt, MaybeProxyClient, API_VERSION};
+use edgelet_http_external_provisioning::ExternalProvisioningClient;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
@@ -71,8 +72,8 @@ use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
 use iothubservice::DeviceClient;
 use provisioning::provisioning::{
-    BackupProvisioning, DpsSymmetricKeyProvisioning, DpsTpmProvisioning, ManualProvisioning,
-    Provision, ProvisioningResult, ReprovisioningStatus,
+    AuthType, BackupProvisioning, DpsSymmetricKeyProvisioning, DpsTpmProvisioning,
+    ExternalProvisioning, ManualProvisioning, Provision, ProvisioningResult, ReprovisioningStatus,
 };
 
 use crate::workload::WorkloadData;
@@ -129,6 +130,10 @@ const DEVICE_CA_CERT_KEY: &str = "IOTEDGE_DEVICE_CA_CERT";
 const DEVICE_CA_PK_KEY: &str = "IOTEDGE_DEVICE_CA_PK";
 const TRUSTED_CA_CERTS_KEY: &str = "IOTEDGE_TRUSTED_CA_CERTS";
 
+/// The HSM lib expects this variable to be set to the endpoint of the external provisioning environment in the 'external'
+/// provisioning mode.
+const EXTERNAL_PROVISIONING_ENDPOINT_KEY: &str = "IOTEDGE_EXTERNAL_PROVISIONING_ENDPOINT";
+
 /// This is the key for the docker network Id.
 const EDGE_NETWORKID_KEY: &str = "NetworkId";
 
@@ -147,11 +152,14 @@ const EDGE_SETTINGS_STATE_FILENAME: &str = "settings_state";
 const EDGE_SETTINGS_SUBDIR: &str = "cache";
 
 /// These are the properties of the workload CA certificate
-const IOTEDGED_VALIDITY: u64 = 7_776_000; // 90 days
+const IOTEDGED_VALIDITY: u64 = 7_776_000;
+// 90 days
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
-const IOTEDGED_MIN_EXPIRATION_DURATION: i64 = 300; // 5 mins
-const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200; // 2 hours
+const IOTEDGED_MIN_EXPIRATION_DURATION: i64 = 300;
+// 5 mins
+const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200;
+// 2 hours
 const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 7_776_000; // 90 days
 
 #[derive(PartialEq)]
@@ -169,6 +177,8 @@ impl Main {
         Main { settings }
     }
 
+    // Allowing cognitive complexity errors for now. TODO: Refactor method later.
+    #[allow(clippy::cognitive_complexity)]
     pub fn run_until<F, G>(self, make_shutdown_signal: G) -> Result<(), Error>
     where
         F: Future<Item = (), Error = ()> + Send + 'static,
@@ -187,6 +197,14 @@ impl Main {
                     InitializeErrorReason::NotConfigured,
                 )));
             }
+        }
+
+        if let Provisioning::External(ref external) = settings.provisioning() {
+            // Set the external provisioning endpoint environment variable for use by the custom HSM library.
+            env::set_var(
+                EXTERNAL_PROVISIONING_ENDPOINT_KEY,
+                external.endpoint().as_str(),
+            );
         }
 
         let hyper_client = MaybeProxyClient::new(get_proxy_uri(None)?)
@@ -246,66 +264,95 @@ impl Main {
             &mut tokio_runtime,
         )?;
 
-        info!("Provisioning edge device...");
-        match settings.provisioning() {
-            Provisioning::Manual(manual) => {
-                let (key_store, provisioning_result, root_key) =
-                    manual_provision(&manual, &mut tokio_runtime)?;
+        macro_rules! start_edgelet {
+            ($key_store:ident, $provisioning_result:ident, $root_key:ident, $runtime:ident) => {{
                 info!("Finished provisioning edge device.");
+
                 let cfg = WorkloadData::new(
-                    provisioning_result.hub_name().to_string(),
-                    provisioning_result.device_id().to_string(),
+                    $provisioning_result.hub_name().to_string(),
+                    $provisioning_result.device_id().to_string(),
                     IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                     IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                 );
                 // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
                 // is received. If the TLS cert needs a restart, we will loop again.
-                while {
+                loop {
                     let code = start_api(
                         &settings,
                         hyper_client.clone(),
-                        &runtime,
-                        &key_store,
+                        &$runtime,
+                        &$key_store,
                         cfg.clone(),
-                        root_key.clone(),
+                        $root_key.clone(),
                         make_shutdown_signal(),
                         &crypto,
                         &mut tokio_runtime,
                     )?;
-                    code == StartApiReturnStatus::Restart
-                } {}
+
+                    if code != StartApiReturnStatus::Restart {
+                        break;
+                    }
+                }
+            }};
+        }
+
+        info!("Provisioning edge device...");
+        match settings.provisioning() {
+            Provisioning::Manual(manual) => {
+                info!("Starting provisioning edge device via manual mode...");
+                let (key_store, provisioning_result, root_key) =
+                    manual_provision(&manual, &mut tokio_runtime)?;
+                start_edgelet!(key_store, provisioning_result, root_key, runtime);
+            }
+            Provisioning::External(external) => {
+                info!("Starting provisioning edge device via external provisioning mode...");
+                let external_provisioning_client =
+                    ExternalProvisioningClient::new(external.endpoint()).context(
+                        ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient),
+                    )?;
+                let external_provisioning = ExternalProvisioning::new(external_provisioning_client);
+
+                let provision_fut = external_provisioning
+                    .provision(MemoryKeyStore::new())
+                    .map_err(|err| {
+                        Error::from(err.context(ErrorKind::Initialize(
+                            InitializeErrorReason::ExternalProvisioningClient,
+                        )))
+                    });
+
+                let prov_result = tokio_runtime.block_on(provision_fut)?;
+
+                let credentials = if let Some(credentials) = prov_result.credentials() {
+                    credentials
+                } else {
+                    info!("Credentials are expected to be populated for external provisioning.");
+
+                    return Err(Error::from(ErrorKind::Initialize(
+                        InitializeErrorReason::ExternalProvisioningClient,
+                    )));
+                };
+
+                match credentials.auth_type() {
+                    AuthType::SymmetricKey(symmetric_key) => {
+                        if let Some(key) = symmetric_key.key() {
+                            let (derived_key_store, memory_key) = external_provision_payload(key);
+                            start_edgelet!(derived_key_store, prov_result, memory_key, runtime);
+                        } else {
+                            let (derived_key_store, tpm_key) =
+                                external_provision_tpm(hsm_lock.clone())?;
+                            start_edgelet!(derived_key_store, prov_result, tpm_key, runtime);
+                        }
+                    }
+                    AuthType::X509(_) => {
+                        info!("Unexpected auth type. Only symmetric keys are expected");
+                        return Err(Error::from(ErrorKind::Initialize(
+                            InitializeErrorReason::ExternalProvisioningClient,
+                        )));
+                    }
+                };
             }
             Provisioning::Dps(dps) => {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
-
-                macro_rules! start_edgelet {
-                    ($key_store:ident, $provisioning_result:ident, $root_key:ident, $runtime:ident) => {{
-                        info!("Finished provisioning edge device.");
-
-                        let cfg = WorkloadData::new(
-                            $provisioning_result.hub_name().to_string(),
-                            $provisioning_result.device_id().to_string(),
-                            IOTEDGE_ID_CERT_MAX_DURATION_SECS,
-                            IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
-                        );
-                        // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
-                        // is received. If the TLS cert needs a restart, we will loop again.
-                        while {
-                            let code = start_api(
-                                &settings,
-                                hyper_client.clone(),
-                                &$runtime,
-                                &$key_store,
-                                cfg.clone(),
-                                $root_key.clone(),
-                                make_shutdown_signal(),
-                                &crypto,
-                                &mut tokio_runtime,
-                            )?;
-                            code == StartApiReturnStatus::Restart
-                        } {}
-                    }};
-                }
 
                 match dps.attestation() {
                     AttestationMethod::Tpm(ref tpm) => {
@@ -710,6 +757,39 @@ fn manual_provision(
                 })
         });
     tokio_runtime.block_on(provision)
+}
+
+fn external_provision_payload(key: &str) -> (DerivedKeyStore<MemoryKey>, MemoryKey) {
+    let memory_key = MemoryKey::new(key);
+    let mut memory_hsm = MemoryKeyStore::new();
+    memory_hsm.insert(&KeyIdentity::Device, "primary", memory_key.clone());
+
+    let derived_key_store = DerivedKeyStore::new(memory_key.clone());
+    (derived_key_store, memory_key)
+}
+
+fn external_provision_tpm(
+    hsm_lock: Arc<HsmLock>,
+) -> Result<(DerivedKeyStore<TpmKey>, TpmKey), Error> {
+    let tpm = Tpm::new().context(ErrorKind::Initialize(
+        InitializeErrorReason::ExternalProvisioningClient,
+    ))?;
+
+    let tpm_hsm = TpmKeyStore::from_hsm(tpm, hsm_lock).context(ErrorKind::Initialize(
+        InitializeErrorReason::ExternalProvisioningClient,
+    ))?;
+
+    tpm_hsm
+        .get(&KeyIdentity::Device, "primary")
+        .map_err(|err| {
+            Error::from(err.context(ErrorKind::Initialize(
+                InitializeErrorReason::ExternalProvisioningClient,
+            )))
+        })
+        .and_then(|k| {
+            let derived_key_store = DerivedKeyStore::new(k.clone());
+            Ok((derived_key_store, k))
+        })
 }
 
 fn dps_symmetric_key_provision<HC, M>(

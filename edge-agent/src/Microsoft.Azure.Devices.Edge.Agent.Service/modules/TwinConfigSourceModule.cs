@@ -85,7 +85,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     var requestHandlers = new List<IRequestHandler>
                     {
                         new PingRequestHandler(),
-                        new LogsUploadRequestHandler(logsUploader, logsProvider, runtimeInfoProvider)
+                        new LogsUploadRequestHandler(logsUploader, logsProvider, runtimeInfoProvider),
+                        new LogsRequestHandler(logsProvider, runtimeInfoProvider)
                     };
                     return new RequestManager(requestHandlers, this.requestTimeout) as IRequestManager;
                 })

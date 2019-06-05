@@ -8,17 +8,34 @@ New-Module -Name IoTEdge -ScriptBlock {
 #requires -RunAsAdministrator
 
 Set-Variable Windows1607 -Value 14393 -Option Constant
-Set-Variable Windows1803 -Value 17134 -Option Constant
 Set-Variable Windows1809 -Value 17763 -Option Constant
 
 Set-Variable MinBuildForLinuxContainers -Value $Windows1607
+
+# When using Windows containers, the host OS version must match the container OS version.
+# Since our containers are built with 10.0.17763 base images, we require the same for the host OS.
+#
+# If this needs to be changed, also update the host OS version check in the `iotedge check` tool (edgelet/iotedge/src/check/mod.rs)
 Set-Variable SupportedBuildsForWindowsContainers -Value @($Windows1809)
 
 Set-Variable DockerServiceName -Value 'com.docker.service' -Option Constant
 
 Set-Variable EdgePackage -Value 'microsoft-azure-iotedge' -Option Constant
 
-Set-Variable EdgeInstallDirectory -Value "$env:ProgramFiles\iotedge" -Option Constant
+# If the user is running a 32-bit PS host on a 64-bit OS, then `$env:ProgramFiles` points to `C:\Program Files (x86)`
+# So use `$env:ProgramW6432` instead.
+#
+# However, an actual 32-bit OS like IoT Core ARM32 does not define `$env:ProgramW6432`, so fall back to `$env:ProgramFiles` in that case.
+Set-Variable ProgramFilesDirectory -Value $(
+    if (Test-Path Env:\ProgramW6432) {
+        $env:ProgramW6432
+    }
+    else {
+        $env:ProgramFiles
+    }
+) -Option Constant
+
+Set-Variable EdgeInstallDirectory -Value "$ProgramFilesDirectory\iotedge" -Option Constant
 Set-Variable EdgeDataDirectory -Value "$env:ProgramData\iotedge" -Option Constant
 Set-Variable EdgeServiceName -Value 'iotedge' -Option Constant
 
@@ -26,7 +43,7 @@ Set-Variable ContainersFeaturePackageName -Value 'Microsoft-IoT-Containers-Serve
 Set-Variable ContainersFeatureLangPackageName -Value 'Microsoft-IoT-Containers-Server-Package_*' -Option Constant
 
 Set-Variable MobyDataRootDirectory -Value "$env:ProgramData\iotedge-moby" -Option Constant
-Set-Variable MobyInstallDirectory -Value "$env:ProgramFiles\iotedge-moby" -Option Constant
+Set-Variable MobyInstallDirectory -Value "$ProgramFilesDirectory\iotedge-moby" -Option Constant
 Set-Variable MobyLinuxNamedPipeUrl -Value 'npipe://./pipe/docker_engine' -Option Constant
 Set-Variable MobyNamedPipeUrl -Value 'npipe://./pipe/iotedge_moby_engine' -Option Constant
 Set-Variable MobyServiceName -Value 'iotedge-moby' -Option Constant
@@ -109,6 +126,11 @@ PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -ContainerOs Windows -X509Identity
 .EXAMPLE
 
 PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -AutoGenX509IdentityCertificate $true -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+
+
+.EXAMPLE
+
+PS> Initialize-IoTEdge -External -ExternalProvisioningEndpoint $externalProvisioningEndpoint -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
 #>
 function Initialize-IoTEdge {
     [CmdletBinding(DefaultParameterSetName = 'Manual')]
@@ -120,6 +142,10 @@ function Initialize-IoTEdge {
         # Specified the daemon will be configured using DPS, using a scope ID and registration ID.
         [Parameter(ParameterSetName = 'DPS')]
         [Switch] $Dps,
+
+        # Specified the daemon will be configured using an external provisioning endpoint.
+        [Parameter(ParameterSetName = 'External')]
+        [Switch] $External,
 
         # The device connection string.
         [Parameter(Mandatory = $true, ParameterSetName = 'Manual')]
@@ -164,6 +190,11 @@ function Initialize-IoTEdge {
         # The Edge device trustbundle
         [ValidateNotNullOrEmpty()]
         [String] $DeviceTrustbundle,
+
+        # The external provisioning environment endpoint for the External provisioning mode.
+        [Parameter(Mandatory = $true, ParameterSetName = 'External')]
+        [ValidateNotNullOrEmpty()]
+        [String] $ExternalProvisioningEndpoint,
 
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
@@ -448,6 +479,11 @@ PS> Install-IoTEdge -Dps -ScopeId $scopeId -ContainerOs Windows -X509IdentityCer
 .EXAMPLE
 
 PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -AutoGenX509IdentityCertificate $true -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+
+
+.EXAMPLE
+
+PS> Install-IoTEdge -External -ExternalProvisioningEndpoint $externalProvisioningEndpoint -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
 #>
 function Install-IoTEdge {
     [CmdletBinding(DefaultParameterSetName = 'Manual')]
@@ -459,6 +495,10 @@ function Install-IoTEdge {
         # Specified the daemon will be configured using DPS, using a scope ID and registration ID.
         [Parameter(ParameterSetName = 'DPS')]
         [Switch] $Dps,
+
+        # Specified the daemon will be configured using an external provisioning endpoint.
+        [Parameter(ParameterSetName = 'External')]
+        [Switch] $External,
 
         # The device connection string.
         [Parameter(Mandatory = $true, ParameterSetName = 'Manual')]
@@ -504,6 +544,11 @@ function Install-IoTEdge {
         [ValidateNotNullOrEmpty()]
         [String] $DeviceTrustbundle,
 
+        # The external provisioning environment endpoint for the External provisioning mode.
+        [Parameter(Mandatory = $true, ParameterSetName = 'External')]
+        [ValidateNotNullOrEmpty()]
+        [String] $ExternalProvisioningEndpoint,
+
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
         # If set to Linux, a separate installation of Docker for Windows is expected.
@@ -520,18 +565,12 @@ function Install-IoTEdge {
         [String] $OfflineInstallationPath,
 
         # IoT Edge Agent image to pull for the initial configuration.
-        [Parameter(ParameterSetName = 'Manual')]
-        [Parameter(ParameterSetName = 'DPS')]
         [String] $AgentImage,
 
         # Username used to access the container registry and pull the IoT Edge Agent image.
-        [Parameter(ParameterSetName = 'Manual')]
-        [Parameter(ParameterSetName = 'DPS')]
         [String] $Username,
 
         # Password used to access the container registry and pull the IoT Edge Agent image.
-        [Parameter(ParameterSetName = 'Manual')]
-        [Parameter(ParameterSetName = 'DPS')]
         [SecureString] $Password,
 
         # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
@@ -578,6 +617,7 @@ function Install-IoTEdge {
 
     if ($Manual) { $Params["-Manual"] = $true }
     if ($Dps) { $Params["-Dps"] = $true }
+    if ($External) { $Params["-External"] = $true }
     if ($DeviceConnectionString) { $Params["-DeviceConnectionString"] = $DeviceConnectionString }
     if ($ScopeId) { $Params["-ScopeId"] = $ScopeId }
     if ($RegistrationId) { $Params["-RegistrationId"] = $RegistrationId }
@@ -588,6 +628,7 @@ function Install-IoTEdge {
     if ($DeviceCACertificate) { $Params["-DeviceCACertificate"] = $DeviceCACertificate }
     if ($DeviceCAPrivateKey) { $Params["-DeviceCAPrivateKey"] = $DeviceCAPrivateKey }
     if ($DeviceTrustbundle) { $Params["-DeviceTrustbundle"] = $DeviceTrustbundle }
+    if ($ExternalProvisioningEndpoint) { $Params["-ExternalProvisioningEndpoint"] = $ExternalProvisioningEndpoint }
     if ($AgentImage) { $Params["-AgentImage"] = $AgentImage }
     if ($Username) { $Params["-Username"] = $Username }
     if ($Password) { $Params["-Password"] = $Password }
@@ -954,7 +995,7 @@ function Set-ContainerOs {
             if ((Get-ExternalDockerServerOs) -ne 'Linux') {
                 Write-Host 'Switching Docker to use Linux containers...'
 
-                $dockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
+                $dockerCliExe = "$ProgramFilesDirectory\Docker\Docker\DockerCli.exe"
 
                 if (-not (Test-Path -Path $dockerCliExe)) {
                     throw 'Unable to switch to Linux containers.'
@@ -1549,6 +1590,16 @@ function Set-ProvisioningMode {
                 "  device_connection_string: '$DeviceConnectionString'")
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
             Write-HostGreen 'Configured device for manual provisioning.'
+            return $configurationYaml
+        }
+        elseif ($External -or $ExternalProvisioningEndpoint){
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*endpoint:\s*".*"'
+            $replacementContent = @(
+                'provisioning:',
+                '  source: ''external''',
+                "  endpoint: '$ExternalProvisioningEndpoint'")
+            $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
+            Write-HostGreen 'Configured device for external provisioning.'
             return $configurationYaml
         }
         else {

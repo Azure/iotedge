@@ -92,12 +92,12 @@ jobs:
         displayName: Set env variables
       - powershell: edgelet/build/windows/install.ps1
         displayName: Install Rust
-      - powershell: edgelet/build/windows/clippy.ps1
-        displayName: Clippy
       - powershell: edgelet/build/windows/build.ps1
         displayName: Build
       - powershell: edgelet/build/windows/test.ps1
         displayName: Test
+      - powershell: edgelet/build/windows/clippy.ps1
+        displayName: Clippy
 
 ################################################################################
   - job: style_check
