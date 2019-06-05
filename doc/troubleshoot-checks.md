@@ -43,9 +43,17 @@ If the `config.yaml` uses manual provisioning with a connection string, this che
 
 This check validates that a container engine is installed and running, and is accessible at the endpoint specified in the `moby_runtime.uri` field.
 
+## host OS is supported
+
+If the device is running Windows and set to use Windows containers, this check validates that the Windows version is supported.
+
+While the Windows installer script prevents installing on an unsupported OS version, it is possible to install on a supported OS version that then gets updated to a newer version that isn't supported.
+
 ## config.yaml has correct hostname
 
-This check validates that the value of the `hostname` field in the `config.yaml` is the same as the device's actual hostname.
+This check validates that the value of the `hostname` field in the `config.yaml` is the same as the device's actual hostname, or that it's a fully-qualified domain name with the device hostname as the first component.
+
+It also validates that the value complies with RFC 1035, since some modules and downstream devices have difficulty connecting to a domain name that doesn't comply with that RFC.
 
 ## config.yaml has correct URIs for daemon mgmt endpoint
 
@@ -95,6 +103,10 @@ By setting these properties in `daemon.json`, the settings are automatically pro
 
 
 # Connectivity check details
+
+## host can connect to and perform TLS handshake with DPS endpoint
+
+If the device is set up to use DPS provisioning, the tool connects to the DPS endpoint and completes a TLS handshake with it.
 
 ## host can connect to and perform TLS handshake with IoT Hub AMQP / HTTPS / MQTT port
 
