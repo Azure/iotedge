@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
             process.BeginOutputReadLine();
             process.WaitForExit();
 
-            return process.ExitCode == ExitCode && output == this.OutputEquals;
+            return process.ExitCode == this.ExitCode && output == this.OutputEquals;
         }
     }
 }
