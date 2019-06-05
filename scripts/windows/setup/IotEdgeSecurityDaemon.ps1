@@ -219,28 +219,26 @@ function Initialize-IoTEdge {
     if (-not (Test-EdgeAlreadyInstalled)) {
         Write-HostRed
         Write-HostRed ('IoT Edge is not yet installed. ' + $InstallMessage)
-        return
+        throw
     }
 
     if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
         Write-HostRed
         Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
-        return
+        throw
     }
 
     if (-not (Test-MobyAlreadyInstalled)) {
         Write-HostRed
         Write-HostRed ('IoT Edge Moby Engine is not yet installed. ' + $ReinstallMessage)
-        return
+        throw
     }
 
     if (-not (Test-AgentRegistryArgs)) {
-        return
+        throw
     }
 
-    if (-not (Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck -SkipBatteryCheck)) {
-        return
-    }
+    Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck -SkipBatteryCheck
 
     $configPath = Join-Path -Path $EdgeDataDirectory -ChildPath 'config.yaml'
     if (Test-Path $configPath) {
@@ -248,7 +246,7 @@ function Initialize-IoTEdge {
         Write-HostRed "$configPath already exists."
         Write-HostRed ('Delete it using "Uninstall-IoTEdge -Force" and then ' +
             're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
-        return
+        throw
     }
 
     # config.yaml
@@ -592,9 +590,6 @@ function Install-IoTEdge {
         [Switch] $SkipBatteryCheck
     )
 
-    # Used to indicate success of Deploy-IoTEdge so we can abort early in case of failure
-    $script:installPackagesCompleted = $false
-
     # Used to suppress some messages from Deploy-IoTEdge since we are automatically running Initialize-IoTEdge
     $calledFromInstall = $true
 
@@ -606,10 +601,6 @@ function Install-IoTEdge {
         -RestartIfNeeded:$RestartIfNeeded `
         -SkipArchCheck:$SkipArchCheck `
         -SkipBatteryCheck:$SkipBatteryCheck
-
-    if (-not $script:installPackagesCompleted) {
-        return
-    }
 
     $Params = @{
         '-ContainerOs' = $ContainerOs
@@ -687,13 +678,13 @@ function Uninstall-IoTEdge {
     if ((Test-IoTCore) -and (-not $legacyInstaller)) {
         Write-HostRed ('Uninstall-IoTEdge is only supported on IoTCore to uninstall legacy installation. ' +
             'For new installations, please use "Update-IoTEdge" directly to update.')
-        return
+        throw
     }
 
     if (-not $Force -and -not ((Test-EdgeAlreadyInstalled) -or (Test-MobyAlreadyInstalled))) {
         Write-HostRed
         Write-HostRed 'IoT Edge is not installed. Use "-Force" to uninstall anyway.'
-        return
+        throw
     }
 
     Write-Host 'Uninstalling...'
@@ -760,19 +751,19 @@ function Install-Packages(
         if (-not (Test-EdgeAlreadyInstalled)) {
             Write-HostRed
             Write-HostRed ('IoT Edge is not yet installed. ' + $InstallMessage)
-            return
+            throw
         }
 
         if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
             Write-HostRed
             Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
-            return
+            throw
         }
 
         if (-not (Test-MobyAlreadyInstalled)) {
             Write-HostRed
             Write-HostRed ('IoT Edge Moby Engine is not yet installed. ' + $ReinstallMessage)
-            return
+            throw
         }
     }
     else {
@@ -785,7 +776,7 @@ function Install-Packages(
                 Write-HostRed ('IoT Edge is already installed. To update, run "Update-IoTEdge". ' +
                     'Alternatively, if you want to finalize the installation, run "Initialize-IoTEdge".')
             }
-            return
+            throw
         }
 
         if (Test-MobyAlreadyInstalled) {
@@ -798,13 +789,11 @@ function Install-Packages(
                 Write-HostRed ('IoT Edge Moby Engine is already installed, but IoT Edge is not. ' +
                     $ReinstallMessage)
             }
-            return
+            throw
         }
     }
 
-    if (-not (Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck:$SkipArchCheck -SkipBatteryCheck:$SkipBatteryCheck)) {
-        return
-    }
+    Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck:$SkipArchCheck -SkipBatteryCheck:$SkipBatteryCheck
 
     $restartNeeded = $false
 
@@ -842,9 +831,7 @@ function Install-Packages(
     if ($restartNeeded) {
         Write-HostRed 'Reboot required. To complete the installation after the reboot, run "Initialize-IoTEdge".'
         Restart-Computer -Confirm:(-not $RestartIfNeeded) -Force:$RestartIfNeeded
-    }
-    else {
-        $script:installPackagesCompleted = $true
+        throw
     }
 }
 
@@ -910,7 +897,7 @@ function Setup-Environment {
         Write-HostRed
         Write-HostRed ('The prerequisites for installation of the IoT Edge Security daemon are not met. ' +
             'Please fix all known issues before rerunning this script.')
-        return $false
+        throw
     }
 
     if (-not (Test-IotCore)) {
@@ -938,13 +925,11 @@ function Setup-Environment {
 
                 if (-not $PSCmdlet.ShouldContinue('Do you want to continue with installation?', '')) {
                     Write-HostRed 'Aborting installation.'
-                    return $false
+                    throw
                 }
             }
         }
     }
-
-    return $true
 }
 
 function Write-LogInformation {
@@ -998,13 +983,14 @@ function Set-ContainerOs {
                 $dockerCliExe = "$ProgramFilesDirectory\Docker\Docker\DockerCli.exe"
 
                 if (-not (Test-Path -Path $dockerCliExe)) {
-                    throw 'Unable to switch to Linux containers.'
+                    throw "Unable to switch to Linux containers: could not find $dockerCliExe"
                 }
 
                 Invoke-Native """$dockerCliExe"" -SwitchDaemon"
 
-                if ((Get-ExternalDockerServerOs) -ne 'Linux') {
-                    throw 'Unable to switch to Linux containers.'
+                $newExternalDockerServerOs = Get-ExternalDockerServerOs
+                if ($newExternalDockerServerOs -ne 'Linux') {
+                    throw "Unable to switch to Linux containers: Docker is still set to use $newExternalDockerServerOs containers"
                 }
 
                 Write-HostGreen 'Switched Docker to use Linux containers.'
@@ -1147,7 +1133,7 @@ function Try-StopService([string] $Name) {
 
 function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
     try {
-        # If we create these archives ourselves, then delete them when we're done
+        # If we create the archive ourselves, then delete it when we're done
         $deleteEdgeArchive = $false
 
         if (Test-IotCore) {
@@ -1213,7 +1199,6 @@ Function Remove-SecurityDaemonDirectory([string] $Path)
         Write-Verbose "$cmdErr"
         Write-HostRed ("Could not delete directory '$Path'. Please reboot " +
             'your device and run "Uninstall-IoTEdge" again with "-Force".')
-        $success = $false
     }
     else {
         Write-Verbose "$cmdErr"
