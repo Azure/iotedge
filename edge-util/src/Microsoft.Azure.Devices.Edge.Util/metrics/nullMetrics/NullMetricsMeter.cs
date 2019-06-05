@@ -9,7 +9,15 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics
         {
         }
 
+        public void Mark(long count)
+        {
+        }
+
         public void Mark(Dictionary<string, string> tags)
+        {
+        }
+
+        public void Mark(long count, Dictionary<string, string> tags)
         {
         }
     }

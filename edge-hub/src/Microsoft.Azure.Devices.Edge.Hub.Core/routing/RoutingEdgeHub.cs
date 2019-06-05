@@ -250,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         static class Metrics
         {
             static readonly IMetricsHistogram MessagesHistogram = Util.Metrics.Metrics.Instance.CreateHistogram(
-                "edgehub_message_size",
+                "message_size",
                 new Dictionary<string, string>());
 
             public static void AddMessageSize(long size)

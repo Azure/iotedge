@@ -10,6 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
 
     public class MetricsProvider : IMetricsProvider
     {
+        const string EdgeHubLabel = "edgeHub";
+
         readonly IMetricsRoot metricsRoot;
 
         MetricsProvider(IMetricsRoot metricsRoot)
@@ -19,7 +21,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
 
         public static MetricsProvider Create()
         {
+            var options = new MetricsOptions
+            {
+                DefaultContextLabel = EdgeHubLabel
+            };
+
             IMetricsRoot metricsRoot = new MetricsBuilder()
+                .Configuration.Configure(options)
                 .OutputMetrics.AsPrometheusPlainText()
                 .Build();
             var metricsProvider = new MetricsProvider(metricsRoot);

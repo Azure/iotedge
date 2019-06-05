@@ -161,8 +161,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         static class Metrics
         {
-            static readonly IMetricsCounter SentMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
-                "edgehub_messages_sent_total",
+            static readonly IMetricsMeter SentMessagesMeter = Util.Metrics.Metrics.Instance.CreateMeter(
+                "messages_sent_total",
                 new Dictionary<string, string>
                 {
                     ["Protocol"] = "Mqtt",
@@ -171,10 +171,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             public static void AddSentMessage(IIdentity identity)
             {
-                SentMessagesCounter.Increment(1, new Dictionary<string, string>
-                {
-                    ["Id"] = identity.Id
-                });
+                SentMessagesMeter.Mark(
+                    1,
+                    new Dictionary<string, string>
+                    {
+                        ["Id"] = identity.Id
+                    });
             }
         }
     }

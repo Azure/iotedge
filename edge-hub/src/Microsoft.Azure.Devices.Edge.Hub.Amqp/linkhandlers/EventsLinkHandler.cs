@@ -150,8 +150,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         static class Metrics
         {
-            static readonly IMetricsCounter MessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
-                "edgehub_messages_received_total",
+            static readonly IMetricsMeter MessagesMeter = Util.Metrics.Metrics.Instance.CreateMeter(
+                "messages_received_total",
                 new Dictionary<string, string>
                 {
                     ["Protocol"] = "Amqp"
@@ -159,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
             public static void AddMessages(IIdentity identity, long count)
             {
-                MessagesCounter.Increment(count, new Dictionary<string, string>
+                MessagesMeter.Mark(count, new Dictionary<string, string>
                 {
                     ["Id"] = identity.Id
                 });

@@ -598,14 +598,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         static class Metrics
         {
             static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
-                "edgehub_message_send_latency",
+                "message_send_latency_milliseconds",
                 new Dictionary<string, string>
                 {
                     ["Target"] = "IoTHub"
                 });
 
-            static readonly IMetricsCounter SentMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
-                "edgehub_messages_sent_total",
+            static readonly IMetricsMeter SentMessagesMeter = Util.Metrics.Metrics.Instance.CreateMeter(
+                "messages_sent_total",
                 new Dictionary<string, string>
                 {
                     ["Target"] = "IoTHub"
@@ -613,7 +613,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void AddSentMessages(string id, int count)
             {
-                SentMessagesCounter.Increment(
+                SentMessagesMeter.Mark(
                     count,
                     new Dictionary<string, string>
                     {

@@ -230,8 +230,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         static class Metrics
         {
-            static readonly IMetricsCounter ReceivedMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
-                "edgehub_messages_received_total",
+            static readonly IMetricsMeter ReceivedMessagesMeter = Util.Metrics.Metrics.Instance.CreateMeter(
+                "messages_received_total",
                 new Dictionary<string, string>
                 {
                     ["Protocol"] = "Mqtt"
@@ -239,7 +239,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             public static void AddReceivedMessage(IIdentity identity)
             {
-                ReceivedMessagesCounter.Increment(1, new Dictionary<string, string>
+                ReceivedMessagesMeter.Mark(1, new Dictionary<string, string>
                 {
                     ["Id"] = identity.Id
                 });

@@ -22,14 +22,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
             };
         }
 
-        public void Mark()
-        {
-            this.meterMetrics.Mark(this.meterOptions);
-        }
+        public void Mark() => this.meterMetrics.Mark(this.meterOptions);
 
-        public void Mark(Dictionary<string, string> tags)
-        {
-            this.meterMetrics.Mark(this.meterOptions, MetricTags.Concat(MetricTags.Empty, tags));
-        }
+        public void Mark(long count) => this.meterMetrics.Mark(this.meterOptions, count);
+
+        public void Mark(Dictionary<string, string> tags) => this.meterMetrics.Mark(this.meterOptions, MetricTags.Concat(MetricTags.Empty, tags));
+
+        public void Mark(long count, Dictionary<string, string> tags) => this.meterMetrics.Mark(this.meterOptions, MetricTags.Concat(MetricTags.Empty, tags), count);
     }
 }
