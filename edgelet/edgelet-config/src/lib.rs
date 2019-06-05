@@ -259,11 +259,29 @@ impl Dps {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub struct External {
+    #[serde(with = "url_serde")]
+    endpoint: Url,
+}
+
+impl External {
+    pub fn new(endpoint: Url) -> Self {
+        External { endpoint }
+    }
+
+    pub fn endpoint(&self) -> &Url {
+        &self.endpoint
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "source")]
 #[serde(rename_all = "lowercase")]
 pub enum Provisioning {
     Manual(Manual),
     Dps(Dps),
+    External(External),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -553,6 +571,8 @@ mod tests {
     static BAD_SETTINGS_DPS_X5091: &str = "test/linux/bad_settings.dps.x509.1.yaml";
     #[cfg(unix)]
     static BAD_SETTINGS_DPS_X5092: &str = "test/linux/bad_settings.dps.x509.2.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_EXTERNAL: &str = "test/linux/sample_settings.external.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
@@ -588,6 +608,8 @@ mod tests {
     static BAD_SETTINGS_DPS_X5091: &str = "test/windows/bad_settings.dps.x509.1.yaml";
     #[cfg(windows)]
     static BAD_SETTINGS_DPS_X5092: &str = "test/windows/bad_settings.dps.x509.2.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_EXTERNAL: &str = "test/windows/sample_settings.external.yaml";
 
     fn unwrap_manual_provisioning(p: &Provisioning) -> String {
         match p {
@@ -781,6 +803,20 @@ mod tests {
                     }
                     _ => unreachable!(),
                 }
+            }
+            _ => unreachable!(),
+        };
+    }
+
+    #[test]
+    fn external_prov_get_settings() {
+        let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_EXTERNAL)));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+        match s.provisioning() {
+            Provisioning::External(ref external) => {
+                assert_eq!(external.endpoint().as_str(), "http://localhost:9999/");
             }
             _ => unreachable!(),
         };
