@@ -3,11 +3,48 @@
         "name": "nano",
         "version": "1.0",
         "image": "mcr.microsoft.com/windows/nanoserver:1809",
+        "pullPolicyTestConfig": {
+            "pullPolicy": "never",
+            "pullImage": "false"
+        },
         "validator": {
             "$type": "RunCommandValidator",
-            "command": "docker",
-            "args": "ps -a -f name=nano --format '{{.Names}}'",
-            "outputEquals": "'nano'"
+            "command": "curl",
+            "args": "-X GET -s -o /dev/null -w \"%{http_code}\" http://localhost:2375/containers/nano/json",
+            "exitCode" : 23,
+            "outputEquals": "404"
+        }
+    },
+    {
+        "name": "nano",
+        "version": "1.0",
+        "image": "mcr.microsoft.com/windows/nanoserver:1809",
+        "pullPolicyTestConfig": {
+            "pullPolicy": "never",
+            "pullImage": "true"
+        },
+        "validator": {
+            "$type": "RunCommandValidator",
+            "command": "curl",
+            "args": "-X GET -s -o /dev/null -w \"%{http_code}\" http://localhost:2375/containers/nano/json",
+            "exitCode" : 23,
+            "outputEquals": "200"
+        }
+    },
+    {
+        "name": "nano",
+        "version": "1.0",
+        "image": "mcr.microsoft.com/windows/nanoserver:1809",
+        "pullPolicyTestConfig": {
+            "pullPolicy": "if-not-present",
+            "pullImage": "false"
+        },
+        "validator": {
+            "$type": "RunCommandValidator",
+            "command": "curl",
+            "args": "-X GET -s -o /dev/null -w \"%{http_code}\" http://localhost:2375/containers/nano/json",
+            "exitCode" : 23,
+            "outputEquals": "200"
         }
     }
 ]

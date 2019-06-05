@@ -81,7 +81,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                     ""systemModules"": {
                       ""edgeAgent"": { 
                         ""type"": ""test"",
-                        ""pullPolicy"": ""if-not-present"",
                         ""settings"": {
                           ""image"": ""edge-agent""
                         },

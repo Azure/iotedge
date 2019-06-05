@@ -109,6 +109,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     ? new DockerConfig(testConfig.Image, testConfig.ImageCreateOptions)
                     : new DockerConfig(testConfig.Image);
 
+                PullPolicy pullPolicy = PullPolicy.None;
+                testConfig.PullPolicyTestConfig.ForEach(p => pullPolicy = p.PullPolicy);
+
                 // Initialize an Edge Agent module object.
                 var dockerModule = new DockerModule(
                     testConfig.Name,
@@ -116,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     ModuleStatus.Running,
                     global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy,
                     dockerConfig,
-                    testConfig.PullPolicyTestConfig != null ? testConfig.PullPolicyTestConfig.PullPolicy : PullPolicy.None,
+                    pullPolicy,
                     null,
                     null);
                 var modules = new Dictionary<string, IModule> { [testConfig.Name] = dockerModule };
@@ -250,8 +253,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     });
             }
 
+            bool pullImage = false;
+            testConfig.PullPolicyTestConfig.ForEach(p => pullImage = p.PullImage);
+
             // Pull the image if the test config specifies that the image should be pulled.
-            if (testConfig.PullPolicyTestConfig != null && testConfig.PullPolicyTestConfig.PullImage)
+            if (pullImage)
             {
                 await client.Images.CreateImageAsync(
                     new ImagesCreateParameters

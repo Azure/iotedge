@@ -231,7 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                 {
                                     image = "EdgeAgentImage"
                                 },
-                                pullPolicy = "always"
+                                pullPolicy = "if-not-present"
                             }
                         },
                         modules = new Dictionary<string, object>
@@ -402,7 +402,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                 {
                                     image = "EdgeAgentImage"
                                 },
-                                pullPolicy = "always"
+                                pullPolicy = "if-not-present"
                             }
                         },
                         modules = new Dictionary<string, object>
@@ -581,7 +581,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                 {
                                     image = "EdgeAgentImage"
                                 },
-                                pullPolicy = "always"
+                                pullPolicy = "if-not-present"
                             }
                         },
                         modules = new Dictionary<string, object>
@@ -775,7 +775,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                 {
                                     image = "EdgeAgentImage"
                                 },
-                                pullPolicy = "always"
+                                pullPolicy = "if-not-present"
                             }
                         },
                         modules = new Dictionary<string, object>
@@ -1708,7 +1708,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         0,
                         DateTime.MinValue,
                         ModuleStatus.Running,
-                        PullPolicy.IfNotPresent,
+                        PullPolicy.None,
                         null,
                         new Dictionary<string, EnvVal> { ["e2"] = new EnvVal("e2Val") }));
 
@@ -1788,7 +1788,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                         {
                                             value = "e1Val"
                                         }
-                                    }
+                                    },
+                                    pullPolicy = "if-not-present"
                                 }
                             },
                             { currentModuleSet.Modules["mod2"].Name, currentModuleSet.Modules["mod2"] },
