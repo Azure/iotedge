@@ -13,6 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
         public Validator Validator { get; set; }
 
-        public string PullPolicy { get; set; }
+        public PullPolicyTestConfig PullPolicyTestConfig { get; set; }
     }
 }
