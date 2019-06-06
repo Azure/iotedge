@@ -8,17 +8,34 @@ New-Module -Name IoTEdge -ScriptBlock {
 #requires -RunAsAdministrator
 
 Set-Variable Windows1607 -Value 14393 -Option Constant
-Set-Variable Windows1803 -Value 17134 -Option Constant
 Set-Variable Windows1809 -Value 17763 -Option Constant
 
 Set-Variable MinBuildForLinuxContainers -Value $Windows1607
+
+# When using Windows containers, the host OS version must match the container OS version.
+# Since our containers are built with 10.0.17763 base images, we require the same for the host OS.
+#
+# If this needs to be changed, also update the host OS version check in the `iotedge check` tool (edgelet/iotedge/src/check/mod.rs)
 Set-Variable SupportedBuildsForWindowsContainers -Value @($Windows1809)
 
 Set-Variable DockerServiceName -Value 'com.docker.service' -Option Constant
 
 Set-Variable EdgePackage -Value 'microsoft-azure-iotedge' -Option Constant
 
-Set-Variable EdgeInstallDirectory -Value "$env:ProgramFiles\iotedge" -Option Constant
+# If the user is running a 32-bit PS host on a 64-bit OS, then `$env:ProgramFiles` points to `C:\Program Files (x86)`
+# So use `$env:ProgramW6432` instead.
+#
+# However, an actual 32-bit OS like IoT Core ARM32 does not define `$env:ProgramW6432`, so fall back to `$env:ProgramFiles` in that case.
+Set-Variable ProgramFilesDirectory -Value $(
+    if (Test-Path Env:\ProgramW6432) {
+        $env:ProgramW6432
+    }
+    else {
+        $env:ProgramFiles
+    }
+) -Option Constant
+
+Set-Variable EdgeInstallDirectory -Value "$ProgramFilesDirectory\iotedge" -Option Constant
 Set-Variable EdgeDataDirectory -Value "$env:ProgramData\iotedge" -Option Constant
 Set-Variable EdgeServiceName -Value 'iotedge' -Option Constant
 
@@ -26,7 +43,7 @@ Set-Variable ContainersFeaturePackageName -Value 'Microsoft-IoT-Containers-Serve
 Set-Variable ContainersFeatureLangPackageName -Value 'Microsoft-IoT-Containers-Server-Package_*' -Option Constant
 
 Set-Variable MobyDataRootDirectory -Value "$env:ProgramData\iotedge-moby" -Option Constant
-Set-Variable MobyInstallDirectory -Value "$env:ProgramFiles\iotedge-moby" -Option Constant
+Set-Variable MobyInstallDirectory -Value "$ProgramFilesDirectory\iotedge-moby" -Option Constant
 Set-Variable MobyLinuxNamedPipeUrl -Value 'npipe://./pipe/docker_engine' -Option Constant
 Set-Variable MobyNamedPipeUrl -Value 'npipe://./pipe/iotedge_moby_engine' -Option Constant
 Set-Variable MobyServiceName -Value 'iotedge-moby' -Option Constant
@@ -978,7 +995,7 @@ function Set-ContainerOs {
             if ((Get-ExternalDockerServerOs) -ne 'Linux') {
                 Write-Host 'Switching Docker to use Linux containers...'
 
-                $dockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
+                $dockerCliExe = "$ProgramFilesDirectory\Docker\Docker\DockerCli.exe"
 
                 if (-not (Test-Path -Path $dockerCliExe)) {
                     throw 'Unable to switch to Linux containers.'
