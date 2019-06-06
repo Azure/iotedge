@@ -13,7 +13,11 @@ jobs:
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
-      - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
+      - script: |
+          echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
+          echo "##vso[task.setvariable variable=CARGO_INCREMENTAL;]0"
+          echo "##vso[task.setvariable variable=RUSTFLAGS;]-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads"
+          echo "##vso[task.setvariable variable=IOTEDGE_HOMEDIR;]/tmp"
         displayName: Set env variables
       - script: edgelet/build/linux/install.sh -t nightly
         displayName: Install Rust
@@ -25,18 +29,12 @@ jobs:
         displayName: Install code coverage tools
       - script: edgelet/build/linux/check-submodules.sh
         displayName: Check submodules
-        workingDirectory: edgelet
       - script: cargo +nightly build --verbose
         displayName: Build
         workingDirectory: edgelet
-        env:
-          CARGO_INCREMENTAL: "0"
-          RUSTFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads"
       - script: cargo +nightly build --verbose
         displayName: Test
         workingDirectory: edgelet
-        env:
-          IOTEDGE_HOMEDIR: "/tmp"
       - script: |
           zip -0 ccov.zip `find . \( -name "*.gc*" \) -print`
           ./grcov ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore-dir "/*" > target/lcov.info
