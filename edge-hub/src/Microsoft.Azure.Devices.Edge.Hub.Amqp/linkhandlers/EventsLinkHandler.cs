@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         static class Metrics
         {
             static readonly IMetricsMeter MessagesMeter = Util.Metrics.Metrics.Instance.CreateMeter(
-                "messages_received_total",
+                "messages_received",
                 new Dictionary<string, string>
                 {
                     ["Protocol"] = "Amqp"

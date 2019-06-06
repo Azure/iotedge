@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         static class Metrics
         {
             static readonly IMetricsMeter SentMessagesMeter = Util.Metrics.Metrics.Instance.CreateMeter(
-                "messages_sent_total",
+                "messages_sent",
                 new Dictionary<string, string>
                 {
                     ["Protocol"] = "Mqtt",
