@@ -22,14 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
             };
         }
 
-        public void Update(long value)
-        {
-            this.histogramMetrics.Update(this.histogramOptions, value);
-        }
+        public void Update(long value) => this.histogramMetrics.Update(this.histogramOptions, value);
 
-        public void Update(long value, Dictionary<string, string> tags)
-        {
-            this.histogramMetrics.Update(this.histogramOptions, MetricTags.Concat(MetricTags.Empty, tags), value);
-        }
+        public void Update(long value, Dictionary<string, string> tags) => this.histogramMetrics.Update(this.histogramOptions, MetricTags.Concat(MetricTags.Empty, tags), value);
     }
 }

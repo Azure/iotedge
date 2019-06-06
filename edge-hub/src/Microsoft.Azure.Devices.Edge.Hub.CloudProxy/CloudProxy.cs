@@ -110,10 +110,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.timer.Reset();
             try
             {
-                Twin twin = await this.client.GetTwinAsync();
-                Events.GetTwin(this);
-                IMessageConverter<Twin> converter = this.messageConverterProvider.Get<Twin>();
-                return converter.ToMessage(twin);
+                using (Metrics.TimeGetTwin(this.clientId))
+                {
+                    Twin twin = await this.client.GetTwinAsync();
+                    Events.GetTwin(this);
+                    Metrics.AddGetTwin(this.clientId);
+                    IMessageConverter<Twin> converter = this.messageConverterProvider.Get<Twin>();
+                    return converter.ToMessage(twin);
+                }
             }
             catch (Exception ex)
             {
@@ -177,8 +181,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.timer.Reset();
             try
             {
-                await this.client.UpdateReportedPropertiesAsync(reported);
-                Events.UpdateReportedProperties(this);
+                using (Metrics.TimeUpdateReportedProperties(this.clientId))
+                {
+                    await this.client.UpdateReportedPropertiesAsync(reported);
+                    Metrics.AddUpdateReportedProperties(this.clientId);
+                    Events.UpdateReportedProperties(this);
+                }
             }
             catch (Exception e)
             {
@@ -610,6 +618,70 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     ["Target"] = "IoTHub"
                 });
+
+            static readonly IMetricsTimer GetTwinTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "gettwin_duration_milliseconds",
+                new Dictionary<string, string>
+                {
+                    ["Target"] = "IoTHub"
+                });
+
+            static readonly IMetricsTimer ReportedPropertiesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "reported_properties_update_duration_milliseconds",
+                new Dictionary<string, string>
+                {
+                    ["Target"] = "IoTHub"
+                });
+
+            static readonly IMetricsMeter GetTwinMeter = Util.Metrics.Metrics.Instance.CreateMeter(
+                "gettwin",
+                new Dictionary<string, string>
+                {
+                    ["Target"] = "IoTHub"
+                });
+
+            static readonly IMetricsMeter ReportedPropertiesMeter = Util.Metrics.Metrics.Instance.CreateMeter(
+                "reported_properties_update",
+                new Dictionary<string, string>
+                {
+                    ["Target"] = "IoTHub"
+                });
+
+            public static void AddGetTwin(string id)
+            {
+                GetTwinMeter.Mark(
+                    new Dictionary<string, string>
+                    {
+                        ["Id"] = id
+                    });
+            }
+
+            public static void AddUpdateReportedProperties(string id)
+            {
+                ReportedPropertiesMeter.Mark(
+                    new Dictionary<string, string>
+                    {
+                        ["Id"] = id
+                    });
+            }
+
+            public static IDisposable TimeUpdateReportedProperties(string id)
+            {
+                return ReportedPropertiesTimer.GetTimer(
+                    new Dictionary<string, string>
+                    {
+                        ["Id"] = id
+                    });
+            }
+
+            public static IDisposable TimeGetTwin(string id)
+            {
+                return GetTwinTimer.GetTimer(
+                    new Dictionary<string, string>
+                    {
+                        ["Id"] = id
+                    });
+            }
 
             public static void AddSentMessages(string id, int count)
             {

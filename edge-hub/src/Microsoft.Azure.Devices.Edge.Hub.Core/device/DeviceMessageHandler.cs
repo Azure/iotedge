@@ -155,11 +155,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         {
             try
             {
-                IMessage twin = await this.edgeHub.GetTwinAsync(this.Identity.Id);
-                twin.SystemProperties[SystemProperties.CorrelationId] = correlationId;
-                twin.SystemProperties[SystemProperties.StatusCode] = ((int)HttpStatusCode.OK).ToString();
-                await this.SendTwinUpdate(twin);
-                Events.ProcessedGetTwin(this.Identity.Id);
+                using (Metrics.TimeGetTwin(this.Identity))
+                {
+                    IMessage twin = await this.edgeHub.GetTwinAsync(this.Identity.Id);
+                    twin.SystemProperties[SystemProperties.CorrelationId] = correlationId;
+                    twin.SystemProperties[SystemProperties.StatusCode] = ((int)HttpStatusCode.OK).ToString();
+                    await this.SendTwinUpdate(twin);
+                    Metrics.AddGetTwin(this.Identity);
+                    Events.ProcessedGetTwin(this.Identity.Id);
+                }
             }
             catch (Exception e)
             {
@@ -191,20 +195,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
             try
             {
-                await this.edgeHub.UpdateReportedPropertiesAsync(this.Identity, reportedPropertiesMessage);
-
-                if (!string.IsNullOrWhiteSpace(correlationId))
+                using (Metrics.TimeUpdateReportedProperties(this.Identity))
                 {
-                    IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
-                        .SetSystemProperties(
-                            new Dictionary<string, string>
-                            {
-                                [SystemProperties.CorrelationId] = correlationId,
-                                [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
-                                [SystemProperties.StatusCode] = ((int)HttpStatusCode.NoContent).ToString()
-                            })
-                        .Build();
-                    await this.SendTwinUpdate(responseMessage);
+                    await this.edgeHub.UpdateReportedPropertiesAsync(this.Identity, reportedPropertiesMessage);
+                    Metrics.AddUpdateReportedProperties(this.Identity);
+                    if (!string.IsNullOrWhiteSpace(correlationId))
+                    {
+                        IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
+                            .SetSystemProperties(
+                                new Dictionary<string, string>
+                                {
+                                    [SystemProperties.CorrelationId] = correlationId,
+                                    [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
+                                    [SystemProperties.StatusCode] = ((int)HttpStatusCode.NoContent).ToString()
+                                })
+                            .Build();
+                        await this.SendTwinUpdate(responseMessage);
+                    }
                 }
             }
             catch (Exception e)
@@ -257,7 +264,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 this.messageTaskCompletionSources.TryAdd(lockToken, taskCompletionSource);
                 Task completedTask;
 
-                using (Metrics.Time(this.Identity))
+                using (Metrics.TimeMessages(this.Identity))
                 {
                     Metrics.MessageProcessingLatency(this.Identity, message);
                     Events.SendingMessage(this.Identity, lockToken);
@@ -422,9 +429,73 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 "message_process_duration_milliseconds",
                 new Dictionary<string, string>());
 
-            public static IDisposable Time(IIdentity identity)
+            static readonly IMetricsTimer GetTwinTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "gettwin_duration_milliseconds",
+                new Dictionary<string, string>
+                {
+                    ["Target"] = "module"
+                });
+
+            static readonly IMetricsTimer ReportedPropertiesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "reported_properties_update_duration_milliseconds",
+                new Dictionary<string, string>
+                {
+                    ["Target"] = "module"
+                });
+
+            static readonly IMetricsMeter GetTwinMeter = Util.Metrics.Metrics.Instance.CreateMeter(
+                "gettwin",
+                new Dictionary<string, string>
+                {
+                    ["Target"] = "module"
+                });
+
+            static readonly IMetricsMeter ReportedPropertiesMeter = Util.Metrics.Metrics.Instance.CreateMeter(
+                "reported_properties_update",
+                new Dictionary<string, string>
+                {
+                    ["Target"] = "module"
+                });
+
+            public static void AddGetTwin(IIdentity identity)
+            {
+                GetTwinMeter.Mark(
+                    new Dictionary<string, string>
+                    {
+                        ["Id"] = identity.Id
+                    });
+            }
+
+            public static IDisposable TimeMessages(IIdentity identity)
             {
                 return MessagesTimer.GetTimer(
+                    new Dictionary<string, string>
+                    {
+                        ["Id"] = identity.Id
+                    });
+            }
+
+            public static void AddUpdateReportedProperties(IIdentity identity)
+            {
+                ReportedPropertiesMeter.Mark(
+                    new Dictionary<string, string>
+                    {
+                        ["Id"] = identity.Id
+                    });
+            }
+
+            public static IDisposable TimeUpdateReportedProperties(IIdentity identity)
+            {
+                return ReportedPropertiesTimer.GetTimer(
+                    new Dictionary<string, string>
+                    {
+                        ["Id"] = identity.Id
+                    });
+            }
+
+            public static IDisposable TimeGetTwin(IIdentity identity)
+            {
+                return GetTwinTimer.GetTimer(
                     new Dictionary<string, string>
                     {
                         ["Id"] = identity.Id
