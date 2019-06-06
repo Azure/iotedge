@@ -15,22 +15,40 @@ jobs:
     steps:
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
-      - task: Bash@3
+      - script: edgelet/build/linux/install.sh -t nightly
         displayName: Install Rust
-        inputs:
-          filePath: edgelet/build/linux/install.sh
-      - task: Bash@3
+      - script: |
+          curl -L https://github.com/mozilla/grcov/releases/download/v0.4.1/grcov-linux-x86_64.tar.bz2 | tar jxf -
+          curl -L https://raw.github.com/eriwen/lcov-to-cobertura-xml/master/lcov_cobertura/lcov_cobertura.py
+          sudo apt-get install lcov
+        workingDirectory: edgelet
+        displayName: Install code coverage tools
+      - script: edgelet/build/linux/check-submodules.sh
         displayName: Check submodules
-        inputs:
-          filePath: edgelet/build/linux/check-submodules.sh
-      - task: Bash@3
+        workingDirectory: edgelet
+      - script: cargo +nightly build --verbose
         displayName: Build
-        inputs:
-          filePath: edgelet/build/linux/build.sh
-      - task: Bash@3
+        workingDirectory: edgelet
+        env:
+          CARGO_INCREMENTAL: "0"
+          RUSTFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads"
+      - script: cargo +nightly build --verbose
         displayName: Test
+        workingDirectory: edgelet
+        env:
+          IOTEDGE_HOMEDIR: "/tmp"
+      - script: |
+          zip -0 ccov.zip `find . \( -name "*.gc*" \) -print`
+          ./grcov ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore-dir "/*" > target/lcov.info
+          python lcov_cobertura.py target/lcov.info --output target/coverage.xml --demangle
+          genhtml -o target/report/ --show-details --highlight --ignore-errors source --legend target/lcov.info
+        displayName: Assemble code coverage results
+        workingDirectory: edgelet
+      - task: PublishCodeCoverageResults@1
         inputs:
-          filePath: edgelet/build/linux/test.sh
+          codeCoverageTool: cobertura
+          summaryFileLocation: "edgelet/target/coverage.xml"
+          reportDirectory: "edgelet/target/report"
 
 ################################################################################
   - job: linux_arm32v7
