@@ -23,7 +23,7 @@ jobs:
         displayName: Install Rust
       - script: |
           curl -L https://github.com/mozilla/grcov/releases/download/v0.4.1/grcov-linux-x86_64.tar.bz2 | tar jxf -
-          curl -L https://raw.github.com/eriwen/lcov-to-cobertura-xml/master/lcov_cobertura/lcov_cobertura.py
+          curl -L https://raw.github.com/eriwen/lcov-to-cobertura-xml/master/lcov_cobertura/lcov_cobertura.py > lcov_cobertura.py
           sudo apt-get install lcov
         workingDirectory: edgelet
         displayName: Install code coverage tools
