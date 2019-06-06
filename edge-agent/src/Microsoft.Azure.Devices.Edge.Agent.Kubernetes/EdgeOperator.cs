@@ -48,9 +48,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string serviceAccountName;
         readonly Uri workloadUri;
         readonly Uri managementUri;
-        readonly string PersistantVolumeName; // Either PV or SC
-        readonly bool PersistantVolumeNameIsSC;
-        readonly string persistantVolumeClaimSizeMb;
+        readonly string persistentVolumeName; // Either PV or SC
+        readonly bool persistentVolumeNameIsSc;
+        readonly uint persistentVolumeClaimSizeMb;
         readonly string defaultMapServiceType;
         readonly TypeSpecificSerDe<EdgeDeploymentDefinition> deploymentSerde;
         readonly JsonSerializerSettings crdSerializerSettings;
@@ -64,9 +64,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string proxyConfigPath,
             string proxyConfigVolumeName,
             string serviceAccountName,
-            string PersistantVolumeName,
-            string StorageClassName,
-            string PersistantVolumeClaimSizeMb,
+            string persistentVolumeName,
+            string storageClassName,
+            uint persistentVolumeClaimSizeMb,
             Uri workloadUri,
             Uri managementUri,
             PortMapServiceType defaultMapServiceType,
@@ -104,22 +104,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 ContractResolver = new CamelCasePropertyNamesContractResolver()
             };
 
-            if (!string.IsNullOrWhiteSpace(PersistantVolumeName))
+            if (!string.IsNullOrWhiteSpace(persistentVolumeName))
             {
-                this.PersistantVolumeName = PersistantVolumeName;
-                this.PersistantVolumeNameIsSC = false;
+                this.persistentVolumeName = KubeUtils.SanitizeK8sValue(persistentVolumeName);
+                this.persistentVolumeNameIsSc = false;
             }
-            else if (!string.IsNullOrWhiteSpace(StorageClassName))
+            else if (!string.IsNullOrWhiteSpace(storageClassName))
             {
-                this.PersistantVolumeName = StorageClassName;
-                this.PersistantVolumeNameIsSC = true;
+                this.persistentVolumeName = KubeUtils.SanitizeK8sValue(storageClassName);
+                this.persistentVolumeNameIsSc = true;
             }
             else
             {
-                this.PersistantVolumeName = string.Empty;
+                this.persistentVolumeName = string.Empty;
             }
 
-            this.persistantVolumeClaimSizeMb = PersistantVolumeClaimSizeMb;
+            this.persistentVolumeClaimSizeMb = persistentVolumeClaimSizeMb;
         }
 
         public Task CloseAsync(CancellationToken token)
@@ -874,14 +874,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         string mountPath = mount.Target;
                         bool readOnly = mount.ReadOnly;
 
-                        // If the cluster is configured with a persistant volume name then use it otherwise rever to the empty dir source
-                        if (string.IsNullOrWhiteSpace(this.PersistantVolumeName))
+                        // If the cluster is configured with a persistent volume name then use it otherwise revert to the empty dir source
+                        if (string.IsNullOrWhiteSpace(this.persistentVolumeName))
                         {
                             volumeList.Add(new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource()));
                         }
                         else
                         {
-                            await GetOrCreatePersistantVolumeClaim(name, readOnly);
+                            await this.GetOrCreatePersistentVolumeClaim(name, readOnly);
                             volumeList.Add(new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(name, readOnly)));
                         }
                         volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
@@ -894,7 +894,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 : Option.None<(List<V1Volume>, List<V1VolumeMount>, List<V1VolumeMount>)>();
         }
 
-        private async Task GetOrCreatePersistantVolumeClaim(string name, bool readOnly)
+        private async Task GetOrCreatePersistentVolumeClaim(string name, bool readOnly)
         {
             var listResult = await this.client.ListNamespacedPersistentVolumeClaimAsync(KubeUtils.K8sNamespace);
 
@@ -918,17 +918,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 AccessModes = new List<string> { readOnly ? "ReadOnlyMany" : "ReadWriteMany" },
                 Resources = new V1ResourceRequirements()
                 {
-                    Requests = new Dictionary<string, ResourceQuantity>() { { "storage", new ResourceQuantity(this.persistantVolumeClaimSizeMb + "Mi") } }
+                    Requests = new Dictionary<string, ResourceQuantity>() { { "storage", new ResourceQuantity($"{this.persistentVolumeClaimSizeMb}Mi") } }
                 }
             };
 
-            if (this.PersistantVolumeNameIsSC)
+            if (this.persistentVolumeNameIsSc)
             {
-                persistentVolumeClaimSpec.StorageClassName = this.PersistantVolumeName;
+                persistentVolumeClaimSpec.StorageClassName = this.persistentVolumeName;
             }
             else
             {
-                persistentVolumeClaimSpec.VolumeName = this.PersistantVolumeName;
+                persistentVolumeClaimSpec.VolumeName = this.persistentVolumeName;
             }
 
             // TODO : Check return?
@@ -970,10 +970,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 envList.Add(new V1EnvVar(CoreConstants.ModeKey, CoreConstants.KubernetesMode));
                 envList.Add(new V1EnvVar(CoreConstants.EdgeletManagementUriVariableName, this.managementUri.ToString()));
                 envList.Add(new V1EnvVar(CoreConstants.NetworkIdKey, "azure-iot-edge"));
-                envList.Add(new V1EnvVar(CoreConstants.ProxyImageEnvKey, this.proxyImage));
-                envList.Add(new V1EnvVar(CoreConstants.ProxyConfigPathEnvKey, this.proxyConfigPath));
-                envList.Add(new V1EnvVar(CoreConstants.ProxyConfigVolumeEnvKey, this.proxyConfigVolumeName));
-                envList.Add(new V1EnvVar(CoreConstants.EdgeAgentServiceAccountName, this.serviceAccountName));
+                envList.Add(new V1EnvVar(Constants.ProxyImageEnvKey, this.proxyImage));
+                envList.Add(new V1EnvVar(Constants.ProxyConfigPathEnvKey, this.proxyConfigPath));
+                envList.Add(new V1EnvVar(Constants.ProxyConfigVolumeEnvKey, this.proxyConfigVolumeName));
+                envList.Add(new V1EnvVar(Constants.EdgeAgentServiceAccountName, this.serviceAccountName));
             }
 
             if (string.Equals(identity.ModuleId, CoreConstants.EdgeAgentModuleIdentityName) ||

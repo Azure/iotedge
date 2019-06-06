@@ -73,10 +73,10 @@ spec:
             value: {{ .Values.edgeAgent.env.enableK8sServiceCallTracing | quote }}
           - name: "K8sNamespaceBaseName"
             value: {{ .Values.namespace | quote }}
-          - name: "PersistantVolumeClaimDefaultSizeInMb"
-            value: {{ .Values.edgeAgent.env.persistantvolumeclaimdefaultsizeinmb | quote }}
-          - name: "PersistantVolumeName"
-            value: {{ .Values.edgeAgent.env.persistantvolumename | quote }}
+          - name: "PersistentVolumeClaimDefaultSizeInMb"
+            value: {{ .Values.edgeAgent.env.persistentvolumeclaimdefaultsizeinmb | quote }}
+          - name: "PersistentVolumeName"
+            value: {{ .Values.edgeAgent.env.persistentvolumename | quote }}
           - name: "StorageClassName"
             value: {{ .Values.edgeAgent.env.storageclassname | quote }}          
         - name: proxy
