@@ -16,8 +16,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
         readonly ITransientErrorDetectionStrategy transientErrorDetectionStrategy;
         readonly TimeSpan operationTimeout;
 
-        protected WorkloadClientVersioned(Uri serverUri, ApiVersion apiVersion,
-            string moduleId, string moduleGenerationId, ITransientErrorDetectionStrategy transientErrorDetectionStrategy,
+        protected WorkloadClientVersioned(
+            Uri serverUri,
+            ApiVersion apiVersion,
+            string moduleId,
+            string moduleGenerationId,
+            ITransientErrorDetectionStrategy transientErrorDetectionStrategy,
             Option<TimeSpan> operationTimeout)
         {
             this.WorkloadUri = Preconditions.CheckNotNull(serverUri, nameof(serverUri));
@@ -46,8 +50,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         public abstract Task<string> SignAsync(string keyId, string algorithm, string data);
 
-        protected abstract void HandleException(Exception ex, string operation);
-
         protected internal async Task<T> Execute<T>(Func<Task<T>> func, string operation)
         {
             try
@@ -65,6 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                 return default(T);
             }
         }
+
+        protected abstract void HandleException(Exception ex, string operation);
 
         static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry, ITransientErrorDetectionStrategy transientErrorDetection)
         {
