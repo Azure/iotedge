@@ -598,7 +598,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         static class Metrics
         {
             static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
-                "message_send_latency_milliseconds",
+                "message_send_duration_milliseconds",
                 new Dictionary<string, string>
                 {
                     ["Target"] = "IoTHub"

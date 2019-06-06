@@ -38,10 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             await this.DeviceListener.AddSubscription(DeviceSubscription.ModuleMessages);
         }
 
-        protected override void OnMessageSent()
-        {
-            Metrics.AddSentMessage(this.Identity);
-        }
+        protected override void OnMessageSent() => Metrics.AddSentMessage(this.Identity);
 
         static class Metrics
         {

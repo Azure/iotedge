@@ -412,14 +412,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         static class Metrics
         {
             static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
-                "message_send_latency_milliseconds",
+                "message_send_duration_milliseconds",
                 new Dictionary<string, string>
                 {
                     ["Target"] = "module"
                 });
 
             static readonly IMetricsHistogram MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateHistogram(
-                "message_process_latency_milliseconds",
+                "message_process_duration_milliseconds",
                 new Dictionary<string, string>());
 
             public static IDisposable Time(IIdentity identity)
