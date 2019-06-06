@@ -23,14 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
             };
         }
 
-        public void Set(long value)
-        {
-            this.gaugeMetrics.SetValue(this.gaugeOptions, value);
-        }
+        public void Set(long value) => this.gaugeMetrics.SetValue(this.gaugeOptions, value);
 
-        public void Set(long value, Dictionary<string, string> tags)
-        {
-            this.gaugeMetrics.SetValue(this.gaugeOptions, MetricTags.Concat(MetricTags.Empty, tags), value);
-        }
+        public void Set(long value, Dictionary<string, string> tags) => this.gaugeMetrics.SetValue(this.gaugeOptions, MetricTags.Concat(MetricTags.Empty, tags), value);
     }
 }

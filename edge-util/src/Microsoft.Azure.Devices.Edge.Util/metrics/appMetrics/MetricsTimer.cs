@@ -25,14 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
             };
         }
 
-        public IDisposable GetTimer()
-        {
-            return this.timerMetrics.Time(this.timerOptions);
-        }
+        public IDisposable GetTimer() => this.timerMetrics.Time(this.timerOptions);
 
-        public IDisposable GetTimer(Dictionary<string, string> tags)
-        {
-            return this.timerMetrics.Time(this.timerOptions, MetricTags.Concat(MetricTags.Empty, tags));
-        }
+        public IDisposable GetTimer(Dictionary<string, string> tags) => this.timerMetrics.Time(this.timerOptions, MetricTags.Concat(MetricTags.Empty, tags));
     }
 }
