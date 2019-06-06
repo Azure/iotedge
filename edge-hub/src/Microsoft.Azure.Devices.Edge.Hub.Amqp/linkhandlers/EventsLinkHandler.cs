@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             {
                 MessagesMeter.Mark(count, new Dictionary<string, string>
                 {
-                    ["Id"] = identity.Id
+                    ["id"] = identity.Id
                 });
             }
         }

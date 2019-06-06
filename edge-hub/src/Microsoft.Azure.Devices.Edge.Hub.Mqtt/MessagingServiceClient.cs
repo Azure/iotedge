@@ -241,7 +241,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 ReceivedMessagesMeter.Mark(1, new Dictionary<string, string>
                 {
-                    ["Id"] = identity.Id
+                    ["id"] = identity.Id
                 });
             }
         }

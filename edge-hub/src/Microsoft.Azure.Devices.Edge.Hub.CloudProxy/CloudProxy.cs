@@ -135,8 +135,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.timer.Reset();
             try
             {
-                using (Metrics.Time(this.clientId))
+                using (Metrics.TimeMessageSend(this.clientId))
                 {
+                    Metrics.MessageProcessingLatency(this.clientId, inputMessage);
                     await this.client.SendEventAsync(message);
                     Events.SendMessage(this);
                     Metrics.AddSentMessages(this.clientId, 1);
@@ -153,13 +154,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public async Task SendMessageBatchAsync(IEnumerable<IMessage> inputMessages)
         {
             IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
-            IList<Message> messages = Preconditions.CheckNotNull(inputMessages, nameof(inputMessages))
-                .Select(inputMessage => converter.FromMessage(inputMessage))
+            List<Message> messages = Preconditions.CheckNotNull(inputMessages, nameof(inputMessages))
+                .Select(inputMessage =>
+                {
+                    Metrics.MessageProcessingLatency(this.clientId, inputMessage);
+                    return converter.FromMessage(inputMessage);
+                })
                 .ToList();
+
             this.timer.Reset();
             try
             {
-                using (Metrics.Time(this.clientId))
+                using (Metrics.TimeMessageSend(this.clientId))
                 {
                     await this.client.SendEventBatchAsync(messages);
                     Events.SendMessage(this);
@@ -609,14 +615,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 "message_send_duration_milliseconds",
                 new Dictionary<string, string>
                 {
-                    ["Target"] = "IoTHub"
+                    ["to"] = "IoTHub"
                 });
 
             static readonly IMetricsMeter SentMessagesMeter = Util.Metrics.Metrics.Instance.CreateMeter(
                 "messages_sent",
                 new Dictionary<string, string>
                 {
-                    ["Target"] = "IoTHub"
+                    ["to"] = "IoTHub"
                 });
 
             static readonly IMetricsTimer GetTwinTimer = Util.Metrics.Metrics.Instance.CreateTimer(
@@ -647,12 +653,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     ["Target"] = "IoTHub"
                 });
 
+            static readonly IMetricsHistogram MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateHistogram(
+                "message_process_duration_milliseconds",
+                new Dictionary<string, string>
+                {
+                    ["to"] = "IoTHub"
+                });
+
             public static void AddGetTwin(string id)
             {
                 GetTwinMeter.Mark(
                     new Dictionary<string, string>
                     {
-                        ["Id"] = id
+                        ["id"] = id
                     });
             }
 
@@ -661,7 +674,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 ReportedPropertiesMeter.Mark(
                     new Dictionary<string, string>
                     {
-                        ["Id"] = id
+                        ["id"] = id
                     });
             }
 
@@ -670,7 +683,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 return ReportedPropertiesTimer.GetTimer(
                     new Dictionary<string, string>
                     {
-                        ["Id"] = id
+                        ["id"] = id
                     });
             }
 
@@ -679,7 +692,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 return GetTwinTimer.GetTimer(
                     new Dictionary<string, string>
                     {
-                        ["Id"] = id
+                        ["id"] = id
                     });
             }
 
@@ -689,16 +702,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     count,
                     new Dictionary<string, string>
                     {
-                        ["Id"] = id
+                        ["from"] = id
                     });
             }
 
-            public static IDisposable Time(string id)
+            public static IDisposable TimeMessageSend(string id)
             {
                 return MessagesTimer.GetTimer(new Dictionary<string, string>
                 {
-                    ["Id"] = id
+                    ["from"] = id
                 });
+            }
+
+            public static void MessageProcessingLatency(string id, IMessage message)
+            {
+                if (message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
+                    && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
+                {
+                    TimeSpan duration = DateTime.UtcNow - enqueuedTime.ToUniversalTime();
+                    MessagesProcessLatency.Update(
+                        (long)duration.TotalMilliseconds,
+                        new Dictionary<string, string>
+                        {
+                            ["from"] = id
+                        });
+                }
             }
         }
     }

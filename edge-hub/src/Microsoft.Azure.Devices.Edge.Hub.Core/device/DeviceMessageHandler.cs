@@ -264,7 +264,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 this.messageTaskCompletionSources.TryAdd(lockToken, taskCompletionSource);
                 Task completedTask;
 
-                using (Metrics.TimeMessages(this.Identity))
+                using (Metrics.TimeMessageSend(this.Identity, message))
                 {
                     Metrics.MessageProcessingLatency(this.Identity, message);
                     Events.SendingMessage(this.Identity, lockToken);
@@ -420,10 +420,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         {
             static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "message_send_duration_milliseconds",
-                new Dictionary<string, string>
-                {
-                    ["Target"] = "module"
-                });
+                new Dictionary<string, string>());
 
             static readonly IMetricsHistogram MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateHistogram(
                 "message_process_duration_milliseconds",
@@ -433,28 +430,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 "gettwin_duration_milliseconds",
                 new Dictionary<string, string>
                 {
-                    ["Target"] = "module"
+                    ["target"] = "module"
                 });
 
             static readonly IMetricsTimer ReportedPropertiesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "reported_properties_update_duration_milliseconds",
                 new Dictionary<string, string>
                 {
-                    ["Target"] = "module"
+                    ["target"] = "module"
                 });
 
             static readonly IMetricsMeter GetTwinMeter = Util.Metrics.Metrics.Instance.CreateMeter(
                 "gettwin",
                 new Dictionary<string, string>
                 {
-                    ["Target"] = "module"
+                    ["target"] = "module"
                 });
 
             static readonly IMetricsMeter ReportedPropertiesMeter = Util.Metrics.Metrics.Instance.CreateMeter(
                 "reported_properties_update",
                 new Dictionary<string, string>
                 {
-                    ["Target"] = "module"
+                    ["target"] = "module"
                 });
 
             public static void AddGetTwin(IIdentity identity)
@@ -462,16 +459,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 GetTwinMeter.Mark(
                     new Dictionary<string, string>
                     {
-                        ["Id"] = identity.Id
+                        ["id"] = identity.Id
                     });
             }
 
-            public static IDisposable TimeMessages(IIdentity identity)
+            public static IDisposable TimeMessageSend(IIdentity identity, IMessage message)
             {
+                string from = message.GetSenderId();
+                string to = identity.Id;
+
                 return MessagesTimer.GetTimer(
                     new Dictionary<string, string>
                     {
-                        ["Id"] = identity.Id
+                        ["from"] = from,
+                        ["to"] = to,
                     });
             }
 
@@ -480,7 +481,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 ReportedPropertiesMeter.Mark(
                     new Dictionary<string, string>
                     {
-                        ["Id"] = identity.Id
+                        ["id"] = identity.Id
                     });
             }
 
@@ -489,7 +490,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 return ReportedPropertiesTimer.GetTimer(
                     new Dictionary<string, string>
                     {
-                        ["Id"] = identity.Id
+                        ["id"] = identity.Id
                     });
             }
 
@@ -498,12 +499,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 return GetTwinTimer.GetTimer(
                     new Dictionary<string, string>
                     {
-                        ["Id"] = identity.Id
+                        ["id"] = identity.Id
                     });
             }
 
             public static void MessageProcessingLatency(IIdentity identity, IMessage message)
             {
+                string from = message.GetSenderId();
+                string to = identity.Id;
+
                 if (message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
                     && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
                 {
@@ -512,7 +516,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                         (long)duration.TotalMilliseconds,
                         new Dictionary<string, string>
                         {
-                            ["Id"] = identity.Id
+                            ["from"] = from,
+                            ["to"] = to
                         });
                 }
             }

@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 message.SystemProperties[SystemProperties.OutboundUri] = Constants.OutboundUriModuleEndpoint;
                 IProtocolGatewayMessage pgMessage = this.messageConverter.FromMessage(message);
                 this.channel.Handle(pgMessage);
-                Metrics.AddSentMessage(this.Identity);
+                Metrics.AddSentMessage(this.Identity, message);
                 result = true;
             }
 
@@ -165,17 +165,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 "messages_sent",
                 new Dictionary<string, string>
                 {
-                    ["Protocol"] = "Mqtt",
-                    ["Target"] = "module",
+                    ["Protocol"] = "Mqtt"
                 });
 
-            public static void AddSentMessage(IIdentity identity)
+            public static void AddSentMessage(IIdentity identity, IMessage message)
             {
+                string from = message.GetSenderId();
+                string to = identity.Id;
                 SentMessagesMeter.Mark(
                     1,
                     new Dictionary<string, string>
                     {
-                        ["Id"] = identity.Id
+                        ["from"] = from,
+                        ["to"] = to
                     });
             }
         }

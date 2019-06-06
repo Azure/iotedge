@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             await this.DeviceListener.AddSubscription(DeviceSubscription.ModuleMessages);
         }
 
-        protected override void OnMessageSent() => Metrics.AddSentMessage(this.Identity);
+        protected override void OnMessageSent(IMessage message) => Metrics.AddSentMessage(this.Identity, message);
 
         static class Metrics
         {
@@ -46,16 +46,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 "messages_sent",
                 new Dictionary<string, string>
                 {
-                    ["Protocol"] = "Amqp",
-                    ["Target"] = "module",
+                    ["Protocol"] = "Amqp"
                 });
 
-            public static void AddSentMessage(IIdentity identity)
+            public static void AddSentMessage(IIdentity identity, IMessage message)
             {
+                string from = message.GetSenderId();
+                string to = identity.Id;
                 SentMessagesMeter.Mark(
                     new Dictionary<string, string>
                     {
-                        ["Id"] = identity.Id
+                        ["from"] = from,
+                        ["to"] = to
                     });
             }
         }
