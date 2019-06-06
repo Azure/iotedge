@@ -27,8 +27,6 @@ jobs:
           sudo apt-get install lcov
         workingDirectory: edgelet
         displayName: Install code coverage tools
-      - script: edgelet/build/linux/check-submodules.sh
-        displayName: Check submodules
       - script: cargo +nightly build --verbose
         displayName: Build
         workingDirectory: edgelet
