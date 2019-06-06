@@ -80,7 +80,8 @@ where
         api_version: &str,
         name: &str,
         request: ::models::IdentityCertificateRequest,
-    ) -> Box<dyn Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -148,7 +149,8 @@ where
         name: &str,
         genid: &str,
         request: ::models::ServerCertificateRequest,
-    ) -> Box<dyn Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -420,7 +422,8 @@ where
     fn trust_bundle(
         &self,
         api_version: &str,
-    ) -> Box<dyn Future<Item = ::models::TrustBundleResponse, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = ::models::TrustBundleResponse, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;

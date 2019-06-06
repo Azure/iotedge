@@ -41,6 +41,7 @@ jobs:
         displayName: Assemble code coverage results
         workingDirectory: edgelet
       - task: PublishCodeCoverageResults@1
+        displayName: Publish code coverage results
         inputs:
           codeCoverageTool: cobertura
           summaryFileLocation: "edgelet/target/coverage.xml"
