@@ -27,10 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
     public class RoutingModule : Module
     {
-        readonly string iotHubName;
-        readonly string edgeDeviceId;
-        readonly string edgeModuleId;
-        readonly Option<string> connectionString;
+        readonly EdgeHubConnectionInformation edgeHubConnectionInformation;
         readonly IDictionary<string, string> routes;
         readonly StoreAndForwardConfiguration storeAndForwardConfiguration;
         readonly int connectionPoolSize;
@@ -53,10 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly TimeSpan configUpdateFrequency;
 
         public RoutingModule(
-            string iotHubName,
-            string edgeDeviceId,
-            string edgeModuleId,
-            Option<string> connectionString,
+            EdgeHubConnectionInformation edgeHubConnectionInformation,
             IDictionary<string, string> routes,
             bool isStoreAndForwardEnabled,
             StoreAndForwardConfiguration storeAndForwardConfiguration,
@@ -78,12 +72,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool disableCloudSubscriptions,
             TimeSpan configUpdateFrequency)
         {
-            this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
-            this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
-            this.connectionString = Preconditions.CheckNotNull(connectionString, nameof(connectionString));
+            this.edgeHubConnectionInformation = Preconditions.CheckNotNull(edgeHubConnectionInformation, nameof(edgeHubConnectionInformation));
             this.routes = Preconditions.CheckNotNull(routes, nameof(routes));
             this.storeAndForwardConfiguration = Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
-            this.edgeModuleId = edgeModuleId;
             this.isStoreAndForwardEnabled = isStoreAndForwardEnabled;
             this.connectionPoolSize = connectionPoolSize;
             this.useTwinConfig = useTwinConfig;
@@ -227,7 +218,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IIdentityProvider
-            builder.Register(_ => new IdentityProvider(this.iotHubName))
+            builder.Register(_ => new IdentityProvider(this.edgeHubConnectionInformation.IotHubHostname))
                 .As<IIdentityProvider>()
                 .SingleInstance();
 
@@ -256,7 +247,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         var messageConverter = c.Resolve<Core.IMessageConverter<IRoutingMessage>>();
                         IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                        return new EndpointFactory(connectionManager, messageConverter, this.edgeDeviceId, this.maxUpstreamBatchSize, this.upstreamFanOutFactor) as IEndpointFactory;
+                        return new EndpointFactory(connectionManager, messageConverter, this.edgeHubConnectionInformation.EdgeDeviceId, this.maxUpstreamBatchSize, this.upstreamFanOutFactor) as IEndpointFactory;
                     })
                 .As<Task<IEndpointFactory>>()
                 .SingleInstance();
@@ -296,7 +287,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         {
                             var endpointExecutorFactory = c.Resolve<IEndpointExecutorFactory>();
                             var routerConfig = c.Resolve<RouterConfig>();
-                            Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), this.iotHubName, routerConfig, endpointExecutorFactory);
+                            Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), this.edgeHubConnectionInformation.IotHubHostname, routerConfig, endpointExecutorFactory);
                             return router;
                         })
                     .As<Task<Router>>()
@@ -392,7 +383,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var checkpointStore = c.Resolve<ICheckpointStore>();
                             var routerConfig = c.Resolve<RouterConfig>();
                             var endpointExecutorFactory = c.Resolve<IEndpointExecutorFactory>();
-                            return await Router.CreateAsync(Guid.NewGuid().ToString(), this.iotHubName, routerConfig, endpointExecutorFactory, checkpointStore);
+                            return await Router.CreateAsync(Guid.NewGuid().ToString(), this.edgeHubConnectionInformation.IotHubHostname, routerConfig, endpointExecutorFactory, checkpointStore);
                         })
                     .As<Task<Router>>()
                     .SingleInstance();
@@ -435,8 +426,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     c =>
                     {
                         var identityFactory = c.Resolve<IClientCredentialsFactory>();
-                        IClientCredentials edgeHubCredentials = this.connectionString.Map(cs => identityFactory.GetWithConnectionString(cs)).GetOrElse(
-                            () => identityFactory.GetWithIotEdged(this.edgeDeviceId, this.edgeModuleId));
+                        IClientCredentials edgeHubCredentials = this.edgeHubConnectionInformation.ConnectionString.Map(cs => identityFactory.GetWithConnectionString(cs)).GetOrElse(
+                            () => identityFactory.GetWithIotEdged(this.edgeHubConnectionInformation.EdgeDeviceId, this.edgeHubConnectionInformation.EdgeModuleId));
                         return edgeHubCredentials;
                     })
                 .Named<IClientCredentials>("EdgeHubCredentials")
@@ -493,7 +484,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             routingMessageConverter,
                             connectionManager,
                             twinManager,
-                            this.edgeDeviceId,
+                            this.edgeHubConnectionInformation.EdgeModuleId,
                             invokeMethodHandler,
                             subscriptionProcessor);
                         return hub;

@@ -21,13 +21,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     public class CommonModule : Module
     {
         readonly string productInfo;
-        readonly string iothubHostName;
-        readonly string edgeDeviceId;
-        readonly string edgeHubModuleId;
-        readonly string edgeDeviceHostName;
+        readonly EdgeHubConnectionInformation edgeHubConnectionInformation;
         readonly Option<string> edgeHubGenerationId;
         readonly AuthenticationMode authenticationMode;
-        readonly Option<string> edgeHubConnectionString;
         readonly bool optimizeForPerformance;
         readonly bool usePersistentStorage;
         readonly string storagePath;
@@ -40,13 +36,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
         public CommonModule(
             string productInfo,
-            string iothubHostName,
-            string edgeDeviceId,
-            string edgeHubModuleId,
-            string edgeDeviceHostName,
+            EdgeHubConnectionInformation edgeHubConnectionInformation,
             Option<string> edgeHubGenerationId,
             AuthenticationMode authenticationMode,
-            Option<string> edgeHubConnectionString,
             bool optimizeForPerformance,
             bool usePersistentStorage,
             string storagePath,
@@ -58,13 +50,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             string proxy)
         {
             this.productInfo = productInfo;
-            this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
-            this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
-            this.edgeHubModuleId = Preconditions.CheckNonWhiteSpace(edgeHubModuleId, nameof(edgeHubModuleId));
-            this.edgeDeviceHostName = Preconditions.CheckNotNull(edgeDeviceHostName, nameof(edgeDeviceHostName));
+            this.edgeHubConnectionInformation = Preconditions.CheckNotNull(edgeHubConnectionInformation, nameof(edgeHubConnectionInformation));
             this.edgeHubGenerationId = edgeHubGenerationId;
             this.authenticationMode = authenticationMode;
-            this.edgeHubConnectionString = edgeHubConnectionString;
             this.optimizeForPerformance = optimizeForPerformance;
             this.usePersistentStorage = usePersistentStorage;
             this.storagePath = storagePath;
@@ -82,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     c =>
                     {
-                        ISignatureProvider signatureProvider = this.edgeHubConnectionString.Map(
+                        ISignatureProvider signatureProvider = this.edgeHubConnectionInformation.ConnectionString.Map(
                                 cs =>
                                 {
                                     IotHubConnectionStringBuilder csBuilder = IotHubConnectionStringBuilder.Create(cs);
@@ -94,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                     string edgeHubGenerationId = this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Generation ID missing"));
                                     string workloadUri = this.workloadUri.Expect(() => new InvalidOperationException("workloadUri is missing"));
                                     string workloadApiVersion = this.workloadApiVersion.Expect(() => new InvalidOperationException("workloadUri version is missing"));
-                                    return new HttpHsmSignatureProvider(this.edgeHubModuleId, edgeHubGenerationId, workloadUri, workloadApiVersion, Constants.WorkloadApiVersion) as ISignatureProvider;
+                                    return new HttpHsmSignatureProvider(this.edgeHubConnectionInformation.EdgeModuleId, edgeHubGenerationId, workloadUri, workloadApiVersion, Constants.WorkloadApiVersion) as ISignatureProvider;
                                 });
                         return signatureProvider;
                     })
@@ -169,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                         new Uri(uri),
                                         this.workloadApiVersion.Expect(() => new InvalidOperationException("Missing workload API version")),
                                         Constants.WorkloadApiVersion,
-                                        this.edgeHubModuleId,
+                                        this.edgeHubConnectionInformation.EdgeModuleId,
                                         this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
                                         Constants.InitializationVectorFileName) as IEncryptionProvider;
                                     return Option.Some(encryptionProvider);
@@ -186,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // ITokenProvider
-            builder.Register(c => new ClientTokenProvider(c.Resolve<ISignatureProvider>(), this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, TimeSpan.FromHours(1)))
+            builder.Register(c => new ClientTokenProvider(c.Resolve<ISignatureProvider>(), this.edgeHubConnectionInformation.IotHubHostname, this.edgeHubConnectionInformation.EdgeDeviceId, this.edgeHubConnectionInformation.EdgeModuleId, TimeSpan.FromHours(1)))
                 .Named<ITokenProvider>("EdgeHubClientAuthTokenProvider")
                 .SingleInstance();
 
@@ -194,9 +182,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     c =>
                     {
-                        string deviceId = WebUtility.UrlEncode(this.edgeDeviceId);
-                        string moduleId = WebUtility.UrlEncode(this.edgeHubModuleId);
-                        return new ClientTokenProvider(c.Resolve<ISignatureProvider>(), this.iothubHostName, deviceId, moduleId, TimeSpan.FromHours(1));
+                        string deviceId = WebUtility.UrlEncode(this.edgeHubConnectionInformation.EdgeDeviceId);
+                        string moduleId = WebUtility.UrlEncode(this.edgeHubConnectionInformation.EdgeModuleId);
+                        return new ClientTokenProvider(c.Resolve<ISignatureProvider>(), this.edgeHubConnectionInformation.IotHubHostname, deviceId, moduleId, TimeSpan.FromHours(1));
                     })
                 .Named<ITokenProvider>("EdgeHubServiceAuthTokenProvider")
                 .SingleInstance();
@@ -220,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         {
                             var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
                             var proxy = c.Resolve<Option<IWebProxy>>();
-                            IDeviceScopeApiClient securityScopesApiClient = new DeviceScopeApiClient(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, proxy);
+                            IDeviceScopeApiClient securityScopesApiClient = new DeviceScopeApiClient(this.edgeHubConnectionInformation.IotHubHostname, this.edgeHubConnectionInformation.EdgeDeviceId, this.edgeHubConnectionInformation.EdgeModuleId, 10, edgeHubTokenProvider, proxy);
                             IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClient);
                             IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "DeviceScopeCache");
                             deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
@@ -275,12 +263,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 break;
 
                             case AuthenticationMode.Scope:
-                                tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, new NullAuthenticator(), true, true);
+                                tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.edgeHubConnectionInformation.IotHubHostname, this.edgeHubConnectionInformation.EdgeDeviceHostName, new NullAuthenticator(), true, true);
                                 break;
 
                             default:
                                 IAuthenticator cloudTokenAuthenticator = await this.GetCloudTokenAuthenticator(c);
-                                tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, cloudTokenAuthenticator, true, true);
+                                tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.edgeHubConnectionInformation.IotHubHostname, this.edgeHubConnectionInformation.EdgeDeviceHostName, cloudTokenAuthenticator, true, true);
                                 break;
                         }
 
@@ -350,12 +338,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             ICredentialsCache credentialsCache = await credentialsCacheTask;
             if (this.persistTokens)
             {
-                IAuthenticator authenticator = new CloudTokenAuthenticator(connectionManager, this.iothubHostName);
-                tokenAuthenticator = new TokenCacheAuthenticator(authenticator, credentialsCache, this.iothubHostName);
+                IAuthenticator authenticator = new CloudTokenAuthenticator(connectionManager, this.edgeHubConnectionInformation.IotHubHostname);
+                tokenAuthenticator = new TokenCacheAuthenticator(authenticator, credentialsCache, this.edgeHubConnectionInformation.IotHubHostname);
             }
             else
             {
-                tokenAuthenticator = new CloudTokenAuthenticator(connectionManager, this.iothubHostName);
+                tokenAuthenticator = new CloudTokenAuthenticator(connectionManager, this.edgeHubConnectionInformation.IotHubHostname);
             }
 
             return tokenAuthenticator;

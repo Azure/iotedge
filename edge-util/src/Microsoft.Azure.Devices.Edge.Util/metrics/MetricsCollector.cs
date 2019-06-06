@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 
         public static IMetricsProvider Instance { get; private set; } = new NullMetricsProvider();
 
-        public static void InitPrometheusMetrics(IConfiguration configuration)
+        public static void InitMetricsListener(IConfiguration configuration, string deviceId)
         {
             bool enabled = configuration.GetValue("enabled", false);
             if (enabled)
@@ -35,17 +35,17 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
                 }
 
                 string url = GetMetricsListenerUrlPrefix(host, port, suffix);
-                InitPrometheusMetrics(url);
+                InitMetricsListener(url, deviceId);
             }
         }
 
-        public static void InitPrometheusMetrics(string prefixUrl)
+        public static void InitMetricsListener(string prefixUrl, string deviceId)
         {
             lock (StateLock)
             {
                 if (!metricsListener.HasValue)
                 {
-                    Instance = MetricsProvider.Create();
+                    Instance = MetricsProvider.Create(deviceId);
                     metricsListener = Option.Some(new MetricsListener(prefixUrl, Instance));
                 }
             }

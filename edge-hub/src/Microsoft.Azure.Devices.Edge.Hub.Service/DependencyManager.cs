@@ -20,42 +20,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     class DependencyManager : IDependencyManager
     {
-        readonly IConfigurationRoot configuration;
+        readonly IConfiguration configuration;
         readonly X509Certificate2 serverCertificate;
         readonly IList<X509Certificate2> trustBundle;
 
-        readonly string iotHubHostname;
-        readonly string edgeDeviceId;
-        readonly string edgeModuleId;
-        readonly string edgeDeviceHostName;
-        readonly Option<string> connectionString;
+        readonly EdgeHubConnectionInformation edgeHubConnectionInformation;
         readonly VersionInfo versionInfo;
 
-        public DependencyManager(IConfigurationRoot configuration, X509Certificate2 serverCertificate, IList<X509Certificate2> trustBundle)
+        public DependencyManager(IConfiguration configuration, EdgeHubConnectionInformation edgeHubConnectionInformation, X509Certificate2 serverCertificate, IList<X509Certificate2> trustBundle)
         {
             this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
             this.serverCertificate = Preconditions.CheckNotNull(serverCertificate, nameof(serverCertificate));
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
-
-            string edgeHubConnectionString = this.configuration.GetValue<string>(Constants.ConfigKey.IotHubConnectionString);
-            if (!string.IsNullOrWhiteSpace(edgeHubConnectionString))
-            {
-                IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeHubConnectionString);
-                this.iotHubHostname = iotHubConnectionStringBuilder.HostName;
-                this.edgeDeviceId = iotHubConnectionStringBuilder.DeviceId;
-                this.edgeModuleId = iotHubConnectionStringBuilder.ModuleId;
-                this.edgeDeviceHostName = this.configuration.GetValue(Constants.ConfigKey.EdgeDeviceHostName, string.Empty);
-                this.connectionString = Option.Some(edgeHubConnectionString);
-            }
-            else
-            {
-                this.iotHubHostname = this.configuration.GetValue<string>(Constants.ConfigKey.IotHubHostname);
-                this.edgeDeviceId = this.configuration.GetValue<string>(Constants.ConfigKey.DeviceId);
-                this.edgeModuleId = this.configuration.GetValue<string>(Constants.ConfigKey.ModuleId);
-                this.edgeDeviceHostName = this.configuration.GetValue<string>(Constants.ConfigKey.EdgeDeviceHostName);
-                this.connectionString = Option.None<string>();
-            }
-
+            this.edgeHubConnectionInformation = Preconditions.CheckNotNull(edgeHubConnectionInformation);
             this.versionInfo = VersionInfo.Get(Constants.VersionInfoFileName);
         }
 
@@ -83,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             builder.RegisterModule(new HttpModule());
         }
 
-        internal static Option<UpstreamProtocol> GetUpstreamProtocol(IConfigurationRoot configuration) =>
+        internal static Option<UpstreamProtocol> GetUpstreamProtocol(IConfiguration configuration) =>
             Enum.TryParse(configuration.GetValue("UpstreamProtocol", string.Empty), true, out UpstreamProtocol upstreamProtocol)
                 ? Option.Some(upstreamProtocol)
                 : Option.None<UpstreamProtocol>();
@@ -92,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             IConfiguration amqpSettings = this.configuration.GetSection("amqpSettings");
             bool clientCertAuthEnabled = this.configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
-            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), this.serverCertificate, this.iotHubHostname, clientCertAuthEnabled));
+            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), this.serverCertificate, this.edgeHubConnectionInformation.IotHubHostname, clientCertAuthEnabled));
         }
 
         void RegisterMqttModule(ContainerBuilder builder, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward, bool optimizeForPerformance)
@@ -139,10 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             builder.RegisterModule(
                 new RoutingModule(
-                    this.iotHubHostname,
-                    this.edgeDeviceId,
-                    this.edgeModuleId,
-                    this.connectionString,
+                    this.edgeHubConnectionInformation,
                     routes,
                     storeAndForward.isEnabled,
                     storeAndForward.config,
@@ -187,13 +161,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             builder.RegisterModule(
                 new CommonModule(
                     productInfo,
-                    this.iotHubHostname,
-                    this.edgeDeviceId,
-                    this.edgeModuleId,
-                    this.edgeDeviceHostName,
+                    this.edgeHubConnectionInformation,
                     moduleGenerationId,
                     authenticationMode,
-                    this.connectionString,
                     optimizeForPerformance,
                     storeAndForward.usePersistentStorage,
                     storeAndForward.storagePath,

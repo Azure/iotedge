@@ -95,18 +95,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
                 });
 
+            var edgeDeviceConnectionInformation = new EdgeHubConnectionInformation(
+                iotHubConnectionStringBuilder.HostName,
+                iotHubConnectionStringBuilder.DeviceId,
+                iotHubConnectionStringBuilder.ModuleId,
+                string.Empty,
+                Option.Some(edgeHubConnectionString));
+
             var versionInfo = new VersionInfo("v1", "b1", "c1");
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(-1);
             builder.RegisterModule(
                 new CommonModule(
                     string.Empty,
-                    iotHubConnectionStringBuilder.HostName,
-                    iotHubConnectionStringBuilder.DeviceId,
-                    iotHubConnectionStringBuilder.ModuleId,
-                    string.Empty,
+                    edgeDeviceConnectionInformation,
                     Option.None<string>(),
                     AuthenticationMode.CloudAndScope,
-                    Option.Some(edgeHubConnectionString),
                     false,
                     false,
                     string.Empty,
@@ -119,10 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             builder.RegisterModule(
                 new RoutingModule(
-                    iotHubConnectionStringBuilder.HostName,
-                    iotHubConnectionStringBuilder.DeviceId,
-                    iotHubConnectionStringBuilder.ModuleId,
-                    Option.Some(edgeHubConnectionString),
+                    edgeDeviceConnectionInformation,
                     this.routes,
                     false,
                     storeAndForwardConfiguration,

@@ -46,11 +46,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 Routing.LoggerFactory = Logger.Factory;
             }
 
-            Metrics.InitPrometheusMetrics(configuration.GetSection("metrics"));
+            var edgeHubConnectionInformation = new EdgeHubConnectionInformation(configuration);
+            Metrics.InitMetricsListener(configuration.GetSection("metrics"), edgeHubConnectionInformation.EdgeDeviceId);
 
             EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration);
             bool clientCertAuthEnabled = configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
-            Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, new DependencyManager(configuration, certificates.ServerCertificate, certificates.TrustBundle), clientCertAuthEnabled);
+            Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, new DependencyManager(configuration, edgeHubConnectionInformation, certificates.ServerCertificate, certificates.TrustBundle), clientCertAuthEnabled);
             IContainer container = hosting.Container;
 
             ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
