@@ -4,7 +4,7 @@ use super::configuration::Configuration;
 use hyper;
 
 pub struct APIClient {
-    workload_api: Box<::apis::WorkloadApi>,
+    workload_api: Box<dyn (::apis::WorkloadApi)>,
 }
 
 impl APIClient {
@@ -19,7 +19,7 @@ impl APIClient {
         }
     }
 
-    pub fn workload_api(&self) -> &::apis::WorkloadApi {
+    pub fn workload_api(&self) -> &dyn (::apis::WorkloadApi) {
         self.workload_api.as_ref()
     }
 }
