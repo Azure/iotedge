@@ -16,8 +16,9 @@
 # Configures the identity provisioning mode of the daemon.
 #
 # Supported modes:
-#     manual - using an iothub connection string
-#     dps    - using dps for provisioning
+#     manual   - using an iothub connection string
+#     dps      - using dps for provisioning
+#     external - the device has been provisioned externally. Uses an external provisioning endpoint to get device specific information.
 #
 # DPS Settings
 #     scope_id - Required. Value of a specific DPS instance's ID scope
@@ -25,6 +26,8 @@
 #     symmetric_key - Optional. This entry should only be specified when
 #                     provisioning devices configured for symmetric key
 #                     attestation
+# External Settings
+#     endpoint - Required. Value of the endpoint used to retrieve device specific information such as its IoT hub connection information.
 ###############################################################################
 
 # Manual provisioning configuration
@@ -61,6 +64,11 @@ provisioning:
 #     registration_id: "<OPTIONAL REGISTRATION ID. IF UNSPECIFIED CAN BE OBTAINED FROM CN OF identity_cert"
 #     identity_cert: "<REQUIRED PATH TO DEVICE IDENTITY CERTIFICATE HERE>"
 #     identity_pk: "<REQUIRED PATH TO DEVICE IDENTITY PRIVATE KEY HERE>"
+
+# External provisioning configuration
+# provisioning:
+#   source: "external"
+#   endpoint: "http://localhost:9999"
 
 ###############################################################################
 # Certificate settings

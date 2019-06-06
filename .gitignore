@@ -313,6 +313,9 @@ stylecop.json
 # JetBrains Rider files
 .idea/
 
+# IntelliJ idea files
+*.iml
+
 # linux dev files
 *.swp
 *.swo
