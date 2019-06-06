@@ -44,9 +44,9 @@ jobs:
         displayName: Publish code coverage results
         inputs:
           codeCoverageTool: cobertura
-          summaryFileLocation: "target/coverage.xml"
-          reportDirectory: "target/report"
-        workingDirectory: edgelet
+          summaryFileLocation: "edgelet/target/coverage.xml"
+          reportDirectory: "edgelet/target/report"
+          pathToSources: "$(System.DefaultWorkingDirectory)/edgelet"
 
 ################################################################################
   - job: linux_arm32v7
