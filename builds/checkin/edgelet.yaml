@@ -121,6 +121,7 @@ jobs:
     displayName: Code Coverage
     variables:
       coverage.excludes: "docker-rs*"         # comma separated exclude patterns
+      coverage.goal: 68
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
@@ -159,6 +160,7 @@ jobs:
         displayName: 'Check build quality'
         inputs:
           checkCoverage: true
+          coverageFailOption: fixed
           coverageType: lines
-          coverageDeltaType: percentage
+          coverageThreshold: $(coverage.goal)
 
