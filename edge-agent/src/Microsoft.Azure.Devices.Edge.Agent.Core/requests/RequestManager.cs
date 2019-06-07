@@ -80,17 +80,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
             enum EventIds
             {
-                ScheduledModule = IdStart + 1,
-                HandlingRequest,
+                HandlingRequest = IdStart + 1,
                 ErrorHandlingRequest
-            }
-
-            public static void ScheduledModule(IRuntimeModule module, TimeSpan elapsedTime, TimeSpan coolOffPeriod)
-            {
-                TimeSpan timeLeft = coolOffPeriod - elapsedTime;
-                Log.LogInformation(
-                    (int)EventIds.ScheduledModule,
-                    $"Module '{module.Name}' scheduled to restart after {coolOffPeriod.Humanize()} ({timeLeft.Humanize()} left).");
             }
 
             public static void ErrorHandlingRequest(string request, Exception exception)
@@ -104,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                     (int)EventIds.HandlingRequest,
                     string.IsNullOrWhiteSpace(payloadJson)
                         ? $"Received request {request}"
-                        : $"Received request {request} with payload {payloadJson}");
+                        : $"Received request {request} with payload");
             }
 
             public static void HandledRequest(string request)
