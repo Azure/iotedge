@@ -35,7 +35,7 @@ jobs:
         workingDirectory: edgelet
       - script: |
           zip -0 ccov.zip `find ./target \( -name "*.gc*" \) -print`
-          ./grcov ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore-dir "/*" > target/lcov.info
+          ./grcov ccov.zip -s $(System.DefaultWorkingDirectory)/edgelet -t lcov --llvm --branch --ignore-not-existing --ignore-dir "/*" > target/lcov.info
           python lcov_cobertura.py target/lcov.info --output target/coverage.xml --demangle
           genhtml -o target/report/ --show-details --highlight --ignore-errors source --legend target/lcov.info
         displayName: Assemble code coverage results
@@ -46,7 +46,6 @@ jobs:
           codeCoverageTool: cobertura
           summaryFileLocation: "edgelet/target/coverage.xml"
           reportDirectory: "edgelet/target/report"
-          pathToSources: "$(System.DefaultWorkingDirectory)/edgelet"
 
 ################################################################################
   - job: linux_arm32v7
