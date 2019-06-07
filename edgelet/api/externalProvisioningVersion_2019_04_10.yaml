@@ -1,0 +1,100 @@
+swagger: '2.0'
+schemes:
+  - http
+info:
+  title: IoT Edge External Provisioning Environment API
+  version: '2019-04-10'
+tags:
+  - name: ExternalProvisioning
+    x-displayName: ExternalProvisioning
+    description: |
+
+paths:
+  '/device/provisioninginformation':
+    get:
+      tags:
+        - ExternalProvisioning
+      summary: Gets the IoT hub provisioning information of the device.
+      produces:
+        - application/json
+      description: |
+        This returns the IoT hub provisioning information of the device.
+      operationId: GetDeviceProvisioningInformation
+      parameters:
+        - $ref: '#/parameters/api-version'
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/DeviceProvisioningInfo'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
+definitions:
+  DeviceProvisioningInfo:
+    type: object
+    properties:
+      hubName:
+        type: string
+        description: The host name of the IoT hub.
+        example: mytesthub.azure-devices.net
+      deviceId:
+        type: string
+        description: The ID of the device in IoT hub.
+        example: device01
+      credentials:
+        $ref: '#/definitions/Credentials'
+    required:
+      - hubName
+      - deviceId
+      - credentials
+  Credentials:
+    type: object
+    properties:
+      authType:
+        type: string
+        description: Indicates the type of authentication credential used.
+        enum:
+          - symmetric-key
+          - x509
+      source:
+        type: string
+        description: Indicates the source of the authentication credential.
+        enum:
+          - payload
+          - hsm
+      key:
+        type: string
+        format: byte
+        description: The symmetric key used for authentication. Specified only if the 'authType' is 'symmetric-key' and the 'source' is 'payload'.
+      identityCert:
+        type: string
+        format: byte
+        description: The identity certificate. Should be a PEM formatted byte array if the 'authType' is 'x509' and the 'source' is 'payload' or should be a reference to the certificate if the 'authType' is 'x509' and the 'source' is 'hsm'.
+      identityPrivateKey:
+        type: string
+        format: byte
+        description: The identity private key. Should be a PEM formatted byte array if the 'authType' is 'x509' and the 'source' is 'payload' or should be a reference to the private key if the 'authType' is 'x509' and the 'source' is 'hsm'.
+      
+    required:
+      - authType
+      - source
+
+  ErrorResponse:
+    type: object
+    properties:
+      message:
+        type: string
+    required:
+      - message
+
+parameters:
+  api-version:
+    name: api-version
+    in: query
+    description: The version of the API.
+    required: true
+    type: string
+    default: '2019-04-10'
