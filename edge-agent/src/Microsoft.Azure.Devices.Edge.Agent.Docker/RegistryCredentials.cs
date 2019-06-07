@@ -27,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         public override bool Equals(object obj) => this.Equals(obj as RegistryCredentials);
 
         public bool Equals(RegistryCredentials other) =>
+            other != null &&
             this.Address == other.Address &&
             this.Username == other.Username &&
             this.Password == other.Password;
