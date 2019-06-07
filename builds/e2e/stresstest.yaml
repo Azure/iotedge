@@ -447,10 +447,8 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        - is-server -equals true
+        - Agent.OSName -equals ServerCore
         - run-stress -equals true
-        - Agent.OS -equals Windows_NT
-        - Agent.OSArchitecture -equals X64
     variables:
       edgelet.artifact.name: 'iotedged-windows'
     steps:
