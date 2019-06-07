@@ -127,6 +127,7 @@ jobs:
           echo "##vso[task.setvariable variable=CARGO_INCREMENTAL;]0"
           echo "##vso[task.setvariable variable=RUSTFLAGS;]-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads"
           echo "##vso[task.setvariable variable=IOTEDGE_HOMEDIR;]/tmp"
+          echo "##vso[task.setvariable variable=CARGO;]${CARGO_HOME:-\"$HOME/.cargo\"}/bin/cargo"
         displayName: Set env variables
       - script: edgelet/build/linux/install.sh -t nightly
         displayName: Install Rust
@@ -135,10 +136,10 @@ jobs:
           curl -L https://raw.github.com/eriwen/lcov-to-cobertura-xml/master/lcov_cobertura/lcov_cobertura.py > lcov_cobertura.py
         workingDirectory: edgelet
         displayName: Install code coverage tools
-      - script: cargo +nightly build --verbose
+      - script: $CARGO +nightly build --verbose
         displayName: Build
         workingDirectory: edgelet
-      - script: cargo +nightly test --verbose
+      - script: $CARGO +nightly test --verbose
         displayName: Test
         workingDirectory: edgelet
       - script: |
