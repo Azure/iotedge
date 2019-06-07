@@ -4,10 +4,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     public class DockerRuntimeConfig : IEquatable<DockerRuntimeConfig>
     {
+        static readonly DictionaryComparer<string, RegistryCredentials> RegistryCredentialsDictionaryComparer = new DictionaryComparer<string, RegistryCredentials>();
+
         public DockerRuntimeConfig(string minDockerVersion, string loggingOptions)
             : this(minDockerVersion, null, loggingOptions)
         {
@@ -38,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public bool Equals(DockerRuntimeConfig other) =>
             other != null && this.MinDockerVersion == other.MinDockerVersion && this.LoggingOptions == other.LoggingOptions &&
-            EqualityComparer<IDictionary<string, RegistryCredentials>>.Default.Equals(this.RegistryCredentials, other.RegistryCredentials);
+            RegistryCredentialsDictionaryComparer.Equals(this.RegistryCredentials, other.RegistryCredentials);
 
         public override int GetHashCode()
         {
