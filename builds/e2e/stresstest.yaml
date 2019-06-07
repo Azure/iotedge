@@ -490,7 +490,7 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy-windows.yaml
         parameters:
-          release.label: 'st'
+          release.label: 'servercore-st'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
