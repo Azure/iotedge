@@ -24,7 +24,6 @@ jobs:
       - script: |
           curl -L https://github.com/mozilla/grcov/releases/download/v0.4.1/grcov-linux-x86_64.tar.bz2 | tar jxf -
           curl -L https://raw.github.com/eriwen/lcov-to-cobertura-xml/master/lcov_cobertura/lcov_cobertura.py > lcov_cobertura.py
-          sudo apt-get install lcov
         workingDirectory: edgelet
         displayName: Install code coverage tools
       - script: cargo +nightly build --verbose
@@ -37,7 +36,6 @@ jobs:
           zip -0 ccov.zip `find ./target \( -name "*.gc*" \) -print`
           ./grcov ccov.zip -s $(System.DefaultWorkingDirectory)/edgelet -t lcov --llvm --branch --ignore-not-existing --ignore-dir "/*" > target/lcov.info
           python lcov_cobertura.py target/lcov.info --output target/coverage.xml --demangle
-          genhtml -o target/report/ --show-details --highlight --ignore-errors source --legend target/lcov.info
         displayName: Assemble code coverage results
         workingDirectory: edgelet
       - task: PublishCodeCoverageResults@1
@@ -45,7 +43,6 @@ jobs:
         inputs:
           codeCoverageTool: cobertura
           summaryFileLocation: "edgelet/target/coverage.xml"
-          reportDirectory: "edgelet/target/report"
 
 ################################################################################
   - job: linux_arm32v7
