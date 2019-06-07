@@ -587,7 +587,9 @@ where
             .read_to_string(&mut buffer)
             .context(ErrorKind::CouldNotRestore)?;
         info!("Restoring device credentials from backup");
-        let prov_result = serde_json::from_str(&buffer).context(ErrorKind::CouldNotRestore)?;
+        let mut prov_result: ProvisioningResult =
+            serde_json::from_str(&buffer).context(ErrorKind::CouldNotRestore)?;
+        prov_result.reconfigure = ReprovisioningStatus::DeviceDataNotUpdated;
         Ok(prov_result)
     }
 
@@ -895,6 +897,39 @@ mod tests {
             .unwrap();
 
         let prov_wrapper_err = BackupProvisioning::new(TestProvisioning {}, file_path_clone);
+        let task1 = prov_wrapper_err
+            .provision(MemoryKeyStore::new())
+            .then(|result| {
+                let prov_result = result.expect("Unexpected");
+                assert_eq!(prov_result.device_id(), "TestDevice");
+                assert_eq!(prov_result.hub_name(), "TestHub");
+                assert_eq!(
+                    prov_result.reconfigure(),
+                    ReprovisioningStatus::DeviceDataNotUpdated
+                );
+                Ok::<_, Error>(())
+            });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task1)
+            .unwrap();
+    }
+
+    #[test]
+    fn provisioning_restore_no_reconfigure() {
+        let test_provisioner = TestProvisioning {};
+        let tmp_dir = TempDir::new("backup").unwrap();
+        let file_path = tmp_dir.path().join("dps_backup.json");
+        let file_path_clone = file_path.clone();
+        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path);
+        let task = prov_wrapper.provision(MemoryKeyStore::new());
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+
+        let prov_wrapper_err =
+            BackupProvisioning::new(TestProvisioningWithError {}, file_path_clone);
         let task1 = prov_wrapper_err
             .provision(MemoryKeyStore::new())
             .then(|result| {

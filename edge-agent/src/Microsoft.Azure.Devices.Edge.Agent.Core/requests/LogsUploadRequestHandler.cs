@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -36,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 Events.MismatchedMinorVersions(payload.SchemaVersion, ExpectedSchemaVersion);
             }
 
+            Events.ProcessingRequest(payload);
             ILogsRequestToOptionsMapper requestToOptionsMapper = new LogsRequestToOptionsMapper(
                 this.runtimeInfoProvider,
                 payload.Encoding,
@@ -70,12 +72,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
             enum EventIds
             {
-                MismatchedMinorVersions = IdStart
+                MismatchedMinorVersions = IdStart,
+                ProcessingRequest
             }
 
             public static void MismatchedMinorVersions(string payloadSchemaVersion, Version expectedSchemaVersion)
             {
                 Log.LogWarning((int)EventIds.MismatchedMinorVersions, $"Logs upload request schema version {payloadSchemaVersion} does not match expected schema version {expectedSchemaVersion}. Some settings may not be supported.");
+            }
+
+            public static void ProcessingRequest(LogsUploadRequest payload)
+            {
+                Log.LogInformation((int)EventIds.ProcessingRequest, $"Processing request to upload logs for {payload.ToJson()}");
             }
         }
     }
