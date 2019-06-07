@@ -1,5 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+mod create;
+
+pub use create::CreateModule;
+
 use edgelet_core::{Module, ModuleRuntimeState, ModuleStatus};
 use edgelet_docker::DockerConfig;
 use edgelet_utils::ensure_not_empty_with_context;
@@ -26,7 +30,7 @@ impl Module for KubeModule {
     type Config = DockerConfig;
     type Error = Error;
     type RuntimeStateFuture =
-        Box<dyn Future<Item = ModuleRuntimeState, Error = Self::Error> + Send>;
+    Box<dyn Future<Item = ModuleRuntimeState, Error = Self::Error> + Send>;
 
     fn name(&self) -> &str {
         &self.name
