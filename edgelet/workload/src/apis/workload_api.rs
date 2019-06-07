@@ -219,7 +219,8 @@ where
         name: &str,
         genid: &str,
         payload: crate::models::DecryptRequest,
-    ) -> Box<dyn Future<Item = crate::models::DecryptResponse, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::DecryptResponse, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -288,7 +289,8 @@ where
         name: &str,
         genid: &str,
         payload: crate::models::EncryptRequest,
-    ) -> Box<dyn Future<Item = crate::models::EncryptResponse, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::EncryptResponse, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -413,7 +415,8 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<crate::models::SignResponse, _> = serde_json::from_slice(&body);
+                    let parsed: Result<crate::models::SignResponse, _> =
+                        serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
         )

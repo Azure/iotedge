@@ -25,7 +25,11 @@ pub struct CertificateResponse {
 }
 
 impl CertificateResponse {
-    pub fn new(private_key: crate::models::PrivateKey, certificate: String, expiration: String) -> Self {
+    pub fn new(
+        private_key: crate::models::PrivateKey,
+        certificate: String,
+        expiration: String,
+    ) -> Self {
         CertificateResponse {
             private_key,
             certificate,
