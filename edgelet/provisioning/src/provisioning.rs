@@ -587,7 +587,8 @@ where
             .read_to_string(&mut buffer)
             .context(ErrorKind::CouldNotRestore)?;
         info!("Restoring device credentials from backup");
-        let mut prov_result: ProvisioningResult  = serde_json::from_str(&buffer).context(ErrorKind::CouldNotRestore)?;
+        let mut prov_result: ProvisioningResult =
+            serde_json::from_str(&buffer).context(ErrorKind::CouldNotRestore)?;
         prov_result.reconfigure = ReprovisioningStatus::DeviceDataNotUpdated;
         Ok(prov_result)
     }
@@ -927,7 +928,8 @@ mod tests {
             .block_on(task)
             .unwrap();
 
-        let prov_wrapper_err = BackupProvisioning::new(TestProvisioningWithError {}, file_path_clone);
+        let prov_wrapper_err =
+            BackupProvisioning::new(TestProvisioningWithError {}, file_path_clone);
         let task1 = prov_wrapper_err
             .provision(MemoryKeyStore::new())
             .then(|result| {
