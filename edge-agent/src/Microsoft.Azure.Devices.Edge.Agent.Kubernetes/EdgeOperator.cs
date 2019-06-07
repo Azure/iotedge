@@ -932,7 +932,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
 
             // TODO : Check return?
-            await this.client.CreateNamespacedPersistentVolumeClaimAsync(new V1PersistentVolumeClaim(spec: persistentVolumeClaimSpec), KubeUtils.K8sNamespace);
+            await this.client.CreateNamespacedPersistentVolumeClaimAsync(new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: name), spec: persistentVolumeClaimSpec), KubeUtils.K8sNamespace);
         }
 
         List<V1EnvVar> CollectEnv(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig, KubernetesModuleIdentity identity)
