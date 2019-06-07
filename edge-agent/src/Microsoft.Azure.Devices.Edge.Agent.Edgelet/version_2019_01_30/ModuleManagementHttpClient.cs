@@ -215,7 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             {
                 Name = moduleSpec.Name,
                 Type = moduleSpec.Type,
-                PullPolicy = ToGeneratedCodePullPolicy(moduleSpec.PullPolicy),
+                ImagePullPolicy = ToGeneratedCodePullPolicy(moduleSpec.ImagePullPolicy),
                 Config = new Config()
                 {
                     Env = new ObservableCollection<EnvVar>(
@@ -230,18 +230,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             };
         }
 
-        internal static GeneratedCode.PullPolicy? ToGeneratedCodePullPolicy(Core.PullPolicy pullPolicy)
+        internal static GeneratedCode.ImagePullPolicy ToGeneratedCodePullPolicy(Core.ImagePullPolicy imagePullPolicy)
         {
-            GeneratedCode.PullPolicy? resultantPullPolicy = null;
-            switch (pullPolicy)
+            GeneratedCode.ImagePullPolicy resultantPullPolicy;
+            switch (imagePullPolicy)
             {
-                case Core.PullPolicy.None:
-                case Core.PullPolicy.IfNotPresent:
-                    resultantPullPolicy = GeneratedCode.PullPolicy.IfNotPresent;
+                case Core.ImagePullPolicy.OnCreate:
+                    resultantPullPolicy = GeneratedCode.ImagePullPolicy.OnCreate;
                     break;
-                case Core.PullPolicy.Never:
-                    resultantPullPolicy = GeneratedCode.PullPolicy.Never;
+                case Core.ImagePullPolicy.Never:
+                    resultantPullPolicy = GeneratedCode.ImagePullPolicy.Never;
                     break;
+                default:
+                    throw new InvalidOperationException("Translation of this image pull policy type is not configured.");
             }
 
             return resultantPullPolicy;

@@ -21,17 +21,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         static readonly TestConfig Config2 = new TestConfig("image2");
         static readonly TestConfig Config3 = new TestConfig("image1");
 
-        static readonly IModule Module1 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.IfNotPresent, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module2 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.IfNotPresent, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module3 = new TestModule("mod3", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.IfNotPresent, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module4 = new TestModule("mod1", "version2", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.IfNotPresent, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module5 = new TestModule("mod1", "version1", "type2", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.IfNotPresent, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module6 = new TestModule("mod1", "version1", "type1", ModuleStatus.Unknown, Config1, RestartPolicy.OnUnhealthy, PullPolicy.IfNotPresent, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module7 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, PullPolicy.IfNotPresent, DefaultConfigurationInfo, EnvVars);
-        static readonly TestModule Module8 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.IfNotPresent, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module1 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module2 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module3 = new TestModule("mod3", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module4 = new TestModule("mod1", "version2", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module5 = new TestModule("mod1", "version1", "type2", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module6 = new TestModule("mod1", "version1", "type1", ModuleStatus.Unknown, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module7 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+        static readonly TestModule Module8 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
 
-        static readonly IModule ValidJsonModule = new TestModule("<module_name>", "<semantic_version_number>", "docker", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.IfNotPresent, DefaultConfigurationInfo, EnvVars);
-        static readonly string serializedModule = "{\"version\":\"version1\",\"type\":\"type1\",\"status\":\"running\",\"settings\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\",\"pullPolicy\":\"if-not-present\",\"configuration\":{\"id\":\"1\"}}";
+        static readonly IModule ValidJsonModule = new TestModule("<module_name>", "<semantic_version_number>", "docker", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+        static readonly string serializedModule = "{\"version\":\"version1\",\"type\":\"type1\",\"status\":\"running\",\"settings\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\",\"imagePullPolicy\":\"on-create\",\"configuration\":{\"id\":\"1\"}}";
 
         static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(
             @"
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""PullPolicy"": ""if-not-present"",
+      ""ImagePullPolicy"": ""on-create"",
       ""Settings"": {
         ""Image"": ""image1""
       },
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""type"": ""docker"",
       ""status"": ""running"",
       ""restartpolicy"": ""on-unhealthy"",
-      ""pullpolicy"": ""if-not-present"",
+      ""imagepullpolicy"": ""on-create"",
       ""settings"": {
         ""image"": ""image1""
       },
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""TYPE"": ""docker"",
       ""STATUS"": ""RUNNING"",
       ""RESTARTPOLICY"": ""on-unhealthy"",
-      ""PULLPOLICY"": ""if-not-present"",
+      ""IMAGEPULLPOLICY"": ""on-create"",
       ""SETTINGS"": {
         ""IMAGE"": ""image1""
       },
@@ -83,6 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""stopped"",
       ""RestartPolicy"": ""on-unhealthy"",
+      ""ImagePullPolicy"": ""on-create"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -95,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""Unknown"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""PullPolicy"": ""if-not-present"",
+      ""ImagePullPolicy"": ""on-create"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -109,6 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Version"": ""<semantic_version_number>"",
       ""Type"": ""docker"",
       ""RestartPolicy"": ""on-unhealthy"",
+      ""ImagePullPolicy"": ""on-create"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -120,6 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
+      ""ImagePullPolicy"": ""on-create"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -131,6 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Version"": ""<semantic_version_number>"",
       ""Status"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
+      ""ImagePullPolicy"": ""on-create"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -143,6 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Settings"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
+      ""ImagePullPolicy"": ""on-create"",
       ""Configuration"": {
         ""id"":""1""
       }
@@ -152,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""PullPolicy"": ""if-not-present"",
+      ""ImagePullPolicy"": ""on-create"",
       ""Settings"": {},
       ""Configuration"": {
         ""id"":""1""
@@ -163,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""<bad_status>"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""PullPolicy"": ""never"",
+      ""ImagePullPolicy"": ""never"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       },
@@ -176,6 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""<bad_status>"",
       ""RestartPolicy"": ""on-unhealthy"",
+      ""ImagePullPolicy"": ""never"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       }
@@ -185,7 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""<bad_status>"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""PullPolicy"": ""<bad_pull_policy>"",
+      ""ImagePullPolicy"": ""<bad_image_pull_policy>"",
       ""Settings"": {
         ""Image"": ""<docker_image_name>""
       }
@@ -207,9 +213,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void TestConstructor()
         {
-            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", null, "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.IfNotPresent, DefaultConfigurationInfo, EnvVars));
-            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", "version1", null, ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, PullPolicy.IfNotPresent, DefaultConfigurationInfo, EnvVars));
-            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", "version1", "type1", ModuleStatus.Running, null, RestartPolicy.OnUnhealthy, PullPolicy.IfNotPresent, DefaultConfigurationInfo, EnvVars));
+            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", null, "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars));
+            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", "version1", null, ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars));
+            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", "version1", "type1", ModuleStatus.Running, null, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars));
         }
 
         [Fact]

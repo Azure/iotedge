@@ -25,7 +25,7 @@ use docker::models::{
     HostConfig, HostConfigPortBindings, ImageDeleteResponseItem,
 };
 use edgelet_core::{
-    LogOptions, LogTail, Module, ModuleRegistry, ModuleRuntime, ModuleSpec, PullPolicy,
+    LogOptions, LogTail, Module, ModuleRegistry, ModuleRuntime, ModuleSpec, ImagePullPolicy,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
@@ -659,7 +659,7 @@ fn container_create_succeeds() {
         "docker".to_string(),
         DockerConfig::new("nginx:latest".to_string(), create_options, None).unwrap(),
         env,
-        PullPolicy::default(),
+        ImagePullPolicy::default(),
     )
     .unwrap();
 

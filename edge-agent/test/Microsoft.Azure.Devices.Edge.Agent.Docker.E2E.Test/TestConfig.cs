@@ -8,14 +8,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
     public class TestConfig
     {
         [JsonConstructor]
-        public TestConfig(string name, string version, string image, string imageCreateOptions, Validator validator, PullPolicyTestConfig pullPolicyTestConfig)
+        public TestConfig(string name, string version, string image, string imageCreateOptions, Validator validator, ImagePullPolicyTestConfig imagePullPolicyTestConfig)
         {
             this.Name = name;
             this.Version = version;
             this.Image = image;
             this.ImageCreateOptions = imageCreateOptions;
             this.Validator = validator;
-            this.PullPolicyTestConfig = Option.Maybe(pullPolicyTestConfig);
+            this.ImagePullPolicyTestConfig = Option.Maybe(imagePullPolicyTestConfig);
         }
 
         [JsonProperty(PropertyName = "name")]
@@ -33,8 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
         [JsonProperty(PropertyName = "validator")]
         public Validator Validator { get; set; }
 
-        [JsonProperty(PropertyName = "pullPolicyTestConfig")]
-        [JsonConverter(typeof(OptionConverter<PullPolicyTestConfig>))]
-        public Option<PullPolicyTestConfig> PullPolicyTestConfig { get; set; }
+        [JsonProperty(PropertyName = "imagePullPolicyTestConfig")]
+        [JsonConverter(typeof(OptionConverter<ImagePullPolicyTestConfig>))]
+        public Option<ImagePullPolicyTestConfig> ImagePullPolicyTestConfig { get; set; }
     }
 }

@@ -12,7 +12,7 @@ use serde::Serialize;
 use serde_json;
 use url::form_urlencoded::parse as parse_query;
 
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus, PullPolicy};
+use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus, ImagePullPolicy};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 
@@ -79,24 +79,24 @@ where
             .and_then(|(core_spec, spec, name, runtime)| {
                 debug!("Removed existing module {}", name);
 
-                match core_spec.pull_policy() {
-                    PullPolicy::IfNotPresent => {
+                match core_spec.image_pull_policy() {
+                    ImagePullPolicy::OnCreate => {
                         Either::A(runtime.registry().pull(core_spec.config()).then(|result| {
                             result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
                             Ok((core_spec, spec, name, runtime))
                         }))
                     }
-                    PullPolicy::Never => {
+                    ImagePullPolicy::Never => {
                         Either::B(futures::future::ok((core_spec, spec, name, runtime)))
                     }
                 }
             })
             .and_then(|(core_spec, spec, name, runtime)| {
-                match core_spec.pull_policy() {
-                    PullPolicy::IfNotPresent => {
+                match core_spec.image_pull_policy() {
+                    ImagePullPolicy::OnCreate => {
                         debug!("Successfully pulled new image for module {}", name)
                     }
-                    PullPolicy::Never => debug!(
+                    ImagePullPolicy::Never => debug!(
                         "Skipped pulling image for module {} as per pull policy",
                         name
                     ),
@@ -209,7 +209,7 @@ mod tests {
         let handler = UpdateModule::new(RUNTIME.clone());
         let config = Config::new(json!({"image":"microsoft/test-image"}));
         let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
-        spec.set_pull_policy("if-not-present".to_string());
+        spec.set_image_pull_policy("on-create".to_string());
         let request = Request::put("http://localhost/modules/test-module?start")
             .body(serde_json::to_string(&spec).unwrap().into())
             .unwrap();
@@ -332,11 +332,11 @@ mod tests {
     }
 
     #[test]
-    fn bad_pull_policy() {
+    fn bad_image_pull_policy() {
         let handler = UpdateModule::new(RUNTIME.clone());
         let config = Config::new(json!({"image":"microsoft/test-image"}));
         let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
-        spec.set_pull_policy("what".to_string());
+        spec.set_image_pull_policy("what".to_string());
         let request = Request::put("http://localhost/modules/test-module")
             .body(serde_json::to_string(&spec).unwrap().into())
             .unwrap();

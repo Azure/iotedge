@@ -11,7 +11,7 @@ use serde::Serialize;
 use serde_json;
 
 use edgelet_core::{
-    Module, ModuleRegistry, ModuleRuntime, ModuleStatus, PullPolicy, RuntimeOperation,
+    Module, ModuleRegistry, ModuleRuntime, ModuleStatus, ImagePullPolicy, RuntimeOperation,
 };
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
@@ -54,10 +54,10 @@ where
                 })
                 .and_then(move |(spec, core_spec)| {
                     let module_name = spec.name().to_string();
-                    let pull_policy = *core_spec.pull_policy();
+                    let image_pull_policy = *core_spec.image_pull_policy();
 
-                    let pull_future = match pull_policy {
-                        PullPolicy::IfNotPresent => {
+                    let pull_future = match image_pull_policy {
+                        ImagePullPolicy::OnCreate => {
                             let name = module_name.clone();
                             Either::A(runtime.registry().pull(core_spec.config()).then(
                                 move |result| {
@@ -66,21 +66,21 @@ where
                                             name.clone(),
                                         ))
                                     })?;
-                                    Ok((name, pull_policy))
+                                    Ok((name, image_pull_policy))
                                 },
                             ))
                         }
-                        PullPolicy::Never => {
-                            Either::B(futures::future::ok((module_name.clone(), pull_policy)))
+                        ImagePullPolicy::Never => {
+                            Either::B(futures::future::ok((module_name.clone(), image_pull_policy)))
                         }
                     };
 
-                    pull_future.and_then(move |(name, pull_policy)| -> Result<_, Error> {
-                        match pull_policy {
-                            PullPolicy::IfNotPresent => {
+                    pull_future.and_then(move |(name, image_pull_policy)| -> Result<_, Error> {
+                        match image_pull_policy {
+                            ImagePullPolicy::OnCreate => {
                                 debug!("Successfully pulled new image for module {}", name)
                             }
-                            PullPolicy::Never => debug!(
+                            ImagePullPolicy::Never => debug!(
                                 "Skipped pulling image for module {} as per pull policy",
                                 name
                             ),
@@ -154,7 +154,7 @@ mod tests {
         let handler = CreateModule::new(RUNTIME.clone());
         let config = Config::new(json!({"image":"microsoft/test-image"}));
         let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
-        spec.set_pull_policy("if-not-present".to_string());
+        spec.set_image_pull_policy("on-create".to_string());
         let request = Request::post("http://localhost/modules")
             .body(serde_json::to_string(&spec).unwrap().into())
             .unwrap();
@@ -277,11 +277,11 @@ mod tests {
     }
 
     #[test]
-    fn bad_pull_policy() {
+    fn bad_image_pull_policy() {
         let handler = CreateModule::new(RUNTIME.clone());
         let config = Config::new(json!({"image":"microsoft/test-image"}));
         let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
-        spec.set_pull_policy("what".to_string());
+        spec.set_image_pull_policy("what".to_string());
         let request = Request::post("http://localhost/modules")
             .body(serde_json::to_string(&spec).unwrap().into())
             .unwrap();

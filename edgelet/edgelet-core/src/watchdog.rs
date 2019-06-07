@@ -17,7 +17,7 @@ use crate::error::{Error, ErrorKind};
 use crate::identity::{Identity, IdentityManager, IdentitySpec};
 use crate::module::{
     Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ModuleStatus,
-    PullPolicy,
+    ImagePullPolicy,
 };
 
 // Time to allow EdgeAgent to gracefully shutdown (including stopping all modules, and updating reported properties)
@@ -289,9 +289,9 @@ where
         );
         let spec = spec.with_env(env);
 
-        let pull_future = match spec.pull_policy() {
-            PullPolicy::Never => Either::A(future::ok(())),
-            PullPolicy::IfNotPresent => Either::B(runtime.registry().pull(spec.clone().config())),
+        let pull_future = match spec.image_pull_policy() {
+            ImagePullPolicy::Never => Either::A(future::ok(())),
+            ImagePullPolicy::OnCreate => Either::B(runtime.registry().pull(spec.clone().config())),
         };
 
         pull_future

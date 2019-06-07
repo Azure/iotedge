@@ -1704,9 +1704,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.Generate
         [Newtonsoft.Json.JsonProperty("type", Required = Newtonsoft.Json.Required.Always)]
         public string Type { get; set; }
 
-        [Newtonsoft.Json.JsonProperty("pullPolicy", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        [Newtonsoft.Json.JsonProperty("imagePullPolicy", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         [Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
-        public PullPolicy? PullPolicy { get; set; }
+        public ImagePullPolicy? ImagePullPolicy { get; set; }
 
         [Newtonsoft.Json.JsonProperty("config", Required = Newtonsoft.Json.Required.Always)]
         public Config Config { get; set; } = new Config();
@@ -1962,10 +1962,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.Generate
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "9.13.2.0 (Newtonsoft.Json v11.0.0.0)")]
-    public enum PullPolicy
+    public enum ImagePullPolicy
     {
-        [System.Runtime.Serialization.EnumMember(Value = @"IfNotPresent")]
-        IfNotPresent = 0,
+        [System.Runtime.Serialization.EnumMember(Value = @"OnCreate")]
+        OnCreate = 0,
 
         [System.Runtime.Serialization.EnumMember(Value = @"Never")]
         Never = 1,

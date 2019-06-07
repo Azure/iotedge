@@ -40,8 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
             //         "version": "1.0",
             //         "image": "mongo:3.4.4",
             //         "imageCreateOptions": "{\"HostConfig\": {\"PortBindings\": {\"80/tcp\": [{\"HostPort\": \"8080\"}]}}}",
-            //         "pullPolicyTestConfig": {
-            //             "pullPolicy": "if-not-present",
+            //         "imagePullPolicyTestConfig": {
+            //             "imagePullPolicy": "on-create",
             //             "pullImage": "false"
             //         },
             //         "validator": {
@@ -109,8 +109,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     ? new DockerConfig(testConfig.Image, testConfig.ImageCreateOptions)
                     : new DockerConfig(testConfig.Image);
 
-                PullPolicy pullPolicy = PullPolicy.None;
-                testConfig.PullPolicyTestConfig.ForEach(p => pullPolicy = p.PullPolicy);
+                ImagePullPolicy imagePullPolicy = ImagePullPolicy.OnCreate;
+                testConfig.ImagePullPolicyTestConfig.ForEach(p => imagePullPolicy = p.ImagePullPolicy);
 
                 // Initialize an Edge Agent module object.
                 var dockerModule = new DockerModule(
@@ -119,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     ModuleStatus.Running,
                     global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy,
                     dockerConfig,
-                    pullPolicy,
+                    imagePullPolicy,
                     null,
                     null);
                 var modules = new Dictionary<string, IModule> { [testConfig.Name] = dockerModule };
@@ -254,7 +254,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
             }
 
             bool pullImage = false;
-            testConfig.PullPolicyTestConfig.ForEach(p => pullImage = p.PullImage);
+            testConfig.ImagePullPolicyTestConfig.ForEach(p => pullImage = p.PullImage);
 
             // Pull the image if the test config specifies that the image should be pulled.
             if (pullImage)

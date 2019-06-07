@@ -147,8 +147,8 @@ pub struct ModuleSpec<T> {
     #[serde(serialize_with = "serialize_ordered")]
     env: HashMap<String, String>,
     #[serde(default)]
-    #[serde(rename = "pullPolicy")]
-    pull_policy: PullPolicy,
+    #[serde(rename = "imagePullPolicy")]
+    image_pull_policy: ImagePullPolicy,
 }
 
 impl<T> Clone for ModuleSpec<T>
@@ -161,7 +161,7 @@ where
             type_: self.type_.clone(),
             config: self.config.clone(),
             env: self.env.clone(),
-            pull_policy: self.pull_policy,
+            image_pull_policy: self.image_pull_policy,
         }
     }
 }
@@ -172,7 +172,7 @@ impl<T> ModuleSpec<T> {
         type_: String,
         config: T,
         env: HashMap<String, String>,
-        pull_policy: PullPolicy,
+        image_pull_policy: ImagePullPolicy,
     ) -> Result<Self> {
         ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
         ensure_not_empty_with_context(&type_, || ErrorKind::InvalidModuleType(type_.clone()))?;
@@ -182,7 +182,7 @@ impl<T> ModuleSpec<T> {
             type_,
             config,
             env,
-            pull_policy,
+            image_pull_policy,
         })
     }
 
@@ -230,12 +230,12 @@ impl<T> ModuleSpec<T> {
         self
     }
 
-    pub fn pull_policy(&self) -> &PullPolicy {
-        &self.pull_policy
+    pub fn image_pull_policy(&self) -> &ImagePullPolicy {
+        &self.image_pull_policy
     }
 
-    pub fn with_pull_policy(mut self, pull_policy: PullPolicy) -> Self {
-        self.pull_policy = pull_policy;
+    pub fn with_image_pull_policy(mut self, image_pull_policy: ImagePullPolicy) -> Self {
+        self.image_pull_policy = image_pull_policy;
         self
     }
 }
@@ -510,26 +510,26 @@ impl fmt::Display for RuntimeOperation {
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
-pub enum PullPolicy {
-    #[serde(rename = "if-not-present")]
-    IfNotPresent,
+pub enum ImagePullPolicy {
+    #[serde(rename = "on-create")]
+    OnCreate,
     Never,
 }
 
-impl Default for PullPolicy {
+impl Default for ImagePullPolicy {
     fn default() -> Self {
-        PullPolicy::IfNotPresent
+        ImagePullPolicy::OnCreate
     }
 }
 
-impl FromStr for PullPolicy {
+impl FromStr for ImagePullPolicy {
     type Err = Error;
 
-    fn from_str(s: &str) -> StdResult<PullPolicy, Self::Err> {
+    fn from_str(s: &str) -> StdResult<ImagePullPolicy, Self::Err> {
         match s.to_lowercase().as_str() {
-            "if-not-present" => Ok(PullPolicy::IfNotPresent),
-            "never" => Ok(PullPolicy::Never),
-            _ => Err(Error::from(ErrorKind::InvalidPullPolicy(s.to_string()))),
+            "on-create" => Ok(ImagePullPolicy::OnCreate),
+            "never" => Ok(ImagePullPolicy::Never),
+            _ => Err(Error::from(ErrorKind::InvalidImagePullPolicy(s.to_string()))),
         }
     }
 }
@@ -577,7 +577,7 @@ mod tests {
             "docker".to_string(),
             10_i32,
             HashMap::new(),
-            PullPolicy::default(),
+            ImagePullPolicy::default(),
         ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
@@ -598,7 +598,7 @@ mod tests {
             "docker".to_string(),
             10_i32,
             HashMap::new(),
-            PullPolicy::default(),
+            ImagePullPolicy::default(),
         ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
@@ -619,7 +619,7 @@ mod tests {
             type_.clone(),
             10_i32,
             HashMap::new(),
-            PullPolicy::default(),
+            ImagePullPolicy::default(),
         ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
@@ -640,7 +640,7 @@ mod tests {
             type_.clone(),
             10_i32,
             HashMap::new(),
-            PullPolicy::default(),
+            ImagePullPolicy::default(),
         ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {

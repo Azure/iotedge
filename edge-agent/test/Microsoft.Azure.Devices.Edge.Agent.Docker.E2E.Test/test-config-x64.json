@@ -26,8 +26,8 @@
         "name": "bash",
         "version": "1.0",
         "image": "bash:latest",
-        "pullPolicyTestConfig": {
-            "pullPolicy": "never",
+        "imagePullPolicyTestConfig": {
+            "imagePullPolicy": "never",
             "pullImage": "false"
         },
         "validator": {
@@ -42,8 +42,8 @@
         "name": "bash",
         "version": "1.0",
         "image": "bash:latest",
-        "pullPolicyTestConfig": {
-            "pullPolicy": "never",
+        "imagePullPolicyTestConfig": {
+            "imagePullPolicy": "never",
             "pullImage": "true"
         },
         "validator": {
@@ -58,8 +58,8 @@
         "name": "bash",
         "version": "1.0",
         "image": "bash:latest",
-        "pullPolicyTestConfig": {
-            "pullPolicy": "if-not-present",
+        "imagePullPolicyTestConfig": {
+            "imagePullPolicy": "on-create",
             "pullImage": "false"
         },
         "validator": {

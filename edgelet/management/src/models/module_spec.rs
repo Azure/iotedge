@@ -21,8 +21,8 @@ pub struct ModuleSpec {
     type_: String,
     #[serde(rename = "config")]
     config: crate::models::Config,
-    #[serde(rename = "pullPolicy", skip_serializing_if = "Option::is_none")]
-    pull_policy: Option<String>,
+    #[serde(rename = "imagePullPolicy", skip_serializing_if = "Option::is_none")]
+    image_pull_policy: Option<String>,
 }
 
 impl ModuleSpec {
@@ -31,7 +31,7 @@ impl ModuleSpec {
             name,
             type_,
             config,
-            pull_policy: None,
+            image_pull_policy: None,
         }
     }
 
@@ -74,20 +74,20 @@ impl ModuleSpec {
         &self.config
     }
 
-    pub fn set_pull_policy(&mut self, pull_policy: String) {
-        self.pull_policy = Some(pull_policy);
+    pub fn set_image_pull_policy(&mut self, image_pull_policy: String) {
+        self.image_pull_policy = Some(image_pull_policy);
     }
 
-    pub fn with_pull_policy(mut self, pull_policy: String) -> Self {
-        self.pull_policy = Some(pull_policy);
+    pub fn with_image_pull_policy(mut self, image_pull_policy: String) -> Self {
+        self.image_pull_policy = Some(image_pull_policy);
         self
     }
 
-    pub fn pull_policy(&self) -> Option<&str> {
-        self.pull_policy.as_ref().map(AsRef::as_ref)
+    pub fn image_pull_policy(&self) -> Option<&str> {
+        self.image_pull_policy.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn reset_pull_policy(&mut self) {
-        self.pull_policy = None;
+    pub fn reset_image_pull_policy(&mut self) {
+        self.image_pull_policy = None;
     }
 }

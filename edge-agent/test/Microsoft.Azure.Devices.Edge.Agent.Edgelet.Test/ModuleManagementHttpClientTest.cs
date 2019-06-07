@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             // Arrange
             IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            var moduleSpec = new ModuleSpec("Module1", "Docker", PullPolicy.IfNotPresent, JObject.Parse("{ \"image\": \"testimage\" }"), new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
+            var moduleSpec = new ModuleSpec("Module1", "Docker", ImagePullPolicy.OnCreate, JObject.Parse("{ \"image\": \"testimage\" }"), new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
 
             // Act
             await client.CreateModuleAsync(moduleSpec);
@@ -229,7 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var moduleSpec = new ModuleSpec(
                 "Module1",
                 "Docker",
-                PullPolicy.IfNotPresent,
+                ImagePullPolicy.OnCreate,
                 JObject.Parse("{ \"image\": \"testimage\" }"),
                 new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
             IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
@@ -257,19 +257,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         }
 
         [Fact]
-        public void PullPolicyTest()
+        public void ImagePullPolicyTest()
         {
             Assert.Equal(
-                Version_2019_01_30.GeneratedCode.PullPolicy.IfNotPresent,
-                Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy(PullPolicy.IfNotPresent));
+                Version_2019_01_30.GeneratedCode.ImagePullPolicy.OnCreate,
+                Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy(ImagePullPolicy.OnCreate));
             Assert.Equal(
-                Version_2019_01_30.GeneratedCode.PullPolicy.Never,
-                Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy(PullPolicy.Never));
-            Assert.Equal(
-                Version_2019_01_30.GeneratedCode.PullPolicy.IfNotPresent,
-                Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy(PullPolicy.None));
-            Assert.Null(
-                Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy((PullPolicy)int.MaxValue));
+                Version_2019_01_30.GeneratedCode.ImagePullPolicy.Never,
+                Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy(ImagePullPolicy.Never));
+
+            Assert.Throws<InvalidOperationException>(() => Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy((ImagePullPolicy)int.MaxValue));
         }
 
         [Fact]

@@ -482,12 +482,12 @@ definitions:
       type:
         type: string
         example: docker
-      pullPolicy:
+      imagePullPolicy:
         type: string
         enum:
-          - IfNotPresent
+          - OnCreate
           - Never
-        example: "IfNotPresent"
+        example: "OnCreate"
       config:
         $ref: '#/definitions/Config'
     required:

@@ -32,8 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             {
                 CombinedDockerConfig combinedDockerConfig = this.combinedConfigProvider.GetCombinedConfig(dockerModule, runtimeInfo);
 
-                List<ICommand> commands = new List<ICommand>();
-                if (module.Module.PullPolicy != PullPolicy.Never)
+                var commands = new List<ICommand>();
+                if (module.Module.ImagePullPolicy != ImagePullPolicy.Never)
                 {
                     commands.Add(new PullCommand(this.client, combinedDockerConfig));
                 }
@@ -50,8 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             if (current is DockerModule currentDockerModule && next.Module is DockerModule nextDockerModule)
             {
                 CombinedDockerConfig combinedDockerConfig = this.combinedConfigProvider.GetCombinedConfig(nextDockerModule, runtimeInfo);
-                List<ICommand> commands = new List<ICommand>();
-                if (next.Module.PullPolicy != PullPolicy.Never)
+                var commands = new List<ICommand>();
+                if (next.Module.ImagePullPolicy != ImagePullPolicy.Never)
                 {
                     commands.Add(new PullCommand(this.client, combinedDockerConfig));
                 }

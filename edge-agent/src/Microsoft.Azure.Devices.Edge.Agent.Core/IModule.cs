@@ -83,15 +83,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     }
 
     [JsonConverter(typeof(StringEnumConverter))]
-    public enum PullPolicy
+    public enum ImagePullPolicy
     {
-        None = 0,
-
-        [EnumMember(Value = "if-not-present")]
-        IfNotPresent = 1,
+        [EnumMember(Value = "on-create")]
+        OnCreate = 0,
 
         [EnumMember(Value = "never")]
-        Never = 2,
+        Never = 1,
     }
 
     public interface IModule : IEquatable<IModule>
@@ -111,11 +109,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         [JsonProperty(PropertyName = "restartPolicy")]
         RestartPolicy RestartPolicy { get; }
 
-        [JsonProperty(
-            PropertyName = "pullPolicy",
-            DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [DefaultValue(Constants.DefaultPullPolicy)]
-        PullPolicy PullPolicy { get; }
+        [JsonProperty(PropertyName = "imagePullPolicy")]
+        ImagePullPolicy ImagePullPolicy { get; }
 
         [JsonIgnore]
         ConfigurationInfo ConfigurationInfo { get; }
