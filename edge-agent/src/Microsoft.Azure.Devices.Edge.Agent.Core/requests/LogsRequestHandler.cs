@@ -13,8 +13,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
     public class LogsRequestHandler : RequestHandlerBase<LogsRequest, IEnumerable<LogsResponse>>
     {
-        static readonly Version ExpectedSchemaVersion = new Version("1.0");
         const int MaxTailValue = 500;
+
+        static readonly Version ExpectedSchemaVersion = new Version("1.0");
+
         readonly ILogsProvider logsProvider;
         readonly IRuntimeInfoProvider runtimeInfoProvider;
 
@@ -33,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             {
                 Events.MismatchedMinorVersions(payload.SchemaVersion, ExpectedSchemaVersion);
             }
+
             Events.ProcessingRequest(payload);
 
             ILogsRequestToOptionsMapper requestToOptionsMapper = new LogsRequestToOptionsMapper(
