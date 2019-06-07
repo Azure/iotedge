@@ -22,7 +22,7 @@ jobs:
       - script: edgelet/build/linux/install.sh -t nightly
         displayName: Install Rust
       - script: |
-          curl -L https://github.com/mozilla/grcov/releases/download/v0.4.1/grcov-linux-x86_64.tar.bz2 | tar jxf -
+          curl -L https://github.com/mozilla/grcov/releases/download/v0.5.1/grcov-linux-x86_64.tar.bz2 | tar jxf -
           curl -L https://raw.github.com/eriwen/lcov-to-cobertura-xml/master/lcov_cobertura/lcov_cobertura.py > lcov_cobertura.py
         workingDirectory: edgelet
         displayName: Install code coverage tools
@@ -33,9 +33,9 @@ jobs:
         displayName: Test
         workingDirectory: edgelet
       - script: |
-          zip -0 ccov.zip `find ./target \( -name "*.gc*" \) -print`
-          ./grcov ccov.zip -s $(Build.SourcesDirectory)/edgelet -t lcov --llvm --branch --ignore-not-existing --ignore-dir "/*" > target/lcov.info
-          python lcov_cobertura.py target/lcov.info --output target/coverage.xml --demangle
+          zip -0 target/ccov.zip `find ./target \( -name "*.gc*" \) -print`
+          ./grcov target/ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore-dir "/*" > target/lcov.info
+          python lcov_cobertura.py target/lcov.info --output target/coverage.xml --demangle --base-dir $(Build.SourcesDirectory)/edgelet
         displayName: Assemble code coverage results
         workingDirectory: edgelet
       - task: PublishCodeCoverageResults@1
