@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
     using Serilog;
@@ -44,13 +45,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         iotHub,
                         token)).Expect(() => new Exception("Device should have already been created in setup fixture"));
 
-                    var config = new EdgeConfiguration(device.Id, iotHub);
+                    var builder = new EdgeConfigBuilder(device.Id, iotHub);
                     Context.Current.Registry.ForEach(
-                        r => config.AddRegistryCredentials(r.address, r.username, r.password));
-                    config.AddEdgeAgent(edgeAgent).WithProxy(proxy, Protocol.Amqp);
-                    config.AddEdgeHub(edgeHub).WithProxy(proxy, Protocol.Amqp);
-                    config.AddModule("tempSensor", tempSensor);
-                    await config.DeployAsync(token);
+                        r => builder.AddRegistryCredentials(r.address, r.username, r.password));
+                    builder.AddEdgeAgent(edgeAgent).WithProxy(proxy, Protocol.Amqp);
+                    builder.AddEdgeHub(edgeHub).WithProxy(proxy, Protocol.Amqp);
+                    builder.AddModule("tempSensor", tempSensor);
+                    await builder.Build().DeployAsync(token);
 
                     var hub = new EdgeModule("edgeHub", device.Id, iotHub);
                     var sensor = new EdgeModule("tempSensor", device.Id, iotHub);
@@ -123,25 +124,25 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     string methodSender = $"methodSender-{edgeToCloud}-{moduleToEdge}";
                     string methodReceiver = $"methodReceiver-{edgeToCloud}-{moduleToEdge}";
 
-                    var config = new EdgeConfiguration(device.Id, iotHub);
+                    var builder = new EdgeConfigBuilder(device.Id, iotHub);
                     Context.Current.Registry.ForEach(
-                        r => config.AddRegistryCredentials(r.address, r.username, r.password));
-                    config.AddEdgeAgent(edgeAgent)
+                        r => builder.AddRegistryCredentials(r.address, r.username, r.password));
+                    builder.AddEdgeAgent(edgeAgent)
                         .WithEnvironment(new[] { ("UpstreamProtocol", edgeToCloud) })
                         .WithProxy(proxy, Enum.Parse<Protocol>(edgeToCloud));
-                    config.AddEdgeHub(edgeHub)
+                    builder.AddEdgeHub(edgeHub)
                         .WithEnvironment(new[] { ("UpstreamProtocol", edgeToCloud) })
                         .WithProxy(proxy, Enum.Parse<Protocol>(edgeToCloud));
-                    config.AddModule(methodSender, senderImage)
+                    builder.AddModule(methodSender, senderImage)
                         .WithEnvironment(
                             new[]
                             {
                                 ("UpstreamProtocol", moduleToEdge),
                                 ("TargetModuleId", methodReceiver)
                             });
-                    config.AddModule(methodReceiver, receiverImage)
+                    builder.AddModule(methodReceiver, receiverImage)
                         .WithEnvironment(new[] { ("UpstreamProtocol", moduleToEdge) });
-                    await config.DeployAsync(token);
+                    await builder.Build().DeployAsync(token);
 
                     var hub = new EdgeModule("edgeHub", device.Id, iotHub);
                     var sender = new EdgeModule(methodSender, device.Id, iotHub);
