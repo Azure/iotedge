@@ -144,5 +144,45 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
             string response = await workloadClient.GetTrustBundleAsync();
             Assert.Equal(new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem)), new X509Certificate2(Encoding.UTF8.GetBytes(response)));
         }
+
+        [Fact]
+        public async Task ExecuteTimeoutTest_Version_2018_06_28()
+        {
+            // Arrange
+            var client = new Util.Edged.Version_2018_06_28.WorkloadClient(this.serverUri, ApiVersion.Version20180628, "m1", Guid.NewGuid().ToString(), Option.Some(TimeSpan.FromSeconds(10)));
+
+            async Task<int> LongOperation()
+            {
+                await Task.Delay(TimeSpan.FromHours(1));
+                return 10;
+            }
+
+            // Act
+            Task assertTask = Assert.ThrowsAsync<TimeoutException>(() => client.Execute<int>(LongOperation, "Dummy"));
+            Task delayTask = Task.Delay(TimeSpan.FromSeconds(20));
+
+            Task completedTask = await Task.WhenAny(assertTask, delayTask);
+            Assert.Equal(assertTask, completedTask);
+        }
+
+        [Fact]
+        public async Task ExecuteTimeoutTest_Version_2019_01_30()
+        {
+            // Arrange
+            var client = new Util.Edged.Version_2019_01_30.WorkloadClient(this.serverUri, ApiVersion.Version20190130, "m1", Guid.NewGuid().ToString(), Option.Some(TimeSpan.FromSeconds(10)));
+
+            async Task<int> LongOperation()
+            {
+                await Task.Delay(TimeSpan.FromHours(1));
+                return 10;
+            }
+
+            // Act
+            Task assertTask = Assert.ThrowsAsync<TimeoutException>(() => client.Execute<int>(LongOperation, "Dummy"));
+            Task delayTask = Task.Delay(TimeSpan.FromSeconds(20));
+
+            Task completedTask = await Task.WhenAny(assertTask, delayTask);
+            Assert.Equal(assertTask, completedTask);
+        }
     }
 }

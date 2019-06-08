@@ -15,7 +15,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2018_06_28
             new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
 
         public WorkloadClient(Uri serverUri, ApiVersion apiVersion, string moduleId, string moduleGenerationId)
-            : base(serverUri, apiVersion, moduleId, moduleGenerationId, new ErrorDetectionStrategy())
+            : this(serverUri, apiVersion, moduleId, moduleGenerationId, Option.None<TimeSpan>())
+        {
+        }
+
+        internal WorkloadClient(Uri serverUri, ApiVersion apiVersion, string moduleId, string moduleGenerationId, Option<TimeSpan> operationTimeout)
+            : base(serverUri, apiVersion, moduleId, moduleGenerationId, new ErrorDetectionStrategy(), operationTimeout)
         {
         }
 
