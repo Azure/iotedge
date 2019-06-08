@@ -7,7 +7,9 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;
 
-use edgelet_core::{Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleStatus, ImagePullPolicy};
+use edgelet_core::{
+    ImagePullPolicy, Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleStatus,
+};
 use management::models::*;
 
 use crate::error::{Error, ErrorKind};

@@ -12,7 +12,7 @@ use serde::Serialize;
 use serde_json;
 use url::form_urlencoded::parse as parse_query;
 
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus, ImagePullPolicy};
+use edgelet_core::{ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime, ModuleStatus};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 

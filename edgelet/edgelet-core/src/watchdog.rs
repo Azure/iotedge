@@ -16,8 +16,8 @@ use edgelet_utils::log_failure;
 use crate::error::{Error, ErrorKind};
 use crate::identity::{Identity, IdentityManager, IdentitySpec};
 use crate::module::{
-    Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ModuleStatus,
-    ImagePullPolicy,
+    ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec,
+    ModuleStatus,
 };
 
 // Time to allow EdgeAgent to gracefully shutdown (including stopping all modules, and updating reported properties)

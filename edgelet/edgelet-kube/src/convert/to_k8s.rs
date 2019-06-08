@@ -420,7 +420,7 @@ mod tests {
     use docker::models::ContainerCreateBody;
     use docker::models::HostConfig;
     use docker::models::Mount;
-    use edgelet_core::{ModuleSpec, ImagePullPolicy};
+    use edgelet_core::{ImagePullPolicy, ModuleSpec};
     use edgelet_docker::DockerConfig;
     use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
     use serde_json;

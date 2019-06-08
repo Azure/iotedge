@@ -11,7 +11,7 @@ use serde::Serialize;
 use serde_json;
 
 use edgelet_core::{
-    Module, ModuleRegistry, ModuleRuntime, ModuleStatus, ImagePullPolicy, RuntimeOperation,
+    ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime, ModuleStatus, RuntimeOperation,
 };
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
@@ -70,9 +70,10 @@ where
                                 },
                             ))
                         }
-                        ImagePullPolicy::Never => {
-                            Either::B(futures::future::ok((module_name.clone(), image_pull_policy)))
-                        }
+                        ImagePullPolicy::Never => Either::B(futures::future::ok((
+                            module_name.clone(),
+                            image_pull_policy,
+                        ))),
                     };
 
                     pull_future.and_then(move |(name, image_pull_policy)| -> Result<_, Error> {

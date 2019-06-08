@@ -529,7 +529,9 @@ impl FromStr for ImagePullPolicy {
         match s.to_lowercase().as_str() {
             "on-create" => Ok(ImagePullPolicy::OnCreate),
             "never" => Ok(ImagePullPolicy::Never),
-            _ => Err(Error::from(ErrorKind::InvalidImagePullPolicy(s.to_string()))),
+            _ => Err(Error::from(ErrorKind::InvalidImagePullPolicy(
+                s.to_string(),
+            ))),
         }
     }
 }

@@ -25,7 +25,7 @@ use docker::models::{
     HostConfig, HostConfigPortBindings, ImageDeleteResponseItem,
 };
 use edgelet_core::{
-    LogOptions, LogTail, Module, ModuleRegistry, ModuleRuntime, ModuleSpec, ImagePullPolicy,
+    ImagePullPolicy, LogOptions, LogTail, Module, ModuleRegistry, ModuleRuntime, ModuleSpec,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
