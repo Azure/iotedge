@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         [DefaultValue(LogsContentType.Text)]
         public LogsContentType ContentType { get; }
 
-        [JsonProperty("sasUrl")]
+        [JsonIgnore]
         public string SasUrl { get; }
     }
 }
