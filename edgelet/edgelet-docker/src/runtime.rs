@@ -10,7 +10,7 @@ use failure::{Fail, ResultExt};
 use futures::future::Either;
 use futures::prelude::*;
 use futures::{future, stream, Async, Stream};
-use hyper::{Body, Chunk as HyperChunk, Client, Request};
+use hyper::{Body, Chunk as HyperChunk, Client, Request, StatusCode};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
 use serde_json;
@@ -18,6 +18,7 @@ use url::Url;
 
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
+use docker::apis::Error as DockerError;
 use docker::models::{ContainerCreateBody, InlineResponse200, NetworkConfig};
 use edgelet_core::{
     AuthId, Authenticator, LogOptions, Module, ModuleId, ModuleRegistry, ModuleRuntime,
@@ -401,23 +402,74 @@ impl ModuleRuntime for DockerModuleRuntime {
             return Box::new(future::err(Error::from(err)));
         }
 
+        let client = self.client.clone();
+
         Box::new(
-            self.client
+            client
                 .container_api()
                 .container_start(&id, "")
-                .then(|result| match result {
+                .then(move |result| match result {
                     Ok(_) => {
                         info!("Successfully started module {}", id);
-                        Ok(())
+                        future::Either::A(future::ok(()))
                     }
+
                     Err(err) => {
+                        // If Moby exits uncleanly, any containers left behind cannot be started any more since
+                        // the container VHD is help open by `System`.
+                        // Specifically, the start container API endpoint returns an error with the message:
+                        //
+                        //     hcsshim::ActivateLayer failed in Win32: The process cannot access the file because it is being used by another process. (0x20)
+                        //
+                        // The only way to resolve this is to delete the container and let it be re-created by Edge Agent.
+                        // If Edge Agent itself needs to be deleted, the watchdog will recreate it.
+                        let mut is_hcs_vhd_in_use_by_another_process = false;
+                        if cfg!(windows) {
+                            if let DockerError::Api(err) = &err {
+                                if err.code == StatusCode::INTERNAL_SERVER_ERROR {
+                                    if let Some(message) = crate::error::get_message(err) {
+                                        is_hcs_vhd_in_use_by_another_process = message.starts_with(
+                                            "hcsshim::ActivateLayer failed in Win32: The process cannot access the file because it is being used by another process. (0x20)",
+                                        );
+                                    }
+                                }
+                            }
+                        }
+
                         let err = Error::from_docker_error(
                             err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
+                            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id.clone())),
                         );
-                        log_failure(Level::Warn, &err);
-                        Err(err)
+
+                        if is_hcs_vhd_in_use_by_another_process {
+                            future::Either::B(client
+                                .container_api()
+                                .container_delete(
+                                    &id,
+                                    /* remove volumes */ false,
+                                    /* force */ true,
+                                    /* remove link */ false,
+                                ).then(|result| {
+                                if let Err(err) = result {
+                                    let err = Error::from_docker_error(
+                                        err,
+                                        ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
+                                    );
+                                    log_failure(Level::Warn, &err);
+                                }
+
+                                // Return original error so that caller interprets the start operation as a failure
+                                Err(err)
+                            }))
+                        }
+                        else {
+                            future::Either::A(future::err(err))
+                        }
                     }
+                })
+                .map_err(|err| {
+                    log_failure(Level::Warn, &err);
+                    err
                 }),
         )
     }

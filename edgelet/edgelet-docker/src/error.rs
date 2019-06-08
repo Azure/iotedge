@@ -19,23 +19,16 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-fn get_message(
-    error: DockerApiError<serde_json::Value>,
-) -> ::std::result::Result<String, DockerApiError<serde_json::Value>> {
-    let DockerApiError { code, content } = error;
-
-    match content {
+pub(crate) fn get_message(err: &DockerApiError<serde_json::Value>) -> Option<&str> {
+    match &err.content {
         Some(serde_json::Value::Object(props)) => {
             if let Some(serde_json::Value::String(message)) = props.get("message") {
-                return Ok(message.clone());
+                Some(message)
+            } else {
+                None
             }
-
-            Err(DockerApiError {
-                code,
-                content: Some(serde_json::Value::Object(props)),
-            })
         }
-        _ => Err(DockerApiError { code, content }),
+        _ => None,
     }
 }
 
@@ -107,18 +100,20 @@ impl Error {
 
     pub fn from_docker_error(err: DockerError<serde_json::Value>, context: ErrorKind) -> Self {
         let context = match err {
-            DockerError::Hyper(error) => error.context(ErrorKind::Docker).context(context),
-            DockerError::Serde(error) => error.context(ErrorKind::Docker).context(context),
-            DockerError::Api(error) => match error.code {
-                StatusCode::NOT_FOUND => match get_message(error) {
-                    Ok(message) => ErrorKind::NotFound(message).context(context),
-                    Err(e) => ErrorKind::DockerRuntime(DockerError::Api(e)).context(context),
+            DockerError::Hyper(err) => err.context(ErrorKind::Docker).context(context),
+            DockerError::Serde(err) => err.context(ErrorKind::Docker).context(context),
+            DockerError::Api(err) => match err.code {
+                StatusCode::NOT_FOUND => match get_message(&err) {
+                    Some(message) => ErrorKind::NotFound(message.to_owned()).context(context),
+                    None => ErrorKind::DockerRuntime(DockerError::Api(err)).context(context),
                 },
                 StatusCode::CONFLICT => ErrorKind::Conflict.context(context),
                 StatusCode::NOT_MODIFIED => ErrorKind::NotModified.context(context),
-                _ => match get_message(error) {
-                    Ok(message) => ErrorKind::FormattedDockerRuntime(message).context(context),
-                    Err(e) => ErrorKind::DockerRuntime(DockerError::Api(e)).context(context),
+                _ => match get_message(&err) {
+                    Some(message) => {
+                        ErrorKind::FormattedDockerRuntime(message.to_owned()).context(context)
+                    }
+                    None => ErrorKind::DockerRuntime(DockerError::Api(err)).context(context),
                 },
             },
         };
