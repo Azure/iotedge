@@ -11,6 +11,7 @@ KillMode=process
 TimeoutStartSec=600
 TimeoutStopSec=40
 Restart=on-failure
+RestartPreventExitStatus=153
 User=iotedge
 Group=iotedge
 

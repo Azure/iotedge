@@ -28,8 +28,8 @@ use edgelet_http::MaybeProxyClient;
 use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
 use crate::LatestVersions;
 
-mod os_info;
-use self::os_info::OsInfo;
+mod additional_info;
+use self::additional_info::AdditionalInfo;
 
 mod stdout;
 use self::stdout::Stdout;
@@ -44,7 +44,7 @@ pub struct Check {
     output_format: OutputFormat,
     verbose: bool,
 
-    os_info: OsInfo,
+    additional_info: AdditionalInfo,
 
     // These optional fields are populated by the checks
     settings: Option<Settings<DockerConfig>>,
@@ -202,7 +202,8 @@ impl Check {
                 output_format,
                 verbose,
 
-                os_info: OsInfo::new(),
+                additional_info: AdditionalInfo::new(),
+
                 settings: None,
                 docker_host_arg: None,
                 docker_server_version: None,
@@ -234,6 +235,7 @@ impl Check {
                         "container engine is installed and functional",
                         container_engine,
                     ),
+                    ("windows-host-version", "Windows host version is supported", host_version),
                     ("hostname", "config.yaml has correct hostname", settings_hostname),
                     (
                         "connect-management-uri",
@@ -266,13 +268,18 @@ impl Check {
                 "Connectivity checks",
                 &[
                     (
+                        "host-connect-dps-endpoint",
+                        "host can connect to and perform TLS handshake with DPS endpoint",
+                        connection_to_dps_endpoint,
+                    ),
+                    (
                         "host-connect-iothub-amqp",
                         "host can connect to and perform TLS handshake with IoT Hub AMQP port",
                         |check| connection_to_iot_hub_host(check, 5671),
                     ),
                     (
                         "host-connect-iothub-https",
-                        "host can connect to and perform TLS handshake with IoT Hub HTTPS port",
+                        "host can connect to and perform TLS handshake with IoT Hub HTTPS / WebSockets port",
                         |check| connection_to_iot_hub_host(check, 443),
                     ),
                     (
@@ -280,61 +287,83 @@ impl Check {
                         "host can connect to and perform TLS handshake with IoT Hub MQTT port",
                         |check| connection_to_iot_hub_host(check, 8883),
                     ),
-                    ("container-default-connect-iothub-amqp", "container on the default network can connect to IoT Hub AMQP port", |check| {
-                        if cfg!(windows) {
-                            // The default network is the same as the IoT Edge module network,
-                            // so let the module network checks handle it.
-                            Ok(CheckResult::Ignored)
-                        } else {
-                            connection_to_iot_hub_container(check, 5671, false)
-                        }
-                    }),
-                    ("container-default-connect-iothub-https", "container on the default network can connect to IoT Hub HTTPS port", |check| {
-                        if cfg!(windows) {
-                            // The default network is the same as the IoT Edge module network,
-                            // so let the module network checks handle it.
-                            Ok(CheckResult::Ignored)
-                        } else {
-                            connection_to_iot_hub_container(check, 443, false)
-                        }
-                    }),
-                    ("container-default-connect-iothub-mqtt", "container on the default network can connect to IoT Hub MQTT port", |check| {
-                        if cfg!(windows) {
-                            // The default network is the same as the IoT Edge module network,
-                            // so let the module network checks handle it.
-                            Ok(CheckResult::Ignored)
-                        } else {
-                            connection_to_iot_hub_container(check, 8883, false)
-                        }
-                    }),
-                    ("container-module-connect-iothub-amqp", "container on the IoT Edge module network can connect to IoT Hub AMQP port", |check| {
-                        connection_to_iot_hub_container(check, 5671, true)
-                    }),
-                    ("container-module-connect-iothub-https", "container on the IoT Edge module network can connect to IoT Hub HTTPS port", |check| {
-                        connection_to_iot_hub_container(check, 443, true)
-                    }),
-                    ("container-module-connect-iothub-mqtt", "container on the IoT Edge module network can connect to IoT Hub MQTT port", |check| {
-                        connection_to_iot_hub_container(check, 8883, true)
-                    }),
+                    (
+                        "container-default-connect-iothub-amqp",
+                        "container on the default network can connect to IoT Hub AMQP port",
+                        |check| {
+                            if cfg!(windows) {
+                                // The default network is the same as the IoT Edge module network,
+                                // so let the module network checks handle it.
+                                Ok(CheckResult::Ignored)
+                            } else {
+                                connection_to_iot_hub_container(check, 5671, false)
+                            }
+                        },
+                    ),
+                    (
+                        "container-default-connect-iothub-https",
+                        "container on the default network can connect to IoT Hub HTTPS / WebSockets port",
+                        |check| {
+                            if cfg!(windows) {
+                                // The default network is the same as the IoT Edge module network,
+                                // so let the module network checks handle it.
+                                Ok(CheckResult::Ignored)
+                            } else {
+                                connection_to_iot_hub_container(check, 443, false)
+                            }
+                        },
+                    ),
+                    (
+                        "container-default-connect-iothub-mqtt",
+                        "container on the default network can connect to IoT Hub MQTT port",
+                        |check| {
+                            if cfg!(windows) {
+                                // The default network is the same as the IoT Edge module network,
+                                // so let the module network checks handle it.
+                                Ok(CheckResult::Ignored)
+                            } else {
+                                connection_to_iot_hub_container(check, 8883, false)
+                            }
+                        },
+                    ),
+                    (
+                        "container-module-connect-iothub-amqp",
+                        "container on the IoT Edge module network can connect to IoT Hub AMQP port",
+                        |check| {
+                            connection_to_iot_hub_container(check, 5671, true)
+                        },
+                    ),
+                    (
+                        "container-module-connect-iothub-https",
+                        "container on the IoT Edge module network can connect to IoT Hub HTTPS / WebSockets port",
+                        |check| {
+                            connection_to_iot_hub_container(check, 443, true)
+                        },
+                    ),
+                    (
+                        "container-module-connect-iothub-mqtt",
+                        "container on the IoT Edge module network can connect to IoT Hub MQTT port",
+                        |check| {
+                            connection_to_iot_hub_container(check, 8883, true)
+                        },
+                    ),
                     ("edgehub-host-ports", "Edge Hub can bind to ports on host", edge_hub_ports_on_host),
                 ],
             ),
         ];
 
-        let mut check_results = CheckResultsSerializable {
-            os_info: self.os_info.clone(),
-            checks: Default::default(),
-        };
+        let mut checks: BTreeMap<&str, _> = Default::default();
 
         let mut stdout = Stdout::new(self.output_format);
 
-        let mut have_warnings = false;
-        let mut have_skipped = false;
-        let mut have_fatal = false;
-        let mut have_errors = false;
+        let mut num_successful = 0_usize;
+        let mut num_warnings = 0_usize;
+        let mut num_skipped = 0_usize;
+        let mut num_fatal = 0_usize;
+        let mut num_errors = 0_usize;
 
         for (section_name, section_checks) in CHECKS {
-            if have_fatal {
+            if num_fatal > 0 {
                 break;
             }
 
@@ -344,26 +373,26 @@ impl Check {
             }
 
             for (check_id, check_name, check) in *section_checks {
-                if have_fatal {
+                if num_fatal > 0 {
                     break;
                 }
 
                 match check(self) {
                     Ok(CheckResult::Ok) => {
-                        check_results
-                            .checks
-                            .insert(check_id, CheckResultSerializable::Ok);
+                        num_successful += 1;
+
+                        checks.insert(check_id, CheckResultSerializable::Ok);
 
                         stdout.write_success(|stdout| {
-                            writeln!(stdout, "\u{221a} {}", check_name)?;
+                            writeln!(stdout, "\u{221a} {} - OK", check_name)?;
                             Ok(())
                         });
                     }
 
                     Ok(CheckResult::Warning(warning)) => {
-                        have_warnings = true;
+                        num_warnings += 1;
 
-                        check_results.checks.insert(
+                        checks.insert(
                             check_id,
                             CheckResultSerializable::Warning {
                                 details: warning.iter_chain().map(ToString::to_string).collect(),
@@ -371,7 +400,7 @@ impl Check {
                         );
 
                         stdout.write_warning(|stdout| {
-                            writeln!(stdout, "\u{203c} {}", check_name)?;
+                            writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
 
                             let message = warning.to_string();
 
@@ -393,21 +422,17 @@ impl Check {
                     }
 
                     Ok(CheckResult::Ignored) => {
-                        check_results
-                            .checks
-                            .insert(check_id, CheckResultSerializable::Ignored);
+                        checks.insert(check_id, CheckResultSerializable::Ignored);
                     }
 
                     Ok(CheckResult::Skipped) => {
-                        have_skipped = true;
+                        num_skipped += 1;
 
-                        check_results
-                            .checks
-                            .insert(check_id, CheckResultSerializable::Skipped);
+                        checks.insert(check_id, CheckResultSerializable::Skipped);
 
                         if self.verbose {
                             stdout.write_warning(|stdout| {
-                                writeln!(stdout, "\u{203c} {}", check_name)?;
+                                writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
                                 writeln!(stdout, "    skipping because of previous failures")?;
                                 Ok(())
                             });
@@ -415,9 +440,9 @@ impl Check {
                     }
 
                     Ok(CheckResult::Fatal(err)) => {
-                        have_fatal = true;
+                        num_fatal += 1;
 
-                        check_results.checks.insert(
+                        checks.insert(
                             check_id,
                             CheckResultSerializable::Fatal {
                                 details: err.iter_chain().map(ToString::to_string).collect(),
@@ -425,7 +450,7 @@ impl Check {
                         );
 
                         stdout.write_error(|stdout| {
-                            writeln!(stdout, "\u{00d7} {}", check_name)?;
+                            writeln!(stdout, "\u{00d7} {} - Error", check_name)?;
 
                             let message = err.to_string();
 
@@ -447,9 +472,9 @@ impl Check {
                     }
 
                     Err(err) => {
-                        have_errors = true;
+                        num_errors += 1;
 
-                        check_results.checks.insert(
+                        checks.insert(
                             check_id,
                             CheckResultSerializable::Error {
                                 details: err.iter_chain().map(ToString::to_string).collect(),
@@ -457,7 +482,7 @@ impl Check {
                         );
 
                         stdout.write_error(|stdout| {
-                            writeln!(stdout, "\u{00d7} {}", check_name)?;
+                            writeln!(stdout, "\u{00d7} {} - Error", check_name)?;
 
                             let message = err.to_string();
 
@@ -485,63 +510,63 @@ impl Check {
             }
         }
 
-        let result = match (have_warnings, have_skipped, have_fatal || have_errors) {
-            (false, false, false) => {
-                stdout.write_success(|stdout| {
-                    writeln!(stdout, "All checks succeeded.")?;
-                    Ok(())
-                });
+        stdout.write_success(|stdout| {
+            writeln!(stdout, "{} check(s) succeeded.", num_successful)?;
+            Ok(())
+        });
 
+        if num_warnings > 0 {
+            stdout.write_warning(|stdout| {
+                write!(stdout, "{} check(s) raised warnings.", num_warnings)?;
+                if self.verbose {
+                    writeln!(stdout)?;
+                } else {
+                    writeln!(stdout, " Re-run with --verbose for more details.")?;
+                }
                 Ok(())
-            }
+            });
+        }
 
-            (_, _, true) => {
-                stdout.write_error(|stdout| {
-                    write!(stdout, "One or more checks raised errors.")?;
-                    if self.verbose {
-                        writeln!(stdout)?;
-                    } else {
-                        writeln!(stdout, " Re-run with --verbose for more details.")?;
-                    }
-                    Ok(())
-                });
-
-                Err(ErrorKind::Diagnostics.into())
-            }
-
-            (_, true, _) => {
-                stdout.write_warning(|stdout| {
-                    write!(
-                        stdout,
-                        "One or more checks were skipped due to errors from other checks."
-                    )?;
-                    if self.verbose {
-                        writeln!(stdout)?;
-                    } else {
-                        writeln!(stdout, " Re-run with --verbose for more details.")?;
-                    }
-                    Ok(())
-                });
-
+        if num_fatal + num_errors > 0 {
+            stdout.write_error(|stdout| {
+                write!(stdout, "{} check(s) raised errors.", num_fatal + num_errors)?;
+                if self.verbose {
+                    writeln!(stdout)?;
+                } else {
+                    writeln!(stdout, " Re-run with --verbose for more details.")?;
+                }
                 Ok(())
-            }
+            });
+        }
 
-            (true, _, _) => {
-                stdout.write_warning(|stdout| {
-                    write!(stdout, "One or more checks raised warnings.")?;
-                    if self.verbose {
-                        writeln!(stdout)?;
-                    } else {
-                        writeln!(stdout, " Re-run with --verbose for more details.")?;
-                    }
-                    Ok(())
-                });
-
+        if num_skipped > 0 {
+            stdout.write_warning(|stdout| {
+                write!(
+                    stdout,
+                    "{} check(s) were skipped due to errors from other checks.",
+                    num_skipped,
+                )?;
+                if self.verbose {
+                    writeln!(stdout)?;
+                } else {
+                    writeln!(stdout, " Re-run with --verbose for more details.")?;
+                }
                 Ok(())
-            }
+            });
+        }
+
+        let result = if num_fatal + num_errors > 0 {
+            Err(ErrorKind::Diagnostics.into())
+        } else {
+            Ok(())
         };
 
         if self.output_format == OutputFormat::Json {
+            let check_results = CheckResultsSerializable {
+                additional_info: &self.additional_info,
+                checks,
+            };
+
             if let Err(err) = serde_json::to_writer(std::io::stdout(), &check_results) {
                 eprintln!("Could not write JSON output: {}", err,);
                 return Err(ErrorKind::Diagnostics.into());
@@ -698,9 +723,55 @@ fn container_engine(check: &mut Check) -> Result<CheckResult, failure::Error> {
 
     check.docker_host_arg = Some(docker_host_arg);
 
-    check.docker_server_version = Some(String::from_utf8_lossy(&output).into_owned());
+    check.docker_server_version = Some(String::from_utf8_lossy(&output).trim().to_owned());
+    check.additional_info.docker_version = check.docker_server_version.clone();
 
     Ok(CheckResult::Ok)
+}
+
+fn host_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    #[cfg(unix)]
+    {
+        let _ = check;
+        Ok(CheckResult::Ignored)
+    }
+
+    #[cfg(windows)]
+    {
+        let settings = if let Some(settings) = &check.settings {
+            settings
+        } else {
+            return Ok(CheckResult::Skipped);
+        };
+
+        let moby_runtime_uri = settings.moby_runtime().uri().to_string();
+
+        if moby_runtime_uri != "npipe://./pipe/iotedge_moby_engine" {
+            // Host OS version restriction only applies when using Windows containers,
+            // which in turn only happens when using Moby
+            return Ok(CheckResult::Ignored);
+        }
+
+        let os_version = self::additional_info::os_version().context("Could not get OS version")?;
+        match os_version {
+            // When using Windows containers, the host OS version must match the container OS version.
+            // Since our containers are built with 10.0.17763 base images, we require the same for the host OS.
+            //
+            // If this needs to be changed, also update the host OS version check in the Windows install script
+            // (scripts/windows/setup/IotEdgeSecurityDaemon.ps1)
+            (10, 0, 17763, _) => (),
+
+            (major_version, minor_version, build_number, _) => {
+                return Ok(CheckResult::Fatal(Context::new(format!(
+                    "The host has an unsupported OS version {}.{}.{}. IoT Edge on Windows only supports OS version 10.0.17763.\n\
+                     Please see https://aka.ms/iotedge-platsup for details.",
+                    major_version, minor_version, build_number,
+                )).into()))
+            }
+        }
+
+        Ok(CheckResult::Ok)
+    }
 }
 
 fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
@@ -769,12 +840,45 @@ fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
             .to_owned()
     };
 
-    if config_hostname != machine_hostname {
+    // Technically the value of config_hostname doesn't matter as long as it resolves to this device.
+    // However determining that the value resolves to *this device* is not trivial.
+    //
+    // We could start a server and verify that we can connect to ourselves via that hostname, but starting a
+    // publicly-available server is not something to be done trivially.
+    //
+    // We could enumerate the network interfaces of the device and verify that the IP that the hostname resolves to
+    // belongs to one of them, but this requires non-trivial OS-specific code
+    // (`getifaddrs` on Linux, `GetIpAddrTable` on Windows).
+    //
+    // Instead, we punt on this check and assume that everything's fine if config_hostname is identical to the device hostname,
+    // or starts with it.
+    if config_hostname != machine_hostname
+        && !config_hostname.starts_with(&format!("{}.", machine_hostname))
+    {
         return Err(Context::new(format!(
-            "config.yaml has hostname {} but device reports hostname {}",
+            "config.yaml has hostname {} but device reports hostname {}.\n\
+             Hostname in config.yaml must either be identical to the device hostname \
+             or be a fully-qualified domain name that has the device hostname as the first component.",
             config_hostname, machine_hostname,
         ))
         .into());
+    }
+
+    // Some software like Kubernetes and the IoT Hub SDKs for downstream clients require the device hostname to follow RFC 1035.
+    // For example, the IoT Hub C# SDK cannot connect to a hostname that contains an `_`.
+    if !is_rfc_1035_valid(config_hostname) {
+        return Ok(CheckResult::Warning(Context::new(format!(
+            "config.yaml has hostname {} which does not comply with RFC 1035.\n\
+             \n\
+             - Hostname must be between 1 and 255 octets inclusive.\n\
+             - Each label in the hostname (component separated by \".\") must be between 1 and 63 octets inclusive.\n\
+             - Each label must start with an ASCII alphabet character (a-z), end with an ASCII alphanumeric character (a-z, 0-9), \
+               and must contain only ASCII alphanumeric characters or hyphens (a-z, 0-9, \"-\").\n\
+             \n\
+             Not complying with RFC 1035 may cause errors during the TLS handshake with modules and downstream devices.",
+            config_hostname,
+        ))
+        .into()));
     }
 
     Ok(CheckResult::Ok)
@@ -904,10 +1008,12 @@ fn iotedged_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
         .expect("unreachable: regex defines one capturing group")
         .as_str();
 
+    check.additional_info.iotedged_version = Some(version.to_owned());
+
     if version != latest_versions.iotedged {
         return Ok(CheckResult::Warning(
             Context::new(format!(
-                "Installed IoT Edge daemon has version {} but version {} is available.\n\
+                "Installed IoT Edge daemon has version {} but {} is the latest stable version available.\n\
                  Please see https://aka.ms/iotedge-update-runtime for update instructions.",
                 version, latest_versions.iotedged,
             ))
@@ -1285,6 +1391,28 @@ fn container_engine_logrotate(check: &mut Check) -> Result<CheckResult, failure:
     Ok(CheckResult::Ok)
 }
 
+fn connection_to_dps_endpoint(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    let settings = if let Some(settings) = &check.settings {
+        settings
+    } else {
+        return Ok(CheckResult::Skipped);
+    };
+
+    let dps_endpoint = if let Provisioning::Dps(dps) = settings.provisioning() {
+        dps.global_endpoint()
+    } else {
+        return Ok(CheckResult::Ignored);
+    };
+
+    let dps_hostname = dps_endpoint.host_str().ok_or_else(|| {
+        Context::new("URL specified in provisioning.global_endpoint does not have a host")
+    })?;
+
+    resolve_and_tls_handshake(&dps_endpoint, dps_hostname, dps_hostname)?;
+
+    Ok(CheckResult::Ok)
+}
+
 fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResult, failure::Error> {
     let iothub_hostname = if let Some(iothub_hostname) = &check.iothub_hostname {
         iothub_hostname
@@ -1292,39 +1420,11 @@ fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResul
         return Ok(CheckResult::Skipped);
     };
 
-    let iothub_host = std::net::ToSocketAddrs::to_socket_addrs(&(&**iothub_hostname, port))
-        .with_context(|_| {
-            format!(
-                "Could not connect to {}:{} : could not resolve hostname",
-                iothub_hostname, port,
-            )
-        })?
-        .next()
-        .ok_or_else(|| {
-            Context::new(format!(
-                "Could not connect to {}:{} : could not resolve hostname: no addresses found",
-                iothub_hostname, port,
-            ))
-        })?;
-
-    let stream = TcpStream::connect_timeout(&iothub_host, std::time::Duration::from_secs(10))
-        .with_context(|_| format!("Could not connect to {}:{}", iothub_hostname, port))?;
-
-    let tls_connector = native_tls::TlsConnector::new().with_context(|_| {
-        format!(
-            "Could not connect to {}:{} : could not create TLS connector",
-            iothub_hostname, port,
-        )
-    })?;
-
-    let _ = tls_connector
-        .connect(iothub_hostname, stream)
-        .with_context(|_| {
-            format!(
-                "Could not connect to {}:{} : could not complete TLS handshake",
-                iothub_hostname, port,
-            )
-        })?;
+    resolve_and_tls_handshake(
+        &(&**iothub_hostname, port),
+        iothub_hostname,
+        &format!("{}:{}", iothub_hostname, port),
+    )?;
 
     Ok(CheckResult::Ok)
 }
@@ -1501,6 +1601,98 @@ where
     Ok(output.stdout)
 }
 
+// Resolves the given `ToSocketAddrs`, then connects to the first address via TCP and completes a TLS handshake.
+//
+// `tls_hostname` is used for SNI validation and certificate hostname validation.
+//
+// `hostname_display` is used for the error messages.
+fn resolve_and_tls_handshake(
+    to_socket_addrs: &impl std::net::ToSocketAddrs,
+    tls_hostname: &str,
+    hostname_display: &str,
+) -> Result<(), failure::Error> {
+    let host_addr = to_socket_addrs
+        .to_socket_addrs()
+        .with_context(|_| {
+            format!(
+                "Could not connect to {} : could not resolve hostname",
+                hostname_display,
+            )
+        })?
+        .next()
+        .ok_or_else(|| {
+            Context::new(format!(
+                "Could not connect to {} : could not resolve hostname: no addresses found",
+                hostname_display,
+            ))
+        })?;
+
+    let stream = TcpStream::connect_timeout(&host_addr, std::time::Duration::from_secs(10))
+        .with_context(|_| format!("Could not connect to {}", hostname_display))?;
+
+    let tls_connector = native_tls::TlsConnector::new().with_context(|_| {
+        format!(
+            "Could not connect to {} : could not create TLS connector",
+            hostname_display,
+        )
+    })?;
+
+    let _ = tls_connector
+        .connect(tls_hostname, stream)
+        .with_context(|_| {
+            format!(
+                "Could not connect to {} : could not complete TLS handshake",
+                hostname_display,
+            )
+        })?;
+
+    Ok(())
+}
+
+fn is_rfc_1035_valid(name: &str) -> bool {
+    if name.is_empty() || name.len() > 255 {
+        return false;
+    }
+
+    let mut labels = name.split('.');
+
+    let all_labels_valid = labels.all(|label| {
+        if label.len() > 63 {
+            return false;
+        }
+
+        let first_char = match label.chars().next() {
+            Some(c) => c,
+            None => return false,
+        };
+        if first_char < 'a' || first_char > 'z' {
+            return false;
+        }
+
+        if label
+            .chars()
+            .any(|c| (c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '-')
+        {
+            return false;
+        }
+
+        let last_char = label
+            .chars()
+            .last()
+            .expect("label has at least one character");
+        if (last_char < 'a' || last_char > 'z') && (last_char < '0' || last_char > '9') {
+            return false;
+        }
+
+        true
+    });
+    if !all_labels_valid {
+        return false;
+    }
+
+    true
+}
+
 fn write_lines<'a>(
     writer: &mut (impl Write + ?Sized),
     first_line_indent: &str,
@@ -1519,8 +1711,8 @@ fn write_lines<'a>(
 }
 
 #[derive(Debug, serde_derive::Serialize)]
-struct CheckResultsSerializable {
-    os_info: OsInfo,
+struct CheckResultsSerializable<'a> {
+    additional_info: &'a AdditionalInfo,
     checks: BTreeMap<&'static str, CheckResultSerializable>,
 }
 
@@ -1830,5 +2022,40 @@ mod tests {
                 filename, check_result
             ),
         }
+    }
+
+    #[test]
+    fn test_is_rfc_1035_valid() {
+        let longest_valid_label = "a".repeat(63);
+        let longest_valid_name = format!(
+            "{label}.{label}.{label}.{label_rest}",
+            label = longest_valid_label,
+            label_rest = "a".repeat(255 - 63 * 3 - 3)
+        );
+        assert_eq!(longest_valid_name.len(), 255);
+
+        assert!(super::is_rfc_1035_valid("foobar"));
+        assert!(super::is_rfc_1035_valid("foobar.baz"));
+        assert!(super::is_rfc_1035_valid(&longest_valid_label));
+        assert!(super::is_rfc_1035_valid(&format!(
+            "{label}.{label}.{label}",
+            label = longest_valid_label
+        )));
+        assert!(super::is_rfc_1035_valid(&longest_valid_name));
+        assert!(super::is_rfc_1035_valid("xn--v9ju72g90p.com"));
+        assert!(super::is_rfc_1035_valid("xn--a-kz6a.xn--b-kn6b.xn--c-ibu"));
+
+        assert!(!super::is_rfc_1035_valid(&format!(
+            "{}a",
+            longest_valid_label
+        )));
+        assert!(!super::is_rfc_1035_valid(&format!(
+            "{}a",
+            longest_valid_name
+        )));
+        assert!(!super::is_rfc_1035_valid("01.org"));
+        assert!(!super::is_rfc_1035_valid("\u{4eca}\u{65e5}\u{306f}"));
+        assert!(!super::is_rfc_1035_valid("\u{4eca}\u{65e5}\u{306f}.com"));
+        assert!(!super::is_rfc_1035_valid("a\u{4eca}.b\u{65e5}.c\u{306f}"));
     }
 }

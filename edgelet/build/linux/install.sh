@@ -10,7 +10,7 @@ set -e
 # Define Environment Variables
 ###############################################################################
 SCRIPT_NAME=$(basename "$0")
-RUSTUP="$HOME/.cargo/bin/rustup"
+RUSTUP="${CARGO_HOME:-"$HOME/.cargo"}/bin/rustup"
 TOOLCHAIN="stable"
 ARM_PACKAGE=
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}

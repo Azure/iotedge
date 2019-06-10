@@ -71,19 +71,19 @@ Function New-Package([string] $Name, [string] $Version)
         $Win10KitsRoot = Get-ItemProperty -Path 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows Kits\Installed Roots' -Name KitsRoot10 | % KitsRoot10
         Write-Host $Win10KitsRoot
         
-        $Version =
+        $LatestWin10KitsVersion =
             Get-ChildItem -Path "$Win10KitsRoot\bin" -ErrorAction Ignore |
             Sort-Object -Property Name -Descending |
             ?{ $_.Name -like '10.*' } |
             Select-Object -First 1 |
             % Name
-        Write-Host $Version
+        Write-Host $LatestWin10KitsVersion
 
-        if ($Version -eq $null) {
+        if ($LatestWin10KitsVersion -eq $null) {
             throw [System.IO.FileNotFoundException] 'Cannot find any Windows 10 kits on the build agent'
         }
 
-        $LatestWin10KitsX64Bin = "$Win10KitsRoot\bin\$Version\X64"
+        $LatestWin10KitsX64Bin = "$Win10KitsRoot\bin\$LatestWin10KitsVersion\X64"
         $oldPath = $env:PATH
         $env:PATH = $LatestWin10KitsX64Bin + ';' + $env:PATH
         Write-Host $env:PATH

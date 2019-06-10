@@ -16,7 +16,7 @@ jobs:
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
-      - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
+      - bash: 'echo "##vso[task.setvariable variable=PATH;]${CARGO_HOME:-"$HOME/.cargo"}/bin:$PATH"'
         displayName: Modify path
       - bash: |
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
@@ -62,7 +62,7 @@ jobs:
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
-      - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
+      - bash: 'echo "##vso[task.setvariable variable=PATH;]${CARGO_HOME:-"$HOME/.cargo"}/bin:$PATH"'
         displayName: Modify path
       - bash: |
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
@@ -158,7 +158,7 @@ jobs:
           target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
           target.libiothsm: edgelet/target/hsm/build
     steps:
-      - bash: 'echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"'
+      - bash: 'echo "##vso[task.setvariable variable=PATH;]${CARGO_HOME:-"$HOME/.cargo"}/bin:$PATH"'
         displayName: Modify path
       - bash: |
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
