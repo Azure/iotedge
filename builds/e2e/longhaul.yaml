@@ -295,6 +295,7 @@ jobs:
       name: $(pool.name)
       demands:
         - run-long-haul -equals true
+        - agent.OSName -equals WindowsX64
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
     variables:
@@ -372,13 +373,32 @@ jobs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
-      - template: templates/download-artifacts-windows.yaml
-        parameters:
-          project: '$(vsts.project)'
-          pipeline: '$(edgelet.package.build)'
-          branchName: '$(edgelet.package.branchName)'
-          buildVersionToDownload: 'latestFromBranch'
-          testType: 'long_haul'
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Edgelet Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          branchName: $(edgelet.package.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(edgelet.artifact.name)
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Images Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(images.build)
+          branchName: $(images.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(images.artifact.name.windows)
+          itemPattern: |
+            $(images.artifact.name.windows)/IotEdgeQuickstart/x64/*
+            $(images.artifact.name.windows)/e2e_deployment_files/stress_deployment.template.windows.json
+            $(images.artifact.name.windows)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1
+            $(images.artifact.name.windows)/scripts/windows/test/Run-E2ETest.ps1
+            $(images.artifact.name.windows)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy-windows.yaml
         parameters:
