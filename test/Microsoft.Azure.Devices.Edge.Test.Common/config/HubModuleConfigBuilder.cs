@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 {
+    using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class HubModuleConfigBuilder : ModuleConfigBuilder
@@ -12,11 +13,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             : base("edgeHub", image.GetOrElse(DefaultImage), true, Option.Some(HubCreateOptions))
         {
             this.WithDesiredProperties(
-                new[]
+                new Dictionary<string, object>
                 {
-                    ("schemaVersion", (object)"1.0"),
-                    ("routes", new { route1 = "from /* INTO $upstream" }),
-                    ("storeAndForwardConfiguration", new { timeToLiveSecs = 7200 })
+                    ["schemaVersion"] = "1.0",
+                    ["routes"] = new { route1 = "from /* INTO $upstream" },
+                    ["storeAndForwardConfiguration"] = new { timeToLiveSecs = 7200 }
                 });
         }
     }

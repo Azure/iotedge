@@ -3,31 +3,38 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public abstract class BaseModuleConfigBuilder : IModuleConfigBuilder
     {
-        protected IDictionary<string, object> DesiredProperties { get; }
+        IDictionary<string, object> DesiredProperties { get; }
 
-        protected IDictionary<string, string> Env { get; }
+        IDictionary<string, string> Env { get; }
 
-        protected string Image { get; }
+        protected IDictionary<string, object> Deployment { get; }
+
+        protected IDictionary<string, object> Settings { get; }
 
         public string Name { get; }
 
         public bool System { get; }
 
-        protected string Type { get; }
-
         protected BaseModuleConfigBuilder(string name, string image, bool system)
         {
+            this.Deployment = new Dictionary<string, object>()
+            {
+                ["type"] = "docker"
+            };
             this.DesiredProperties = new Dictionary<string, object>();
             this.Env = new Dictionary<string, string>();
-            this.Image = Preconditions.CheckNonWhiteSpace(image, nameof(image));
             this.Name = Preconditions.CheckNonWhiteSpace(name, nameof(name));
+            this.Settings = new Dictionary<string, object>()
+            {
+                ["image"] = Preconditions.CheckNonWhiteSpace(image, nameof(image))
+            };
             this.System = system;
-            this.Type = "docker";
         }
 
         public IModuleConfigBuilder WithEnvironment(IEnumerable<(string, string)> env)
@@ -86,16 +93,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return this;
         }
 
-        public IModuleConfigBuilder WithDesiredProperties(IEnumerable<(string, object)> properties)
-        {
-            foreach ((string key, object value) in properties)
-            {
-                this.DesiredProperties[key] = value; // for duplicate keys, last save wins!
-            }
-
-            return this;
-        }
-
         public IModuleConfigBuilder WithDesiredProperties(IDictionary<string, object> properties)
         {
             foreach ((string key, object value) in properties)
@@ -106,18 +103,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return this;
         }
 
-        public ModuleConfiguration Build() => new ModuleConfiguration(this.BuildInternal());
-
-        protected virtual ModuleConfigurationInternal BuildInternal()
+        public ModuleConfiguration Build()
         {
-            var settings = new Dictionary<string, object>
+            // Compose the hierarchy
+            var deployment = new Dictionary<string, object>(this.Deployment)
             {
-                ["image"] = this.Image
+                ["settings"] = this.Settings
             };
 
             if (this.Env.Count != 0)
             {
-                settings["env"] = this.Env.ToDictionary(
+                deployment["env"] = this.Env.ToDictionary(
                     kvp => kvp.Key,
                     kvp => new
                     {
@@ -125,13 +121,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                     });
             }
 
-            var config = new Dictionary<string, object>
-            {
-                ["type"] = this.Type,
-                ["settings"] = settings
-            };
-
-            return new ModuleConfigurationInternal(this.Name, this.System, config, this.DesiredProperties);
+            return new ModuleConfiguration(
+                this.Name,
+                this.System,
+                new ReadOnlyDictionary<string, object>(deployment),
+                new ReadOnlyDictionary<string, object>(this.DesiredProperties));
         }
     }
 }

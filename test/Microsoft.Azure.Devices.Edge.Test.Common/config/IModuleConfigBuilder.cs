@@ -11,8 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         bool System { get; }
 
-        IModuleConfigBuilder WithDesiredProperties(IEnumerable<(string, object)> properties);
-
         IModuleConfigBuilder WithDesiredProperties(IDictionary<string, object> properties);
 
         IModuleConfigBuilder WithEnvironment(IEnumerable<(string, string)> env);
