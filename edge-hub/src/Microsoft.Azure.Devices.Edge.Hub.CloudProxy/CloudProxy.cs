@@ -716,7 +716,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void MessageProcessingLatency(string id, IMessage message)
             {
-                if (message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
+                if (message.SystemProperties != null
+                    && message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
                     && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
                 {
                     TimeSpan duration = DateTime.UtcNow - enqueuedTime.ToUniversalTime();

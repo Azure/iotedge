@@ -508,7 +508,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 string from = message.GetSenderId();
                 string to = identity.Id;
 
-                if (message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
+                if (message.SystemProperties != null
+                    && message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
                     && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
                 {
                     TimeSpan duration = DateTime.UtcNow - enqueuedTime.ToUniversalTime();
