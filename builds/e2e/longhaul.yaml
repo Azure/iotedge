@@ -295,7 +295,7 @@ jobs:
       name: $(pool.name)
       demands:
         - run-long-haul -equals true
-		- agent.OSName -equals WindowsX64
+		    - agent.OSName -equals WindowsX64
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
     variables:
