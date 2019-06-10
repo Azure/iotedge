@@ -54,13 +54,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             return Task.WhenAll(streamingTasks);
         }
 
-        internal static bool NeedToProcessStream(ModuleLogOptions logOptions) =>
-            logOptions.Filter.LogLevel.HasValue
-            || logOptions.Filter.Regex.HasValue
-            || logOptions.ContentEncoding != LogsContentEncoding.None
-            || logOptions.ContentType != LogsContentType.Text
-            || logOptions.OutputFraming != LogOutputFraming.None;
-
         internal async Task GetLogsStreamInternal(string id, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
@@ -69,45 +62,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(id, logOptions.Follow, logOptions.Filter.Tail, logOptions.Filter.Since, cancellationToken);
             Events.ReceivedStream(id);
 
-            await (NeedToProcessStream(logOptions)
-                ? this.logsProcessor.ProcessLogsStream(id, logsStream, logOptions, callback)
-                : this.WriteLogsStreamToOutput(id, callback, logsStream, cancellationToken));
+            await this.logsProcessor.ProcessLogsStream(id, logsStream, logOptions, callback);
         }
 
         static byte[] ProcessByContentEncoding(byte[] bytes, LogsContentEncoding contentEncoding) =>
             contentEncoding == LogsContentEncoding.Gzip
                 ? Compression.CompressToGzip(bytes)
                 : bytes;
-
-        async Task WriteLogsStreamToOutput(string id, Func<ArraySegment<byte>, Task> callback, Stream stream, CancellationToken cancellationToken)
-        {
-            var buf = new byte[1024];
-            try
-            {
-                while (true)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        Events.StreamingCancelled(id);
-                        break;
-                    }
-
-                    int count = await stream.ReadAsync(buf, 0, buf.Length, cancellationToken);
-                    if (count == 0)
-                    {
-                        Events.StreamingCompleted(id);
-                        break;
-                    }
-
-                    var arrSeg = new ArraySegment<byte>(buf, 0, count);
-                    await callback(arrSeg);
-                }
-            }
-            catch (Exception ex)
-            {
-                Events.ErrorWhileProcessingStream(id, ex);
-            }
-        }
 
         async Task<byte[]> GetProcessedLogs(string id, Stream logsStream, ModuleLogOptions logOptions)
         {

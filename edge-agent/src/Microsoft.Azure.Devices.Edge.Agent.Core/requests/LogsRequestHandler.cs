@@ -14,6 +14,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     public class LogsRequestHandler : RequestHandlerBase<LogsRequest, IEnumerable<LogsResponse>>
     {
         const int MaxTailValue = 500;
+
+        static readonly Version ExpectedSchemaVersion = new Version("1.0");
+
         readonly ILogsProvider logsProvider;
         readonly IRuntimeInfoProvider runtimeInfoProvider;
 
@@ -28,6 +31,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         protected override async Task<Option<IEnumerable<LogsResponse>>> HandleRequestInternal(Option<LogsRequest> payloadOption, CancellationToken cancellationToken)
         {
             LogsRequest payload = payloadOption.Expect(() => new ArgumentException("Request payload not found"));
+            if (ExpectedSchemaVersion.CompareMajorVersion(payload.SchemaVersion, "logs upload request schema") != 0)
+            {
+                Events.MismatchedMinorVersions(payload.SchemaVersion, ExpectedSchemaVersion);
+            }
+
+            Events.ProcessingRequest(payload);
+
             ILogsRequestToOptionsMapper requestToOptionsMapper = new LogsRequestToOptionsMapper(
                 this.runtimeInfoProvider,
                 payload.Encoding,
@@ -70,7 +80,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             enum EventIds
             {
                 ReceivedModuleLogs = IdStart + 1,
-                ReceivedLogOptions
+                ReceivedLogOptions,
+                ProcessingRequest,
+                MismatchedMinorVersions
             }
 
             public static void ReceivedModuleLogs(byte[] moduleLogs, string id)
@@ -93,6 +105,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 {
                     Log.LogInformation((int)EventIds.ReceivedLogOptions, $"Received log options for {receivedLogOptions.id} with no tail value specified, setting tail value to {MaxTailValue}");
                 }
+            }
+
+            public static void ProcessingRequest(LogsRequest payload)
+            {
+                Log.LogInformation((int)EventIds.ProcessingRequest, $"Processing request to get logs for {payload.ToJson()}");
+            }
+
+            public static void MismatchedMinorVersions(string payloadSchemaVersion, Version expectedSchemaVersion)
+            {
+                Log.LogWarning((int)EventIds.MismatchedMinorVersions, $"Logs upload request schema version {payloadSchemaVersion} does not match expected schema version {expectedSchemaVersion}. Some settings may not be supported.");
             }
         }
     }
