@@ -18,25 +18,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     {
         readonly ConfigurationContent config;
         readonly string deviceId;
-        readonly IotHub iotHub;
         readonly IEnumerable<string> moduleNames;
 
         public EdgeConfiguration(
             string deviceId,
             IEnumerable<string> moduleNames,
-            ConfigurationContent config,
-            IotHub iotHub)
+            ConfigurationContent config)
         {
             this.config = config;
             this.deviceId = deviceId;
-            this.iotHub = iotHub;
             this.moduleNames = moduleNames;
         }
 
-        public Task DeployAsync(CancellationToken token)
+        public Task DeployAsync(IotHub iotHub, CancellationToken token)
         {
             return Profiler.Run(
-                () => this.iotHub.DeployDeviceConfigurationAsync(this.deviceId, this.config, token),
+                () => iotHub.DeployDeviceConfigurationAsync(this.deviceId, this.config, token),
                 "Deployed edge configuration to device '{Device}' with modules ({Modules})",
                 this.deviceId,
                 string.Join(", ", this.moduleNames));

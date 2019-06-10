@@ -8,14 +8,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     public class EdgeConfigBuilder
     {
         readonly string deviceId;
-        readonly IotHub iotHub;
         readonly Dictionary<(string name, bool system), IModuleConfigBuilder> moduleBuilders;
         Option<(string address, string username, string password)> registry;
 
-        public EdgeConfigBuilder(string deviceId, IotHub iotHub)
+        public EdgeConfigBuilder(string deviceId)
         {
             this.deviceId = deviceId;
-            this.iotHub = iotHub;
             this.moduleBuilders = new Dictionary<(string name, bool system), IModuleConfigBuilder>();
             this.registry = Option.None<(string, string, string)>();
         }
@@ -88,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 };
             }
 
-            return new EdgeConfiguration(this.deviceId, moduleNames, config, this.iotHub);
+            return new EdgeConfiguration(this.deviceId, moduleNames, config);
         }
 
         ModuleConfiguration BuildEdgeAgent(IEnumerable<ModuleConfiguration> configs)

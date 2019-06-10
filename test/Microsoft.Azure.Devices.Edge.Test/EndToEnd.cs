@@ -45,13 +45,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         iotHub,
                         token)).Expect(() => new Exception("Device should have already been created in setup fixture"));
 
-                    var builder = new EdgeConfigBuilder(device.Id, iotHub);
+                    var builder = new EdgeConfigBuilder(device.Id);
                     Context.Current.Registry.ForEach(
                         r => builder.AddRegistryCredentials(r.address, r.username, r.password));
                     builder.AddEdgeAgent(edgeAgent).WithProxy(proxy, Protocol.Amqp);
                     builder.AddEdgeHub(edgeHub).WithProxy(proxy, Protocol.Amqp);
                     builder.AddModule("tempSensor", tempSensor);
-                    await builder.Build().DeployAsync(token);
+                    await builder.Build().DeployAsync(iotHub, token);
 
                     var hub = new EdgeModule("edgeHub", device.Id, iotHub);
                     var sensor = new EdgeModule("tempSensor", device.Id, iotHub);
@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     string methodSender = $"methodSender-{edgeToCloud}-{moduleToEdge}";
                     string methodReceiver = $"methodReceiver-{edgeToCloud}-{moduleToEdge}";
 
-                    var builder = new EdgeConfigBuilder(device.Id, iotHub);
+                    var builder = new EdgeConfigBuilder(device.Id);
                     Context.Current.Registry.ForEach(
                         r => builder.AddRegistryCredentials(r.address, r.username, r.password));
                     builder.AddEdgeAgent(edgeAgent)
@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             });
                     builder.AddModule(methodReceiver, receiverImage)
                         .WithEnvironment(new[] { ("UpstreamProtocol", moduleToEdge) });
-                    await builder.Build().DeployAsync(token);
+                    await builder.Build().DeployAsync(iotHub, token);
 
                     var hub = new EdgeModule("edgeHub", device.Id, iotHub);
                     var sender = new EdgeModule(methodSender, device.Id, iotHub);
