@@ -1,0 +1,19 @@
+parameters:
+  name: ''
+  imageName: ''
+  namespace: 'microsoft'
+  project: ''
+  configuration: 'release'
+  filePath: ''
+
+steps:
+  - task: Bash@3
+    displayName: Build - ${{ parameters.name }} - amd64
+    inputs:
+      filePath: ${{ parameters.filePath }}
+      arguments: -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }} -c ${{ parameters.configuration }}
+  - task: Bash@3
+    displayName: Build - ${{ parameters.name }} - arm32
+    inputs:
+      filePath: ${{ parameters.filePath }}
+      arguments: -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch armv7l

@@ -160,7 +160,7 @@ fn run() -> Result<(), Error> {
                         .long("output")
                         .short("o")
                         .value_name("FORMAT")
-                        .help("Output format.")
+                        .help("Output format. Note that JSON output contains some additional host information like OS name and version.")
                         .takes_value(true)
                         .possible_values(&["json", "text"])
                         .default_value("text"),
@@ -219,15 +219,18 @@ fn run() -> Result<(), Error> {
         .subcommand(SubCommand::with_name("version").about("Show the version information"))
         .get_matches();
 
-    let url = matches.value_of("host").map_or_else(
-        || Err(Error::from(ErrorKind::MissingHostParameter)),
-        |h| {
-            Url::parse(h)
-                .context(ErrorKind::BadHostParameter)
-                .map_err(Error::from)
-        },
-    )?;
-    let runtime = ModuleClient::new(&url).context(ErrorKind::ModuleRuntime)?;
+    let runtime = || -> Result<_, Error> {
+        let url = matches.value_of("host").map_or_else(
+            || Err(Error::from(ErrorKind::MissingHostParameter)),
+            |h| {
+                Url::parse(h)
+                    .context(ErrorKind::BadHostParameter)
+                    .map_err(Error::from)
+            },
+        )?;
+        let runtime = ModuleClient::new(&url).context(ErrorKind::ModuleRuntime)?;
+        Ok(runtime)
+    };
 
     let mut tokio_runtime = tokio::runtime::Runtime::new().context(ErrorKind::InitializeTokio)?;
 
@@ -266,11 +269,13 @@ fn run() -> Result<(), Error> {
             )
             .and_then(|mut check| check.execute()),
         ),
-        ("list", Some(_args)) => tokio_runtime.block_on(List::new(runtime, io::stdout()).execute()),
+        ("list", Some(_args)) => {
+            tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute())
+        }
         ("restart", Some(args)) => tokio_runtime.block_on(
             Restart::new(
                 args.value_of("MODULE").unwrap().to_string(),
-                runtime,
+                runtime()?,
                 io::stdout(),
             )
             .execute(),
@@ -290,7 +295,7 @@ fn run() -> Result<(), Error> {
                 .with_follow(follow)
                 .with_tail(tail)
                 .with_since(since);
-            tokio_runtime.block_on(Logs::new(id, options, runtime).execute())
+            tokio_runtime.block_on(Logs::new(id, options, runtime()?).execute())
         }
         ("version", Some(_args)) => tokio_runtime.block_on(Version::new().execute()),
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),

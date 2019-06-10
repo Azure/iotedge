@@ -134,6 +134,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int upstreamFanOutFactor = this.configuration.GetValue("UpstreamFanOutFactor", 10);
             bool encryptTwinStore = this.configuration.GetValue("EncryptTwinStore", false);
             bool disableCloudSubscriptions = this.configuration.GetValue("DisableCloudSubscriptions", false);
+            int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
+            TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -159,7 +161,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     maxUpstreamBatchSize,
                     upstreamFanOutFactor,
                     encryptTwinStore,
-                    disableCloudSubscriptions));
+                    disableCloudSubscriptions,
+                    configUpdateFrequency));
         }
 
         void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)

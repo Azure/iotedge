@@ -754,7 +754,7 @@ Function RunQuickstartCertsTest
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
 
-    $caCertPath = (Get-ChildItem C:\ProgramData\iotedge\hsm\certs\edge_owner_ca*.pem | Select -First 1).FullName
+    $caCertPath = (Get-ChildItem $env:ProgramData\iotedge\hsm\certs\edge_owner_ca*.pem | Select -First 1).FullName
     Write-Host "CA certificate path=$caCertPath"
 
     Write-Host "Run LeafDevice"

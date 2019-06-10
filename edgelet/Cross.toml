@@ -5,8 +5,14 @@ passthrough = [
     "IOTEDGE_HOMEDIR",
 ]
 
+[target.x86_64-unknown-linux-gnu]
+image = "azureiotedge/debian-build:9.5-1"
+
 [target.armv7-unknown-linux-gnueabihf]
-image = "azureiotedge/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabihf:0.2"
+image = "azureiotedge/gcc-linaro-7.3.1-2018.05-x86_64_arm-linux-gnueabihf:debian_9.5-1"
+
+[target.aarch64-unknown-linux-gnu]
+image = "azureiotedge/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu:debian_9.5-1"
 
 [target.armv7-unknown-linux-musleabihf]
 # Built from rust-embedded/cross#718a19cd68fb09428532d1317515fe7303692b47 with `./build-docker-image.sh armv7-unknown-linux-musleabihf`
