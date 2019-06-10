@@ -629,28 +629,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 "gettwin_duration_milliseconds",
                 new Dictionary<string, string>
                 {
-                    ["Target"] = "IoTHub"
+                    ["target"] = "upstream"
                 });
 
             static readonly IMetricsTimer ReportedPropertiesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "reported_properties_update_duration_milliseconds",
                 new Dictionary<string, string>
                 {
-                    ["Target"] = "IoTHub"
+                    ["target"] = "upstream"
                 });
 
             static readonly IMetricsMeter GetTwinMeter = Util.Metrics.Metrics.Instance.CreateMeter(
                 "gettwin",
                 new Dictionary<string, string>
                 {
-                    ["Target"] = "IoTHub"
+                    ["target"] = "upstream"
                 });
 
             static readonly IMetricsMeter ReportedPropertiesMeter = Util.Metrics.Metrics.Instance.CreateMeter(
                 "reported_properties_update",
                 new Dictionary<string, string>
                 {
-                    ["Target"] = "IoTHub"
+                    ["target"] = "upstream"
                 });
 
             static readonly IMetricsHistogram MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateHistogram(

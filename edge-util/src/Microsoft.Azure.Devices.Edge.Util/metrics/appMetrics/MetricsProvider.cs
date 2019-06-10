@@ -10,8 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
 
     public class MetricsProvider : IMetricsProvider
     {
-        const string EdgeHubLabel = "edgeHub";
-        const string DeviceIdTag = "edgeDevice";
+        const string EdgeHubLabel = "edge_hub";
+        const string DeviceIdTag = "edge_device";
 
         readonly IMetricsRoot metricsRoot;
 
