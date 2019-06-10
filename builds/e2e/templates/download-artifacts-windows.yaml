@@ -9,8 +9,8 @@ steps:
   - task: DownloadBuildArtifacts@0
     displayName: 'Download Edgelet Artifacts'
     inputs:
-    buildType: specific
-      project: "${{ parameters['project']  }}"
+      buildType: specific
+      project: "${{ parameters['project'] }}"
       pipeline: "${{ parameters['pipeline'] }}"
       branchName: "${{ parameters['branchName'] }}"
       buildVersionToDownload: "${{ parameters['buildVersionToDownload'] }}"
@@ -19,10 +19,10 @@ steps:
   - task: DownloadBuildArtifacts@0
     displayName: 'Download Images Artifacts'
     inputs:
-    buildType: specific
-      project: "${{ parameters['project']  }}"
-      pipeline: "${{ parameters['pipeline']  }}"
-      branchName: "${{ parameters['branchName']  }}"
+      buildType: specific
+      project: "${{ parameters['project'] }}"
+      pipeline: "${{ parameters['pipeline'] }}"
+      branchName: "${{ parameters['branchName'] }}"
       buildVersionToDownload: "${{ parameters['buildVersionToDownload'] }}"
       downloadPath: '$(Build.StagingDirectory)'
       artifactName: $(images.artifact.name.windows)
