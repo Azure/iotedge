@@ -7,7 +7,7 @@ use std::ffi::{CStr, OsStr, OsString};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use failure::Fail;
@@ -261,6 +261,18 @@ impl Check {
                         "container-engine-logrotate",
                         "production readiness: logs policy",
                         container_engine_logrotate,
+                    ),
+                    (
+                        "edge-agent-storage-mounted-from-host",
+                        "production readiness: Edge Agent's storage directory is persisted on the host filesystem",
+                        // Note: Keep in sync with Microsoft.Azure.Devices.Edge.Agent.Service.Program.GetStoragePath
+                        |check| storage_mounted_from_host(check, "edgeAgent", "edgeAgent"),
+                    ),
+                    (
+                        "edge-hub-storage-mounted-from-host",
+                        "production readiness: Edge Hub's storage directory is persisted on the host filesystem",
+                        // Note: Keep in sync with Microsoft.Azure.Devices.Edge.Hub.Service.DependencyManager.GetStoragePath
+                        |check| storage_mounted_from_host(check, "edgeHub", "edgeHub"),
                     ),
                 ],
             ),
@@ -1391,6 +1403,93 @@ fn container_engine_logrotate(check: &mut Check) -> Result<CheckResult, failure:
     Ok(CheckResult::Ok)
 }
 
+fn storage_mounted_from_host(
+    check: &mut Check,
+    container_name: &'static str,
+    storage_directory_name: &'static str,
+) -> Result<CheckResult, failure::Error> {
+    lazy_static::lazy_static! {
+        static ref STORAGE_FOLDER_ENV_VAR_KEY_REGEX: Regex =
+            Regex::new("(?i)^storagefolder=(.*)")
+            .expect("This hard-coded regex is expected to be valid.");
+    }
+
+    let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
+        docker_host_arg
+    } else {
+        return Ok(CheckResult::Skipped);
+    };
+
+    let inspect_result = docker(docker_host_arg, &["inspect", container_name])
+        .map_err(|(_, err)| err)
+        .and_then(|output| {
+            let (inspect_result,): (docker::models::InlineResponse200,) =
+                serde_json::from_slice(&output)
+                    .context("Could not parse result of docker inspect")?;
+            Ok(inspect_result)
+        })
+        .with_context(|_| {
+            format!(
+                "Could not check current state of {} container",
+                container_name,
+            )
+        })?;
+
+    let temp_dir = inspect_result
+        .config()
+        .and_then(|config| config.env())
+        .into_iter()
+        .flatten()
+        .filter_map(|env| {
+            STORAGE_FOLDER_ENV_VAR_KEY_REGEX
+                .captures(env)
+                .and_then(|capture| capture.get(1))
+                .map(|match_| match_.as_str())
+        })
+        .next()
+        .unwrap_or(
+            // Hard-code the value here rather than using the tempfile crate. It needs to match .Net Core's implementation,
+            // and needs to be in the context of the container user instead of the host running `iotedge check`.
+            if cfg!(windows) {
+                r"C:\Windows\Temp"
+            } else {
+                "/tmp"
+            },
+        );
+
+    let storage_directory = Path::new(&*temp_dir).join(storage_directory_name);
+
+    let mounted_directories = inspect_result
+        .mounts()
+        .into_iter()
+        .flatten()
+        .filter_map(|mount| mount.destination())
+        .map(Path::new);
+
+    let volume_directories = inspect_result
+        .config()
+        .and_then(|config| config.volumes())
+        .map(|volumes| volumes.keys())
+        .into_iter()
+        .flatten()
+        .map(Path::new);
+
+    if !mounted_directories
+        .chain(volume_directories)
+        .any(|container_directory| container_directory == storage_directory)
+    {
+        return Err(Context::new(format!(
+            "Container {} is not configured to persist its {} directory on the host filesystem.\n\
+             Data might be lost if the container is deleted or updated.",
+            container_name,
+            storage_directory.display(),
+        ))
+        .into());
+    }
+
+    Ok(CheckResult::Ok)
+}
+
 fn connection_to_dps_endpoint(check: &mut Check) -> Result<CheckResult, failure::Error> {
     let settings = if let Some(settings) = &check.settings {
         settings
@@ -1497,12 +1596,12 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
         return Ok(CheckResult::Skipped);
     };
 
-    let inspect_result = docker(docker_host_arg, vec!["inspect", "edgeHub"])
+    let inspect_result = docker(docker_host_arg, &["inspect", "edgeHub"])
         .map_err(|(_, err)| err)
         .and_then(|output| {
             let (inspect_result,): (docker::models::InlineResponse200,) =
                 serde_json::from_slice(&output)
-                    .context("could not parse result of docker inspect")?;
+                    .context("Could not parse result of docker inspect")?;
             Ok(inspect_result)
         })
         .context("Could not check current state of Edge Hub container")?;
