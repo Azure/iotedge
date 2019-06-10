@@ -1437,7 +1437,7 @@ fn storage_mounted_from_host(
 
     let temp_dir = inspect_result
         .config()
-        .and_then(|config| config.env())
+        .and_then(docker::models::ContainerConfig::env)
         .into_iter()
         .flatten()
         .filter_map(|env| {
@@ -1463,13 +1463,12 @@ fn storage_mounted_from_host(
         .mounts()
         .into_iter()
         .flatten()
-        .filter_map(|mount| mount.destination())
-        .map(Path::new);
+        .filter_map(|mount| mount.destination().map(Path::new));
 
     let volume_directories = inspect_result
         .config()
-        .and_then(|config| config.volumes())
-        .map(|volumes| volumes.keys())
+        .and_then(docker::models::ContainerConfig::volumes)
+        .map(std::collections::HashMap::keys)
         .into_iter()
         .flatten()
         .map(Path::new);
