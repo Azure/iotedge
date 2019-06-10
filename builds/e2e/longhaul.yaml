@@ -361,7 +361,7 @@ jobs:
       demands:
         - agent.OSName -equals WindowsServerCore
         - run-long-haul -equals true
-		    - Agent.OS -equals Windows_NT
+        - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
     variables:
       edgelet.artifact.name: 'iotedged-windows'
