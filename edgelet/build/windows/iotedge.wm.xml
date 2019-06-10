@@ -51,7 +51,16 @@
     start="auto"
     startAfterInstall="none"
     type="win32OwnProcess"
-    />
+    >
+    <failureActions resetPeriod="0">
+      <actions>
+        <action
+          delay="1000"
+          type="restartService"
+          />
+      </actions>
+    </failureActions>
+  </service>
   <service
     dependOnService="iotedge-moby"
     description="Azure IoT Edge Daemon"
@@ -63,7 +72,8 @@
     sidType="unrestricted"
     start="auto"
     startAfterInstall="none"
-    type="win32OwnProcess">
+    type="win32OwnProcess"
+    >
     <failureActions resetPeriod="0">
       <actions>
         <action
