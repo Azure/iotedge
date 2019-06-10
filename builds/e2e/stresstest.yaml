@@ -92,10 +92,10 @@ jobs:
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
 
 ################################################################################
-  - job: linux_arm32v7_moby_amqp
+  - job: linux_arm32v7_moby
 ################################################################################
-    displayName: Linux ARM32v7 Moby AMQP
-    condition: eq(variables['run.linux.arm32v7.moby.amqp'], 'true')
+    displayName: Linux ARM32v7 Moby
+    condition: eq(variables['run.linux.arm32v7.moby'], 'true')
     pool:
       name: $(pool.name)
       demands:
@@ -103,7 +103,6 @@ jobs:
         - Agent.OSArchitecture -equals ARM
         - run-stress -equals true
         - agent-osbits -equals 32
-        - test-protocol -equals amqp
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu-armhf'
     steps:
@@ -142,7 +141,7 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
-          release.label: 'st-amqp'
+          release.label: 'st'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -154,84 +153,7 @@ jobs:
           snitch.alert.url: '$(SnitchStressAlertUrl)'
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
-          amqp.settings.enabled: 'true'
-          mqtt.settings.enabled: 'false'
           loadGen.message.frequency: $(loadGen.message.frequency.arm32v7)
-          loadGen1.transportType: 'Amqp_Tcp_Only'
-          loadGen2.transportType: 'Amqp_WebSocket_Only'
-          loadGen3.transportType: 'Amqp_Tcp_Only'
-          loadGen4.transportType: 'Amqp_WebSocket_Only'
-
-################################################################################
-  - job: linux_arm32v7_moby_mqtt
-################################################################################
-    displayName: Linux ARM32v7 Moby MQTT
-    condition: eq(variables['run.linux.arm32v7.moby.mqtt'], 'true')
-    pool:
-      name: $(pool.name)
-      demands:
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals ARM
-        - run-stress -equals true
-        - agent-osbits -equals 32
-        - test-protocol -equals mqtt
-    variables:
-      edgelet.artifact.name: 'iotedged-ubuntu-armhf'
-    steps:
-      - checkout: none
-      - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
-      - task: DownloadBuildArtifacts@0
-        displayName: 'Download Edgelet Artifacts'
-        inputs:
-          buildType: specific
-          project: $(vsts.project)
-          pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
-          buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
-          artifactName: $(edgelet.artifact.name)
-      - task: DownloadBuildArtifacts@0
-        displayName: 'Download Images Artifacts'
-        inputs:
-          buildType: specific
-          project: $(vsts.project)
-          pipeline: $(images.build)
-          branchName: $(images.branchName)
-          buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
-          artifactName: $(images.artifact.name.linux)
-          itemPattern: |
-            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
-            $(images.artifact.name.linux)/e2e_deployment_files/stress_deployment.template.json
-            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
-            $(images.artifact.name.linux)/artifactInfo.txt
-      # Deploy stress test
-      - template: templates/stresstest-deploy.yaml
-        parameters:
-          release.label: 'st-mqtt'
-          edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(images.artifact.name.linux)'
-          container.registry: '$(container.registry)'
-          container.registry.username: '$(edgebuilds-azurecr-io-username)'
-          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
-          snitch.build.number: '$(snitch.build.number)'
-          snitch.alert.url: '$(SnitchStressAlertUrl)'
-          snitch.storage.account: '$(snitch.storage.account)'
-          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
-          amqp.settings.enabled: 'false'
-          mqtt.settings.enabled: 'true'
-          loadGen.message.frequency: $(loadGen.message.frequency.arm32v7)
-          loadGen1.transportType: 'Mqtt_Tcp_Only'
-          loadGen2.transportType: 'Mqtt_WebSocket_Only'
-          loadGen3.transportType: 'Mqtt_Tcp_Only'
-          loadGen4.transportType: 'Mqtt_WebSocket_Only'
 
 ################################################################################
   - job: linux_arm64v8_docker_amqp
