@@ -121,7 +121,7 @@ jobs:
     displayName: Code Coverage
     variables:
       coverage.excludes: "docker-rs*"
-      coverage.goal: 64
+      coverage.goal: 68
       rust.toolchain: nightly-2019-06-07
     pool:
       vmImage: 'ubuntu-16.04'
