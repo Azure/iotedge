@@ -27,8 +27,8 @@ steps:
       downloadPath: '$(Build.StagingDirectory)'
       artifactName: $(images.artifact.name.windows)
       itemPattern: |
-      $(images.artifact.name.windows)/IotEdgeQuickstart/x64/*
-      $(images.artifact.name.windows)/e2e_deployment_files/${{ parameters['testType'] }}_deployment.template.windows.json
-      $(images.artifact.name.windows)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1
-      $(images.artifact.name.windows)/scripts/windows/test/Run-E2ETest.ps1
-      $(images.artifact.name.windows)/artifactInfo.txt
+        $(images.artifact.name.windows)/IotEdgeQuickstart/x64/*
+        $(images.artifact.name.windows)/e2e_deployment_files/${{ parameters['testType'] }}_deployment.template.windows.json
+        $(images.artifact.name.windows)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1
+        $(images.artifact.name.windows)/scripts/windows/test/Run-E2ETest.ps1
+        $(images.artifact.name.windows)/artifactInfo.txt
