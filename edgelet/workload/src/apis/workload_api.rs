@@ -33,40 +33,40 @@ pub trait WorkloadApi {
         &self,
         api_version: &str,
         name: &str,
-        request: ::models::IdentityCertificateRequest,
-    ) -> Box<Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>>;
+        request: crate::models::IdentityCertificateRequest,
+    ) -> Box<dyn Future<Item = crate::models::CertificateResponse, Error = Error<serde_json::Value>>>;
     fn create_server_certificate(
         &self,
         api_version: &str,
         name: &str,
         genid: &str,
-        request: ::models::ServerCertificateRequest,
-    ) -> Box<Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>>;
+        request: crate::models::ServerCertificateRequest,
+    ) -> Box<dyn Future<Item = crate::models::CertificateResponse, Error = Error<serde_json::Value>>>;
     fn decrypt(
         &self,
         api_version: &str,
         name: &str,
         genid: &str,
-        payload: ::models::DecryptRequest,
-    ) -> Box<Future<Item = ::models::DecryptResponse, Error = Error<serde_json::Value>>>;
+        payload: crate::models::DecryptRequest,
+    ) -> Box<dyn Future<Item = crate::models::DecryptResponse, Error = Error<serde_json::Value>>>;
     fn encrypt(
         &self,
         api_version: &str,
         name: &str,
         genid: &str,
-        payload: ::models::EncryptRequest,
-    ) -> Box<Future<Item = ::models::EncryptResponse, Error = Error<serde_json::Value>>>;
+        payload: crate::models::EncryptRequest,
+    ) -> Box<dyn Future<Item = crate::models::EncryptResponse, Error = Error<serde_json::Value>>>;
     fn sign(
         &self,
         api_version: &str,
         name: &str,
         genid: &str,
-        payload: ::models::SignRequest,
-    ) -> Box<Future<Item = ::models::SignResponse, Error = Error<serde_json::Value>>>;
+        payload: crate::models::SignRequest,
+    ) -> Box<dyn Future<Item = crate::models::SignResponse, Error = Error<serde_json::Value>>>;
     fn trust_bundle(
         &self,
         api_version: &str,
-    ) -> Box<Future<Item = ::models::TrustBundleResponse, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::TrustBundleResponse, Error = Error<serde_json::Value>>>;
 }
 
 impl<C: hyper::client::connect::Connect> WorkloadApi for WorkloadApiClient<C>
@@ -79,8 +79,9 @@ where
         &self,
         api_version: &str,
         name: &str,
-        request: ::models::IdentityCertificateRequest,
-    ) -> Box<Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>> {
+        request: crate::models::IdentityCertificateRequest,
+    ) -> Box<dyn Future<Item = crate::models::CertificateResponse, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -135,7 +136,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::CertificateResponse, _> =
+                    let parsed: Result<crate::models::CertificateResponse, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
@@ -147,8 +148,9 @@ where
         api_version: &str,
         name: &str,
         genid: &str,
-        request: ::models::ServerCertificateRequest,
-    ) -> Box<Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>> {
+        request: crate::models::ServerCertificateRequest,
+    ) -> Box<dyn Future<Item = crate::models::CertificateResponse, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -204,7 +206,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::CertificateResponse, _> =
+                    let parsed: Result<crate::models::CertificateResponse, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
@@ -216,8 +218,9 @@ where
         api_version: &str,
         name: &str,
         genid: &str,
-        payload: ::models::DecryptRequest,
-    ) -> Box<Future<Item = ::models::DecryptResponse, Error = Error<serde_json::Value>>> {
+        payload: crate::models::DecryptRequest,
+    ) -> Box<dyn Future<Item = crate::models::DecryptResponse, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -273,7 +276,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::DecryptResponse, _> =
+                    let parsed: Result<crate::models::DecryptResponse, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
@@ -285,8 +288,9 @@ where
         api_version: &str,
         name: &str,
         genid: &str,
-        payload: ::models::EncryptRequest,
-    ) -> Box<Future<Item = ::models::EncryptResponse, Error = Error<serde_json::Value>>> {
+        payload: crate::models::EncryptRequest,
+    ) -> Box<dyn Future<Item = crate::models::EncryptResponse, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -342,7 +346,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::EncryptResponse, _> =
+                    let parsed: Result<crate::models::EncryptResponse, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
@@ -354,8 +358,8 @@ where
         api_version: &str,
         name: &str,
         genid: &str,
-        payload: ::models::SignRequest,
-    ) -> Box<Future<Item = ::models::SignResponse, Error = Error<serde_json::Value>>> {
+        payload: crate::models::SignRequest,
+    ) -> Box<dyn Future<Item = crate::models::SignResponse, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -411,7 +415,8 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::SignResponse, _> = serde_json::from_slice(&body);
+                    let parsed: Result<crate::models::SignResponse, _> =
+                        serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
         )
@@ -420,7 +425,8 @@ where
     fn trust_bundle(
         &self,
         api_version: &str,
-    ) -> Box<Future<Item = ::models::TrustBundleResponse, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::TrustBundleResponse, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -464,7 +470,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::TrustBundleResponse, _> =
+                    let parsed: Result<crate::models::TrustBundleResponse, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
