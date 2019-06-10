@@ -364,6 +364,7 @@ jobs:
       name: $(pool.name)
       demands:
         - run-long-haul -equals true
+		- agent.OSName -equals WindowsX64
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
     variables:
@@ -427,8 +428,10 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        - Agent.OSName -equals ServerCore
+        - agent.OSName -equals WindowsServerCore
         - run-long-haul -equals true
+		- Agent.OS -equals Windows_NT
+        - Agent.OSArchitecture -equals X64
     variables:
       edgelet.artifact.name: 'iotedged-windows'
     steps:
