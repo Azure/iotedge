@@ -49,7 +49,9 @@ where
             .list_with_details()
             .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
             .collect()
-            .and_then(move |result| {
+            .and_then(move |mut result| {
+                result.sort_by(|(mod1, _), (mod2, _)| mod1.name().cmp(mod2.name()));
+
                 let mut w = write.lock().unwrap();
                 writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tCONFIG")
                     .context(ErrorKind::WriteToStdout)?;
