@@ -48,8 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string serviceAccountName;
         readonly Uri workloadUri;
         readonly Uri managementUri;
-        readonly string persistentVolumeName; // Either PV or SC
-        readonly bool persistentVolumeNameIsSc;
+        readonly Option<string> persistentVolumeName;
+        readonly Option<string> storageClassName;
         readonly uint persistentVolumeClaimSizeMb;
         readonly string defaultMapServiceType;
         readonly TypeSpecificSerDe<EdgeDeploymentDefinition> deploymentSerde;
@@ -104,20 +104,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 ContractResolver = new CamelCasePropertyNamesContractResolver()
             };
 
-            if (!string.IsNullOrWhiteSpace(persistentVolumeName))
-            {
-                this.persistentVolumeName = KubeUtils.SanitizeK8sValue(persistentVolumeName);
-                this.persistentVolumeNameIsSc = false;
-            }
-            else if (!string.IsNullOrWhiteSpace(storageClassName))
-            {
-                this.persistentVolumeName = KubeUtils.SanitizeK8sValue(storageClassName);
-                this.persistentVolumeNameIsSc = true;
-            }
-            else
-            {
-                this.persistentVolumeName = string.Empty;
-            }
+            // throw if user provided an invalid name
+            Preconditions.CheckArgument(String.Equals(persistentVolumeName, KubeUtils.SanitizeK8sValue(persistentVolumeName)));
+            Preconditions.CheckArgument(String.Equals(storageClassName, KubeUtils.SanitizeK8sValue(storageClassName)));
+
+            this.persistentVolumeName = (!string.IsNullOrWhiteSpace(persistentVolumeName)) ?
+                Option.Some<string>(persistentVolumeName) : Option.None<string>();
+
+            this.storageClassName = (!string.IsNullOrWhiteSpace(storageClassName)) ?
+                Option.Some<string>(storageClassName) : Option.None<string>();
 
             this.persistentVolumeClaimSizeMb = persistentVolumeClaimSizeMb;
         }
@@ -874,15 +869,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         string mountPath = mount.Target;
                         bool readOnly = mount.ReadOnly;
 
-                        // If the cluster is configured with a persistent volume name then use it otherwise revert to the empty dir source
-                        if (string.IsNullOrWhiteSpace(this.persistentVolumeName))
+                        // If PV name or SC name is defined, use it, else create an EmptyDir volume.
+                        if (this.persistentVolumeName.HasValue || this.storageClassName.HasValue)
                         {
-                            volumeList.Add(new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource()));
+                            await this.EnsurePersistentVolumeClaim(name, readOnly);
+                            volumeList.Add(new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(name, readOnly)));
                         }
                         else
                         {
-                            await this.GetOrCreatePersistentVolumeClaim(name, readOnly);
-                            volumeList.Add(new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(name, readOnly)));
+                            volumeList.Add(new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource()));
+
                         }
                         volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
                     }
@@ -894,11 +890,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 : Option.None<(List<V1Volume>, List<V1VolumeMount>, List<V1VolumeMount>)>();
         }
 
-        private async Task GetOrCreatePersistentVolumeClaim(string name, bool readOnly)
+        private async Task EnsurePersistentVolumeClaim(string name, bool readOnly)
         {
             var listResult = await this.client.ListNamespacedPersistentVolumeClaimAsync(KubeUtils.K8sNamespace);
 
-            var foundPvc = listResult.Items.SingleOrDefault(item => !string.IsNullOrWhiteSpace(item.Metadata.Name) && item.Metadata.Name == name);
+            var foundPvc = listResult.Items.SingleOrDefault(item => item?.Metadata?.Name == name);
 
             if (foundPvc != default(V1PersistentVolumeClaim))
             {
@@ -906,7 +902,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 if (foundPvc.Spec.AccessModes.Contains("Once"))
                 {
                     // TODO : should we throw here or should we just let Kube throw when we try to mount it?
-                    throw new AccessViolationException($"PVC with name {name} is configured to only be mounted to one node.");
+                    // TODO : going to just warn for now.
+                    Events.PvcMightFail(name);
                 }
 
                 // PVC is fine and we can return
@@ -922,13 +919,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 }
             };
 
-            if (this.persistentVolumeNameIsSc)
+            // prefer persistent volume name to storage class name, of both are set.
+            if (this.storageClassName.HasValue && this.persistentVolumeName.HasValue)
             {
-                persistentVolumeClaimSpec.StorageClassName = this.persistentVolumeName;
+                Events.DefaultToPvc();
+                this.persistentVolumeName.ForEach(pvName => persistentVolumeClaimSpec.VolumeName = pvName);
             }
             else
             {
-                persistentVolumeClaimSpec.VolumeName = this.persistentVolumeName;
+                this.persistentVolumeName.ForEach(pvName => persistentVolumeClaimSpec.VolumeName = pvName);
+                this.storageClassName.ForEach(scName => persistentVolumeClaimSpec.StorageClassName = scName);
             }
 
             // TODO : Check return?
@@ -1129,6 +1129,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 ReplacingDeployment,
                 PodWatchClosed,
                 CrdWatchClosed,
+                DefaultToPvc,
+                PvcMightFail,
             }
 
             public static void DeletingService(V1Service service)
@@ -1242,6 +1244,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             public static void CrdWatchClosed()
             {
                 Log.LogInformation((int)EventIds.CrdWatchClosed, $"K8s closed the CRD watch. Attempting to reopen watch.");
+            }
+
+            public static void DefaultToPvc()
+            {
+                Log.LogWarning((int)EventIds.DefaultToPvc, "Both persistent volume name and storage class name are set, creating a PVC for persistent volume.");
+            }
+
+            public static void PvcMightFail(string name)
+            {
+                Log.LogWarning((int)EventIds.PvcMightFail, $"PVC with name {name} may not allow pod to start, check access mode");
             }
         }
     }

@@ -74,11 +74,11 @@ spec:
           - name: "K8sNamespaceBaseName"
             value: {{ .Values.namespace | quote }}
           - name: "PersistentVolumeClaimDefaultSizeInMb"
-            value: {{ .Values.edgeAgent.env.persistentvolumeclaimdefaultsizeinmb | quote }}
+            value: {{ .Values.edgeAgent.env.persistentVolumeClaimDefaultSizeInMb | quote }}
           - name: "PersistentVolumeName"
-            value: {{ .Values.edgeAgent.env.persistentvolumename | quote }}
+            value: {{ .Values.edgeAgent.env.persistentVolumeName | quote }}
           - name: "StorageClassName"
-            value: {{ .Values.edgeAgent.env.storageclassname | quote }}          
+            value: {{ .Values.edgeAgent.env.storageClassName | quote }}          
         - name: proxy
           image: "{{ .Values.iotedgedProxy.image.repository }}:{{ .Values.iotedgedProxy.image.tag }}"
           imagePullPolicy: {{ .Values.iotedgedProxy.image.pullPolicy }}

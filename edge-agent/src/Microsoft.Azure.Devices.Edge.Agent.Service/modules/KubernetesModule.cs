@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.enableServiceCallTracing = enableServiceCallTracing;
             this.persistentVolumeName = persistentVolumeName;
             this.storageClassName = storageClassName;
-            this.persistentVolumeClaimSizeMb = persistentVolumeClaimSizeMb == 0? Constants.PersistentVolumeClaimSize : persistentVolumeClaimSizeMb;
+            this.persistentVolumeClaimSizeMb = persistentVolumeClaimSizeMb == 0 ? Constants.PersistentVolumeClaimSize : persistentVolumeClaimSizeMb;
         }
 
         protected override void Load(ContainerBuilder builder)

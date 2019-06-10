@@ -75,12 +75,13 @@ edgeAgent:
     # Configure edge agent log verbosity
     runtimeLogLevel: 'debug'
     # Configure the persistent volume settings.
-    # persistentvolumeclaimdefaultsizeinmb: ""
-    # Use either 'persistentvolumename' or 'storageclassname'
-    # 'persistentvolumename' will reference a PersistentVolume on the cluster
-    # persistentvolumename: ""
-    # 'storageclassname' will reference a StorageClass on the cluster 
-    # storageclassname: ""
+    # persistentVolumeClaimDefaultSizeInMb: ""
+    # Use either 'persistentVolumeName' or 'storageClassName'
+    # If you set both, 'persistentVolumeName' will be preferred.
+    # 'persistentVolumeName' will reference a PersistentVolume on the cluster
+    # persistentVolumeName: ""
+    # 'storageClassName' will reference a StorageClass on the cluster 
+    # storageClassName: ""
 
 # Optional registry credentials for module images
 # registryCredentials:
