@@ -305,7 +305,7 @@ jobs:
       name: $(pool.name)
       demands:
         - run-stress -equals true
-        - agent.OSName -equals WindowsX64
+        - agent.OSName -equals WindowsEnterprise
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
     variables:
