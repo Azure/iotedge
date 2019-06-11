@@ -117,7 +117,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         // and can be called more than once.
         public ModuleConfiguration Build()
         {
-            // Compose the hierarchy
             var deployment = new Dictionary<string, object>(this.Deployment)
             {
                 ["settings"] = this.Settings
