@@ -6,7 +6,6 @@
 
   <PropertyGroup Condition="'$(OS)|$(Platform)' == 'Unix|ARM64'">
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <RuntimeIdentifier>linux-arm64</RuntimeIdentifier>
   </PropertyGroup>
 
   <PropertyGroup>
