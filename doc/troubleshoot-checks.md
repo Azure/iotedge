@@ -103,7 +103,7 @@ By setting these properties in `daemon.json`, the settings are automatically pro
 
 ## production readiness: Edge Agent's / Edge Hub's storage directory is persisted on the host filesystem
 
-The tool checks the Edge Agent and Edge Hub containers to validate that their respective storage directories are mounted from the host. If this is not done, it is possible that some state is lost if the containers are deleted or updates, such as Edge Agent's cache of module state or Edge Hub's unsent messages.
+The tool checks the Edge Agent and Edge Hub containers to validate that their respective storage directories are mounted from the host. If this is not done, it is possible that some state is lost if the containers are deleted or updated, such as Edge Agent's cache of module state or Edge Hub's unsent messages.
 
 These checks require the Edge Agent and Edge Hub containers to have been created.
 

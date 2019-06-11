@@ -415,14 +415,14 @@ impl ModuleRuntime for DockerModuleRuntime {
                     }
 
                     Err(err) => {
-                        // If Moby exits uncleanly, any containers left behind cannot be started any more since
-                        // the container VHD is help open by `System`.
-                        // Specifically, the start container API endpoint returns an error with the message:
+                        // When using Windows containers, if Moby is restarted after exiting uncleanly, existing containers
+                        // cannot be restarted any more since the container VHDs are held open by `System`.
+                        // Specifically, the start container API endpoint returns an HTTP 500 with the error message:
                         //
                         //     hcsshim::ActivateLayer failed in Win32: The process cannot access the file because it is being used by another process. (0x20)
                         //
-                        // The only way to resolve this is to delete the container and let it be re-created by Edge Agent.
-                        // If Edge Agent itself needs to be deleted, the watchdog will recreate it.
+                        // The only way to resolve this is to delete the container and let it be re-created.
+                        // If Edge Agent is deleted, the watchdog will recreate it. For Edge Hub and user modules, Edge Agent will recreate them.
                         let mut is_hcs_vhd_in_use_by_another_process = false;
                         if cfg!(windows) {
                             if let DockerError::Api(err) = &err {
@@ -450,17 +450,17 @@ impl ModuleRuntime for DockerModuleRuntime {
                                     /* force */ true,
                                     /* remove link */ false,
                                 ).then(|result| {
-                                if let Err(err) = result {
-                                    let err = Error::from_docker_error(
-                                        err,
-                                        ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
-                                    );
-                                    log_failure(Level::Warn, &err);
-                                }
+                                    if let Err(err) = result {
+                                        let err = Error::from_docker_error(
+                                            err,
+                                            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
+                                        );
+                                        log_failure(Level::Warn, &err);
+                                    }
 
-                                // Return original error so that caller interprets the start operation as a failure
-                                Err(err)
-                            }))
+                                    // Return original error so that caller interprets the start operation as a failure
+                                    Err(err)
+                                }))
                         }
                         else {
                             future::Either::A(future::err(err))
