@@ -1,8 +1,24 @@
+# 1.0.7.1 (2019-05-24)
+* Fix regression in DPS use on Windows
+* Stability improvements
+
+## Edge Agent
+### Bug Fixes
+* Workaround `ObjectDisposedException` bug in C# SDK by exiting the process ([bbc8d3c](https://github.com/Azure/iotedge/commit/bbc8d3ce1ebc2583717295dfeeb1d737642e9946))
+
+## Edge Hub
+### Bug Fixes
+* Workaround `ObjectDisposedException` bug in C# SDK by recreating the client ([e458e14](https://github.com/Azure/iotedge/commit/e458e14294d8c39f9e6f72e2c42418bfd298eeb2), [7598ef0](https://github.com/Azure/iotedge/commit/7598ef045c9b104dfdc758d270722007d981d1bb), [c608f38](https://github.com/Azure/iotedge/commit/c608f38b33652f4f2b10a97790fe155e39d9280a))
+
+## iotedged
+### Bug Fixes
+* Fix bug preventing `iotedged` service starting when DPS provisioning is configured ([8a0f5c0](https://github.com/Azure/iotedge/commit/8a0f5c0ebb9489c98f591851e96e9f6766e031a9), [1ac1e94](https://github.com/Azure/iotedge/commit/1ac1e94298de332f180efe7ab343257207a77ebf))
+
 # 1.0.7 (2019-05-06)
 * Upgrade C# SDK to 1.20.1
 
 ## Edge Agent
-### Bugs
+### Bug Fixes
 * Add explicit timeout to `Edge Agent` <--> `iotedged` operations and more debug logs ([f2cb600](https://github.com/Azure/iotedge/commit/f2cb6003076cded75dec2dc87a3e79c23aa98fc9))
 
 ### Features
@@ -13,7 +29,7 @@
 * Upgrade to version 1.20.1 of the C# SDK ([1637ff9](https://github.com/Azure/iotedge/commit/1637ff9303a162144f16b4c514859c247cc857fc))
 
 ## iotedged
-### Bugs
+### Bug Fixes
 * Fix `iotedge check` default image ([8c9d5f0](https://github.com/Azure/iotedge/commit/8c9d5f06db57a0388ab30a825a2b9af684c0f7db))
 * Load encryption key before generating it ([9174a89](https://github.com/Azure/iotedge/commit/9174a896f7cca21c3dd4ae84c9e097d0d20305d5))
 
