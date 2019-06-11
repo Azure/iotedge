@@ -19,9 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         public string Name { get; }
 
-        public bool System { get; }
-
-        protected BaseModuleConfigBuilder(string name, string image, bool system)
+        protected BaseModuleConfigBuilder(string name, string image)
         {
             this.Deployment = new Dictionary<string, object>()
             {
@@ -34,7 +32,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             {
                 ["image"] = Preconditions.CheckNonWhiteSpace(image, nameof(image))
             };
-            this.System = system;
         }
 
         public IModuleConfigBuilder WithEnvironment(IEnumerable<(string, string)> env)
@@ -123,7 +120,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
             return new ModuleConfiguration(
                 this.Name,
-                this.System,
                 new ReadOnlyDictionary<string, object>(deployment),
                 new ReadOnlyDictionary<string, object>(this.DesiredProperties));
         }

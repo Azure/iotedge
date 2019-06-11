@@ -9,8 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     {
         string Name { get; }
 
-        bool System { get; }
-
         IModuleConfigBuilder WithDesiredProperties(IDictionary<string, object> properties);
 
         IModuleConfigBuilder WithEnvironment(IEnumerable<(string, string)> env);

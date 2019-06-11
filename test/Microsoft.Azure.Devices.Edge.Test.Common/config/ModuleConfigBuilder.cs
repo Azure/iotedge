@@ -6,12 +6,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     public class ModuleConfigBuilder : BaseModuleConfigBuilder
     {
         public ModuleConfigBuilder(string name, string image)
-            : this(name, image, false, Option.None<string>())
+            : this(name, image, Option.None<string>())
         {
         }
 
-        public ModuleConfigBuilder(string name, string image, bool system, Option<string> createOptions)
-            : base(name, image, system)
+        public ModuleConfigBuilder(string name, string image, Option<string> createOptions)
+            : base(name, image)
         {
             this.Deployment["restartPolicy"] = "always";
             this.Deployment["status"] = "running";

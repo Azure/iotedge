@@ -12,14 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         public string Name { get; }
 
-        public bool System { get; }
-
-        public ModuleConfiguration(string name, bool system, IReadOnlyDictionary<string, object> deployment, IReadOnlyDictionary<string, object> properties)
+        public ModuleConfiguration(string name, IReadOnlyDictionary<string, object> deployment, IReadOnlyDictionary<string, object> properties)
         {
             this.Deployment = Preconditions.CheckNotNull(deployment, nameof(deployment));
             this.DesiredProperties = Preconditions.CheckNotNull(properties, nameof(properties));
             this.Name = Preconditions.CheckNonWhiteSpace(name, nameof(name));
-            this.System = system;
         }
     }
 }

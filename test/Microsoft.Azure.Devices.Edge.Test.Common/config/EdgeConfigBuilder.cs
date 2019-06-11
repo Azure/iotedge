@@ -8,13 +8,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     public class EdgeConfigBuilder
     {
         readonly string deviceId;
-        readonly Dictionary<(string name, bool system), IModuleConfigBuilder> moduleBuilders;
+        readonly Dictionary<string, IModuleConfigBuilder> moduleBuilders;
         Option<(string address, string username, string password)> registry;
 
         public EdgeConfigBuilder(string deviceId)
         {
             this.deviceId = deviceId;
-            this.moduleBuilders = new Dictionary<(string name, bool system), IModuleConfigBuilder>();
+            this.moduleBuilders = new Dictionary<string, IModuleConfigBuilder>();
             this.registry = Option.None<(string, string, string)>();
         }
 
@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             Option<string> imageOption = Option.Maybe(image);
             imageOption.ForEach(i => Preconditions.CheckNonWhiteSpace(i, nameof(i)));
             var builder = new AgentModuleConfigBuilder(imageOption);
-            this.moduleBuilders.Add((builder.Name, builder.System), builder);
+            this.moduleBuilders.Add(builder.Name, builder);
             return builder;
         }
 
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             Option<string> imageOption = Option.Maybe(image);
             imageOption.ForEach(i => Preconditions.CheckNonWhiteSpace(i, nameof(i)));
             var builder = new HubModuleConfigBuilder(imageOption);
-            this.moduleBuilders.Add((builder.Name, builder.System), builder);
+            this.moduleBuilders.Add(builder.Name, builder);
             return builder;
         }
 
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             Preconditions.CheckNonWhiteSpace(name, nameof(name));
             Preconditions.CheckNonWhiteSpace(image, nameof(image));
             var builder = new ModuleConfigBuilder(name, image);
-            this.moduleBuilders.Add((builder.Name, builder.System), builder);
+            this.moduleBuilders.Add(builder.Name, builder);
             return builder;
         }
 
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         {
             // Build all modules *except* edge agent
             List<ModuleConfiguration> modules = this.moduleBuilders
-                .Where(b => !(b.Key.name == "edgeAgent" && b.Key.system))
+                .Where(b => b.Key != "$edgeAgent")
                 .Select(b => b.Value.Build())
                 .ToList();
 
@@ -75,15 +75,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
             var moduleNames = new List<string>();
 
-            foreach (ModuleConfiguration module in modules.Where(m => m.DesiredProperties.Count != 0))
+            foreach (ModuleConfiguration module in modules)
             {
-                string name = module.System ? $"${module.Name}" : module.Name;
-                moduleNames.Add(name);
+                moduleNames.Add(module.Name);
 
-                config.ModulesContent[name] = new Dictionary<string, object>
+                if (module.DesiredProperties.Count != 0)
                 {
-                    ["properties.desired"] = module.DesiredProperties
-                };
+                    config.ModulesContent[module.Name] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = module.DesiredProperties
+                    };
+                }
             }
 
             return new EdgeConfiguration(this.deviceId, moduleNames, config);
@@ -91,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         ModuleConfiguration BuildEdgeAgent(IEnumerable<ModuleConfiguration> configs)
         {
-            if (!this.moduleBuilders.TryGetValue(("edgeAgent", true), out IModuleConfigBuilder agentBuilder))
+            if (!this.moduleBuilders.TryGetValue("$edgeAgent", out IModuleConfigBuilder agentBuilder))
             {
                 agentBuilder = this.AddEdgeAgent();
             }
@@ -134,15 +136,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 // deployment. We'll call Build() again later to get an updated
                 // module configuration that includes deployment info for other
                 // modules, plus desired properties for all modules.
-                [agentBuilder.Name] = agentBuilder.Build().Deployment
+                [ParseModuleName(agentBuilder.Name).name] = agentBuilder.Build().Deployment
             };
             var modules = new Dictionary<string, object>();
 
             // Add other modules' deployment info
             foreach (ModuleConfiguration config in configs)
             {
-                IDictionary<string, object> coll = config.System ? systemModules : modules;
-                coll[config.Name] = config.Deployment;
+                var parsed = ParseModuleName(config.Name);
+                IDictionary<string, object> coll = parsed.system ? systemModules : modules;
+                coll[parsed.name] = config.Deployment;
             }
 
             desiredProperties["systemModules"] = systemModules;
@@ -156,5 +159,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
             return agentBuilder.Build();
         }
+
+        static (string name, bool system) ParseModuleName(string name) =>
+            name.FirstOrDefault() == '$' ? (name.Substring(1), true) : (name, false);
     }
 }
