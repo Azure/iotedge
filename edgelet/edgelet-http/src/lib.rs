@@ -98,7 +98,11 @@ impl PemCertificate {
         }
     }
 
-    pub fn get_full_certificate(&self) -> [u8] {
+    pub fn get_key(&self) -> Option<&Vec<u8>> {
+        self.key.as_ref()
+    }
+
+    pub fn get_certificate(&self) -> &[u8] {
         &self.cert
     }
 

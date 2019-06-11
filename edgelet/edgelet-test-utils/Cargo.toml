@@ -11,7 +11,8 @@ failure = "0.1"
 futures = "0.1"
 hyper = "0.12"
 native-tls = "0.2"
-rustls = "0.15.2"
+openssl = "0.10"
+#rustls = "0.15.2"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
@@ -19,6 +20,8 @@ tokio = "0.1"
 tokio-tls = "0.2"
 
 edgelet-core = { path = "../edgelet-core" }
+edgelet-http = { path = "../edgelet-http" }
+tokio-rustls = "0.1.0"
 
 [target.'cfg(unix)'.dependencies]
 hyperlocal = "0.6"
