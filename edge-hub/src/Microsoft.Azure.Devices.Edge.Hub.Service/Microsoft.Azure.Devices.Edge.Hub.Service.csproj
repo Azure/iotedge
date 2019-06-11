@@ -5,7 +5,6 @@
 
   <PropertyGroup Condition="'$(OS)|$(DotNet_Runtime)' == 'Unix|netcoreapp3.0'">
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <RuntimeIdentifier>linux-arm64</RuntimeIdentifier>
     <!--
     MVC requires compilation context to be available. Compilation context tells it if 
     a library references MVC which is used as a filter to skip assemblies that are deemed 
