@@ -20,18 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         public void AddRegistryCredentials(string address, string username, string password)
         {
-            Preconditions.CheckNonWhiteSpace(address, nameof(address));
-            Preconditions.CheckNonWhiteSpace(username, nameof(username));
-            Preconditions.CheckNonWhiteSpace(password, nameof(password));
-
             this.registry = Option.Some((address, username, password));
         }
 
         public IModuleConfigBuilder AddEdgeAgent(string image = null)
         {
-            // `image` cannot be empty. Builder will replace null with default.
             Option<string> imageOption = Option.Maybe(image);
-            imageOption.ForEach(i => Preconditions.CheckNonWhiteSpace(i, nameof(i)));
             var builder = new AgentModuleConfigBuilder(imageOption);
             this.moduleBuilders.Add(builder.Name, builder);
             return builder;
@@ -39,9 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         public IModuleConfigBuilder AddEdgeHub(string image = null)
         {
-            // `image` cannot be empty. Builder will replace null with default.
             Option<string> imageOption = Option.Maybe(image);
-            imageOption.ForEach(i => Preconditions.CheckNonWhiteSpace(i, nameof(i)));
             var builder = new HubModuleConfigBuilder(imageOption);
             this.moduleBuilders.Add(builder.Name, builder);
             return builder;
@@ -49,8 +41,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         public IModuleConfigBuilder AddModule(string name, string image)
         {
-            Preconditions.CheckNonWhiteSpace(name, nameof(name));
-            Preconditions.CheckNonWhiteSpace(image, nameof(image));
             var builder = new ModuleConfigBuilder(name, image);
             this.moduleBuilders.Add(builder.Name, builder);
             return builder;

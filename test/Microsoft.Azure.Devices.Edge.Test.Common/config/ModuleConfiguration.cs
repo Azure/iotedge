@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 {
     using System.Collections.Generic;
-    using Microsoft.Azure.Devices.Edge.Util;
 
     public class ModuleConfiguration
     {
@@ -14,9 +13,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         public ModuleConfiguration(string name, IReadOnlyDictionary<string, object> deployment, IReadOnlyDictionary<string, object> properties)
         {
-            this.Deployment = Preconditions.CheckNotNull(deployment, nameof(deployment));
-            this.DesiredProperties = Preconditions.CheckNotNull(properties, nameof(properties));
-            this.Name = Preconditions.CheckNonWhiteSpace(name, nameof(name));
+            this.Deployment = deployment;
+            this.DesiredProperties = properties;
+            this.Name = name;
         }
     }
 }

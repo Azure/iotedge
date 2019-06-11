@@ -27,10 +27,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             };
             this.DesiredProperties = new Dictionary<string, object>();
             this.Env = new Dictionary<string, string>();
-            this.Name = Preconditions.CheckNonWhiteSpace(name, nameof(name));
+            this.Name = name;
             this.Settings = new Dictionary<string, object>()
             {
-                ["image"] = Preconditions.CheckNonWhiteSpace(image, nameof(image))
+                ["image"] = image
             };
         }
 
