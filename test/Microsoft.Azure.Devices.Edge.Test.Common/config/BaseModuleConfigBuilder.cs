@@ -100,8 +100,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return this;
         }
 
-        // How is module information from this class composed into a configuration
-        // JSON document? For a module, e.g. "myModule":
+        // How is module information from this class composed into a
+        // configuration JSON document? For a module, e.g. "myModule":
         //
         // modulesContent
         //   $edgeAgent
@@ -112,6 +112,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         //           env            <== this.Env
         //   myModule
         //     properties.desired   <== this.DesiredProperties
+        //
+        // NOTE: This method is idempotent; it does not modify internal state
+        // and can be called more than once.
         public ModuleConfiguration Build()
         {
             // Compose the hierarchy
