@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             // Build edge agent
             modules.Insert(0, this.BuildEdgeAgent(modules));
 
-            // Prepare edge configuration
+            // Compose edge configuration
             var config = new ConfigurationContent
             {
                 ModulesContent = new Dictionary<string, IDictionary<string, object>>()
@@ -98,13 +98,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 agentBuilder = this.AddEdgeAgent();
             }
 
-            // Add settings boilerplate
+            // Settings boilerplate
             var settings = new Dictionary<string, object>()
             {
                 ["minDockerVersion"] = "v1.25"
             };
 
-            // Add registry credentials under settings
+            // Registry credentials under settings
             this.registry.ForEach(
                 r =>
                 {
@@ -119,17 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                     };
                 });
 
-            // Add schema version and runtime boilerplate
-            var desiredProperties = new Dictionary<string, object>
-            {
-                ["schemaVersion"] = "1.0",
-                ["runtime"] = new Dictionary<string, object>
-                {
-                    ["type"] = "docker",
-                    ["settings"] = settings
-                }
-            };
-
+            // Deployment info for edge agent
             var systemModules = new Dictionary<string, object>()
             {
                 // We need to call agentBuilder.Build() *early* here because we
@@ -142,17 +132,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 // for all modules.
                 [ParseModuleName(agentBuilder.Name).name] = agentBuilder.Build().Deployment
             };
-            var modules = new Dictionary<string, object>();
 
-            // Add other modules' deployment info
+            // Deployment info for all other modules
+            var modules = new Dictionary<string, object>();
             foreach (ModuleConfiguration config in configs)
             {
-                var parsed = ParseModuleName(config.Name);
-                IDictionary<string, object> coll = parsed.system ? systemModules : modules;
-                coll[parsed.name] = config.Deployment;
+                (string name, bool system) = ParseModuleName(config.Name);
+                IDictionary<string, object> coll = system ? systemModules : modules;
+                coll[name] = config.Deployment;
             }
 
-            desiredProperties["systemModules"] = systemModules;
+            // Compose edge agent's desired properties
+            var desiredProperties = new Dictionary<string, object>
+            {
+                ["schemaVersion"] = "1.0",
+                ["runtime"] = new Dictionary<string, object>
+                {
+                    ["type"] = "docker",
+                    ["settings"] = settings
+                },
+                ["systemModules"] = systemModules
+            };
 
             if (modules.Count != 0)
             {
