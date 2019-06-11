@@ -920,14 +920,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             };
 
             // prefer persistent volume name to storage class name, of both are set.
-            if (this.storageClassName.HasValue && this.persistentVolumeName.HasValue)
+            if (this.persistentVolumeName.HasValue)
             {
-                Events.DefaultToPvc();
+                if (this.storageClassName.HasValue)
+                {
+                    Events.DefaultToPvc();
+                }
                 this.persistentVolumeName.ForEach(pvName => persistentVolumeClaimSpec.VolumeName = pvName);
             }
-            else
+            else if (this.storageClassName.HasValue)
             {
-                this.persistentVolumeName.ForEach(pvName => persistentVolumeClaimSpec.VolumeName = pvName);
                 this.storageClassName.ForEach(scName => persistentVolumeClaimSpec.StorageClassName = scName);
             }
 
