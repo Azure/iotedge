@@ -132,10 +132,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
             var systemModules = new Dictionary<string, object>()
             {
-                // The agent builder has enough information to give its own
-                // deployment. We'll call Build() again later to get an updated
-                // module configuration that includes deployment info for other
-                // modules, plus desired properties for all modules.
+                // We need to call agentBuilder.Build() *early* here because we
+                // need the agent's own deployment information (e.g. image, env
+                // vars). Even though we aren't finished building the agent
+                // config yet, the agent builder has enough info at this
+                // point to provide what we need. We'll call Build() again
+                // later to get an updated module configuration that includes
+                // deployment info for other modules, plus desired properties
+                // for all modules.
                 [ParseModuleName(agentBuilder.Name).name] = agentBuilder.Build().Deployment
             };
             var modules = new Dictionary<string, object>();
