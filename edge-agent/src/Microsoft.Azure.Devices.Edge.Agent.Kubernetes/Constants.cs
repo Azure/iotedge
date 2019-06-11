@@ -28,11 +28,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string CreationString = "net.azure-devices.edge.creationstring";
 
+        public const string EnableK8sServiceCallTracingName = "EnableK8sServiceCallTracing";
+
         public const string k8sNameDivider = "-";
 
         public const string k8sPullSecretType = "kubernetes.io/dockerconfigjson";
 
         public const string k8sPullSecretData = ".dockerconfigjson";
+
+        public const string ProxyImageEnvKey = "ProxyImage";
+
+        public const string ProxyConfigPathEnvKey = "ProxyConfigPath";
+
+        public const string ProxyConfigVolumeEnvKey = "ProxyConfigVolume";
+
+        public const string EdgeAgentServiceAccountName = "ServiceAccountName";
 
         public const string proxyImage = "darobs/envoy:0.1";
 
@@ -40,7 +50,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string ModuleConfigMap = "moduleconfigmap";
 
+        public const string PortMappingServiceType = "PortMappingServiceType";
+
         public const PortMapServiceType DefaultPortMapServiceType = PortMapServiceType.ClusterIP;
 
+        public const string PersistentVolumeNameKey = "PersistentVolumeName";
+
+        public const string StorageClassNameKey = "StorageClassName";
+
+        public const string PersistentVolumeClaimDefaultSizeKey = "PersistentVolumeClaimDefaultSizeInMb";
+
+        public const uint PersistentVolumeClaimSize = 10;
     }
 }

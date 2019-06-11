@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using K8sConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
     using CoreConstant = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
 
     public class Program
@@ -134,12 +135,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         deviceId = configuration.GetValue<string>(CoreConstant.DeviceIdVariableName);
                         moduleId = configuration.GetValue(CoreConstant.ModuleIdVariableName, CoreConstant.EdgeAgentModuleIdentityName);
                         moduleGenerationId = configuration.GetValue<string>(CoreConstant.EdgeletModuleGenerationIdVariableName);
-                        string proxyImage = configuration.GetValue<string>(CoreConstant.ProxyImageEnvKey);
-                        string proxyConfigPath = configuration.GetValue<string>(CoreConstant.ProxyConfigPathEnvKey);
-                        string proxyConfigVolumeName = configuration.GetValue<string>(CoreConstant.ProxyConfigVolumeEnvKey);
-                        string serviceAccountName = configuration.GetValue<string>(CoreConstant.EdgeAgentServiceAccountName);
+                        string proxyImage = configuration.GetValue<string>(K8sConstants.ProxyImageEnvKey);
+                        string proxyConfigPath = configuration.GetValue<string>(K8sConstants.ProxyConfigPathEnvKey);
+                        string proxyConfigVolumeName = configuration.GetValue<string>(K8sConstants.ProxyConfigVolumeEnvKey);
+                        string serviceAccountName = configuration.GetValue<string>(K8sConstants.EdgeAgentServiceAccountName);
                         Kubernetes.PortMapServiceType mappedServiceDefault = GetDefaultServiceType(configuration);
-                        bool enableServiceCallTracing = configuration.GetValue<bool>(CoreConstant.EnableK8sServiceCallTracingName);
+                        bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
+                        string persistentVolumeName = configuration.GetValue<string>(K8sConstants.PersistentVolumeNameKey);
+                        string storageClassName = configuration.GetValue<string>(K8sConstants.StorageClassNameKey);
+                        uint persistentVolumeClaimDefaultSizeMb = configuration.GetValue<uint>(K8sConstants.PersistentVolumeClaimDefaultSizeKey);
 
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId)));
                         builder.RegisterModule(new Modules.KubernetesModule(
@@ -150,6 +154,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             proxyConfigPath,
                             proxyConfigVolumeName,
                             serviceAccountName,
+                            persistentVolumeName,
+                            storageClassName,
+                            persistentVolumeClaimDefaultSizeMb,
                             new Uri(managementUri),
                             new Uri(workloadUri),
                             apiVersion,
@@ -284,7 +291,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         }
 
         static Kubernetes.PortMapServiceType GetDefaultServiceType(IConfiguration configuration) =>
-            Enum.TryParse(configuration.GetValue(CoreConstant.PortMappingServiceType, string.Empty), true, out Kubernetes.PortMapServiceType defaultServiceType)
+            Enum.TryParse(configuration.GetValue(K8sConstants.PortMappingServiceType, string.Empty), true, out Kubernetes.PortMapServiceType defaultServiceType)
                 ? defaultServiceType
                 : Kubernetes.Constants.DefaultPortMapServiceType;
 
