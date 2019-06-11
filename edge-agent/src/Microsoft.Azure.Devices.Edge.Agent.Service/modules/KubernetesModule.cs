@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners;
     using Microsoft.Rest;
     using static System.Environment;
+    using Constants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
     using ModuleIdentityLifecycleManager = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.ModuleIdentityLifecycleManager;
 
     public class KubernetesModule : Module
@@ -33,6 +34,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
         readonly string serviceAccountName;
+        readonly string persistentVolumeName;
+        readonly string storageClassName;
+        readonly uint persistentVolumeClaimSizeMb;
         readonly Uri managementUri;
         readonly Uri workloadUri;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
@@ -49,6 +53,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string proxyConfigPath,
             string proxyConfigVolumeName,
             string serviceAccountName,
+            string persistentVolumeName,
+            string storageClassName,
+            uint persistentVolumeClaimSizeMb,
             Uri managementUri,
             Uri workloadUri,
             IEnumerable<AuthConfig> dockerAuthConfig,
@@ -71,6 +78,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.productInfo = productInfo.Map(p => $"{p} (Kubernetes)");
             this.defaultMapServiceType = defaultMapServiceType;
             this.enableServiceCallTracing = enableServiceCallTracing;
+            this.persistentVolumeName = persistentVolumeName;
+            this.storageClassName = storageClassName;
+            this.persistentVolumeClaimSizeMb = persistentVolumeClaimSizeMb == 0 ? Constants.PersistentVolumeClaimSize : persistentVolumeClaimSizeMb;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -169,6 +179,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         this.proxyConfigPath,
                         this.proxyConfigVolumeName,
                         this.serviceAccountName,
+                        this.persistentVolumeName,
+                        this.storageClassName,
+                        this.persistentVolumeClaimSizeMb,
                         this.workloadUri,
                         this.managementUri,
                         this.defaultMapServiceType,

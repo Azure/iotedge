@@ -74,6 +74,14 @@ edgeAgent:
     enableK8sServiceCallTracing: false
     # Configure edge agent log verbosity
     runtimeLogLevel: 'debug'
+    # Configure the persistent volume settings.
+    # persistentVolumeClaimDefaultSizeInMb: ""
+    # Use either 'persistentVolumeName' or 'storageClassName'
+    # If you set both, 'persistentVolumeName' will be preferred.
+    # 'persistentVolumeName' will reference a PersistentVolume on the cluster
+    # persistentVolumeName: ""
+    # 'storageClassName' will reference a StorageClass on the cluster 
+    # storageClassName: ""
 
 # Optional registry credentials for module images
 # registryCredentials:

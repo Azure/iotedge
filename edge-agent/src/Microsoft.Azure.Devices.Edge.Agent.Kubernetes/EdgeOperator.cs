@@ -48,6 +48,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string serviceAccountName;
         readonly Uri workloadUri;
         readonly Uri managementUri;
+        readonly Option<string> persistentVolumeName;
+        readonly Option<string> storageClassName;
+        readonly uint persistentVolumeClaimSizeMb;
         readonly string defaultMapServiceType;
         readonly TypeSpecificSerDe<EdgeDeploymentDefinition> deploymentSerde;
         readonly JsonSerializerSettings crdSerializerSettings;
@@ -61,6 +64,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string proxyConfigPath,
             string proxyConfigVolumeName,
             string serviceAccountName,
+            string persistentVolumeName,
+            string storageClassName,
+            uint persistentVolumeClaimSizeMb,
             Uri workloadUri,
             Uri managementUri,
             PortMapServiceType defaultMapServiceType,
@@ -97,6 +103,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
                 ContractResolver = new CamelCasePropertyNamesContractResolver()
             };
+
+            // throw if user provided an invalid name
+            Preconditions.CheckArgument(String.Equals(persistentVolumeName, KubeUtils.SanitizeK8sValue(persistentVolumeName)));
+            Preconditions.CheckArgument(String.Equals(storageClassName, KubeUtils.SanitizeK8sValue(storageClassName)));
+
+            this.persistentVolumeName = (!string.IsNullOrWhiteSpace(persistentVolumeName)) ?
+                Option.Some<string>(persistentVolumeName) : Option.None<string>();
+
+            this.storageClassName = (!string.IsNullOrWhiteSpace(storageClassName)) ?
+                Option.Some<string>(storageClassName) : Option.None<string>();
+
+            this.persistentVolumeClaimSizeMb = persistentVolumeClaimSizeMb;
         }
 
         public Task CloseAsync(CancellationToken token)
@@ -552,7 +570,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     moduleService.ForEach(service => desiredServices.Add(service));
 
                     // Create a Pod for each module, and a proxy container.
-                    V1PodTemplateSpec v1PodSpec = this.GetPodFromModule(labels, module);
+                    V1PodTemplateSpec v1PodSpec = await this.GetPodFromModule(labels, module);
 
                     // if this is the edge agent's deployment then it needs to run under a specific service account
                     if (module.ModuleIdentity.ModuleId == CoreConstants.EdgeAgentModuleIdentityName)
@@ -713,7 +731,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             await Task.WhenAll(updateDeploymentTasks);
         }
 
-        V1PodTemplateSpec GetPodFromModule(Dictionary<string, string> labels, KubernetesModule module)
+        async Task<V1PodTemplateSpec> GetPodFromModule(Dictionary<string, string> labels, KubernetesModule module)
         {
             if (module.Module is IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig)
             {
@@ -749,7 +767,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 List<V1EnvVar> env = this.CollectEnv(moduleWithDockerConfig, module.ModuleIdentity);
 
                 // Bind mounts
-                (List<V1Volume> volumeList, List<V1VolumeMount> proxyMounts, List<V1VolumeMount> volumeMountList) = this.GetVolumesFromModule(moduleWithDockerConfig).GetOrElse((null, null, null));
+                (List<V1Volume> volumeList, List<V1VolumeMount> proxyMounts, List<V1VolumeMount> volumeMountList) = (await this.GetVolumesFromModule(moduleWithDockerConfig)).GetOrElse((null, null, null));
 
                 //Image
                 string moduleImage = moduleWithDockerConfig.Config.Image;
@@ -793,7 +811,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return new V1PodTemplateSpec();
         }
 
-        VolumeOptions GetVolumesFromModule(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig)
+        async Task<VolumeOptions> GetVolumesFromModule(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig)
         {
             var v1ConfigMapVolumeSource = new V1ConfigMapVolumeSource(null, null, this.proxyConfigVolumeName, null);
 
@@ -850,7 +868,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         string name = KubeUtils.SanitizeDNSValue(mount.Source);
                         string mountPath = mount.Target;
                         bool readOnly = mount.ReadOnly;
-                        volumeList.Add(new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource()));
+
+                        // If PV name or SC name is defined, use it, else create an EmptyDir volume.
+                        if (this.persistentVolumeName.HasValue || this.storageClassName.HasValue)
+                        {
+                            await this.EnsurePersistentVolumeClaim(name, readOnly);
+                            volumeList.Add(new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(name, readOnly)));
+                        }
+                        else
+                        {
+                            volumeList.Add(new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource()));
+
+                        }
                         volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
                     }
                 }
@@ -859,6 +888,53 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return volumeList.Count > 0 || volumeMountList.Count > 0
                 ? Option.Some((volumeList, proxyMountList, volumeMountList))
                 : Option.None<(List<V1Volume>, List<V1VolumeMount>, List<V1VolumeMount>)>();
+        }
+
+        private async Task EnsurePersistentVolumeClaim(string name, bool readOnly)
+        {
+            var listResult = await this.client.ListNamespacedPersistentVolumeClaimAsync(KubeUtils.K8sNamespace);
+
+            var foundPvc = listResult.Items.SingleOrDefault(item => item?.Metadata?.Name == name);
+
+            if (foundPvc != default(V1PersistentVolumeClaim))
+            {
+                // ReadWriteOnce is the Kubernetes moniker for single pod use only
+                if (foundPvc.Spec.AccessModes.Contains("Once"))
+                {
+                    // TODO : should we throw here or should we just let Kube throw when we try to mount it?
+                    // TODO : going to just warn for now.
+                    Events.PvcMightFail(name);
+                }
+
+                // PVC is fine and we can return
+                return;
+            }
+
+            var persistentVolumeClaimSpec = new V1PersistentVolumeClaimSpec()
+            {
+                AccessModes = new List<string> { readOnly ? "ReadOnlyMany" : "ReadWriteMany" },
+                Resources = new V1ResourceRequirements()
+                {
+                    Requests = new Dictionary<string, ResourceQuantity>() { { "storage", new ResourceQuantity($"{this.persistentVolumeClaimSizeMb}Mi") } }
+                }
+            };
+
+            // prefer persistent volume name to storage class name, of both are set.
+            if (this.persistentVolumeName.HasValue)
+            {
+                if (this.storageClassName.HasValue)
+                {
+                    Events.DefaultToPvc();
+                }
+                this.persistentVolumeName.ForEach(pvName => persistentVolumeClaimSpec.VolumeName = pvName);
+            }
+            else if (this.storageClassName.HasValue)
+            {
+                this.storageClassName.ForEach(scName => persistentVolumeClaimSpec.StorageClassName = scName);
+            }
+
+            // TODO : Check return?
+            await this.client.CreateNamespacedPersistentVolumeClaimAsync(new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: name), spec: persistentVolumeClaimSpec), KubeUtils.K8sNamespace);
         }
 
         List<V1EnvVar> CollectEnv(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig, KubernetesModuleIdentity identity)
@@ -896,10 +972,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 envList.Add(new V1EnvVar(CoreConstants.ModeKey, CoreConstants.KubernetesMode));
                 envList.Add(new V1EnvVar(CoreConstants.EdgeletManagementUriVariableName, this.managementUri.ToString()));
                 envList.Add(new V1EnvVar(CoreConstants.NetworkIdKey, "azure-iot-edge"));
-                envList.Add(new V1EnvVar(CoreConstants.ProxyImageEnvKey, this.proxyImage));
-                envList.Add(new V1EnvVar(CoreConstants.ProxyConfigPathEnvKey, this.proxyConfigPath));
-                envList.Add(new V1EnvVar(CoreConstants.ProxyConfigVolumeEnvKey, this.proxyConfigVolumeName));
-                envList.Add(new V1EnvVar(CoreConstants.EdgeAgentServiceAccountName, this.serviceAccountName));
+                envList.Add(new V1EnvVar(Constants.ProxyImageEnvKey, this.proxyImage));
+                envList.Add(new V1EnvVar(Constants.ProxyConfigPathEnvKey, this.proxyConfigPath));
+                envList.Add(new V1EnvVar(Constants.ProxyConfigVolumeEnvKey, this.proxyConfigVolumeName));
+                envList.Add(new V1EnvVar(Constants.EdgeAgentServiceAccountName, this.serviceAccountName));
             }
 
             if (string.Equals(identity.ModuleId, CoreConstants.EdgeAgentModuleIdentityName) ||
@@ -1055,6 +1131,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 ReplacingDeployment,
                 PodWatchClosed,
                 CrdWatchClosed,
+                DefaultToPvc,
+                PvcMightFail,
             }
 
             public static void DeletingService(V1Service service)
@@ -1168,6 +1246,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             public static void CrdWatchClosed()
             {
                 Log.LogInformation((int)EventIds.CrdWatchClosed, $"K8s closed the CRD watch. Attempting to reopen watch.");
+            }
+
+            public static void DefaultToPvc()
+            {
+                Log.LogWarning((int)EventIds.DefaultToPvc, "Both persistent volume name and storage class name are set, creating a PVC for persistent volume.");
+            }
+
+            public static void PvcMightFail(string name)
+            {
+                Log.LogWarning((int)EventIds.PvcMightFail, $"PVC with name {name} may not allow pod to start, check access mode");
             }
         }
     }
