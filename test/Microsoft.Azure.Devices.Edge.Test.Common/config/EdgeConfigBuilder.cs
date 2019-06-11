@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 .ToList();
 
             // Build edge agent
-            modules.Add(this.BuildEdgeAgent(modules));
+            modules.Insert(0, this.BuildEdgeAgent(modules));
 
             // Prepare edge configuration
             var config = new ConfigurationContent
