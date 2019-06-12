@@ -20,7 +20,6 @@ pub mod web;
 pub use crate::json_connector::{JsonConnector, StaticStream};
 pub use crate::web::run_tcp_server;
 
-pub use crate::web::run_tls_tcp_server;
 pub use crate::web::run_uds_server;
 
 #[cfg(windows)]
