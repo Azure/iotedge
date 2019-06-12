@@ -1,34 +1,37 @@
-use actix_web::{HttpServer, HttpRequest, Responder, HttpResponse, App};
+use actix_web::{HttpServer, HttpRequest, Responder, HttpResponse, App, web};
 use std::fs;
-use std::io::{Result};
+use std::io::{Result, Error};
 use std::path::Path;
+use std::env;
 
-// fn index(_req: &HttpRequest) -> impl Responder {
-//     let config_contents = get_file();
-//     match config_contents {
-//         Ok(connection_string) => {
-//             let con_string = get_connection_string(connection_string);
-//             match con_string {
-//                 "<ADD DEVICE CONNECTION STRING HERE>".to_string() => populate_nm_json("Not provisioned"),
-//                 contents => populate_json("manual", contents),
-//             }
-//         }
-//         Err(_) => populate_nm_json("Not installed")
-//     }
-// }
+fn index(_req: &HttpRequest) -> impl Responder {
+    let config_contents = get_file();
+    match config_contents {
+        Ok(connection_string) => {
+            let con_string = get_connection_string(connection_string);
+            let pre = "<ADD DEVICE CONNECTION STRING HERE>".to_string();
+            match con_string {
+                pre => populate_nm_json("Not provisioned"),
+                contents => populate_json("manual", contents),
+            }
+        }
+        Err(_) => populate_nm_json("Not installed")
+    }
+}
 
-// fn populate_json(state: &str, contents: String) -> serde_json::Value {
-//     let (hub_name, device_ID) = get_connection_string(contents);
-//     json!({
-//         "state": state,
-//         "hub_name": hub_name,
-//         "device_ID": device_ID,
-//     })
-// }
+fn populate_json(state: &str, contents: String) -> String {
+    let con_str = get_connection_string(contents);
+    let (hub_name, device_id) = get_device_details(con_str);
+    serde_json::json!({
+        "state": state,
+        "hub_name": hub_name,
+        "device_id": device_id,
+    }).to_string()
+}
 
-// fn populate_nm_json(state: &str) -> serde_json::Value {
-//     json!({"state": state})
-// }
+fn populate_nm_json(state: &str) -> String {
+    serde_json::json!({"state": state}).to_string()
+}
 
 fn get_connection_string(contents: String) -> String {
     let pattern = "device_connection_string: ";
@@ -46,7 +49,7 @@ fn get_device_details(device_string: String) -> (String, String) {
 
 fn get_hub_name(dev_str: &str) -> String {
     let end = pattern_match(dev_str, ".azure-devices.net");
-    dev_str[9..end].trim().to_string()
+    dev_str[10..end].trim().to_string()
 }
 
 fn get_device_id(dev_str: &str) -> String {
@@ -65,9 +68,23 @@ fn pattern_match(dev_str: &str, pattern: &str) -> usize {
 fn get_file() -> Result<String> {
     match os_info::get().os_type() {
         os_info::Type::Windows => {
-            get_config_file("C:\\ProgramData\\iotedge\\config.yaml")
+            println!("WINDOWS!");
+            match env::var("CSIDL_COMMON_APPDATA") {
+                Ok(val) => {
+                    let path = format!("{}\\iotedge\\config.yaml", val);
+                    get_config_file(&path)
+                }
+                Err(_) => match env::var("ProgramData") {
+                    Ok(val) => {
+                        let path = format!("{}\\iotedge\\config.yaml", val);
+                        get_config_file(&path)
+                    }
+                    Err(_) => get_config_file("C:\\ProgramData\\iotedge\\config.yaml"),
+                }
+            }
         }
         _ => {
+            println!("LINUX");
             get_config_file("/etc/iotedge/config.yaml")
         }
     }
@@ -89,10 +106,26 @@ fn main() {
         }
     };
 
-    println!("Connection String: {}", get_connection_string(val));
+    let config_file = get_file();
+    match config_file {
+        Ok(contents) => {
+            println!("My file contents: {}", contents);
+        }
+        Err(_) => {
+            println!("Couldn't find file");
+        }
+    }
+    
+    // HttpServer::new(|| App::new().route("/api/provisioning-state", |r| r.f(index));
+    
+    // HttpServer::new(|| App::new().resource("/", |r| r.f(index)))
+    //     .bind("127.0.0.1:8088")
+    //     .run();
+    
+    let app = App::new().service(web::resource("/api/provisioning-state").to(index));
 
-    // HttpServer::new(|| App::new().route("/", HttpResponse::Ok()))
-    //     .bind("127.0.0.1:8888")
-    //     .unwrap()
-    //     .start();
+}
+
+fn wtf(req: HttpRequest) -> HttpResponse {
+    unimplemented!()
 }
