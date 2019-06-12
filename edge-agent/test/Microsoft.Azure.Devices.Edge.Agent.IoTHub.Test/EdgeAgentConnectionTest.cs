@@ -1092,6 +1092,95 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             }
         }
 
+        [Fact]
+        [Unit]
+        public async Task GetTwinFailureDoesNotUpdateState()
+        {
+            // Arrange
+            var moduleDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(DockerDesiredModule) }
+            };
+
+            var edgeAgentDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(EdgeAgentDockerModule) }
+            };
+
+            var edgeHubDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(EdgeHubDockerModule) }
+            };
+
+            var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(DockerRuntimeInfo) }
+            };
+
+            var deserializerTypes = new Dictionary<Type, IDictionary<string, Type>>
+            {
+                [typeof(IModule)] = moduleDeserializerTypes,
+                [typeof(IEdgeAgentModule)] = edgeAgentDeserializerTypes,
+                [typeof(IEdgeHubModule)] = edgeHubDeserializerTypes,
+                [typeof(IRuntimeInfo)] = runtimeInfoDeserializerTypes,
+            };
+
+            ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
+
+            var runtimeInfo = new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.0", null));
+            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", string.Empty), null, null);
+            var edgeHubDockerModule = new EdgeHubDockerModule(
+                "docker",
+                ModuleStatus.Running,
+                RestartPolicy.Always,
+                new DockerConfig("image", string.Empty),
+                null,
+                null);
+            var deploymentConfig = new DeploymentConfig(
+                "1.0",
+                runtimeInfo,
+                new SystemModules(edgeAgentDockerModule, edgeHubDockerModule),
+                new Dictionary<string, IModule>());
+            string deploymentConfigJson = serde.Serialize(deploymentConfig);
+            var twin = new Twin(new TwinProperties { Desired = new TwinCollection(deploymentConfigJson) });
+
+            var moduleClient = new Mock<IModuleClient>();
+            moduleClient.Setup(m => m.GetTwinAsync())
+                .Callback(
+                    () =>
+                    {
+                        moduleClient.Setup(m => m.GetTwinAsync())
+                            .ThrowsAsync(new ObjectDisposedException("Dummy obj disp"));
+                    })
+                .ReturnsAsync(twin);
+
+            var moduleClientProvider = new Mock<IModuleClientProvider>();
+            moduleClientProvider.Setup(m => m.Create(It.IsAny<ConnectionStatusChangesHandler>()))
+                .ReturnsAsync(moduleClient.Object);
+
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+
+            // Act
+            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), true, TimeSpan.FromSeconds(10)))
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5));
+                Option<DeploymentConfigInfo> receivedDeploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
+
+                // Assert
+                Assert.True(receivedDeploymentConfigInfo.HasValue);
+                Assert.False(receivedDeploymentConfigInfo.OrDefault().Exception.HasValue);
+                Assert.Equal(deploymentConfig, receivedDeploymentConfigInfo.OrDefault().DeploymentConfig);
+
+                await Task.Delay(TimeSpan.FromSeconds(10));
+
+                // Assert
+                moduleClient.Verify(m => m.GetTwinAsync(), Times.Exactly(4));
+                Assert.True(receivedDeploymentConfigInfo.HasValue);
+                Assert.False(receivedDeploymentConfigInfo.OrDefault().Exception.HasValue);
+                Assert.Equal(deploymentConfig, receivedDeploymentConfigInfo.OrDefault().DeploymentConfig);
+            }
+        }
+
         [Theory]
         [Unit]
         [InlineData("1.0", null)]
