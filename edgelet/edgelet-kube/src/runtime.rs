@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![allow(unused_variables, unused_imports, dead_code)] // todo remove after
-
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -10,10 +8,10 @@ use failure::Fail;
 use futures::future::Either;
 use futures::prelude::*;
 use futures::{future, stream, Async, Future, Stream};
-use hyper::header::HeaderValue;
 use hyper::service::Service;
-use hyper::{header, Body, Chunk as HyperChunk, Request};
+use hyper::{Body, Chunk as HyperChunk, Request};
 use log::Level;
+use typed_headers::{Authorization, HeaderMapExt};
 use url::Url;
 
 use edgelet_core::{
@@ -25,9 +23,7 @@ use edgelet_utils::{ensure_not_empty_with_context, log_failure, sanitize_dns_lab
 use kube_client::{Client as KubeClient, Error as KubeClientError, TokenSource};
 
 use crate::constants::*;
-use crate::convert::{
-    auth_to_image_pull_secret, pod_to_module, spec_to_deployment, spec_to_service_account,
-};
+use crate::convert::{auth_to_image_pull_secret, pod_to_module};
 use crate::error::{Error, ErrorKind, Result};
 use crate::module::{CreateModule, KubeModule};
 
@@ -410,14 +406,8 @@ where
     fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
         let token = req
             .headers()
-            .get(header::AUTHORIZATION)
-            .map(HeaderValue::to_str)
-            .transpose()
-            .map(|token| {
-                token
-                    .filter(|token| token.len() > 6 && &token[..7].to_uppercase() == "BEARER ")
-                    .map(|token| &token[7..])
-            })
+            .typed_get::<Authorization>()
+            .map(|auth| auth.and_then(|auth| auth.as_bearer().cloned()))
             .map_err(Error::from);
 
         let fut = match token {
@@ -427,7 +417,7 @@ where
                         .lock()
                         .expect("Unexpected lock error")
                         .borrow_mut()
-                        .token_review(&self.namespace, token)
+                        .token_review(&self.namespace, token.as_str())
                         .map_err(|err| {
                             log_failure(Level::Warn, &err);
                             Error::from(err)
@@ -713,155 +703,6 @@ mod tests {
             management_uri.clone(),
         );
         assert!(result.is_ok());
-    }
-
-    #[test]
-    fn authenticate_returns_none_when_no_auth_token_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                Ok(Response::new(Body::empty()))
-            },
-        );
-        let req = Request::default();
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-        assert_eq!(AuthId::None, auth_id);
-    }
-
-    #[test]
-    fn authenticate_returns_none_when_invalid_auth_header_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                Ok(Response::new(Body::empty()))
-            },
-        );
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let mut req = Request::default();
-        req.headers_mut()
-            .insert(header::AUTHORIZATION, "BeErer token".parse().unwrap());
-
-        let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-        assert_eq!(AuthId::None, auth_id);
-    }
-
-    #[test]
-    fn authenticate_returns_none_when_invalid_auth_token_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                Ok(Response::new(Body::empty()))
-            },
-        );
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let mut req = Request::default();
-        req.headers_mut().insert(
-            header::AUTHORIZATION,
-            "\u{3aa}\u{3a9}\u{3a4}".parse().unwrap(),
-        );
-
-        let err = runtime.authenticate(&req).wait().err().unwrap();
-
-        assert_eq!(&ErrorKind::ModuleAuthenticationError, err.kind());
-    }
-
-    #[test]
-    fn authenticate_returns_none_when_unknown_auth_token_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                let body = r###"{
-                        "kind": "TokenReview",
-                        "spec": { "token": "token" },
-                        "status": {
-                            "authenticated": false
-                        }
-                    }"###;
-                Ok(Response::new(Body::from(body)))
-            },
-        );
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let mut req = Request::default();
-        req.headers_mut().insert(
-            header::AUTHORIZATION,
-            "Bearer token-unknown".parse().unwrap(),
-        );
-
-        let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-        assert_eq!(AuthId::None, auth_id);
-    }
-
-    #[test]
-    fn authenticate_returns_auth_id_when_module_auth_token_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                let body = r###"{
-                    "kind": "TokenReview",
-                    "spec": { "token": "token" },
-                    "status": {
-                        "authenticated": true,
-                        "user": {
-                            "username": "module-abc"
-                        }
-                    }
-                }"###;
-                Ok(Response::new(Body::from(body)))
-            },
-        );
-
-        let mut req = Request::default();
-        req.headers_mut()
-            .insert(header::AUTHORIZATION, "Bearer token".parse().unwrap());
-
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-        assert_eq!(AuthId::Value("module-abc".into()), auth_id);
-    }
-
-    fn prepare_module_runtime_with_defaults<S: Service>(
-        service: S,
-    ) -> KubeModuleRuntime<TestTokenSource, S> {
-        let namespace = String::from("my-namespace");
-        let iot_hub_hostname = String::from("iothostname");
-        let device_id = String::from("my_device_id");
-        let edge_hostname = String::from("edge-hostname");
-        let proxy_image = String::from("proxy-image");
-        let proxy_config_path = String::from("proxy-confg-path");
-        let proxy_config_map_name = String::from("config-volume");
-        let image_pull_policy = String::from("OnCreate");
-        let service_account_name = String::from("iotedge");
-        let workload_uri = Url::from_str("http://localhost:35000").unwrap();
-        let management_uri = Url::from_str("http://localhost:35001").unwrap();
-
-        let config = Config::new(
-            Url::parse("https://localhost:443").unwrap(),
-            "/api".to_string(),
-            TestTokenSource,
-            TlsConnector::new().unwrap(),
-        );
-
-        KubeModuleRuntime::new(
-            KubeClient::with_client(config, service),
-            namespace.clone(),
-            true,
-            iot_hub_hostname.clone(),
-            device_id.clone(),
-            edge_hostname.clone(),
-            proxy_image.clone(),
-            proxy_config_path.clone(),
-            proxy_config_map_name.clone(),
-            image_pull_policy.clone(),
-            service_account_name.clone(),
-            workload_uri.clone(),
-            management_uri.clone(),
-        )
-        .unwrap()
     }
 
     #[derive(Clone)]

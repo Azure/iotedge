@@ -20,7 +20,7 @@ use log::debug;
 use crate::config::{Config, TokenSource};
 use crate::error::{Error, ErrorKind};
 
-pub struct HttpClient<C, B>(HyperClient<C, B>);
+pub struct HttpClient<C, B>(pub HyperClient<C, B>);
 
 impl<C, B> Service for HttpClient<C, B>
 where
