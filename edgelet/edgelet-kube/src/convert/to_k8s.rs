@@ -414,15 +414,27 @@ pub fn spec_to_service_account<R: KubeRuntimeData>(
     spec: &ModuleSpec<DockerConfig>,
 ) -> Result<api_core::ServiceAccount> {
     let module_label_value = sanitize_dns_value(spec.name())?;
-    let service_account_name = format!("{}-service-account", module_label_value);
+    let device_label_value = sanitize_dns_value(runtime.device_id())?;
+    let hubname_label = sanitize_dns_value(runtime.iot_hub_hostname())?;
 
-    let service_account_labels = BTreeMap::new(); // todo what labels?
+    let service_account_name = module_label_value.clone();
+
+    // labels
+    let mut service_account_labels = BTreeMap::new();
+    service_account_labels.insert(EDGE_MODULE_LABEL.to_string(), module_label_value.clone());
+    service_account_labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
+    service_account_labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
+
+    // annotations
+    let mut annotations = BTreeMap::new();
+    annotations.insert(EDGE_ORIGINAL_MODULEID.to_string(), spec.name().to_string());
 
     let service_account = api_core::ServiceAccount {
         metadata: Some(api_meta::ObjectMeta {
             name: Some(service_account_name),
             namespace: Some(runtime.namespace().to_string()),
             labels: Some(service_account_labels),
+            annotations: Some(annotations),
             ..api_meta::ObjectMeta::default()
         }),
         ..api_core::ServiceAccount::default()
@@ -435,6 +447,8 @@ pub fn spec_to_service_account<R: KubeRuntimeData>(
 mod tests {
     use super::spec_to_deployment;
     use crate::constants;
+    use crate::constants::{EDGE_ORIGINAL_MODULEID, EDGE_DEVICE_LABEL, EDGE_HUBNAME_LABEL, EDGE_MODULE_LABEL};
+    use crate::convert::spec_to_service_account;
     use crate::convert::to_k8s::auth_to_image_pull_secret;
     use crate::convert::to_k8s::{Auth, AuthEntry};
     use crate::runtime::KubeRuntimeData;
@@ -728,6 +742,48 @@ mod tests {
         for auth in auths {
             let result = auth_to_image_pull_secret("namespace", &auth);
             assert!(result.is_err());
+        }
+    }
+
+    #[test]
+    fn module_to_service_account() {
+        let runtime = KubeRuntimeTest::new(
+            true,
+            String::from("default1"),
+            String::from("iotHub"),
+            String::from("device1"),
+            String::from("$edgeAgent"),
+            String::from("proxy:latest"),
+            String::from("/etc/traefik"),
+            String::from("device1-iotedged-proxy-config"),
+            String::from("IfNotPresent"),
+            String::from("iotedge"),
+            Url::parse("http://localhost:35000").unwrap(),
+            Url::parse("http://localhost:35001").unwrap(),
+        );
+
+        let module = create_module_spec();
+
+        let service_account = spec_to_service_account(&runtime, &module).unwrap();
+
+        assert!(service_account.metadata.is_some());
+        if let Some(metadata) = service_account.metadata {
+            assert_eq!(metadata.name, Some("edgeagent".to_string()));
+            assert_eq!(metadata.namespace, Some("default1".to_string()));
+
+            assert!(metadata.annotations.is_some());
+            if let Some(annotations) = metadata.annotations {
+                assert_eq!(annotations.len(), 1);
+                assert_eq!(annotations[EDGE_ORIGINAL_MODULEID], "$edgeAgent");
+            }
+
+            assert!(metadata.labels.is_some());
+            if let Some(labels) = metadata.labels {
+                assert_eq!(labels.len(), 3);
+                assert_eq!(labels[EDGE_DEVICE_LABEL], "device1");
+                assert_eq!(labels[EDGE_HUBNAME_LABEL], "iothub");
+                assert_eq!(labels[EDGE_MODULE_LABEL], "edgeagent");
+            }
         }
     }
 }

@@ -497,17 +497,11 @@ impl AsRef<[u8]> for Chunk {
 mod tests {
     use std::str::FromStr;
 
-    use futures::future::Future;
-    use hyper::service::{service_fn, Service};
-    use hyper::Error as HyperError;
-    use hyper::{header, Body, Request, Response};
-    use native_tls::TlsConnector;
     use url::Url;
+    use native_tls::TlsConnector;
 
-    use edgelet_core::{AuthId, Authenticator};
     use kube_client::{Client as KubeClient, Config, Error, TokenSource};
 
-    use crate::error::ErrorKind;
     use crate::runtime::KubeModuleRuntime;
 
     fn get_config() -> Config<TestTokenSource> {
