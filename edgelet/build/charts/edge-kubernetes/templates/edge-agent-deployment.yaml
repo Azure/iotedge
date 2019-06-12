@@ -78,7 +78,9 @@ spec:
           - name: "PersistentVolumeName"
             value: {{ .Values.edgeAgent.env.persistentVolumeName | quote }}
           - name: "StorageClassName"
-            value: {{ .Values.edgeAgent.env.storageClassName | quote }}          
+            value: {{ .Values.edgeAgent.env.storageClassName | quote }}
+          - name: "RuntimeLogLevel"
+            value: {{ .Values.edgeAgent.env.runtimeLogLevel | quote }}
         - name: proxy
           image: "{{ .Values.iotedgedProxy.image.repository }}:{{ .Values.iotedgedProxy.image.tag }}"
           imagePullPolicy: {{ .Values.iotedgedProxy.image.pullPolicy }}
