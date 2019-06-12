@@ -85,14 +85,14 @@ mod tests {
 
     #[test]
     fn can_create_client() {
-        let client = MaybeProxyClient::new(None).unwrap();
+        let client = MaybeProxyClient::new(None, None).unwrap();
         assert!(!client.has_proxy() && !client.is_null());
     }
 
     #[test]
     fn can_create_client_with_proxy() {
         let uri = "http://example.com".parse::<Uri>().unwrap();
-        let client = MaybeProxyClient::new(Some(uri)).unwrap();
+        let client = MaybeProxyClient::new(Some(uri), None).unwrap();
         assert!(client.has_proxy() && !client.is_null());
     }
 
