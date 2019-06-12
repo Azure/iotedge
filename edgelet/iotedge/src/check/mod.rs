@@ -114,13 +114,12 @@ impl Check {
                 future::ok(None)
             };
 
-            let hyper_client = proxy.and_then(|proxy| {
-                Ok(
-                    MaybeProxyClient::new(proxy, None).context(ErrorKind::FetchLatestVersions(
-                        FetchLatestVersionsReason::CreateClient,
-                    ))?,
-                )
-            });
+            let hyper_client =
+                proxy.and_then(|proxy| {
+                    Ok(MaybeProxyClient::new(proxy, None).context(
+                        ErrorKind::FetchLatestVersions(FetchLatestVersionsReason::CreateClient),
+                    )?)
+                });
 
             let request = hyper::Request::get("https://aka.ms/latest-iotedge-stable")
                 .body(hyper::Body::default())

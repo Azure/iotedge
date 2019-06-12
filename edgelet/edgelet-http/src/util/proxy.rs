@@ -13,7 +13,10 @@ pub struct MaybeProxyClient {
 }
 
 impl MaybeProxyClient {
-    pub fn new(proxy_uri: Option<Uri>, trust_bundle: Option<PemCertificate>) -> Result<Self, Error> {
+    pub fn new(
+        proxy_uri: Option<Uri>,
+        trust_bundle: Option<PemCertificate>,
+    ) -> Result<Self, Error> {
         MaybeProxyClient::create(false, proxy_uri, None, trust_bundle)
     }
 
