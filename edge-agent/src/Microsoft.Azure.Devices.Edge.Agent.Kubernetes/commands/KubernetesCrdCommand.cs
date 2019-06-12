@@ -101,7 +101,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                 catch (Exception ex) when (!ex.IsFatal())
                 {
                     Events.SecretCreateUpdateFailed(imagePullSecret.Key, ex);
-                    Console.WriteLine(ex.Message);
                 }
             }
 
@@ -151,9 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                     resourceName,
                     cancellationToken: token);
                 string body = JsonConvert.SerializeObject(currentDeployment.Body);
-                Console.WriteLine("=================================================");
-                Console.WriteLine(body);
-                Console.WriteLine("=================================================");
+
                 activeDeployment = currentDeployment.Response.IsSuccessStatusCode ?
                     Option.Some(this.deploymentSerde.Deserialize(body)) :
                     Option.None<EdgeDeploymentDefinition>();
@@ -161,7 +158,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
             catch (Exception parseException)
             {
                 Events.FindActiveDeploymentFailed(resourceName, parseException);
-                Console.WriteLine(parseException.Message);
                 activeDeployment = Option.None<EdgeDeploymentDefinition>();
             }
 
