@@ -662,9 +662,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
             // Assert
-            Assert.True(deploymentConfigInfo.HasValue);
-            Assert.False(deploymentConfigInfo.OrDefault().Exception.HasValue);
-            Assert.Equal(deploymentConfig, deploymentConfigInfo.OrDefault().DeploymentConfig);
+            Assert.False(deploymentConfigInfo.HasValue);
         }
 
         [Fact]
@@ -1153,7 +1151,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             moduleClientProvider.Setup(m => m.Create(It.IsAny<ConnectionStatusChangesHandler>()))
                 .ReturnsAsync(moduleClient.Object);
 
-
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler>();
             var retryStrategy = new FixedInterval(3, TimeSpan.FromSeconds(2));
 
@@ -1170,7 +1167,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 moduleClient.Setup(m => m.GetTwinAsync())
                     .ThrowsAsync(new ObjectDisposedException("Dummy obj disp"));
-
 
                 await Task.Delay(TimeSpan.FromSeconds(12));
 
