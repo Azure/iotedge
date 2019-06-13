@@ -226,7 +226,7 @@ jobs:
       name: $(pool.name)
       demands:
         - run-long-haul -equals true
-        - agent.OSName -equals WindowsEnterprise
+        - agent.OSName -equals WinPro
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
     variables:
@@ -286,11 +286,11 @@ jobs:
   - job: windows_servercore_amd64_moby
 ################################################################################
     displayName: Windows Server Core AMD64 Moby
-    condition: eq(variables['run.windows.amd64.moby'], 'true')
+    condition: eq(variables['run.servercore.amd64.moby'], 'true')
     pool:
       name: $(pool.name)
       demands:
-        - agent.OSName -equals WindowsServerCore
+        - agent.OSName -equals WinServerCore
         - run-long-haul -equals true
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
