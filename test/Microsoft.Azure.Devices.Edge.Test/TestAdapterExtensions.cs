@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System.Collections.Generic;
     using System.Linq;
-    using System.Runtime.CompilerServices;
     using System.Text.RegularExpressions;
     using NUnit.Framework;
 
@@ -11,6 +10,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
     {
         public static string NormalizedName(this TestContext.TestAdapter test)
         {
+            // e.g. -
+            // 'ModuleToModuleDirectMethod("Mqtt","Amqp")' ==>
+            //     'moduletomoduledirectmethod-mqtt-amqp'
             IEnumerable<string> parts = Regex.Split(test.Name, @"[^\w]")
                 .Where(s => !string.IsNullOrEmpty(s));
             return string.Join("-", parts).ToLowerInvariant();
