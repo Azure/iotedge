@@ -605,7 +605,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
         [Fact]
         [Unit]
-        public async Task GetDeploymentConfigInfoAsyncIncludesExceptionWhenGetTwinThrows()
+        public async Task GetDeploymentConfigInfoAsyncIDoesNotIncludeExceptionWhenGetTwinThrows()
         {
             // Arrange
             var deviceClient = new Mock<IModuleClient>();
@@ -663,8 +663,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
-            Assert.True(deploymentConfigInfo.OrDefault().Exception.HasValue);
-            Assert.IsType<InvalidOperationException>(deploymentConfigInfo.OrDefault().Exception.OrDefault());
+            Assert.False(deploymentConfigInfo.OrDefault().Exception.HasValue);
+            Assert.Equal(deploymentConfig, deploymentConfigInfo.OrDefault().DeploymentConfig);
         }
 
         [Fact]
@@ -1147,6 +1147,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var moduleClient = new Mock<IModuleClient>();
             moduleClient.Setup(m => m.GetTwinAsync())
                 .ReturnsAsync(twin);
+            moduleClient.SetupGet(m => m.IsActive).Returns(true);
 
             var moduleClientProvider = new Mock<IModuleClientProvider>();
             moduleClientProvider.Setup(m => m.Create(It.IsAny<ConnectionStatusChangesHandler>()))
@@ -1177,7 +1178,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 receivedDeploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
 
                 // Assert
-                moduleClient.Verify(m => m.GetTwinAsync(), Times.Exactly(4));
+                moduleClient.Verify(m => m.GetTwinAsync(), Times.Exactly(5));
                 Assert.True(receivedDeploymentConfigInfo.HasValue);
                 Assert.False(receivedDeploymentConfigInfo.OrDefault().Exception.HasValue);
                 Assert.Equal(deploymentConfig, receivedDeploymentConfigInfo.OrDefault().DeploymentConfig);
