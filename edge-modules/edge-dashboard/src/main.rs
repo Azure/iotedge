@@ -1,5 +1,4 @@
 use actix_web::{HttpServer, HttpRequest, HttpResponse, App, web};
-use std::fmt::{self, Display, Formatter};
 use std::fs;
 use std::io::{self, Result};
 use std::env;
@@ -10,35 +9,21 @@ use serde::{Deserialize, Serialize};
     - DPS state is TBD on how to handle
     - CSIDL env var hasn't been tried/tested
     - HttpResponse types probably incorrect
-    - Running after compiling for the first time - when accessing localhost, I get PageNotFound which auto-refreshes to the expected JSON display after a couple of seconds
+    - Running after compiling for the first time - when accessing localhost, I get "refused to connect" which auto-refreshes to the expected JSON display after a couple of seconds
 */
 
-/* Design Questions:
-    - Parsing has hard-coded values to search for based on the one config.yaml file I've looked at (i.e. "DeviceId=") - is that okay?
-    - Functions all return/pass up an Option<> - is that good practice?
-    - Nested 'match' control structures are everywhere yikes :(
-    - To make a Device, I pass in a string state (i.e. "manual"), convert it to a State enum, then implement Display to show "Manual" - :\ that just seems wrong
-    - Function main() returns a Result<()> - is that appropriate?
-    - Functions are in no particular order seems kinda messy and hard to navigate :\
+/* TODOs:
+    - Check edgelet code to see better parser (split on ';', etc.)
+    - Change functions to return Result<_, Error> + make custom Error modules crate
+        ** can import Cargo.toml dependencies from other folders
 */
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 enum State {
     Manual,
     NotProvisioned,
     NotInstalled,
     // DPS
-}
-
-impl Display for State {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            State::Manual => write!(f, "Manual"),
-            State::NotProvisioned => write!(f, "Not Provisioned"),
-            State::NotInstalled => write!(f, "Not Installed"),
-            // State::DPS => write!(f, "DPS"),
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -54,44 +39,32 @@ impl Device {
     // makes a new Device struct based on the state
     fn new(state: &str, con_string: String) -> Device {
         match state {
-            "manual" => {
-                Device::manual_rep(con_string)
-            }
-            "not provisioned" => {
-                Device {
-                    state: State::NotProvisioned,
-                    hub_name: None,
-                    device_id: None,
-                }
-            }
-            _ => {
-                Device {
-                    state: State::NotInstalled,
-                    hub_name: None,
-                    device_id: None,
-                }
-            }
-            // "dps" =>
+            "manual"          => Device::manual_rep(con_string),
+            "not provisioned" => Device::default(State::NotProvisioned),
+            // "dps"          => ,
+            _                 => Device::default(State::NotInstalled),
         }
     }
 
     // returns the manual state representation of device
     fn manual_rep(con_string: String) -> Device {
-        match get_device_details(con_string) {
-            Some((hub_name, device_id)) => {
-                Device {
-                    state: State::Manual,
-                    hub_name: Some(hub_name),
-                    device_id: Some(device_id),
-                }
+        if let Some((hub_name, device_id)) = get_device_details(con_string) {
+            Device {
+                state: State::Manual,
+                hub_name: Some(hub_name),
+                device_id: Some(device_id),
             }
-            None => {
-                Device {
-                    state: State::Manual,
-                    hub_name: None,
-                    device_id: None,
-                }
-            }
+        } else {
+            Device::default(State::Manual)
+        }
+    }
+
+    // returns a Device of specified state with all other fields as None
+    fn default(state: State) -> Device {
+        Device {
+            state: state,
+            hub_name: None,
+            device_id: None,
         }
     }
 }
@@ -115,6 +88,7 @@ fn get_device_details(device_string: String) -> Option<(String, String)> {
     Some((hub_name, device_id))
 }
 
+// TODO - replace with a better parser (from edgelet)
 // returns the hub name of the edge device
 fn get_hub_name(dev_str: &str) -> Option<String> {
     let start_pattern = "HostName=";
@@ -123,6 +97,7 @@ fn get_hub_name(dev_str: &str) -> Option<String> {
     Some(dev_str[start..end].trim().to_string())
 }
 
+// TODO - replace with a better parser (from edgelet)
 // returns the device ID of the edge device
 fn get_device_id(dev_str: &str) -> Option<String> {
     let start_pattern = "DeviceId=";
@@ -133,59 +108,39 @@ fn get_device_id(dev_str: &str) -> Option<String> {
 
 // returns the contents of the config.yaml file from the current device
 fn get_file() -> Result<String> {
-    match os_info::get().os_type() {
-        os_info::Type::Windows => {
-            match env::var("CSIDL_COMMON_APPDATA") {
-                /* *** 'Ok' branch hasn't been tested to see if it works *** */
-                Ok(val) => { 
-                    println!("Using CSIDL_COMMON_APPDATA");
-                    fs::read_to_string(&format!("{}\\iotedge\\config.yaml", val))
-                }
-                Err(_) => match env::var("ProgramData") {
-                    Ok(val) => {
-                        println!("Using ProgramData");
-                        fs::read_to_string(&format!("{}\\iotedge\\config.yaml", val))
-                    }
-                    Err(_) => { 
-                        println!("Using default");
-                        fs::read_to_string("C:\\ProgramData\\iotedge\\config.yaml")
-                    }
-                }
-            }
-            // fs::read_to_string(".\\src\\tests.txt")
+    if os_info::get().os_type() == os_info::Type::Windows {
+        if let Ok(csidl_path) = env::var("CSIDL_COMMON_APPDATA") { // in my experience, this never gets here
+            fs::read_to_string(&format!("{}\\iotedge\\config.yaml", csidl_path))
+        } else if let Ok(program_path) = env::var("ProgramData") {
+            fs::read_to_string(&format!("{}\\iotedge\\config.yaml", program_path))
+        } else {
+            fs::read_to_string("C:\\ProgramData\\iotedge\\config.yaml")
         }
-        /* *** '_' branch hasn't been tested yet*** */
-        _ => fs::read_to_string("/etc/iotedge/config.yaml"),  
+        // fs::read_to_string(".\\src\\tests.txt")
+    } else { // this branch hasn't been tested yet
+        fs::read_to_string("/etc/iotedge/config.yaml")
     }
 }
 
 // returns a JSON representation of the current edge device's state
 fn get_state(_req: HttpRequest) -> HttpResponse {
-    match get_file() {
-        // if the file exists and can be located
-        Ok(contents) => {
-            let con_string = &get_connection_string(contents);
-            let string_ref: Option<&str> = con_string.as_ref().map(|s| s.as_ref());
-            match string_ref {
-                // if con_string contained a valid string
-                Some(details) => { 
-                    let mut new_device;
-                    if &details[1..10] == "HostName=" {
-                        new_device = Device::new("manual", details.to_string());
-                    } else {
-                        new_device = Device::new("not provisioned", String::new());
-                    }
-                    return_response(&new_device)
-                }
-                // if con_string couldn't be converted to a device connection string
-                None => HttpResponse::UnprocessableEntity().body("Device connection string unable to be converted")
+    if let Ok(contents) = get_file() { // if file exists and can be located
+        let con_string = &get_connection_string(contents);
+        let string_ref: Option<&str> = con_string.as_ref().map(|s| s.as_ref());
+        if let Some(details) = string_ref { // if con_string is valid
+            let mut new_device;
+            if &details[1..10] == "HostName=" {
+                new_device = Device::new("manual", details.to_string());
+            } else {
+                new_device = Device::new("not provisioned", String::new());
             }
-        }
-        // if the file doesn't exist or can't be located
-        Err(_) => {
-            let new_device = Device::new("not installed", String::new());
             return_response(&new_device)
+        } else { // if con_string can't be converted to a valid device connection string
+            HttpResponse::UnprocessableEntity().body("Device connection string unable to be converted")
         }
+    } else { // if file doesn't exist or can't be located
+        let new_device = Device::new("not installed", String::new());
+        return_response(&new_device)
     }
 }
 
@@ -194,7 +149,7 @@ fn return_response(new_device: &Device) -> HttpResponse {
     // if the new_device is able to be created (fields are able to be parsed into JSON strings)
     match serde_json::to_string(new_device) {
         Ok(json_file) => HttpResponse::Ok().body(json_file),
-        Err(_) => HttpResponse::UnprocessableEntity().body("Unable to process device connection string. Are you sure the string is correct?"),
+        Err(_)        => HttpResponse::UnprocessableEntity().body("Unable to process device connection string. Are you sure the string is correctly set up?"),
     }
 }
 
