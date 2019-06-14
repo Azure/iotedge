@@ -268,7 +268,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy-windows.yaml
         parameters:
-          release.label: 'lh'
+          release.label: 'winpro-lh'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
