@@ -33,7 +33,7 @@
 # Manual provisioning configuration
 provisioning:
   source: "manual"
-  device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
+  device_connection_string: "HostName=t-clzhen-raspi-test.azure-devices.net;DeviceId=dev1;SharedAccessKey=Ra0bFJOMyt4L9Cv+nap7HwrioFk7SKQtUzzscYggSTM="
 
 # DPS TPM provisioning configuration
 # provisioning:
