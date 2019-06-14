@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -34,6 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly Option<IWebProxy> proxy;
         readonly Option<string> productInfo;
+        readonly bool closeOnIdleTimeout;
+        readonly TimeSpan idleTimeout;
 
         public EdgeletModule(
             string iotHubHostname,
@@ -45,7 +48,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             IEnumerable<AuthConfig> dockerAuthConfig,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
-            Option<string> productInfo)
+            Option<string> productInfo,
+            bool closeOnIdleTimeout,
+            TimeSpan idleTimeout)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
@@ -57,12 +62,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.upstreamProtocol = upstreamProtocol;
             this.proxy = proxy;
             this.productInfo = productInfo;
+            this.closeOnIdleTimeout = closeOnIdleTimeout;
+            this.idleTimeout = idleTimeout;
         }
 
         protected override void Load(ContainerBuilder builder)
         {
             // IModuleClientProvider
-            builder.Register(c => new EnvironmentModuleClientProvider(this.upstreamProtocol, this.proxy, this.productInfo))
+            builder.Register(
+                    c => new ModuleClientProvider(
+                        c.Resolve<ISdkModuleClientProvider>(),
+                        this.upstreamProtocol,
+                        this.proxy,
+                        this.productInfo,
+                        this.closeOnIdleTimeout,
+                        this.idleTimeout))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 

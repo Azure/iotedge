@@ -30,9 +30,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         const int DefaultListenBacklogSize = 200; // connections allowed pending accept
         const int DefaultParentEventLoopCount = 1;
         const int DefaultMaxInboundMessageSize = 256 * 1024;
-        const int DefaultThreadCount = 200;
         const bool AutoRead = false;
 
+        readonly int defaultThreadCount = Environment.ProcessorCount * 2;
         readonly ILogger logger = Logger.Factory.CreateLogger<MqttProtocolHead>();
         readonly ISettingsProvider settingsProvider;
         readonly X509Certificate tlsCertificate;
@@ -122,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         ServerBootstrap SetupServerBootstrap()
         {
             int maxInboundMessageSize = this.settingsProvider.GetIntegerSetting("MaxInboundMessageSize", DefaultMaxInboundMessageSize);
-            int threadCount = this.settingsProvider.GetIntegerSetting("ThreadCount", DefaultThreadCount);
+            int threadCount = this.settingsProvider.GetIntegerSetting("ThreadCount", this.defaultThreadCount);
             int listenBacklogSize = this.settingsProvider.GetIntegerSetting("ListenBacklogSize", DefaultListenBacklogSize);
             int parentEventLoopCount = this.settingsProvider.GetIntegerSetting("EventLoopCount", DefaultParentEventLoopCount);
             var settings = new Settings(this.settingsProvider);

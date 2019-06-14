@@ -218,7 +218,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 
             // Assert
             Assert.NotEmpty(receivedBytes);
-            Assert.Equal(dockerLogsStreamBytes, receivedBytes);
+            Assert.Equal(string.Join(string.Empty, TestLogTexts).ToBytes(), receivedBytes);
         }
 
         [Fact]
@@ -403,13 +403,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             receivedText.Sort();
 
             Assert.Equal(expectedTextLines, receivedText);
-        }
-
-        [Theory]
-        [MemberData(nameof(GetNeedToProcessStreamTestData))]
-        public void NeedToProcessStreamTest(ModuleLogOptions logOptions, bool expectedResult)
-        {
-            Assert.Equal(expectedResult, LogsProvider.NeedToProcessStream(logOptions));
         }
     }
 }

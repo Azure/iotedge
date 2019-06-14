@@ -83,13 +83,7 @@ function get_leafdevice_artifact_file() {
 
 function get_long_haul_deployment_artifact_file() {
     local path
-    if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.json"
-    elif [ "$image_architecture_label" = 'arm64v8' ]; then
-        path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.arm64v8.$LONG_HAUL_PROTOCOL_HEAD.json"
-    else
-        path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.arm32v7.$LONG_HAUL_PROTOCOL_HEAD.json"
-    fi
+    path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.json"
 
     echo "$path"
 }

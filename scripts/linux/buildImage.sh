@@ -13,14 +13,14 @@ set -e
 # Define Environment Variables
 ###############################################################################
 ARCH=$(uname -m)
-SCRIPT_NAME=$(basename $0)
+SCRIPT_NAME=$(basename "$0")
 PUBLISH_DIR=
 BASE_TAG=
 PROJECT=
 DOCKERFILE=
 DOCKER_IMAGENAME=
 DEFAULT_DOCKER_NAMESPACE="microsoft"
-DOCKER_NAMESPACE=$DEFAULT_DOCKER_NAMESPACE
+DOCKER_NAMESPACE=${DEFAULT_DOCKER_NAMESPACE}
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=""}
 SKIP_PUSH=0
 
@@ -29,11 +29,11 @@ SKIP_PUSH=0
 ###############################################################################
 check_arch()
 {
-    if [ "$ARCH" == "x86_64" ]; then
+    if [[ "$ARCH" == "x86_64" ]]; then
         ARCH="amd64"
-    elif [ "$ARCH" == "armv7l" ]; then
+    elif [[ "$ARCH" == "armv7l" ]]; then
         ARCH="arm32v7"
-    elif [ "$ARCH" == "aarch64" ]; then
+    elif [[ "$ARCH" == "aarch64" ]]; then
         ARCH="arm64v8"
     else
         echo "Unsupported architecture"
@@ -76,37 +76,37 @@ print_help_and_exit()
 process_args()
 {
     save_next_arg=0
-    for arg in $@
+    for arg in "$@"
     do
-        if [ $save_next_arg -eq 1 ]; then
+        if [[ ${save_next_arg} -eq 1 ]]; then
             DOCKER_REGISTRY="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 2 ]; then
+        elif [[ ${save_next_arg} -eq 2 ]]; then
             DOCKER_USERNAME="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 3 ]; then
+        elif [[ ${save_next_arg} -eq 3 ]]; then
             DOCKER_PASSWORD="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 4 ]; then
+        elif [[ ${save_next_arg} -eq 4 ]]; then
             DOCKER_IMAGEVERSION="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 5 ]; then
+        elif [[ ${save_next_arg} -eq 5 ]]; then
             BUILD_BINARIESDIRECTORY="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 6 ]; then
+        elif [[ ${save_next_arg} -eq 6 ]]; then
             BASE_TAG="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 7 ]; then
+        elif [[ ${save_next_arg} -eq 7 ]]; then
             ARCH="$arg"
             check_arch
             save_next_arg=0
-        elif [ $save_next_arg -eq 8 ]; then
+        elif [[ ${save_next_arg} -eq 8 ]]; then
             PROJECT="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 9 ]; then
+        elif [[ ${save_next_arg} -eq 9 ]]; then
             DOCKER_IMAGENAME="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 10 ]; then
+        elif [[ ${save_next_arg} -eq 10 ]]; then
             DOCKER_NAMESPACE="$arg"
             save_next_arg=0
         else
@@ -133,7 +133,7 @@ process_args()
         print_help_and_exit
     fi
 
-    if [[ $SKIP_PUSH -eq 0 ]]; then
+    if [[ ${SKIP_PUSH} -eq 0 ]]; then
         if [[ -z ${DOCKER_USERNAME} ]]; then
             echo "Docker username parameter invalid"
             print_help_and_exit
@@ -151,8 +151,8 @@ process_args()
     fi
 
     if [[ -z ${DOCKER_IMAGEVERSION} ]]; then
-        if [ ! -z "${BUILD_BUILDNUMBER}" ]; then
-            DOCKER_IMAGEVERSION=$BUILD_BUILDNUMBER
+        if [[ -n "${BUILD_BUILDNUMBER}" ]]; then
+            DOCKER_IMAGEVERSION=${BUILD_BUILDNUMBER}
         else
             echo "Docker image version not found."
             print_help_and_exit
@@ -164,22 +164,22 @@ process_args()
         print_help_and_exit
     fi
 
-    PUBLISH_DIR=$BUILD_BINARIESDIRECTORY/publish
+    PUBLISH_DIR=${BUILD_BINARIESDIRECTORY}/publish
 
-    if [[ ! -d $PUBLISH_DIR ]]; then
+    if [[ ! -d ${PUBLISH_DIR} ]]; then
         echo "Publish directory does not exist or is invalid"
         print_help_and_exit
     fi
 
+    EXE_DOCKER_DIR=${PUBLISH_DIR}/${PROJECT}/docker
 
-    EXE_DOCKER_DIR=$PUBLISH_DIR/$PROJECT/docker
     if [[ -z ${EXE_DOCKER_DIR} ]] || [[ ! -d ${EXE_DOCKER_DIR} ]]; then
         echo "No docker directory for $PROJECT at $EXE_DOCKER_DIR"
         print_help_and_exit
     fi
 
     DOCKERFILE="$EXE_DOCKER_DIR/linux/$ARCH/Dockerfile"
-    if [[ ! -f $DOCKERFILE ]]; then
+    if [[ ! -f ${DOCKERFILE} ]]; then
         echo "No Dockerfile at $DOCKERFILE"
         print_help_and_exit
     fi
@@ -202,9 +202,9 @@ docker_build_and_tag_and_push()
     arch="$2"
     dockerfile="$3"
     context_path="$4"
-    build_args="${@:5}"
+    build_args="$5"
 
-    if [ -z "${imagename}" ] || [ -z "${arch}" ] || [ -z "${context_path}" ]; then
+    if [[ -z "${imagename}" ]] || [[ -z "${arch}" ]] || [[ -z "${context_path}" ]]; then
         echo "Error: Arguments are invalid [$imagename] [$arch] [$context_path]"
         exit 1
     fi
@@ -212,25 +212,25 @@ docker_build_and_tag_and_push()
     echo "Building and pushing Docker image $imagename for $arch"
     docker_build_cmd="docker build --no-cache"
     docker_build_cmd+=" -t $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
-    if [ ! -z "${dockerfile}" ]; then
+    if [[ -n "${dockerfile}" ]]; then
         docker_build_cmd+=" --file $dockerfile"
     fi
     docker_build_cmd+=" $build_args $context_path"
     
     echo "Running... $docker_build_cmd"
 
-    $docker_build_cmd
+    ${docker_build_cmd}
 
-    if [ $? -ne 0 ]; then
+    if [[ $? -ne 0 ]]; then
         echo "Docker build failed with exit code $?"
         exit 1
     fi
 
-    if [ $SKIP_PUSH -eq 0 ]; then
+    if [[ ${SKIP_PUSH} -eq 0 ]]; then
         docker_push_cmd="docker push $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
         echo "Running... $docker_push_cmd"
-        $docker_push_cmd
-        if [ $? -ne 0 ]; then
+        ${docker_push_cmd}
+        if [[ $? -ne 0 ]]; then
             echo "Docker push failed with exit code $?"
             exit 1
         fi
@@ -246,16 +246,16 @@ check_arch
 process_args "$@"
 
 # log in to container registry
-if [ $SKIP_PUSH -eq 0 ]; then
-    docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-    if [ $? -ne 0 ]; then
+if [[ ${SKIP_PUSH} -eq 0 ]]; then
+    docker login "${DOCKER_REGISTRY}" -u "${DOCKER_USERNAME}" -p "${DOCKER_PASSWORD}"
+    if [[ $? -ne 0 ]]; then
         echo "Docker login failed!"
         exit 1
     fi
 fi
 
 build_args=( "EXE_DIR=." )
-[ -z "$BASE_TAG" ] || build_args+=( "base_tag=$BASE_TAG" )
+[[ -z "$BASE_TAG" ]] || build_args+=( "base_tag=$BASE_TAG" )
 
 # push image
 docker_build_and_tag_and_push \
@@ -264,8 +264,8 @@ docker_build_and_tag_and_push \
     "$DOCKERFILE" \
     "$PUBLISH_DIR/$PROJECT" \
     "${build_args[@]/#/--build-arg }"
-[ $? -eq 0 ] || exit $?
+[[ $? -eq 0 ]] || exit $?
 
 echo "Done building and pushing Docker image $DOCKER_IMAGENAME for $PROJECT"
 
-[ $? -eq 0 ] || exit $?
+[[ $? -eq 0 ]] || exit $?
