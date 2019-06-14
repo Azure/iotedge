@@ -390,6 +390,10 @@ function run_all_tests()
     run_directmethodmqttws_test && testRet=$? || testRet=$?
     if (( funcRet = 0 )); then funcRet=$testRet; fi
 
+    TEST_NAME='QuickstartCerts'
+    run_quickstartcerts_test && testRet=$? || testRet=$?
+    if (( funcRet = 0 )); then funcRet=$testRet; fi
+
     TEST_NAME='TempFilter'
     run_tempfilter_test && testRet=$? || testRet=$?
     if (( funcRet = 0 )); then funcRet=$testRet; fi
@@ -546,7 +550,7 @@ function run_quickstartcerts_test() {
     print_highlighted_message "Run Quickstart Certs test for $image_architecture_label"
     test_setup
 
-    local device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-QuickstartCert"
+    local device_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-QuickstartCerts"
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Quickstart Certs test with -d '$device_id' started at $test_start_time"
 
@@ -844,7 +848,7 @@ function usage() {
 
 process_args "$@"
 
-CONTAINER_REGISTRY="${CONTAINER_REGISTRY:edgebuilds.azurecr.io}"
+CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 LONG_HAUL_PROTOCOL_HEAD="${LONG_HAUL_PROTOCOL_HEAD:-amqp}"
 SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.1}"
