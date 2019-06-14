@@ -139,8 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     this.ConnectionStatusChangedHandler?.Invoke(this.Identity.Id, CloudConnectionStatus.ConnectionEstablished);
                 }
-                // Disconnected_Retrying should happen for transient errors. Ignore that callback. 
-                else if (status != ConnectionStatus.Disconnected_Retrying)
+                else if (status != ConnectionStatus.Disconnected_Retrying) // Disconnected_Retrying should happen for transient errors. Ignore that callback.
                 {
                     if (reason == ConnectionStatusChangeReason.Expired_SAS_Token)
                     {
