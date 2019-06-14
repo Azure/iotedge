@@ -3,6 +3,7 @@ trigger:
   branches:
     include:
       - master
+      - release/*
 pr: none
 jobs:
 
