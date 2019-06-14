@@ -3,8 +3,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
 {
     using System.Collections.Generic;
     using System.Linq;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Xunit;
 
     public class CollectionExTest

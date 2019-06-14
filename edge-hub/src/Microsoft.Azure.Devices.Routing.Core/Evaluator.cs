@@ -7,10 +7,10 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
 
