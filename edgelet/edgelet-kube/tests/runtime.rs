@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::AuthId;
 use std::cmp::Ordering;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::error::Error as StdError;
 
 use futures::{future, Future, IntoFuture};
@@ -13,16 +12,19 @@ use hyper::{header, Body, Method, Request, Response, StatusCode};
 use maplit::btreemap;
 use native_tls::TlsConnector;
 use serde_json::json;
-use typed_headers::{
-    mime, ContentLength, ContentType, HeaderMapExt,
-};
+use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
 use url::Url;
 
-use edgelet_core::Authenticator;
+use docker::models::{AuthConfig, ContainerCreateBody, HostConfig, Mount};
+use edgelet_core::{AuthId, ModuleSpec};
+use edgelet_core::{Authenticator, ModuleRuntime};
+use edgelet_docker::DockerConfig;
 use edgelet_kube::ErrorKind;
-use edgelet_kube::KubeModuleRuntime;
+use edgelet_kube::{KubeModuleRuntime, KubeRuntimeData};
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 use kube_client::{Client as KubeClient, Config, Error, HttpClient, TokenSource};
+
+use edgelet_kube::constants::*;
 
 #[derive(Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
 struct RequestPath(String);
@@ -283,6 +285,7 @@ fn create_runtime(
     let management_uri = Url::parse("http://localhost:35001").unwrap();
 
     let client = KubeClient::with_client(get_config(url), HttpClient(HyperClient::new()));
+    //    let client:KubeClient<ValueToken, HttpClient<HttpsConnector<HttpConnector>,Body>>= KubeClient::new(get_config(url));
 
     KubeModuleRuntime::new(
         client,
@@ -345,7 +348,6 @@ fn make_token_review_handler(
 ) -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
     move |_| {
         let response = on_token_review();
-        println!("{}", response);
         let response_len = response.len();
 
         let mut response = Response::new(response.into());
@@ -357,6 +359,196 @@ fn make_token_review_handler(
             .typed_insert(&ContentType(mime::APPLICATION_JSON));
         Box::new(future::ok(response)) as ResponseFuture
     }
+}
+
+#[test]
+fn create_module() {
+    let port = get_unused_tcp_port();
+
+    let runtime = create_runtime(&format!("http://localhost:{}", port));
+    let module = create_module_spec();
+
+    let dispatch_table = routes!(
+        GET format!("/api/v1/namespaces/{}/serviceaccounts", runtime.namespace()) => empty_list_service_accounts_handler(),
+        POST format!("/api/v1/namespaces/{}/serviceaccounts", runtime.namespace()) => create_service_account_handler(),
+        PUT format!("/api/v1/namespaces/{}/serviceaccounts/{}", runtime.namespace(), EDGE_EDGE_AGENT_NAME) => replace_service_account_handler(),
+        GET format!("/apis/apps/v1/namespaces/{}/deployments", runtime.namespace()) => empty_list_deployments_handler(),
+        POST format!("/apis/apps/v1/namespaces/{}/deployments", runtime.namespace()) => create_deployment_handler(),
+        PUT format!("/apis/apps/v1/namespaces/{}/deployments/{}", runtime.namespace(), EDGE_EDGE_AGENT_NAME) => replace_deployment_handler(),
+    );
+
+    let server = run_tcp_server(
+        "127.0.0.1",
+        port,
+        make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
+    )
+    .map_err(|err| eprintln!("{}", err));
+
+    let task = runtime.create(module);
+
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+    runtime.block_on(task).unwrap();
+}
+
+fn create_module_spec() -> ModuleSpec<DockerConfig> {
+    let create_body = ContainerCreateBody::new()
+        .with_host_config(
+            HostConfig::new()
+                .with_binds(vec![String::from("/a:/b:ro"), String::from("/c:/d")])
+                .with_privileged(true)
+                .with_mounts(vec![
+                    Mount::new()
+                        .with__type(String::from("bind"))
+                        .with_read_only(true)
+                        .with_source(String::from("/e"))
+                        .with_target(String::from("/f")),
+                    Mount::new()
+                        .with__type(String::from("bind"))
+                        .with_source(String::from("/g"))
+                        .with_target(String::from("/h")),
+                    Mount::new()
+                        .with__type(String::from("volume"))
+                        .with_read_only(true)
+                        .with_source(String::from("i"))
+                        .with_target(String::from("/j")),
+                    Mount::new()
+                        .with__type(String::from("volume"))
+                        .with_source(String::from("k"))
+                        .with_target(String::from("/l")),
+                ]),
+        )
+        .with_labels({
+            let mut labels = HashMap::<String, String>::new();
+            labels.insert(String::from("label1"), String::from("value1"));
+            labels.insert(String::from("label2"), String::from("value2"));
+            labels
+        });
+    let auth_config = AuthConfig::new()
+        .with_password(String::from("a password"))
+        .with_username(String::from("USERNAME"))
+        .with_serveraddress(String::from("REGISTRY"));
+    ModuleSpec::new(
+        "$edgeAgent".to_string(),
+        "docker".to_string(),
+        DockerConfig::new("my-image:v1.0".to_string(), create_body, Some(auth_config)).unwrap(),
+        {
+            let mut env = HashMap::new();
+            env.insert(String::from("a"), String::from("b"));
+            env.insert(String::from("C"), String::from("D"));
+            env
+        },
+    )
+    .unwrap()
+}
+
+fn empty_list_service_accounts_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+    move |_| {
+        response(StatusCode::OK, || {
+            json!({
+                "kind": "ServiceAccountList",
+                "apiVersion": "v1",
+                "items": []
+            })
+            .to_string()
+        })
+    }
+}
+
+fn create_service_account_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+    move |_| {
+        response(StatusCode::CREATED, || {
+            json!({
+                "kind": "ServiceAccount",
+                "apiVersion": "v1",
+                "metadata": {
+                    "name": "edgeagent",
+                    "namespace": "my-namespace",
+                }
+            })
+            .to_string()
+        })
+    }
+}
+
+fn replace_service_account_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+    move |_| {
+        response(StatusCode::OK, || {
+            json!({
+                "kind": "ServiceAccount",
+                "apiVersion": "v1",
+                "metadata": {
+                    "name": "edgeagent",
+                    "namespace": "my-namespace",
+                }
+            })
+            .to_string()
+        })
+    }
+}
+
+fn empty_list_deployments_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+    move |_| {
+        response(StatusCode::OK, || {
+            json!({
+                "kind": "DeploymentList",
+                "apiVersion": "apps/v1",
+                "items": []
+            })
+            .to_string()
+        })
+    }
+}
+
+fn create_deployment_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+    move |_| {
+        response(StatusCode::CREATED, || {
+            json!({
+                "kind": "Deployment",
+                "apiVersion": "apps/v1",
+                "metadata": {
+                    "name": "edgeagent",
+                    "namespace": "my-namespace",
+                }
+            })
+            .to_string()
+        })
+    }
+}
+
+fn replace_deployment_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+    move |_| {
+        response(StatusCode::OK, || {
+            json!({
+                "kind": "Deployment",
+                "apiVersion": "apps/v1",
+                "metadata": {
+                    "name": "edgeagent",
+                    "namespace": "msiot-dmolokan-iothub-dmolokan-edge-aks",
+                },
+            })
+            .to_string()
+        })
+    }
+}
+
+fn response(
+    status_code: StatusCode,
+    response: impl Fn() -> String + Clone + Send + 'static,
+) -> ResponseFuture {
+    let response = response();
+    let response_len = response.len();
+
+    let mut response = Response::new(response.into());
+    *response.status_mut() = StatusCode::CREATED;
+    response
+        .headers_mut()
+        .typed_insert(&ContentLength(response_len as u64));
+    response
+        .headers_mut()
+        .typed_insert(&ContentType(mime::APPLICATION_JSON));
+
+    Box::new(future::ok(response)) as ResponseFuture
 }
 
 #[derive(Clone)]

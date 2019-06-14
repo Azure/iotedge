@@ -9,7 +9,7 @@
     clippy::use_self
 )]
 
-mod constants;
+pub mod constants;//todo should be hidden from outside but visible for integration tests
 mod convert;
 mod error;
 mod module;
@@ -17,4 +17,4 @@ mod runtime;
 
 pub use error::{Error, ErrorKind};
 pub use module::KubeModule;
-pub use runtime::KubeModuleRuntime;
+pub use runtime::{KubeModuleRuntime, KubeRuntimeData};
