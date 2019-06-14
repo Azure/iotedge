@@ -225,10 +225,10 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        - run-stress -equals true
-        - agent.OSName -equals WinPro_x64
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
+        - agent-os-name -equals WinPro_x64
+        - run-stress -equals true
     variables:
       edgelet.artifact.name: 'iotedged-windows'
     steps:
@@ -290,10 +290,10 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        - agent.OSName -equals WinServerCore_x64
-        - run-stress -equals true
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
+        - agent-os-name -equals WinServerCore_x64
+        - run-stress -equals true
     variables:
       edgelet.artifact.name: 'iotedged-windows'
     steps:
