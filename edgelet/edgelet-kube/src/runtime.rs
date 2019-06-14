@@ -27,7 +27,6 @@ use crate::convert::{auth_to_image_pull_secret, pod_to_module};
 use crate::error::{Error, ErrorKind, Result};
 use crate::module::{CreateModule, KubeModule};
 
-#[derive(Clone)]
 pub struct KubeModuleRuntime<T, S> {
     client: Arc<Mutex<RefCell<KubeClient<T, S>>>>,
     namespace: String,
@@ -58,6 +57,36 @@ pub trait KubeRuntimeData {
     fn service_account_name(&self) -> &str;
     fn workload_uri(&self) -> &Url;
     fn management_uri(&self) -> &Url;
+}
+
+// NOTE:
+//  We are manually implementing Clone here for KubeModuleRuntime because
+//  #[derive(Clone] will cause the compiler to implicitly require Clone on
+//  T and S which we don't really need to be Clone because we wrap it inside
+//  an Arc (for the "client" field).
+//
+//  Requiring Clone on S in particular is problematic because we typically use
+//  the kube_client::HttpClient struct for this type which does not (and cannot)
+//  implement Clone.
+impl<T, S> Clone for KubeModuleRuntime<T, S> {
+    fn clone(&self) -> Self {
+        KubeModuleRuntime {
+            client: self.client.clone(),
+            namespace: self.namespace.clone(),
+            use_pvc: self.use_pvc.clone(),
+            iot_hub_hostname: self.iot_hub_hostname.clone(),
+            device_id: self.device_id.clone(),
+            edge_hostname: self.edge_hostname.clone(),
+            proxy_image: self.proxy_image.clone(),
+            proxy_config_path: self.proxy_config_path.clone(),
+            proxy_config_map_name: self.proxy_config_map_name.clone(),
+            image_pull_policy: self.image_pull_policy.clone(),
+            service_account_name: self.service_account_name.clone(),
+            workload_uri: self.workload_uri.clone(),
+            management_uri: self.management_uri.clone(),
+            device_hub_selector: self.device_hub_selector.clone(),
+        }
+    }
 }
 
 impl<T, S> KubeRuntimeData for KubeModuleRuntime<T, S> {
@@ -194,14 +223,11 @@ impl<T, S> KubeModuleRuntime<T, S> {
 
 impl<T, S> ModuleRegistry for KubeModuleRuntime<T, S>
 where
-    T: TokenSource + Clone + Send + 'static,
+    T: TokenSource + Send + 'static,
     S: Service + Send + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    <S::ResBody as Stream>::Item: AsRef<[u8]>,
-    <S::ResBody as Stream>::Error: Into<Error>,
-    <S::ResBody as Stream>::Error: Into<KubeClientError>,
     S::Error: Into<KubeClientError>,
     S::Future: Send,
 {
@@ -277,14 +303,11 @@ where
 
 impl<T, S> ModuleRuntime for KubeModuleRuntime<T, S>
 where
-    T: TokenSource + Clone + Send + 'static,
-    S: Service + Clone + Send + 'static,
+    T: TokenSource + Send + 'static,
+    S: Service + Send + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    <S::ResBody as Stream>::Item: AsRef<[u8]>,
-    <S::ResBody as Stream>::Error: Into<Error>,
-    <S::ResBody as Stream>::Error: Into<KubeClientError>,
     S::Error: Into<KubeClientError>,
     S::Future: Send,
 {
@@ -389,7 +412,7 @@ where
 
 impl<T, S> Authenticator for KubeModuleRuntime<T, S>
 where
-    T: TokenSource + Clone + 'static,
+    T: TokenSource + 'static,
     S: Service + Send + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
@@ -497,8 +520,8 @@ impl AsRef<[u8]> for Chunk {
 mod tests {
     use std::str::FromStr;
 
-    use url::Url;
     use native_tls::TlsConnector;
+    use url::Url;
 
     use kube_client::{Client as KubeClient, Config, Error, TokenSource};
 

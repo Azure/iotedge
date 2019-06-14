@@ -43,7 +43,7 @@ pub struct Client<T, S> {
     client: S,
 }
 
-impl<T: TokenSource + Clone> Client<T, HttpClient<HttpsConnector<HttpConnector>, Body>> {
+impl<T: TokenSource> Client<T, HttpClient<HttpsConnector<HttpConnector>, Body>> {
     pub fn new(config: Config<T>) -> Client<T, HttpClient<HttpsConnector<HttpConnector>, Body>> {
         let mut http = HttpConnector::new(4);
         // if we don't do this then the HttpConnector rejects the "https" scheme
@@ -60,20 +60,18 @@ impl<T: TokenSource + Clone> Client<T, HttpClient<HttpsConnector<HttpConnector>,
 
 // with_client method lives in its own block because we don't need whole set of constrains
 // everywhere in the code, in tests for instance
-impl<T: TokenSource + Clone, S> Client<T, S> {
+impl<T: TokenSource, S> Client<T, S> {
     pub fn with_client(config: Config<T>, client: S) -> Self {
         Client { config, client }
     }
 }
 
-impl<T: TokenSource + Clone, S> Client<T, S>
+impl<T: TokenSource, S> Client<T, S>
 where
     S: Service + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<<S as Service>::ResBody>,
-    <S::ResBody as Stream>::Item: AsRef<[u8]>,
-    <S::ResBody as Stream>::Error: Into<Error>,
     S::Error: Into<Error>,
 {
     pub fn create_config_map(

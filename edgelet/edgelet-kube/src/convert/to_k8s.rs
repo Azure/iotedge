@@ -447,7 +447,9 @@ pub fn spec_to_service_account<R: KubeRuntimeData>(
 mod tests {
     use super::spec_to_deployment;
     use crate::constants;
-    use crate::constants::{EDGE_ORIGINAL_MODULEID, EDGE_DEVICE_LABEL, EDGE_HUBNAME_LABEL, EDGE_MODULE_LABEL};
+    use crate::constants::{
+        EDGE_DEVICE_LABEL, EDGE_HUBNAME_LABEL, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID,
+    };
     use crate::convert::spec_to_service_account;
     use crate::convert::to_k8s::auth_to_image_pull_secret;
     use crate::convert::to_k8s::{Auth, AuthEntry};

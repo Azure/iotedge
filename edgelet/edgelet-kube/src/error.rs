@@ -126,6 +126,7 @@ impl From<KubeClientError> for Error {
         }
     }
 }
+
 impl From<DockerError> for Error {
     fn from(error: DockerError) -> Self {
         Error {
@@ -133,6 +134,7 @@ impl From<DockerError> for Error {
         }
     }
 }
+
 impl From<JsonError> for Error {
     fn from(error: JsonError) -> Self {
         Error {
@@ -140,6 +142,7 @@ impl From<JsonError> for Error {
         }
     }
 }
+
 impl From<HeaderError> for Error {
     fn from(error: HeaderError) -> Self {
         Error {
