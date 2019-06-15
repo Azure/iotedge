@@ -1,13 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
-    using Microsoft.Azure.Devices.Client.Exceptions;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using Microsoft.Azure.Devices.Routing.Core;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
-    using Microsoft.Extensions.Logging;
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
@@ -15,6 +8,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client.Exceptions;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Routing.Core;
+    using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Extensions.Logging;
     using static System.FormattableString;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
@@ -339,6 +339,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 Log.LogInformation((int)EventIds.Created, Invariant($"Created cloud endpoint {id} with max batch size {maxbatchSize} and fan-out factor of {fanoutFactor}."));
             }
 
+            public static void DoneProcessing(CancellationToken token)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    Log.LogInformation((int)EventIds.CancelledProcessing, "Stopped sending messages to upstream as the operation was cancelled");
+                }
+                else
+                {
+                    Log.LogDebug((int)EventIds.DoneProcessing, "Finished processing messages to upstream");
+                }
+            }
+
             internal static void IoTHubNotConnected(string id)
             {
                 Log.LogWarning((int)EventIds.IoTHubNotConnected, Invariant($"Could not get an active Iot Hub connection for client {id}"));
@@ -352,18 +364,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static void InvalidMessage(string id, Exception ex)
             {
                 Log.LogWarning((int)EventIds.InvalidMessage, ex, Invariant($"Non retryable exception occurred while sending message for client {id}."));
-            }
-
-            public static void DoneProcessing(CancellationToken token)
-            {
-                if (token.IsCancellationRequested)
-                {
-                    Log.LogInformation((int)EventIds.CancelledProcessing, "Stopped sending messages to upstream as the operation was cancelled");
-                }
-                else
-                {
-                    Log.LogDebug((int)EventIds.DoneProcessing, "Finished processing messages to upstream");
-                }
             }
         }
     }

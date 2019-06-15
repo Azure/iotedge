@@ -1,19 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 {
-    using App.Metrics;
-    using Microsoft.Azure.Devices.Edge.Storage;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Routing.Core;
-    using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
-    using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Routing.Core;
+    using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
+    using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
     using static System.FormattableString;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
     using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
