@@ -181,7 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int scopeCacheRefreshRateSecs = this.configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
             TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
 
-            MetricsConfig metricsConfig = MetricsConfig.Create(this.configuration);
+            MetricsConfig metricsConfig = MetricsConfig.Create(this.configuration.GetSection("metrics"));
 
             string proxy = this.configuration.GetValue("https_proxy", string.Empty);
             string productInfo = GetProductInfo();
