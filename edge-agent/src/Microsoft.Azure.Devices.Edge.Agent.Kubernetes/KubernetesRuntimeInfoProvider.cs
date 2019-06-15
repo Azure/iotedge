@@ -151,6 +151,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         {
                             Events.PodStatusRemoveError(podName);
                         }
+                        this.OnModulesChanged();
+
                     }
                     break;
 
@@ -200,11 +202,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         static (int, Option<DateTime>, Option<DateTime>, string image) GetRuntimedata(V1ContainerStatus status)
         {
+            string imageName = "unknown:unknown";
+            if (status?.Image != null)
+            {
+                imageName = status.Image;
+            }
             if (status?.State?.Running != null)
             {
                 if (status.State.Running.StartedAt.HasValue)
                 {
-                    return (0, Option.Some(status.State.Running.StartedAt.Value), Option.None<DateTime>(), status.Image);
+                    return (0, Option.Some(status.State.Running.StartedAt.Value), Option.None<DateTime>(), imageName);
                 }
             }
             else if (status?.State?.Terminated != null)
@@ -212,7 +219,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 if (status.State.Terminated.StartedAt.HasValue &&
                     status.State.Terminated.FinishedAt.HasValue)
                 {
-                    return (0, Option.Some(status.State.Terminated.StartedAt.Value), Option.Some(status.State.Terminated.FinishedAt.Value), status.Image);
+                    return (status.State.Terminated.ExitCode, Option.Some(status.State.Terminated.StartedAt.Value), Option.Some(status.State.Terminated.FinishedAt.Value), imageName);
                 }
             }
             else if (status?.LastState?.Terminated != null)
@@ -220,10 +227,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 if (status.LastState.Terminated.StartedAt.HasValue &&
                     status.LastState.Terminated.FinishedAt.HasValue)
                 {
-                    return (0, Option.Some(status.LastState.Terminated.StartedAt.Value), Option.Some(status.LastState.Terminated.FinishedAt.Value), status.Image);
+                    return (status.LastState.Terminated.ExitCode, Option.Some(status.LastState.Terminated.StartedAt.Value), Option.Some(status.LastState.Terminated.FinishedAt.Value), imageName);
                 }
             }
-            return (0, Option.None<DateTime>(), Option.None<DateTime>(), status==null ?string.Empty : status.Image);
+            return (0, Option.None<DateTime>(), Option.None<DateTime>(), imageName);
         }
 
         ModuleRuntimeInfo ConvertPodToRuntime(string name, V1Pod pod)
