@@ -3,6 +3,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
+    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -14,9 +16,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Rest;
     using Microsoft.Extensions.Logging;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using System.IO;
+    
 
-    public class KubernetesRuntimeInfoProvider : IKubernetesOperator, IRuntimeInfoProvider
+    public class KubernetesRuntimeInfoProvider : IKubernetesOperator, IRuntimeInfoProvider, INotifyPropertyChanged
     {
         readonly IKubernetes client;
         Option<Watcher<V1Pod>> podWatch;
@@ -138,6 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     using (await this.moduleLock.LockAsync())
                     {
                         this.moduleRuntimeInfos[podName] = runtimeInfo;
+                        this.OnModulesChanged();
                     }
                     break;
                 case WatchEventType.Deleted:
@@ -197,11 +200,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         static (int, Option<DateTime>, Option<DateTime>, string image) GetRuntimedata(V1ContainerStatus status)
         {
-            if (status?.LastState?.Running != null)
+            if (status?.State?.Running != null)
             {
-                if (status.LastState.Running.StartedAt.HasValue)
+                if (status.State.Running.StartedAt.HasValue)
                 {
-                    return (0, Option.Some(status.LastState.Running.StartedAt.Value), Option.None<DateTime>(), status.Image);
+                    return (0, Option.Some(status.State.Running.StartedAt.Value), Option.None<DateTime>(), status.Image);
+                }
+            }
+            else if (status?.State?.Terminated != null)
+            {
+                if (status.State.Terminated.StartedAt.HasValue &&
+                    status.State.Terminated.FinishedAt.HasValue)
+                {
+                    return (0, Option.Some(status.State.Terminated.StartedAt.Value), Option.Some(status.State.Terminated.FinishedAt.Value), status.Image);
                 }
             }
             else if (status?.LastState?.Terminated != null)
@@ -212,7 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     return (0, Option.Some(status.LastState.Terminated.StartedAt.Value), Option.Some(status.LastState.Terminated.FinishedAt.Value), status.Image);
                 }
             }
-            return (0, Option.None<DateTime>(), Option.None<DateTime>(), string.Empty);
+            return (0, Option.None<DateTime>(), Option.None<DateTime>(), status==null ?string.Empty : status.Image);
         }
 
         ModuleRuntimeInfo ConvertPodToRuntime(string name, V1Pod pod)
@@ -249,7 +260,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             public static void ExceptionInPodWatch(Exception ex)
             {
-                Log.LogError((int)EventIds.ExceptionInPodWatch, ex, "Exception caught in Pod Watch task.");
+                Log.LogError((int)EventIds.ExceptionInPodWatch, ex, $"Exception caught in Pod Watch task [{ex.Message}].");
             }
 
             public static void PodStatus(WatchEventType type, string podname)
@@ -281,6 +292,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 Log.LogInformation((int)EventIds.CrdWatchClosed, $"K8s closed the CRD watch. Attempting to reopen watch.");
             }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnModulesChanged()
+        {
+            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Modules"));
         }
     }
 }
