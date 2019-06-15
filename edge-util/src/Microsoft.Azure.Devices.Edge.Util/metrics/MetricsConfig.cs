@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 
     public class MetricsConfig
     {
-        public MetricsConfig(bool enabled, Option<MetricsListenerConfig> listenerConfig)
+        public MetricsConfig(bool enabled, MetricsListenerConfig listenerConfig)
         {
             this.Enabled = enabled;
             this.ListenerConfig = listenerConfig;
@@ -14,14 +14,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
         public static MetricsConfig Create(IConfiguration config)
         {
             bool enabled = config.GetValue("enabled", false);
-            Option<MetricsListenerConfig> listenerConfig = enabled
-                ? Option.Some(MetricsListenerConfig.Create(config))
-                : Option.None<MetricsListenerConfig>();
+            MetricsListenerConfig listenerConfig = enabled
+                ? MetricsListenerConfig.Create(config)
+                : new MetricsListenerConfig();
             return new MetricsConfig(enabled, listenerConfig);
         }
 
         public bool Enabled { get; }
 
-        public Option<MetricsListenerConfig> ListenerConfig { get; }
+        public MetricsListenerConfig ListenerConfig { get; }
     }
 }

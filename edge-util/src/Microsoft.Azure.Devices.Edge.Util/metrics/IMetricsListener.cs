@@ -2,9 +2,10 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 {
     using System;
+    using Microsoft.Extensions.Logging;
 
     public interface IMetricsListener : IDisposable
     {
-        void Start();
+        void Start(ILogger logger);
     }
 }

@@ -9,12 +9,23 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
         const int DefaultPort = 80;
         const string DefaultSuffix = "metrics";
 
+        public MetricsListenerConfig()
+            : this(DefaultHost, DefaultPort, DefaultSuffix)
+        {
+        }
+
         public MetricsListenerConfig(string host, int port, string suffix)
         {
             this.Host = host ?? DefaultHost;
             this.Port = port > 0 ? port : DefaultPort;
             this.Suffix = suffix ?? DefaultSuffix;
         }
+
+        public string Host { get; }
+
+        public int Port { get; }
+
+        public string Suffix { get; }
 
         public static MetricsListenerConfig Create(IConfiguration config)
         {
@@ -24,10 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
             return new MetricsListenerConfig(host, port, suffix);
         }
 
-        public string Host { get; }
-
-        public int Port { get; }
-
-        public string Suffix { get; }
+        public override string ToString() => $"Host: {this.Host}, Port: {this.Port}, Suffix: {this.Suffix}";
     }
 }

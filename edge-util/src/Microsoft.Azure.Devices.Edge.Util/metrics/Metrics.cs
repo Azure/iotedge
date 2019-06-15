@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 {
     using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
+    using Microsoft.Extensions.Logging;
 
     public static class Metrics
     {
@@ -11,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 
         public static IMetricsListener Listener { get; private set; } = new NullMetricsListener();
 
-        public static void Init(IMetricsProvider metricsProvider, IMetricsListener metricsListener)
+        public static void Init(IMetricsProvider metricsProvider, IMetricsListener metricsListener, ILogger logger)
         {
             Preconditions.CheckNotNull(metricsProvider, nameof(metricsProvider));
             Preconditions.CheckNotNull(metricsListener, nameof(metricsListener));
@@ -20,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
             {
                 Instance = metricsProvider;
                 Listener = metricsListener;
-                Listener.Start();
+                Listener.Start(logger);
             }
         }
     }

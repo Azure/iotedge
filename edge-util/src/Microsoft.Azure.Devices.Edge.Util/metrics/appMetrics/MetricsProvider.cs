@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
             IMetricsRoot metricsRoot = new MetricsBuilder()
                 .Configuration.Configure(options =>
                 {
-                    options.DefaultContextLabel = MetricsConstants.EdgeHubLabel;
+                    options.DefaultContextLabel = MetricsConstants.EdgeHubMetricPrefix;
                     options.GlobalTags.Add(MetricsConstants.DeviceIdLabel, deviceId);
                 })
                 .OutputMetrics.AsPrometheusPlainText()

@@ -7,32 +7,28 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
 
     public class MetricsListener : IMetricsListener
     {
-        const string MetricsUrlPrefixFormat = "http://{0}:{1}/{2}/";
-
         readonly MetricServer metricServer;
-        readonly ILogger logger;
-        readonly string url;
+        readonly MetricsListenerConfig listenerConfig;
 
-        public MetricsListener(string host, int port, string suffix, ILogger logger)
+        ILogger logger;
+
+        public MetricsListener(MetricsListenerConfig listenerConfig)
         {
-            this.metricServer = new MetricServer(host, port, suffix.Trim('/') + '/');
-            this.logger = logger;
-            this.url = GetMetricsListenerUrlPrefix(host, port, suffix);
+            this.listenerConfig = Preconditions.CheckNotNull(listenerConfig, nameof(listenerConfig));
+            this.metricServer = new MetricServer(listenerConfig.Host, listenerConfig.Port, listenerConfig.Suffix.Trim('/') + '/');
         }
 
         public void Dispose()
         {
-            this.logger.LogInformation("Stopping metrics listener");
+            this.logger?.LogInformation("Stopping metrics listener");
             this.metricServer.Stop();
         }
 
-        public void Start()
+        public void Start(ILogger logger)
         {
-            this.logger.LogInformation($"Starting metrics listener on {this.url}");
+            this.logger = logger;
+            this.logger?.LogInformation($"Starting metrics listener on {this.listenerConfig}");
             this.metricServer.Start();
         }
-
-        static string GetMetricsListenerUrlPrefix(string host, int port, string urlSuffix)
-            => string.Format(CultureInfo.InvariantCulture, MetricsUrlPrefixFormat, host, port.ToString(), urlSuffix.Trim('/', ' '));
     }
 }

@@ -16,30 +16,31 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
         readonly HttpListener httpListener;
         readonly CancellationTokenSource cts = new CancellationTokenSource();
         readonly IMetricsProvider metricsProvider;
-        readonly ILogger logger;
-        readonly string url;
+        readonly MetricsListenerConfig listenerConfig;
 
         Task processTask;
+        ILogger logger;
 
-        public MetricsListener(string host, int port, string suffix, IMetricsProvider metricsProvider, ILogger logger)
+        public MetricsListener(MetricsListenerConfig listenerConfig, IMetricsProvider metricsProvider)
         {
+            this.listenerConfig = Preconditions.CheckNotNull(listenerConfig, nameof(listenerConfig));
+            string url = GetMetricsListenerUrlPrefix(listenerConfig);
             this.httpListener = new HttpListener();
-            this.url = GetMetricsListenerUrlPrefix(host, port, suffix);
-            this.httpListener.Prefixes.Add(this.url);
+            this.httpListener.Prefixes.Add(url);
             this.metricsProvider = Preconditions.CheckNotNull(metricsProvider, nameof(metricsProvider));
-            this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
         }
 
-        public void Start()
+        public void Start(ILogger logger)
         {
-            this.logger.LogInformation($"Starting metrics listener on {this.url}");
+            this.logger = logger;
+            this.logger?.LogInformation($"Starting metrics listener on {this.listenerConfig}");
             this.httpListener.Start();
             this.processTask = this.ProcessRequests();
         }
 
         public void Dispose()
         {
-            this.logger.LogInformation("Stopping metrics listener");
+            this.logger?.LogInformation("Stopping metrics listener");
             this.cts.Cancel();
             this.processTask.Wait();
             this.httpListener.Stop();
@@ -62,11 +63,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                this.logger?.LogWarning($"Error processing metrics request - {e}");
             }
         }
 
-        static string GetMetricsListenerUrlPrefix(string host, int port, string urlSuffix)
-            => string.Format(CultureInfo.InvariantCulture, MetricsUrlPrefixFormat, host, port.ToString(), urlSuffix.Trim('/', ' '));
+        static string GetMetricsListenerUrlPrefix(MetricsListenerConfig listenerConfig)
+            => string.Format(CultureInfo.InvariantCulture, MetricsUrlPrefixFormat, listenerConfig.Host, listenerConfig.Port, listenerConfig.Suffix.Trim('/', ' '));
     }
 }
