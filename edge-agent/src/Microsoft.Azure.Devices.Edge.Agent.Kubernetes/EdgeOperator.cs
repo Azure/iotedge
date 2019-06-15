@@ -1066,11 +1066,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         (int, Option<DateTime>, Option<DateTime>, string image) GetRuntimedata(V1ContainerStatus status)
         {
-            if (status?.LastState?.Running != null)
+            if (status?.State?.Running != null)
             {
-                if (status.LastState.Running.StartedAt.HasValue)
+                if (status.State.Running.StartedAt.HasValue)
                 {
-                    return (0, Option.Some(status.LastState.Running.StartedAt.Value), Option.None<DateTime>(), status.Image);
+                    return (0, Option.Some(status.State.Running.StartedAt.Value), Option.None<DateTime>(), status.Image);
+                }
+            }
+            else if (status?.State?.Terminated != null)
+            {
+                if (status.State.Terminated.StartedAt.HasValue &&
+                    status.State.Terminated.FinishedAt.HasValue)
+                {
+                    return (0, Option.Some(status.State.Terminated.StartedAt.Value), Option.Some(status.State.Terminated.FinishedAt.Value), status.Image);
                 }
             }
             else if (status?.LastState?.Terminated != null)
@@ -1081,7 +1089,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     return (0, Option.Some(status.LastState.Terminated.StartedAt.Value), Option.Some(status.LastState.Terminated.FinishedAt.Value), status.Image);
                 }
             }
-            return (0, Option.None<DateTime>(), Option.None<DateTime>(), String.Empty);
+            return (0, Option.None<DateTime>(), Option.None<DateTime>(), status == null ? string.Empty : status.Image);
         }
 
         ModuleRuntimeInfo ConvertPodToRuntime(string name, V1Pod pod)
