@@ -30,6 +30,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
                 });
         }
 
-        public IDisposable GetTimer(string[] labelValues) => this.summary.WithLabels(labelValues).NewTimer();
+        public IDisposable GetTimer(string[] labelValues) => this.summary.WithLabels(this.GetLabelValues(labelValues)).NewTimer();
     }
 }

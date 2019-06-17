@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
 {
+    using System;
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
@@ -50,9 +51,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
 
         List<string> GetLabelNames(List<string> labelNames)
         {
-            labelNames.Add(MetricsConstants.DeviceIdLabel);
-            labelNames.Add(MetricsConstants.IotHubLabel);
-            return labelNames;
+            var allLabelNames = new List<string>
+            {
+                MetricsConstants.IotHubLabel,
+                MetricsConstants.DeviceIdLabel
+            };
+            allLabelNames.AddRange(labelNames);
+            return allLabelNames;
         }
     }
 }

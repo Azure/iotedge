@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
         {
             bool enabled = config.GetValue("enabled", false);
             MetricsListenerConfig listenerConfig = enabled
-                ? MetricsListenerConfig.Create(config)
+                ? MetricsListenerConfig.Create(config.GetSection("listener"))
                 : new MetricsListenerConfig();
             return new MetricsConfig(enabled, listenerConfig);
         }
