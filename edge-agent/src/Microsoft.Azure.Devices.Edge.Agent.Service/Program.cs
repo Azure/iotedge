@@ -15,8 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using K8sConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
     using CoreConstant = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
+    using K8sConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     public class Program
     {
