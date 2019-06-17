@@ -15,9 +15,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class EndToEnd
     {
         CancellationTokenSource cts;
+        DateTime testStartTime;
 
         [SetUp]
-        public void Setup() => this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
+        public void Setup()
+        {
+            this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
+            this.testStartTime = DateTime.Now;
+        }
 
         [TearDown]
         public async Task TeardownAsync()
@@ -47,10 +52,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                             // Save daemon logs
                             string eventLogCommand =
-                                "Get-WinEvent -ea SilentlyContinue " +
-                                $"-FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{Context.Current.StartTime}'}} " +
+                                "Get-WinEvent -ErrorAction SilentlyContinue " +
+                                $"-FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{this.testStartTime}'}} " +
                                 "| Select TimeCreated, Message " +
-                                "| Sort-Object @{Expression=\'TimeCreated\';Descending=$false}";
+                                "| Sort-Object @{Expression=\'TimeCreated\';Descending=$false} " +
+                                "| Format-Table -AutoSize -HideTableHeaders " +
+                                "| Out-String -Width 512";
 
                             string daemonLog = $"{prefix}-iotedged.log";
                             output = await Process.RunAsync("powershell", eventLogCommand, token);
