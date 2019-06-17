@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using static System.FormattableString;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
@@ -51,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(identity, nameof(identity));
             Events.MessageReceived(identity, message);
             IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
+            Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
             return this.router.RouteAsync(routingMessage);
         }
 
@@ -61,7 +63,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Events.MessagesReceived(identity, messagesList);
 
             IEnumerable<IRoutingMessage> routingMessages = messagesList
-                .Select(m => this.ProcessMessageInternal(m, true));
+                .Select(m =>
+                {
+                    IRoutingMessage routingMessage = this.ProcessMessageInternal(m, true);
+                    Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
+                    return routingMessage;
+                });
             return this.router.RouteAsync(routingMessages);
         }
 
@@ -146,6 +153,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     : Constants.DownstreamOriginInterface;
                 message.SystemProperties[SystemProperties.EdgeHubOriginInterface] = edgeHubOriginInterface;
             }
+
+            message.SystemProperties[SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o");
         }
 
         static void ValidateMessageSize(IRoutingMessage messageToBeValidated)
@@ -241,6 +250,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             {
                 Log.LogDebug((int)EventIds.DesiredPropertiesUpdateReceived, Invariant($"Desired properties update message received for {id ?? string.Empty}"));
             }
+        }
+
+        static class Metrics
+        {
+            static readonly IMetricsHistogram MessagesHistogram = Util.Metrics.Metrics.Instance.CreateHistogram(
+                "message_size_bytes",
+                "Size of messages received by EdgeHub",
+                new List<string> {"id"});
+
+            public static void AddMessageSize(long size, string id) => MessagesHistogram.Update(size, new[] { id });
         }
     }
 }

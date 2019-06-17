@@ -3,6 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 {
     public interface IMetricsCounter
     {
-        void Increment(string[] labelValues);
+        void Increment(long count, string[] labelValues);
     }
 }

@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
     public class MetricsListenerConfig
     {
         const string DefaultHost = "*";
-        const int DefaultPort = 80;
+        const int DefaultPort = 9600;
         const string DefaultSuffix = "metrics";
 
         public MetricsListenerConfig()

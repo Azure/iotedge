@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
 
     public class MetricsProvider : IMetricsProvider
     {
+        const string CounterNameFormat = "{0}_{1}_total";
         const string NameFormat = "{0}_{1}";
         readonly string namePrefix;
         readonly List<string> defaultLabelNames;
@@ -26,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             => new MetricsGauge(this.GetName(name), description, this.GetLabelNames(labelNames), this.defaultLabelNames);
 
         public IMetricsCounter CreateCounter(string name, string description, List<string> labelNames)
-            => new MetricsCounter(this.GetName(name), description, this.GetLabelNames(labelNames), this.defaultLabelNames);
+            => new MetricsCounter(this.GetCounterName(name), description, this.GetLabelNames(labelNames), this.defaultLabelNames);
 
         public IMetricsTimer CreateTimer(string name, string description, List<string> labelNames)
             => new MetricsTimer(this.GetName(name), description, this.GetLabelNames(labelNames), this.defaultLabelNames);
@@ -42,6 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
                 return ms.ToArray();
             }
         }
+
+        string GetCounterName(string name) => string.Format(CultureInfo.InvariantCulture, CounterNameFormat, this.namePrefix, name);
 
         string GetName(string name) => string.Format(CultureInfo.InvariantCulture, NameFormat, this.namePrefix, name);
 

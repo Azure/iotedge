@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             this.counter = Metrics.CreateCounter(name, description, labelNames.ToArray());
         }
 
-        public void Increment(string[] labelValues)
-            => this.counter.WithLabels(this.GetLabelValues(labelValues)).Inc();
+        public void Increment(long count, string[] labelValues)
+            => this.counter.WithLabels(this.GetLabelValues(labelValues)).Inc(count);
     }
 }

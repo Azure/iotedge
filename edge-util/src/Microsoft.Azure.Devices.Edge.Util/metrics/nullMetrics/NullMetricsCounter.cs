@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics
 {
     public class NullMetricsCounter : IMetricsCounter
     {
-        public void Increment(string[] labelValues)
+        public void Increment(long count, string[] labelValues)
         {
         }
     }

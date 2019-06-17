@@ -21,10 +21,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
             };
         }
 
-        public void Increment(string[] labelValues)
+        public void Increment(long count, string[] labelValues)
         {
             var tags = new MetricTags(this.LabelNames, labelValues);
-            this.counterMetrics.Increment(this.counterOptions, tags);
+            this.counterMetrics.Increment(this.counterOptions, tags, count);
         }
     }
 }
