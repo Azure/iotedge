@@ -58,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             TestContext.AddTestAttachment(daemonLog, "Daemon log");
                         }
                     }
+
                     // ReSharper disable once RedundantCatchClause
                     catch (Exception)
                     {
