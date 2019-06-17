@@ -54,11 +54,11 @@ pub enum ErrorKind {
     #[fail(display = "An identity manager error occurred.")]
     IdentityManager,
 
+    #[fail(display = "Invalid image pull policy configuration {:?}", _0)]
+    InvalidImagePullPolicy(String),
+
     #[fail(display = "Invalid or unsupported certificate issuer.")]
     InvalidIssuer,
-
-    #[fail(display = "An error occurred in the key store.")]
-    KeyStore,
 
     #[fail(display = "Invalid log tail {:?}", _0)]
     InvalidLogTail(String),
@@ -71,6 +71,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Invalid URL {:?}", _0)]
     InvalidUrl(String),
+
+    #[fail(display = "An error occurred in the key store.")]
+    KeyStore,
 
     #[fail(display = "Item not found.")]
     KeyStoreItemNotFound,
