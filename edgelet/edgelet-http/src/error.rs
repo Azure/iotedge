@@ -91,7 +91,7 @@ pub enum ErrorKind {
     Proxy(Uri),
 
     #[fail(
-        display = "Preparing a PCKS12 client certificate idenity failed {}",
+        display = "Preparing a PCKS12 client certificate identity failed {}",
         _0
     )]
     PKCS12Identity(String),

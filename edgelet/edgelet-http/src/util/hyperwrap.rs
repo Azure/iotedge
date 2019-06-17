@@ -51,30 +51,32 @@ impl Config {
         if self.null {
             Ok(Client::Null)
         } else {
-            let https_connector = match &self.identity_certificate {
-                Some(id) => {
-                    let identity = id.get_identity()?;
-                    let mut builder = TlsConnector::builder();
-                    if let Some(bundle) = &self.trust_bundle {
-                        let certs = X509::stack_from_pem(&bundle.cert)
-                            .with_context(|_| ErrorKind::TrustBundle)?;
-                        for cert in certs {
-                            let der = cert.to_der().with_context(|_| ErrorKind::TrustBundle)?;
-                            let c = TlsCertificate::from_der(&der)
-                                .with_context(|_| ErrorKind::TrustBundle)?;
-                            builder.add_root_certificate(c);
-                        }
-                    }
-                    let connector = builder
-                        .identity(identity)
-                        .build()
-                        .with_context(|_| ErrorKind::CertificateConversionError)?;
-                    let mut http = HttpConnector::new(DNS_WORKER_THREADS);
-                    http.enforce_http(false);
-                    Ok(HttpsConnector::from((http, connector)))
+            let mut builder = TlsConnector::builder();
+            if let Some(bundle) = &self.trust_bundle {
+                let certs = X509::stack_from_pem(&bundle.cert)
+                    .with_context(|_| ErrorKind::TrustBundle)?;
+                for cert in certs {
+                    let der = cert.to_der().with_context(|_| ErrorKind::TrustBundle)?;
+                    let c = TlsCertificate::from_der(&der)
+                        .with_context(|_| ErrorKind::TrustBundle)?;
+                    builder.add_root_certificate(c);
                 }
-                None => HttpsConnector::new(DNS_WORKER_THREADS).context(ErrorKind::Initialization),
+            }
+            let connector = if let Some(id) = &self.identity_certificate {
+                let identity = id.get_identity()?;
+                builder
+                    .identity(identity)
+                    .build()
+                    .with_context(|_| ErrorKind::CertificateConversionError)
+            } else {
+                builder
+                    .build()
+                    .with_context(|_| ErrorKind::Initialization)
             }?;
+
+            let mut http = HttpConnector::new(DNS_WORKER_THREADS);
+            http.enforce_http(false);
+            let https_connector = HttpsConnector::from((http, connector));
 
             match &self.proxy_uri {
                 None => Ok(Client::NoProxy(

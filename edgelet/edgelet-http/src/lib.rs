@@ -10,7 +10,7 @@
 )]
 
 use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Formatter};
 #[cfg(target_os = "linux")]
 use std::net;
 use std::net::ToSocketAddrs;
@@ -169,13 +169,6 @@ impl PemCertificate {
 impl Debug for PemCertificate {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         // do not print either the username, password or private key
-        write!(f, "Certificate: {:?}", self.cert)
-    }
-}
-
-impl Display for PemCertificate {
-    // do not print either the username, password or private key
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "Certificate: {:?}", self.cert)
     }
 }
