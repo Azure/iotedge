@@ -11,12 +11,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using k8s;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Microsoft.Rest;
     using Microsoft.Extensions.Logging;
-    using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
-    
+    using Microsoft.Rest;
+
 
     public class KubernetesRuntimeInfoProvider : IKubernetesOperator, IRuntimeInfoProvider, INotifyPropertyChanged
     {
@@ -41,7 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 HttpOperationResponse<V1PodList> podListResp = await podListRespTask;
                 if (podListResp != null)
                 {
-                    this.podWatch = Option.Some(podListResp.Watch<V1Pod>(
+                    this.podWatch = Option.Some(
+                        podListResp.Watch<V1Pod>(
                             onEvent: async (type, item) =>
                             {
                                 try
@@ -116,15 +117,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 else
                 {
                     Events.NullNodeInfoResponse(firstNode?.Metadata?.Name ?? "UNKNOWN");
-                } 
+                }
             }
+
             return new SystemInfo(osType, arch, version);
         }
 
         async Task WatchPodEventsAsync(WatchEventType type, V1Pod item)
         {
             // if the pod doesn't have the module label set then we are not interested in it
-            if (item.Metadata.Labels.ContainsKey(Constants.k8sEdgeModuleLabel) == false)
+            if (! item.Metadata.Labels.ContainsKey(Constants.k8sEdgeModuleLabel))
             {
                 return;
             }
@@ -142,6 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         this.moduleRuntimeInfos[podName] = runtimeInfo;
                         this.OnModulesChanged();
                     }
+
                     break;
                 case WatchEventType.Deleted:
                     using (await this.moduleLock.LockAsync())
@@ -151,9 +154,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         {
                             Events.PodStatusRemoveError(podName);
                         }
+
                         this.OnModulesChanged();
 
                     }
+
                     break;
 
             }
@@ -162,42 +167,49 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         (ModuleStatus, string) ConvertPodStatusToModuleStatus(Option<V1ContainerStatus> podStatus)
         {
             // TODO: Possibly refine this?
-            return podStatus.Map(pod =>
-            {
-                if (pod.State != null)
+            return podStatus.Map(
+                pod =>
                 {
-                    if (pod.State.Running != null)
+                    if (pod.State != null)
                     {
-                        return (ModuleStatus.Running, $"Started at {pod.State.Running.StartedAt.GetValueOrDefault(DateTime.Now)}");
+                        if (pod.State.Running != null)
+                        {
+                            return (ModuleStatus.Running, $"Started at {pod.State.Running.StartedAt.GetValueOrDefault(DateTime.Now)}");
+                        }
+
+                        if (pod.State.Terminated != null)
+                        {
+                            return (ModuleStatus.Failed, pod.State.Terminated.Message);
+                        }
+
+                        if (pod.State.Waiting != null)
+                        {
+                            return (ModuleStatus.Failed, pod.State.Waiting.Message);
+                        }
                     }
-                    if (pod.State.Terminated != null)
-                    {
-                        return (ModuleStatus.Failed, pod.State.Terminated.Message);
-                    }
-                    if (pod.State.Waiting != null)
-                    {
-                        return (ModuleStatus.Failed, pod.State.Waiting.Message);
-                    }
-                }
-                return (ModuleStatus.Unknown, "Unknown");
-            }).GetOrElse(() => (ModuleStatus.Unknown, "Unknown"));
+
+                    return (ModuleStatus.Unknown, "Unknown");
+                }).GetOrElse(() => (ModuleStatus.Unknown, "Unknown"));
         }
 
         static Option<V1ContainerStatus> GetContainerByName(string name, V1Pod pod)
         {
             string containerName = KubeUtils.SanitizeDNSValue(name);
-            if (pod.Status?.ContainerStatuses != null)
+            return pod.Status?.ContainerStatuses
+                .Where(status => string.Equals(status.Name, containerName, StringComparison.OrdinalIgnoreCase))
+                .Select(status => Option.Some(status))
+                .FirstOrDefault() ?? Option.None<V1ContainerStatus>();
+        }
+
+        static (int, Option<DateTime>, Option<DateTime>, string image) GetTerminatedRuntimedata(V1ContainerStateTerminated term, string imageName)
+        {
+            if (term.StartedAt.HasValue &&
+                term.FinishedAt.HasValue)
             {
-                foreach (var status in pod.Status?.ContainerStatuses)
-                {
-                    if (string.Equals(status.Name, containerName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return Option.Some(status);
-                    }
-                }
+                return (term.ExitCode, Option.Some(term.StartedAt.Value), Option.Some(term.FinishedAt.Value), imageName);
             }
 
-            return Option.None<V1ContainerStatus>();
+            return (0, Option.None<DateTime>(), Option.None<DateTime>(), imageName);
         }
 
         static (int, Option<DateTime>, Option<DateTime>, string image) GetRuntimedata(V1ContainerStatus status)
@@ -207,6 +219,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 imageName = status.Image;
             }
+
             if (status?.State?.Running != null)
             {
                 if (status.State.Running.StartedAt.HasValue)
@@ -216,20 +229,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
             else if (status?.State?.Terminated != null)
             {
-                if (status.State.Terminated.StartedAt.HasValue &&
-                    status.State.Terminated.FinishedAt.HasValue)
-                {
-                    return (status.State.Terminated.ExitCode, Option.Some(status.State.Terminated.StartedAt.Value), Option.Some(status.State.Terminated.FinishedAt.Value), imageName);
-                }
+                return GetTerminatedRuntimedata(status.State.Terminated, imageName);
             }
             else if (status?.LastState?.Terminated != null)
             {
-                if (status.LastState.Terminated.StartedAt.HasValue &&
-                    status.LastState.Terminated.FinishedAt.HasValue)
-                {
-                    return (status.LastState.Terminated.ExitCode, Option.Some(status.LastState.Terminated.StartedAt.Value), Option.Some(status.LastState.Terminated.FinishedAt.Value), imageName);
-                }
+                return GetTerminatedRuntimedata(status.LastState.Terminated, imageName);
             }
+
             return (0, Option.None<DateTime>(), Option.None<DateTime>(), imageName);
         }
 
@@ -244,10 +250,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             var reportedConfig = new AgentDocker.DockerReportedConfig(image, string.Empty, string.Empty);
             return new ModuleRuntimeInfo<AgentDocker.DockerReportedConfig>(
-                ModuleIdentityHelper.GetModuleName(moduleName), "docker", moduleStatus, statusDescription, exitCode,
-                startTime, exitTime, reportedConfig);
+                ModuleIdentityHelper.GetModuleName(moduleName),
+                "docker",
+                moduleStatus,
+                statusDescription,
+                exitCode,
+                startTime,
+                exitTime,
+                reportedConfig);
         }
 
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnModulesChanged()
+        {
+            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Modules"));
+        }
 
         static class Events
         {
@@ -299,13 +317,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 Log.LogInformation((int)EventIds.CrdWatchClosed, $"K8s closed the CRD watch. Attempting to reopen watch.");
             }
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void OnModulesChanged()
-        {
-            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Modules"));
         }
     }
 }
