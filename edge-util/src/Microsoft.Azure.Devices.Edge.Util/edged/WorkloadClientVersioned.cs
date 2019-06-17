@@ -8,18 +8,28 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
     abstract class WorkloadClientVersioned
     {
+        static readonly TimeSpan DefaultOperationTimeout = TimeSpan.FromMinutes(5);
+
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(retryCount: 2, minBackoff: TimeSpan.FromSeconds(1), maxBackoff: TimeSpan.FromSeconds(3), deltaBackoff: TimeSpan.FromSeconds(2));
 
         readonly ITransientErrorDetectionStrategy transientErrorDetectionStrategy;
+        readonly TimeSpan operationTimeout;
 
-        protected WorkloadClientVersioned(Uri serverUri, ApiVersion apiVersion, string moduleId, string moduleGenerationId, ITransientErrorDetectionStrategy transientErrorDetectionStrategy)
+        protected WorkloadClientVersioned(
+            Uri serverUri,
+            ApiVersion apiVersion,
+            string moduleId,
+            string moduleGenerationId,
+            ITransientErrorDetectionStrategy transientErrorDetectionStrategy,
+            Option<TimeSpan> operationTimeout)
         {
             this.WorkloadUri = Preconditions.CheckNotNull(serverUri, nameof(serverUri));
             this.Version = Preconditions.CheckNotNull(apiVersion, nameof(apiVersion));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.ModuleGenerationId = Preconditions.CheckNonWhiteSpace(moduleGenerationId, nameof(moduleGenerationId));
             this.transientErrorDetectionStrategy = transientErrorDetectionStrategy;
+            this.operationTimeout = operationTimeout.GetOrElse(DefaultOperationTimeout);
         }
 
         protected Uri WorkloadUri { get; }
@@ -40,14 +50,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         public abstract Task<string> SignAsync(string keyId, string algorithm, string data);
 
-        protected abstract void HandleException(Exception ex, string operation);
-
-        protected async Task<T> Execute<T>(Func<Task<T>> func, string operation)
+        protected internal async Task<T> Execute<T>(Func<Task<T>> func, string operation)
         {
             try
             {
                 Events.ExecutingOperation(operation, this.WorkloadUri.ToString());
-                T result = await ExecuteWithRetry(func, r => Events.RetryingOperation(operation, this.WorkloadUri.ToString(), r), this.transientErrorDetectionStrategy);
+                T result = await ExecuteWithRetry(func, r => Events.RetryingOperation(operation, this.WorkloadUri.ToString(), r), this.transientErrorDetectionStrategy)
+                    .TimeoutAfter(this.operationTimeout);
                 Events.SuccessfullyExecutedOperation(operation, this.WorkloadUri.ToString());
                 return result;
             }
@@ -58,6 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                 return default(T);
             }
         }
+
+        protected abstract void HandleException(Exception ex, string operation);
 
         static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry, ITransientErrorDetectionStrategy transientErrorDetection)
         {
