@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             }
 
             // Save daemon logs
-            string args = $"-u iotedge -u docker --since '{testStartTime:yyyy-MM-dd HH:mm:ss}' --no-pager";
+            string args = $"-u iotedge -u docker --since \"{testStartTime:yyyy-MM-dd HH:mm:ss}\" --no-pager";
             output = await Process.RunAsync("journalctl", args, token);
 
             string daemonLog = $"{filePrefix}-iotedged.log";
