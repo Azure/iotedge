@@ -4,7 +4,7 @@ use super::configuration::Configuration;
 use hyper;
 
 pub struct APIClient {
-    workload_api: Box<::apis::WorkloadApi>,
+    workload_api: Box<dyn (crate::apis::WorkloadApi)>,
 }
 
 impl APIClient {
@@ -15,11 +15,11 @@ impl APIClient {
         let configuration = Arc::new(configuration);
 
         APIClient {
-            workload_api: Box::new(::apis::WorkloadApiClient::new(configuration.clone())),
+            workload_api: Box::new(crate::apis::WorkloadApiClient::new(configuration.clone())),
         }
     }
 
-    pub fn workload_api(&self) -> &::apis::WorkloadApi {
+    pub fn workload_api(&self) -> &dyn (crate::apis::WorkloadApi) {
         self.workload_api.as_ref()
     }
 }
