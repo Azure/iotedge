@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     {
         public static Task<IEnumerable<string>> CollectLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token) => IsWindows()
             ? Windows.Logs.CollectAsync(testStartTime, filePrefix, token)
-            : throw new NotImplementedException();
+            : Linux.Logs.CollectAsync(testStartTime, filePrefix, token);
 
         // TODO: download installer script from aka.ms if user doesn't pass installerPath in Windows
         public static IEdgeDaemon CreateEdgeDaemon(Option<string> installerPath) => IsWindows()
