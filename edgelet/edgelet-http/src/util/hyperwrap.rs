@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use super::super::client::ClientImpl;
-use super::super::PemCertificate;
+use crate::client::ClientImpl;
 use crate::error::{Error, ErrorKind, InvalidUrlReason};
+use crate::PemCertificate;
 use failure::ResultExt;
 use futures::future;
 use hyper::client::HttpConnector;

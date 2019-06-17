@@ -105,16 +105,14 @@ impl PemCertificate {
     }
 
     pub fn from<C: Certificate>(id_cert: &C) -> Result<Self, Error> {
-        let cert = match id_cert.pem() {
-            Ok(cert_buffer) => cert_buffer.as_ref().to_owned(),
-            _ => return Err(Error::from(ErrorKind::IdentityCertificate)),
-        };
+        let cert = id_cert
+            .pem()
+            .map(|cert_buffer| cert_buffer.as_ref().to_owned())
+            .context(ErrorKind::IdentityCertificate)?;
 
         let key = match id_cert.get_private_key() {
             Ok(Some(PrivateKey::Ref(ref_))) => Some(ref_.into_bytes().clone()),
-
             Ok(Some(PrivateKey::Key(KeyBytes::Pem(buffer)))) => Some(buffer.as_ref().to_vec()),
-
             _ => None,
         };
 
