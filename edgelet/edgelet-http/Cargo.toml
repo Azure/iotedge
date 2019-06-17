@@ -34,7 +34,7 @@ systemd = { path = "../systemd" }
 [target.'cfg(unix)'.dependencies]
 hyperlocal = "0.6"
 libc = "0.2"
-nix = "0.11"
+nix = "0.14"
 scopeguard = "0.3.3"
 tokio-uds = "0.2"
 
