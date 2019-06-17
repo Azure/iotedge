@@ -90,7 +90,10 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred with the proxy {}", _0)]
     Proxy(Uri),
 
-    #[fail(display = "Preparing a PCKS12 client certificate idenity failed {}", _0)]
+    #[fail(
+        display = "Preparing a PCKS12 client certificate idenity failed {}",
+        _0
+    )]
     PKCS12Identity(String),
 
     #[fail(display = "An error occurred in the service")]

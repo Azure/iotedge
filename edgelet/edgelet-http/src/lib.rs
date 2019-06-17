@@ -104,7 +104,10 @@ impl PemCertificate {
         &self.cert
     }
 
-    pub fn from<C>(id_cert: &C) -> Result<Self, Error> where C : Certificate {
+    pub fn from<C>(id_cert: &C) -> Result<Self, Error>
+    where
+        C: Certificate,
+    {
         let cert = id_cert
             .pem()
             .map(|cert_buffer| cert_buffer.as_ref().to_owned())
@@ -134,9 +137,8 @@ impl PemCertificate {
         }
 
         let key = match &self.key {
-            Some(k) => {
-                PKey::private_key_from_pem(&k).with_context(|err| ErrorKind::IdentityPrivateKeyRead(err.to_string()))
-            },
+            Some(k) => PKey::private_key_from_pem(&k)
+                .with_context(|err| ErrorKind::IdentityPrivateKeyRead(err.to_string())),
             None => return Err(Error::from(ErrorKind::IdentityPrivateKey)),
         }?;
 
@@ -158,7 +160,7 @@ impl PemCertificate {
             .with_context(|_| ErrorKind::IdentityCertificate)?;
 
         let identity = Identity::from_pkcs12(&der, "")
-                .with_context(|err| ErrorKind::PKCS12Identity(err.to_string()))?;
+            .with_context(|err| ErrorKind::PKCS12Identity(err.to_string()))?;
 
         Ok(identity)
     }
