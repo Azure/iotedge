@@ -1,8 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use crate::client::ClientImpl;
-use crate::error::{Error, ErrorKind, InvalidUrlReason};
-use crate::PemCertificate;
 use failure::ResultExt;
 use futures::future;
 use hyper::client::HttpConnector;
@@ -10,11 +7,14 @@ use hyper::{Body, Client as HyperClient, Error as HyperError, Request, Response,
 use hyper_proxy::{Intercept, Proxy, ProxyConnector};
 use hyper_tls::HttpsConnector;
 use native_tls::{Certificate as TlsCertificate, TlsConnector};
+use openssl::x509::X509;
 use typed_headers::Credentials;
 use url::percent_encoding::percent_decode;
 use url::Url;
 
-use openssl::x509::X509;
+use crate::client::ClientImpl;
+use crate::error::{Error, ErrorKind, InvalidUrlReason};
+use crate::PemCertificate;
 
 const DNS_WORKER_THREADS: usize = 4;
 
@@ -32,8 +32,8 @@ impl Config {
         self
     }
 
-    pub fn trust_bundle(&mut self, trust_bundle: Option<PemCertificate>) -> &mut Config {
-        self.trust_bundle = trust_bundle;
+    pub fn trust_bundle(&mut self, trust_bundle: PemCertificate) -> &mut Config {
+        self.trust_bundle = Some(trust_bundle);
         self
     }
 

@@ -15,20 +15,13 @@ pub struct MaybeProxyClient {
 impl MaybeProxyClient {
     pub fn new(
         proxy_uri: Option<Uri>,
+        identity_certificate: Option<PemCertificate>,
         trust_bundle: Option<PemCertificate>,
     ) -> Result<Self, Error> {
-        MaybeProxyClient::create(false, proxy_uri, None, trust_bundle)
+        MaybeProxyClient::new_inner(false, proxy_uri, identity_certificate, trust_bundle)
     }
 
-    pub fn new_with_identity_cert(
-        proxy_uri: Option<Uri>,
-        identity_certificate: PemCertificate,
-        trust_bundle: Option<PemCertificate>,
-    ) -> Result<Self, Error> {
-        MaybeProxyClient::create(false, proxy_uri, Some(identity_certificate), trust_bundle)
-    }
-
-    fn create(
+    fn new_inner(
         null: bool,
         proxy_uri: Option<Uri>,
         identity_certificate: Option<PemCertificate>,
@@ -44,9 +37,9 @@ impl MaybeProxyClient {
         if let Some(id_cert) = identity_certificate {
             config.identity_certificate(id_cert);
         }
-
-        config.trust_bundle(trust_bundle);
-
+        if let Some(tb) = trust_bundle {
+            config.trust_bundle(tb);
+        }
         Ok(MaybeProxyClient {
             client: config.build()?,
         })
@@ -54,7 +47,7 @@ impl MaybeProxyClient {
 
     #[cfg(test)]
     pub fn new_null() -> Result<Self, Error> {
-        MaybeProxyClient::create(true, None, None, None)
+        MaybeProxyClient::new_inner(true, None, None, None)
     }
 
     #[cfg(test)]
@@ -85,14 +78,14 @@ mod tests {
 
     #[test]
     fn can_create_client() {
-        let client = MaybeProxyClient::new(None, None).unwrap();
+        let client = MaybeProxyClient::new(None, None, None).unwrap();
         assert!(!client.has_proxy() && !client.is_null());
     }
 
     #[test]
     fn can_create_client_with_proxy() {
         let uri = "http://example.com".parse::<Uri>().unwrap();
-        let client = MaybeProxyClient::new(Some(uri), None).unwrap();
+        let client = MaybeProxyClient::new(Some(uri), None, None).unwrap();
         assert!(client.has_proxy() && !client.is_null());
     }
 

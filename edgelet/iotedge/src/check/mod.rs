@@ -116,7 +116,7 @@ impl Check {
 
             let hyper_client =
                 proxy.and_then(|proxy| {
-                    Ok(MaybeProxyClient::new(proxy, None).context(
+                    Ok(MaybeProxyClient::new(proxy, None, None).context(
                         ErrorKind::FetchLatestVersions(FetchLatestVersionsReason::CreateClient),
                     )?)
                 });

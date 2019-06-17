@@ -7,8 +7,6 @@ use std::str;
 use failure::{Backtrace, Compat, Context, Fail};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode, Uri};
-use native_tls::Error as NativeTlsError;
-use openssl::error::ErrorStack;
 use serde_json::json;
 use systemd::Fd;
 use url::Url;
@@ -58,6 +56,9 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred obtaining the client identity private key")]
     IdentityPrivateKey,
 
+    #[fail(display = "Reading identity private key from PEM bytes failed {}", _0)]
+    IdentityPrivateKeyRead(String),
+
     #[fail(display = "Could not initialize")]
     Initialization,
 
@@ -83,17 +84,14 @@ pub enum ErrorKind {
     #[fail(display = "Module not found")]
     ModuleNotFound(String),
 
-    #[fail(display = "A native TLS error occurred.")]
-    NativeTls,
-
     #[fail(display = "An error occurred for path {}", _0)]
     Path(String),
 
-    #[fail(display = "An OpenSSL PKCS12 error occurred.")]
-    OpenSSLPkcs12,
-
     #[fail(display = "An error occurred with the proxy {}", _0)]
     Proxy(Uri),
+
+    #[fail(display = "Preparing a PCKS12 client certificate idenity failed {}", _0)]
+    PKCS12Identity(String),
 
     #[fail(display = "An error occurred in the service")]
     ServiceError,
@@ -162,22 +160,6 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
-    }
-}
-
-impl From<NativeTlsError> for Error {
-    fn from(error: NativeTlsError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::NativeTls),
-        }
-    }
-}
-
-impl From<ErrorStack> for Error {
-    fn from(error: ErrorStack) -> Self {
-        Error {
-            inner: error.context(ErrorKind::OpenSSLPkcs12),
-        }
     }
 }
 

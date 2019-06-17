@@ -104,7 +104,7 @@ impl PemCertificate {
         &self.cert
     }
 
-    pub fn from<C: Certificate>(id_cert: &C) -> Result<Self, Error> {
+    pub fn from<C>(id_cert: &C) -> Result<Self, Error> where C : Certificate {
         let cert = id_cert
             .pem()
             .map(|cert_buffer| cert_buffer.as_ref().to_owned())
@@ -127,21 +127,23 @@ impl PemCertificate {
         // chain; we skip the server cert and build an OpenSSL cert stack with the
         // other certs
         let mut ca_certs = Stack::new().with_context(|_| ErrorKind::IdentityCertificate)?;
-        for cert in certs.split_off(1) {
+        for cert in certs.drain(1..) {
             ca_certs
                 .push(cert)
                 .with_context(|_| ErrorKind::IdentityCertificate)?;
         }
 
         let key = match &self.key {
-            Some(k) => PKey::private_key_from_pem(&k),
+            Some(k) => {
+                PKey::private_key_from_pem(&k).with_context(|err| ErrorKind::IdentityPrivateKeyRead(err.to_string()))
+            },
             None => return Err(Error::from(ErrorKind::IdentityPrivateKey)),
         }?;
 
         let identity_cert = &certs[0];
 
-        let mut builder = Pkcs12::builder();
-        builder.ca(ca_certs);
+        let mut builder = Pkcs12::builder().ca(ca_certs);
+        //builder.ca(ca_certs);
         let pkcs_certs = builder
             .build(
                 self.password.as_ref().map_or("", String::as_str),
@@ -155,7 +157,9 @@ impl PemCertificate {
             .to_der()
             .with_context(|_| ErrorKind::IdentityCertificate)?;
 
-        let identity = Identity::from_pkcs12(&der, "")?;
+        let identity = Identity::from_pkcs12(&der, "")
+                .with_context(|err| ErrorKind::PKCS12Identity(err.to_string()))?;
+
         Ok(identity)
     }
 }
