@@ -2,8 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
-    using System.IO;
-    using System.Linq;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -30,50 +29,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await Profiler.Run(
                 async () =>
                 {
-                    try
+                    this.cts.Dispose();
+                    using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
                     {
-                        using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
+                        string prefix = $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
+                        IEnumerable<string> paths = await Platform.CollectLogsAsync(this.testStartTime, prefix, cts.Token);
+                        foreach (string path in paths)
                         {
-                            CancellationToken token = cts.Token;
-
-                            string prefix = $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
-
-                            // Save module logs
-                            string[] output = await Process.RunAsync("iotedge", "list", token);
-                            string[] modules = output.Select(ln => ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries).First()).Skip(1).ToArray();
-
-                            foreach (string name in modules)
-                            {
-                                string moduleLog = $"{prefix}-{name}.log";
-                                output = await Process.RunAsync("iotedge", $"logs {name}", token);
-                                await File.WriteAllLinesAsync(moduleLog, output, token);
-                                TestContext.AddTestAttachment(moduleLog, $"Module '{name}' log");
-                            }
-
-                            // Save daemon logs
-                            string eventLogCommand =
-                                "Get-WinEvent -ErrorAction SilentlyContinue " +
-                                $"-FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{this.testStartTime}'}} " +
-                                "| Select TimeCreated, Message " +
-                                "| Sort-Object @{Expression=\'TimeCreated\';Descending=$false} " +
-                                "| Format-Table -AutoSize -HideTableHeaders " +
-                                "| Out-String -Width 512";
-
-                            string daemonLog = $"{prefix}-iotedged.log";
-                            output = await Process.RunAsync("powershell", eventLogCommand, token);
-                            await File.WriteAllLinesAsync(daemonLog, output, token);
-                            TestContext.AddTestAttachment(daemonLog, "Daemon log");
+                            TestContext.AddTestAttachment(path);
                         }
-                    }
-
-                    // ReSharper disable once RedundantCatchClause
-                    catch (Exception)
-                    {
-                        throw;
-                    }
-                    finally
-                    {
-                        this.cts.Dispose();
                     }
                 },
                 "Completed test teardown");
