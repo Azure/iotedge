@@ -1073,11 +1073,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 imageName = status.Image;
             }
-            if (status?.LastState?.Running != null)
+            if (status?.State?.Running != null)
             {
-                if (status.LastState.Running.StartedAt.HasValue)
+                if (status.State.Running.StartedAt.HasValue)
                 {
-                    return (0, Option.Some(status.LastState.Running.StartedAt.Value), Option.None<DateTime>(), imageName);
+                    return (0, Option.Some(status.State.Running.StartedAt.Value), Option.None<DateTime>(), imageName);
+                }
+            }
+            else if (status?.State?.Terminated != null)
+            {
+                if (status.State.Terminated.StartedAt.HasValue &&
+                    status.State.Terminated.FinishedAt.HasValue)
+                {
+                    return (0, Option.Some(status.State.Terminated.StartedAt.Value), Option.Some(status.State.Terminated.FinishedAt.Value), imageName);
                 }
             }
             else if (status?.LastState?.Terminated != null)
