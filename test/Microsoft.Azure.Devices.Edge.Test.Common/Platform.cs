@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
-    using System.Collections.Generic;
     using System.Runtime.InteropServices;
     using System.Threading;
     using System.Threading.Tasks;
@@ -10,9 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public static class Platform
     {
-        public static Task<IEnumerable<string>> CollectLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token) => IsWindows()
-            ? Windows.Logs.CollectAsync(testStartTime, filePrefix, token)
-            : Linux.Logs.CollectAsync(testStartTime, filePrefix, token);
+        public static Task<string> CollectDaemonLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token) => IsWindows()
+            ? Windows.EdgeDaemon.CollectLogsAsync(testStartTime, filePrefix, token)
+            : Linux.EdgeDaemon.CollectLogsAsync(testStartTime, filePrefix, token);
 
         // TODO: download installer script from aka.ms if user doesn't pass installerPath in Windows
         public static IEdgeDaemon CreateEdgeDaemon(Option<string> installerPath) => IsWindows()

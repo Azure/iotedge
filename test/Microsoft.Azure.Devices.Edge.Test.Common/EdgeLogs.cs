@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
+namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
+    using System.Linq;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
 
-    public static class Logs
+    public static class EdgeLogs
     {
         public static async Task<IEnumerable<string>> CollectAsync(DateTime testStartTime, string filePrefix, CancellationToken token)
         {
@@ -27,11 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             }
 
             // Save daemon logs
-            string args = $"-u iotedge -u docker --since \"{testStartTime:yyyy-MM-dd HH:mm:ss}\" --no-pager";
-            output = await Process.RunAsync("journalctl", args, token);
-
-            string daemonLog = $"{filePrefix}-iotedged.log";
-            await File.WriteAllLinesAsync(daemonLog, output, token);
+            string daemonLog = await Platform.CollectDaemonLogsAsync(testStartTime, filePrefix, token);
             paths.Add(daemonLog);
 
             return paths;
