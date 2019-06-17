@@ -285,7 +285,6 @@ fn create_runtime(
     let management_uri = Url::parse("http://localhost:35001").unwrap();
 
     let client = KubeClient::with_client(get_config(url), HttpClient(HyperClient::new()));
-    //    let client:KubeClient<ValueToken, HttpClient<HttpsConnector<HttpConnector>,Body>>= KubeClient::new(get_config(url));
 
     KubeModuleRuntime::new(
         client,
@@ -540,7 +539,7 @@ fn response(
     let response_len = response.len();
 
     let mut response = Response::new(response.into());
-    *response.status_mut() = StatusCode::CREATED;
+    *response.status_mut() = status_code;
     response
         .headers_mut()
         .typed_insert(&ContentLength(response_len as u64));

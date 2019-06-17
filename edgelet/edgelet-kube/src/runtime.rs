@@ -417,8 +417,6 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    <S::ResBody as Stream>::Item: AsRef<[u8]>,
-    <S::ResBody as Stream>::Error: Into<KubeClientError>,
     S::Error: Into<KubeClientError>,
     S::Future: Send,
 {

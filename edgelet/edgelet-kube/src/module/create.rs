@@ -13,7 +13,8 @@ use edgelet_utils::{ensure_not_empty_with_context, log_failure, sanitize_dns_lab
 use kube_client::{Client as KubeClient, Error as KubeClientError, TokenSource};
 
 use crate::convert::{
-    auth_to_image_pull_secret, pod_to_module, spec_to_deployment, spec_to_service_account,
+    auth_to_image_pull_secret, pod_to_module, spec_to_deployment, spec_to_role_binding,
+    spec_to_service_account,
 };
 use crate::error::{Error, Result};
 use crate::runtime::KubeRuntimeData;
@@ -54,9 +55,9 @@ impl CreateModule {
         let runtime_for_deployment = runtime.clone();
         let module_for_deployment = module.clone();
 
-        let inner = CreateModule::create_or_update_role(runtime, module)
+        let inner = CreateModule::create_or_update_service_account(runtime, module)
             .and_then(|_| {
-                CreateModule::create_or_update_service_account(runtime_for_sa, module_for_sa)
+                CreateModule::create_or_update_role_binding(runtime_for_sa, module_for_sa)
             })
             .and_then(|_| {
                 CreateModule::create_or_update_deployment(
@@ -70,7 +71,7 @@ impl CreateModule {
         })
     }
 
-    fn create_or_update_role<T, S>(
+    fn create_or_update_role_binding<T, S>(
         runtime: KubeModuleRuntime<T, S>,
         module: ModuleSpec<DockerConfig>,
     ) -> Box<dyn Future<Item = (), Error = Error> + Send>
@@ -83,9 +84,9 @@ impl CreateModule {
         S::Error: Into<KubeClientError>,
         S::Future: Send,
     {
-        let f = spec_to_service_account(&runtime, &module)
+        let f = spec_to_role_binding(&runtime, &module)
             .map_err(Error::from)
-            .map(|new_service_account| {
+            .map(|new_role_binding| {
                 let client_copy = runtime.client().clone();
                 let namespace_copy = runtime.namespace().to_owned();
                 runtime
@@ -93,32 +94,32 @@ impl CreateModule {
                     .lock()
                     .expect("Expected lock error")
                     .borrow_mut()
-                    .list_service_accounts(
+                    .list_role_binding(
                         runtime.namespace(),
                         Some(module.name()),
                         Some(runtime.device_hub_selector()),
                     )
                     .map_err(Error::from)
-                    .and_then(move |service_accounts| {
-                        if let Some(current_service_account) =
-                            service_accounts.items.into_iter().find(|service_account| {
-                                service_account.metadata.as_ref().map_or(false, |meta| {
+                    .and_then(move |role_binding| {
+                        if let Some(role_binding) =
+                            role_binding.items.into_iter().find(|role_binding| {
+                                role_binding.metadata.as_ref().map_or(false, |meta| {
                                     meta.name.as_ref().map_or(false, |n| *n == module.name())
                                 })
                             })
                         {
-                            // found service account, if the service account doesn't match, replace it
-                            if current_service_account == new_service_account {
+                            // found role binding, if the role binding doesn't match, replace it
+                            if role_binding == new_role_binding {
                                 Either::A(Either::A(future::ok(())))
                             } else {
                                 let fut = client_copy
                                     .lock()
                                     .expect("Unexpected lock error")
                                     .borrow_mut()
-                                    .replace_service_account(
+                                    .replace_role_binding(
                                         &namespace_copy,
                                         module.name(),
-                                        &new_service_account,
+                                        &new_role_binding,
                                     )
                                     .map_err(Error::from)
                                     .map(|_| ());
@@ -130,10 +131,7 @@ impl CreateModule {
                                 .lock()
                                 .expect("Unexpected lock error")
                                 .borrow_mut()
-                                .create_service_account(
-                                    namespace_copy.as_str(),
-                                    &new_service_account,
-                                )
+                                .create_role_binding(namespace_copy.as_str(), &new_role_binding)
                                 .map_err(Error::from)
                                 .map(|_| ());
                             Either::B(fut)

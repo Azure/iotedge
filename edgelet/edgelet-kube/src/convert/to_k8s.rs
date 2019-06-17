@@ -8,6 +8,7 @@ use edgelet_core::ModuleSpec;
 use edgelet_docker::DockerConfig;
 use k8s_openapi::api::apps::v1 as apps;
 use k8s_openapi::api::core::v1 as api_core;
+use k8s_openapi::api::rbac::v1 as rbac;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 use k8s_openapi::ByteString;
 use log::warn;
@@ -420,10 +421,10 @@ pub fn spec_to_service_account<R: KubeRuntimeData>(
     let service_account_name = module_label_value.clone();
 
     // labels
-    let mut service_account_labels = BTreeMap::new();
-    service_account_labels.insert(EDGE_MODULE_LABEL.to_string(), module_label_value.clone());
-    service_account_labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
-    service_account_labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
+    let mut labels = BTreeMap::new();
+    labels.insert(EDGE_MODULE_LABEL.to_string(), module_label_value.clone());
+    labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
+    labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
 
     // annotations
     let mut annotations = BTreeMap::new();
@@ -433,7 +434,7 @@ pub fn spec_to_service_account<R: KubeRuntimeData>(
         metadata: Some(api_meta::ObjectMeta {
             name: Some(service_account_name),
             namespace: Some(runtime.namespace().to_string()),
-            labels: Some(service_account_labels),
+            labels: Some(labels),
             annotations: Some(annotations),
             ..api_meta::ObjectMeta::default()
         }),
@@ -443,6 +444,50 @@ pub fn spec_to_service_account<R: KubeRuntimeData>(
     Ok(service_account)
 }
 
+pub fn spec_to_role_binding<R: KubeRuntimeData>(
+    runtime: &R,
+    spec: &ModuleSpec<DockerConfig>,
+) -> Result<rbac::ClusterRoleBinding> {
+    let module_label_value = sanitize_dns_value(spec.name())?;
+    let device_label_value = sanitize_dns_value(runtime.device_id())?;
+    let hubname_label = sanitize_dns_value(runtime.iot_hub_hostname())?;
+
+    let role_binding_name = module_label_value.clone();
+
+    // labels
+    let mut labels = BTreeMap::new();
+    labels.insert(EDGE_MODULE_LABEL.to_string(), module_label_value.clone());
+    labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
+    labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
+
+    // annotations
+    let mut annotations = BTreeMap::new();
+    annotations.insert(EDGE_ORIGINAL_MODULEID.to_string(), spec.name().to_string());
+
+    let role_binding = rbac::ClusterRoleBinding {
+        metadata: Some(api_meta::ObjectMeta {
+            name: Some(role_binding_name),
+            namespace: Some(runtime.namespace().to_string()),
+            labels: Some(labels),
+            annotations: Some(annotations),
+            ..api_meta::ObjectMeta::default()
+        }),
+        role_ref: rbac::RoleRef {
+            api_group: "rbac.authorization.k8s.io".into(),
+            kind: "ClusterRole".into(),
+            name: "cluster-admin".into(),
+        },
+        subjects: vec![rbac::Subject {
+            api_group: None,
+            kind: "ServiceAccount".into(),
+            name: module_label_value,
+            namespace: Some(runtime.namespace().into()),
+        }],
+    };
+
+    Ok(role_binding)
+}
+
 #[cfg(test)]
 mod tests {
     use super::spec_to_deployment;
@@ -450,9 +495,9 @@ mod tests {
     use crate::constants::{
         EDGE_DEVICE_LABEL, EDGE_HUBNAME_LABEL, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID,
     };
-    use crate::convert::spec_to_service_account;
     use crate::convert::to_k8s::auth_to_image_pull_secret;
     use crate::convert::to_k8s::{Auth, AuthEntry};
+    use crate::convert::{spec_to_role_binding, spec_to_service_account};
     use crate::runtime::KubeRuntimeData;
     use docker::models::AuthConfig;
     use docker::models::ContainerCreateBody;
@@ -787,5 +832,58 @@ mod tests {
                 assert_eq!(labels[EDGE_MODULE_LABEL], "edgeagent");
             }
         }
+    }
+
+    #[test]
+    fn module_to_role_binding() {
+        let runtime = KubeRuntimeTest::new(
+            true,
+            String::from("default1"),
+            String::from("iotHub"),
+            String::from("device1"),
+            String::from("$edgeAgent"),
+            String::from("proxy:latest"),
+            String::from("/etc/traefik"),
+            String::from("device1-iotedged-proxy-config"),
+            String::from("IfNotPresent"),
+            String::from("iotedge"),
+            Url::parse("http://localhost:35000").unwrap(),
+            Url::parse("http://localhost:35001").unwrap(),
+        );
+
+        let module = create_module_spec();
+
+        let role_binding = spec_to_role_binding(&runtime, &module).unwrap();
+
+        assert!(role_binding.metadata.is_some());
+        if let Some(metadata) = role_binding.metadata {
+            assert_eq!(metadata.name, Some("edgeagent".to_string()));
+            assert_eq!(metadata.namespace, Some("default1".to_string()));
+
+            assert!(metadata.annotations.is_some());
+            if let Some(annotations) = metadata.annotations {
+                assert_eq!(annotations.len(), 1);
+                assert_eq!(annotations[EDGE_ORIGINAL_MODULEID], "$edgeAgent");
+            }
+
+            assert!(metadata.labels.is_some());
+            if let Some(labels) = metadata.labels {
+                assert_eq!(labels.len(), 3);
+                assert_eq!(labels[EDGE_DEVICE_LABEL], "device1");
+                assert_eq!(labels[EDGE_HUBNAME_LABEL], "iothub");
+                assert_eq!(labels[EDGE_MODULE_LABEL], "edgeagent");
+            }
+        }
+
+        assert_eq!(role_binding.role_ref.api_group, "rbac.authorization.k8s.io");
+        assert_eq!(role_binding.role_ref.kind, "ClusterRole");
+        assert_eq!(role_binding.role_ref.name, "cluster-admin");
+
+        assert_eq!(role_binding.subjects.len(), 1);
+        let subject = &role_binding.subjects[0];
+        assert_eq!(subject.api_group, None);
+        assert_eq!(subject.kind, "ServiceAccount");
+        assert_eq!(subject.name, "edgeagent");
+        assert_eq!(subject.namespace, Some("default1".to_string()));
     }
 }

@@ -13,6 +13,7 @@ use hyper_tls::HttpsConnector;
 use k8s_openapi::api::apps::v1 as apps;
 use k8s_openapi::api::authentication::v1 as auth;
 use k8s_openapi::api::core::v1 as api_core;
+use k8s_openapi::api::rbac::v1 as rbac;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 use k8s_openapi::{http, Response as K8sResponse, ResponseBody};
 use log::debug;
@@ -360,8 +361,8 @@ where
             .map_err(Error::from)
             .map(|req| {
                 self.request(req).and_then(|response| match response {
-                    api_core::ListNamespacedServiceAccountResponse::Ok(service_acoount_list) => {
-                        Ok(service_acoount_list)
+                    api_core::ListNamespacedServiceAccountResponse::Ok(service_account_list) => {
+                        Ok(service_account_list)
                     }
                     _ => Err(Error::from(ErrorKind::Response)),
                 })
@@ -380,17 +381,19 @@ where
             &service_account,
             api_core::CreateNamespacedServiceAccountOptional::default(),
         )
-            .map_err(Error::from)
-            .map(|req| {
-                self.request(req).and_then(|response| match response {
-                    api_core::CreateNamespacedServiceAccountResponse::Accepted(deployment)
-                    | api_core::CreateNamespacedServiceAccountResponse::Created(deployment)
-                    | api_core::CreateNamespacedServiceAccountResponse::Ok(deployment) => Ok(deployment),
-                    _ => Err(Error::from(ErrorKind::Response)),
-                })
+        .map_err(Error::from)
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                api_core::CreateNamespacedServiceAccountResponse::Accepted(service_account)
+                | api_core::CreateNamespacedServiceAccountResponse::Created(service_account)
+                | api_core::CreateNamespacedServiceAccountResponse::Ok(service_account) => {
+                    Ok(service_account)
+                }
+                _ => Err(Error::from(ErrorKind::Response)),
             })
-            .into_future()
-            .flatten()
+        })
+        .into_future()
+        .flatten()
     }
 
     pub fn replace_service_account(
@@ -408,8 +411,83 @@ where
         .map_err(Error::from)
         .map(|req| {
             self.request(req).and_then(|response| match response {
-                api_core::ReplaceNamespacedServiceAccountResponse::Created(deployment)
-                | api_core::ReplaceNamespacedServiceAccountResponse::Ok(deployment) => Ok(deployment),
+                api_core::ReplaceNamespacedServiceAccountResponse::Created(service_account)
+                | api_core::ReplaceNamespacedServiceAccountResponse::Ok(service_account) => {
+                    Ok(service_account)
+                }
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
+        })
+        .into_future()
+        .flatten()
+    }
+
+    pub fn list_role_binding(
+        &mut self,
+        _namespace: &str,
+        name: Option<&str>,
+        label_selector: Option<&str>,
+    ) -> impl Future<Item = rbac::ClusterRoleBindingList, Error = Error> {
+        let field_selector =
+            name.and_then(|role_binding| Some(format!("metadata.name={}", role_binding)));
+        let params = rbac::ListClusterRoleBindingOptional {
+            field_selector: field_selector.as_ref().map(String::as_ref),
+            label_selector,
+            ..rbac::ListClusterRoleBindingOptional::default()
+        };
+
+        rbac::ClusterRoleBinding::list_cluster_role_binding(params)
+            .map_err(Error::from)
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    rbac::ListClusterRoleBindingResponse::Ok(role_binding_list) => {
+                        Ok(role_binding_list)
+                    }
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
+            })
+            .into_future()
+            .flatten()
+    }
+
+    pub fn create_role_binding(
+        &mut self,
+        _namespace: &str,
+        role_binding: &rbac::ClusterRoleBinding,
+    ) -> impl Future<Item = rbac::ClusterRoleBinding, Error = Error> {
+        rbac::ClusterRoleBinding::create_cluster_role_binding(
+            role_binding,
+            rbac::CreateClusterRoleBindingOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                rbac::CreateClusterRoleBindingResponse::Accepted(role_binding)
+                | rbac::CreateClusterRoleBindingResponse::Created(role_binding)
+                | rbac::CreateClusterRoleBindingResponse::Ok(role_binding) => Ok(role_binding),
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
+        })
+        .into_future()
+        .flatten()
+    }
+
+    pub fn replace_role_binding(
+        &mut self,
+        _namespace: &str,
+        name: &str,
+        role_binding: &rbac::ClusterRoleBinding,
+    ) -> impl Future<Item = rbac::ClusterRoleBinding, Error = Error> {
+        rbac::ClusterRoleBinding::replace_cluster_role_binding(
+            name,
+            role_binding,
+            rbac::ReplaceClusterRoleBindingOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                rbac::ReplaceClusterRoleBindingResponse::Created(role_binding)
+                | rbac::ReplaceClusterRoleBindingResponse::Ok(role_binding) => Ok(role_binding),
                 _ => Err(Error::from(ErrorKind::Response)),
             })
         })
