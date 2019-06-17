@@ -142,8 +142,8 @@ impl PemCertificate {
 
         let identity_cert = &certs[0];
 
-        let mut builder = Pkcs12::builder().ca(ca_certs);
-        //builder.ca(ca_certs);
+        let mut builder = Pkcs12::builder();
+        builder.ca(ca_certs);
         let pkcs_certs = builder
             .build(
                 self.password.as_ref().map_or("", String::as_str),
