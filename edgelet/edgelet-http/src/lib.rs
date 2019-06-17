@@ -42,7 +42,9 @@ use openssl::x509::X509;
 use edgelet_core::crypto::{Certificate, CreateCertificate, KeyBytes, PrivateKey};
 use edgelet_core::{UrlExt, UNIX_SCHEME};
 use edgelet_utils::log_failure;
-use native_tls::{Identity, TlsAcceptor};
+use native_tls::Identity;
+#[cfg(unix)]
+use native_tls::TlsAcceptor;
 
 pub mod authentication;
 pub mod authorization;
