@@ -54,7 +54,7 @@ where
                 })
                 .and_then(move |(spec, core_spec)| {
                     let module_name = spec.name().to_string();
-                    let image_pull_policy = *core_spec.image_pull_policy();
+                    let image_pull_policy = core_spec.image_pull_policy();
 
                     let pull_future = match image_pull_policy {
                         ImagePullPolicy::OnCreate => {
@@ -66,26 +66,24 @@ where
                                             name.clone(),
                                         ))
                                     })?;
-                                    Ok((name, image_pull_policy))
+                                    Ok((name, true))
                                 },
                             ))
                         }
-                        ImagePullPolicy::Never => Either::B(futures::future::ok((
-                            module_name.clone(),
-                            image_pull_policy,
-                        ))),
+                        ImagePullPolicy::Never => {
+                            Either::B(futures::future::ok((module_name.clone(), false)))
+                        }
                     };
 
-                    pull_future.and_then(move |(name, image_pull_policy)| -> Result<_, Error> {
-                        match image_pull_policy {
-                            ImagePullPolicy::OnCreate => {
-                                debug!("Successfully pulled new image for module {}", name)
-                            }
-                            ImagePullPolicy::Never => debug!(
+                    pull_future.and_then(move |(name, image_pulled)| -> Result<_, Error> {
+                        if image_pulled {
+                            debug!("Successfully pulled new image for module {}", name)
+                        } else {
+                            debug!(
                                 "Skipped pulling image for module {} as per pull policy",
                                 name
-                            ),
-                        };
+                            )
+                        }
 
                         Ok(runtime
                             .create(core_spec)

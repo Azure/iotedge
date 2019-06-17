@@ -83,24 +83,23 @@ where
                     ImagePullPolicy::OnCreate => {
                         Either::A(runtime.registry().pull(core_spec.config()).then(|result| {
                             result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
-                            Ok((core_spec, spec, name, runtime))
+                            Ok((core_spec, spec, name, runtime, true))
                         }))
                     }
                     ImagePullPolicy::Never => {
-                        Either::B(futures::future::ok((core_spec, spec, name, runtime)))
+                        Either::B(futures::future::ok((core_spec, spec, name, runtime, false)))
                     }
                 }
             })
-            .and_then(|(core_spec, spec, name, runtime)| {
-                match core_spec.image_pull_policy() {
-                    ImagePullPolicy::OnCreate => {
-                        debug!("Successfully pulled new image for module {}", name)
-                    }
-                    ImagePullPolicy::Never => debug!(
+            .and_then(|(core_spec, spec, name, runtime, image_pulled)| {
+                if image_pulled {
+                    debug!("Successfully pulled new image for module {}", name)
+                } else {
+                    debug!(
                         "Skipped pulling image for module {} as per pull policy",
                         name
-                    ),
-                };
+                    )
+                }
 
                 runtime.create(core_spec).then(|result| {
                     result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;

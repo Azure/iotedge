@@ -230,8 +230,8 @@ impl<T> ModuleSpec<T> {
         self
     }
 
-    pub fn image_pull_policy(&self) -> &ImagePullPolicy {
-        &self.image_pull_policy
+    pub fn image_pull_policy(&self) -> ImagePullPolicy {
+        self.image_pull_policy
     }
 
     pub fn with_image_pull_policy(mut self, image_pull_policy: ImagePullPolicy) -> Self {

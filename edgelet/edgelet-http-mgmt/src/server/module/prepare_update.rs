@@ -50,7 +50,7 @@ where
             })
             .and_then(|(core_spec, runtime)| {
                 let name = core_spec.name().to_string();
-                let image_pull_policy = *core_spec.image_pull_policy();
+                let image_pull_policy = core_spec.image_pull_policy();
                 match image_pull_policy {
                     ImagePullPolicy::OnCreate => Either::A(
                         runtime
@@ -60,24 +60,21 @@ where
                                 result.with_context(|_| {
                                     ErrorKind::PrepareUpdateModule(name.clone())
                                 })?;
-                                Ok((name, image_pull_policy))
+                                Ok((name, true))
                             }),
                     ),
-                    ImagePullPolicy::Never => {
-                        Either::B(futures::future::ok((name, image_pull_policy)))
-                    }
+                    ImagePullPolicy::Never => Either::B(futures::future::ok((name, false))),
                 }
             })
-            .and_then(|(name, image_pull_policy)| -> Result<_, Error> {
-                match image_pull_policy {
-                    ImagePullPolicy::OnCreate => {
-                        debug!("Successfully pulled new image for module {}", name)
-                    }
-                    ImagePullPolicy::Never => debug!(
+            .and_then(|(name, image_pulled)| -> Result<_, Error> {
+                if image_pulled {
+                    debug!("Successfully pulled new image for module {}", name)
+                } else {
+                    debug!(
                         "Skipped pulling image for module {} as per pull policy",
                         name
-                    ),
-                };
+                    )
+                }
 
                 let response = Response::builder()
                     .status(StatusCode::NO_CONTENT)
