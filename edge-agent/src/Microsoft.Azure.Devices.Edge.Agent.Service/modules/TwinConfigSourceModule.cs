@@ -80,13 +80,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     var logsUploader = c.Resolve<ILogsUploader>();
                     var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
                     var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
+                    var environmentProviderTask = c.Resolve<Task<IEnvironmentProvider>>();
+                    var commandFactoryTask = c.Resolve<Task<ICommandFactory>>();
+                    var configSourceTask = c.Resolve<Task<IConfigSource>>();
                     IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
                     ILogsProvider logsProvider = await logsProviderTask;
+                    IEnvironmentProvider environmentProvider = await environmentProviderTask;
+                    ICommandFactory commandFactory = await commandFactoryTask;
+                    IConfigSource configSource = await configSourceTask;
                     var requestHandlers = new List<IRequestHandler>
                     {
                         new PingRequestHandler(),
                         new LogsUploadRequestHandler(logsUploader, logsProvider, runtimeInfoProvider),
-                        new LogsRequestHandler(logsProvider, runtimeInfoProvider)
+                        new LogsRequestHandler(logsProvider, runtimeInfoProvider),
+                        new RestartRequestHandler(environmentProvider, commandFactory, configSource)
                     };
                     return new RequestManager(requestHandlers, this.requestTimeout) as IRequestManager;
                 })
