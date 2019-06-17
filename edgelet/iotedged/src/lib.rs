@@ -960,6 +960,7 @@ where
         spec.type_().to_string(),
         spec.config().clone(),
         env,
+        spec.image_pull_policy(),
     )
     .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
 
