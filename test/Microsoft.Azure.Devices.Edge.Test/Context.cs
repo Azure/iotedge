@@ -40,11 +40,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     PackagePath = Option.Maybe(GetString("packagePath")),
                     Proxy = Option.Maybe(context.GetValue<Uri>("proxy")),
                     Registry = AllOrNothing(GetString("registry"), GetString("user"), GetString("CONTAINER_REGISTRY_PASSWORD")),
-                    EdgeAgent = Option.Maybe(GetString("edgeAgent")),
-                    EdgeHub = Option.Maybe(GetString("edgeHub")),
-                    TempSensor = Option.Maybe(GetString("tempSensor")),
-                    MethodSender = Option.Maybe(GetString("methodSender")),
-                    MethodReceiver = Option.Maybe(GetString("methodReceiver")),
+                    EdgeAgentImage = Option.Maybe(GetString("edgeAgentImage")),
+                    EdgeHubImage = Option.Maybe(GetString("edgeHubImage")),
+                    TempSensorImage = Option.Maybe(GetString("tempSensorImage")),
+                    MethodSenderImage = Option.Maybe(GetString("methodSenderImage")),
+                    MethodReceiverImage = Option.Maybe(GetString("methodReceiverImage")),
                     LogFile = Option.Maybe(GetString("logFile")),
                     Verbose = context.GetValue("verbose", false),
                     SetupTimeout = TimeSpan.FromMinutes(context.GetValue("setupTimeoutMinutes", 5)),
@@ -69,15 +69,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         public Option<(string address, string username, string password)> Registry { get; private set; }
 
-        public Option<string> EdgeAgent { get; private set; }
+        public Option<string> EdgeAgentImage { get; private set; }
 
-        public Option<string> EdgeHub { get; private set; }
+        public Option<string> EdgeHubImage { get; private set; }
 
-        public Option<string> TempSensor { get; private set; }
+        public Option<string> TempSensorImage { get; private set; }
 
-        public Option<string> MethodSender { get; private set; }
+        public Option<string> MethodSenderImage { get; private set; }
 
-        public Option<string> MethodReceiver { get; private set; }
+        public Option<string> MethodReceiverImage { get; private set; }
 
         public Option<string> LogFile { get; private set; }
 

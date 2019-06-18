@@ -23,9 +23,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task TempSensor()
         {
-            string edgeAgent = Context.Current.EdgeAgent.Expect(() => new ArgumentException());
-            string edgeHub = Context.Current.EdgeHub.Expect(() => new ArgumentException());
-            string tempSensor = Context.Current.TempSensor.Expect(() => new ArgumentException());
+            string agentImage = Context.Current.EdgeAgentImage.Expect(() => new ArgumentException());
+            string hubImage = Context.Current.EdgeHubImage.Expect(() => new ArgumentException());
+            string sensorImage = Context.Current.TempSensorImage.Expect(() => new ArgumentException());
             Option<Uri> proxy = Context.Current.Proxy;
 
             CancellationToken token = this.cts.Token;
@@ -48,9 +48,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     var builder = new EdgeConfigBuilder(device.Id);
                     Context.Current.Registry.ForEach(
                         r => builder.AddRegistryCredentials(r.address, r.username, r.password));
-                    builder.AddEdgeAgent(edgeAgent).WithProxy(proxy, Protocol.Amqp);
-                    builder.AddEdgeHub(edgeHub).WithProxy(proxy, Protocol.Amqp);
-                    builder.AddModule("tempSensor", tempSensor);
+                    builder.AddEdgeAgent(agentImage).WithProxy(proxy, Protocol.Amqp);
+                    builder.AddEdgeHub(hubImage).WithProxy(proxy, Protocol.Amqp);
+                    builder.AddModule("tempSensor", sensorImage);
                     await builder.Build().DeployAsync(iotHub, token);
 
                     var hub = new EdgeModule("edgeHub", device.Id, iotHub);
@@ -103,10 +103,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             string clientTransport = protocol.ToString();
-            string edgeAgent = Context.Current.EdgeAgent.Expect(() => new ArgumentException());
-            string edgeHub = Context.Current.EdgeHub.Expect(() => new ArgumentException());
-            string senderImage = Context.Current.MethodSender.Expect(() => new ArgumentException());
-            string receiverImage = Context.Current.MethodReceiver.Expect(() => new ArgumentException());
+            string agentImage = Context.Current.EdgeAgentImage.Expect(() => new ArgumentException());
+            string hubImage = Context.Current.EdgeHubImage.Expect(() => new ArgumentException());
+            string senderImage = Context.Current.MethodSenderImage.Expect(() => new ArgumentException());
+            string receiverImage = Context.Current.MethodReceiverImage.Expect(() => new ArgumentException());
             Option<Uri> proxy = Context.Current.Proxy;
 
             CancellationToken token = this.cts.Token;
@@ -132,9 +132,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     var builder = new EdgeConfigBuilder(device.Id);
                     Context.Current.Registry.ForEach(
                         r => builder.AddRegistryCredentials(r.address, r.username, r.password));
-                    builder.AddEdgeAgent(edgeAgent)
+                    builder.AddEdgeAgent(agentImage)
                         .WithProxy(proxy, Protocol.Amqp);
-                    builder.AddEdgeHub(edgeHub)
+                    builder.AddEdgeHub(hubImage)
                         .WithProxy(proxy, Protocol.Amqp);
                     builder.AddModule(methodSender, senderImage)
                         .WithEnvironment(
