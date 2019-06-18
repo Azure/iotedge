@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Extensions.Logging;
     using CoreConstant = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using K8sConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
-
     public class Program
     {
         const string ConfigFileName = "appsettings_agent.json";
@@ -143,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
                         string persistentVolumeName = configuration.GetValue<string>(K8sConstants.PersistentVolumeNameKey);
                         string storageClassName = configuration.GetValue<string>(K8sConstants.StorageClassNameKey);
-                        uint persistentVolumeClaimDefaultSizeMb = configuration.GetValue<uint>(K8sConstants.PersistentVolumeClaimDefaultSizeKey);
+                        uint persistentVolumeClaimDefaultSizeMb = configuration.GetValue<uint>(K8sConstants.PersistentVolumeClaimDefaultSizeKey, K8sConstants.PersistentVolumeClaimSize);
 
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId)));
                         builder.RegisterModule(new Modules.KubernetesModule(

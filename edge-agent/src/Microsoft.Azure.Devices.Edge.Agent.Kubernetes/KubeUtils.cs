@@ -34,9 +34,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             K8sNamespace = $"{nsBaseName}-{hubName.ToLower()}-{deviceId.ToLower()}";
         }
 
-        // Valid annotation keys have two segments: an optional prefix and name, separated by a slash (/). 
-        // The name segment is required and must be 63 characters or less, beginning and ending with an 
-        // alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between. 
+        // Valid annotation keys have two segments: an optional prefix and name, separated by a slash (/).
+        // The name segment is required and must be 63 characters or less, beginning and ending with an
+        // alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
         // The prefix is optional. If specified, the prefix must be a DNS subdomain
         public static string SanitizeAnnotationKey(string key)
         {
@@ -54,6 +54,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public static string SanitizeK8sValue(string name)
         {
+            if (name == null)
+            {
+                return name;
+            }
+
             name = name.ToLower();
 
             var output = new StringBuilder();

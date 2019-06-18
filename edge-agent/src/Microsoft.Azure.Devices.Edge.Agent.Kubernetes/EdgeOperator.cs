@@ -107,15 +107,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 ContractResolver = new CamelCasePropertyNamesContractResolver()
             };
 
-            // throw if user provided an invalid name
-            Preconditions.CheckArgument(String.Equals(persistentVolumeName, KubeUtils.SanitizeK8sValue(persistentVolumeName)));
-            Preconditions.CheckArgument(String.Equals(storageClassName, KubeUtils.SanitizeK8sValue(storageClassName)));
+            if (!string.IsNullOrWhiteSpace(persistentVolumeName))
+            {
+                Preconditions.CheckArgument(String.Equals(persistentVolumeName, KubeUtils.SanitizeK8sValue(persistentVolumeName)));
+                this.persistentVolumeName = Option.Some<string>(persistentVolumeName);
+            }
+            else
+            {
+                this.persistentVolumeName = Option.None<string>();
+            }
 
-            this.persistentVolumeName = (!string.IsNullOrWhiteSpace(persistentVolumeName)) ?
-                Option.Some<string>(persistentVolumeName) : Option.None<string>();
-
-            this.storageClassName = (!string.IsNullOrWhiteSpace(storageClassName)) ?
-                Option.Some<string>(storageClassName) : Option.None<string>();
+            if (!string.IsNullOrWhiteSpace(storageClassName))
+            {
+                Preconditions.CheckArgument(String.Equals(storageClassName, KubeUtils.SanitizeK8sValue(storageClassName)));
+                this.storageClassName = Option.Some<string>(storageClassName);
+            }
+            else
+            {
+                this.storageClassName = Option.None<string>();
+            }
 
             this.persistentVolumeClaimSizeMb = persistentVolumeClaimSizeMb;
         }
