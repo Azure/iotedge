@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public static class Platform
     {
+        // TODO: download installer script from aka.ms if user doesn't pass installerPath in Windows
         public static IEdgeDaemon CreateEdgeDaemon(Option<string> installerPath) => IsWindows()
             ? new Windows.EdgeDaemon(installerPath.Expect(() => new ArgumentException()))
             : new Linux.EdgeDaemon() as IEdgeDaemon;
