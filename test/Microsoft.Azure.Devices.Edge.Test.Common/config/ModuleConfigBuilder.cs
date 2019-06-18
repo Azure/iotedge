@@ -13,9 +13,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         public ModuleConfigBuilder(string name, string image, Option<string> createOptions)
             : base(name, image)
         {
-            this.Deployment["restartPolicy"] = "always";
-            this.Deployment["status"] = "running";
-            createOptions.ForEach(s => this.Settings["createOptions"] = s);
+            this.WithDeployment(
+                new[]
+                {
+                    ("restartPolicy", "always"),
+                    ("status", "running")
+                });
+            createOptions.ForEach(s => this.WithSettings(new[] { ("createOptions", s) }));
         }
     }
 }

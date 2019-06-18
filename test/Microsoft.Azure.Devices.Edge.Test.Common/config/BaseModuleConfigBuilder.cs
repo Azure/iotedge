@@ -9,36 +9,49 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
     public abstract class BaseModuleConfigBuilder : IModuleConfigBuilder
     {
-        IDictionary<string, object> DesiredProperties { get; }
-
-        IDictionary<string, string> Env { get; }
-
-        protected IDictionary<string, object> Deployment { get; }
-
-        protected IDictionary<string, object> Settings { get; }
+        readonly IDictionary<string, object> desiredProperties;
+        readonly IDictionary<string, string> env;
+        readonly IDictionary<string, object> deployment;
+        readonly IDictionary<string, object> settings;
 
         public string Name { get; }
 
         protected BaseModuleConfigBuilder(string name, string image)
         {
-            this.Deployment = new Dictionary<string, object>()
+            this.deployment = new Dictionary<string, object>()
             {
                 ["type"] = "docker"
             };
-            this.DesiredProperties = new Dictionary<string, object>();
-            this.Env = new Dictionary<string, string>();
+            this.desiredProperties = new Dictionary<string, object>();
+            this.env = new Dictionary<string, string>();
             this.Name = name;
-            this.Settings = new Dictionary<string, object>()
+            this.settings = new Dictionary<string, object>()
             {
                 ["image"] = image
             };
+        }
+
+        protected void WithDeployment(IEnumerable<(string, string)> deployment)
+        {
+            foreach ((string key, string value) in deployment)
+            {
+                this.deployment[key] = value; // for duplicate keys, last save wins!
+            }
+        }
+
+        protected void WithSettings(IEnumerable<(string, string)> settings)
+        {
+            foreach ((string key, string value) in settings)
+            {
+                this.settings[key] = value; // for duplicate keys, last save wins!
+            }
         }
 
         public IModuleConfigBuilder WithEnvironment(IEnumerable<(string, string)> env)
         {
             foreach ((string key, string value) in env)
             {
-                this.Env[key] = value; // for duplicate keys, last save wins!
+                this.env[key] = value; // for duplicate keys, last save wins!
             }
 
             return this;
@@ -69,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                     // If UpstreamProtocol was already set in this config to a non-compatible value,
                     // throw an error. The caller will need to fix the conflict in their code.
                     // Otherwise, replace it with the proxy-compatible value.
-                    if (this.Env.TryGetValue("UpstreamProtocol", out string u))
+                    if (this.env.TryGetValue("UpstreamProtocol", out string u))
                     {
                         if (u != protocol.ToString() && u != proxyProtocol)
                         {
@@ -94,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         {
             foreach ((string key, object value) in properties)
             {
-                this.DesiredProperties[key] = value; // for duplicate keys, last save wins!
+                this.desiredProperties[key] = value; // for duplicate keys, last save wins!
             }
 
             return this;
@@ -107,24 +120,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         //   $edgeAgent
         //     properties.desired
         //       modules
-        //         myModule         <== this.Deployment
-        //           settings       <== this.Settings
-        //           env            <== this.Env
+        //         myModule         <== this.deployment
+        //           settings       <== this.settings
+        //           env            <== this.env
         //   myModule
-        //     properties.desired   <== this.DesiredProperties
+        //     properties.desired   <== this.desiredProperties
         //
         // NOTE: This method is idempotent; it does not modify internal state
         // and can be called more than once.
         public ModuleConfiguration Build()
         {
-            var deployment = new Dictionary<string, object>(this.Deployment)
+            var deployment = new Dictionary<string, object>(this.deployment)
             {
-                ["settings"] = this.Settings
+                ["settings"] = this.settings
             };
 
-            if (this.Env.Count != 0)
+            if (this.env.Count != 0)
             {
-                deployment["env"] = this.Env.ToDictionary(
+                deployment["env"] = this.env.ToDictionary(
                     kvp => kvp.Key,
                     kvp => new
                     {
@@ -135,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return new ModuleConfiguration(
                 this.Name,
                 new ReadOnlyDictionary<string, object>(deployment),
-                new ReadOnlyDictionary<string, object>(this.DesiredProperties));
+                new ReadOnlyDictionary<string, object>(this.desiredProperties));
         }
     }
 }
