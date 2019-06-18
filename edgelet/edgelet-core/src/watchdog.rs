@@ -16,7 +16,8 @@ use edgelet_utils::log_failure;
 use crate::error::{Error, ErrorKind};
 use crate::identity::{Identity, IdentityManager, IdentitySpec};
 use crate::module::{
-    Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ModuleStatus,
+    ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec,
+    ModuleStatus,
 };
 
 // Time to allow EdgeAgent to gracefully shutdown (including stopping all modules, and updating reported properties)
@@ -287,9 +288,13 @@ where
             id.generation_id().to_string(),
         );
         let spec = spec.with_env(env);
-        runtime
-            .registry()
-            .pull(spec.clone().config())
+
+        let pull_future = match spec.image_pull_policy() {
+            ImagePullPolicy::Never => Either::A(future::ok(())),
+            ImagePullPolicy::OnCreate => Either::B(runtime.registry().pull(spec.clone().config())),
+        };
+
+        pull_future
             .and_then(move |_| runtime.create(spec))
             .and_then(move |_| runtime_copy.start(&module_name))
             .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))

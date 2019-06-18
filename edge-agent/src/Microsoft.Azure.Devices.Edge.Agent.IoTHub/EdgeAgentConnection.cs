@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
-    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -164,13 +163,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         // This method updates local state and should be called only after acquiring twinLock
         async Task RefreshTwinAsync()
         {
+            Events.TwinRefreshStart();
+            Option<Twin> twinOption = await this.GetTwinFromIoTHub();
+
+            await twinOption.ForEachAsync(
+                async twin =>
+                {
+                    try
+                    {
+                        this.desiredProperties = Option.Some(twin.Properties.Desired);
+                        this.reportedProperties = Option.Some(twin.Properties.Reported);
+                        await this.UpdateDeploymentConfig(twin.Properties.Desired);
+                        Events.TwinRefreshSuccess();
+                    }
+                    catch (Exception ex) when (!ex.IsFatal())
+                    {
+                        this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(this.desiredProperties.Map(d => d.Version).GetOrElse(0), ex));
+                        Events.TwinRefreshError(ex);
+                    }
+                });
+        }
+
+        async Task<Option<Twin>> GetTwinFromIoTHub()
+        {
             try
             {
-                Events.TwinRefreshStart();
-
-                Events.GettingModuleClient();
-                IModuleClient moduleClient = await this.moduleConnection.GetOrCreateModuleClient();
-                Events.GotModuleClient();
+                async Task<Twin> GetTwinFunc()
+                {
+                    Events.GettingModuleClient();
+                    IModuleClient moduleClient = await this.moduleConnection.GetOrCreateModuleClient();
+                    Events.GotModuleClient();
+                    return await moduleClient.GetTwinAsync();
+                }
 
                 // if GetTwinAsync fails its possible that it might be due to transient network errors or because
                 // we are getting throttled by IoT Hub; if we didn't attempt a retry then this object would be
@@ -179,18 +203,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 // recover from this situation
                 var retryPolicy = new RetryPolicy(AllButFatalErrorDetectionStrategy, this.retryStrategy);
                 retryPolicy.Retrying += (_, args) => Events.RetryingGetTwin(args);
-                Twin twin = await retryPolicy.ExecuteAsync(moduleClient.GetTwinAsync);
-
+                Twin twin = await retryPolicy.ExecuteAsync(GetTwinFunc);
                 Events.GotTwin(twin);
-                this.desiredProperties = Option.Some(twin.Properties.Desired);
-                this.reportedProperties = Option.Some(twin.Properties.Reported);
-                await this.UpdateDeploymentConfig(twin.Properties.Desired);
-                Events.TwinRefreshSuccess();
+                return Option.Some(twin);
             }
-            catch (Exception ex) when (!ex.IsFatal())
+            catch (Exception e)
             {
-                this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(this.desiredProperties.Map(d => d.Version).GetOrElse(0), ex));
-                Events.TwinRefreshError(ex);
+                Events.ErrorGettingTwin(e);
+                return Option.None<Twin>();
             }
         }
 
@@ -342,6 +362,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             public static void GotModuleClient()
             {
                 Log.LogDebug((int)EventIds.GotModuleClient, "Got module client to refresh the twin");
+            }
+
+            public static void ErrorGettingTwin(Exception e)
+            {
+                Log.LogWarning((int)EventIds.RetryingGetTwin, e, "Error getting edge agent twin from IoTHub");
             }
 
             internal static void DesiredPropertiesUpdated()

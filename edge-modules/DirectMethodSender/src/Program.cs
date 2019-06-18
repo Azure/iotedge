@@ -41,7 +41,7 @@ namespace DirectMethodSender
                 ModuleUtil.DefaultTransientRetryStrategy,
                 Logger);
 
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
             await CallDirectMethod(moduleClient, dmDelay, targetDeviceId, targetModuleId, cts);
             await moduleClient.CloseAsync();

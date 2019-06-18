@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use failure::ResultExt;
+use futures::future::Either;
 use futures::{future, Future, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
@@ -11,7 +12,7 @@ use serde::Serialize;
 use serde_json;
 use url::form_urlencoded::parse as parse_query;
 
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus};
+use edgelet_core::{ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime, ModuleStatus};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 
@@ -77,13 +78,29 @@ where
             })
             .and_then(|(core_spec, spec, name, runtime)| {
                 debug!("Removed existing module {}", name);
-                runtime.registry().pull(core_spec.config()).then(|result| {
-                    result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
-                    Ok((core_spec, spec, name, runtime))
-                })
+
+                match core_spec.image_pull_policy() {
+                    ImagePullPolicy::OnCreate => {
+                        Either::A(runtime.registry().pull(core_spec.config()).then(|result| {
+                            result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                            Ok((core_spec, spec, name, runtime, true))
+                        }))
+                    }
+                    ImagePullPolicy::Never => {
+                        Either::B(futures::future::ok((core_spec, spec, name, runtime, false)))
+                    }
+                }
             })
-            .and_then(|(core_spec, spec, name, runtime)| {
-                debug!("Successfully pulled new image for module {}", name);
+            .and_then(|(core_spec, spec, name, runtime, image_pulled)| {
+                if image_pulled {
+                    debug!("Successfully pulled new image for module {}", name)
+                } else {
+                    debug!(
+                        "Skipped pulling image for module {} as per pull policy",
+                        name
+                    )
+                }
+
                 runtime.create(core_spec).then(|result| {
                     result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
                     Ok((name, spec, runtime))
@@ -190,7 +207,8 @@ mod tests {
     fn success_start() {
         let handler = UpdateModule::new(RUNTIME.clone());
         let config = Config::new(json!({"image":"microsoft/test-image"}));
-        let spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        spec.set_image_pull_policy("on-create".to_string());
         let request = Request::put("http://localhost/modules/test-module?start")
             .body(serde_json::to_string(&spec).unwrap().into())
             .unwrap();
@@ -306,6 +324,33 @@ mod tests {
                     "Request body is malformed\n\tcaused by: missing field `image`",
                     error.message()
                 );
+                Ok(())
+            })
+            .wait()
+            .unwrap();
+    }
+
+    #[test]
+    fn bad_image_pull_policy() {
+        let handler = UpdateModule::new(RUNTIME.clone());
+        let config = Config::new(json!({"image":"microsoft/test-image"}));
+        let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        spec.set_image_pull_policy("what".to_string());
+        let request = Request::put("http://localhost/modules/test-module")
+            .body(serde_json::to_string(&spec).unwrap().into())
+            .unwrap();
+
+        // act
+        let response = handler.handle(request, Parameters::new()).wait().unwrap();
+
+        // assert
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
+        response
+            .into_body()
+            .concat2()
+            .and_then(|b| {
+                let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
+                assert_eq!("Request body is malformed\n\tcaused by: Invalid image pull policy configuration \"what\"", error.message());
                 Ok(())
             })
             .wait()
