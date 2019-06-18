@@ -13,15 +13,21 @@ function Get-Rocksdb
             Throw "Failed to clone vcpkg repo with exit code $LastExitCode"
         }
     }
+
+    # checkout the specific commit for ports\rocksdb that matches the rocksdbsharp being used
+    # bb1bb1c94a72b891883efa6522791620ef3bbc0f maps to 5.17.2
+    # https://github.com/microsoft/vcpkg/commit/bb1bb1c94a72b891883efa6522791620ef3bbc0f#diff-87525ccf58925648e3f92fec94d01d70
     
-    if(!(Test-Path -Path $env:HOMEDRIVE\vcpkg\vcpkg.exe))
-    {        
-        Write-Host "bootstrap-vcpkg.bat"
-        & "$env:HOMEDRIVE\vcpkg\bootstrap-vcpkg.bat"
-        if ($LastExitCode)
-        {
-            Throw "Failed to bootstrap vcpkg with exit code $LastExitCode"
-        }
+    push-location $env:HOMEDRIVE\vcpkg
+    git pull
+    git checkout bb1bb1c94a72b891883efa6522791620ef3bbc0f ports\rocksdb
+    pop-location    
+     
+    Write-Host "always rerun bootstrap-vcpkg.bat"
+    & "$env:HOMEDRIVE\vcpkg\bootstrap-vcpkg.bat"
+    if ($LastExitCode)
+    {
+        Throw "Failed to bootstrap vcpkg with exit code $LastExitCode"
     }
         
     Write-Host "vcpkg.exe integrate install"
@@ -30,14 +36,6 @@ function Get-Rocksdb
     {
         Throw "Failed to install vcpkg with exit code $LastExitCode"
     }
-
-    # checkout the specific commit for ports\rocksdb that matches the rocksdbsharp being used
-    # bb1bb1c94a72b891883efa6522791620ef3bbc0f maps to 5.17.2
-    # https://github.com/microsoft/vcpkg/commit/bb1bb1c94a72b891883efa6522791620ef3bbc0f#diff-87525ccf58925648e3f92fec94d01d70
-    
-    push-location $env:HOMEDRIVE\vcpkg    
-    git checkout bb1bb1c94a72b891883efa6522791620ef3bbc0f ports\rocksdb
-    pop-location
     
     & $env:HOMEDRIVE\vcpkg\vcpkg.exe install rocksdb:arm-windows
     if ($LastExitCode)
