@@ -124,8 +124,7 @@ impl PemCertificate {
     }
 
     pub fn get_identity(&self) -> Result<Identity, Error> {
-        let mut certs =
-            X509::stack_from_pem(&self.cert).context(ErrorKind::IdentityCertificate)?;
+        let mut certs = X509::stack_from_pem(&self.cert).context(ErrorKind::IdentityCertificate)?;
 
         // the first cert is the identity cert and the other certs are part of the CA
         // chain; we skip the server cert and build an OpenSSL cert stack with the

@@ -53,12 +53,10 @@ impl Config {
         } else {
             let mut builder = TlsConnector::builder();
             if let Some(bundle) = &self.trust_bundle {
-                let certs = X509::stack_from_pem(&bundle.cert)
-                    .context(ErrorKind::TrustBundle)?;
+                let certs = X509::stack_from_pem(&bundle.cert).context(ErrorKind::TrustBundle)?;
                 for cert in certs {
                     let der = cert.to_der().context(ErrorKind::TrustBundle)?;
-                    let c = TlsCertificate::from_der(&der)
-                        .context(ErrorKind::TrustBundle)?;
+                    let c = TlsCertificate::from_der(&der).context(ErrorKind::TrustBundle)?;
                     builder.add_root_certificate(c);
                 }
             }
