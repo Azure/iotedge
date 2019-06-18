@@ -307,18 +307,12 @@ fn spec_to_podspec<R: KubeRuntimeData>(
             name: auth_to_pull_secret_name(auth),
         }])
     });
-    // service account
-    let service_account_name = if EDGE_EDGE_AGENT_NAME == module_label_value {
-        Some(runtime.service_account_name().to_string())
-    } else {
-        None // todo specify module_label_value service-account for other modules
-    };
 
     Ok(api_core::PodSpec {
         containers: vec![
             // module
             api_core::Container {
-                name: module_label_value,
+                name: module_label_value.clone(),
                 env: Some(env_vars.clone()),
                 image: Some(module_image),
                 image_pull_policy: Some(runtime.image_pull_policy().to_string()),
@@ -337,7 +331,7 @@ fn spec_to_podspec<R: KubeRuntimeData>(
             },
         ],
         image_pull_secrets,
-        service_account_name,
+        service_account_name: Some(module_label_value),
         volumes: Some(volumes),
         ..api_core::PodSpec::default()
     })
@@ -522,7 +516,6 @@ mod tests {
         proxy_config_path: String,
         proxy_config_map_name: String,
         image_pull_policy: String,
-        service_account_name: String,
         workload_uri: Url,
         management_uri: Url,
     }
@@ -538,7 +531,6 @@ mod tests {
             proxy_config_path: String,
             proxy_config_map_name: String,
             image_pull_policy: String,
-            service_account_name: String,
             workload_uri: Url,
             management_uri: Url,
         ) -> KubeRuntimeTest {
@@ -552,7 +544,6 @@ mod tests {
                 proxy_config_path,
                 proxy_config_map_name,
                 image_pull_policy,
-                service_account_name,
                 workload_uri,
                 management_uri,
             }
@@ -586,9 +577,6 @@ mod tests {
         }
         fn image_pull_policy(&self) -> &str {
             &self.image_pull_policy
-        }
-        fn service_account_name(&self) -> &str {
-            &self.service_account_name
         }
         fn workload_uri(&self) -> &Url {
             &self.workload_uri
@@ -685,7 +673,6 @@ mod tests {
             String::from("/etc/traefik"),
             String::from("device1-iotedged-proxy-config"),
             String::from("OnCreate"),
-            String::from("iotedge"),
             Url::parse("http://localhost:35000").unwrap(),
             Url::parse("http://localhost:35001").unwrap(),
         );
@@ -739,7 +726,7 @@ mod tests {
                     assert_eq!(proxy.image.as_ref().unwrap(), "proxy:latest");
                     assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "OnCreate");
                 }
-                assert_eq!(podspec.service_account_name.as_ref().unwrap(), "iotedge");
+                assert_eq!(podspec.service_account_name.as_ref().unwrap(), "edgeagent");
                 assert!(podspec.image_pull_secrets.is_some());
                 // 4 bind mounts, 2 volume mounts, 1 proxy configmap
                 assert_eq!(podspec.volumes.as_ref().map(Vec::len).unwrap(), 7);
@@ -804,7 +791,6 @@ mod tests {
             String::from("/etc/traefik"),
             String::from("device1-iotedged-proxy-config"),
             String::from("IfNotPresent"),
-            String::from("iotedge"),
             Url::parse("http://localhost:35000").unwrap(),
             Url::parse("http://localhost:35001").unwrap(),
         );
@@ -846,7 +832,6 @@ mod tests {
             String::from("/etc/traefik"),
             String::from("device1-iotedged-proxy-config"),
             String::from("IfNotPresent"),
-            String::from("iotedge"),
             Url::parse("http://localhost:35000").unwrap(),
             Url::parse("http://localhost:35001").unwrap(),
         );

@@ -38,7 +38,6 @@ pub struct KubeModuleRuntime<T, S> {
     proxy_config_path: String,
     proxy_config_map_name: String,
     image_pull_policy: String,
-    service_account_name: String,
     workload_uri: Url,
     management_uri: Url,
     device_hub_selector: String,
@@ -54,7 +53,6 @@ pub trait KubeRuntimeData {
     fn proxy_config_path(&self) -> &str;
     fn proxy_config_map_name(&self) -> &str;
     fn image_pull_policy(&self) -> &str;
-    fn service_account_name(&self) -> &str;
     fn workload_uri(&self) -> &Url;
     fn management_uri(&self) -> &Url;
 }
@@ -81,7 +79,6 @@ impl<T, S> Clone for KubeModuleRuntime<T, S> {
             proxy_config_path: self.proxy_config_path.clone(),
             proxy_config_map_name: self.proxy_config_map_name.clone(),
             image_pull_policy: self.image_pull_policy.clone(),
-            service_account_name: self.service_account_name.clone(),
             workload_uri: self.workload_uri.clone(),
             management_uri: self.management_uri.clone(),
             device_hub_selector: self.device_hub_selector.clone(),
@@ -117,9 +114,6 @@ impl<T, S> KubeRuntimeData for KubeModuleRuntime<T, S> {
     fn image_pull_policy(&self) -> &str {
         &self.image_pull_policy
     }
-    fn service_account_name(&self) -> &str {
-        &self.service_account_name
-    }
     fn workload_uri(&self) -> &Url {
         &self.workload_uri
     }
@@ -140,7 +134,6 @@ impl<T, S> KubeModuleRuntime<T, S> {
         proxy_config_path: String,
         proxy_config_map_name: String,
         image_pull_policy: String,
-        service_account_name: String,
         workload_uri: Url,
         management_uri: Url,
     ) -> Result<Self> {
@@ -180,12 +173,6 @@ impl<T, S> KubeModuleRuntime<T, S> {
                 image_pull_policy.clone(),
             )
         })?;
-        ensure_not_empty_with_context(&service_account_name, || {
-            ErrorKind::InvalidRunTimeParameter(
-                String::from("service_account_name"),
-                service_account_name.clone(),
-            )
-        })?;
         let device_hub_selector = format!(
             "{}={},{}={}",
             EDGE_DEVICE_LABEL,
@@ -205,7 +192,6 @@ impl<T, S> KubeModuleRuntime<T, S> {
             proxy_config_path,
             proxy_config_map_name,
             image_pull_policy,
-            service_account_name,
             workload_uri,
             management_uri,
             device_hub_selector,
@@ -544,7 +530,6 @@ mod tests {
         let proxy_config_path = String::from("proxy-confg-path");
         let proxy_config_map_name = String::from("config-volume");
         let image_pull_policy = String::from("OnCreate");
-        let service_account_name = String::from("iotedge");
         let workload_uri = Url::from_str("http://localhost:35000").unwrap();
         let management_uri = Url::from_str("http://localhost:35001").unwrap();
 
@@ -559,7 +544,6 @@ mod tests {
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
             image_pull_policy.clone(),
-            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );
@@ -577,7 +561,6 @@ mod tests {
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
             image_pull_policy.clone(),
-            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );
@@ -594,7 +577,6 @@ mod tests {
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
             image_pull_policy.clone(),
-            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );
@@ -611,7 +593,6 @@ mod tests {
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
             image_pull_policy.clone(),
-            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );
@@ -628,7 +609,6 @@ mod tests {
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
             image_pull_policy.clone(),
-            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );
@@ -645,7 +625,6 @@ mod tests {
             String::default(),
             proxy_config_map_name.clone(),
             image_pull_policy.clone(),
-            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );
@@ -662,7 +641,6 @@ mod tests {
             proxy_config_path.clone(),
             String::default(),
             image_pull_policy.clone(),
-            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );
@@ -678,24 +656,6 @@ mod tests {
             proxy_image.clone(),
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
-            String::default(),
-            service_account_name.clone(),
-            workload_uri.clone(),
-            management_uri.clone(),
-        );
-        assert!(result.is_err());
-
-        let result = KubeModuleRuntime::new(
-            KubeClient::new(get_config()),
-            namespace.clone(),
-            true,
-            iot_hub_hostname.clone(),
-            device_id.clone(),
-            edge_hostname.clone(),
-            proxy_image.clone(),
-            proxy_config_path.clone(),
-            proxy_config_map_name.clone(),
-            image_pull_policy.clone(),
             String::default(),
             workload_uri.clone(),
             management_uri.clone(),
@@ -713,7 +673,6 @@ mod tests {
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
             image_pull_policy.clone(),
-            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );

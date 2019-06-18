@@ -12,6 +12,7 @@ use edgelet_docker::DockerConfig;
 use edgelet_utils::{ensure_not_empty_with_context, log_failure, sanitize_dns_label};
 use kube_client::{Client as KubeClient, Error as KubeClientError, TokenSource};
 
+use crate::constants::EDGE_EDGE_AGENT_NAME;
 use crate::convert::{
     auth_to_image_pull_secret, pod_to_module, spec_to_deployment, spec_to_role_binding,
     spec_to_service_account,
@@ -74,7 +75,7 @@ impl CreateModule {
     fn create_or_update_role_binding<T, S>(
         runtime: KubeModuleRuntime<T, S>,
         module: ModuleSpec<DockerConfig>,
-    ) -> Box<dyn Future<Item = (), Error = Error> + Send>
+    ) -> impl Future<Item = (), Error = Error>
     where
         T: TokenSource + Send + 'static,
         S: Send + Service + 'static,
@@ -87,56 +88,70 @@ impl CreateModule {
         let f = spec_to_role_binding(&runtime, &module)
             .map_err(Error::from)
             .map(|new_role_binding| {
-                let client_copy = runtime.client().clone();
-                let namespace_copy = runtime.namespace().to_owned();
-                runtime
-                    .client()
-                    .lock()
-                    .expect("Expected lock error")
-                    .borrow_mut()
-                    .list_role_binding(
-                        runtime.namespace(),
-                        Some(module.name()),
-                        Some(runtime.device_hub_selector()),
+                // create new role only for edge agent
+                if new_role_binding.metadata.as_ref().unwrap().name
+                    == Some(EDGE_EDGE_AGENT_NAME.to_owned())
+                {
+                    let client_copy = runtime.client().clone();
+                    let namespace_copy = runtime.namespace().to_owned();
+                    Either::A(
+                        runtime
+                            .client()
+                            .lock()
+                            .expect("Expected lock error")
+                            .borrow_mut()
+                            .list_role_binding(
+                                runtime.namespace(),
+                                Some(module.name()),
+                                Some(runtime.device_hub_selector()),
+                            )
+                            .map_err(Error::from)
+                            .and_then(move |role_binding| {
+                                if let Some(role_binding) =
+                                    role_binding.items.into_iter().find(|role_binding| {
+                                        role_binding.metadata.as_ref().map_or(false, |meta| {
+                                            meta.name
+                                                .as_ref()
+                                                .map_or(false, |n| *n == module.name())
+                                        })
+                                    })
+                                {
+                                    // found role binding, if the role binding doesn't match, replace it
+                                    if role_binding == new_role_binding {
+                                        Either::A(Either::A(future::ok(())))
+                                    } else {
+                                        let fut = client_copy
+                                            .lock()
+                                            .expect("Unexpected lock error")
+                                            .borrow_mut()
+                                            .replace_role_binding(
+                                                &namespace_copy,
+                                                module.name(),
+                                                &new_role_binding,
+                                            )
+                                            .map_err(Error::from)
+                                            .map(|_| ());
+                                        Either::A(Either::B(fut))
+                                    }
+                                } else {
+                                    // not found - create it
+                                    let fut = client_copy
+                                        .lock()
+                                        .expect("Unexpected lock error")
+                                        .borrow_mut()
+                                        .create_role_binding(
+                                            namespace_copy.as_str(),
+                                            &new_role_binding,
+                                        )
+                                        .map_err(Error::from)
+                                        .map(|_| ());
+                                    Either::B(fut)
+                                }
+                            }),
                     )
-                    .map_err(Error::from)
-                    .and_then(move |role_binding| {
-                        if let Some(role_binding) =
-                            role_binding.items.into_iter().find(|role_binding| {
-                                role_binding.metadata.as_ref().map_or(false, |meta| {
-                                    meta.name.as_ref().map_or(false, |n| *n == module.name())
-                                })
-                            })
-                        {
-                            // found role binding, if the role binding doesn't match, replace it
-                            if role_binding == new_role_binding {
-                                Either::A(Either::A(future::ok(())))
-                            } else {
-                                let fut = client_copy
-                                    .lock()
-                                    .expect("Unexpected lock error")
-                                    .borrow_mut()
-                                    .replace_role_binding(
-                                        &namespace_copy,
-                                        module.name(),
-                                        &new_role_binding,
-                                    )
-                                    .map_err(Error::from)
-                                    .map(|_| ());
-                                Either::A(Either::B(fut))
-                            }
-                        } else {
-                            // not found - create it
-                            let fut = client_copy
-                                .lock()
-                                .expect("Unexpected lock error")
-                                .borrow_mut()
-                                .create_role_binding(namespace_copy.as_str(), &new_role_binding)
-                                .map_err(Error::from)
-                                .map(|_| ());
-                            Either::B(fut)
-                        }
-                    })
+                } else {
+                    Either::B(future::ok(()))
+                }
             })
             .into_future()
             .flatten();
@@ -147,7 +162,7 @@ impl CreateModule {
     fn create_or_update_service_account<T, S>(
         runtime: KubeModuleRuntime<T, S>,
         module: ModuleSpec<DockerConfig>,
-    ) -> Box<dyn Future<Item = (), Error = Error> + Send>
+    ) -> impl Future<Item = (), Error = Error>
     where
         T: TokenSource + Send + 'static,
         S: Send + Service + 'static,
@@ -199,6 +214,7 @@ impl CreateModule {
                                 Either::A(Either::B(fut))
                             }
                         } else {
+                            println!("not found");
                             // not found - create it
                             let fut = client_copy
                                 .lock()
@@ -223,7 +239,7 @@ impl CreateModule {
     fn create_or_update_deployment<T, S>(
         runtime: KubeModuleRuntime<T, S>,
         module: ModuleSpec<DockerConfig>,
-    ) -> Box<dyn Future<Item = (), Error = Error> + Send>
+    ) -> impl Future<Item = (), Error = Error>
     where
         T: TokenSource + Send + 'static,
         S: Send + Service + 'static,
