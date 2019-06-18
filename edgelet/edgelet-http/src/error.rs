@@ -108,7 +108,7 @@ pub enum ErrorKind {
     #[fail(display = "Token source error")]
     TokenSource,
 
-    #[fail(display = "Trust bundle usage error")]
+    #[fail(display = "Could not parse trust bundle")]
     TrustBundle,
 
     #[fail(
