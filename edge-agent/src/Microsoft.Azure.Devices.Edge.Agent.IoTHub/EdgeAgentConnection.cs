@@ -207,7 +207,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 Events.GotTwin(twin);
                 return Option.Some(twin);
             }
-            catch (Exception e)
+            catch (Exception e) when (!e.IsFatal())
             {
                 Events.ErrorGettingTwin(e);
                 return Option.None<Twin>();
