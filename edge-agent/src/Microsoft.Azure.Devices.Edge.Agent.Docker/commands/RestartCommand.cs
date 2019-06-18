@@ -11,20 +11,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     public class RestartCommand : ICommand
     {
         readonly IDockerClient client;
-        readonly IRuntimeModule module;
+        readonly string id;
 
-        public RestartCommand(IDockerClient client, IRuntimeModule module)
+        public RestartCommand(IDockerClient client, string id)
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));
-            this.module = Preconditions.CheckNotNull(module, nameof(module));
+            this.id = Preconditions.CheckNonWhiteSpace(id, nameof(id));
         }
 
-        public string Id => $"RestartCommand({this.module.Name})";
+        public string Id => $"RestartCommand({this.id})";
 
-        public Task ExecuteAsync(CancellationToken token) => this.client.Containers.RestartContainerAsync(this.module.Name, new ContainerRestartParameters(), token);
+        public Task ExecuteAsync(CancellationToken token) => this.client.Containers.RestartContainerAsync(this.id, new ContainerRestartParameters(), token);
 
         public Task UndoAsync(CancellationToken token) => Task.CompletedTask;
 
-        public string Show() => $"docker restart {this.module.Name} [Restart attempt #{this.module.RestartCount + 1}]";
+        public string Show() => $"docker restart {this.id}";
     }
 }

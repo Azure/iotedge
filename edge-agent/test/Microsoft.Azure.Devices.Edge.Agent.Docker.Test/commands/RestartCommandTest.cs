@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             dockerClient.SetupGet(c => c.Containers).Returns(containerOperations.Object);
 
             // Act
-            var command = new RestartCommand(dockerClient.Object, module.Object);
+            var command = new RestartCommand(dockerClient.Object, ModuleName);
             await command.ExecuteAsync(CancellationToken.None);
 
             // Assert

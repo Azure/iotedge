@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             ICommand removeCommand = await nf.RemoveAsync(nm);
             ICommand startCommand = await nf.StartAsync(nm);
             ICommand stopCommand = await nf.StopAsync(nm);
-            ICommand restartCommand = await nf.RestartAsync(nm);
+            ICommand restartCommand = await nf.RestartAsync(nm.Name);
             ICommand wrapCommand = await nf.WrapAsync(createCommand);
 
             Assert.Equal(NullCommand.Instance, createCommand);

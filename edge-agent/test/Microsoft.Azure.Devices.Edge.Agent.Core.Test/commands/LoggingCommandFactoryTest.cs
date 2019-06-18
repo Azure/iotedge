@@ -233,9 +233,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
                 ),
 
                 (
-                    f => f.RestartAsync(TestModule),
-                    NullCommandFactory.Instance.RestartAsync(TestModule),
-                    factory => factory.RestartAsync(TestModule)
+                    f => f.RestartAsync(TestModule.Name),
+                    NullCommandFactory.Instance.RestartAsync(TestModule.Name),
+                    factory => factory.RestartAsync(TestModule.Name)
                 ),
                 (
                     f => f.WrapAsync(WrapTargetCommand),

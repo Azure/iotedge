@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public Task<ICommand> StopAsync(IModule module) => Task.FromResult(new StopCommand(this.moduleManager, module) as ICommand);
 
-        public Task<ICommand> RestartAsync(IModule module) => Task.FromResult(new RestartCommand(this.moduleManager, module) as ICommand);
+        public Task<ICommand> RestartAsync(string id) => Task.FromResult(new RestartCommand(this.moduleManager, id) as ICommand);
 
         public Task<ICommand> WrapAsync(ICommand command) => Task.FromResult(command);
 

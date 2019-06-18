@@ -8,21 +8,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 
     public class RestartCommand : ICommand
     {
-        readonly IModule module;
+        readonly string id;
         readonly IModuleManager moduleManager;
 
-        public RestartCommand(IModuleManager moduleManager, IModule module)
+        public RestartCommand(IModuleManager moduleManager, string id)
         {
             this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
-            this.module = Preconditions.CheckNotNull(module, nameof(module));
+            this.id = Preconditions.CheckNonWhiteSpace(id, nameof(id));
         }
 
-        public string Id => $"RestartCommand({this.module.Name})";
+        public string Id => $"RestartCommand({this.id})";
 
-        public Task ExecuteAsync(CancellationToken token) => this.moduleManager.RestartModuleAsync(this.module.Name);
+        public Task ExecuteAsync(CancellationToken token) => this.moduleManager.RestartModuleAsync(this.id);
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 
-        public string Show() => $"Restart module {this.module.Name}";
+        public string Show() => $"Restart module {this.id}";
     }
 }
