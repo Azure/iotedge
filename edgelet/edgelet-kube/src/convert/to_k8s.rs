@@ -346,10 +346,8 @@ pub fn spec_to_deployment<R: KubeRuntimeData>(
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value = sanitize_dns_value(runtime.device_id())?;
     let hubname_label = sanitize_dns_value(runtime.iot_hub_hostname())?;
-    let deployment_name = format!(
-        "{}-{}-{}",
-        &module_label_value, &device_label_value, &hubname_label
-    );
+
+    let deployment_name = module_label_value.clone();
     let module_image = spec.config().image().to_string();
 
     // Populate some labels:
@@ -407,7 +405,7 @@ pub fn spec_to_deployment<R: KubeRuntimeData>(
 pub fn spec_to_service_account<R: KubeRuntimeData>(
     runtime: &R,
     spec: &ModuleSpec<DockerConfig>,
-) -> Result<api_core::ServiceAccount> {
+) -> Result<(String, api_core::ServiceAccount)> {
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value = sanitize_dns_value(runtime.device_id())?;
     let hubname_label = sanitize_dns_value(runtime.iot_hub_hostname())?;
@@ -426,7 +424,7 @@ pub fn spec_to_service_account<R: KubeRuntimeData>(
 
     let service_account = api_core::ServiceAccount {
         metadata: Some(api_meta::ObjectMeta {
-            name: Some(service_account_name),
+            name: Some(service_account_name.clone()),
             namespace: Some(runtime.namespace().to_string()),
             labels: Some(labels),
             annotations: Some(annotations),
@@ -435,13 +433,13 @@ pub fn spec_to_service_account<R: KubeRuntimeData>(
         ..api_core::ServiceAccount::default()
     };
 
-    Ok(service_account)
+    Ok((service_account_name, service_account))
 }
 
 pub fn spec_to_role_binding<R: KubeRuntimeData>(
     runtime: &R,
     spec: &ModuleSpec<DockerConfig>,
-) -> Result<rbac::ClusterRoleBinding> {
+) -> Result<(String, rbac::ClusterRoleBinding)> {
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value = sanitize_dns_value(runtime.device_id())?;
     let hubname_label = sanitize_dns_value(runtime.iot_hub_hostname())?;
@@ -460,7 +458,7 @@ pub fn spec_to_role_binding<R: KubeRuntimeData>(
 
     let role_binding = rbac::ClusterRoleBinding {
         metadata: Some(api_meta::ObjectMeta {
-            name: Some(role_binding_name),
+            name: Some(role_binding_name.clone()),
             namespace: Some(runtime.namespace().to_string()),
             labels: Some(labels),
             annotations: Some(annotations),
@@ -479,7 +477,7 @@ pub fn spec_to_role_binding<R: KubeRuntimeData>(
         }],
     };
 
-    Ok(role_binding)
+    Ok((role_binding_name, role_binding))
 }
 
 #[cfg(test)]
@@ -644,18 +642,17 @@ mod tests {
         iothub: &str,
         meta: Option<&api_meta::ObjectMeta>,
     ) {
-        let name = format!("{}-{}-{}", module, device, iothub);
         assert!(meta.is_some());
         if let Some(meta) = meta {
-            assert_eq!(meta.name, Some(name));
+            assert_eq!(meta.name, Some(module.to_string()));
             assert!(meta.labels.is_some());
             if let Some(labels) = meta.labels.as_ref() {
                 assert_eq!(
                     labels.get(constants::EDGE_MODULE_LABEL).unwrap(),
                     "edgeagent"
                 );
-                assert_eq!(labels.get(constants::EDGE_DEVICE_LABEL).unwrap(), "device1");
-                assert_eq!(labels.get(constants::EDGE_HUBNAME_LABEL).unwrap(), "iothub");
+                assert_eq!(labels.get(constants::EDGE_DEVICE_LABEL).unwrap(), device);
+                assert_eq!(labels.get(constants::EDGE_HUBNAME_LABEL).unwrap(), iothub);
             }
         }
     }
@@ -679,7 +676,7 @@ mod tests {
         let module_config = create_module_spec();
 
         let (name, deployment) = spec_to_deployment(&runtime, &module_config).unwrap();
-        assert_eq!(name, "edgeagent-device1-iothub");
+        assert_eq!(name, "edgeagent");
         validate_deployment_metadata(
             "edgeagent",
             "device1",
@@ -797,7 +794,8 @@ mod tests {
 
         let module = create_module_spec();
 
-        let service_account = spec_to_service_account(&runtime, &module).unwrap();
+        let (name, service_account) = spec_to_service_account(&runtime, &module).unwrap();
+        assert_eq!(name, "edgeagent");
 
         assert!(service_account.metadata.is_some());
         if let Some(metadata) = service_account.metadata {
@@ -838,8 +836,8 @@ mod tests {
 
         let module = create_module_spec();
 
-        let role_binding = spec_to_role_binding(&runtime, &module).unwrap();
-
+        let (name, role_binding) = spec_to_role_binding(&runtime, &module).unwrap();
+        assert_eq!(name, "edgeagent");
         assert!(role_binding.metadata.is_some());
         if let Some(metadata) = role_binding.metadata {
             assert_eq!(metadata.name, Some("edgeagent".to_string()));

@@ -359,21 +359,15 @@ fn make_token_review_handler(
 }
 
 #[test]
-fn create_module() {
+fn create_creates_or_updates_service_account_role_binding_deployment_for_edgeagent() {
     let port = get_unused_tcp_port();
 
     let runtime = create_runtime(&format!("http://localhost:{}", port));
-    let module = create_module_spec();
+    let module = create_module_spec("$edgeAgent");
 
     let dispatch_table = routes!(
-        GET format!("/api/v1/namespaces/{}/serviceaccounts", runtime.namespace()) => empty_list_service_accounts_handler(),
-        POST format!("/api/v1/namespaces/{}/serviceaccounts", runtime.namespace()) => create_service_account_handler(),
         PUT format!("/api/v1/namespaces/{}/serviceaccounts/{}", runtime.namespace(), EDGE_EDGE_AGENT_NAME) => replace_service_account_handler(),
-        GET format!("/apis/rbac.authorization.k8s.io/v1/clusterrolebindings") => empty_list_role_binding_handler(),
-        POST format!("/apis/rbac.authorization.k8s.io/v1/clusterrolebindings") => create_role_binding_handler(),
         PUT format!("/apis/rbac.authorization.k8s.io/v1/clusterrolebindings/{}", EDGE_EDGE_AGENT_NAME) => replace_role_binding_handler(),
-        GET format!("/apis/apps/v1/namespaces/{}/deployments", runtime.namespace()) => empty_list_deployments_handler(),
-        POST format!("/apis/apps/v1/namespaces/{}/deployments", runtime.namespace()) => create_deployment_handler(),
         PUT format!("/apis/apps/v1/namespaces/{}/deployments/{}", runtime.namespace(), EDGE_EDGE_AGENT_NAME) => replace_deployment_handler(),
     );
 
@@ -389,112 +383,35 @@ fn create_module() {
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
     runtime.block_on(task).unwrap();
-}
-
-#[test]
-fn create_creates_sa_for_module_if_not_exist() {
-    let port = get_unused_tcp_port();
-
-    let runtime = create_runtime(&format!("http://localhost:{}", port));
-    let module = create_module_spec();
-
-    let dispatch_table = routes!(
-        GET format!("/api/v1/namespaces/{}/serviceaccounts", runtime.namespace()) => empty_list_service_accounts_handler(),
-        POST format!("/api/v1/namespaces/{}/serviceaccounts", runtime.namespace()) => create_service_account_handler(),
-        GET format!("/apis/rbac.authorization.k8s.io/v1/clusterrolebindings") => empty_list_role_binding_handler(),//todo return nonempty
-        POST format!("/apis/rbac.authorization.k8s.io/v1/clusterrolebindings") => create_role_binding_handler(),
-        PUT format!("/apis/rbac.authorization.k8s.io/v1/clusterrolebindings/{}", EDGE_EDGE_AGENT_NAME) => replace_role_binding_handler(),
-        GET format!("/apis/apps/v1/namespaces/{}/deployments", runtime.namespace()) => empty_list_deployments_handler(),//todo return nonempty
-        POST format!("/apis/apps/v1/namespaces/{}/deployments", runtime.namespace()) => create_deployment_handler(),
-        PUT format!("/apis/apps/v1/namespaces/{}/deployments/{}", runtime.namespace(), EDGE_EDGE_AGENT_NAME) => replace_deployment_handler(),
-    );
-
-    let server = run_tcp_server(
-        "127.0.0.1",
-        port,
-        make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
-
-    let task = runtime.create(module);
-
-    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
-    runtime.spawn(server);
-    runtime.block_on(task).unwrap();
-}
-
-#[test]
-fn create_do_not_create_sa_for_module_if_exists() {
-    let port = get_unused_tcp_port();
-
-    let runtime = create_runtime(&format!("http://localhost:{}", port));
-    let module = create_module_spec();
-
-    let dispatch_table = routes!(
-        GET format!("/api/v1/namespaces/{}/serviceaccounts", runtime.namespace()) => list_service_accounts_handler(),
-        GET format!("/apis/rbac.authorization.k8s.io/v1/clusterrolebindings") => empty_list_role_binding_handler(),
-        POST format!("/apis/rbac.authorization.k8s.io/v1/clusterrolebindings") => create_role_binding_handler(),
-        PUT format!("/apis/rbac.authorization.k8s.io/v1/clusterrolebindings/{}", EDGE_EDGE_AGENT_NAME) => replace_role_binding_handler(),
-        GET format!("/apis/apps/v1/namespaces/{}/deployments", runtime.namespace()) => empty_list_deployments_handler(),
-        POST format!("/apis/apps/v1/namespaces/{}/deployments", runtime.namespace()) => create_deployment_handler(),
-        PUT format!("/apis/apps/v1/namespaces/{}/deployments/{}", runtime.namespace(), EDGE_EDGE_AGENT_NAME) => replace_deployment_handler(),
-    );
-
-    let server = run_tcp_server(
-        "127.0.0.1",
-        port,
-        make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
-
-    let task = runtime.create(module);
-
-    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
-    runtime.spawn(server);
-    runtime.block_on(task).unwrap();
-}
-
-#[test]
-fn create_creates_sa_for_module_if_different() {
-    unimplemented!()
-}
-
-#[test]
-fn create_creates_role_binding_for_module_if_not_exist() {
-    unimplemented!()
-}
-
-#[test]
-fn create_do_not_create_role_binding_for_module_if_exists() {
-    unimplemented!()
 }
 
 #[test]
 fn create_do_not_create_role_binding_for_module_that_is_not_edgeagent() {
-    unimplemented!()
+    let port = get_unused_tcp_port();
+
+    let runtime = create_runtime(&format!("http://localhost:{}", port));
+    let module = create_module_spec("temp-sensor");
+
+    let dispatch_table = routes!(
+        PUT format!("/api/v1/namespaces/{}/serviceaccounts/{}", runtime.namespace(), "temp-sensor") => replace_service_account_handler(),
+        PUT format!("/apis/apps/v1/namespaces/{}/deployments/{}", runtime.namespace(), "temp-sensor") => replace_deployment_handler(),
+    );
+
+    let server = run_tcp_server(
+        "127.0.0.1",
+        port,
+        make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
+    )
+    .map_err(|err| eprintln!("{}", err));
+
+    let task = runtime.create(module);
+
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+    runtime.block_on(task).unwrap();
 }
 
-#[test]
-fn create_creates_role_binding_for_module_if_different() {
-    unimplemented!()
-}
-
-#[test]
-fn create_creates_deployment_for_module_if_not_exist() {
-    unimplemented!()
-}
-
-#[test]
-fn create_do_not_create_deployment_for_module_if_exists() {
-    unimplemented!()
-}
-
-#[test]
-fn create_creates_deployment_for_module_if_different() {
-    unimplemented!()
-}
-
-fn create_module_spec() -> ModuleSpec<DockerConfig> {
+fn create_module_spec(name: &str) -> ModuleSpec<DockerConfig> {
     let create_body = ContainerCreateBody::new()
         .with_host_config(
             HostConfig::new()
@@ -532,7 +449,7 @@ fn create_module_spec() -> ModuleSpec<DockerConfig> {
         .with_username(String::from("USERNAME"))
         .with_serveraddress(String::from("REGISTRY"));
     ModuleSpec::new(
-        "$edgeAgent".to_string(),
+        name.to_string(),
         "docker".to_string(),
         DockerConfig::new("my-image:v1.0".to_string(), create_body, Some(auth_config)).unwrap(),
         {
@@ -543,55 +460,6 @@ fn create_module_spec() -> ModuleSpec<DockerConfig> {
         },
     )
     .unwrap()
-}
-
-fn list_service_accounts_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-    move |_| {
-        response(StatusCode::OK, || {
-            json!({
-                "kind": "ServiceAccountList",
-                "apiVersion": "v1",
-                "items": [
-                    {
-                        "metadata": {
-                            "name": "edgeagent",
-                            "namespace": "my-namespace",
-                        },
-                    },
-                ]
-            })
-            .to_string()
-        })
-    }
-}
-
-fn empty_list_service_accounts_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-    move |_| {
-        response(StatusCode::OK, || {
-            json!({
-                "kind": "ServiceAccountList",
-                "apiVersion": "v1",
-                "items": []
-            })
-            .to_string()
-        })
-    }
-}
-
-fn create_service_account_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-    move |_| {
-        response(StatusCode::CREATED, || {
-            json!({
-                "kind": "ServiceAccount",
-                "apiVersion": "v1",
-                "metadata": {
-                    "name": "edgeagent",
-                    "namespace": "my-namespace",
-                }
-            })
-            .to_string()
-        })
-    }
 }
 
 fn replace_service_account_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
@@ -610,22 +478,9 @@ fn replace_service_account_handler() -> impl Fn(Request<Body>) -> ResponseFuture
     }
 }
 
-fn empty_list_role_binding_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+fn replace_role_binding_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
     move |_| {
         response(StatusCode::OK, || {
-            json!({
-                "kind": "ClusterRoleBindingList",
-                "apiVersion": "rbac.authorization.k8s.io/v1",
-                "items": []
-            })
-            .to_string()
-        })
-    }
-}
-
-fn create_role_binding_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-    move |_| {
-        response(StatusCode::CREATED, || {
             json!({
                 "kind": "ClusterRoleBinding",
                 "apiVersion": "rbac.authorization.k8s.io/v1",
@@ -643,51 +498,6 @@ fn create_role_binding_handler() -> impl Fn(Request<Body>) -> ResponseFuture + C
                     "apiGroup": "rbac.authorization.k8s.io",
                     "kind": "ClusterRole",
                     "name": "cluster-admin"
-                }
-            })
-            .to_string()
-        })
-    }
-}
-
-fn replace_role_binding_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-    move |_| {
-        response(StatusCode::OK, || {
-            json!({
-                "kind": "ServiceAccount",
-                "apiVersion": "v1",
-                "metadata": {
-                    "name": "edgeagent",
-                    "namespace": "my-namespace",
-                }
-            })
-            .to_string()
-        })
-    }
-}
-
-fn empty_list_deployments_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-    move |_| {
-        response(StatusCode::OK, || {
-            json!({
-                "kind": "DeploymentList",
-                "apiVersion": "apps/v1",
-                "items": []
-            })
-            .to_string()
-        })
-    }
-}
-
-fn create_deployment_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-    move |_| {
-        response(StatusCode::CREATED, || {
-            json!({
-                "kind": "Deployment",
-                "apiVersion": "apps/v1",
-                "metadata": {
-                    "name": "edgeagent",
-                    "namespace": "my-namespace",
                 }
             })
             .to_string()

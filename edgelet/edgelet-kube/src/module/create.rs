@@ -21,290 +21,139 @@ use crate::error::{Error, Result};
 use crate::runtime::KubeRuntimeData;
 use crate::{KubeModule, KubeModuleRuntime};
 use edgelet_core::ModuleSpec;
+use failure::Fail;
 use hyper::header::HeaderValue;
 
-pub struct CreateModule {
-    inner: Box<dyn Future<Item = (), Error = Error> + Send>,
+pub fn create_module<T, S>(
+    runtime: &KubeModuleRuntime<T, S>,
+    module: &ModuleSpec<DockerConfig>,
+) -> impl Future<Item = (), Error = Error>
+where
+    T: TokenSource + Send + 'static,
+    S: Service + Send + 'static,
+    S::ReqBody: From<Vec<u8>>,
+    S::ResBody: Stream,
+    Body: From<S::ResBody>,
+    S::Error: Into<KubeClientError>,
+    S::Future: Send,
+{
+    let runtime_for_sa = runtime.clone();
+    let module_for_sa = module.clone();
+
+    let runtime_for_deployment = runtime.clone();
+    let module_for_deployment = module.clone();
+
+    let inner = create_or_update_service_account(&runtime, &module)
+        .and_then(move |_| create_or_update_role_binding(&runtime_for_sa, &module_for_sa))
+        .and_then(move |_| {
+            create_or_update_deployment(&runtime_for_deployment, &module_for_deployment)
+        });
+
+    Box::new(inner)
 }
 
-impl Future for CreateModule {
-    type Item = ();
-    type Error = Error;
-
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        self.inner.poll()
-    }
-}
-
-impl CreateModule {
-    pub fn new<T, S>(
-        runtime: KubeModuleRuntime<T, S>,
-        module: ModuleSpec<DockerConfig>,
-    ) -> Box<CreateModule>
-    where
-        T: TokenSource + Send + 'static,
-        S: Service + Send + 'static,
-        S::ReqBody: From<Vec<u8>>,
-        S::ResBody: Stream,
-        Body: From<S::ResBody>,
-        S::Error: Into<KubeClientError>,
-        S::Future: Send,
-    {
-        let runtime_for_sa = runtime.clone();
-        let module_for_sa = module.clone();
-
-        let runtime_for_deployment = runtime.clone();
-        let module_for_deployment = module.clone();
-
-        let inner = CreateModule::create_or_update_service_account(runtime, module)
-            .and_then(|_| {
-                CreateModule::create_or_update_role_binding(runtime_for_sa, module_for_sa)
-            })
-            .and_then(|_| {
-                CreateModule::create_or_update_deployment(
-                    runtime_for_deployment,
-                    module_for_deployment,
-                )
-            });
-
-        Box::new(CreateModule {
-            inner: Box::new(inner),
+fn create_or_update_service_account<T, S>(
+    runtime: &KubeModuleRuntime<T, S>,
+    module: &ModuleSpec<DockerConfig>,
+) -> impl Future<Item = (), Error = Error>
+where
+    T: TokenSource + Send + 'static,
+    S: Send + Service + 'static,
+    S::ReqBody: From<Vec<u8>>,
+    S::ResBody: Stream,
+    Body: From<S::ResBody>,
+    S::Error: Into<KubeClientError>,
+    S::Future: Send,
+{
+    let f = spec_to_service_account(runtime, module)
+        .map_err(Error::from)
+        .map(|(name, new_service_account)| {
+            let namespace = runtime.namespace().to_owned();
+            runtime
+                .client()
+                .lock()
+                .expect("Unexpected lock error")
+                .borrow_mut()
+                .replace_service_account(&namespace, &name, &new_service_account)
+                .map_err(Error::from)
+                .map(|_| ())
         })
-    }
+        .into_future()
+        .flatten();
 
-    fn create_or_update_role_binding<T, S>(
-        runtime: KubeModuleRuntime<T, S>,
-        module: ModuleSpec<DockerConfig>,
-    ) -> impl Future<Item = (), Error = Error>
-    where
-        T: TokenSource + Send + 'static,
-        S: Send + Service + 'static,
-        S::ReqBody: From<Vec<u8>>,
-        S::ResBody: Stream,
-        Body: From<S::ResBody>,
-        S::Error: Into<KubeClientError>,
-        S::Future: Send,
-    {
-        let f = spec_to_role_binding(&runtime, &module)
-            .map_err(Error::from)
-            .map(|new_role_binding| {
-                // create new role only for edge agent
-                if new_role_binding.metadata.as_ref().unwrap().name
-                    == Some(EDGE_EDGE_AGENT_NAME.to_owned())
-                {
-                    let client_copy = runtime.client().clone();
-                    let namespace_copy = runtime.namespace().to_owned();
-                    Either::A(
-                        runtime
-                            .client()
-                            .lock()
-                            .expect("Expected lock error")
-                            .borrow_mut()
-                            .list_role_binding(
-                                runtime.namespace(),
-                                Some(module.name()),
-                                Some(runtime.device_hub_selector()),
-                            )
-                            .map_err(Error::from)
-                            .and_then(move |role_binding| {
-                                if let Some(role_binding) =
-                                    role_binding.items.into_iter().find(|role_binding| {
-                                        role_binding.metadata.as_ref().map_or(false, |meta| {
-                                            meta.name
-                                                .as_ref()
-                                                .map_or(false, |n| *n == module.name())
-                                        })
-                                    })
-                                {
-                                    // found role binding, if the role binding doesn't match, replace it
-                                    if role_binding == new_role_binding {
-                                        Either::A(Either::A(future::ok(())))
-                                    } else {
-                                        let fut = client_copy
-                                            .lock()
-                                            .expect("Unexpected lock error")
-                                            .borrow_mut()
-                                            .replace_role_binding(
-                                                &namespace_copy,
-                                                module.name(),
-                                                &new_role_binding,
-                                            )
-                                            .map_err(Error::from)
-                                            .map(|_| ());
-                                        Either::A(Either::B(fut))
-                                    }
-                                } else {
-                                    // not found - create it
-                                    let fut = client_copy
-                                        .lock()
-                                        .expect("Unexpected lock error")
-                                        .borrow_mut()
-                                        .create_role_binding(
-                                            namespace_copy.as_str(),
-                                            &new_role_binding,
-                                        )
-                                        .map_err(Error::from)
-                                        .map(|_| ());
-                                    Either::B(fut)
-                                }
-                            }),
-                    )
-                } else {
-                    Either::B(future::ok(()))
-                }
-            })
-            .into_future()
-            .flatten();
+    Box::new(f)
+}
 
-        Box::new(f)
-    }
-
-    fn create_or_update_service_account<T, S>(
-        runtime: KubeModuleRuntime<T, S>,
-        module: ModuleSpec<DockerConfig>,
-    ) -> impl Future<Item = (), Error = Error>
-    where
-        T: TokenSource + Send + 'static,
-        S: Send + Service + 'static,
-        S::ReqBody: From<Vec<u8>>,
-        S::ResBody: Stream,
-        Body: From<S::ResBody>,
-        S::Error: Into<KubeClientError>,
-        S::Future: Send,
-    {
-        let f = spec_to_service_account(&runtime, &module)
-            .map_err(Error::from)
-            .map(|new_service_account| {
+fn create_or_update_role_binding<T, S>(
+    runtime: &KubeModuleRuntime<T, S>,
+    module: &ModuleSpec<DockerConfig>,
+) -> impl Future<Item = (), Error = Error>
+where
+    T: TokenSource + Send + 'static,
+    S: Send + Service + 'static,
+    S::ReqBody: From<Vec<u8>>,
+    S::ResBody: Stream,
+    Body: From<S::ResBody>,
+    S::Error: Into<KubeClientError>,
+    S::Future: Send,
+{
+    let f = spec_to_role_binding(runtime, module)
+        .map_err(Error::from)
+        .map(|(name, new_role_binding)| {
+            // create new role only for edge agent
+            if new_role_binding.metadata.as_ref().unwrap().name
+                == Some(EDGE_EDGE_AGENT_NAME.to_owned())
+            {
                 let client_copy = runtime.client().clone();
-                let namespace_copy = runtime.namespace().to_owned();
-                runtime
-                    .client()
-                    .lock()
-                    .expect("Expected lock error")
-                    .borrow_mut()
-                    .list_service_accounts(
-                        runtime.namespace(),
-                        Some(module.name()),
-                        Some(runtime.device_hub_selector()),
-                    )
-                    .map_err(Error::from)
-                    .and_then(move |service_accounts| {
-                        if let Some(current_service_account) =
-                            service_accounts.items.into_iter().find(|service_account| {
-                                service_account.metadata.as_ref().map_or(false, |meta| {
-                                    meta.name.as_ref().map_or(false, |n| *n == module.name())
-                                })
-                            })
-                        {
-                            // found service account, if the service account doesn't match, replace it
-                            if current_service_account == new_service_account {
-                                Either::A(Either::A(future::ok(())))
-                            } else {
-                                let fut = client_copy
-                                    .lock()
-                                    .expect("Unexpected lock error")
-                                    .borrow_mut()
-                                    .replace_service_account(
-                                        &namespace_copy,
-                                        module.name(),
-                                        &new_service_account,
-                                    )
-                                    .map_err(Error::from)
-                                    .map(|_| ());
-                                Either::A(Either::B(fut))
-                            }
-                        } else {
-                            println!("not found");
-                            // not found - create it
-                            let fut = client_copy
-                                .lock()
-                                .expect("Unexpected lock error")
-                                .borrow_mut()
-                                .create_service_account(
-                                    namespace_copy.as_str(),
-                                    &new_service_account,
-                                )
-                                .map_err(Error::from)
-                                .map(|_| ());
-                            Either::B(fut)
-                        }
-                    })
-            })
-            .into_future()
-            .flatten();
+                let namespace = runtime.namespace().to_owned();
+                Either::A(
+                    runtime
+                        .client()
+                        .lock()
+                        .expect("Unexpected lock error")
+                        .borrow_mut()
+                        .replace_role_binding(&namespace, &name, &new_role_binding)
+                        .map_err(Error::from)
+                        .map(|_| ()),
+                )
+            } else {
+                Either::B(future::ok(()))
+            }
+        })
+        .into_future()
+        .flatten();
 
-        Box::new(f)
-    }
+    Box::new(f)
+}
 
-    fn create_or_update_deployment<T, S>(
-        runtime: KubeModuleRuntime<T, S>,
-        module: ModuleSpec<DockerConfig>,
-    ) -> impl Future<Item = (), Error = Error>
-    where
-        T: TokenSource + Send + 'static,
-        S: Send + Service + 'static,
-        S::ReqBody: From<Vec<u8>>,
-        S::ResBody: Stream,
-        Body: From<S::ResBody>,
-        S::Error: Into<KubeClientError>,
-        S::Future: Send,
-    {
-        let f = spec_to_deployment(&runtime, &module)
-            .map_err(Error::from)
-            .map(|(name, new_deployment)| {
-                let client_copy = runtime.client().clone();
-                let namespace_copy = runtime.namespace().to_owned();
-                runtime
-                    .client()
-                    .lock()
-                    .expect("Unexpected lock error")
-                    .borrow_mut()
-                    .list_deployments(
-                        runtime.namespace(),
-                        Some(&name),
-                        Some(&runtime.device_hub_selector()),
-                    )
-                    .map_err(Error::from)
-                    .and_then(move |deployments| {
-                        if let Some(current_deployment) =
-                            deployments.items.into_iter().find(|deployment| {
-                                deployment.metadata.as_ref().map_or(false, |meta| {
-                                    meta.name.as_ref().map_or(false, |n| *n == name)
-                                })
-                            })
-                        {
-                            // found deployment, if the deployment found doesn't match, replace it.
-                            if current_deployment == new_deployment {
-                                Either::A(Either::A(future::ok(())))
-                            } else {
-                                let fut = client_copy
-                                    .lock()
-                                    .expect("Unexpected lock error")
-                                    .borrow_mut()
-                                    .replace_deployment(
-                                        namespace_copy.as_str(),
-                                        name.as_str(),
-                                        &new_deployment,
-                                    )
-                                    .map_err(Error::from)
-                                    .map(|_| ());
-                                Either::A(Either::B(fut))
-                            }
-                        } else {
-                            // Not found - create it.
-                            let fut = client_copy
-                                .lock()
-                                .expect("Unexpected lock error")
-                                .borrow_mut()
-                                .create_deployment(namespace_copy.as_str(), &new_deployment)
-                                .map_err(Error::from)
-                                .map(|_| ());
-                            Either::B(fut)
-                        }
-                    })
-            })
-            .into_future()
-            .flatten();
-        Box::new(f)
-    }
+fn create_or_update_deployment<T, S>(
+    runtime: &KubeModuleRuntime<T, S>,
+    module: &ModuleSpec<DockerConfig>,
+) -> impl Future<Item = (), Error = Error>
+where
+    T: TokenSource + Send + 'static,
+    S: Send + Service + 'static,
+    S::ReqBody: From<Vec<u8>>,
+    S::ResBody: Stream,
+    Body: From<S::ResBody>,
+    S::Error: Into<KubeClientError>,
+    S::Future: Send,
+{
+    let f = spec_to_deployment(runtime, module)
+        .map_err(Error::from)
+        .map(|(name, new_deployment)| {
+            let namespace = runtime.namespace().to_owned();
+            runtime
+                .client()
+                .lock()
+                .expect("Unexpected lock error")
+                .borrow_mut()
+                .replace_deployment(&namespace, &name, &new_deployment)
+                .map_err(Error::from)
+                .map(|_| ())
+        })
+        .into_future()
+        .flatten();
+
+    Box::new(f)
 }

@@ -25,7 +25,7 @@ use kube_client::{Client as KubeClient, Error as KubeClientError, TokenSource};
 use crate::constants::*;
 use crate::convert::{auth_to_image_pull_secret, pod_to_module};
 use crate::error::{Error, ErrorKind, Result};
-use crate::module::{CreateModule, KubeModule};
+use crate::module::{create_module, KubeModule};
 
 pub struct KubeModuleRuntime<T, S> {
     client: Arc<Mutex<RefCell<KubeClient<T, S>>>>,
@@ -71,7 +71,7 @@ impl<T, S> Clone for KubeModuleRuntime<T, S> {
         KubeModuleRuntime {
             client: self.client.clone(),
             namespace: self.namespace.clone(),
-            use_pvc: self.use_pvc.clone(),
+            use_pvc: self.use_pvc,
             iot_hub_hostname: self.iot_hub_hostname.clone(),
             device_id: self.device_id.clone(),
             edge_hostname: self.edge_hostname.clone(),
@@ -304,7 +304,7 @@ where
     type Chunk = Chunk;
     type Logs = Logs;
 
-    type CreateFuture = Box<dyn Future<Item = (), Error = Error> + Send>;
+    type CreateFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type GetFuture =
         Box<dyn Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
     type InitFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
@@ -324,7 +324,7 @@ where
     }
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
-        CreateModule::new(self.clone(), module)
+        Box::new(create_module(self, &module))
     }
 
     fn get(&self, _id: &str) -> Self::GetFuture {

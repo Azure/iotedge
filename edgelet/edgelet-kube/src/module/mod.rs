@@ -2,7 +2,7 @@
 
 mod create;
 
-pub use create::CreateModule;
+pub use create::create_module;
 
 use edgelet_core::{Module, ModuleRuntimeState, ModuleStatus};
 use edgelet_docker::DockerConfig;
