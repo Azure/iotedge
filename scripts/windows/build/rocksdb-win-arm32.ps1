@@ -4,26 +4,31 @@ function Get-Rocksdb
 {
     $ErrorActionPreference = 'Continue'
 
-    if (!((Test-Path -Path $env:HOMEDRIVE\vcpkg) -and ((Test-Path -Path $env:HOMEDRIVE\vcpkg\vcpkg.exe))))
+    if (!(Test-Path -Path $env:HOMEDRIVE\vcpkg))
     {
-        Write-Host "Installing vcpkg from github..."
+        Write-Host "git clone vcpkg"
         git clone https://github.com/Microsoft/vcpkg $env:HOMEDRIVE\vcpkg
         if ($LastExitCode)
         {
             Throw "Failed to clone vcpkg repo with exit code $LastExitCode"
         }
-        Write-Host "Bootstrapping vcpkg..."
+    }
+    
+    if(!(Test-Path -Path $env:HOMEDRIVE\vcpkg\vcpkg.exe))
+    {        
+        Write-Host "bootstrap-vcpkg.bat"
         & "$env:HOMEDRIVE\vcpkg\bootstrap-vcpkg.bat"
         if ($LastExitCode)
         {
             Throw "Failed to bootstrap vcpkg with exit code $LastExitCode"
         }
-        Write-Host "Installing vcpkg..."
-        & $env:HOMEDRIVE\\vcpkg\\vcpkg.exe integrate install
-        if ($LastExitCode)
-        {
-            Throw "Failed to install vcpkg with exit code $LastExitCode"
-        }
+    }
+        
+    Write-Host "vcpkg.exe integrate install"
+    & $env:HOMEDRIVE\\vcpkg\\vcpkg.exe integrate install
+    if ($LastExitCode)
+    {
+        Throw "Failed to install vcpkg with exit code $LastExitCode"
     }
 
     # checkout the specific commit for ports\rocksdb that matches the rocksdbsharp being used
