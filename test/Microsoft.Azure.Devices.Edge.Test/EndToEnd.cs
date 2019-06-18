@@ -137,11 +137,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         .WithEnvironment(
                             new[]
                             {
-                                ("UpstreamProtocol", moduleToEdge),
+                                ("ClientTransportType", moduleToEdge),
                                 ("TargetModuleId", methodReceiver)
                             });
                     builder.AddModule(methodReceiver, receiverImage)
-                        .WithEnvironment(new[] { ("UpstreamProtocol", moduleToEdge) });
+                        .WithEnvironment(new[] { ("ClientTransportType", moduleToEdge) });
                     await builder.Build().DeployAsync(iotHub, token);
 
                     var hub = new EdgeModule("edgeHub", device.Id, iotHub);
