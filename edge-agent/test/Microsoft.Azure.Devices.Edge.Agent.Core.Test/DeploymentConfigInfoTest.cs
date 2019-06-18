@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             "edgeAgent",
             "docker",
             new TestConfig("microsoft/edgeAgent:1.0"),
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -18,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             "edgeAgent",
             "docker",
             new TestConfig("microsoft/edgeAgent:1.0"),
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -27,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("microsoft/edgeHub:1.0"),
             RestartPolicy.Always,
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -36,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("microsoft/edgeHub:1.0"),
             RestartPolicy.Always,
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -46,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("mod1:v0"),
             RestartPolicy.Always,
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -56,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("mod1:v0"),
             RestartPolicy.Always,
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -66,6 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("mod2:v0"),
             RestartPolicy.Always,
+            ImagePullPolicy.Never,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -76,6 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("mod2:v0"),
             RestartPolicy.Always,
+            ImagePullPolicy.Never,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 

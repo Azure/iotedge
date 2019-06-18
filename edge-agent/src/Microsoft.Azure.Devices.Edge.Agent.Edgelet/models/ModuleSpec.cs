@@ -2,17 +2,19 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models
 {
     using System.Collections.Generic;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class ModuleSpec
     {
-        public ModuleSpec(string name, string type, object settings)
-            : this(name, type, settings, new List<EnvVar>())
+        public ModuleSpec(string name, string type, ImagePullPolicy imagePullPolicy, object settings)
+            : this(name, type, imagePullPolicy, settings, new List<EnvVar>())
         {
         }
 
-        public ModuleSpec(string name, string type, object settings, IEnumerable<EnvVar> environmentVariables)
+        public ModuleSpec(string name, string type, ImagePullPolicy imagePullPolicy, object settings, IEnumerable<EnvVar> environmentVariables)
         {
+            this.ImagePullPolicy = imagePullPolicy;
             this.Name = Preconditions.CheckNonWhiteSpace(name, nameof(name));
             this.Type = Preconditions.CheckNonWhiteSpace(type, nameof(type));
             this.Settings = Preconditions.CheckNotNull(settings, nameof(settings));
@@ -26,5 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models
         public object Settings { get; }
 
         public IEnumerable<EnvVar> EnvironmentVariables { get; }
+
+        public ImagePullPolicy ImagePullPolicy { get; }
     }
 }

@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using System;
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     public class EdgeAgentDockerRuntimeModule : DockerRuntimeModule, IEdgeAgentModule
@@ -16,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             string statusDescription,
             DateTime lastStartTimeUtc,
             DateTime lastExitTime,
+            ImagePullPolicy imagePullPolicy,
             ConfigurationInfo configuration,
             IDictionary<string, EnvVal> env,
             string version = "")
@@ -32,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 0,
                 DateTime.MinValue,
                 runtimeStatus,
+                imagePullPolicy,
                 configuration,
                 env)
         {
@@ -70,6 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.StatusDescription,
             this.LastStartTimeUtc,
             this.LastExitTimeUtc,
+            this.ImagePullPolicy,
             this.ConfigurationInfo,
             this.Env,
             this.Version);
