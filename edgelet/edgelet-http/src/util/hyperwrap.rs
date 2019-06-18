@@ -54,26 +54,20 @@ impl Config {
             let mut builder = TlsConnector::builder();
             if let Some(bundle) = &self.trust_bundle {
                 let certs = X509::stack_from_pem(&bundle.cert)
-                    .with_context(|_| ErrorKind::TrustBundle)?;
+                    .context(ErrorKind::TrustBundle)?;
                 for cert in certs {
-                    let der = cert.to_der().with_context(|_| ErrorKind::TrustBundle)?;
+                    let der = cert.to_der().context(ErrorKind::TrustBundle)?;
                     let c = TlsCertificate::from_der(&der)
-                        .with_context(|_| ErrorKind::TrustBundle)?;
+                        .context(ErrorKind::TrustBundle)?;
                     builder.add_root_certificate(c);
                 }
             }
-            let connector = if let Some(id) = &self.identity_certificate {
+            if let Some(id) = &self.identity_certificate {
                 let identity = id.get_identity()?;
-                builder
-                    .identity(identity)
-                    .build()
-                    .with_context(|_| ErrorKind::CertificateConversionError)
-            } else {
-                builder
-                    .build()
-                    .with_context(|_| ErrorKind::Initialization)
-            }?;
+                builder.identity(identity);
+            }
 
+            let connector = builder.build().context(ErrorKind::Initialization)?;
             let mut http = HttpConnector::new(DNS_WORKER_THREADS);
             http.enforce_http(false);
             let https_connector = HttpsConnector::from((http, connector));
@@ -85,7 +79,7 @@ impl Config {
                 Some(uri) => {
                     let proxy = uri_to_proxy(uri.clone())?;
                     let conn = ProxyConnector::from_proxy(https_connector, proxy)
-                        .with_context(|_| ErrorKind::Proxy(uri.clone()))
+                        .context(ErrorKind::Proxy(uri.clone()))
                         .context(ErrorKind::Initialization)?;
                     Ok(Client::Proxy(HyperClient::builder().build(conn)))
                 }
@@ -101,12 +95,12 @@ fn uri_to_proxy(uri: Uri) -> Result<Proxy, Error> {
     if !url.username().is_empty() {
         let username = percent_decode(url.username().as_bytes())
             .decode_utf8()
-            .with_context(|_| {
+            .context(
                 ErrorKind::InvalidUrlWithReason(
                     url.to_string(),
                     InvalidUrlReason::InvalidCredentials,
                 )
-            })
+            )
             .with_context(|_| ErrorKind::Proxy(uri.clone()))
             .context(ErrorKind::Initialization)?;
         let credentials = match url.password() {

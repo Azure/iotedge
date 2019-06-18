@@ -116,7 +116,8 @@ impl PemCertificate {
         let key = match id_cert.get_private_key() {
             Ok(Some(PrivateKey::Ref(ref_))) => Some(ref_.into_bytes().clone()),
             Ok(Some(PrivateKey::Key(KeyBytes::Pem(buffer)))) => Some(buffer.as_ref().to_vec()),
-            _ => None,
+            Ok(None) => None,
+            Err(_err) => return Err(Error::from(ErrorKind::IdentityPrivateKey)),
         };
 
         Ok(PemCertificate::new(cert, key, None, None))
@@ -124,16 +125,16 @@ impl PemCertificate {
 
     pub fn get_identity(&self) -> Result<Identity, Error> {
         let mut certs =
-            X509::stack_from_pem(&self.cert).with_context(|_| ErrorKind::IdentityCertificate)?;
+            X509::stack_from_pem(&self.cert).context(ErrorKind::IdentityCertificate)?;
 
         // the first cert is the identity cert and the other certs are part of the CA
         // chain; we skip the server cert and build an OpenSSL cert stack with the
         // other certs
-        let mut ca_certs = Stack::new().with_context(|_| ErrorKind::IdentityCertificate)?;
+        let mut ca_certs = Stack::new().context(ErrorKind::IdentityCertificate)?;
         for cert in certs.drain(1..) {
             ca_certs
                 .push(cert)
-                .with_context(|_| ErrorKind::IdentityCertificate)?;
+                .context(ErrorKind::IdentityCertificate)?;
         }
 
         let key = match &self.key {
@@ -153,11 +154,11 @@ impl PemCertificate {
                 &key,
                 &identity_cert,
             )
-            .with_context(|_| ErrorKind::IdentityCertificate)?;
+            .context(ErrorKind::IdentityCertificate)?;
 
         let der = pkcs_certs
             .to_der()
-            .with_context(|_| ErrorKind::IdentityCertificate)?;
+            .context(ErrorKind::IdentityCertificate)?;
 
         let identity = Identity::from_pkcs12(&der, "")
             .with_context(|err| ErrorKind::PKCS12Identity(err.to_string()))?;
@@ -333,14 +334,14 @@ impl HyperExt for Http {
                     None => return Err(Error::from(ErrorKind::CertificateCreationError)),
                 };
 
-                let cert = cert.with_context(|_| ErrorKind::TlsBootstrapError)?;
+                let cert = cert.context(ErrorKind::TlsBootstrapError)?;
 
                 let cert_identity = Identity::from_pkcs12(&cert, "")
-                    .with_context(|_| ErrorKind::TlsIdentityCreationError)?;
+                    .context(ErrorKind::TlsIdentityCreationError)?;
 
                 let tls_acceptor = TlsAcceptor::builder(cert_identity)
                     .build()
-                    .with_context(|_| ErrorKind::TlsBootstrapError)?;
+                    .context(ErrorKind::TlsBootstrapError)?;
                 let tls_acceptor = tokio_tls::TlsAcceptor::from(tls_acceptor);
 
                 let listener = TcpListener::bind(&addr)
