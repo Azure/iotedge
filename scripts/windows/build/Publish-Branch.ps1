@@ -150,11 +150,14 @@ $appProjectList.Add("DirectMethodSender.csproj")
 $appProjectList.Add("DirectMethodReceiver.csproj")
 $appProjectList.Add("DirectMethodCloudSender.csproj")
 
-# Download latest rocksdb ARM32 library
-$rocksdbARMUri = "https://edgebuild.blob.core.windows.net/rocksdb/rocksdb-arm.dll"
-$tempPath = [System.IO.Path]::GetTempPath()
-$rocksdbARMSourcePath = Join-Path $tempPath "rocksdb.dll"
-Invoke-WebRequest -Uri $rocksdbARMUri -OutFile $rocksdbARMSourcePath
+# Bring in util functions
+$rocksdbutil = Join-Path -Path $PSScriptRoot -ChildPath 'build\rocksdb-win-arm32.ps1'
+Write-Host $rocksdbutil
+. $rocksdbutil
+
+# Install latest rocksdb ARM32 library
+$rocksdbARMSourcePath = Get-Rocksdb
+Write-Host $rocksdbARMSourcePath
 
 foreach ($appProjectFileName in $appProjectList) {
     $appProjectFilePath = Get-ChildItem -Include *.csproj -File -Recurse |Where-Object {$_.Name -eq "$appProjectFileName"}|Select-Object -first 1|Select -ExpandProperty "FullName"
