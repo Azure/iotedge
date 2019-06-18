@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Autofac;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -176,6 +177,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
 
+            // Register request handlers
+            await RegisterRequestHandlers(container);
+
             // Initialize stream request listener
             IStreamRequestListener streamRequestListener = await container.Resolve<Task<IStreamRequestListener>>();
             streamRequestListener.InitPump();
@@ -225,6 +229,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             handler.ForEach(h => GC.KeepAlive(h));
             return returnCode;
+        }
+
+        static async Task RegisterRequestHandlers(IContainer container)
+        {
+            var requestHandlerTasks = container.Resolve<IEnumerable<Task<IRequestHandler>>>();
+            IRequestHandler[] requestHandlers = await Task.WhenAll(requestHandlerTasks);
+            IRequestManager requestManager = await container.Resolve<Task<IRequestManager>>();
+            requestManager.RegisterHandlers(requestHandlers);
         }
 
         static ILogger SetupLogger(IConfiguration configuration)

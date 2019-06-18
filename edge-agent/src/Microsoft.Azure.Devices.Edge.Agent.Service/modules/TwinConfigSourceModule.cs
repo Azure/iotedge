@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -77,21 +78,54 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                 async c =>
                 {
-                    var logsUploader = c.Resolve<ILogsUploader>();
-                    var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
-                    var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
-                    var commandFactoryTask = c.Resolve<Task<ICommandFactory>>();
-                    IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
-                    ILogsProvider logsProvider = await logsProviderTask;
+                    await Task.CompletedTask;
                     var requestHandlers = new List<IRequestHandler>
                     {
-                        new PingRequestHandler(),
-                        new LogsUploadRequestHandler(logsUploader, logsProvider, runtimeInfoProvider),
-                        new LogsRequestHandler(logsProvider, runtimeInfoProvider)
+                        new PingRequestHandler()
                     };
                     return new RequestManager(requestHandlers, this.requestTimeout) as IRequestManager;
                 })
                 .As<Task<IRequestManager>>()
+                .SingleInstance();
+
+            // Task<IRequestHandler> - LogsUploadRequestHandler
+            builder.Register(
+                    async c =>
+                    {
+                        var logsUploader = c.Resolve<ILogsUploader>();
+                        var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
+                        var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
+                        IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
+                        ILogsProvider logsProvider = await logsProviderTask;
+                        return new LogsUploadRequestHandler(logsUploader, logsProvider, runtimeInfoProvider) as IRequestHandler;
+                    })
+                .As<Task<IRequestHandler>>()
+                .SingleInstance();
+
+            // Task<IRequestHandler> - LogsRequestHandler
+            builder.Register(
+                    async c =>
+                    {
+                        var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
+                        var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
+                        IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
+                        ILogsProvider logsProvider = await logsProviderTask;
+                        return new LogsRequestHandler(logsProvider, runtimeInfoProvider) as IRequestHandler;
+                    })
+                .As<Task<IRequestHandler>>()
+                .SingleInstance();
+
+            // Task<IRequestHandler> - RestartRequestHandler
+            builder.Register(
+                    async c =>
+                    {
+                        var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
+                        var commandFactoryTask = c.Resolve<Task<ICommandFactory>>();
+                        IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
+                        ICommandFactory commandFactory = await commandFactoryTask;
+                        return new RestartRequestHandler(runtimeInfoProvider, commandFactory) as IRequestHandler;
+                    })
+                .As<Task<IRequestHandler>>()
                 .SingleInstance();
 
             // ISdkModuleClientProvider
