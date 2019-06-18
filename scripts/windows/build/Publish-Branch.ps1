@@ -151,7 +151,7 @@ $appProjectList.Add("DirectMethodReceiver.csproj")
 $appProjectList.Add("DirectMethodCloudSender.csproj")
 
 # Bring in util functions
-$rocksdbutil = Join-Path -Path $PSScriptRoot -ChildPath 'build\rocksdb-win-arm32.ps1'
+$rocksdbutil = Join-Path -Path $PSScriptRoot -ChildPath 'rocksdb-win-arm32.ps1'
 Write-Host $rocksdbutil
 . $rocksdbutil
 
