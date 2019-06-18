@@ -95,9 +95,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         public async Task ModuleToModuleDirectMethod(
-            [Values("Amqp", "Mqtt")] string edgeToCloud,
-            [Values("Amqp", "Mqtt")] string moduleToEdge)
+            [Values] Protocol protocol)
         {
+            if (Platform.IsWindows() && (protocol == Protocol.AmqpWs || protocol == Protocol.MqttWs))
+            {
+                Assert.Ignore("Module-to-module direct methods don't work over WebSocket on Windows");
+            }
+
+            string clientTransport = protocol.ToString();
             string edgeAgent = Context.Current.EdgeAgent.Expect(() => new ArgumentException());
             string edgeHub = Context.Current.EdgeHub.Expect(() => new ArgumentException());
             string senderImage = Context.Current.MethodSender.Expect(() => new ArgumentException());
@@ -106,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             CancellationToken token = this.cts.Token;
 
-            string name = $"module-to-module direct method (upstream:{edgeToCloud}, modules:{moduleToEdge})";
+            string name = $"module-to-module direct method ({clientTransport})";
             Log.Information("Running test '{Name}'", name);
             await Profiler.Run(
                 async () =>
@@ -121,27 +126,25 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         iotHub,
                         token)).Expect(() => new Exception("Device should have already been created in setup fixture"));
 
-                    string methodSender = $"methodSender-{edgeToCloud}-{moduleToEdge}";
-                    string methodReceiver = $"methodReceiver-{edgeToCloud}-{moduleToEdge}";
+                    string methodSender = $"methodSender-{clientTransport}";
+                    string methodReceiver = $"methodReceiver-{clientTransport}";
 
                     var builder = new EdgeConfigBuilder(device.Id);
                     Context.Current.Registry.ForEach(
                         r => builder.AddRegistryCredentials(r.address, r.username, r.password));
                     builder.AddEdgeAgent(edgeAgent)
-                        .WithEnvironment(new[] { ("UpstreamProtocol", edgeToCloud) })
-                        .WithProxy(proxy, Enum.Parse<Protocol>(edgeToCloud));
+                        .WithProxy(proxy, Protocol.Amqp);
                     builder.AddEdgeHub(edgeHub)
-                        .WithEnvironment(new[] { ("UpstreamProtocol", edgeToCloud) })
-                        .WithProxy(proxy, Enum.Parse<Protocol>(edgeToCloud));
+                        .WithProxy(proxy, Protocol.Amqp);
                     builder.AddModule(methodSender, senderImage)
                         .WithEnvironment(
                             new[]
                             {
-                                ("ClientTransportType", moduleToEdge),
+                                ("ClientTransportType", clientTransport),
                                 ("TargetModuleId", methodReceiver)
                             });
                     builder.AddModule(methodReceiver, receiverImage)
-                        .WithEnvironment(new[] { ("ClientTransportType", moduleToEdge) });
+                        .WithEnvironment(new[] { ("ClientTransportType", clientTransport) });
                     await builder.Build().DeployAsync(iotHub, token);
 
                     var hub = new EdgeModule("edgeHub", device.Id, iotHub);
