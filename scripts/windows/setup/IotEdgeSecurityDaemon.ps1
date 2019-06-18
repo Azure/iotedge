@@ -317,9 +317,9 @@ function Update-IoTEdge {
         # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
         [Uri] $Proxy,
 
-        # If set to a directory path, the installer prefers to use IoTEdge CAB, Moby Engine CAB, Moby CLI CAB and VC Runtime MSI files from inside this directory
-        # over downloading them from the internet. Thus placing all four files in this directory can be used to have a completely offline install,
-        # or a specific subset can be placed to override the online versions of those specific components.
+        # If set to a directory path, the installer prefers to use IoTEdge CAB and VC Runtime MSI files from inside this directory
+        # over downloading them from the internet. Thus placing both files in this directory can be used to have a completely offline install,
+        # or a specific component's file can be placed to override the online file corresponding to that specific component.
         [String] $OfflineInstallationPath,
 
         # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
@@ -384,9 +384,9 @@ function Deploy-IoTEdge {
         # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
         [Uri] $Proxy,
 
-        # If set to a directory path, the installer prefers to use IoTEdge CAB, Moby Engine CAB, Moby CLI CAB and VC Runtime MSI files from inside this directory
-        # over downloading them from the internet. Thus placing all four files in this directory can be used to have a completely offline install,
-        # or a specific subset can be placed to override the online versions of those specific components.
+        # If set to a directory path, the installer prefers to use IoTEdge CAB and VC Runtime MSI files from inside this directory
+        # over downloading them from the internet. Thus placing both files in this directory can be used to have a completely offline install,
+        # or a specific component's file can be placed to override the online file corresponding to that specific component.
         [String] $OfflineInstallationPath,
 
         # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
