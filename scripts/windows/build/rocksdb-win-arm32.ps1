@@ -42,5 +42,5 @@ function Get-Rocksdb
     
     $ErrorActionPreference = 'Stop'
     
-    return $env:HOMEDRIVE\vcpkg\installed\arm-windows\bin\rocksdb-shared.dll
+    return "$env:HOMEDRIVE\vcpkg\installed\arm-windows\bin\rocksdb-shared.dll"
 }
