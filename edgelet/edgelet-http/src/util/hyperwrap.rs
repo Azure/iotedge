@@ -57,18 +57,18 @@ impl Config {
                     .context(ErrorKind::TrustBundle)
                     .context(ErrorKind::Initialization)?;
                 for cert in certs {
-                    let der = cert.to_der()
-                                .context(ErrorKind::TrustBundle)
-                                .context(ErrorKind::Initialization)?;
+                    let der = cert
+                        .to_der()
+                        .context(ErrorKind::TrustBundle)
+                        .context(ErrorKind::Initialization)?;
                     let c = TlsCertificate::from_der(&der)
-                                .context(ErrorKind::TrustBundle)
-                                .context(ErrorKind::Initialization)?;
+                        .context(ErrorKind::TrustBundle)
+                        .context(ErrorKind::Initialization)?;
                     builder.add_root_certificate(c);
                 }
             }
             if let Some(id) = &self.identity_certificate {
-                let identity = id.get_identity()
-                                 .context(ErrorKind::Initialization)?;
+                let identity = id.get_identity().context(ErrorKind::Initialization)?;
                 builder.identity(identity);
             }
 
