@@ -590,6 +590,12 @@ function Install-IoTEdge {
         [Switch] $SkipBatteryCheck
     )
 
+    # Set by Deploy-IoTEdge if it succeeded, so we can abort early in case of failure.
+    #
+    # We use a script-scope var instead of having Deploy-IoTEdge return a boolean or take a [ref] parameter
+    # because users can also run Deploy-IoTEdge themselves, so it can't be part of the public API.
+    $script:installPackagesCompleted = $false
+
     # Used to suppress some messages from Deploy-IoTEdge since we are automatically running Initialize-IoTEdge
     $calledFromInstall = $true
 
@@ -601,6 +607,10 @@ function Install-IoTEdge {
         -RestartIfNeeded:$RestartIfNeeded `
         -SkipArchCheck:$SkipArchCheck `
         -SkipBatteryCheck:$SkipBatteryCheck
+
+    if (-not $script:installPackagesCompleted) {
+        return
+    }
 
     $Params = @{
         '-ContainerOs' = $ContainerOs
@@ -831,7 +841,9 @@ function Install-Packages(
     if ($restartNeeded) {
         Write-HostRed 'Reboot required. To complete the installation after the reboot, run "Initialize-IoTEdge".'
         Restart-Computer -Confirm:(-not $RestartIfNeeded) -Force:$RestartIfNeeded
-        throw
+    }
+    else {
+        $script:installPackagesCompleted = $true
     }
 }
 
