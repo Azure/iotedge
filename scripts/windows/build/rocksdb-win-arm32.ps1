@@ -37,6 +37,7 @@ function Get-Rocksdb
         Throw "Failed to install vcpkg with exit code $LastExitCode"
     }
     
+    Write-Host "vcpkg.exe install rocksdb:arm-windows"
     & $env:HOMEDRIVE\vcpkg\vcpkg.exe install rocksdb:arm-windows
     if ($LastExitCode)
     {
