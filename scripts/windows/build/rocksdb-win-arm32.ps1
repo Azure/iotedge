@@ -30,7 +30,9 @@ function Get-Rocksdb
     # bb1bb1c94a72b891883efa6522791620ef3bbc0f maps to 5.17.2
     # https://github.com/microsoft/vcpkg/commit/bb1bb1c94a72b891883efa6522791620ef3bbc0f#diff-87525ccf58925648e3f92fec94d01d70
     
-    git checkout bb1bb1c94a72b891883efa6522791620ef3bbc0f $env:HOMEDRIVE\vcpkg\ports\rocksdb
+    push-location $env:HOMEDRIVE\vcpkg    
+    git checkout bb1bb1c94a72b891883efa6522791620ef3bbc0f ports\rocksdb
+    pop-location
     
     & $env:HOMEDRIVE\vcpkg\vcpkg.exe install rocksdb:arm-windows
     if ($LastExitCode)
