@@ -95,12 +95,12 @@ fn uri_to_proxy(uri: Uri) -> Result<Proxy, Error> {
     if !url.username().is_empty() {
         let username = percent_decode(url.username().as_bytes())
             .decode_utf8()
-            .context(
+            .with_context(|_| {
                 ErrorKind::InvalidUrlWithReason(
                     url.to_string(),
                     InvalidUrlReason::InvalidCredentials,
                 )
-            )
+            })
             .with_context(|_| ErrorKind::Proxy(uri.clone()))
             .context(ErrorKind::Initialization)?;
         let credentials = match url.password() {
