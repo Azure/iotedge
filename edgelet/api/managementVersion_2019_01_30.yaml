@@ -485,9 +485,9 @@ definitions:
       imagePullPolicy:
         type: string
         enum:
-          - OnCreate
+          - On-Create
           - Never
-        example: "OnCreate"
+        example: "On-Create"
       config:
         $ref: '#/definitions/Config'
     required:
