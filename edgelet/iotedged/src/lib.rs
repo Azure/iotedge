@@ -207,7 +207,7 @@ impl Main {
             );
         }
 
-        let hyper_client = MaybeProxyClient::new(get_proxy_uri(None)?)
+        let hyper_client = MaybeProxyClient::new(get_proxy_uri(None)?, None, None)
             .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
 
         info!(
