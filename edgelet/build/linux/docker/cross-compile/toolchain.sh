@@ -19,7 +19,7 @@ extract_arm32_toolchain() {
     local build_tools=gcc-linaro-${version}-x86_64_arm-linux-gnueabihf
 
     echo "Extracting $build_tools"
-    curl -L -o ${build_tools}.tar.xz https://releases.linaro.org/components/toolchain/binaries/${version_path}/aarch64-linux-gnu/${build_tools}.tar.xz
+    curl -L -o ${build_tools}.tar.xz https://releases.linaro.org/components/toolchain/binaries/${version_path}/arm-linux-gnueabihf/${build_tools}.tar.xz
     xzcat ${build_tools}.tar.xz | \
         tar -xvf -
 
