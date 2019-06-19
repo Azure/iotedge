@@ -686,6 +686,7 @@ function Uninstall-IoTEdge {
     $legacyInstaller = Test-LegacyInstaller
 
     if ((Test-IoTCore) -and (-not $legacyInstaller)) {
+        Write-HostRed
         Write-HostRed ('Uninstall-IoTEdge is only supported on IoTCore to uninstall legacy installation. ' +
             'For new installations, please use "Update-IoTEdge" directly to update.')
         throw
@@ -778,11 +779,12 @@ function Install-Packages(
     }
     else {
         if (Test-EdgeAlreadyInstalled) {
-            Write-HostRed
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
+                Write-HostRed
                 Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
             }
             else {
+                Write-HostRed
                 Write-HostRed ('IoT Edge is already installed. To update, run "Update-IoTEdge". ' +
                     'Alternatively, if you want to finalize the installation, run "Initialize-IoTEdge".')
             }
@@ -790,12 +792,13 @@ function Install-Packages(
         }
 
         if (Test-MobyAlreadyInstalled) {
-            Write-HostRed
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
+                Write-HostRed
                 Write-HostRed ('IoT Edge Moby Engine is installed in an invalid location. ' +
                     $ReinstallMessage)
             }
             else {
+                Write-HostRed
                 Write-HostRed ('IoT Edge Moby Engine is already installed, but IoT Edge is not. ' +
                     $ReinstallMessage)
             }
@@ -827,7 +830,9 @@ function Install-Packages(
             Start-Service $EdgeServiceName
         }
         catch {
-            throw 'Failed to start Security Daemon, make sure to initialize config file by running "Initialize-IoTEdge".'
+            Write-HostRed
+            Write-HostRed 'Failed to start Security Daemon, make sure to initialize config file by running "Initialize-IoTEdge".'
+            throw
         }
     }
 
@@ -936,6 +941,7 @@ function Setup-Environment {
                     'before using these power states.')
 
                 if (-not $PSCmdlet.ShouldContinue('Do you want to continue with installation?', '')) {
+                    Write-HostRed
                     Write-HostRed 'Aborting installation.'
                     throw
                 }
@@ -995,14 +1001,18 @@ function Set-ContainerOs {
                 $dockerCliExe = "$ProgramFilesDirectory\Docker\Docker\DockerCli.exe"
 
                 if (-not (Test-Path -Path $dockerCliExe)) {
-                    throw "Unable to switch to Linux containers: could not find $dockerCliExe"
+                    Write-HostRed
+                    Write-HostRed "Unable to switch to Linux containers: could not find $dockerCliExe"
+                    throw
                 }
 
                 Invoke-Native """$dockerCliExe"" -SwitchDaemon"
 
                 $newExternalDockerServerOs = Get-ExternalDockerServerOs
                 if ($newExternalDockerServerOs -ne 'Linux') {
-                    throw "Unable to switch to Linux containers: Docker is still set to use $newExternalDockerServerOs containers"
+                    Write-HostRed
+                    Write-HostRed "Unable to switch to Linux containers: Docker is still set to use $newExternalDockerServerOs containers"
+                    throw
                 }
 
                 Write-HostGreen 'Switched Docker to use Linux containers.'
@@ -1192,11 +1202,17 @@ function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
         $output = Invoke-Native 'ApplyUpdate -commit' -DoNotThrow -Passthru
         # On success, this should reboot, we currently cannot block that
         if ($LASTEXITCODE -ne 0) {
-            throw "Failed to deploy, consider rebooting. Please refer to the following for more information: `n$output"
+            Write-HostRed
+            Write-HostRed "Failed to deploy, consider rebooting. Please refer to the following for more information:"
+            Write-HostRed "$output"
+            throw
         }
         Start-Sleep -Seconds 120
         $output = Invoke-Native 'ApplyUpdate -status' -DoNotThrow -Passthru
-        throw "Failed to deploy. Please refer to the following for more information: `n$output"
+        Write-HostRed
+        Write-HostRed "Failed to deploy. Please refer to the following for more information:"
+        Write-HostRed "$output"
+        throw
     }
 }
 
@@ -1408,14 +1424,13 @@ function Get-VcRuntime {
 
     $deleteVcRuntimeArchive = $false
 
+    $vcRuntimeArchivePath = Download-File `
+        -Description 'VC Runtime installer' `
+        -Url 'https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe' `
+        -DownloadFilename 'vc_redist.x64.exe' `
+        -LocalCacheGlob '*vc_redist*.exe' `
+        -Delete ([ref] $deleteVcRuntimeArchive)
     try {
-        $vcRuntimeArchivePath = Download-File `
-            -Description 'VC Runtime installer' `
-            -Url 'https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe' `
-            -DownloadFilename 'vc_redist.x64.exe' `
-            -LocalCacheGlob '*vc_redist*.exe' `
-            -Delete ([ref] $deleteVcRuntimeArchive)
-
         Invoke-Native """$vcRuntimeArchivePath"" /quiet /norestart"
         Write-HostGreen 'Installed VC Runtime.'
     }
@@ -1514,13 +1529,19 @@ function Validate-GatewaySettings {
     $certFilesProvided = $false
     if ($DeviceCACertificate -or $DeviceCAPrivateKey -or $DeviceTrustbundle) {
         if (-Not (Test-Path -Path $DeviceCACertificate)) {
-            throw "Device CA certificate file $DeviceCACertificate not found. When configuring device certificates, a certificate file is required."
+            Write-HostRed
+            Write-HostRed "Device CA certificate file $DeviceCACertificate not found. When configuring device certificates, a certificate file is required."
+            throw
         }
         if (-Not (Test-Path -Path $DeviceCAPrivateKey)) {
-            throw "Device CA private key file $DeviceCAPrivateKey not found. When configuring device certificates, a private key file is required."
+            Write-HostRed
+            Write-HostRed "Device CA private key file $DeviceCAPrivateKey not found. When configuring device certificates, a private key file is required."
+            throw
         }
         if (-Not (Test-Path -Path $DeviceTrustbundle)) {
-            throw "Device trustbundle file $DeviceTrustbundle not found. When configuring device certificates, a trust bundle file is required."
+            Write-HostRed
+            Write-HostRed "Device trustbundle file $DeviceTrustbundle not found. When configuring device certificates, a trust bundle file is required."
+            throw
         }
         $certFilesProvided = $true
     }
@@ -1549,25 +1570,35 @@ function Get-DpsProvisioningSettings {
     }
     else {
         if (-not $RegistrationId) {
-            throw "RegistrationId is required for this DPS provisioning mode."
+            Write-HostRed
+            Write-HostRed "RegistrationId is required for this DPS provisioning mode."
+            throw
         }
     }
 
     if ($attestationMethod -eq 'x509') {
         if ($idCertFilesProvided) {
             if (-Not (Test-Path -Path $X509IdentityCertificate)) {
-                throw "Identity certificate file $X509IdentityCertificate not found."
+                Write-HostRed
+                Write-HostRed "Identity certificate file $X509IdentityCertificate not found."
+                throw
             }
             if (-Not (Test-Path -Path $X509IdentityPrivateKey)) {
-                throw "Identity private file $X509IdentityPrivateKey not found."
+                Write-HostRed
+                Write-HostRed "Identity private file $X509IdentityPrivateKey not found."
+                throw
             }
         }
         else {
             if ($X509IdentityCertificate -or $X509IdentityPrivateKey) {
-                throw 'Cannot specify a device identity certificate and also set AutoGenX509IdentityCertificate as true.'
+                Write-HostRed
+                Write-HostRed 'Cannot specify a device identity certificate and also set AutoGenX509IdentityCertificate as true.'
+                throw
             }
             if (-Not (Validate-GatewaySettings)) {
-                throw 'Device CA certificate files are not found. These are required when using AutoGenX509IdentityCertificate.'
+                Write-HostRed
+                Write-HostRed 'Device CA certificate files are not found. These are required when using AutoGenX509IdentityCertificate.'
+                throw
             }
         }
     }
