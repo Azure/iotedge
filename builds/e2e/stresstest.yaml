@@ -225,9 +225,10 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        - run-stress -equals true
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
+        - agent-os-name -equals WinPro_x64
+        - run-stress -equals true
     variables:
       edgelet.artifact.name: 'iotedged-windows'
     steps:
@@ -267,7 +268,72 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy-windows.yaml
         parameters:
-          release.label: 'st'
+          release.label: 'winpro-st'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.windows)'
+          container.registry: '$(container.registry)'
+          container.registry.username: '$(edgebuilds-azurecr-io-username)'
+          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+          iotHub.connectionString: '$(IotHubStressConnString)'
+          eventHub.connectionString: '$(EventHubStressConnStr)'
+          snitch.build.number: '$(snitch.build.number)'
+          snitch.alert.url: '$(SnitchStressAlertUrl)'
+          snitch.storage.account: '$(snitch.storage.account)'
+          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
+          loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+
+################################################################################
+  - job: windows_servercore_amd64_moby
+################################################################################
+    displayName: Windows Server Core AMD64 Moby
+    condition: eq(variables['run.servercore.amd64.moby'], 'true')
+    pool:
+      name: $(pool.name)
+      demands:
+        - Agent.OS -equals Windows_NT
+        - Agent.OSArchitecture -equals X64
+        - agent-os-name -equals WinServerCore_x64
+        - run-stress -equals true
+    variables:
+      edgelet.artifact.name: 'iotedged-windows'
+    steps:
+      - checkout: none
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Edgelet Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          branchName: $(edgelet.package.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(edgelet.artifact.name)
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Images Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(images.build)
+          branchName: $(images.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(images.artifact.name.windows)
+          itemPattern: |
+            $(images.artifact.name.windows)/IotEdgeQuickstart/x64/*
+            $(images.artifact.name.windows)/e2e_deployment_files/stress_deployment.template.windows.json
+            $(images.artifact.name.windows)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1
+            $(images.artifact.name.windows)/scripts/windows/test/Run-E2ETest.ps1
+            $(images.artifact.name.windows)/artifactInfo.txt
+      # Deploy stress test
+      - template: templates/stresstest-deploy-windows.yaml
+        parameters:
+          release.label: 'servercore-st'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'

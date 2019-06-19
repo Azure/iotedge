@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                await this.Execute(() => edgeletHttpClient.CreateModuleAsync(this.Version.Name, this.MapToModuleSpec(moduleSpec)), $"Create module {moduleSpec.Name}");
+                await this.Execute(() => edgeletHttpClient.CreateModuleAsync(this.Version.Name, MapToModuleSpec(moduleSpec)), $"Create module {moduleSpec.Name}");
             }
         }
 
@@ -164,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                await this.Execute(() => edgeletHttpClient.UpdateModuleAsync(this.Version.Name, moduleSpec.Name, null, this.MapToModuleSpec(moduleSpec)), $"update module {moduleSpec.Name}");
+                await this.Execute(() => edgeletHttpClient.UpdateModuleAsync(this.Version.Name, moduleSpec.Name, null, MapToModuleSpec(moduleSpec)), $"update module {moduleSpec.Name}");
             }
         }
 
@@ -173,7 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                await this.Execute(() => edgeletHttpClient.UpdateModuleAsync(this.Version.Name, moduleSpec.Name, true, this.MapToModuleSpec(moduleSpec)), $"update and start module {moduleSpec.Name}");
+                await this.Execute(() => edgeletHttpClient.UpdateModuleAsync(this.Version.Name, moduleSpec.Name, true, MapToModuleSpec(moduleSpec)), $"update and start module {moduleSpec.Name}");
             }
         }
 
@@ -182,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                await this.Execute(() => edgeletHttpClient.PrepareUpdateModuleAsync(this.Version.Name, moduleSpec.Name, this.MapToModuleSpec(moduleSpec)), $"prepare update for module module {moduleSpec.Name}");
+                await this.Execute(() => edgeletHttpClient.PrepareUpdateModuleAsync(this.Version.Name, moduleSpec.Name, MapToModuleSpec(moduleSpec)), $"prepare update for module module {moduleSpec.Name}");
             }
         }
 
@@ -209,12 +209,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             }
         }
 
-        GeneratedCode.ModuleSpec MapToModuleSpec(ModuleSpec moduleSpec)
+        static GeneratedCode.ModuleSpec MapToModuleSpec(ModuleSpec moduleSpec)
         {
             return new GeneratedCode.ModuleSpec()
             {
                 Name = moduleSpec.Name,
                 Type = moduleSpec.Type,
+                ImagePullPolicy = ToGeneratedCodePullPolicy(moduleSpec.ImagePullPolicy),
                 Config = new Config()
                 {
                     Env = new ObservableCollection<EnvVar>(
@@ -227,6 +228,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
                     Settings = moduleSpec.Settings
                 }
             };
+        }
+
+        internal static GeneratedCode.ImagePullPolicy ToGeneratedCodePullPolicy(Core.ImagePullPolicy imagePullPolicy)
+        {
+            GeneratedCode.ImagePullPolicy resultantPullPolicy;
+            switch (imagePullPolicy)
+            {
+                case Core.ImagePullPolicy.OnCreate:
+                    resultantPullPolicy = GeneratedCode.ImagePullPolicy.OnCreate;
+                    break;
+                case Core.ImagePullPolicy.Never:
+                    resultantPullPolicy = GeneratedCode.ImagePullPolicy.Never;
+                    break;
+                default:
+                    throw new InvalidOperationException("Translation of this image pull policy type is not configured.");
+            }
+
+            return resultantPullPolicy;
         }
 
         Identity MapFromIdentity(GeneratedCode.Identity identity)

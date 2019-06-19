@@ -27,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 0,
                 DateTime.MinValue,
                 ModuleStatus.Running,
+                ImagePullPolicy.Never,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
 
@@ -39,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
   ""status"": ""running"",
   ""restartPolicy"": ""always"",
+  ""imagePullPolicy"": ""never"",
   ""exitCode"": 0,
   ""statusDescription"": """",
   ""lastStartTimeUtc"": ""0001-01-01T00:00:00"",
@@ -67,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
   ""status"": ""running"",
   ""restartPolicy"": ""always"",
+  ""imagePullPolicy"": ""never"",
   ""exitCode"": 0,
   ""statusDescription"": """",
   ""lastStartTimeUtc"": ""0001-01-01T00:00:00"",
@@ -96,6 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 0,
                 DateTime.MinValue,
                 ModuleStatus.Running,
+                ImagePullPolicy.Never,
                 null,
                 new Dictionary<string, EnvVal>());
 
@@ -113,6 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 ModuleStatus.Running,
                 RestartPolicy.Always,
                 new DockerConfig(image),
+                ImagePullPolicy.OnCreate,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
 
@@ -127,6 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 0,
                 DateTime.MinValue,
                 ModuleStatus.Running,
+                ImagePullPolicy.OnCreate,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
 
@@ -152,6 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 0,
                 DateTime.MinValue,
                 ModuleStatus.Running,
+                ImagePullPolicy.OnCreate,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
             var updatedModule1 = (EdgeHubDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Running);

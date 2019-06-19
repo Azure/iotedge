@@ -581,7 +581,7 @@ mod tests {
         let proxy_image = String::from("proxy-image");
         let proxy_config_path = String::from("proxy-confg-path");
         let proxy_config_map_name = String::from("config-volume");
-        let image_pull_policy = String::from("IfNotPresent");
+        let image_pull_policy = String::from("On-Create");
         let service_account_name = String::from("iotedge");
         let workload_uri = Url::from_str("http://localhost:35000").unwrap();
         let management_uri = Url::from_str("http://localhost:35001").unwrap();
@@ -877,7 +877,7 @@ mod tests {
         let proxy_image = String::from("proxy-image");
         let proxy_config_path = String::from("proxy-confg-path");
         let proxy_config_map_name = String::from("config-volume");
-        let image_pull_policy = String::from("IfNotPresent");
+        let image_pull_policy = String::from("On-Create");
         let service_account_name = String::from("iotedge");
         let workload_uri = Url::from_str("http://localhost:35000").unwrap();
         let management_uri = Url::from_str("http://localhost:35001").unwrap();
