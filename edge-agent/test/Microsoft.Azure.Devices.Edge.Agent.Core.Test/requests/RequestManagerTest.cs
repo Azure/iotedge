@@ -91,14 +91,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             requestHandler1.Setup(r => r.HandleRequest(It.IsAny<Option<string>>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Option.Some("{\"prop3\":\"foo\",\"prop4\":100}"));
             requestHandler1.SetupGet(r => r.RequestName).Returns("req1");
-            
+
             var requestHandler2 = new Mock<IRequestHandler>();
             requestHandler2.Setup(r => r.HandleRequest(It.IsAny<Option<string>>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Option.Some("{\"prop5\":\"foo5\",\"prop6\":200}"));
             requestHandler2.SetupGet(r => r.RequestName).Returns("req2");
-            
-            var requestManager = new RequestManager(new List<IRequestHandler>{ requestHandler1.Object }, TimeSpan.FromSeconds(60));
-            requestManager.RegisterHandlers(new List<IRequestHandler>{ requestHandler2.Object });
+
+            var requestManager = new RequestManager(new List<IRequestHandler> { requestHandler1.Object }, TimeSpan.FromSeconds(60));
+            requestManager.RegisterHandlers(new List<IRequestHandler> { requestHandler2.Object });
 
             // Act
             (int responseStatus, Option<string> responsePayload) = await requestManager.ProcessRequest("req", payload);
