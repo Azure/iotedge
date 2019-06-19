@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // ReSharper disable PossibleMultipleEnumeration
             serviceClient.Setup(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => m.Count() == 1 && m.First() == Name))).Returns(Task.FromResult(updatedServiceIdentities));
             // ReSharper restore PossibleMultipleEnumeration
-            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
 
             IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
                 .GetModuleIdentitiesAsync(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     }
                 }).Returns(Task.FromResult(serviceIdentities));
 
-            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
 
             IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
                 .GetModuleIdentitiesAsync(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     }
                 }).Returns(Task.FromResult(serviceIdentities));
 
-            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
 
             IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
                 .GetModuleIdentitiesAsync(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
@@ -181,7 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     }
                 }).Returns(Task.FromResult(serviceIdentities));
 
-            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
 
             IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
                 .GetModuleIdentitiesAsync(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
@@ -223,7 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     }
                 }).Returns(Task.FromResult(serviceIdentities));
 
-            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
 
             IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
                 .GetModuleIdentitiesAsync(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
@@ -260,7 +260,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serviceClient.Setup(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => !m.Any()))).Returns(Task.FromResult(new Module[0]));
             serviceClient.Setup(sc => sc.UpdateModules(It.Is<IEnumerable<Module>>(m => !m.Any()))).Returns(Task.FromResult(new Module[0]));
 
-            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
 
             IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
                 .GetModuleIdentitiesAsync(ModuleSet.Create(module), ModuleSet.Empty);
@@ -278,7 +278,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Use Json to create module because managedBy property can't has private set on Module object
             const string ModuleJson = "{\"moduleId\":\"test-filters\",\"deviceId\":\"device1\",\"authentication\":{\"symmetricKey\":{\"primaryKey\":\"cHJpbWFyeVN5bW1ldHJpY0tleQ == \",\"secondaryKey\":\"c2Vjb25kYXJ5U3ltbWV0cmljS2V5\"},\"x509Thumbprint\":{\"primaryThumbprint\":null,\"secondaryThumbprint\":null},\"type\":\"sas\"},\"managedBy\":\"iotEdge\"}";
             var serviceModuleIdentity = JsonConvert.DeserializeObject<Module>(ModuleJson);
-            var currentModule = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            var currentModule = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
 
             var serviceClient = new Mock<IServiceClient>();
             string hostname = "hostname";
@@ -309,7 +309,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Use Json to create module because managedBy property can't has private set on Module object
             const string ModuleJson = "{\"moduleId\":\"test-filters\",\"deviceId\":\"device1\",\"authentication\":{\"symmetricKey\":{\"primaryKey\":\"cHJpbWFyeVN5bW1ldHJpY0tleQ == \",\"secondaryKey\":\"c2Vjb25kYXJ5U3ltbWV0cmljS2V5\"},\"x509Thumbprint\":{\"primaryThumbprint\":null,\"secondaryThumbprint\":null},\"type\":\"sas\"},\"managedBy\":null}";
             var serviceModuleIdentity = JsonConvert.DeserializeObject<Module>(ModuleJson);
-            var currentModule = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            var currentModule = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
 
             var serviceClient = new Mock<IServiceClient>();
             string hostname = "hostname";
@@ -363,8 +363,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serviceClient.Setup(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => !m.Any()))).Returns(Task.FromResult(new Module[0]));
             serviceClient.Setup(sc => sc.UpdateModules(It.Is<IEnumerable<Module>>(m => !m.Any()))).Returns(Task.FromResult(new Module[0]));
 
-            var testMod = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
-            var edgeHubMod = new TestModule(Constants.EdgeHubModuleName, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.Always, DefaultConfigurationInfo, EnvVars);
+            var testMod = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var edgeHubMod = new TestModule(Constants.EdgeHubModuleName, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.Always, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
 
             IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
                 .GetModuleIdentitiesAsync(ModuleSet.Create(testMod, edgeHubMod), ModuleSet.Empty);
@@ -403,7 +403,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // ReSharper disable PossibleMultipleEnumeration
             serviceClient.Setup(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => m.Count() == 1 && m.First() == Name))).ThrowsAsync(new InvalidOperationException());
             // ReSharper restore PossibleMultipleEnumeration
-            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
 
             IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
                 .GetModuleIdentitiesAsync(ModuleSet.Create(module), ModuleSet.Empty);

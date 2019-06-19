@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             // Arrange
             IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            var moduleSpec = new ModuleSpec("Module1", "Docker", JObject.Parse("{ \"image\": \"testimage\" }"), new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
+            var moduleSpec = new ModuleSpec("Module1", "Docker", ImagePullPolicy.OnCreate, JObject.Parse("{ \"image\": \"testimage\" }"), new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
 
             // Act
             await client.CreateModuleAsync(moduleSpec);
@@ -229,6 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var moduleSpec = new ModuleSpec(
                 "Module1",
                 "Docker",
+                ImagePullPolicy.OnCreate,
                 JObject.Parse("{ \"image\": \"testimage\" }"),
                 new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
             IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
@@ -253,6 +254,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             byte[] buffer = new byte[1024];
             int bytesRead = await logsStream.ReadAsync(buffer, 0, buffer.Length);
             Assert.Equal(buffer.Length, bytesRead);
+        }
+
+        [Fact]
+        public void ImagePullPolicyTest()
+        {
+            Assert.Equal(
+                Version_2019_01_30.GeneratedCode.ImagePullPolicy.OnCreate,
+                Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy(ImagePullPolicy.OnCreate));
+            Assert.Equal(
+                Version_2019_01_30.GeneratedCode.ImagePullPolicy.Never,
+                Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy(ImagePullPolicy.Never));
+
+            Assert.Throws<InvalidOperationException>(() => Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy((ImagePullPolicy)int.MaxValue));
         }
 
         [Fact]
