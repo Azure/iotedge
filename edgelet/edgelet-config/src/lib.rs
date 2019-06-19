@@ -454,6 +454,21 @@ where
         &self.watchdog
     }
 
+    pub fn compute_settings_digest(&self) -> Result<String, LoadSettingsError> {
+        let mut s = serde_json::to_string(self)?;
+        if let Provisioning::Dps(dps) = self.provisioning() {
+            if let AttestationMethod::X509(x509_info) = dps.attestation() {
+                let mut file = OpenOptions::new()
+                    .read(true)
+                    .open(x509_info.identity_cert())?;
+                let mut cert = String::new();
+                file.read_to_string(&mut cert)?;
+                s.push_str(&cert);
+            }
+        }
+        Ok(base64::encode(&Sha256::digest_str(&s)))
+    }
+
     pub fn diff_with_cached(&self, path: &Path) -> bool {
         fn diff_with_cached_inner<T>(
             cached_settings: &Settings<T>,
@@ -465,10 +480,8 @@ where
             let mut file = OpenOptions::new().read(true).open(path)?;
             let mut buffer = String::new();
             file.read_to_string(&mut buffer)?;
-            let s = serde_json::to_string(cached_settings)?;
-            let s = Sha256::digest_str(&s);
-            let encoded = base64::encode(&s);
-            if encoded == buffer {
+            let cached_digest = cached_settings.compute_settings_digest()?;
+            if cached_digest == buffer {
                 debug!("Config state matches supplied config.");
                 Ok(false)
             } else {
@@ -827,9 +840,7 @@ mod tests {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
         let settings = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
-        let settings_to_write = serde_json::to_string(&settings).unwrap();
-        let sha_to_write = Sha256::digest_str(&settings_to_write);
-        let base64_to_write = base64::encode(&sha_to_write);
+        let base64_to_write = settings.compute_settings_digest().unwrap();
         FsFile::create(&path)
             .unwrap()
             .write_all(base64_to_write.as_bytes())
@@ -843,9 +854,7 @@ mod tests {
         let path = tmp_dir.path().join("cache");
         let settings1 =
             Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_DPS_DEFAULT))).unwrap();
-        let settings_to_write = serde_json::to_string(&settings1).unwrap();
-        let sha_to_write = Sha256::digest_str(&settings_to_write);
-        let base64_to_write = base64::encode(&sha_to_write);
+        let base64_to_write = settings1.compute_settings_digest().unwrap();
         FsFile::create(&path)
             .unwrap()
             .write_all(base64_to_write.as_bytes())
@@ -861,9 +870,7 @@ mod tests {
         let path = tmp_dir.path().join("cache");
         let settings1 =
             Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
-        let settings_to_write = serde_json::to_string(&settings1).unwrap();
-        let sha_to_write = Sha256::digest_str(&settings_to_write);
-        let base64_to_write = base64::encode(&sha_to_write);
+        let base64_to_write = settings1.compute_settings_digest().unwrap();
         FsFile::create(&path)
             .unwrap()
             .write_all(base64_to_write.as_bytes())
@@ -878,9 +885,7 @@ mod tests {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
         let settings1 = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS2))).unwrap();
-        let settings_to_write = serde_json::to_string(&settings1).unwrap();
-        let sha_to_write = Sha256::digest_str(&settings_to_write);
-        let base64_to_write = base64::encode(&sha_to_write);
+        let base64_to_write = settings1.compute_settings_digest().unwrap();
         FsFile::create(&path)
             .unwrap()
             .write_all(base64_to_write.as_bytes())
@@ -894,9 +899,7 @@ mod tests {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
         let settings1 = Settings::<DockerConfig>::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
-        let settings_to_write = serde_json::to_string(&settings1).unwrap();
-        let sha_to_write = Sha256::digest_str(&settings_to_write);
-        let base64_to_write = base64::encode(&sha_to_write);
+        let base64_to_write = settings1.compute_settings_digest().unwrap();
         FsFile::create(&path)
             .unwrap()
             .write_all(base64_to_write.as_bytes())
@@ -947,5 +950,51 @@ mod tests {
         let s = settings.unwrap();
         let watchdog_settings = s.watchdog();
         assert_eq!(watchdog_settings.max_retries().compare(3), Ordering::Equal);
+    }
+
+    #[test]
+    fn x509_diff_also_checks_cert_file() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let cert_path = tmp_dir.path().join("test_cert.pem");
+        FsFile::create(&cert_path)
+            .unwrap()
+            .write_all(b"CN=T")
+            .unwrap();
+        let settings_path = tmp_dir.path().join("test_settings.yaml");
+        let settings_yaml = format!(
+            "
+provisioning:
+  source: \"dps\"
+  global_endpoint: \"scheme://jibba-jabba.net\"
+  scope_id: \"i got no time for the jibba-jabba\"
+  attestation:
+    method: \"x509\"
+    identity_pk: \"some/path/mr.t.pk.pem\"
+    identity_cert: {}
+",
+            cert_path.to_str().unwrap()
+        );
+        FsFile::create(&settings_path)
+            .unwrap()
+            .write_all(settings_yaml.as_bytes())
+            .unwrap();
+
+        let settings = Settings::<DockerConfig>::new(Some(&settings_path)).unwrap();
+        let path = tmp_dir.path().join("cache");
+        let base64_to_write = settings.compute_settings_digest().unwrap();
+        FsFile::create(&path)
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+
+        // check if there is no diff
+        assert_eq!(settings.diff_with_cached(&path), false);
+
+        // now modify only the cert file and test if there is a diff
+        FsFile::create(&cert_path)
+            .unwrap()
+            .write_all(b"CN=Mr. T")
+            .unwrap();
+        assert_eq!(settings.diff_with_cached(&path), true);
     }
 }
