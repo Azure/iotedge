@@ -632,7 +632,7 @@ fn check_x509_reprovisioning<C>(
     iv_filename: &str,
 ) -> (bool, Option<Vec<u8>>)
 where
-    C: CreateCertificate + Decrypt
+    C: CreateCertificate + Decrypt,
 {
     fn check_x509_reprovisioning_inner<C>(
         subdir_path: &PathBuf,
@@ -641,16 +641,19 @@ where
         iv_filename: &str,
     ) -> Result<(bool, Option<Vec<u8>>), HybridAuthError>
     where
-        C: CreateCertificate + Decrypt
+        C: CreateCertificate + Decrypt,
     {
         // check if the identity key & iv files exist and are valid
         let key_path = subdir_path.join(hybrid_id_filename);
         let enc_identity_key = fs::read(key_path.as_path())?;
         let iv_path = subdir_path.join(iv_filename);
         let iv = fs::read(iv_path.as_path())?;
-        if iv.len() == IOTEDGED_CRYPTO_IV_LEN_BYTES{
-            let identity_key = crypto.decrypt(IOTEDGED_CRYPTO_ID.as_bytes(),
-                                              enc_identity_key.as_ref(), &iv)?;
+        if iv.len() == IOTEDGED_CRYPTO_IV_LEN_BYTES {
+            let identity_key = crypto.decrypt(
+                IOTEDGED_CRYPTO_ID.as_bytes(),
+                enc_identity_key.as_ref(),
+                &iv,
+            )?;
             if identity_key.as_ref().len() == IDENTITY_MASTER_KEY_LEN_BYTES {
                 Ok((false, Some(identity_key.as_ref().to_vec())))
             } else {
