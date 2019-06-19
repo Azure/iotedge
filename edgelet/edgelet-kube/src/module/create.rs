@@ -1,28 +1,20 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![allow(unused_variables, unused_imports, dead_code)] // todo remove after
-
 use futures::future::Either;
 use futures::prelude::*;
-use futures::{future, stream, Future, Stream};
+use futures::{future, Future, Stream};
 use hyper::service::Service;
-use hyper::{header, Body, Chunk as HyperChunk, Request};
+use hyper::Body;
 
 use edgelet_docker::DockerConfig;
-use edgelet_utils::{ensure_not_empty_with_context, log_failure, sanitize_dns_label};
-use kube_client::{Client as KubeClient, Error as KubeClientError, TokenSource};
+use kube_client::{Error as KubeClientError, TokenSource};
 
 use crate::constants::EDGE_EDGE_AGENT_NAME;
-use crate::convert::{
-    auth_to_image_pull_secret, pod_to_module, spec_to_deployment, spec_to_role_binding,
-    spec_to_service_account,
-};
-use crate::error::{Error, Result};
+use crate::convert::{spec_to_deployment, spec_to_role_binding, spec_to_service_account};
+use crate::error::Error;
 use crate::runtime::KubeRuntimeData;
-use crate::{KubeModule, KubeModuleRuntime};
+use crate::KubeModuleRuntime;
 use edgelet_core::ModuleSpec;
-use failure::Fail;
-use hyper::header::HeaderValue;
 
 pub fn create_module<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
@@ -104,7 +96,6 @@ where
             if new_role_binding.metadata.as_ref().unwrap().name
                 == Some(EDGE_EDGE_AGENT_NAME.to_owned())
             {
-                let client_copy = runtime.client().clone();
                 let namespace = runtime.namespace().to_owned();
                 Either::A(
                     runtime
