@@ -48,8 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     var builder = new EdgeConfigBuilder(device.Id);
                     Context.Current.Registry.ForEach(
                         r => builder.AddRegistryCredentials(r.address, r.username, r.password));
-                    builder.AddEdgeAgent(agentImage).WithProxy(proxy, Protocol.Amqp);
-                    builder.AddEdgeHub(hubImage).WithProxy(proxy, Protocol.Amqp);
+                    builder.AddEdgeAgent(agentImage).WithProxy(proxy);
+                    builder.AddEdgeHub(hubImage).WithProxy(proxy);
                     builder.AddModule("tempSensor", sensorImage);
                     await builder.Build().DeployAsync(iotHub, token);
 
@@ -132,10 +132,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     var builder = new EdgeConfigBuilder(device.Id);
                     Context.Current.Registry.ForEach(
                         r => builder.AddRegistryCredentials(r.address, r.username, r.password));
-                    builder.AddEdgeAgent(agentImage)
-                        .WithProxy(proxy, Protocol.Amqp);
-                    builder.AddEdgeHub(hubImage)
-                        .WithProxy(proxy, Protocol.Amqp);
+                    builder.AddEdgeAgent(agentImage).WithProxy(proxy);
+                    builder.AddEdgeHub(hubImage).WithProxy(proxy);
                     builder.AddModule(methodSender, senderImage)
                         .WithEnvironment(
                             new[]

@@ -57,39 +57,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return this;
         }
 
-        public IModuleConfigBuilder WithProxy(Option<Uri> proxy, Protocol protocol)
+        public IModuleConfigBuilder WithProxy(Option<Uri> proxy)
         {
             proxy.ForEach(
                 p =>
                 {
-                    string proxyProtocol;
-                    switch (protocol)
-                    {
-                        case Protocol.Amqp:
-                            proxyProtocol = Protocol.AmqpWs.ToString();
-                            break;
-                        case Protocol.Mqtt:
-                            proxyProtocol = Protocol.MqttWs.ToString();
-                            break;
-                        case Protocol.AmqpWs:
-                        case Protocol.MqttWs:
-                            proxyProtocol = protocol.ToString();
-                            break;
-                        default:
-                            throw new ArgumentException("Unknown protocol");
-                    }
+                    string proxyProtocol = Protocol.AmqpWs.ToString();
 
                     // If UpstreamProtocol was already set in this config to a non-compatible value,
                     // throw an error. The caller will need to fix the conflict in their code.
-                    // Otherwise, replace it with the proxy-compatible value.
-                    if (this.env.TryGetValue("UpstreamProtocol", out string u))
+                    // If the existing value is compatible, use it. Otherwise, use AmqpWs.
+                    if (this.env.TryGetValue("UpstreamProtocol", out string existing))
                     {
-                        if (u != protocol.ToString() && u != proxyProtocol)
+                        Protocol protocol = Enum.Parse<Protocol>(existing);
+
+                        if (protocol != Protocol.AmqpWs && protocol != Protocol.MqttWs)
                         {
                             string message = $"Setting \"UpstreamProtocol\" to \"{proxyProtocol}\"" +
-                                             $"would overwrite incompatible value \"{u}\"";
+                                             $"would overwrite incompatible value \"{existing}\"";
                             throw new ArgumentException(message);
                         }
+
+                        proxyProtocol = existing;
                     }
 
                     this.WithEnvironment(
