@@ -63,11 +63,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 ModulesContent = new Dictionary<string, IDictionary<string, object>>()
             };
 
-            var moduleNames = new List<string>();
+            var moduleImages = new List<string>();
 
             foreach (ModuleConfiguration module in modules)
             {
-                moduleNames.Add(module.Name);
+                moduleImages.Add(module.Image);
 
                 if (module.DesiredProperties.Count != 0)
                 {
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 }
             }
 
-            return new EdgeConfiguration(this.deviceId, moduleNames, config);
+            return new EdgeConfiguration(this.deviceId, moduleImages, config);
         }
 
         ModuleConfiguration BuildEdgeAgent(IEnumerable<ModuleConfiguration> configs)

@@ -136,6 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
             return new ModuleConfiguration(
                 this.Name,
+                this.settings["image"] as string,
                 new ReadOnlyDictionary<string, object>(deployment),
                 new ReadOnlyDictionary<string, object>(this.desiredProperties));
         }

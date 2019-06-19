@@ -9,12 +9,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         public IReadOnlyDictionary<string, object> DesiredProperties { get; }
 
+        public string Image { get; }
+
         public string Name { get; }
 
-        public ModuleConfiguration(string name, IReadOnlyDictionary<string, object> deployment, IReadOnlyDictionary<string, object> properties)
+        public ModuleConfiguration(string name, string image, IReadOnlyDictionary<string, object> deployment, IReadOnlyDictionary<string, object> properties)
         {
             this.Deployment = deployment;
             this.DesiredProperties = properties;
+            this.Image = image;
             this.Name = name;
         }
     }
