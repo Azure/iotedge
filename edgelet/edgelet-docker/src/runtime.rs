@@ -859,7 +859,7 @@ mod tests {
     use url::Url;
 
     use docker::models::ContainerCreateBody;
-    use edgelet_core::{ModuleId, ModuleRegistry, ModuleTop};
+    use edgelet_core::{ImagePullPolicy, ModuleId, ModuleRegistry, ModuleTop};
 
     use crate::error::{Error, ErrorKind};
 
@@ -987,6 +987,7 @@ mod tests {
             DockerConfig::new("nginx:latest".to_string(), ContainerCreateBody::new(), None)
                 .unwrap(),
             HashMap::new(),
+            ImagePullPolicy::default(),
         )
         .unwrap();
 

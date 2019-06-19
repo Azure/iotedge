@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 
         static ModuleSpec BuildModuleSpec(IModule module, IEnumerable<EnvVar> envVars, object settings)
         {
-            return new ModuleSpec(module.Name, module.Type, settings, envVars);
+            return new ModuleSpec(module.Name, module.Type, module.ImagePullPolicy, settings, envVars);
         }
 
         static IEnumerable<EnvVar> GetEnvVars(IDictionary<string, EnvVal> moduleEnvVars, IModuleIdentity identity, IConfigSource configSource)

@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.ComponentModel;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
@@ -55,6 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus desiredStatus,
             TConfig config,
             RestartPolicy restartPolicy,
+            ImagePullPolicy imagePullPolicy,
             ConfigurationInfo configuration,
             IDictionary<string, EnvVal> env)
         {
@@ -64,6 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.DesiredStatus = Preconditions.CheckNotNull(desiredStatus, nameof(desiredStatus));
             this.Config = Preconditions.CheckNotNull(config, nameof(config));
             this.RestartPolicy = Preconditions.CheckIsDefined(restartPolicy);
+            this.ImagePullPolicy = Preconditions.CheckIsDefined(imagePullPolicy);
             this.ConfigurationInfo = configuration ?? new ConfigurationInfo();
             this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
         }
@@ -83,6 +86,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [JsonProperty(Required = Required.Always, PropertyName = "restartPolicy")]
         public virtual RestartPolicy RestartPolicy { get; }
 
+        [JsonProperty(Required = Required.Always, PropertyName = "imagePullPolicy")]
+        public virtual ImagePullPolicy ImagePullPolicy { get; }
+
         [JsonProperty(Required = Required.Always, PropertyName = "status")]
         public virtual ModuleStatus DesiredStatus { get; }
 
@@ -99,7 +105,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             string.Equals(this.Type, other.Type) &&
             this.DesiredStatus != other.DesiredStatus &&
             this.Config.Equals(testModuleBase.Config) &&
-            this.RestartPolicy == other.RestartPolicy;
+            this.RestartPolicy == other.RestartPolicy &&
+            this.ImagePullPolicy == other.ImagePullPolicy;
 
         public override bool Equals(object obj) => this.Equals(obj as TestModuleBase<TConfig>);
 
@@ -122,7 +129,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                    string.Equals(this.Type, other.Type) &&
                    this.DesiredStatus == other.DesiredStatus &&
                    this.Config.Equals(other.Config) &&
-                   this.RestartPolicy == other.RestartPolicy;
+                   this.RestartPolicy == other.RestartPolicy &&
+                   this.ImagePullPolicy == other.ImagePullPolicy;
         }
 
         public override int GetHashCode()
@@ -138,6 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 hashCode = (hashCode * 397) ^ (int)this.DesiredStatus;
                 hashCode = (hashCode * 397) ^ (this.Config != null ? this.Config.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ this.RestartPolicy.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.ImagePullPolicy.GetHashCode();
                 return hashCode;
             }
         }
@@ -152,22 +161,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus desiredStatus,
             TestConfig config,
             RestartPolicy restartPolicy,
+            ImagePullPolicy imagePullPolicy,
             ConfigurationInfo configuration,
             IDictionary<string, EnvVal> env)
-            : base(name, version, type, desiredStatus, config, restartPolicy, configuration, env)
+            : base(name, version, type, desiredStatus, config, restartPolicy, imagePullPolicy, configuration, env)
         {
         }
 
         public TestModule CloneWithImage(string image)
         {
-            return new TestModule(this.Name, this.Version, this.Type, this.DesiredStatus, new TestConfig(image), this.RestartPolicy, this.ConfigurationInfo, this.Env);
+            return new TestModule(this.Name, this.Version, this.Type, this.DesiredStatus, new TestConfig(image), this.RestartPolicy, this.ImagePullPolicy, this.ConfigurationInfo, this.Env);
         }
     }
 
     public class TestAgentModule : TestModule, IEdgeAgentModule
     {
-        public TestAgentModule(string name, string type, TestConfig config, ConfigurationInfo configuration, IDictionary<string, EnvVal> env)
-            : base(name ?? Constants.EdgeAgentModuleName, string.Empty, type, ModuleStatus.Running, config, RestartPolicy.Always, configuration, env)
+        public TestAgentModule(string name, string type, TestConfig config, ImagePullPolicy imagePullPolicy, ConfigurationInfo configuration, IDictionary<string, EnvVal> env)
+            : base(name ?? Constants.EdgeAgentModuleName, string.Empty, type, ModuleStatus.Running, config, RestartPolicy.Always, imagePullPolicy, configuration, env)
         {
             this.Version = string.Empty;
             this.RestartPolicy = RestartPolicy.Always;
@@ -191,8 +201,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class TestHubModule : TestModule, IEdgeHubModule
     {
-        public TestHubModule(string name, string type, ModuleStatus desiredStatus, TestConfig config, RestartPolicy restartPolicy, ConfigurationInfo configuration, IDictionary<string, EnvVal> env)
-            : base(name ?? Constants.EdgeHubModuleName, string.Empty, type, desiredStatus, config, restartPolicy, configuration, env)
+        public TestHubModule(string name, string type, ModuleStatus desiredStatus, TestConfig config, RestartPolicy restartPolicy, ImagePullPolicy imagePullPolicy, ConfigurationInfo configuration, IDictionary<string, EnvVal> env)
+            : base(name ?? Constants.EdgeHubModuleName, string.Empty, type, desiredStatus, config, restartPolicy, imagePullPolicy, configuration, env)
         {
             this.Version = string.Empty;
         }

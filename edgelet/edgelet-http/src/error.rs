@@ -50,6 +50,15 @@ pub enum ErrorKind {
     #[fail(display = "HTTP request failed: [{}] {}", _0, _1)]
     HttpWithErrorResponse(StatusCode, String),
 
+    #[fail(display = "An error occurred obtaining the client identity certificate")]
+    IdentityCertificate,
+
+    #[fail(display = "An error occurred obtaining the client identity private key")]
+    IdentityPrivateKey,
+
+    #[fail(display = "Reading identity private key from PEM bytes failed {}", _0)]
+    IdentityPrivateKeyRead(String),
+
     #[fail(display = "Could not initialize")]
     Initialization,
 
@@ -81,17 +90,26 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred with the proxy {}", _0)]
     Proxy(Uri),
 
+    #[fail(
+        display = "Preparing a PCKS12 client certificate identity failed {}",
+        _0
+    )]
+    PKCS12Identity(String),
+
     #[fail(display = "An error occurred in the service")]
     ServiceError,
 
-    #[fail(display = "An error occured configuring the TLS stack")]
+    #[fail(display = "An error occurred configuring the TLS stack")]
     TlsBootstrapError,
 
-    #[fail(display = "An error occured during creation of the TLS identity from cert")]
+    #[fail(display = "An error occurred during creation of the TLS identity from cert")]
     TlsIdentityCreationError,
 
     #[fail(display = "Token source error")]
     TokenSource,
+
+    #[fail(display = "Could not parse trust bundle")]
+    TrustBundle,
 
     #[fail(
         display = "Could not form well-formed URL by joining {:?} with {:?}",

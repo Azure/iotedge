@@ -420,7 +420,7 @@ mod tests {
     use docker::models::ContainerCreateBody;
     use docker::models::HostConfig;
     use docker::models::Mount;
-    use edgelet_core::ModuleSpec;
+    use edgelet_core::{ImagePullPolicy, ModuleSpec};
     use edgelet_docker::DockerConfig;
     use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
     use serde_json;
@@ -562,6 +562,7 @@ mod tests {
                 env.insert(String::from("C"), String::from("D"));
                 env
             },
+            ImagePullPolicy::default(),
         )
         .unwrap()
     }
@@ -600,7 +601,7 @@ mod tests {
             String::from("proxy:latest"),
             String::from("/etc/traefik"),
             String::from("device1-iotedged-proxy-config"),
-            String::from("IfNotPresent"),
+            String::from("On-Create"),
             String::from("iotedge"),
             Url::parse("http://localhost:35000").unwrap(),
             Url::parse("http://localhost:35001").unwrap(),
@@ -642,7 +643,7 @@ mod tests {
                     assert_eq!(module.env.as_ref().map(Vec::len).unwrap(), 3);
                     assert_eq!(module.volume_mounts.as_ref().map(Vec::len).unwrap(), 7);
                     assert_eq!(module.image.as_ref().unwrap(), "my-image:v1.0");
-                    assert_eq!(module.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
+                    assert_eq!(module.image_pull_policy.as_ref().unwrap(), "On-Create");
                 }
                 if let Some(proxy) = podspec
                     .containers
@@ -653,7 +654,7 @@ mod tests {
                     assert_eq!(proxy.env.as_ref().map(Vec::len).unwrap(), 3);
                     assert_eq!(proxy.volume_mounts.as_ref().map(Vec::len).unwrap(), 1);
                     assert_eq!(proxy.image.as_ref().unwrap(), "proxy:latest");
-                    assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
+                    assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "On-Create");
                 }
                 assert_eq!(podspec.service_account_name.as_ref().unwrap(), "iotedge");
                 assert!(podspec.image_pull_secrets.is_some());
