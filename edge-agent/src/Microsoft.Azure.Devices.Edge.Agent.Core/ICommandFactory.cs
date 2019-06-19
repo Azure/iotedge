@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         Task<ICommand> StartAsync(IModule module);
 
-        Task<ICommand> RestartAsync(string id);
+        Task<ICommand> RestartAsync(IModule module);
 
         Task<ICommand> StopAsync(IModule module);
 

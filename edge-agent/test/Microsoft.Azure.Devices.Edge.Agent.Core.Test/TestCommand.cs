@@ -108,9 +108,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestStop, module, this.Recorder));
         }
 
-        public Task<ICommand> RestartAsync(string id)
+        public Task<ICommand> RestartAsync(IModule module)
         {
-            return Task.FromResult<ICommand>(new TestRestartCommand(TestCommandType.TestRestart, id));
+            Assert.True(module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestRestart, module, this.Recorder));
         }
 
         public Task<ICommand> WrapAsync(ICommand command)
@@ -166,9 +167,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestStop, module, this.Recorder, true));
         }
 
-        public Task<ICommand> RestartAsync(string id)
+        public Task<ICommand> RestartAsync(IModule module)
         {
-            return Task.FromResult<ICommand>(new TestRestartCommand(TestCommandType.TestRestart, id, true));
+            Assert.True(module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestRestart, module, this.Recorder, true));
         }
 
         public Task<ICommand> WrapAsync(ICommand command)
@@ -238,54 +240,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 r.ModuleUndone(this.type, this.module);
             }
 
-            this.CommandUndone = true;
-            return TaskEx.Done;
-        }
-
-        public override string ToString() => this.Show();
-    }
-
-    public class TestRestartCommand : ICommand
-    {
-        readonly TestCommandType type;
-        readonly string id;
-        readonly bool throwOnExecute;
-
-        public TestRestartCommand(TestCommandType type, string id)
-            : this(type, id, false)
-        {
-        }
-
-        public TestRestartCommand(TestCommandType type, string id, bool throwOnExecute)
-        {
-            this.type = type;
-            this.id = Preconditions.CheckNotNull(id, nameof(id));
-            this.throwOnExecute = throwOnExecute;
-            this.CommandExecuted = false;
-            this.CommandUndone = false;
-        }
-
-        public string Show() => $"TestCommand {this.type.ToString()}:{this.id}";
-
-        public string Id => this.Show();
-
-        public bool CommandExecuted { get; private set; }
-
-        public bool CommandUndone { get; private set; }
-
-        public Task ExecuteAsync(CancellationToken token)
-        {
-            if (this.throwOnExecute)
-            {
-                throw new ArgumentException(this.id);
-            }
-
-            this.CommandExecuted = true;
-            return TaskEx.Done;
-        }
-
-        public Task UndoAsync(CancellationToken token)
-        {
             this.CommandUndone = true;
             return TaskEx.Done;
         }

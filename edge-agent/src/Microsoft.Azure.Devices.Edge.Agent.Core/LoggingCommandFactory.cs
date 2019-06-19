@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task<ICommand> StopAsync(IModule module) => new LoggingCommand(await this.underlying.StopAsync(module), "stop", this.logger);
 
-        public async Task<ICommand> RestartAsync(string id) => new LoggingCommand(await this.underlying.RestartAsync(id), "restart", this.logger);
+        public async Task<ICommand> RestartAsync(IModule module) => new LoggingCommand(await this.underlying.RestartAsync(module), "restart", this.logger);
 
         public async Task<ICommand> WrapAsync(ICommand command) => new LoggingCommand(await this.underlying.WrapAsync(command), command.ToString(), this.logger);
 
