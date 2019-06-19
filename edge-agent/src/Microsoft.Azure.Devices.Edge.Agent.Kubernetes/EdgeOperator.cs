@@ -117,9 +117,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 this.persistentVolumeName = Option.None<string>();
             }
 
-            if (!string.IsNullOrWhiteSpace(storageClassName))
+            // storage class names are allowed to be an empty string; see:
+            //  https://cloud.google.com/kubernetes-engine/docs/how-to/persistent-volumes/preexisting-pd
+            if (storageClassName != null)
             {
-                Preconditions.CheckArgument(String.Equals(storageClassName, KubeUtils.SanitizeK8sValue(storageClassName)));
                 this.storageClassName = Option.Some<string>(storageClassName);
             }
             else
@@ -935,13 +936,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // prefer persistent volume name to storage class name, of both are set.
             if (this.persistentVolumeName.HasValue)
             {
-                if (this.storageClassName.HasValue)
-                {
-                    Events.DefaultToPvc();
-                }
                 this.persistentVolumeName.ForEach(pvName => persistentVolumeClaimSpec.VolumeName = pvName);
             }
-            else if (this.storageClassName.HasValue)
+
+            if (this.storageClassName.HasValue)
             {
                 this.storageClassName.ForEach(scName => persistentVolumeClaimSpec.StorageClassName = scName);
             }
@@ -1159,7 +1157,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 ReplacingDeployment,
                 PodWatchClosed,
                 CrdWatchClosed,
-                DefaultToPvc,
                 PvcMightFail,
             }
 
@@ -1274,11 +1271,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             public static void CrdWatchClosed()
             {
                 Log.LogInformation((int)EventIds.CrdWatchClosed, $"K8s closed the CRD watch. Attempting to reopen watch.");
-            }
-
-            public static void DefaultToPvc()
-            {
-                Log.LogWarning((int)EventIds.DefaultToPvc, "Both persistent volume name and storage class name are set, creating a PVC for persistent volume.");
             }
 
             public static void PvcMightFail(string name)
