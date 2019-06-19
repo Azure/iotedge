@@ -1509,7 +1509,7 @@ where
 }
 
 #[derive(Debug, Fail)]
-#[fail(display = "Could not load settings")]
+#[fail(display = "Error loading hybrid auth key")]
 struct HybridAuthError(#[cause] Context<Box<dyn std::fmt::Display + Send + Sync>>);
 
 impl From<std::io::Error> for HybridAuthError {
