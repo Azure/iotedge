@@ -3,11 +3,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
 {
     using System.Collections.Generic;
     using global::Prometheus;
-    
+
     public class MetricsCounter : BaseMetric, IMetricsCounter
     {
         readonly Counter counter;
-        
+
         public MetricsCounter(string name, string description, List<string> labelNames, List<string> defaultLabelValues)
             : base(labelNames, defaultLabelValues)
         {

@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
 {
-    using System;
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
