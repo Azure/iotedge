@@ -16,7 +16,7 @@ use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
 use url::Url;
 
 use docker::models::{AuthConfig, ContainerCreateBody, HostConfig, Mount};
-use edgelet_core::{AuthId, ModuleSpec};
+use edgelet_core::{AuthId, ImagePullPolicy, ModuleSpec};
 use edgelet_core::{Authenticator, ModuleRuntime};
 use edgelet_docker::DockerConfig;
 use edgelet_kube::ErrorKind;
@@ -458,6 +458,7 @@ fn create_module_spec(name: &str) -> ModuleSpec<DockerConfig> {
             env.insert(String::from("C"), String::from("D"));
             env
         },
+        ImagePullPolicy::default(),
     )
     .unwrap()
 }
