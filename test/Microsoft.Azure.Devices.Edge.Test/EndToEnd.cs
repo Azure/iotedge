@@ -102,7 +102,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Assert.Ignore("Module-to-module direct methods don't work over WebSocket on Windows");
             }
 
-            string clientTransport = protocol.ToString();
             string agentImage = Context.Current.EdgeAgentImage.Expect(() => new ArgumentException());
             string hubImage = Context.Current.EdgeHubImage.Expect(() => new ArgumentException());
             string senderImage = Context.Current.MethodSenderImage.Expect(() => new ArgumentException());
@@ -111,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             CancellationToken token = this.cts.Token;
 
-            string name = $"module-to-module direct method ({clientTransport})";
+            string name = $"module-to-module direct method ({protocol.ToString()})";
             Log.Information("Running test '{Name}'", name);
             await Profiler.Run(
                 async () =>
@@ -126,8 +125,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         iotHub,
                         token)).Expect(() => new Exception("Device should have already been created in setup fixture"));
 
-                    string methodSender = $"methodSender-{clientTransport}";
-                    string methodReceiver = $"methodReceiver-{clientTransport}";
+                    string methodSender = $"methodSender-{protocol.ToString()}";
+                    string methodReceiver = $"methodReceiver-{protocol.ToString()}";
+                    string clientTransport = protocol.ToTransportType().ToString();
 
                     var builder = new EdgeConfigBuilder(device.Id);
                     Context.Current.Registry.ForEach(

@@ -6,14 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     using System.Threading.Tasks;
     using Newtonsoft.Json;
 
-    public enum Protocol
-    {
-        Amqp,
-        AmqpWs,
-        Mqtt,
-        MqttWs
-    }
-
     public class EdgeConfiguration
     {
         readonly ConfigurationContent config;
