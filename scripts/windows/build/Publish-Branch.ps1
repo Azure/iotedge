@@ -156,7 +156,7 @@ Write-Host $rocksdbutil
 . $rocksdbutil
 
 # Install latest rocksdb ARM32 library
-$rocksdbARMSourcePath = Get-Rocksdb
+$rocksdbARMSourcePath = Get-Rocksdb-WinArm32
 Write-Host $rocksdbARMSourcePath
 
 foreach ($appProjectFileName in $appProjectList) {

@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft. All rights reserved.
 
-function Get-Rocksdb
+function Get-Rocksdb-WinArm32
 {
     $ErrorActionPreference = 'Continue'
 
@@ -22,8 +22,8 @@ function Get-Rocksdb
     
     push-location $vcpkgroot
 
-    git reset --hard
-    git pull
+    git reset --hard | Write-Host
+    git pull | Write-Host
     # git checkout bb1bb1c94a72b891883efa6522791620ef3bbc0f
 
     Write-Host "bootstrap-vcpkg.bat"
