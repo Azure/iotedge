@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
+    using NUnit.Framework.Interfaces;
     using Serilog;
 
     public class EndToEnd
@@ -30,13 +31,17 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 async () =>
                 {
                     this.cts.Dispose();
-                    using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
+
+                    if (TestContext.CurrentContext.Result.Outcome != ResultState.Ignored)
                     {
-                        string prefix = $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
-                        IEnumerable<string> paths = await EdgeLogs.CollectAsync(this.testStartTime, prefix, cts.Token);
-                        foreach (string path in paths)
+                        using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
                         {
-                            TestContext.AddTestAttachment(path);
+                            string prefix = $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
+                            IEnumerable<string> paths = await EdgeLogs.CollectAsync(this.testStartTime, prefix, cts.Token);
+                            foreach (string path in paths)
+                            {
+                                TestContext.AddTestAttachment(path);
+                            }
                         }
                     }
                 },
