@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
     using System;
     using System.Collections.Generic;
     using global::Prometheus;
-    
+
     public class MetricsTimer : BaseMetric, IMetricsTimer
     {
         readonly Summary summary;

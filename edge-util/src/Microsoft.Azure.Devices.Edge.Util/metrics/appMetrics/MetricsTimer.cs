@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
         readonly TimerOptions timerOptions;
 
         public MetricsTimer(string name, IMeasureTimerMetrics timerMetrics, List<string> labelNames)
-        : base(labelNames, new List<string>())
+            : base(labelNames, new List<string>())
         {
             this.timerMetrics = timerMetrics;
             this.timerOptions = new TimerOptions
