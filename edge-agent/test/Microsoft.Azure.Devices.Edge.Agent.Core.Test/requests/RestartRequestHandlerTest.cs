@@ -18,8 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var moduleRuntimeInfo1 = new ModuleRuntimeInfo("mod1", "docker", ModuleStatus.Running, "", 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
-            var moduleRuntimeInfo2 = new ModuleRuntimeInfo("mod2", "docker", ModuleStatus.Running, "", 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
+            var moduleRuntimeInfo1 = new ModuleRuntimeInfo("mod1", "docker", ModuleStatus.Running, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
+            var moduleRuntimeInfo2 = new ModuleRuntimeInfo("mod2", "docker", ModuleStatus.Running, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>(MockBehavior.Strict);
             runtimeInfoProvider.Setup(r => r.GetModules(cts.Token))
                 .ReturnsAsync(new[] { moduleRuntimeInfo1, moduleRuntimeInfo2 });
@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             var restartRequestHandler = new RestartRequestHandler(runtimeInfoProvider.Object, commandFactory.Object);
 
             string payload = "{\"schemaVersion\": \"1.0\",\"id\": \"mod1\"}";
-            
+
             // Act
             Option<string> response = await restartRequestHandler.HandleRequest(Option.Some(payload), cts.Token);
 
@@ -49,8 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var moduleRuntimeInfo1 = new ModuleRuntimeInfo("mod1", "docker", ModuleStatus.Running, "", 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
-            var moduleRuntimeInfo2 = new ModuleRuntimeInfo("mod2", "docker", ModuleStatus.Running, "", 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
+            var moduleRuntimeInfo1 = new ModuleRuntimeInfo("mod1", "docker", ModuleStatus.Running, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
+            var moduleRuntimeInfo2 = new ModuleRuntimeInfo("mod2", "docker", ModuleStatus.Running, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>(MockBehavior.Strict);
             runtimeInfoProvider.Setup(r => r.GetModules(cts.Token))
                 .ReturnsAsync(new[] { moduleRuntimeInfo1, moduleRuntimeInfo2 });
@@ -79,8 +79,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var moduleRuntimeInfo1 = new ModuleRuntimeInfo("mod1", "docker", ModuleStatus.Running, "", 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
-            var moduleRuntimeInfo2 = new ModuleRuntimeInfo("mod2", "docker", ModuleStatus.Running, "", 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
+            var moduleRuntimeInfo1 = new ModuleRuntimeInfo("mod1", "docker", ModuleStatus.Running, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
+            var moduleRuntimeInfo2 = new ModuleRuntimeInfo("mod2", "docker", ModuleStatus.Running, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>(MockBehavior.Strict);
             runtimeInfoProvider.Setup(r => r.GetModules(cts.Token))
                 .ReturnsAsync(new[] { moduleRuntimeInfo1, moduleRuntimeInfo2 });
@@ -109,8 +109,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var moduleRuntimeInfo1 = new ModuleRuntimeInfo("mod1", "docker", ModuleStatus.Backoff, "", 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
-            var moduleRuntimeInfo2 = new ModuleRuntimeInfo("mod2", "docker", ModuleStatus.Running, "", 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
+            var moduleRuntimeInfo1 = new ModuleRuntimeInfo("mod1", "docker", ModuleStatus.Backoff, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
+            var moduleRuntimeInfo2 = new ModuleRuntimeInfo("mod2", "docker", ModuleStatus.Running, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>(MockBehavior.Strict);
             runtimeInfoProvider.Setup(r => r.GetModules(cts.Token))
                 .ReturnsAsync(new[] { moduleRuntimeInfo1, moduleRuntimeInfo2 });
@@ -141,8 +141,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var moduleRuntimeInfo1 = new ModuleRuntimeInfo("mod1", "docker", ModuleStatus.Backoff, "", 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
-            var moduleRuntimeInfo2 = new ModuleRuntimeInfo("mod2", "docker", ModuleStatus.Running, "", 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
+            var moduleRuntimeInfo1 = new ModuleRuntimeInfo("mod1", "docker", ModuleStatus.Backoff, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
+            var moduleRuntimeInfo2 = new ModuleRuntimeInfo("mod2", "docker", ModuleStatus.Running, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>(MockBehavior.Strict);
             runtimeInfoProvider.Setup(r => r.GetModules(cts.Token))
                 .ReturnsAsync(new[] { moduleRuntimeInfo1, moduleRuntimeInfo2 });
