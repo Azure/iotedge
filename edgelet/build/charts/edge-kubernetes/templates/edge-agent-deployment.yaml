@@ -70,29 +70,33 @@ spec:
           {{- if .Values.edgeAgent.env.portMappingServiceType}}
           - name: "PortMappingServiceType"
             value: {{ .Values.edgeAgent.env.portMappingServiceType | quote }}
-          {{ end }}
+          {{- end }}
           {{- if .Values.edgeAgent.env.enableK8sServiceCallTracing}}
           - name: "EnableK8sServiceCallTracing"
             value: {{ .Values.edgeAgent.env.enableK8sServiceCallTracing | quote }}
-          {{ end }}
+          {{- end }}
           - name: "K8sNamespaceBaseName"
             value: {{ .Values.namespace | quote }}
           {{- if .Values.edgeAgent.env.persistentVolumeClaimDefaultSizeInMb}}
           - name: "PersistentVolumeClaimDefaultSizeInMb"
             value: {{ .Values.edgeAgent.env.persistentVolumeClaimDefaultSizeInMb | quote }}
-          {{ end }}
+          {{- end }}
           {{- if .Values.edgeAgent.env.persistentVolumeName}}
           - name: "PersistentVolumeName"
             value: {{ .Values.edgeAgent.env.persistentVolumeName | quote }}
-          {{ end }}
+          {{- end }}
           {{- if .Values.edgeAgent.env.storageClassName}}
           - name: "StorageClassName"
+          {{- if (eq "-" .Values.edgeAgent.env.storageClassName) }}
+            value: ""
+          {{- else }}
             value: {{ .Values.edgeAgent.env.storageClassName | quote }}
-          {{ end }}
+          {{- end }}
+          {{- end }}
           {{- if .Values.edgeAgent.env.runtimeLogLevel}}
           - name: "RuntimeLogLevel"
             value: {{ .Values.edgeAgent.env.runtimeLogLevel | quote }}
-          {{ end }}
+          {{- end }}
         - name: proxy
           image: "{{ .Values.iotedgedProxy.image.repository }}:{{ .Values.iotedgedProxy.image.tag }}"
           imagePullPolicy: {{ .Values.iotedgedProxy.image.pullPolicy }}
@@ -103,7 +107,7 @@ spec:
       {{- if .Values.registryCredentials }}
       imagePullSecrets:
         - name: {{ include "edge-kubernetes.fullname" . }}-regcreds
-      {{ end }}
+      {{- end }}
       volumes:
         - name: config-volume
           configMap:

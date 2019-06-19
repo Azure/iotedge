@@ -74,13 +74,24 @@ edgeAgent:
     enableK8sServiceCallTracing: false
     # Configure edge agent log verbosity
     runtimeLogLevel: 'debug'
-    # Configure the persistent volume settings.
+
+    # Configure the default claim size to use (in megabytes) when creating PVCs.
     # persistentVolumeClaimDefaultSizeInMb: ""
-    # Use either 'persistentVolumeName' or 'storageClassName'
-    # If you set both, 'persistentVolumeName' will be preferred.
-    # 'persistentVolumeName' will reference a PersistentVolume on the cluster
+
+    # Set this to the name of a persistent volume if you wish the volumes that
+    # back persistent storage in modules to use that PV. Note that you may
+    # sometimes to also need to set the "storageClassName" field below to an
+    # empty string in order for this to work. Since Helm does not provide a
+    # clean way of specifying an empty string (see: https://github.com/helm/helm/issues/2600)
+    # you'll need to set the value "-" in liue of an empty string. This literal
+    # will be interpreted to mean that the storage class needs to be set to an
+    # empty string.
     # persistentVolumeName: ""
-    # 'storageClassName' will reference a StorageClass on the cluster 
+
+    # Set this to the name of a storage class name if you wish the volumes that
+    # back persistent storage in modules to use dynamically provisioned PVCs.
+    # If you wish this to be an empty string then you'll need to use the string
+    # literal "-" in liue of an empty string.
     # storageClassName: ""
 
 # Optional registry credentials for module images
