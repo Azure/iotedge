@@ -16,27 +16,25 @@ function Get-Rocksdb
         }
     }
 
-    # checkout the specific commit for ports\rocksdb that matches the rocksdbsharp being used
+    # checkout the specific commit that matches the rocksdbsharp being used
     # bb1bb1c94a72b891883efa6522791620ef3bbc0f maps to 5.17.2
     # https://github.com/microsoft/vcpkg/commit/bb1bb1c94a72b891883efa6522791620ef3bbc0f#diff-87525ccf58925648e3f92fec94d01d70
     
     push-location $vcpkgroot
 
+    git reset --hard
     git pull
-    git checkout bb1bb1c94a72b891883efa6522791620ef3bbc0f ports\rocksdb
+    # git checkout bb1bb1c94a72b891883efa6522791620ef3bbc0f
 
-    if(!(Test-Path -Path vcpkg.exe))
+    Write-Host "bootstrap-vcpkg.bat"
+    .\bootstrap-vcpkg.bat | Write-Host
+    if ($LastExitCode)
     {
-        Write-Host "bootstrap-vcpkg.bat"
-        .\bootstrap-vcpkg.bat
-        if ($LastExitCode)
-        {
-            Throw "Failed to bootstrap vcpkg with exit code $LastExitCode"
-        }
+        Throw "Failed to bootstrap vcpkg with exit code $LastExitCode"
     }
         
     Write-Host "vcpkg.exe integrate install"
-    .\vcpkg.exe integrate install
+    .\vcpkg.exe integrate install | Write-Host
     if ($LastExitCode)
     {
         Throw "Failed to install vcpkg with exit code $LastExitCode"
