@@ -6,12 +6,15 @@ use hyper::client::HttpConnector;
 use hyper::{Body, Client as HyperClient, Error as HyperError, Request, Response, StatusCode, Uri};
 use hyper_proxy::{Intercept, Proxy, ProxyConnector};
 use hyper_tls::HttpsConnector;
+use native_tls::{Certificate as TlsCertificate, TlsConnector};
+use openssl::x509::X509;
 use typed_headers::Credentials;
 use url::percent_encoding::percent_decode;
 use url::Url;
 
-use super::super::client::ClientImpl;
+use crate::client::ClientImpl;
 use crate::error::{Error, ErrorKind, InvalidUrlReason};
+use crate::PemCertificate;
 
 const DNS_WORKER_THREADS: usize = 4;
 
@@ -19,9 +22,21 @@ const DNS_WORKER_THREADS: usize = 4;
 pub struct Config {
     proxy_uri: Option<Uri>,
     null: bool,
+    identity_certificate: Option<PemCertificate>,
+    trust_bundle: Option<PemCertificate>,
 }
 
 impl Config {
+    pub fn identity_certificate(&mut self, identity_cert: PemCertificate) -> &mut Config {
+        self.identity_certificate = Some(identity_cert);
+        self
+    }
+
+    pub fn trust_bundle(&mut self, trust_bundle: PemCertificate) -> &mut Config {
+        self.trust_bundle = Some(trust_bundle);
+        self
+    }
+
     pub fn proxy(&mut self, uri: Uri) -> &mut Config {
         self.proxy_uri = Some(uri);
         self
@@ -36,17 +51,40 @@ impl Config {
         if self.null {
             Ok(Client::Null)
         } else {
-            let config = self.clone();
+            let mut builder = TlsConnector::builder();
+            if let Some(bundle) = &self.trust_bundle {
+                let certs = X509::stack_from_pem(&bundle.cert)
+                    .context(ErrorKind::TrustBundle)
+                    .context(ErrorKind::Initialization)?;
+                for cert in certs {
+                    let der = cert
+                        .to_der()
+                        .context(ErrorKind::TrustBundle)
+                        .context(ErrorKind::Initialization)?;
+                    let c = TlsCertificate::from_der(&der)
+                        .context(ErrorKind::TrustBundle)
+                        .context(ErrorKind::Initialization)?;
+                    builder.add_root_certificate(c);
+                }
+            }
+            if let Some(id) = &self.identity_certificate {
+                let identity = id.get_identity().context(ErrorKind::Initialization)?;
+                builder.identity(identity);
+            }
 
-            let https =
-                HttpsConnector::new(DNS_WORKER_THREADS).context(ErrorKind::Initialization)?;
+            let connector = builder.build().context(ErrorKind::Initialization)?;
+            let mut http = HttpConnector::new(DNS_WORKER_THREADS);
+            http.enforce_http(false);
+            let https_connector = HttpsConnector::from((http, connector));
 
-            match config.proxy_uri {
-                None => Ok(Client::NoProxy(HyperClient::builder().build(https))),
+            match &self.proxy_uri {
+                None => Ok(Client::NoProxy(
+                    HyperClient::builder().build(https_connector),
+                )),
                 Some(uri) => {
                     let proxy = uri_to_proxy(uri.clone())?;
-                    let conn = ProxyConnector::from_proxy(https, proxy)
-                        .with_context(|_| ErrorKind::Proxy(uri))
+                    let conn = ProxyConnector::from_proxy(https_connector, proxy)
+                        .context(ErrorKind::Proxy(uri.clone()))
                         .context(ErrorKind::Initialization)?;
                     Ok(Client::Proxy(HyperClient::builder().build(conn)))
                 }
@@ -121,6 +159,8 @@ impl Client {
         Config {
             proxy_uri: None,
             null: false,
+            identity_certificate: None,
+            trust_bundle: None,
         }
     }
 

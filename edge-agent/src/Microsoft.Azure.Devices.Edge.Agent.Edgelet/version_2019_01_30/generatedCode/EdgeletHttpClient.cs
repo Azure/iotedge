@@ -1964,7 +1964,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.Generate
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "9.13.2.0 (Newtonsoft.Json v11.0.0.0)")]
     public enum ImagePullPolicy
     {
-        [System.Runtime.Serialization.EnumMember(Value = @"OnCreate")]
+        [System.Runtime.Serialization.EnumMember(Value = @"On-Create")]
         OnCreate = 0,
 
         [System.Runtime.Serialization.EnumMember(Value = @"Never")]
