@@ -18,13 +18,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     .AddEnvironmentVariables("E2E_")
                     .Build();
 
-                string GetString(string name) => context.GetValue<string>(name);
+                string Get(string name) => context.GetValue<string>(name);
 
-                string GetStringOr(string name, string alternate)
-                {
-                    string value = GetString(name);
-                    return string.IsNullOrEmpty(value) ? alternate : value;
-                }
+                string GetOrDefault(string name, string defaultValue) => context.GetValue<string>(name, defaultValue);
 
                 Option<(string, string, string)> AllOrNothing(string a, string b, string c) =>
                     string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) || string.IsNullOrEmpty(c)
@@ -33,19 +29,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                 return new Context
                 {
-                    ConnectionString = GetString("IOT_HUB_CONNECTION_STRING"),
-                    EventHubEndpoint = GetString("EVENT_HUB_ENDPOINT"),
-                    DeviceId = GetStringOr("deviceId", $"end-to-end-{Dns.GetHostName()}-{DateTime.Now:yyyy'-'MM'-'dd'T'HH'-'mm'-'ss'-'fff}"),
-                    InstallerPath = Option.Maybe(GetString("installerPath")),
-                    PackagePath = Option.Maybe(GetString("packagePath")),
+                    ConnectionString = Get("IOT_HUB_CONNECTION_STRING"),
+                    EventHubEndpoint = Get("EVENT_HUB_ENDPOINT"),
+                    DeviceId = GetOrDefault("deviceId", $"end-to-end-{Dns.GetHostName()}-{DateTime.Now:yyyy'-'MM'-'dd'T'HH'-'mm'-'ss'-'fff}"),
+                    InstallerPath = Option.Maybe(Get("installerPath")),
+                    PackagePath = Option.Maybe(Get("packagePath")),
                     Proxy = Option.Maybe(context.GetValue<Uri>("proxy")),
-                    Registry = AllOrNothing(GetString("registry"), GetString("user"), GetString("CONTAINER_REGISTRY_PASSWORD")),
-                    EdgeAgentImage = Option.Maybe(GetString("edgeAgentImage")),
-                    EdgeHubImage = Option.Maybe(GetString("edgeHubImage")),
-                    TempSensorImage = Option.Maybe(GetString("tempSensorImage")),
-                    MethodSenderImage = Option.Maybe(GetString("methodSenderImage")),
-                    MethodReceiverImage = Option.Maybe(GetString("methodReceiverImage")),
-                    LogFile = Option.Maybe(GetString("logFile")),
+                    Registry = AllOrNothing(Get("registry"), Get("user"), Get("CONTAINER_REGISTRY_PASSWORD")),
+                    EdgeAgentImage = Option.Maybe(Get("edgeAgentImage")),
+                    EdgeHubImage = Option.Maybe(Get("edgeHubImage")),
+                    TempSensorImage = Option.Maybe(Get("tempSensorImage")),
+                    MethodSenderImage = Option.Maybe(Get("methodSenderImage")),
+                    MethodReceiverImage = Option.Maybe(Get("methodReceiverImage")),
+                    LogFile = Option.Maybe(Get("logFile")),
                     Verbose = context.GetValue("verbose", false),
                     SetupTimeout = TimeSpan.FromMinutes(context.GetValue("setupTimeoutMinutes", 5)),
                     TeardownTimeout = TimeSpan.FromMinutes(context.GetValue("teardownTimeoutMinutes", 2)),
