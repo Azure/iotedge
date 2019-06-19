@@ -4,10 +4,12 @@ function Get-Rocksdb
 {
     $ErrorActionPreference = 'Continue'
 
-    if (!(Test-Path -Path $env:HOMEDRIVE\vcpkg1))
+    $vcpkgroot = "$env:HOMEDRIVE\vcpkg1"
+
+    if (!(Test-Path -Path $vcpkgroot))
     {
         Write-Host "git clone vcpkg"
-        git clone https://github.com/Microsoft/vcpkg $env:HOMEDRIVE\vcpkg1
+        git clone https://github.com/Microsoft/vcpkg $vcpkgroot
         if ($LastExitCode)
         {
             Throw "Failed to clone vcpkg repo with exit code $LastExitCode"
@@ -18,33 +20,45 @@ function Get-Rocksdb
     # bb1bb1c94a72b891883efa6522791620ef3bbc0f maps to 5.17.2
     # https://github.com/microsoft/vcpkg/commit/bb1bb1c94a72b891883efa6522791620ef3bbc0f#diff-87525ccf58925648e3f92fec94d01d70
     
-    push-location $env:HOMEDRIVE\vcpkg1
+    push-location $vcpkgroot
+
     git pull
     git checkout bb1bb1c94a72b891883efa6522791620ef3bbc0f ports\rocksdb
-    pop-location    
-     
-    Write-Host "always rerun bootstrap-vcpkg.bat"
-    & "$env:HOMEDRIVE\vcpkg1\bootstrap-vcpkg.bat"
-    if ($LastExitCode)
+
+    if(!(Test-Path -Path vcpkg.exe))
     {
-        Throw "Failed to bootstrap vcpkg with exit code $LastExitCode"
+        Write-Host "bootstrap-vcpkg.bat"
+        .\bootstrap-vcpkg.bat
+        if ($LastExitCode)
+        {
+            Throw "Failed to bootstrap vcpkg with exit code $LastExitCode"
+        }
     }
         
     Write-Host "vcpkg.exe integrate install"
-    & $env:HOMEDRIVE\\vcpkg1\\vcpkg.exe integrate install
+    .\vcpkg.exe integrate install
     if ($LastExitCode)
     {
         Throw "Failed to install vcpkg with exit code $LastExitCode"
     }
     
     Write-Host "vcpkg.exe install rocksdb:arm-windows"
-    & $env:HOMEDRIVE\\vcpkg1\\vcpkg.exe install rocksdb:arm-windows
+    .\vcpkg.exe install rocksdb:arm-windows
     if ($LastExitCode)
     {
         Throw "Failed to install rocksdb vcpkg with exit code $LastExitCode"
     }
+
+    $rocksdbdll = "$vcpkgroot\installed\arm-windows\bin\rocksdb-shared.dll"
+
+    if(!(Test-Path -Path $rocksdbdll))
+    {
+        Throw "rocksdb dll is not found at $rocksdbdll"
+    }
     
     $ErrorActionPreference = 'Stop'
+
+    pop-location
     
-    return "$env:HOMEDRIVE\vcpkg1\installed\arm-windows\bin\rocksdb-shared.dll"
+    return $rocksdbdll
 }
