@@ -436,7 +436,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 "Time taken to update reported properties",
                 new List<string> { "target", "id" });
 
-
             static readonly IMetricsCounter ReportedPropertiesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "reported_properties",
                 "Reported properties update calls",

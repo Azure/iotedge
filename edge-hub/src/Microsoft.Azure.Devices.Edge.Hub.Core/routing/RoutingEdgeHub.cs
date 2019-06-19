@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Routing.Core;
-    using Microsoft.Extensions.Logging;
-    using Serilog.Events;
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Routing.Core;
+    using Microsoft.Extensions.Logging;
+    using Serilog.Events;
     using static System.FormattableString;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
@@ -63,12 +63,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Events.MessagesReceived(identity, messagesList);
 
             IEnumerable<IRoutingMessage> routingMessages = messagesList
-                .Select(m =>
-                {
-                    IRoutingMessage routingMessage = this.ProcessMessageInternal(m, true);
-                    Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
-                    return routingMessage;
-                });
+                .Select(
+                    m =>
+                    {
+                        IRoutingMessage routingMessage = this.ProcessMessageInternal(m, true);
+                        Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
+                        return routingMessage;
+                    });
             return this.router.RouteAsync(routingMessages);
         }
 
@@ -257,7 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             static readonly IMetricsHistogram MessagesHistogram = Util.Metrics.Metrics.Instance.CreateHistogram(
                 "message_size_bytes",
                 "Size of messages received by EdgeHub",
-                new List<string> {"id"});
+                new List<string> { "id" });
 
             public static void AddMessageSize(long size, string id) => MessagesHistogram.Update(size, new[] { id });
         }
