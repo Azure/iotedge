@@ -20,12 +20,28 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                 string Get(string name) => context.GetValue<string>(name);
 
-                string GetOrDefault(string name, string defaultValue) => context.GetValue<string>(name, defaultValue);
+                string GetOrDefault(string name, string defaultValue) => context.GetValue(name, defaultValue);
 
-                Option<(string, string, string)> AllOrNothing(string a, string b, string c) =>
-                    string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) || string.IsNullOrEmpty(c)
-                        ? Option.None<(string, string, string)>()
-                        : Option.Some((a, b, c));
+                Option<(string, string, string)> GetAndValidateRegistry()
+                {
+                    // If any container registry arguments (server, username, password)
+                    // are given, then they must *all* be given, otherwise throw an error.
+                    string registry = Get("registry");
+                    string username = Get("user");
+                    string password = Get("CONTAINER_REGISTRY_PASSWORD");
+
+                    if (!string.IsNullOrWhiteSpace(registry) ||
+                        !string.IsNullOrWhiteSpace(username) ||
+                        !string.IsNullOrWhiteSpace(password))
+                    {
+                        Preconditions.CheckNonWhiteSpace(registry, nameof(registry));
+                        Preconditions.CheckNonWhiteSpace(username, nameof(username));
+                        Preconditions.CheckNonWhiteSpace(password, nameof(password));
+                        return Option.Some((registry, username, password));
+                    }
+
+                    return Option.None<(string, string, string)>();
+                }
 
                 return new Context
                 {
@@ -35,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     InstallerPath = Option.Maybe(Get("installerPath")),
                     PackagePath = Option.Maybe(Get("packagePath")),
                     Proxy = Option.Maybe(context.GetValue<Uri>("proxy")),
-                    Registry = AllOrNothing(Get("registry"), Get("user"), Get("CONTAINER_REGISTRY_PASSWORD")),
+                    Registry = GetAndValidateRegistry(),
                     EdgeAgentImage = Option.Maybe(Get("edgeAgentImage")),
                     EdgeHubImage = Option.Maybe(Get("edgeHubImage")),
                     TempSensorImage = Option.Maybe(Get("tempSensorImage")),

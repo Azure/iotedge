@@ -45,8 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                         // NUnit's [Timeout] attribute isn't supported in .NET Standard
                         // and even if it were, it doesn't run the teardown method when
-                        // a test times out. We need to teardown to run, to remove the
-                        // device registration from IoT Hub and to stop the daemon. So
+                        // a test times out. We need teardown to run, to remove the
+                        // device registration from IoT Hub and stop the daemon. So
                         // we have our own timeout mechanism.
                         CancellationToken token = cts.Token;
 
