@@ -17,14 +17,14 @@ function Get-Rocksdb-WinArm32
     }
 
     # checkout the specific commit that matches the rocksdbsharp being used
-    # bb1bb1c94a72b891883efa6522791620ef3bbc0f maps to 5.17.2
-    # https://github.com/microsoft/vcpkg/commit/bb1bb1c94a72b891883efa6522791620ef3bbc0f#diff-87525ccf58925648e3f92fec94d01d70
+    # 4d224838df2da68def51540e328b8b692ae5607f maps to 5.18.3
+    # https://github.com/microsoft/vcpkg/commit/4d224838df2da68def51540e328b8b692ae5607f#diff-87525ccf58925648e3f92fec94d01d70
     
     push-location $vcpkgroot
 
     git reset --hard | Write-Host
     git pull | Write-Host
-    # git checkout bb1bb1c94a72b891883efa6522791620ef3bbc0f
+    git checkout 4d224838df2da68def51540e328b8b692ae5607f | Write-Host
 
     Write-Host "bootstrap-vcpkg.bat"
     .\bootstrap-vcpkg.bat | Write-Host
