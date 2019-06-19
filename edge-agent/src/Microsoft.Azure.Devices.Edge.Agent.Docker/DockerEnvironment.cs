@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
                 if (!moduleSet.Modules.TryGetValue(dockerRuntimeInfo.Name, out IModule configModule) || !(configModule is DockerModule dockerModule))
                 {
-                    dockerModule = new DockerModule(dockerRuntimeInfo.Name, string.Empty, ModuleStatus.Unknown, Core.RestartPolicy.Unknown, new DockerConfig(Constants.UnknownImage, new CreateContainerParameters()), new ConfigurationInfo(), null);
+                    dockerModule = new DockerModule(dockerRuntimeInfo.Name, string.Empty, ModuleStatus.Unknown, Core.RestartPolicy.Unknown, new DockerConfig(Constants.UnknownImage, new CreateContainerParameters()), ImagePullPolicy.OnCreate, new ConfigurationInfo(), null);
                 }
 
                 Option<ModuleState> moduleStateOption = await this.moduleStateStore.Get(moduleRuntimeInfo.Name);
@@ -89,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                             moduleState.RestartCount,
                             moduleState.LastRestartTimeUtc,
                             moduleRuntimeStatus,
+                            dockerModule.ImagePullPolicy,
                             dockerModule.ConfigurationInfo,
                             dockerModule.Env);
                         break;
@@ -101,6 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                             dockerRuntimeInfo.Description,
                             dockerRuntimeInfo.StartTime.GetOrElse(DateTime.MinValue),
                             lastExitTime,
+                            dockerModule.ImagePullPolicy,
                             dockerModule.ConfigurationInfo,
                             dockerModule.Env);
                         break;
@@ -119,6 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                             moduleState.RestartCount,
                             moduleState.LastRestartTimeUtc,
                             moduleRuntimeStatus,
+                            dockerModule.ImagePullPolicy,
                             dockerModule.ConfigurationInfo,
                             dockerModule.Env);
                         break;
