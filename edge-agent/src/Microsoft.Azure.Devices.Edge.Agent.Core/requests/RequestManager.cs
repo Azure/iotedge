@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         {
             IEnumerable<KeyValuePair<string, IRequestHandler>> requestHandlersList = Preconditions.CheckNotNull(requestHandlers, nameof(requestHandlers))
                 .Select(r => new KeyValuePair<string, IRequestHandler>(r.RequestName, r));
-            this.requestHandlers = new ConcurrentDictionary<string, IRequestHandler>(requestHandlersList);
+            this.requestHandlers = new ConcurrentDictionary<string, IRequestHandler>(requestHandlersList, StringComparer.OrdinalIgnoreCase);
             this.maxRequestTimeout = maxRequestTimeout;
         }
 

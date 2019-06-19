@@ -19,8 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
         {
             // Arrange
             const string ModuleName = "boo";
-            var module = new Mock<IRuntimeModule>();
-            module.SetupGet(m => m.Name).Returns(ModuleName);
 
             var containerOperations = new Mock<IContainerOperations>();
             containerOperations
@@ -35,7 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             await command.ExecuteAsync(CancellationToken.None);
 
             // Assert
-            module.VerifyAll();
             containerOperations.VerifyAll();
             dockerClient.VerifyAll();
         }
