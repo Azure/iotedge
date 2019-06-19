@@ -1,5 +1,6 @@
 use actix_web::{HttpServer, HttpRequest, HttpResponse, App, web};
 use std::io;
+use serde_json;
 
 mod modules;
 mod state;
@@ -52,8 +53,16 @@ fn get_state(_req: HttpRequest) -> HttpResponse {
 fn get_modules(_req: HttpRequest) -> HttpResponse {
     if let Ok(contents) = state::get_file() { // if file exists and can be located
         let mgmt_uri = modules::get_management_uri(&contents).unwrap();
-        // access modules list somehow using the mgmt uri and have it as json 
-        HttpResponse::Ok().body(mgmt_uri)
+        println!("LINE 56");
+        let mod_list = modules::get_list(&mgmt_uri);
+        println!("LINE 58");
+        if let Ok(mods) = mod_list {
+            println!("am i even getting here");
+            HttpResponse::Ok().body("AHHHHHHHHHH")
+            // HttpResponse::Ok().body(serde_json::to_string(&mods).unwrap())
+        } else {
+            HttpResponse::UnprocessableEntity().body("Unable to retrieve module list.")
+        }
     } else { // if file doesn't exist or can't be located
         HttpResponse::UnprocessableEntity().body("Unable to find config.yaml file.")
     }
