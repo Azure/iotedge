@@ -12,12 +12,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     {
         static readonly Version ExpectedSchemaVersion = new Version("1.0");
 
-        readonly IRuntimeInfoProvider runtimeInfoProvider;
+        readonly IEnvironmentProvider environmentProvider;
+        readonly IConfigSource configSource;
         readonly ICommandFactory commandFactory;
 
-        public RestartRequestHandler(IRuntimeInfoProvider runtimeInfoProvider, ICommandFactory commandFactory)
+        public RestartRequestHandler(IEnvironmentProvider environmentProvider, IConfigSource configSource, ICommandFactory commandFactory)
         {
-            this.runtimeInfoProvider = Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider));
+            this.environmentProvider = Preconditions.CheckNotNull(environmentProvider, nameof(environmentProvider));
+            this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
             this.commandFactory = Preconditions.CheckNotNull(commandFactory, nameof(commandFactory));
         }
 
@@ -32,14 +34,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             }
 
             Events.ProcessingRequest(payload);
-            IEnumerable<ModuleRuntimeInfo> modules = await this.runtimeInfoProvider.GetModules(cancellationToken);
-            Option<ModuleRuntimeInfo> moduleOption = modules.FirstOption(m => m.Name == payload.Id);
-            if (!moduleOption.HasValue)
+
+            DeploymentConfigInfo deploymentConfigInfo = await this.configSource.GetDeploymentConfigInfoAsync();
+            IEnvironment environment = this.environmentProvider.Create(deploymentConfigInfo.DeploymentConfig);
+            ModuleSet modules = await environment.GetModulesAsync(cancellationToken);
+            if (!modules.TryGetModule(payload.Id, out IModule module))
             {
                 throw new InvalidOperationException($"Module {payload.Id} not found in the current environment");
             }
 
-            if (!moduleOption.Filter(m => m.ModuleStatus == ModuleStatus.Running).HasValue)
+            if (!(module is IRuntimeModule runtimeModule) || runtimeModule.RuntimeStatus != ModuleStatus.Running)
             {
                 throw new InvalidOperationException($"Module {payload.Id} cannot be restarted since it is not running");
             }
