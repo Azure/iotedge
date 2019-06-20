@@ -183,9 +183,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<Task<IConfigSource>>()
                 .SingleInstance();
 
-            // Task<IReporter>
+            // IReporter
             builder.Register(
-                async c =>
+                c =>
                 {
                     var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
                     {
@@ -224,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         new TypeSpecificSerDe<AgentState>(deserializerTypesMap),
                         this.versionInfo) as IReporter;
                 })
-                .As<Task<IReporter>>()
+                .As<IReporter>()
                 .SingleInstance();
 
             base.Load(builder);
