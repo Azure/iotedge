@@ -146,6 +146,9 @@ pub struct ModuleSpec<T> {
     #[serde(default = "HashMap::new")]
     #[serde(serialize_with = "serialize_ordered")]
     env: HashMap<String, String>,
+    #[serde(default)]
+    #[serde(rename = "imagePullPolicy")]
+    image_pull_policy: ImagePullPolicy,
 }
 
 impl<T> Clone for ModuleSpec<T>
@@ -158,6 +161,7 @@ where
             type_: self.type_.clone(),
             config: self.config.clone(),
             env: self.env.clone(),
+            image_pull_policy: self.image_pull_policy,
         }
     }
 }
@@ -168,6 +172,7 @@ impl<T> ModuleSpec<T> {
         type_: String,
         config: T,
         env: HashMap<String, String>,
+        image_pull_policy: ImagePullPolicy,
     ) -> Result<Self> {
         ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
         ensure_not_empty_with_context(&type_, || ErrorKind::InvalidModuleType(type_.clone()))?;
@@ -177,6 +182,7 @@ impl<T> ModuleSpec<T> {
             type_,
             config,
             env,
+            image_pull_policy,
         })
     }
 
@@ -221,6 +227,15 @@ impl<T> ModuleSpec<T> {
 
     pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
         self.env = env;
+        self
+    }
+
+    pub fn image_pull_policy(&self) -> ImagePullPolicy {
+        self.image_pull_policy
+    }
+
+    pub fn with_image_pull_policy(mut self, image_pull_policy: ImagePullPolicy) -> Self {
+        self.image_pull_policy = image_pull_policy;
         self
     }
 }
@@ -493,6 +508,34 @@ impl fmt::Display for RuntimeOperation {
     }
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ImagePullPolicy {
+    #[serde(rename = "on-create")]
+    OnCreate,
+    Never,
+}
+
+impl Default for ImagePullPolicy {
+    fn default() -> Self {
+        ImagePullPolicy::OnCreate
+    }
+}
+
+impl FromStr for ImagePullPolicy {
+    type Err = Error;
+
+    fn from_str(s: &str) -> StdResult<ImagePullPolicy, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "on-create" => Ok(ImagePullPolicy::OnCreate),
+            "never" => Ok(ImagePullPolicy::Never),
+            _ => Err(Error::from(ErrorKind::InvalidImagePullPolicy(
+                s.to_string(),
+            ))),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -531,7 +574,13 @@ mod tests {
     #[test]
     fn module_config_empty_name_fails() {
         let name = "".to_string();
-        match ModuleSpec::new(name.clone(), "docker".to_string(), 10_i32, HashMap::new()) {
+        match ModuleSpec::new(
+            name.clone(),
+            "docker".to_string(),
+            10_i32,
+            HashMap::new(),
+            ImagePullPolicy::default(),
+        ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
                 if let ErrorKind::InvalidModuleName(s) = err.kind() {
@@ -546,7 +595,13 @@ mod tests {
     #[test]
     fn module_config_white_space_name_fails() {
         let name = "    ".to_string();
-        match ModuleSpec::new(name.clone(), "docker".to_string(), 10_i32, HashMap::new()) {
+        match ModuleSpec::new(
+            name.clone(),
+            "docker".to_string(),
+            10_i32,
+            HashMap::new(),
+            ImagePullPolicy::default(),
+        ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
                 if let ErrorKind::InvalidModuleName(s) = err.kind() {
@@ -561,7 +616,13 @@ mod tests {
     #[test]
     fn module_config_empty_type_fails() {
         let type_ = "    ".to_string();
-        match ModuleSpec::new("m1".to_string(), type_.clone(), 10_i32, HashMap::new()) {
+        match ModuleSpec::new(
+            "m1".to_string(),
+            type_.clone(),
+            10_i32,
+            HashMap::new(),
+            ImagePullPolicy::default(),
+        ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
                 if let ErrorKind::InvalidModuleType(s) = err.kind() {
@@ -576,7 +637,13 @@ mod tests {
     #[test]
     fn module_config_white_space_type_fails() {
         let type_ = "    ".to_string();
-        match ModuleSpec::new("m1".to_string(), type_.clone(), 10_i32, HashMap::new()) {
+        match ModuleSpec::new(
+            "m1".to_string(),
+            type_.clone(),
+            10_i32,
+            HashMap::new(),
+            ImagePullPolicy::default(),
+        ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
                 if let ErrorKind::InvalidModuleType(s) = err.kind() {

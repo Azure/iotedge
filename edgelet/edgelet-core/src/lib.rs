@@ -31,7 +31,7 @@ pub use crypto::{
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
 pub use module::{
-    LogOptions, LogTail, Module, ModuleOperation, ModuleRegistry, ModuleRuntime,
+    ImagePullPolicy, LogOptions, LogTail, Module, ModuleOperation, ModuleRegistry, ModuleRuntime,
     ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, ModuleTop,
     RegistryOperation, RuntimeOperation, SystemInfo,
 };

@@ -45,7 +45,7 @@ fn setup_configured_id_cert(home_dir: &Path) {
 }
 
 #[test]
-fn x509_get_identity_cert_success() {
+fn x509_get_conf_identity_cert_success() {
     // arrange
     let home_dir = TestHSMEnvSetup::new(&LOCK, None);
     setup_configured_id_cert(home_dir.get_path());
