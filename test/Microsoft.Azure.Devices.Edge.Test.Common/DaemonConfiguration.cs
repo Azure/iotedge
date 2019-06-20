@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
     using System.IO;
-    using Serilog;
 
     public class DaemonConfiguration
     {
@@ -21,10 +20,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public void AddHttpsProxy(Uri proxy)
         {
             this.config.ReplaceOrAdd("agent.env.https_proxy", proxy.ToString());
-            // TODO: When we allow the caller to specify an upstream protocol,
-            //       we'll need to honor that if it's WebSocket-based, otherwise
-            //       convert to an equivalent WebSocket-based protocol (e.g.,
-            //       Mqtt --> MqttWs)
+            // The config.yaml file is configured during test suite
+            // initialization, before we know which protocol a given test
+            // will use. Always use AmqpWs, and when each test deploys a
+            // configuration, it can use whatever it wants.
             this.config.ReplaceOrAdd("agent.env.UpstreamProtocol", "AmqpWs");
         }
 
