@@ -608,7 +608,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         static class Metrics
         {
             static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
-                "message_send_duration_milliseconds",
+                "message_send_duration_seconds",
                 "Time taken to send a message",
                 new List<string> { "from", "to" });
 
@@ -618,7 +618,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 new List<string> { "from", "to" });
 
             static readonly IMetricsTimer GetTwinTimer = Util.Metrics.Metrics.Instance.CreateTimer(
-                "gettwin_duration_milliseconds",
+                "gettwin_duration_seconds",
                 "Time taken to get twin",
                 new List<string> { "source", "id" });
 
@@ -628,7 +628,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 new List<string> { "source", "id" });
 
             static readonly IMetricsTimer ReportedPropertiesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
-                "reported_properties_update_duration_milliseconds",
+                "reported_properties_update_duration_seconds",
                 "Time taken to update reported properties",
                 new List<string> { "target", "id" });
 
@@ -637,8 +637,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 "Reported properties update calls",
                 new List<string> { "target", "id" });
 
-            static readonly IMetricsHistogram MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateHistogram(
-                "message_process_duration_milliseconds",
+            static readonly IMetricsDuration MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateDuration(
+                "message_process_duration",
                 "Time taken to process message in EdgeHub",
                 new List<string> { "from", "to" });
 
@@ -661,8 +661,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
                 {
                     TimeSpan duration = DateTime.UtcNow - enqueuedTime.ToUniversalTime();
-                    MessagesProcessLatency.Update(
-                        (long)duration.TotalMilliseconds,
+                    MessagesProcessLatency.Set(
+                        duration.TotalSeconds,
                         new[] { id, "upstream" });
                 }
             }

@@ -40,6 +40,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
         public IMetricsHistogram CreateHistogram(string name, string description, List<string> labelNames)
             => new MetricsHistogram(name, this.metricsRoot.Measure.Histogram, labelNames);
 
+        public IMetricsDuration CreateDuration(string name, string description, List<string> labelNames)
+            => new MetricsDuration(name, DurationUnit.Seconds, this.metricsRoot.Measure.Histogram, labelNames);
+
         public IMetricsTimer CreateTimer(string name, string description, List<string> labelNames)
             => new MetricsTimer(name, this.metricsRoot.Measure.Timer, labelNames);
 

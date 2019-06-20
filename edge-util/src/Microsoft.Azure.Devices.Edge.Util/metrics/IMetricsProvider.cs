@@ -15,6 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 
         IMetricsHistogram CreateHistogram(string name, string description, List<string> labelNames);
 
+        IMetricsDuration CreateDuration(string name, string description, List<string> labelNames);
+
         Task<byte[]> GetSnapshot(CancellationToken cancellationToken);
     }
 }

@@ -21,5 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics
 
         public Task<byte[]> GetSnapshot(CancellationToken cancellationToken)
             => Task.FromResult(new byte[0]);
+
+        public IMetricsDuration CreateDuration(string name, string description, List<string> labelNames)
+            => new NullMetricsDuration();
     }
 }

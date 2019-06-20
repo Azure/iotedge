@@ -5,6 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
     {
         public const string EdgeHubMetricPrefix = "edgehub";
         public const string DeviceIdLabel = "edge_device";
-        public const string IotHubLabel = "iot_hub";
+        public const string IotHubLabel = "iothub";
     }
 }

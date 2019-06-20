@@ -35,6 +35,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
         public IMetricsHistogram CreateHistogram(string name, string description, List<string> labelNames)
             => new MetricsHistogram(this.GetName(name), description, this.GetLabelNames(labelNames), this.defaultLabelNames);
 
+        public IMetricsDuration CreateDuration(string name, string description, List<string> labelNames)
+            => new MetricsDuration(this.GetName(name), description, this.GetLabelNames(labelNames), this.defaultLabelNames);
+
         public async Task<byte[]> GetSnapshot(CancellationToken cancellationToken)
         {
             using (var ms = new MemoryStream())
