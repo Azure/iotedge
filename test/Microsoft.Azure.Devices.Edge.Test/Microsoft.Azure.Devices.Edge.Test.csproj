@@ -9,11 +9,10 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <Configurations>Debug;Release;CodeCoverage;CheckInBuild</Configurations>
-    <LangVersion>7.1</LangVersion>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <Configurations>Debug;Release;CodeCoverage;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <!--
@@ -30,14 +29,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Test.Common\Microsoft.Azure.Devices.Edge.Test.Common.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="2.2.4" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.2.4" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.2.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
+    <PackageReference Include="nunit" Version="3.11.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.11.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="4.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="2.3.4" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
-    <PackageReference Include="Serilog.Sinks.File" Version="4.0.0" />
-    <PackageReference Include="System.ComponentModel.Annotations" Version="4.5.0" />
+    <ProjectReference Include="..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
+    <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Test.Common\Microsoft.Azure.Devices.Edge.Test.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>
