@@ -270,7 +270,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         static class Events
         {
             static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesRuntimeInfoProvider>();
-            const int IdStart = AgentEventIds.KubernetesReporter;
+            const int IdStart = KubernetesEventIds.KubernetesReporter;
 
             enum EventIds
             {

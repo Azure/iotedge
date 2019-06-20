@@ -57,17 +57,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         // Alphanumeric, '-' and '.' up to 253 characters.
         public static string SanitizeK8sValue(string name)
         {
+            if (name == null)
+            {
+                // Values sometimes may be null, and that's OK.
+                return name;
+            }
+
             name = name.ToLower();
 
             var output = new StringBuilder();
-            for (int i = 0, len = 0; i < name.Length && len < MaxK8SValueLength; i++)
+            for (int i = 0; i < name.Length; i++)
             {
-                if (IsAlphaNumeric(name[i]) ||
-                    (len < MaxK8SValueLength-1 && AllowedCharsGeneric.IndexOf(name[i]) != -1))
+                if (IsAlphaNumeric(name[i]) || AllowedCharsGeneric.IndexOf(name[i]) != -1)
                 {
                     output.Append(name[i]);
-                    len++;
                 }
+            }
+
+            if (output.Length > MaxK8SValueLength)
+            {
+                throw new InvalidKubernetesNameException($"Value '{name}' as sanitized exceeded maximum length {MaxK8SValueLength}");
             }
 
             return output.ToString();
@@ -101,14 +110,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // build a new string from start-end (inclusive) excluding characters
             // that aren't alphanumeric or the symbol '-'
             var output = new StringBuilder();
-            for (int i = start, len = 0; i <= end && len < maxLength; i++)
+            for (int i = start; i <= end; i++)
             {
-                if (IsAlphaNumeric(name[i]) ||
-                    (len < maxLength-1 && AllowedCharsDns.IndexOf(name[i]) != -1))
+                if (IsAlphaNumeric(name[i]) || AllowedCharsDns.IndexOf(name[i]) != -1)
                 {
                     output.Append(name[i]);
-                    len++;
                 }
+            }
+            if (output.Length > maxLength)
+            {
+                throw new InvalidKubernetesNameException($"DNS name '{name}' exceeded maximum length of {maxLength}");
             }
 
             return output.ToString();
@@ -117,14 +128,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         // DNS subdomains are DNS labels separated by '.', max 253 characters.
         public static string SanitizeDNSDomain(string name)
         {
-            int maxRemaining = MaxK8SValueLength;
             char[] nameSplit = { '.' };
             string[] dnsSegments = name.Split(nameSplit);
             var output = new StringBuilder();
             bool firstSegment = true;
             foreach (var segment in dnsSegments)
             {
-                string sanitized = SanitizeDNSValue(segment, Math.Min(MaxDnsNameLength, maxRemaining));
+                if (segment == string.Empty)
+                {
+                    continue;
+                }
+                string sanitized = SanitizeDNSValue(segment);
                 if (sanitized == string.Empty)
                 {
                     continue;
@@ -134,14 +148,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 {
                     output.Append(sanitized);
                     firstSegment = false;
-                    maxRemaining -= sanitized.Length;
                 }
                 else
                 {
                     output.Append(".");
                     output.Append(sanitized);
-                    maxRemaining -= sanitized.Length + 1;
                 }
+            }
+
+            if (output.Length > MaxK8SValueLength)
+            {
+                throw new InvalidKubernetesNameException($"DNS subdomain '{name}' as sanitized exceeded maximum length of {MaxK8SValueLength}");
             }
             return output.ToString();
         }
@@ -171,14 +188,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // build a new string from start-end (inclusive) excluding characters
             // that aren't alphanumeric or the symbol '-'
             var output = new StringBuilder();
-            for (int i = start, len = 0; i <= end && len < MaxLabelValueLength; i++)
+            for (int i = start; i <= end; i++)
             {
-                if (IsAlphaNumeric(name[i]) ||
-                    (len < MaxLabelValueLength-1 && AllowedCharsLabelValues.IndexOf(name[i]) != -1))
+                if (IsAlphaNumeric(name[i]) || AllowedCharsLabelValues.IndexOf(name[i]) != -1)
                 {
                     output.Append(name[i]);
-                    len++;
                 }
+            }
+            if (output.Length > MaxLabelValueLength)
+            {
+                throw new InvalidKubernetesNameException($"Name '{name}' exceeded maximum length of {MaxLabelValueLength}");
             }
 
             return output.ToString();
