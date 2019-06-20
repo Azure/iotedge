@@ -427,7 +427,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 new List<string> { "source", "id" });
 
             static readonly IMetricsCounter GetTwinCounter = Util.Metrics.Metrics.Instance.CreateCounter(
-                "get_twin",
+                "gettwin",
                 "Get twin calls",
                 new List<string> { "source", "id" });
 
