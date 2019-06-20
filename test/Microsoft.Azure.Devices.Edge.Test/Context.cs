@@ -9,9 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
     public class Context
     {
-        static readonly Lazy<Context> Default = new Lazy<Context>(
-            () =>
-            {
+        public Context()
+        {
                 IConfiguration context = new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
                     .AddJsonFile("context.json")
@@ -43,62 +42,61 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     return Option.None<(string, string, string)>();
                 }
 
-                return new Context
-                {
-                    ConnectionString = Get("IOT_HUB_CONNECTION_STRING"),
-                    EventHubEndpoint = Get("EVENT_HUB_ENDPOINT"),
-                    DeviceId = GetOrDefault("deviceId", $"end-to-end-{Dns.GetHostName()}-{DateTime.Now:yyyy'-'MM'-'dd'T'HH'-'mm'-'ss'-'fff}"),
-                    InstallerPath = Option.Maybe(Get("installerPath")),
-                    PackagePath = Option.Maybe(Get("packagePath")),
-                    Proxy = Option.Maybe(context.GetValue<Uri>("proxy")),
-                    Registry = GetAndValidateRegistry(),
-                    EdgeAgentImage = Option.Maybe(Get("edgeAgentImage")),
-                    EdgeHubImage = Option.Maybe(Get("edgeHubImage")),
-                    TempSensorImage = Option.Maybe(Get("tempSensorImage")),
-                    MethodSenderImage = Option.Maybe(Get("methodSenderImage")),
-                    MethodReceiverImage = Option.Maybe(Get("methodReceiverImage")),
-                    LogFile = Option.Maybe(Get("logFile")),
-                    Verbose = context.GetValue("verbose", false),
-                    SetupTimeout = TimeSpan.FromMinutes(context.GetValue("setupTimeoutMinutes", 5)),
-                    TeardownTimeout = TimeSpan.FromMinutes(context.GetValue("teardownTimeoutMinutes", 2)),
-                    TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5))
-                };
-            });
+                this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
+                this.EventHubEndpoint = Get("EVENT_HUB_ENDPOINT");
+                this.DeviceId = GetOrDefault("deviceId", $"end-to-end-{Dns.GetHostName()}-{DateTime.Now:yyyy'-'MM'-'dd'T'HH'-'mm'-'ss'-'fff}");
+                this.InstallerPath = Option.Maybe(Get("installerPath"));
+                this.PackagePath = Option.Maybe(Get("packagePath"));
+                this.Proxy = Option.Maybe(context.GetValue<Uri>("proxy"));
+                this.Registry = GetAndValidateRegistry();
+                this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
+                this.EdgeHubImage = Option.Maybe(Get("edgeHubImage"));
+                this.TempSensorImage = Option.Maybe(Get("tempSensorImage"));
+                this.MethodSenderImage = Option.Maybe(Get("methodSenderImage"));
+                this.MethodReceiverImage = Option.Maybe(Get("methodReceiverImage"));
+                this.LogFile = Option.Maybe(Get("logFile"));
+                this.Verbose = context.GetValue<bool>("verbose");
+                this.SetupTimeout = TimeSpan.FromMinutes(context.GetValue("setupTimeoutMinutes", 5));
+                this.TeardownTimeout = TimeSpan.FromMinutes(context.GetValue("teardownTimeoutMinutes", 2));
+                this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
+        }
+
+        static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
 
         public static Context Current => Default.Value;
 
-        public string ConnectionString { get; private set; }
+        public string ConnectionString { get; }
 
-        public string EventHubEndpoint { get; private set; }
+        public string EventHubEndpoint { get; }
 
-        public string DeviceId { get; private set; }
+        public string DeviceId { get; }
 
-        public Option<string> InstallerPath { get; private set; }
+        public Option<string> InstallerPath { get; }
 
-        public Option<string> PackagePath { get; private set; }
+        public Option<string> PackagePath { get; }
 
-        public Option<Uri> Proxy { get; private set; }
+        public Option<Uri> Proxy { get; }
 
-        public Option<(string address, string username, string password)> Registry { get; private set; }
+        public Option<(string address, string username, string password)> Registry { get; }
 
-        public Option<string> EdgeAgentImage { get; private set; }
+        public Option<string> EdgeAgentImage { get; }
 
-        public Option<string> EdgeHubImage { get; private set; }
+        public Option<string> EdgeHubImage { get; }
 
-        public Option<string> TempSensorImage { get; private set; }
+        public Option<string> TempSensorImage { get; }
 
-        public Option<string> MethodSenderImage { get; private set; }
+        public Option<string> MethodSenderImage { get; }
 
-        public Option<string> MethodReceiverImage { get; private set; }
+        public Option<string> MethodReceiverImage { get; }
 
-        public Option<string> LogFile { get; private set; }
+        public Option<string> LogFile { get; }
 
-        public bool Verbose { get; private set; }
+        public bool Verbose { get; }
 
-        public TimeSpan SetupTimeout { get; private set; }
+        public TimeSpan SetupTimeout { get; }
 
-        public TimeSpan TeardownTimeout { get; private set; }
+        public TimeSpan TeardownTimeout { get; }
 
-        public TimeSpan TestTimeout { get; private set; }
+        public TimeSpan TestTimeout { get; }
     }
 }
