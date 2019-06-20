@@ -24,19 +24,19 @@ namespace Microsoft.Azure.Devices.Client.Samples
     class Program
     {
 
-        // 1) Obtain the connection string for your downstream device and to it
-        //    append it with this string: GatewayHostName=<edge device hostname>;
-        // 2) The edge device hostname is the hostname set in the config.yaml of the Edge device
-        //    to which this sample will connect to.
-        //
-        // The resulting string should have this format:
-        //  "HostName=<iothub_host_name>;DeviceId=<device_id>;SharedAccessKey=<device_key>;GatewayHostName=<edge device hostname>"
-        //
-        // Either set the DEVICE_CONNECTION_STRING environment variable with this connection string
-        // or set it in the Properties/launchSettings.json.
-        private static readonly string deviceConnectionString = Environment.GetEnvironmentVariable("DEVICE_CONNECTION_STRING");
-        private static readonly string deviceCertPfxPath = Environment.GetEnvironmentVariable("DEVICE_X509_CERTIFICATE_PFX_PATH");
-        private static readonly string deviceCertPfxPasswd = Environment.GetEnvironmentVariable("DEVICE_X509_CERTIFICATE_PFX_PASSWORD");
+        // 1) Obtain the IoT Hub hostname and device id for your downstream device.
+        //      Update the IOTHUB_HOSTNAME and DEVICE_ID in the Properties/launchSettings.json file.
+        // 2) Obtain the Edge device hostname: The edge device hostname is the hostname set in
+        //    the config.yaml of the Edge device to which this sample will connect to.
+        //      Update the IOTEDGE_GATEWAY_HOSTNAME in the Properties/launchSettings.json file.
+        // 3) Obtain the trusted CA certificate required to trust the Edge gateway.
+        // In the docs this would be the azure-iot-test-only.root.ca.cert.pem 
+        private static readonly string iothubHostname = Environment.GetEnvironmentVariable("IOTHUB_HOSTNAME");
+        private static readonly string downstreamDeviceId = Environment.GetEnvironmentVariable("DEVICE_ID");
+        private static readonly string iotEdgeGatewayHostname = Environment.GetEnvironmentVariable("IOTEDGE_GATEWAY_HOSTNAME");
+        private static readonly string deviceIdentityCertPath = Environment.GetEnvironmentVariable("DEVICE_IDENTITY_X509_CERTIFICATE_PEM_PATH");
+        private static readonly string deviceIdentityPrivateKeyPath = Environment.GetEnvironmentVariable("DEVICE_IDENTITY_X509_CERTIFICATE_KEY_PEM_PATH");
+        private static readonly string trustedCACertPath = Environment.GetEnvironmentVariable("IOTEDGE_TRUSTED_CA_CERTIFICATE_PEM_PATH");
         private static int MESSAGE_COUNT = 10;
         private const int TEMPERATURE_THRESHOLD = 30;
 
@@ -63,19 +63,9 @@ namespace Microsoft.Azure.Devices.Client.Samples
                 .ToList(); // Re-add the certificate end-marker which was removed by split
         }
 
-        public static (X509Certificate2 Certificate, IEnumerable<X509Certificate2> CertificateChain) GetClientCertificateAndChainFromFile(string certWithChainFilePath, string privateKeyFilePath)
+        static (X509Certificate2 Certificate, IEnumerable<X509Certificate2> CertificateChain) GetClientCertificateAndChainFromFile(string certWithChainFilePath, string privateKeyFilePath)
         {
             string cert, privateKey;
-
-            if (string.IsNullOrWhiteSpace(certWithChainFilePath) || !File.Exists(certWithChainFilePath))
-            {
-                throw new ArgumentException($"'{certWithChainFilePath}' is not a path to a server certificate file");
-            }
-
-            if (string.IsNullOrWhiteSpace(privateKeyFilePath) || !File.Exists(privateKeyFilePath))
-            {
-                throw new ArgumentException($"'{privateKeyFilePath}' is not a path to a private key file");
-            }
 
             using (var sr = new StreamReader(certWithChainFilePath))
             {
@@ -155,6 +145,36 @@ namespace Microsoft.Azure.Devices.Client.Samples
         /// </summary>
         static void Main()
         {
+            if (string.IsNullOrEmpty(iothubHostname))
+            {
+                throw new ArgumentException("IoT Hub hostname cannot be null or empty.");
+            }
+
+            if (string.IsNullOrEmpty(downstreamDeviceId))
+            {
+                throw new ArgumentException("Downstream device id cannot be null or empty.");
+            }
+
+            if (string.IsNullOrEmpty(iotEdgeGatewayHostname))
+            {
+                throw new ArgumentException("IoT Edge gateway hostname cannot be null or empty.");
+            }
+
+            if (string.IsNullOrWhiteSpace(deviceIdentityCertPath) || !File.Exists(deviceIdentityCertPath))
+            {
+                throw new ArgumentException($"Downstram device identity certificate path is invalid");
+            }
+
+            if (string.IsNullOrWhiteSpace(deviceIdentityPrivateKeyPath) || !File.Exists(deviceIdentityPrivateKeyPath))
+            {
+                throw new ArgumentException($"Downstram device identity private key path is invalid");
+            }
+
+            if (string.IsNullOrWhiteSpace(trustedCACertPath) || !File.Exists(trustedCACertPath))
+            {
+                throw new ArgumentException($"Iot Edge trustred CA certificate path is invalid");
+            }
+
             InstallCACert();
 
             try
@@ -170,23 +190,12 @@ namespace Microsoft.Azure.Devices.Client.Samples
                 Console.WriteLine("Invalid number of messages in env variable DEVICE_MESSAGE_COUNT. MESSAGE_COUNT set to {0}\n", MESSAGE_COUNT);
             }
 
-            Console.WriteLine("Creating device client from connection string\n");
-
-            DeviceClient deviceClient = null;
-            if (String.IsNullOrEmpty(deviceCertPfxPath))
-            {
-                deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString);
-            }
-            else
-            {
-                string deviceId = Environment.GetEnvironmentVariable("DEVICE_ID");
-                string certwithChainPem = Environment.GetEnvironmentVariable("DEVICE_X509_CERTIFICATE_PEM_PATH");
-                string privateKeyPemPath = Environment.GetEnvironmentVariable("DEVICE_X509_CERTIFICATE_KEY_PEM_PATH");
-                var (cert, certChain) = GetClientCertificateAndChainFromFile(certwithChainPem, privateKeyPemPath);
-                InstallChainCertificates(certChain);
-                var auth = new DeviceAuthenticationWithX509Certificate(deviceId, cert);
-                deviceClient = DeviceClient.Create(deviceConnectionString, auth, TransportType.Amqp_Tcp_Only);
-            }
+            Console.WriteLine("Creating device client using identity certificate...\n");
+            
+            var (cert, certChain) = GetClientCertificateAndChainFromFile(deviceIdentityCertPath, deviceIdentityPrivateKeyPath);
+            InstallChainCertificates(certChain);
+            var auth = new DeviceAuthenticationWithX509Certificate(downstreamDeviceId, cert);
+            DeviceClient deviceClient = DeviceClient.Create(iothubHostname, auth, TransportType.Amqp_Tcp_Only);
 
             if (deviceClient == null)
             {

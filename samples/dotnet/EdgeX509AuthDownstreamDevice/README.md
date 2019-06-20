@@ -1,8 +1,8 @@
 # Send Event Sample
 
 Sample application that uses the Azure IoT Dotnet SDK to send telemetry messages to the
-Azure IoT Hub cloud service or to an Azure IoT Edge device. The sample demonstrates how to connect
-and send messages using a protocol of your choices as a parameter.
+Azure IoT Edge gateway device. The sample demonstrates how to connect and send messages
+using a protocol of your choices as a parameter.
 
 ## Build the sample
 
@@ -10,34 +10,29 @@ As a prerequisite you will need the [DotNet Core SDK](https://docs.microsoft.com
 To build the sample, copy the contents of this directory on your dev box and follow the instructions below.
 
 ```
-$> cd EdgeDownstreamDevice
+$> cd EdgeX509AuthDownstreamDevice
 $> dotnet build
 ```
 
 ## Run the sample
 
-Before running the sample, edit the file Properties/launchSettings.json and add the connection string and CA certificate
+Before running the sample, edit the file Properties/launchSettings.json and add the IoT and Edge Hub details along with all the certificates.
 
 ### Configuration Description
 
-* Connection String:
+* IOTHUB_HOSTNAME: This is the hostname of the IoT Hub instance. For example your-hub.azure-devices.net
 
-  * IoT Edge connection string:
+* IOTEDGE_GATEWAY_HOSTNAME: This is the hostname of the IoT Edge device that your downstream device will connect to. For example mygateway.contoso.com
 
-    ```
-    HostName=your-hub.azure-devices.net;DeviceId=yourDevice;SharedAccessKey=XXXYYYZZZ=;GatewayHostName=mygateway.contoso.com
-    OR
-    HostName=mygateway.contoso.com;DeviceId=yourDevice;SharedAccessKey=XXXYYYZZZ=
-    This arrangement will only work if the downstream device is a child of the Edge device
-    ```
-  * Just for reference, here is the IoT Hub connection string format:
+* DEVICE_ID: This is the device id of the downstream device setup with X.509 auth.
 
-    ```
-    HostName=your-hub.azure-devices.net;DeviceId=yourDevice;SharedAccessKey=XXXYYYZZZ=;
-    ```
+* DEVICE_IDENTITY_X509_CERTIFICATE_PEM_PATH: Path to the identity X.509 certificate of the downstream device in PEM format. 
 
-* Number of messages to send - Expressed in decimal
-* Path to trusted CA certificate: For the Edge Hub, if the CA is not a public root, a path tp the root CA certificate in PEM format is absolutely required. This is optional if the root certificate is installed in the trusted certificate store of the OS.
+* DEVICE_IDENTITY_X509_CERTIFICATE_KEY_PEM_PATH: Path to the identity X.509 private key of the downstream device in PEM format. 
+
+* IOTEDGE_TRUSTED_CA_CERTIFICATE_PEM_PATH: Path to the trusted CA in the certificate chain of the Edge device gateway.
+
+* MESSAGE_COUNT: Number of messages to send - Expressed in decimal.
 
 ### Execute Sample
 
