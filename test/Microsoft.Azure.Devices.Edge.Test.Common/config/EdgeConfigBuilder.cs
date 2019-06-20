@@ -31,10 +31,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return builder;
         }
 
-        public IModuleConfigBuilder AddEdgeHub(string image = null)
+        public IModuleConfigBuilder AddEdgeHub(string image = null, bool optimizeForPerformance = true)
         {
             Option<string> imageOption = Option.Maybe(image);
-            var builder = new HubModuleConfigBuilder(imageOption);
+            var builder = new HubModuleConfigBuilder(imageOption, optimizeForPerformance);
             this.moduleBuilders.Add(builder.Name, builder);
             return builder;
         }
