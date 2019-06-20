@@ -3,6 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 {
     public interface IEdgeMetrics
     {
-        void InitPrometheusMetrics(int port);
+        void InitMetrics(int port);
     }
 }
