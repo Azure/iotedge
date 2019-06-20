@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using System;
     using System.Collections.Generic;
     using System.Globalization;
+    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -60,8 +61,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             Option<ContainerInspectResponse> edgeAgentReponse = await this.GetEdgeAgentContainerAsync();
             edgeAgentReponse.ForEach(e => containerInspectResponses.Add(e));
 
-            List<ModuleRuntimeInfo> modules = containerInspectResponses.Select(c => InspectResponseToModule(c)).ToList();
+            List<ModuleRuntimeInfo> modules = containerInspectResponses.Select(InspectResponseToModule).ToList();
             return modules;
+        }
+
+        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<int> since, CancellationToken cancellationToken)
+        {
+            var containerLogsParameters = new ContainerLogsParameters
+            {
+                Follow = follow,
+                ShowStderr = true,
+                ShowStdout = true
+            };
+            tail.ForEach(t => containerLogsParameters.Tail = t.ToString());
+            since.ForEach(t => containerLogsParameters.Since = t.ToString());
+            return this.client.Containers.GetContainerLogsAsync(module, containerLogsParameters, cancellationToken);
         }
 
         public Task<SystemInfo> GetSystemInfo() => Task.FromResult(new SystemInfo(this.operatingSystemType, this.architecture, this.version));
@@ -81,15 +95,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 string statusDescription,
                 DateTime lastStartTime,
                 DateTime lastExitTime,
-                string imageHash
+                string imageHash,
+                string image
             ) = ExtractModuleRuntimeState(inspectResponse);
-
-            var dockerConfig = new DockerReportedConfig(string.Empty, string.Empty, imageHash);
 
             // Figure out module stats and runtime status
             ModuleStatus runtimeStatus = ToRuntimeStatus(inspectResponse.State);
 
-            var reportedConfig = new DockerReportedConfig(string.Empty, string.Empty, imageHash);
+            var reportedConfig = new DockerReportedConfig(image, string.Empty, imageHash);
             var moduleRuntimeInfo = new ModuleRuntimeInfo<DockerReportedConfig>(name, "docker", runtimeStatus, statusDescription, exitCode, Option.Some(lastStartTime), Option.Some(lastExitTime), reportedConfig);
             return moduleRuntimeInfo;
         }
@@ -100,7 +113,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             string statusDescription,
             DateTime lastStartTime,
             DateTime lastExitTime,
-            string imageHash
+            string imageHash,
+            string image
             )
             ExtractModuleRuntimeState(ContainerInspectResponse inspected)
         {
@@ -123,7 +137,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 lastExitTime = DateTime.Parse(lastExitTimeStr, null, DateTimeStyles.RoundtripKind);
             }
 
-            return (name, exitCode, statusDescription, lastStartTime, lastExitTime, inspected?.Image);
+            string image = inspected.Config.Image;
+            string hash = inspected?.Image;
+
+            return (name, exitCode, statusDescription, lastStartTime, lastExitTime, hash, image);
         }
 
         static ModuleStatus ToRuntimeStatus(ContainerState containerState)

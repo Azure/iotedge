@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Autofac;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -18,13 +19,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     public class Program
     {
         const string ConfigFileName = "appsettings_agent.json";
+        const string DefaultLocalConfigFilePath = "config.json";
         const string EdgeAgentStorageFolder = "edgeAgent";
         const string VersionInfoFileName = "versionInfo.json";
         static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromMinutes(1);
+        static readonly TimeSpan ReconcileTimeout = TimeSpan.FromMinutes(10);
 
         public static int Main()
         {
-            Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt")}] Edge Agent Main()");
+            Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Edge Agent Main()");
             try
             {
                 IConfigurationRoot configuration = new ConfigurationBuilder()
@@ -46,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             // Bring up the logger before anything else so we can log errors ASAP
             ILogger logger = SetupLogger(configuration);
 
-            logger.LogInformation("Starting module management agent.");
+            logger.LogInformation("Initializing Edge Agent.");
 
             VersionInfo versionInfo = VersionInfo.Get(VersionInfoFileName);
             if (versionInfo != VersionInfo.Empty)
@@ -101,25 +104,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 Option<string> productInfo = versionInfo != VersionInfo.Empty ? Option.Some(versionInfo.ToString()) : Option.None<string>();
                 Option<UpstreamProtocol> upstreamProtocol = configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol();
                 Option<IWebProxy> proxy = Proxy.Parse(configuration.GetValue<string>("https_proxy"), logger);
+                bool closeOnIdleTimeout = configuration.GetValue(Constants.CloseOnIdleTimeout, false);
+                int idleTimeoutSecs = configuration.GetValue(Constants.IdleTimeoutSecs, 300);
+                TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
+                string iothubHostname;
+                string deviceId;
                 switch (mode.ToLowerInvariant())
                 {
                     case Constants.DockerMode:
                         var dockerUri = new Uri(configuration.GetValue<string>("DockerUri"));
                         string deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
+                        IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(deviceConnectionString);
+                        deviceId = connectionStringParser.DeviceId;
+                        iothubHostname = connectionStringParser.HostName;
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath));
-                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo));
+                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
                         break;
 
                     case Constants.IotedgedMode:
                         string managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
                         string workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
-                        string iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
-                        string deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
+                        iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
+                        deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
                         string moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
                         string apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId)));
-                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo));
+                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
                         break;
 
                     default:
@@ -129,11 +140,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 switch (configSourceConfig.ToLowerInvariant())
                 {
                     case "twin":
-                        builder.RegisterModule(new TwinConfigSourceModule(backupConfigFilePath, configuration, versionInfo, TimeSpan.FromSeconds(configRefreshFrequencySecs)));
+                        bool enableStreams = configuration.GetValue(Constants.EnableStreams, false);
+                        int requestTimeoutSecs = configuration.GetValue(Constants.RequestTimeoutSecs, 600);
+                        bool disableSubscriptions = configuration.GetValue(Constants.DisableCloudSubscriptions, false);
+                        builder.RegisterModule(
+                            new TwinConfigSourceModule(
+                                iothubHostname,
+                                deviceId,
+                                backupConfigFilePath,
+                                configuration,
+                                versionInfo,
+                                TimeSpan.FromSeconds(configRefreshFrequencySecs),
+                                enableStreams,
+                                TimeSpan.FromSeconds(requestTimeoutSecs),
+                                !disableSubscriptions));
                         break;
 
                     case "local":
-                        builder.RegisterModule(new FileConfigSourceModule("config.json", configuration));
+                        string localConfigFilePath = GetLocalConfigFilePath(configuration, logger);
+                        builder.RegisterModule(new FileConfigSourceModule(localConfigFilePath, configuration));
                         break;
 
                     default:
@@ -151,6 +176,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
 
+            // Initialize stream request listener
+            IStreamRequestListener streamRequestListener = await container.Resolve<Task<IStreamRequestListener>>();
+            streamRequestListener.InitPump();
+
             int returnCode;
             using (IConfigSource unused = await container.Resolve<Task<IConfigSource>>())
             {
@@ -164,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     {
                         try
                         {
-                            await agent.ReconcileAsync(cts.Token);
+                            await agent.ReconcileAsync(cts.Token).TimeoutAfter(ReconcileTimeout);
                         }
                         catch (Exception ex) when (!ex.IsFatal())
                         {
@@ -236,6 +265,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
 
             return storagePath;
+        }
+
+        static string GetLocalConfigFilePath(IConfiguration configuration, ILogger logger)
+        {
+            string localConfigPath = configuration.GetValue<string>("LocalConfigPath");
+
+            if (string.IsNullOrWhiteSpace(localConfigPath))
+            {
+                logger.LogInformation("No local config path specified. Using default path instead.");
+                localConfigPath = DefaultLocalConfigFilePath;
+            }
+
+            logger.LogInformation($"Local config path: {localConfigPath}");
+            return localConfigPath;
         }
 
         static void LogLogo(ILogger logger)

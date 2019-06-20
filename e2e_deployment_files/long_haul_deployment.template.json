@@ -12,7 +12,7 @@
               "rc1": {
                 "username": "<CR.Username>",
                 "password": "<CR.Password>",
-                "address": "edgebuilds.azurecr.io"
+                "address": "<Container_Registry>"
               }
             }
           }
@@ -21,14 +21,14 @@
           "edgeAgent": {
             "type": "docker",
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-amd64",
+              "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
           "edgeHub": {
             "type": "docker",
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-amd64",
+              "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
@@ -57,11 +57,29 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen.TransportType>"
+                "value": "amqp"
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-amd64",
+              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "loadGen2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "messageFrequency": {
+                "value": "<LoadGen.MessageFrequency>"
+              },
+              "transportType": {
+                "value": "mqtt"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -71,7 +89,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-linux-amd64",
+              "image": "<Container_Registry>/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             },
             "env": {
@@ -79,7 +97,7 @@
                 "value": "-1"
               },
               "ClientTransportType": {
-                "value": "Mqtt_Tcp_Only"
+                "value": "Amqp_Tcp_Only"
               }
             }
           },
@@ -93,11 +111,11 @@
                 "value": "19"
               },
               "ClientTransportType": {
-                "value": "Mqtt_Tcp_Only"
+                "value": "Amqp_Tcp_Only"
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-temperature-filter:<Build.BuildNumber>-linux-amd64",
+              "image": "<Container_Registry>/microsoft/azureiotedge-temperature-filter:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -107,7 +125,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-linux-amd64",
+              "image": "<Container_Registry>/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             },
             "env": {
@@ -115,7 +133,7 @@
                 "value": "-1"
               },
               "ClientTransportType": {
-                "value": "Amqp_Tcp_Only"
+                "value": "Mqtt_Tcp_Only"
               }
             }
           },
@@ -129,11 +147,11 @@
                 "value": "19"
               },
               "ClientTransportType": {
-                "value": "Amqp_Tcp_Only"
+                "value": "Mqtt_Tcp_Only"
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-temperature-filter:<Build.BuildNumber>-linux-amd64",
+              "image": "<Container_Registry>/microsoft/azureiotedge-temperature-filter:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -172,10 +190,13 @@
               },
               "BLOB_CONTAINER_NAME": {
                 "value": "loadtest1"
+              },
+              "RUST_LOG": {
+                "value": "snitcher=info"
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/snitcher:<Snitch.BuildNumber>",
+              "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]}}"
             }
           },
@@ -192,7 +213,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-linux-amd64",
+              "image": "<Container_Registry>/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
           },
@@ -202,8 +223,80 @@
             "status": "running",
             "restartPolicy": "on-unhealthy",
             "settings": {
-              "image": "influxdb:1.5",
+              "image": "influxdb:1.7.5",
               "createOptions": "{\"ExposedPorts\":{\"8086/tcp\":{}},\"HostConfig\":{\"PortBindings\":{\"8086/tcp\":[{\"HostPort\":\"8086\"}]}}}"
+            }
+          },
+          "DirectMethodCloudSender": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "TargetModuleId": {
+                "value": "DirectMethodReceiver"
+              },
+              "ClientTransportType": {
+                "value": "Amqp_Tcp_Only"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-cloud-sender:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "DirectMethodReceiver": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "ClientTransportType": {
+                "value": "Amqp_Tcp_Only"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "DirectMethodCloudSender2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "TargetModuleId": {
+                "value": "DirectMethodReceiver2"
+              },
+              "ClientTransportType": {
+                "value": "Mqtt_Tcp_Only"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-cloud-sender:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "DirectMethodReceiver2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "ClientTransportType": {
+                "value": "Mqtt_Tcp_Only"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
             }
           }
         }
@@ -214,10 +307,13 @@
         "schemaVersion": "1.0",
         "routes": {
           "upstreamLoadGen1": "FROM /messages/modules/loadGen1/outputs/output1 INTO $upstream",
+          "upstreamLoadGen2": "FROM /messages/modules/loadGen2/outputs/output1 INTO $upstream",
           "TempFilterToCloud": "FROM /messages/modules/tempFilter/outputs/* INTO $upstream",
           "TempSensorToTempFilter": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/tempFilter/inputs/input1\")",
           "TempFilterToCloud2": "FROM /messages/modules/tempFilter2/outputs/* INTO $upstream",
-          "TempSensorToTempFilter2": "FROM /messages/modules/tempSensor2/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/tempFilter2/inputs/input1\")"
+          "TempSensorToTempFilter2": "FROM /messages/modules/tempSensor2/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/tempFilter2/inputs/input1\")",
+          "upstreamDirectMethodCloudSender1": "FROM /messages/modules/DirectMethodCloudSender/outputs/output1 INTO $upstream",
+          "upstreamDirectMethodCloudSender2": "FROM /messages/modules/DirectMethodCloudSender2/outputs/output1 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400

@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceProxy = new Mock<IServiceProxy>();
             serviceProxy.Setup(s => s.GetServiceIdentitiesIterator()).Returns(iterator.Object);
 
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthentication = new ServiceAuthentication(ServiceAuthenticationType.None);
             var si1 = new ServiceIdentity("d1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
             var si2 = new ServiceIdentity("d2", "m1", "2345", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task RefreshCacheTest()
         {
             // Arrange
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthentication = new ServiceAuthentication(ServiceAuthenticationType.None);
             Func<ServiceIdentity> si1 = () => new ServiceIdentity("d1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
             Func<ServiceIdentity> si2 = () => new ServiceIdentity("d2", "m1", "2345", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
@@ -113,8 +113,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si3().Equals(receivedServiceIdentity3.OrDefault()));
             Assert.True(si4().Equals(receivedServiceIdentity4.OrDefault()));
 
-            Assert.Equal(0, updatedIdentities.Count);
-            Assert.Equal(0, removedIdentities.Count);
+            Assert.Empty(updatedIdentities);
+            Assert.Empty(removedIdentities);
 
             // Wait for another refresh cycle to complete
             await Task.Delay(TimeSpan.FromSeconds(8));
@@ -130,16 +130,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si3().Equals(receivedServiceIdentity3.OrDefault()));
             Assert.False(receivedServiceIdentity4.HasValue);
 
-            Assert.Equal(0, updatedIdentities.Count);
-            Assert.Equal(1, removedIdentities.Count);
-            Assert.True(removedIdentities.Contains("d2/m4"));
+            Assert.Empty(updatedIdentities);
+            Assert.Single(removedIdentities);
+            Assert.Contains("d2/m4", removedIdentities);
         }
 
         [Fact]
         public async Task RefreshCacheWithRefreshRequestTest()
         {
             // Arrange
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthentication = new ServiceAuthentication(ServiceAuthenticationType.None);
             Func<ServiceIdentity> si1 = () => new ServiceIdentity("d1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
             Func<ServiceIdentity> si2 = () => new ServiceIdentity("d2", "m1", "2345", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
@@ -230,8 +230,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si3().Equals(receivedServiceIdentity3.OrDefault()));
             Assert.True(si4().Equals(receivedServiceIdentity4.OrDefault()));
 
-            Assert.Equal(0, updatedIdentities.Count);
-            Assert.Equal(0, removedIdentities.Count);
+            Assert.Empty(updatedIdentities);
+            Assert.Empty(removedIdentities);
 
             // Act - Signal refresh cache multiple times. It should get picked up twice.
             deviceScopeIdentitiesCache.InitiateCacheRefresh();
@@ -252,10 +252,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(receivedServiceIdentity3.HasValue);
             Assert.False(receivedServiceIdentity4.HasValue);
 
-            Assert.Equal(0, updatedIdentities.Count);
+            Assert.Empty(updatedIdentities);
             Assert.Equal(2, removedIdentities.Count);
-            Assert.True(removedIdentities.Contains("d2/m4"));
-            Assert.True(removedIdentities.Contains("d3"));
+            Assert.Contains("d2/m4", removedIdentities);
+            Assert.Contains("d3", removedIdentities);
 
             // Wait for another refresh cycle to complete, this time because timeout
             await Task.Delay(TimeSpan.FromSeconds(8));
@@ -270,17 +270,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(receivedServiceIdentity1.HasValue);
             Assert.False(receivedServiceIdentity2.HasValue);
 
-            Assert.Equal(0, updatedIdentities.Count);
+            Assert.Empty(updatedIdentities);
             Assert.Equal(4, removedIdentities.Count);
-            Assert.True(removedIdentities.Contains("d2/m1"));
-            Assert.True(removedIdentities.Contains("d1"));
+            Assert.Contains("d2/m1", removedIdentities);
+            Assert.Contains("d1", removedIdentities);
         }
 
         [Fact]
         public async Task RefreshServiceIdentityTest_Device()
         {
             // Arrange
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
 
@@ -333,9 +333,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.True(si1_updated.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.False(receivedServiceIdentity2.HasValue);
-            Assert.Equal(1, removedIdentities.Count);
+            Assert.Single(removedIdentities);
             Assert.Equal("d2", removedIdentities[0]);
-            Assert.Equal(1, updatedIdentities.Count);
+            Assert.Single(updatedIdentities);
             Assert.Equal("d1", updatedIdentities[0].Id);
         }
 
@@ -343,7 +343,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task RefreshServiceIdentityTest_List()
         {
             // Arrange
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
 
@@ -400,9 +400,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si1_updated.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.False(receivedServiceIdentity2.HasValue);
             Assert.False(receivedServiceIdentity3.HasValue);
-            Assert.Equal(1, removedIdentities.Count);
+            Assert.Single(removedIdentities);
             Assert.Equal("d2", removedIdentities[0]);
-            Assert.Equal(1, updatedIdentities.Count);
+            Assert.Single(updatedIdentities);
             Assert.Equal("d1", updatedIdentities[0].Id);
         }
 
@@ -410,7 +410,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task RefreshServiceIdentityTest_Module()
         {
             // Arrange
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
 
@@ -463,9 +463,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.True(si1_updated.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.False(receivedServiceIdentity2.HasValue);
-            Assert.Equal(1, removedIdentities.Count);
+            Assert.Single(removedIdentities);
             Assert.Equal("d2/m2", removedIdentities[0]);
-            Assert.Equal(1, updatedIdentities.Count);
+            Assert.Single(updatedIdentities);
             Assert.Equal("d1/m1", updatedIdentities[0].Id);
         }
 
@@ -473,7 +473,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task GetServiceIdentityTest_Device()
         {
             // Arrange
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
 
@@ -530,15 +530,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si1_initial.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.True(si2.Equals(receivedServiceIdentity2.OrDefault()));
             Assert.True(si3.Equals(receivedServiceIdentity3.OrDefault()));
-            Assert.Equal(0, removedIdentities.Count);
-            Assert.Equal(0, updatedIdentities.Count);
+            Assert.Empty(removedIdentities);
+            Assert.Empty(updatedIdentities);
         }
 
         [Fact]
         public async Task GetServiceIdentityTest_Module()
         {
             // Arrange
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
 
@@ -595,15 +595,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si1_initial.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.True(si2.Equals(receivedServiceIdentity2.OrDefault()));
             Assert.True(si3.Equals(receivedServiceIdentity3.OrDefault()));
-            Assert.Equal(0, removedIdentities.Count);
-            Assert.Equal(0, updatedIdentities.Count);
+            Assert.Empty(removedIdentities);
+            Assert.Empty(updatedIdentities);
         }
 
         [Fact]
         public async Task GetServiceIdentityFromServiceTest()
         {
             // Arrange
-            var store = new EntityStore<string, string>(new InMemoryDbStore(), "cache");
+            var store = GetEntityStore("cache");
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
 
@@ -628,5 +628,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));
+
+        static IEntityStore<string, string> GetEntityStore(string entityName)
+            => new EntityStore<string, string>(new KeyValueStoreMapper<string, byte[], string, byte[]>(new InMemoryDbStore(), new BytesMapper<string>(), new BytesMapper<string>()), entityName);
     }
 }

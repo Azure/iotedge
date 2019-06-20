@@ -23,82 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         static readonly string ProductInfo = "don't care";
         static readonly string DeviceClientType = $"DeviceClientType={ProductInfo}";
 
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetIdentityInputs))]
-        public async Task GetIdentityTest(
-            string value,
-            string clientId,
-            string iotHubHostName,
-            string token,
-            bool success,
-            Type expectedCredentialsType,
-            Type expectedIdentityType,
-            AuthenticationType expected)
-        {
-            X509Certificate2 certificate = new X509Certificate2();
-            IList<X509Certificate2> chain = new List<X509Certificate2>();
-            IClientCredentials clientCredentials = await GetClientCredentials(iotHubHostName, clientId, value, token, token == null, string.Empty, certificate, chain);
-            Assert.NotNull(clientCredentials);
-            Assert.IsType(expectedCredentialsType, clientCredentials);
-            Assert.IsType(expectedIdentityType, clientCredentials.Identity);
-            Assert.Equal(iotHubHostName, ((Identity)clientCredentials.Identity).IotHubHostName);
-            Assert.Equal(ProductInfo, clientCredentials.ProductInfo);
-            Assert.Equal(expected, clientCredentials.AuthenticationType);
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetIdentityWithProductInfoInputs))]
-        public async Task GetIdentityWithProductInfoTest(string productInfo, string username, string result)
-        {
-            IClientCredentials clientCredentials = await GetClientCredentials(Hostname, DeviceId, username, SasToken, false, productInfo);
-            Assert.NotNull(clientCredentials);
-            Assert.Equal(result, clientCredentials.ProductInfo);
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetUsernameInputs))]
-        public async Task ProductInfoTest(string username, string clientId, string productInfo)
-        {
-            IClientCredentials clientCredentials = await GetClientCredentials(Hostname, clientId, username, SasToken);
-            Assert.NotNull(clientCredentials);
-            Assert.Equal(productInfo, clientCredentials.ProductInfo);
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetBadUsernameInputs))]
-        public void NegativeUsernameTest(string username)
-        {
-            Assert.Throws<EdgeHubConnectionException>(() => DeviceIdentityProvider.ParseUserName(username));
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetModuleIdentityInputs))]
-        public async Task GetModuleIdentityTest(
-            string value,
-            string iotHubHostName,
-            string token,
-            string deviceId,
-            string moduleId,
-            AuthenticationType authenticationType)
-        {
-            var certificate = new X509Certificate2();
-            var chain = new List<X509Certificate2>();
-            IClientCredentials clientCredentials = await GetClientCredentials(iotHubHostName, $"{deviceId}/{moduleId}", value, token, token == null, string.Empty, certificate, chain);
-            Assert.NotNull(clientCredentials);
-            Assert.Equal(authenticationType, clientCredentials.AuthenticationType);
-            var hubModuleIdentity = clientCredentials.Identity as IModuleIdentity;
-            Assert.NotNull(hubModuleIdentity);
-            Assert.Equal(deviceId, hubModuleIdentity.DeviceId);
-            Assert.Equal(moduleId, hubModuleIdentity.ModuleId);
-            Assert.Equal($"{deviceId}/{moduleId}", hubModuleIdentity.Id);
-        }
-
-        static IEnumerable<object[]> GetIdentityInputs()
+        public static IEnumerable<object[]> GetIdentityInputs()
         {
             yield return new object[]
             {
@@ -149,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
         }
 
-        static IEnumerable<object[]> GetModuleIdentityInputs()
+        public static IEnumerable<object[]> GetModuleIdentityInputs()
         {
             yield return new object[]
             {
@@ -192,14 +117,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
         }
 
-        static IEnumerable<string[]> GetIdentityWithProductInfoInputs()
+        public static IEnumerable<object[]> GetIdentityWithProductInfoInputs()
         {
             yield return new[]
             {
                 // happy path
                 "abc",
                 $"{Hostname}/{DeviceId}/{ApiVersion}&{DeviceClientType}",
-                $"abc {ProductInfo}"
+                $"{ProductInfo} abc",
+                ProductInfo
             };
 
             yield return new[]
@@ -207,7 +133,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 // no DeviceClientType
                 "abc",
                 $"{Hostname}/{DeviceId}/{ApiVersion}",
-                "abc"
+                "abc",
+                string.Empty
             };
 
             yield return new[]
@@ -215,6 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 // no caller product info
                 string.Empty,
                 $"{Hostname}/{DeviceId}/{ApiVersion}&{DeviceClientType}",
+                ProductInfo,
                 ProductInfo
             };
 
@@ -223,11 +151,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 // no DeviceClientType OR caller product info
                 string.Empty,
                 $"{Hostname}/{DeviceId}/{ApiVersion}",
+                string.Empty,
                 string.Empty
             };
         }
 
-        static IEnumerable<string[]> GetUsernameInputs()
+        public static IEnumerable<object[]> GetUsernameInputs()
         {
             string devicePrefix = $"{Hostname}/{DeviceId}/{ApiVersion}";
             string modulePrefix = $"{Hostname}/{DeviceId}/{ModuleId}/{ApiVersion}";
@@ -304,7 +233,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
         }
 
-        static IEnumerable<string[]> GetBadUsernameInputs()
+        public static IEnumerable<object[]> GetBadUsernameInputs()
         {
             yield return new[] { "missingEverythingAfterHostname" };
             yield return new[] { "hostname/missingEverthingAfterDeviceId" };
@@ -316,11 +245,104 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             yield return new[] { "hostname/deviceId/moduleId/api-version=whatever/tooManySegments" };
         }
 
-        static async Task<IClientCredentials> GetClientCredentials(string iotHubHostName, string deviceId, string userName, string token, bool isCertAuthAllowed = false, string productInfo = "", X509Certificate2 certificate = null, IList<X509Certificate2> chain = null)
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetIdentityInputs))]
+        public async Task GetIdentityTest(
+            string value,
+            string clientId,
+            string iotHubHostName,
+            string token,
+            bool success,
+            Type expectedCredentialsType,
+            Type expectedIdentityType,
+            AuthenticationType expected)
         {
+            X509Certificate2 certificate = new X509Certificate2();
+            IList<X509Certificate2> chain = new List<X509Certificate2>();
+            IClientCredentials clientCredentials = await GetClientCredentials(iotHubHostName, clientId, value, token, token == null, string.Empty, certificate, chain);
+            Assert.NotNull(clientCredentials);
+            Assert.IsType(expectedCredentialsType, clientCredentials);
+            Assert.IsType(expectedIdentityType, clientCredentials.Identity);
+            Assert.Equal(iotHubHostName, ((Identity)clientCredentials.Identity).IotHubHostName);
+            Assert.Equal(ProductInfo, clientCredentials.ProductInfo);
+            Assert.Equal(expected, clientCredentials.AuthenticationType);
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetIdentityWithProductInfoInputs))]
+        public async Task GetIdentityWithProductInfoTest(string productInfo, string username, string result, string clientProductInfo)
+        {
+            string receivedProductInfo = null;
+            var productInfoStore = new Mock<IProductInfoStore>();
+            productInfoStore.Setup(p => p.SetProductInfo(It.IsAny<string>(), It.IsAny<string>()))
+                .Callback<string, string>((_, p) => receivedProductInfo = p)
+                .Returns(Task.CompletedTask);
+
+            IClientCredentials clientCredentials = await GetClientCredentials(Hostname, DeviceId, username, SasToken, false, productInfo, productInfoStore: productInfoStore.Object);
+            Assert.NotNull(clientCredentials);
+            Assert.Equal(result, clientCredentials.ProductInfo);
+
+            Assert.Equal(clientProductInfo, receivedProductInfo);
+            productInfoStore.VerifyAll();
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetUsernameInputs))]
+        public async Task ProductInfoTest(string username, string clientId, string productInfo)
+        {
+            string receivedProductInfo = null;
+            var productInfoStore = new Mock<IProductInfoStore>();
+            productInfoStore.Setup(p => p.SetProductInfo(It.IsAny<string>(), It.IsAny<string>()))
+                .Callback<string, string>((_, p) => receivedProductInfo = p)
+                .Returns(Task.CompletedTask);
+
+            IClientCredentials clientCredentials = await GetClientCredentials(Hostname, clientId, username, SasToken, productInfoStore: productInfoStore.Object);
+            Assert.NotNull(clientCredentials);
+            Assert.Equal(productInfo, clientCredentials.ProductInfo);
+            Assert.Equal(productInfo, receivedProductInfo);
+            productInfoStore.VerifyAll();
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetBadUsernameInputs))]
+        public void NegativeUsernameTest(string username)
+        {
+            Assert.Throws<EdgeHubConnectionException>(() => DeviceIdentityProvider.ParseUserName(username));
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetModuleIdentityInputs))]
+        public async Task GetModuleIdentityTest(
+            string value,
+            string iotHubHostName,
+            string token,
+            string deviceId,
+            string moduleId,
+            AuthenticationType authenticationType)
+        {
+            var certificate = new X509Certificate2();
+            var chain = new List<X509Certificate2>();
+            IClientCredentials clientCredentials = await GetClientCredentials(iotHubHostName, $"{deviceId}/{moduleId}", value, token, token == null, string.Empty, certificate, chain);
+            Assert.NotNull(clientCredentials);
+            Assert.Equal(authenticationType, clientCredentials.AuthenticationType);
+            var hubModuleIdentity = clientCredentials.Identity as IModuleIdentity;
+            Assert.NotNull(hubModuleIdentity);
+            Assert.Equal(deviceId, hubModuleIdentity.DeviceId);
+            Assert.Equal(moduleId, hubModuleIdentity.ModuleId);
+            Assert.Equal($"{deviceId}/{moduleId}", hubModuleIdentity.Id);
+        }
+
+        static async Task<IClientCredentials> GetClientCredentials(string iotHubHostName, string deviceId, string userName, string token, bool isCertAuthAllowed = false, string productInfo = "", X509Certificate2 certificate = null, IList<X509Certificate2> chain = null, IProductInfoStore productInfoStore = null)
+        {
+            productInfoStore = productInfoStore ?? Mock.Of<IProductInfoStore>();
             var authenticator = Mock.Of<IAuthenticator>(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(true));
             var factory = new ClientCredentialsFactory(new IdentityProvider(iotHubHostName), productInfo);
-            var credentialIdentityProvider = new DeviceIdentityProvider(authenticator, factory, isCertAuthAllowed);
+            var credentialIdentityProvider = new DeviceIdentityProvider(authenticator, factory, productInfoStore, isCertAuthAllowed);
             if (certificate != null && chain != null)
             {
                 credentialIdentityProvider.RegisterConnectionCertificate(certificate, chain);

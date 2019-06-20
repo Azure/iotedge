@@ -3,31 +3,14 @@
 // We disable this test on Windows in order to avoid having to add a dependency
 // on OpenSSL.
 #![cfg(not(windows))]
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-
-extern crate chrono;
-extern crate edgelet_core;
-extern crate edgelet_hsm;
-extern crate edgelet_http_workload;
-extern crate edgelet_test_utils;
-#[macro_use]
-extern crate failure;
-extern crate futures;
-extern crate hyper;
-extern crate native_tls;
-extern crate openssl;
-extern crate serde;
-extern crate serde_json;
-extern crate tempfile;
-extern crate tokio;
-extern crate tokio_tls;
-extern crate workload;
 
 use std::env;
 use std::str;
 
 use chrono::{Duration, Utc};
+use failure::Fail;
 use futures::{Future, Stream};
 use hyper::service::Service;
 use hyper::{Body, Request};
@@ -43,18 +26,18 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::prelude::*;
 
 use edgelet_core::crypto::MemoryKeyStore;
-use edgelet_core::pid::Pid;
 use edgelet_core::{
-    Certificate, CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate,
-    ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleStatus, WorkloadConfig, IOTEDGED_CA_ALIAS,
+    AuthId, Certificate, CertificateIssuer, CertificateProperties, CertificateType,
+    CreateCertificate, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleStatus, WorkloadConfig,
+    IOTEDGED_CA_ALIAS,
 };
-use edgelet_hsm::Crypto;
+use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_http_workload::WorkloadService;
 use edgelet_test_utils::get_unused_tcp_port;
 use edgelet_test_utils::module::{TestConfig, TestModule, TestRuntime};
 use workload::models::{CertificateResponse, ServerCertificateRequest, TrustBundleResponse};
 
-const MODULE_PID: i32 = 42;
+const MODULE_ID: &str = "m1";
 
 /// The HSM lib expects this variable to be set with home directory of the daemon.
 const HOMEDIR_KEY: &str = "IOTEDGE_HOMEDIR";
@@ -99,7 +82,8 @@ impl WorkloadConfig for Config {
 }
 
 fn init_crypto() -> Crypto {
-    let crypto = Crypto::new().unwrap();
+    let hsm_lock = HsmLock::new();
+    let crypto = Crypto::new(hsm_lock).unwrap();
 
     // create the default issuing CA cert
     let edgelet_ca_props = CertificateProperties::new(
@@ -167,8 +151,8 @@ fn generate_server_cert(
         .body(Body::from(json))
         .unwrap();
 
-    // set the correct Pid value on the request so that authorization works
-    req.extensions_mut().insert(Pid::Value(MODULE_PID));
+    // set the correct AuthId value on the request so that authorization works
+    req.extensions_mut().insert(AuthId::Value(MODULE_ID.into()));
 
     request(service, req)
 }
@@ -179,9 +163,7 @@ fn create_workload_service(module_id: &str) -> (WorkloadService, Crypto) {
     let runtime = TestRuntime::<Error>::new(Ok(TestModule::new(
         module_id.to_string(),
         TestConfig::new("img1".to_string()),
-        Ok(ModuleRuntimeState::default()
-            .with_status(ModuleStatus::Running)
-            .with_pid(Pid::Value(MODULE_PID))),
+        Ok(ModuleRuntimeState::default().with_status(ModuleStatus::Running)),
     )));
     let config = Config {
         hub_name: "hub1".to_string(),
@@ -306,8 +288,8 @@ fn init_test(module_id: &str, generation_id: &str) -> (WorkloadService, Identity
 }
 
 #[test]
+#[cfg_attr(target_os = "macos", ignore)] // TODO: remove when macOS security framework supports opening pcks12 file with empty password
 fn dns_san_server() {
-    const MODULE_ID: &str = "m1";
     const GENERATION_ID: &str = "g1";
 
     let (mut service, identity, home_dir, crypto) = init_test(MODULE_ID, GENERATION_ID);

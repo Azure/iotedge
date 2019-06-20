@@ -218,5 +218,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static Option<T> Maybe<T>(T value)
             where T : class => value == null ? None<T>() : Some(value);
+
+        public static Option<T> Maybe<T>(T? value)
+            where T : struct, IComparable => value.HasValue ? Some(value.Value) : None<T>();
     }
 }

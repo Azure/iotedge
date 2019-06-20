@@ -5,10 +5,11 @@ use std::fmt::{self, Display};
 use failure::{Backtrace, Context, Fail};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode};
+use log::error;
 use serde_json;
 use workload::models::ErrorResponse;
 
-use IntoResponse;
+use crate::IntoResponse;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -45,7 +46,7 @@ pub enum ErrorKind {
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -55,7 +56,7 @@ impl Fail for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }
@@ -82,7 +83,7 @@ impl From<Context<ErrorKind>> for Error {
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response<Body> {
-        let mut fail: &Fail = &self;
+        let mut fail: &dyn Fail = &self;
         let mut message = self.to_string();
         while let Some(cause) = fail.cause() {
             message.push_str(&format!("\n\tcaused by: {}", cause.to_string()));
@@ -130,7 +131,7 @@ pub enum CertOperation {
 }
 
 impl fmt::Display for CertOperation {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CertOperation::CreateIdentityCert => write!(f, "Could not create identity cert"),
             CertOperation::GetServerCert => write!(f, "Could not get server cert"),
@@ -147,7 +148,7 @@ pub enum EncryptionOperation {
 }
 
 impl fmt::Display for EncryptionOperation {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             EncryptionOperation::Decrypt => write!(f, "Could not decrypt"),
             EncryptionOperation::Encrypt => write!(f, "Could not encrypt"),

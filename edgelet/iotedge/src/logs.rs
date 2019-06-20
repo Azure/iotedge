@@ -6,14 +6,15 @@ use std::io::{self, Write};
 use bytes::{Buf, BufMut, Bytes, BytesMut, IntoBuf};
 use failure::Fail;
 use futures::prelude::*;
+use futures::try_ready;
 use tokio::codec::length_delimited;
 use tokio::codec::FramedRead;
 use tokio::io::AsyncRead;
 
 use edgelet_core::{LogOptions, ModuleRuntime};
 
-use error::{Error, ErrorKind};
-use Command;
+use crate::error::{Error, ErrorKind};
+use crate::Command;
 
 pub struct Logs<M> {
     id: String,
@@ -35,7 +36,7 @@ impl<M> Command for Logs<M>
 where
     M: 'static + ModuleRuntime + Clone,
 {
-    type Future = Box<Future<Item = (), Error = Error> + Send>;
+    type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
 
     fn execute(&mut self) -> Self::Future {
         let id = self.id.clone();

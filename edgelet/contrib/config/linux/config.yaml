@@ -16,8 +16,9 @@
 # Configures the identity provisioning mode of the daemon.
 #
 # Supported modes:
-#     manual - using an iothub connection string
-#     dps    - using dps for provisioning
+#     manual   - using an iothub connection string
+#     dps      - using dps for provisioning
+#     external - the device has been provisioned externally. Uses an external provisioning endpoint to get device specific information.
 #
 # DPS Settings
 #     scope_id - Required. Value of a specific DPS instance's ID scope
@@ -25,18 +26,49 @@
 #     symmetric_key - Optional. This entry should only be specified when
 #                     provisioning devices configured for symmetric key
 #                     attestation
+# External Settings
+#     endpoint - Required. Value of the endpoint used to retrieve device specific information such as its IoT hub connection information.
 ###############################################################################
 
+# Manual provisioning configuration
 provisioning:
   source: "manual"
   device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
 
+# DPS TPM provisioning configuration
 # provisioning:
 #   source: "dps"
 #   global_endpoint: "https://global.azure-devices-provisioning.net"
 #   scope_id: "{scope_id}"
-#   registration_id: "{registration_id}"
-#   symmetric_key: "{symmetric_key}"
+#   attestation:
+#     method: "tpm"
+#     registration_id: "{registration_id}"
+
+# DPS symmetric key provisioning configuration
+# provisioning:
+#   source: "dps"
+#   global_endpoint: "https://global.azure-devices-provisioning.net"
+#   scope_id: "{scope_id}"
+#   attestation:
+#     method: "symmetric_key"
+#     registration_id: "{registration_id}"
+#     symmetric_key: "{symmetric_key}"
+
+# DPS X.509 provisioning configuration
+# provisioning:
+#   source: "dps"
+#   global_endpoint: "https://global.azure-devices-provisioning.net"
+#   scope_id: "{scope_id}"
+#   attestation:
+#     method: "x509"
+#     registration_id: "<OPTIONAL REGISTRATION ID. IF UNSPECIFIED CAN BE OBTAINED FROM CN OF identity_cert"
+#     identity_cert: "<REQUIRED PATH TO DEVICE IDENTITY CERTIFICATE HERE>"
+#     identity_pk: "<REQUIRED PATH TO DEVICE IDENTITY PRIVATE KEY HERE>"
+
+# External provisioning configuration
+# provisioning:
+#   source: "external"
+#   endpoint: "http://localhost:9999"
 
 ###############################################################################
 # Certificate settings
@@ -71,6 +103,26 @@ provisioning:
 # then update itself based on the Edge Agent module definition present in the
 # deployment in IoT Hub.
 #
+# Settings:
+#     name     - name of the edge agent module. Expected to be "edgeAgent".
+#     type     - type of module. Always "docker".
+#     env      - Any environment variable that needs to be set for edge agent module.
+#     config   - type specific configuration for edge agent module.
+#       image  - (docker) Modules require a docker image tag.
+#       auth   - (docker) Modules may need authoriation to connect to container registry.
+#
+# Adding environment variables:
+# replace "env: {}" with
+#  env:
+#    key: "value"
+#
+# Adding container registry authorization:
+# replace "auth: {}" with
+#    auth:
+#      username: "username"
+#      password: "password"
+#      serveraddress: "serveraddress"
+#
 ###############################################################################
 
 agent:
@@ -98,11 +150,38 @@ agent:
 hostname: "<ADD HOSTNAME HERE>"
 
 ###############################################################################
+# Watchdog settings
+###############################################################################
+#
+# The IoT edge daemon has a watchdog that periodically checks the health of the
+# Edge Agent module and restarts it if it's down.
+#
+# max_retries - Configures the number of retry attempts that the IoT edge daemon
+#               should make for failed operations before failing with a fatal error.
+#
+#               If this configuration is not specified, the daemon keeps retrying
+#               on errors and doesn't fail fatally.
+# 
+#               On a fatal failure, the daemon returns an exit code which
+#               signifies the kind of error encountered. Currently, the following
+#               error codes are returned by the daemon -
+#
+#               150 - Invalid Device ID specified.
+#               151 - Invalid IoT hub configuration.
+#               152 - Invalid SAS token used to call IoT hub.
+#                     This could signal an invalid SAS key.
+#               1 - All other errors.
+###############################################################################
+
+#watchdog:
+#  max_retries: 2
+
+###############################################################################
 # Connect settings
 ###############################################################################
 #
 #
-#Configures URIs used by clients of the management and workload APIs
+# Configures URIs used by clients of the management and workload APIs
 #     management_uri - used by the Edge Agent and 'iotedge' CLI to start,
 #                      stop, and manage modules
 #     workload_uri   - used by modules to retrieve tokens and certificates
@@ -110,6 +189,11 @@ hostname: "<ADD HOSTNAME HERE>"
 # The following uri schemes are supported:
 #     http - connect over TCP
 #     unix - connect over Unix domain socket
+#
+# Note: When using the fd:// scheme for listen.management_uri or listen.workload_uri,
+# the path of connect.management_uri and connect.workload_uri must match
+# the path of the underlying socket in the systemd socket files
+# (iotedge.socket and iotedge.mgmt.socket).
 #
 ###############################################################################
 
@@ -135,6 +219,11 @@ connect:
 # using the fd:// scheme for systemd:
 #     listen address is fd://iotedge.workload,
 #     connect address is unix:///var/run/iotedge/workload.sock
+#
+# Note: When using the fd:// scheme for listen.management_uri or listen.workload_uri,
+# the path of connect.management_uri and connect.workload_uri must match
+# the path of the underlying socket in the systemd socket files
+# (iotedge.socket and iotedge.mgmt.socket).
 #
 ###############################################################################
 

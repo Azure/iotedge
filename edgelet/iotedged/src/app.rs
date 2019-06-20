@@ -1,16 +1,21 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use clap::{App, Arg, ArgMatches};
+use std::path::Path;
+
+use clap::{crate_authors, crate_description, crate_name, App, Arg, ArgMatches};
+use failure::ResultExt;
+use log::info;
+
+use edgelet_config::Settings;
 use edgelet_core;
 use edgelet_docker::DockerConfig;
 
-use error::Error;
-use logging;
-use settings::Settings;
+use crate::error::{Error, ErrorKind, InitializeErrorReason};
+use crate::logging;
 
 pub fn create_base_app<'a, 'b>() -> App<'a, 'b> {
     App::new(crate_name!())
-        .version(crate_version!())
+        .version(edgelet_core::version_with_source_version())
         .author(crate_authors!("\n"))
         .about(crate_description!())
         .arg(
@@ -43,16 +48,17 @@ pub fn create_app<'a, 'b>() -> App<'a, 'b> {
 
 pub fn log_banner() {
     info!("Starting Azure IoT Edge Security Daemon");
-    info!("Version - {}", edgelet_core::version());
+    info!("Version - {}", edgelet_core::version_with_source_version());
 }
 
 pub fn init_common<'a>() -> Result<(Settings<DockerConfig>, ArgMatches<'a>), Error> {
     let matches = create_app().get_matches();
     let settings = {
         let config_file = matches
-            .value_of("config-file")
+            .value_of_os("config-file")
             .and_then(|name| {
-                info!("Using config file: {}", name);
+                let name = Path::new(name);
+                info!("Using config file: {}", name.display());
                 Some(name)
             })
             .or_else(|| {
@@ -60,7 +66,8 @@ pub fn init_common<'a>() -> Result<(Settings<DockerConfig>, ArgMatches<'a>), Err
                 None
             });
 
-        Settings::<DockerConfig>::new(config_file)?
+        Settings::<DockerConfig>::new(config_file)
+            .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?
     };
 
     Ok((settings, matches))
@@ -84,13 +91,15 @@ pub fn init() -> Result<Settings<DockerConfig>, Error> {
 #[cfg(not(target_os = "windows"))]
 pub fn init() -> Result<Settings<DockerConfig>, Error> {
     logging::init();
+    let (settings, _) = init_common()?;
     log_banner();
-    init_common().map(|(settings, _)| settings)
+    Ok(settings)
 }
 
 #[cfg(target_os = "windows")]
 pub fn init_win_svc() -> Result<Settings<DockerConfig>, Error> {
     logging::init_win_log();
+    let (settings, _) = init_common()?;
     log_banner();
-    init_common().map(|(settings, _)| settings)
+    Ok(settings)
 }

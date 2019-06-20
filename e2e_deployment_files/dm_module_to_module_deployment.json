@@ -12,7 +12,7 @@
               "buildcr": {
                 "username": "<CR.Username>",
                 "password": "<CR.Password>",
-                "address": "edgebuilds.azurecr.io"
+                "address": "<Container_Registry>"
               }
             }
           }
@@ -21,7 +21,7 @@
           "edgeAgent": {
             "type": "docker",
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             },
             "env": {
@@ -33,16 +33,10 @@
           "edgeHub": {
             "type": "docker",
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
-              "OptimizeForPerformance": {
-                "value": "<OptimizeForPerformance>"
-              },
-              "MqttEventsProcessorThreadCount": {
-                "value": "<MqttEventsProcessorThreadCount>"
-              },
               "UpstreamProtocol" : {
                 "value": "<UpstreamProtocol>"
               }
@@ -66,7 +60,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -81,7 +75,7 @@
               }
             },
             "settings": {
-              "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           }

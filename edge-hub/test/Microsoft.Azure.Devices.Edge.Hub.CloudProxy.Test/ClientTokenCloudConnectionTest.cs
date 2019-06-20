@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     [Unit]
     public class ClientTokenCloudConnectionTest
     {
+        const string DummyProductInfo = "IoTEdge 1.0.6 1.20.0-RC2";
         static readonly ITokenProvider TokenProvider = Mock.Of<ITokenProvider>();
         static readonly IDeviceScopeIdentitiesCache DeviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
 
@@ -40,7 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Mock.Of<ICloudListener>(),
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                DummyProductInfo);
             Option<ICloudProxy> cloudProxy1 = cloudConnection.CloudProxy;
             Assert.True(cloudProxy1.HasValue);
             Assert.True(cloudProxy1.OrDefault().IsActive);
@@ -75,7 +77,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Mock.Of<ICloudListener>(),
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                DummyProductInfo);
 
             Option<ICloudProxy> cloudProxy1 = cloudConnection.CloudProxy;
             Assert.True(cloudProxy1.HasValue);
@@ -118,7 +121,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Mock.Of<ICloudListener>(),
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                DummyProductInfo);
 
             Option<ICloudProxy> cloudProxy = cloudConnection.CloudProxy;
             Assert.True(cloudProxy.HasValue);
@@ -166,7 +170,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Mock.Of<ICloudListener>(),
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                DummyProductInfo);
 
             Option<ICloudProxy> cloudProxy1 = cloudConnection.CloudProxy;
             Assert.True(cloudProxy1.HasValue);
@@ -177,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Task<string> getTokenTask = tokenProvider.GetTokenAsync(Option.None<TimeSpan>());
             Assert.False(getTokenTask.IsCompleted);
 
-            Assert.Equal(receivedStatus, CloudConnectionStatus.TokenNearExpiry);
+            Assert.Equal(CloudConnectionStatus.TokenNearExpiry, receivedStatus);
 
             ITokenCredentials clientCredentialsWithExpiringToken2 = GetClientCredentialsWithNonExpiringToken();
             ICloudProxy cloudProxy2 = await cloudConnection.UpdateTokenAsync(clientCredentialsWithExpiringToken2);
@@ -233,7 +238,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Mock.Of<ICloudListener>(),
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                DummyProductInfo);
 
             Option<ICloudProxy> cloudProxy1 = cloudConnection.CloudProxy;
             Assert.True(cloudProxy1.HasValue);
@@ -245,8 +251,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Task<string> getTokenTask = tokenProvider.GetTokenAsync(Option.None<TimeSpan>());
             Assert.False(getTokenTask.IsCompleted);
 
-            Assert.Equal(1, receivedStatuses.Count);
-            Assert.Equal(receivedStatuses[0], CloudConnectionStatus.TokenNearExpiry);
+            Assert.Single(receivedStatuses);
+            Assert.Equal(CloudConnectionStatus.TokenNearExpiry, receivedStatuses[0]);
 
             ICloudProxy cloudProxy2 = await cloudConnection.UpdateTokenAsync(clientCredentialsWithExpiringToken1);
 
@@ -264,7 +270,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             // Check if retry happened
             Assert.Equal(2, receivedStatuses.Count);
-            Assert.Equal(receivedStatuses[1], CloudConnectionStatus.TokenNearExpiry);
+            Assert.Equal(CloudConnectionStatus.TokenNearExpiry, receivedStatuses[1]);
 
             ITokenCredentials clientCredentialsWithNonExpiringToken = GetClientCredentialsWithNonExpiringToken();
             ICloudProxy cloudProxy3 = await cloudConnection.UpdateTokenAsync(clientCredentialsWithNonExpiringToken);
@@ -334,25 +340,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Mock.Of<ICloudListener>(),
                 TimeSpan.FromMinutes(60),
                 true,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20),
+                DummyProductInfo);
 
-            Assert.Equal(receivedConnectedStatusCount, 1);
+            Assert.Equal(1, receivedConnectedStatusCount);
             Option<ICloudProxy> cloudProxy1 = cloudConnection.CloudProxy;
             Assert.True(cloudProxy1.HasValue);
             Assert.True(cloudProxy1.OrDefault().IsActive);
 
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
-            Assert.Equal(receivedConnectedStatusCount, 2);
+            Assert.Equal(2, receivedConnectedStatusCount);
 
             ITokenCredentials clientCredentialsWithExpiringToken2 = GetMockClientCredentialsWithToken();
             ICloudProxy cloudProxy2 = await cloudConnection.UpdateTokenAsync(clientCredentialsWithExpiringToken2);
             Assert.True(cloudProxy2.IsActive);
             Assert.Equal(cloudProxy2, cloudConnection.CloudProxy.OrDefault());
-            Assert.Equal(receivedConnectedStatusCount, 2);
+            Assert.Equal(2, receivedConnectedStatusCount);
 
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
-            Assert.Equal(receivedConnectedStatusCount, 3);
+            Assert.Equal(3, receivedConnectedStatusCount);
         }
 
         [Unit]
@@ -409,8 +416,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceClientProvider = new Mock<IClientProvider>();
             deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>()))
                 .Callback<IIdentity, ITokenProvider, ITransportSettings[]>((s, a, t) => tokenProvider = a)
-                .Returns(() => GetMockedDeviceClient());
+                .Returns(GetMockedDeviceClient);
 
+            var productInfoStore = Mock.Of<IProductInfoStore>();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
 
             var credentialsCache = Mock.Of<ICredentialsCache>();
@@ -426,7 +434,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
-                Option.None<IWebProxy>());
+                Option.None<IWebProxy>(),
+                productInfoStore);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), new IdentityProvider(hostname));
 

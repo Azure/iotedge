@@ -230,7 +230,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
-                                }
+                                },
+                                imagePullPolicy = "on-create"
                             }
                         },
                         modules = new Dictionary<string, object>
@@ -400,7 +401,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
-                                }
+                                },
+                                imagePullPolicy = "on-create"
                             }
                         },
                         modules = new Dictionary<string, object>
@@ -578,7 +580,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
-                                }
+                                },
+                                imagePullPolicy = "on-create"
                             }
                         },
                         modules = new Dictionary<string, object>
@@ -771,7 +774,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
-                                }
+                                },
+                                imagePullPolicy = "on-create"
                             }
                         },
                         modules = new Dictionary<string, object>
@@ -1125,11 +1129,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     ModuleStatus.Running,
                     RestartPolicy.Always,
                     new DockerConfig("edge.azurecr.io/edgeHub:1.0"),
+                    ImagePullPolicy.Never,
                     new ConfigurationInfo("1"),
                     new Dictionary<string, EnvVal>());
                 var edgeAgentDesiredModule = new EdgeAgentDockerModule(
                     "docker",
                     new DockerConfig("edge.azurecr.io/edgeAgent:1.0"),
+                    ImagePullPolicy.OnCreate,
                     new ConfigurationInfo("1"),
                     new Dictionary<string, EnvVal>());
                 var deploymentConfig = new DeploymentConfig(
@@ -1163,6 +1169,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    ImagePullPolicy.Never,
                     new ConfigurationInfo("1"),
                     new Dictionary<string, EnvVal> { ["foo"] = new EnvVal("Bar") });
                 ModuleSet currentModuleSet = ModuleSet.Create(
@@ -1180,7 +1187,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Backoff),
+                        ModuleStatus.Backoff,
+                        ImagePullPolicy.OnCreate),
                     new TestRuntimeModule(
                         "mod2",
                         "1.0",
@@ -1194,7 +1202,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Running),
+                        ModuleStatus.Running,
+                        ImagePullPolicy.Never),
                     edgeHubRuntimeModule);
 
                 var agentStateSerde = new Mock<ISerde<AgentState>>();
@@ -1249,7 +1258,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
-                                }
+                                },
+                                imagePullPolicy = "on-create"
                             }
                         },
                         modules = new
@@ -1361,8 +1371,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
                 DateTime lastStartTimeUtc = DateTime.Parse("2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind);
 
-                IEdgeAgentModule edgeAgent = new EdgeAgentDockerRuntimeModule(new DockerReportedConfig("image", string.Empty, "hash"), ModuleStatus.Running, 0, string.Empty, lastStartTimeUtc, DateTime.MinValue, new ConfigurationInfo("id"), new Dictionary<string, EnvVal>());
-                IEdgeHubModule edgeHub = new EdgeHubDockerRuntimeModule(ModuleStatus.Running, RestartPolicy.Always, new DockerReportedConfig("hubimage", string.Empty, "hash"), 0, string.Empty, DateTime.Now, DateTime.Now, 0, DateTime.Now, ModuleStatus.Running, new ConfigurationInfo("hub"), new Dictionary<string, EnvVal>());
+                IEdgeAgentModule edgeAgent = new EdgeAgentDockerRuntimeModule(new DockerReportedConfig("image", string.Empty, "hash"), ModuleStatus.Running, 0, string.Empty, lastStartTimeUtc, DateTime.MinValue, ImagePullPolicy.OnCreate, new ConfigurationInfo("id"), new Dictionary<string, EnvVal>());
+                IEdgeHubModule edgeHub = new EdgeHubDockerRuntimeModule(ModuleStatus.Running, RestartPolicy.Always, new DockerReportedConfig("hubimage", string.Empty, "hash"), 0, string.Empty, DateTime.Now, DateTime.Now, 0, DateTime.Now, ModuleStatus.Running, ImagePullPolicy.OnCreate, new ConfigurationInfo("hub"), new Dictionary<string, EnvVal>());
 
                 // prepare IEdgeAgentConnection mock
                 var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
@@ -1491,6 +1501,96 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
         [Fact]
         [Unit]
+        public async void ReportShutdownWithOnlyEdgeAgentInState()
+        {
+            using (var cts = new CancellationTokenSource(Timeout))
+            {
+                // Arrange
+                const long DesiredVersion = 10;
+                const string RuntimeType = "docker";
+                const string MinDockerVersion = "1.25";
+                const string LoggingOptions = "logging options";
+                const string OperatingSystemType = "linux";
+                const string Architecture = "x86_x64";
+                const string Version = "17.11.0-ce";
+                var versionInfo = new VersionInfo("v1", "b1", "c1");
+                DateTime lastStartTimeUtc = DateTime.Parse("2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind);
+
+                IEdgeAgentModule edgeAgent = new EdgeAgentDockerRuntimeModule(new DockerReportedConfig("image", string.Empty, "hash"), ModuleStatus.Running, 0, string.Empty, lastStartTimeUtc, DateTime.MinValue, ImagePullPolicy.OnCreate, new ConfigurationInfo("id"), new Dictionary<string, EnvVal>());
+
+                // prepare IEdgeAgentConnection mock
+                var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
+                var reportedState = new AgentState(
+                    0,
+                    DeploymentStatus.Unknown,
+                    null,
+                    new SystemModules(edgeAgent, null),
+                    ModuleSet.Empty.Modules.ToImmutableDictionary(),
+                    string.Empty,
+                    versionInfo);
+                edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+
+                TwinCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+                    .Callback<TwinCollection>(tc => patch = tc)
+                    .Returns(Task.CompletedTask);
+
+                // prepare AgentConfig
+                var deploymentConfig = new DeploymentConfig(
+                    "1.0",
+                    new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
+                    new SystemModules(edgeAgent, null),
+                    new Dictionary<string, IModule>());
+                var deploymentConfigInfo = new DeploymentConfigInfo(
+                    DesiredVersion,
+                    deploymentConfig);
+
+                IRuntimeInfo runtimeInfo = new DockerReportedRuntimeInfo(
+                    RuntimeType,
+                    (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
+                    new DockerPlatformInfo(OperatingSystemType, Architecture, Version));
+
+                // build current module set
+                ModuleSet currentModuleSet = ModuleSet.Create(edgeAgent);
+
+                var agentStateSerde = new Mock<ISerde<AgentState>>();
+                agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
+                    .Returns(reportedState);
+
+                // Act
+                var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
+
+                // this should cause all modules to be updated.
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, Option.Some(DeploymentStatus.Success));
+
+                // Now use the last reported configuration to report a shutdown
+                await reporter.ReportShutdown(DeploymentStatus.Success, cts.Token);
+
+                // Assert
+                Assert.NotNull(patch);
+
+                var patchJson = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
+                JObject expectedPatchJson = JObject.FromObject(
+                    new
+                    {
+                        systemModules = new Dictionary<string, object>
+                        {
+                            {
+                                edgeAgent.Name,
+                                new
+                                {
+                                    runtimeStatus = "unknown"
+                                }
+                            }
+                        }
+                    });
+
+                Assert.True(JToken.DeepEquals(expectedPatchJson, patchJson));
+            }
+        }
+
+        [Fact]
+        [Unit]
         public async void ReportedPatchWithEnvVarsTest()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -1591,6 +1691,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         0,
                         DateTime.MinValue,
                         ModuleStatus.Backoff,
+                        ImagePullPolicy.Never,
                         null,
                         new Dictionary<string, EnvVal> { ["e1"] = new EnvVal("e1Val") }),
                     new TestRuntimeModule(
@@ -1607,6 +1708,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         0,
                         DateTime.MinValue,
                         ModuleStatus.Running,
+                        ImagePullPolicy.OnCreate,
                         null,
                         new Dictionary<string, EnvVal> { ["e2"] = new EnvVal("e2Val") }));
 
@@ -1669,7 +1771,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
-                                }
+                                },
+                                imagePullPolicy = "on-create"
                             }
                         },
                         modules = new Dictionary<string, object>
@@ -1685,7 +1788,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                         {
                                             value = "e1Val"
                                         }
-                                    }
+                                    },
+                                    imagePullPolicy = "never"
                                 }
                             },
                             { currentModuleSet.Modules["mod2"].Name, currentModuleSet.Modules["mod2"] },
@@ -1701,6 +1805,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
             Constants.EdgeAgentModuleName,
             "docker",
             new TestConfig("EdgeAgentImage"),
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
     }

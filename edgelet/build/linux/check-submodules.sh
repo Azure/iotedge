@@ -15,7 +15,7 @@ DIR=$(cd "$(dirname "$0")" && pwd)
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/tools/check_submodules
 SCRIPT_NAME=$(basename "$0")
-CARGO="$HOME/.cargo/bin/cargo"
+CARGO="${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
 TOOLCHAIN="stable-x86_64-unknown-linux-gnu"
 RELEASE=
 

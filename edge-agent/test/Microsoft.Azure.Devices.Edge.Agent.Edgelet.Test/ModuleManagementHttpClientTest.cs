@@ -4,12 +4,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json.Linq;
     using Xunit;
@@ -18,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     public class ModuleManagementHttpClientTest : IClassFixture<EdgeletFixture>
     {
         readonly Uri serverUrl;
-        EdgeletFixture edgeletFixture;
+        readonly EdgeletFixture edgeletFixture;
 
         public ModuleManagementHttpClientTest(EdgeletFixture edgeletFixture)
         {
@@ -31,32 +33,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             string serverApiVersion = "2018-06-28";
             string clientApiVersion = "2018-06-28";
-            var client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            var versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            var versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
 
             serverApiVersion = "2018-06-28";
             clientApiVersion = "2019-01-30";
-            client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-01-30";
             clientApiVersion = "2018-06-28";
-            client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-01-30";
             clientApiVersion = "2019-01-30";
-            client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-02-30";
             clientApiVersion = "2019-01-30";
-            client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            versionedClient = client.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-01-30";
@@ -151,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             // Arrange
             IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
-            var moduleSpec = new ModuleSpec("Module1", "Docker", JObject.Parse("{ \"image\": \"testimage\" }"), new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
+            var moduleSpec = new ModuleSpec("Module1", "Docker", ImagePullPolicy.OnCreate, JObject.Parse("{ \"image\": \"testimage\" }"), new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
 
             // Act
             await client.CreateModuleAsync(moduleSpec);
@@ -161,7 +158,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.NotNull(moduleDetails);
             Assert.Equal("Module1", moduleDetails.Name);
             Assert.Equal("Docker", moduleDetails.Type);
-            Assert.NotNull(moduleDetails.ModuleStatus);
             Assert.Equal(ModuleStatus.Unknown, moduleDetails.ModuleStatus);
 
             // Act
@@ -233,10 +229,84 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var moduleSpec = new ModuleSpec(
                 "Module1",
                 "Docker",
+                ImagePullPolicy.OnCreate,
                 JObject.Parse("{ \"image\": \"testimage\" }"),
                 new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
             IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
             await client.PrepareUpdateAsync(moduleSpec);
+        }
+
+        [Theory]
+        [InlineData("2018-06-28", "2018-06-28")]
+        [InlineData("2018-06-28", "2019-01-30")]
+        [InlineData("2019-01-30", "2018-06-28")]
+        [InlineData("2019-01-30", "2019-01-30")]
+        public async Task ModuleLogsTest(string serverApiVersion, string clientApiVersion)
+        {
+            // Arrange
+            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
+
+            // Act
+            Stream logsStream = await client.GetModuleLogs("edgeHub", false, Option.None<int>(), Option.None<int>(), CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(logsStream);
+            byte[] buffer = new byte[1024];
+            int bytesRead = await logsStream.ReadAsync(buffer, 0, buffer.Length);
+            Assert.Equal(buffer.Length, bytesRead);
+        }
+
+        [Fact]
+        public void ImagePullPolicyTest()
+        {
+            Assert.Equal(
+                Version_2019_01_30.GeneratedCode.ImagePullPolicy.OnCreate,
+                Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy(ImagePullPolicy.OnCreate));
+            Assert.Equal(
+                Version_2019_01_30.GeneratedCode.ImagePullPolicy.Never,
+                Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy(ImagePullPolicy.Never));
+
+            Assert.Throws<InvalidOperationException>(() => Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy((ImagePullPolicy)int.MaxValue));
+        }
+
+        [Fact]
+        public async Task ExecuteTimeoutTest_Version_2018_06_28()
+        {
+            // Arrange
+            var client = new Version_2018_06_28.ModuleManagementHttpClient(this.serverUrl, Option.Some(TimeSpan.FromSeconds(10)));
+
+            async Task<int> LongOperation()
+            {
+                await Task.Delay(TimeSpan.FromHours(1));
+                return 10;
+            }
+
+            // Act
+            Task assertTask = Assert.ThrowsAsync<TimeoutException>(() => client.Execute<int>(LongOperation, "Dummy"));
+            Task delayTask = Task.Delay(TimeSpan.FromSeconds(20));
+
+            Task completedTask = await Task.WhenAny(assertTask, delayTask);
+            Assert.Equal(assertTask, completedTask);
+        }
+
+        [Fact]
+        public async Task ExecuteTimeoutTest_Version_2019_01_30()
+        {
+            // Arrange
+            var client = new Version_2019_01_30.ModuleManagementHttpClient(this.serverUrl, Option.Some(TimeSpan.FromSeconds(10)));
+
+            async Task<int> LongOperation()
+            {
+                await Task.Delay(TimeSpan.FromHours(1));
+                return 10;
+            }
+
+            // Act
+            Task assertTask = Assert.ThrowsAsync<TimeoutException>(() => client.Execute<int>(LongOperation, "Dummy"));
+            Task delayTask = Task.Delay(TimeSpan.FromSeconds(20));
+
+            Task completedTask = await Task.WhenAny(assertTask, delayTask);
+            Assert.Equal(assertTask, completedTask);
         }
     }
 }

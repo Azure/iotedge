@@ -16,6 +16,7 @@ namespace LeafDeviceTest
             string edgeHostName,
             string edgeDeviceId,
             DeviceProtocol protocol,
+            Option<string> proxy,
             Option<DeviceCertificate> deviceCertificate,
             Option<IList<string>> thumbprintCertificates)
             : base(
@@ -26,12 +27,13 @@ namespace LeafDeviceTest
                 edgeHostName,
                 edgeDeviceId,
                 protocol,
+                proxy,
                 deviceCertificate,
                 thumbprintCertificates)
         {
         }
 
-        public async Task RunAsync()
+        public async Task RunAsync(bool keepDevice = false)
         {
             // This test assumes that there is an edge deployment running as transparent gateway.
             try
@@ -50,8 +52,12 @@ namespace LeafDeviceTest
             }
             finally
             {
-                // only remove the identity if we created it; if it already existed in IoT Hub then leave it alone
-                await this.MaybeDeleteDeviceIdentity();
+                if (!keepDevice)
+                {
+                    // only remove the identity if we created it;
+                    // if it already existed in IoT Hub then leave it alone
+                    await this.MaybeDeleteDeviceIdentity();
+                }
             }
         }
 
@@ -64,6 +70,7 @@ namespace LeafDeviceTest
             readonly string edgeHostName;
             readonly string edgeDeviceId;
             readonly DeviceProtocol protocol;
+            Option<string> proxy;
             bool usePrimaryThumbprintClientCert;
             Option<string> x509CACertPath;
             Option<string> x509CAKeyPath;
@@ -76,7 +83,8 @@ namespace LeafDeviceTest
                 string trustedCACertificateFileName,
                 string edgeHostName,
                 string edgeDeviceId,
-                DeviceProtocol protocol)
+                DeviceProtocol protocol,
+                Option<string> proxy)
             {
                 this.iothubConnectionString = Preconditions.CheckNotNull(iothubConnectionString);
                 this.eventhubCompatibleEndpointWithEntityPath = Preconditions.CheckNotNull(eventhubCompatibleEndpointWithEntityPath);
@@ -85,6 +93,7 @@ namespace LeafDeviceTest
                 this.edgeHostName = Preconditions.CheckNotNull(edgeHostName);
                 this.edgeDeviceId = Preconditions.CheckNotNull(edgeDeviceId);
                 this.protocol = protocol;
+                this.proxy = proxy;
                 this.usePrimaryThumbprintClientCert = false;
             }
 
@@ -143,6 +152,7 @@ namespace LeafDeviceTest
                     this.edgeHostName,
                     this.edgeDeviceId,
                     this.protocol,
+                    this.proxy,
                     deviceCert,
                     this.thumbprintCerts);
             }

@@ -37,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly Timer connectedTimer;
         readonly Timer disconnectedTimer;
         readonly IIdentity testClientIdentity;
+        readonly AsyncLock machineLock = new AsyncLock();
 
         State state;
         ConnectivityChecker connectivityChecker;
@@ -56,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             this.machine.Configure(State.Connected)
                 .Permit(Trigger.CallTimedOut, State.Trying)
-                .InternalTransition(Trigger.CallSucceeded, () => this.ResetConnectedTimer())
+                .InternalTransition(Trigger.CallSucceeded, this.ResetConnectedTimer)
                 .OnEntry(this.OnConnected)
                 .OnExit(this.OnConnectedExit);
 
@@ -67,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             this.machine.Configure(State.Disconnected)
                 .Permit(Trigger.CallSucceeded, State.Connected)
-                .InternalTransition(Trigger.CallTimedOut, () => this.ResetDisconnectedTimer())
+                .InternalTransition(Trigger.CallTimedOut, this.ResetDisconnectedTimer)
                 .OnEntry(this.OnDisconnected)
                 .OnExit(this.OnDisconnectedExit);
 
@@ -100,16 +101,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Events.SetConnectionManager();
         }
 
-        public void CallSucceeded()
+        public async Task CallSucceeded()
         {
             Events.CallSucceeded();
-            this.machine.Fire(Trigger.CallSucceeded);
+            using (await this.machineLock.LockAsync())
+            {
+                await this.machine.FireAsync(Trigger.CallSucceeded);
+            }
         }
 
-        public void CallTimedOut()
+        public async Task CallTimedOut()
         {
             Events.CallTimedOut();
-            this.machine.Fire(Trigger.CallTimedOut);
+            using (await this.machineLock.LockAsync())
+            {
+                await this.machine.FireAsync(Trigger.CallTimedOut);
+            }
         }
 
         void ResetDisconnectedTimer()

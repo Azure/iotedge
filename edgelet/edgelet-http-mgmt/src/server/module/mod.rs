@@ -7,10 +7,12 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;
 
-use edgelet_core::{Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleStatus};
+use edgelet_core::{
+    ImagePullPolicy, Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleStatus,
+};
 use management::models::*;
 
-use error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind};
 
 mod create;
 mod delete;
@@ -55,7 +57,15 @@ where
         Err(err) => return Err(Error::from(err.context(context))),
     };
 
-    let module_spec = match CoreModuleSpec::new(name, type_, config, env) {
+    let image_pull_policy = match spec
+        .image_pull_policy()
+        .map_or(Ok(ImagePullPolicy::default()), str::parse)
+    {
+        Ok(image_pull_policy) => image_pull_policy,
+        Err(err) => return Err(Error::from(err.context(context))),
+    };
+
+    let module_spec = match CoreModuleSpec::new(name, type_, config, env, image_pull_policy) {
         Ok(module_spec) => module_spec,
         Err(err) => return Err(Error::from(err.context(context))),
     };
@@ -94,8 +104,8 @@ pub mod tests {
     use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
     use management::models::ErrorResponse;
 
-    use error::{Error as MgmtError, ErrorKind};
-    use IntoResponse;
+    use crate::error::{Error as MgmtError, ErrorKind};
+    use crate::IntoResponse;
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub enum Error {

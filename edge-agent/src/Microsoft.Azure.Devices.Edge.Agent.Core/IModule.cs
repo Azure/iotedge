@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.Runtime.Serialization;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
@@ -81,6 +82,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         Unknown
     }
 
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum ImagePullPolicy
+    {
+        [EnumMember(Value = "on-create")]
+        OnCreate = 0,
+
+        [EnumMember(Value = "never")]
+        Never = 1,
+    }
+
     public interface IModule : IEquatable<IModule>
     {
         [JsonIgnore]
@@ -98,11 +109,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         [JsonProperty(PropertyName = "restartPolicy")]
         RestartPolicy RestartPolicy { get; }
 
+        [JsonProperty(PropertyName = "imagePullPolicy")]
+        ImagePullPolicy ImagePullPolicy { get; }
+
         [JsonIgnore]
         ConfigurationInfo ConfigurationInfo { get; }
 
         [JsonProperty(PropertyName = "env")]
         IDictionary<string, EnvVal> Env { get; }
+
+        bool OnlyModuleStatusChanged(IModule other);
     }
 
     public interface IModule<TConfig> : IModule, IEquatable<IModule<TConfig>>

@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
 
             foreach (ICommand command in commandList)
             {
-                Assert.True(showString.Contains(command.Show()));
+                Assert.Contains(command.Show(), showString);
             }
         }
 
@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             commands[2].Verify(m => m.ExecuteAsync(cts.Token), Times.Never());
         }
 
-        static IEnumerable<object[]> CreateTestData()
+        public static IEnumerable<object[]> CreateTestData()
         {
             var defaultConfigurationInfo = new ConfigurationInfo();
             IDictionary<string, EnvVal> envVars = new Dictionary<string, EnvVal>();
@@ -114,11 +114,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             };
             var tm = new List<TestModule>
             {
-                new TestModule("module1", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image1"), RestartPolicy.OnUnhealthy, defaultConfigurationInfo, envVars),
-                new TestModule("module2", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image2"), RestartPolicy.OnUnhealthy, defaultConfigurationInfo, envVars),
-                new TestModule("module3", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image3"), RestartPolicy.OnUnhealthy, defaultConfigurationInfo, envVars),
-                new TestModule("module4", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image4"), RestartPolicy.OnUnhealthy, defaultConfigurationInfo, envVars),
-                new TestModule("module5", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image5"), RestartPolicy.OnUnhealthy, defaultConfigurationInfo, envVars)
+                new TestModule("module1", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image1"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, defaultConfigurationInfo, envVars),
+                new TestModule("module2", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image2"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, defaultConfigurationInfo, envVars),
+                new TestModule("module3", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image3"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, defaultConfigurationInfo, envVars),
+                new TestModule("module4", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image4"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, defaultConfigurationInfo, envVars),
+                new TestModule("module5", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image5"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, defaultConfigurationInfo, envVars)
             };
             (Option<TestPlanRecorder> recorder, List<TestRecordType> moduleExecutionList, List<ICommand> commandList)[] testInputRecords =
             {

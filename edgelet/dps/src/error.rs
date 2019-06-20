@@ -47,12 +47,15 @@ pub enum ErrorKind {
     #[fail(display = "DPS registration succeeded but returned an empty response")]
     RegisterWithAuthUnexpectedlySucceeded,
 
-    #[fail(display = "Symmetric key registration failed")]
+    #[fail(display = "Symmetric key based registration failed")]
     RegisterWithSymmetricChallengeKey,
+
+    #[fail(display = "X509 certificate based registration failed")]
+    RegisterWithX509IdentityCertificate,
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -62,7 +65,7 @@ impl Fail for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }

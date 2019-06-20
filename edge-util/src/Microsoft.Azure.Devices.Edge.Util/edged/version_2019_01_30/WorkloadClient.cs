@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2019_01_30
 {
     using System;
     using System.Net.Http;
+    using System.Runtime.ExceptionServices;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Edged.Version_2019_01_30.GeneratedCode;
@@ -11,7 +12,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2019_01_30
     class WorkloadClient : WorkloadClientVersioned
     {
         public WorkloadClient(Uri serverUri, ApiVersion apiVersion, string moduleId, string moduleGenerationId)
-            : base(serverUri, apiVersion, moduleId, moduleGenerationId, new ErrorDetectionStrategy())
+            : this(serverUri, apiVersion, moduleId, moduleGenerationId, Option.None<TimeSpan>())
+        {
+        }
+
+        internal WorkloadClient(Uri serverUri, ApiVersion apiVersion, string moduleId, string moduleGenerationId, Option<TimeSpan> operationTimeout)
+            : base(serverUri, apiVersion, moduleId, moduleGenerationId, new ErrorDetectionStrategy(), operationTimeout)
         {
         }
 
@@ -110,7 +116,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2019_01_30
                     }
 
                 default:
-                    throw ex;
+                    ExceptionDispatchInfo.Capture(ex).Throw();
+                    break;
             }
         }
 

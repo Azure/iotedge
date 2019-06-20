@@ -8,24 +8,12 @@
 //! $ cargo run --example device -- -h HUB_NAME -d DEVICE_ID -s "$sas_token" get -m MODULE_ID
 //! ```
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
     clippy::use_self,
 )]
-
-extern crate chrono;
-extern crate clap;
-extern crate failure;
-extern crate hyper;
-extern crate hyper_tls;
-extern crate serde_json;
-extern crate tokio;
-extern crate url;
-
-extern crate edgelet_http;
-extern crate iothubservice;
 
 use chrono::{DateTime, Utc};
 use clap::{App, Arg, ArgMatches, SubCommand};

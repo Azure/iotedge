@@ -1,19 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::stutter, clippy::use_self)]
-
-extern crate failure;
-#[cfg(target_os = "linux")]
-#[cfg(test)]
-#[macro_use]
-extern crate lazy_static;
-#[cfg(target_os = "linux")]
-#[macro_use]
-extern crate log;
-#[cfg(target_os = "linux")]
-extern crate nix;
+#![allow(clippy::module_name_repetitions, clippy::use_self)]
 
 use std::net::SocketAddr;
 
@@ -33,4 +22,4 @@ pub enum Socket {
 }
 
 #[cfg(target_os = "linux")]
-pub use self::linux::{listener, listener_name, listeners_name};
+pub use self::linux::{listener, listener_name, listeners_name, LISTEN_FDS_START};

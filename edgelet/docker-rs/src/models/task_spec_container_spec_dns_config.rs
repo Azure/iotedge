@@ -9,7 +9,7 @@
  */
 
 /// TaskSpecContainerSpecDnsConfig : Specification for DNS related configurations in resolver configuration file (`resolv.conf`).
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

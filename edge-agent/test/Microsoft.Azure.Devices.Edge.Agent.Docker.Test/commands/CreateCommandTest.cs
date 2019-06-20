@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     // Logging options will be derived from these default logging options
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
                     var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}");
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, null, EnvVars);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, null, EnvVars);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var config = new DockerConfig(Image, @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}");
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, null, EnvVars);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, null, EnvVars);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -201,7 +201,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     // Logging options will be derived from module options.
                     var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""LogConfig"": {""Type"":""none""}, ""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}],""443/tcp"": [{""HostPort"": ""11443""}]}}}");
                     var configurationInfo = new ConfigurationInfo();
-                    var module = new EdgeHubDockerModule("docker", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, config, configurationInfo, EnvVars);
+                    var module = new EdgeHubDockerModule("docker", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, config, ImagePullPolicy.Never, configurationInfo, EnvVars);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -288,7 +288,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
                     var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""]}");
                     var configurationInfo = new ConfigurationInfo("43");
-                    var module = new EdgeHubDockerModule("docker", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, config, configurationInfo, EnvVars);
+                    var module = new EdgeHubDockerModule("docker", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, config, ImagePullPolicy.OnCreate, configurationInfo, EnvVars);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -399,6 +399,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     ModuleStatus.Running,
                     global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy,
                     new DockerConfig("image1"),
+                    ImagePullPolicy.OnCreate,
                     new ConfigurationInfo("1234"),
                     EnvVars),
                 moduleIdentity.Object,
@@ -470,6 +471,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     ModuleStatus.Running,
                     global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy,
                     new DockerConfig("image1"),
+                    ImagePullPolicy.OnCreate,
                     new ConfigurationInfo("1234"),
                     EnvVars),
                 moduleIdentity.Object,
@@ -506,14 +508,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             Assert.NotNull(createContainerParameters.HostConfig);
             Assert.NotNull(createContainerParameters.HostConfig.PortBindings);
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("8883/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostPort, "8883");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostIP, null);
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["8883/tcp"].Count);
+            Assert.Equal("8883", createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostPort);
+            Assert.Null(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostIP);
 
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("443/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort, "443");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP, null);
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["443/tcp"].Count);
+            Assert.Equal("443", createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort);
+            Assert.Null(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP);
 
             // If EdgeHub port mappings are already in the create options, then they are not injected twice
             // Arrange
@@ -551,14 +553,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             Assert.NotNull(createContainerParameters.HostConfig);
             Assert.NotNull(createContainerParameters.HostConfig.PortBindings);
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("8883/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostPort, "8883");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostIP, null);
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["8883/tcp"].Count);
+            Assert.Equal("8883", createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostPort);
+            Assert.Null(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostIP);
 
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("443/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort, "443");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP, null);
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["443/tcp"].Count);
+            Assert.Equal("443", createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort);
+            Assert.Null(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP);
 
             // If EdgeHub port mappings are already in the create options, then they are not injected twice
             // Arrange
@@ -597,14 +599,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             Assert.NotNull(createContainerParameters.HostConfig);
             Assert.NotNull(createContainerParameters.HostConfig.PortBindings);
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("8883/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostPort, "8883");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostIP, "1.2.3.4");
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["8883/tcp"].Count);
+            Assert.Equal("8883", createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostPort);
+            Assert.Equal("1.2.3.4", createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostIP);
 
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("443/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort, "443");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP, null);
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["443/tcp"].Count);
+            Assert.Equal("443", createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort);
+            Assert.Null(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP);
 
             // If EdgeHub port mappings are already in the create options, then they are not injected twice
             // Arrange
@@ -633,17 +635,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             Assert.NotNull(createContainerParameters.HostConfig);
             Assert.NotNull(createContainerParameters.HostConfig.PortBindings);
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("8883/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostPort, "8883");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostIP, null);
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["8883/tcp"].Count);
+            Assert.Equal("8883", createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostPort);
+            Assert.Null(createContainerParameters.HostConfig.PortBindings["8883/tcp"].First().HostIP);
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("443/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort, "443");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP, null);
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["443/tcp"].Count);
+            Assert.Equal("443", createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostPort);
+            Assert.Null(createContainerParameters.HostConfig.PortBindings["443/tcp"].First().HostIP);
             Assert.True(createContainerParameters.HostConfig.PortBindings.ContainsKey("1234/tcp"));
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["1234/tcp"].Count, 1);
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["1234/tcp"].First().HostPort, "1234");
-            Assert.Equal(createContainerParameters.HostConfig.PortBindings["1234/tcp"].First().HostIP, null);
+            Assert.Equal(1, createContainerParameters.HostConfig.PortBindings["1234/tcp"].Count);
+            Assert.Equal("1234", createContainerParameters.HostConfig.PortBindings["1234/tcp"].First().HostPort);
+            Assert.Null(createContainerParameters.HostConfig.PortBindings["1234/tcp"].First().HostIP);
         }
 
         [Fact]
@@ -672,7 +674,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     // Logging options will be derived from these default logging options
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
                     var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}");
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, null, EnvVars);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, null, EnvVars);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -730,6 +732,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             Constants.EdgeAgentModuleName,
             "docker",
             new TestConfig("EdgeAgentImage"),
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             EnvVars);
 
@@ -739,6 +742,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             ModuleStatus.Running,
             new TestConfig("EdgeAgentImage"),
             global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always,
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             EnvVars);
     }

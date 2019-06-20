@@ -8,11 +8,18 @@ C# is a very broad, multi-paradigm language. It's done a good job over the years
 
 ### Baseline
 
-Our baseline C# Coding Style is defined [here](https://github.com/Azure/DotNetty/wiki/C#-Coding-Style). These guidelines are used by the broader IoT Hub team.
+Our baseline C# Coding Style is defined [here](https://github.com/Azure/DotNetty/wiki/C#-Coding-Style). These guidelines are used by the broader IoT Hub team.  In order to enforce coding style, StyleCop (NuGet version) is used.  StyleCop will be run automatically during build except Debug configuration.  Some StyleCop rules are not applicable to IoT Edge, you can find out from [here](https://github.com/Azure/iotedge/blob/master/stylecop.ruleset). 
 
 ### Resharper
 
 These style guidelines have been defined in a set of Resharper rules. Resharper is a static analysis tool for C# from JetBrains. We have a license server at `http://resharper/`. Use of Resharper is highly recommended, as it improves the C# development process and helps find a large set of code defects. If you've never used it before, you will soon realize you can't live without it.
+
+#### Tips
+- With Resharper default settings:
+  - To format code, use "Ctrl + Alt + Enter".
+  - To slient cleanup code, use "Ctrl + E, Ctrl + F", which will run default cleanup profile "Azure.IoT.Edge".
+  - Cleanup code will run "format code" plus some optimization e.g. remove unused using statements.
+- NOTE: remember Resharper code formatting doesn't resolve all StyleCop issues; therefore please make sure to build solution in Release configuration to ensure no styling issue found.
 
 ### Immutable Types
 

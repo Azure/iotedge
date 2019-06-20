@@ -3,6 +3,7 @@ trigger:
   branches:
     include:
       - master
+      - release/*
 pr: none
 jobs:
 
@@ -48,7 +49,7 @@ jobs:
         displayName: Install Rust
         inputs:
           filePath: edgelet/build/linux/install.sh
-      - script: cargo install --git https://github.com/myagley/cross.git --branch set-path
+      - script: cargo install --git https://github.com/arsing/cross.git --branch set-path
         displayName: Install cross (fork with docker fix)
       - task: Bash@3
         displayName: armv7-unknown-linux-gnueabihf build
@@ -74,6 +75,10 @@ jobs:
         displayName: Install Rust
         inputs:
           filePath: edgelet/build/windows/install.ps1
+      - task: PowerShell@2
+        displayName: Clippy
+        inputs:
+          filePath: edgelet/build/windows/clippy.ps1
       - task: PowerShell@2
         displayName: Build
         inputs:

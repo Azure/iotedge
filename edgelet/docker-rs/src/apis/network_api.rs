@@ -35,32 +35,38 @@ pub trait NetworkApi: Send + Sync {
     fn network_connect(
         &self,
         id: &str,
-        container: ::models::Container,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+        container: crate::models::Container,
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn network_create(
         &self,
-        network_config: ::models::NetworkConfig,
-    ) -> Box<Future<Item = ::models::InlineResponse2011, Error = Error<serde_json::Value>> + Send>;
-    fn network_delete(&self, id: &str) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+        network_config: crate::models::NetworkConfig,
+    ) -> Box<
+        dyn Future<Item = crate::models::InlineResponse2011, Error = Error<serde_json::Value>>
+            + Send,
+    >;
+    fn network_delete(
+        &self,
+        id: &str,
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn network_disconnect(
         &self,
         id: &str,
-        container: ::models::Container1,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+        container: crate::models::Container1,
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>>;
     fn network_inspect(
         &self,
         id: &str,
         verbose: bool,
         scope: &str,
-    ) -> Box<Future<Item = ::models::Network, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::Network, Error = Error<serde_json::Value>>>;
     fn network_list(
         &self,
         filters: &str,
-    ) -> Box<Future<Item = Vec<::models::Network>, Error = Error<serde_json::Value>> + Send>;
+    ) -> Box<dyn Future<Item = Vec<crate::models::Network>, Error = Error<serde_json::Value>> + Send>;
     fn network_prune(
         &self,
         filters: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse20017, Error = Error<serde_json::Value>>>;
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse20017, Error = Error<serde_json::Value>>>;
 }
 
 impl<C> NetworkApi for NetworkApiClient<C>
@@ -72,8 +78,8 @@ where
     fn network_connect(
         &self,
         id: &str,
-        container: ::models::Container,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+        container: crate::models::Container,
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -126,9 +132,11 @@ where
 
     fn network_create(
         &self,
-        network_config: ::models::NetworkConfig,
-    ) -> Box<Future<Item = ::models::InlineResponse2011, Error = Error<serde_json::Value>> + Send>
-    {
+        network_config: crate::models::NetworkConfig,
+    ) -> Box<
+        dyn Future<Item = crate::models::InlineResponse2011, Error = Error<serde_json::Value>>
+            + Send,
+    > {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -176,14 +184,17 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::InlineResponse2011, _> =
+                    let parsed: Result<crate::models::InlineResponse2011, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
         )
     }
 
-    fn network_delete(&self, id: &str) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    fn network_delete(
+        &self,
+        id: &str,
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::DELETE;
@@ -230,8 +241,8 @@ where
     fn network_disconnect(
         &self,
         id: &str,
-        container: ::models::Container1,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+        container: crate::models::Container1,
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -287,7 +298,7 @@ where
         id: &str,
         verbose: bool,
         scope: &str,
-    ) -> Box<Future<Item = ::models::Network, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::Network, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -332,7 +343,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::Network, _> = serde_json::from_slice(&body);
+                    let parsed: Result<crate::models::Network, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
         )
@@ -341,7 +352,8 @@ where
     fn network_list(
         &self,
         filters: &str,
-    ) -> Box<Future<Item = Vec<::models::Network>, Error = Error<serde_json::Value>> + Send> {
+    ) -> Box<dyn Future<Item = Vec<crate::models::Network>, Error = Error<serde_json::Value>> + Send>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -385,7 +397,8 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<Vec<::models::Network>, _> = serde_json::from_slice(&body);
+                    let parsed: Result<Vec<crate::models::Network>, _> =
+                        serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
         )
@@ -394,7 +407,8 @@ where
     fn network_prune(
         &self,
         filters: &str,
-    ) -> Box<Future<Item = ::models::InlineResponse20017, Error = Error<serde_json::Value>>> {
+    ) -> Box<dyn Future<Item = crate::models::InlineResponse20017, Error = Error<serde_json::Value>>>
+    {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
@@ -438,7 +452,7 @@ where
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::InlineResponse20017, _> =
+                    let parsed: Result<crate::models::InlineResponse20017, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),

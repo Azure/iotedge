@@ -11,7 +11,7 @@
 #include "test_utils.h"
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/hmacsha256.h"
-#include "azure_c_shared_utility/base64.h"
+#include "azure_c_shared_utility/azure_base64.h"
 #include "azure_c_shared_utility/agenttime.h"
 #include "azure_c_shared_utility/strings.h"
 #include "azure_c_shared_utility/buffer_.h"
@@ -32,6 +32,7 @@
 #define EDGE_STORE_NAME "blah"
 #define TEST_DATA_TO_BE_SIGNED "The quick brown fox jumped over the lazy dog"
 #define TEST_KEY_BASE64 "D7PuplFy7vIr0349blOugqCxyfMscyVZDoV9Ii0EFnA="
+#define HMAC_SHA256_SIZE 256
 
 static char* TEST_IOTEDGE_HOMEDIR = NULL;
 static char* TEST_IOTEDGE_HOMEDIR_GUID = NULL;
@@ -92,7 +93,7 @@ static CERT_PROPS_HANDLE test_helper_create_certificate_props
 
 static BUFFER_HANDLE test_helper_base64_converter(const char* input)
 {
-    BUFFER_HANDLE result = Base64_Decoder(input);
+    BUFFER_HANDLE result = Azure_Base64_Decode(input);
     ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
     size_t out_len = BUFFER_length(result);
     ASSERT_ARE_NOT_EQUAL(size_t, 0, out_len, "Line:" TOSTRING(__LINE__));
@@ -163,6 +164,35 @@ static void test_helper_sas_key_sign
     ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 }
 
+static void test_helper_cert_key_sign
+(
+    HSM_CLIENT_STORE_HANDLE store_handle,
+    const char *key_name,
+    const unsigned char *data,
+    size_t data_len
+)
+{
+    int status;
+    unsigned char *digest;
+    size_t digest_size;
+    const HSM_CLIENT_STORE_INTERFACE *store_if = hsm_client_store_interface();
+    const HSM_CLIENT_KEY_INTERFACE *key_if = hsm_client_key_interface();
+    KEY_HANDLE key_handle = store_if->hsm_client_store_open_key(store_handle,
+                                                                HSM_KEY_ASYMMETRIC_PRIVATE_KEY,
+                                                                key_name);
+    ASSERT_IS_NOT_NULL(key_handle, "Line:" TOSTRING(__LINE__));
+    status = key_if->hsm_client_key_sign(key_handle,
+                                         data,
+                                         data_len,
+                                         &digest,
+                                         &digest_size);
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(digest, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((digest_size >= HMAC_SHA256_SIZE), "Line:" TOSTRING(__LINE__));
+    free(digest);
+    status = store_if->hsm_client_store_close_key(store_handle, key_handle);
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+}
 
 //#############################################################################
 // Test cases
@@ -307,8 +337,8 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
                                  test_output_digest);
 
         // assert
-        STRING_HANDLE expected_buffer = Base64_Encoder(test_expected_digest);
-        STRING_HANDLE result_buffer = Base64_Encoder(test_output_digest);
+        STRING_HANDLE expected_buffer = Azure_Base64_Encode(test_expected_digest);
+        STRING_HANDLE result_buffer = Azure_Base64_Encode(test_output_digest);
         printf("Expected: %s\r\n", STRING_c_str(expected_buffer));
         printf("Got Result: %s\r\n", STRING_c_str(result_buffer));
         ASSERT_ARE_EQUAL(int, 0, STRING_compare(expected_buffer, result_buffer));
@@ -353,7 +383,7 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
         ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
     }
 
-    TEST_FUNCTION(insert_generated_cert_smoke)
+    TEST_FUNCTION(insert_generated_cert_and_perform_key_sign_smoke)
     {
         // arrange
         int result;
@@ -384,6 +414,10 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
         cert_info = store_if->hsm_client_store_get_pki_cert(store_handle, "my_test_alias");
         ASSERT_IS_NOT_NULL(cert_info, "Line:" TOSTRING(__LINE__));
         // todo validate cert props
+
+        // perform a key sign test using the created key
+        unsigned char tbs[] = {'t','e','s','t'};
+        test_helper_cert_key_sign(store_handle, "my_test_alias", tbs, sizeof(tbs));
 
         result = store_if->hsm_client_store_remove_pki_cert(store_handle, "my_test_alias");
         ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));

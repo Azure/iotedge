@@ -199,14 +199,15 @@ function run_quickstart_as_gateway()
     local trusted_ca=$(readlink -f ${CERT_SCRIPT_DIR}/certs/azure-iot-test-only.root.ca.cert.pem)
 
     ${executable} \
-        -d ${edge_device_id} \
-        -a ${packages} \
-        -c ${connection_string} \
-        -n ${edge_hostname} \
-        -r ${registry} \
-        -u ${registry_uname} \
-        -p ${registry_pw} \
-        -t ${image_tag} \
+        -d "${edge_device_id}" \
+        -a "${packages}" \
+        -c "${connection_string}" \
+        -e "${eventhub_connection_string}" \
+        -n "${edge_hostname}" \
+        -r "${registry}" \
+        -u "${registry_uname}" \
+        -p "${registry_pw}" \
+        -t "${image_tag}" \
         --leave-running=Core \
         --optimize_for_performance=true \
         --no-verify \
@@ -216,9 +217,32 @@ function run_quickstart_as_gateway()
 }
 
 ###############################################################################
-# Run the leaf device SAS auth test
+# Run the leaf device SAS auth test when not setup in the edge device's scope
 ###############################################################################
-function run_leaf_sas_auth_test()
+function run_leaf_sas_auth_test_not_in_scope()
+{
+    local executable=${1}
+    local leaf_device_id=${2}
+    local connection_string=${3}
+    local eventhub_connection_string=${4}
+    local edge_hostname=${5}
+    local protocol=${6}
+
+    local trusted_ca=$(readlink -f ${CERT_SCRIPT_DIR}/certs/azure-iot-test-only.root.ca.cert.pem)
+
+    ${executable} \
+        -d "${leaf_device_id}" \
+        -c "${connection_string}" \
+        -e "${eventhub_connection_string}" \
+        -ed "${edge_hostname}" \
+        -proto "${protocol}" \
+        -ct "${trusted_ca}"
+}
+
+###############################################################################
+# Run the leaf device SAS auth test when setup in the edge device's scope
+###############################################################################
+function run_leaf_sas_auth_test_in_scope()
 {
     local executable=${1}
     local leaf_device_id=${2}
@@ -231,13 +255,13 @@ function run_leaf_sas_auth_test()
     local trusted_ca=$(readlink -f ${CERT_SCRIPT_DIR}/certs/azure-iot-test-only.root.ca.cert.pem)
 
     ${executable} \
-        -d ${leaf_device_id} \
-        -c ${connection_string} \
-        -e ${eventhub_connection_string} \
-        -ed ${edge_hostname} \
-        -ed-id ${edge_device_id} \
-        -proto ${protocol} \
-        -ct ${trusted_ca}
+        -d "${leaf_device_id}" \
+        -c "${connection_string}" \
+        -e "${eventhub_connection_string}" \
+        -ed "${edge_hostname}" \
+        -ed-id "${edge_device_id}" \
+        -proto "${protocol}" \
+        -ct "${trusted_ca}"
 }
 
 ###############################################################################
@@ -296,17 +320,17 @@ function run_leaf_x509_thumbprint_test()
     local trusted_ca=$(readlink -f ${CERT_SCRIPT_DIR}/certs/azure-iot-test-only.root.ca.cert.pem)
 
     ${executable} \
-        -d ${leaf_device_id} \
-        -c ${connection_string} \
-        -e ${eventhub_connection_string} \
-        -ed ${edge_hostname} \
-        -ed-id ${edge_device_id} \
-        -proto ${protocol} \
-        -ct ${trusted_ca} \
-        -ctpc ${pri_device_cert} \
-        -ctpk ${pri_device_key} \
-        -ctsc ${sec_device_cert} \
-        -ctsk ${sec_device_key}
+        -d "${leaf_device_id}" \
+        -c "${connection_string}" \
+        -e "${eventhub_connection_string}" \
+        -ed "${edge_hostname}" \
+        -ed-id "${edge_device_id}" \
+        -proto "${protocol}" \
+        -ct "${trusted_ca}" \
+        -ctpc "${pri_device_cert}" \
+        -ctpk "${pri_device_key}" \
+        -ctsc "${sec_device_cert}" \
+        -ctsk "${sec_device_key}"
 }
 
 ###############################################################################
@@ -348,14 +372,24 @@ else
             ${EDGE_DEVICE_ID} \
             ${PROTOCOL}
     elif [ ${RUN_LEAF_SAS} -eq 1 ]; then
-        run_leaf_sas_auth_test \
-            ${TEST_EXECUTABLE} \
-            ${LEAF_DEVICE_ID} \
-            ${CONNECTION_STRING} \
-            ${EVENTHUB_CONNECTION_STRING} \
-            ${HOSTNAME} \
-            ${EDGE_DEVICE_ID} \
-            ${PROTOCOL}
+        if [[ ! -z ${EDGE_DEVICE_ID} ]]; then
+            run_leaf_sas_auth_test_in_scope \
+                ${TEST_EXECUTABLE} \
+                ${LEAF_DEVICE_ID} \
+                ${CONNECTION_STRING} \
+                ${EVENTHUB_CONNECTION_STRING} \
+                ${HOSTNAME} \
+                ${EDGE_DEVICE_ID} \
+                ${PROTOCOL}
+        else
+            run_leaf_sas_auth_test_not_in_scope \
+                ${TEST_EXECUTABLE} \
+                ${LEAF_DEVICE_ID} \
+                ${CONNECTION_STRING} \
+                ${EVENTHUB_CONNECTION_STRING} \
+                ${HOSTNAME} \
+                ${PROTOCOL}
+        fi
     else
         echo "Invalid command line arguments supplied"
         print_help_and_exit

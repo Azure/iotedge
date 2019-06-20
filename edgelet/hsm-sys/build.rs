@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-extern crate cmake;
 
 use std::env;
 use std::path::Path;
@@ -13,6 +12,7 @@ const USE_EMULATOR: &str = "use_emulator";
 trait SetPlatformDefines {
     fn set_platform_defines(&mut self) -> &mut Self;
     fn set_build_shared(&mut self) -> &mut Self;
+    fn set_test_defines(&mut self) -> &mut Self;
 }
 
 impl SetPlatformDefines for Config {
@@ -59,6 +59,14 @@ impl SetPlatformDefines for Config {
         }
     }
 
+    fn set_test_defines(&mut self) -> &mut Self {
+        if std::env::var("CARGO_FEATURE_IN_MEMORY").is_ok() {
+            self.define("USE_TEST_TPM_INTERFACE_IN_MEM", "ON")
+        } else {
+            self.define("USE_TEST_TPM_INTERFACE_IN_MEM", "OFF")
+        }
+    }
+
     // The "debug_assertions" configuration flag seems to be the way to detect
     // if this is a "dev" build or any other kind of build.
     #[cfg(debug_assertions)]
@@ -72,7 +80,7 @@ impl SetPlatformDefines for Config {
     }
 }
 
-fn main() {
+fn build_libiothsm() {
     // Clone Azure C -shared library
     let c_shared_repo = "azure-iot-hsm-c/deps/c-shared";
     let utpm_repo = "azure-iot-hsm-c/deps/utpm";
@@ -138,6 +146,7 @@ fn main() {
         .define("skip_samples", "ON")
         .set_platform_defines()
         .set_build_shared()
+        .set_test_defines()
         .profile("Release")
         .build();
 
@@ -147,6 +156,7 @@ fn main() {
     // defined in the CMakefile.txt)
 
     println!("cargo:rerun-if-env-changed=RUN_VALGRIND");
+    println!("cargo:rerun-if-env-changed=CARGO_FEATURE_IN_MEMORY");
     // For libraries which will just install in target directory
     println!("cargo:rustc-link-search=native={}", iothsm.display());
     // For libraries (ie. C Shared) which will install in $target/lib
@@ -171,6 +181,24 @@ fn main() {
         println!("cargo:rustc-link-lib=ssleay32");
     }
 
+    #[cfg(target_os = "macos")]
+    {
+        println!(
+            "cargo:rustc-link-search=native={}/lib",
+            env::var("OPENSSL_ROOT_DIR").unwrap()
+        );
+    }
+
     #[cfg(unix)]
     println!("cargo:rustc-link-lib=crypto");
+}
+
+fn main() {
+    if env::var_os("LIBIOTHSM_NOBUILD").is_some() {
+        // libiothsm-std is expected to be built and installed out of band
+        println!("cargo:rustc-link-lib=iothsm");
+    } else {
+        // build libiothsm-std as part of hsm-sys build
+        build_libiothsm();
+    }
 }

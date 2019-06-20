@@ -33,9 +33,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         [Unit]
         public void TestConstructor()
         {
-            Assert.Throws(typeof(ArgumentNullException), () => new AsyncEndpointExecutor(null, null, null, null));
-            Assert.Throws(typeof(ArgumentNullException), () => new AsyncEndpointExecutor(null, new NullCheckpointer(), null, null));
-            Assert.Throws(typeof(ArgumentNullException), () => new AsyncEndpointExecutor(new TestEndpoint("id"), null, null, null));
+            Assert.Throws<ArgumentNullException>(() => new AsyncEndpointExecutor(null, null, null, null));
+            Assert.Throws<ArgumentNullException>(() => new AsyncEndpointExecutor(null, new NullCheckpointer(), null, null));
+            Assert.Throws<ArgumentNullException>(() => new AsyncEndpointExecutor(new TestEndpoint("id"), null, null, null));
         }
 
         [Fact]
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
                 await executor.Invoke(msg);
             }
 
-            await Task.Delay(30);
+            await Task.Delay(TimeSpan.FromSeconds(2));
             await executor.CloseAsync();
             Assert.Equal(3, endpoint.N);
             Assert.Equal(expected, endpoint.Processed);
@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             using (var executor = new AsyncEndpointExecutor(endpoint, checkpointer, MaxConfig, new AsyncEndpointExecutorOptions(1)))
             {
                 await executor.Invoke(Message1);
-                await Task.Delay(20);
+                await Task.Delay(TimeSpan.FromSeconds(2));
                 await executor.CloseAsync();
 
                 Assert.Equal(1, endpoint.N);

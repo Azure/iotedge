@@ -4,6 +4,7 @@ use std::fmt;
 
 use failure::Fail;
 use futures::Future;
+use serde_derive::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum AuthType {
@@ -13,7 +14,7 @@ pub enum AuthType {
 }
 
 impl fmt::Display for AuthType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match *self {
             AuthType::None => "None",
             AuthType::Sas => "Sas",
@@ -95,7 +96,7 @@ pub enum IdentityOperation {
 }
 
 impl fmt::Display for IdentityOperation {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             IdentityOperation::CreateIdentity(name) => {
                 write!(f, "Could not create identity {}", name)

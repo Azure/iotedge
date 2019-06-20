@@ -13,8 +13,8 @@ use failure::ResultExt;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
-use certificate_properties::CertificateProperties;
-use error::{Error, ErrorKind};
+use crate::certificate_properties::{CertificateIssuer, CertificateProperties};
+use crate::error::{Error, ErrorKind};
 
 /// This is the issuer alias used when `CertificateIssuer::DefaultCa` is provided by the caller
 pub const IOTEDGED_CA_ALIAS: &str = "iotedged-workload-ca";
@@ -26,7 +26,7 @@ pub enum KeyIdentity {
 }
 
 impl fmt::Display for KeyIdentity {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             KeyIdentity::Device => write!(f, "Device"),
             KeyIdentity::Module(m) => write!(f, "Module({})", m),
@@ -113,6 +113,18 @@ where
     }
 }
 
+pub trait GetIssuerAlias {
+    fn get_issuer_alias(&self, issuer: CertificateIssuer) -> Result<String, Error>;
+}
+
+pub trait GetDeviceIdentityCertificate {
+    type Certificate: Certificate;
+    type Buffer: AsRef<[u8]>;
+
+    fn get(&self) -> Result<Self::Certificate, Error>;
+    fn sign_with_private_key(&self, data: &[u8]) -> Result<Self::Buffer, Error>;
+}
+
 pub trait CreateCertificate {
     type Certificate: Certificate;
 
@@ -122,6 +134,8 @@ pub trait CreateCertificate {
     ) -> Result<Self::Certificate, Error>;
 
     fn destroy_certificate(&self, alias: String) -> Result<(), Error>;
+
+    fn get_certificate(&self, alias: String) -> Result<Self::Certificate, Error>;
 }
 
 pub trait Certificate {
@@ -131,6 +145,7 @@ pub trait Certificate {
     fn pem(&self) -> Result<Self::Buffer, Error>;
     fn get_private_key(&self) -> Result<Option<PrivateKey<Self::KeyBuffer>>, Error>;
     fn get_valid_to(&self) -> Result<DateTime<Utc>, Error>;
+    fn get_common_name(&self) -> Result<String, Error>;
 }
 
 pub trait GetTrustBundle {

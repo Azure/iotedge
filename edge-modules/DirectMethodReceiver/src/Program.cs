@@ -10,7 +10,7 @@ namespace DirectMethodReceiver
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using ModuleLib;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
 
     class Program
     {
@@ -35,10 +35,10 @@ namespace DirectMethodReceiver
                 ModuleUtil.DefaultTransientRetryStrategy,
                 Logger);
 
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
             await moduleClient.OpenAsync();
-            await moduleClient.SetMethodHandlerAsync("HelloWorldMethod", HelloWorldMethodAsync, null, cts.Token);
+            await moduleClient.SetMethodHandlerAsync("HelloWorldMethod", HelloWorldMethodAsync, null);
             await cts.Token.WhenCanceled();
 
             completed.Set();

@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
-            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
-            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 0,
                 DateTime.MinValue,
                 ModuleStatus.Running);
-            IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { desiredModule });
             ModuleSet currentSet = ModuleSet.Create(currentModule);
             ModuleSet desiredSet = ModuleSet.Create(desiredModule);
@@ -167,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 r =>
                 {
                     Assert.Equal(removeExecutionList, r.ExecutionList);
-                    Assert.Equal(1, r.WrappedCommmandList.Count);
+                    Assert.Single(r.WrappedCommmandList);
                 });
         }
 
@@ -193,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             factory.Recorder.ForEach(
                 r =>
                 {
-                    Assert.Equal(0, expectedExecutionList.Except(r.ExecutionList).Count());
+                    Assert.Empty(expectedExecutionList.Except(r.ExecutionList));
                     Assert.Equal(removedModules.Count(), r.WrappedCommmandList.Count);
                 });
         }
@@ -231,8 +231,85 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             factory.Recorder.ForEach(
                 r =>
                 {
-                    Assert.Equal(0, expectedExecutionList.Except(r.ExecutionList).Count());
+                    Assert.Empty(expectedExecutionList.Except(r.ExecutionList));
                     Assert.Equal(data.Length * 2, r.WrappedCommmandList.Count);
+                });
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestUpdateDesiredStateDeployKitchenSink()
+        {
+            // This test makes sure that if a module is being re-deployed due to a
+            // change in the desired status then only the runtime status of the module is changed.
+
+            // Arrange
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
+            (IRuntimeModule RunningModule, IModule UpdatedModule)[] data = GetUpdateDeployStatusChangeTestData();
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(data.Select(d => d.UpdatedModule).ToList());
+            // build "current" and "desired" module sets
+            ModuleSet currentModuleSet = ModuleSet.Create(data.Select(d => d.RunningModule).ToArray<IModule>());
+            ModuleSet desiredModuleSet = ModuleSet.Create(data.Select(d => d.UpdatedModule).ToArray());
+
+            // build expected execution list
+            IList<TestRecordType> expectedExecutionList = data
+                .Where(d => d.UpdatedModule.DesiredStatus != d.RunningModule.RuntimeStatus)
+                .Select(
+                    d => d.UpdatedModule.DesiredStatus == ModuleStatus.Running
+                        ? new TestRecordType(TestCommandType.TestStart, d.RunningModule)
+                        : new TestRecordType(TestCommandType.TestStop, d.RunningModule))
+                .ToList();
+
+            // Act
+            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, RuntimeInfo, moduleIdentities);
+            var planRunner = new OrderedPlanRunner();
+            await planRunner.ExecuteAsync(1, plan, CancellationToken.None);
+
+            // Assert
+            Assert.True(factory.Recorder.HasValue);
+            factory.Recorder.ForEach(
+                r =>
+                {
+                    Assert.Empty(expectedExecutionList.Except(r.ExecutionList));
+                    Assert.Equal(expectedExecutionList.Count, r.ExecutionList.Count);
+                    Assert.Equal(expectedExecutionList.Count, r.WrappedCommmandList.Count);
+                });
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestStartStoppedModule()
+        {
+            // This test makes sure that a module should be running but is in
+            // a stopped state is started
+
+            // Arrange
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
+
+            (IRuntimeModule RunningModule, IModule UpdatedModule)[] data = GetStoppedModuleTestData();
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(data.Select(d => d.UpdatedModule).ToList());
+            // build "current" and "desired" module sets
+            ModuleSet currentModuleSet = ModuleSet.Create(data.Select(d => d.RunningModule).ToArray<IModule>());
+            ModuleSet desiredModuleSet = ModuleSet.Create(data.Select(d => d.UpdatedModule).ToArray());
+
+            // build expected execution list
+            IList<TestRecordType> expectedExecutionList = data
+                .Where(d => d.UpdatedModule.RestartPolicy > RestartPolicy.Never || d.RunningModule.LastStartTimeUtc == DateTime.MinValue)
+                .Select(d => new TestRecordType(TestCommandType.TestStart, d.RunningModule))
+                .ToList();
+
+            // Act
+            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, RuntimeInfo, moduleIdentities);
+            var planRunner = new OrderedPlanRunner();
+            await planRunner.ExecuteAsync(1, plan, CancellationToken.None);
+
+            // Assert
+            Assert.True(factory.Recorder.HasValue);
+            factory.Recorder.ForEach(
+                r =>
+                {
+                    Assert.Empty(r.ExecutionList.Except(expectedExecutionList));
+                    Assert.Equal(r.ExecutionList.Count, expectedExecutionList.Count);
                 });
         }
 
@@ -297,7 +374,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             await planRunner.ExecuteAsync(1, plan, CancellationToken.None);
 
             // Assert
-            factory.Recorder.ForEach(r => Assert.Equal(0, expectedExecutionList.Except(r.ExecutionList).Count()));
+            factory.Recorder.ForEach(r => Assert.Empty(expectedExecutionList.Except(r.ExecutionList)));
         }
 
         [Fact]
@@ -354,7 +431,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             await planRunner.ExecuteAsync(1, plan, CancellationToken.None);
 
             // Assert
-            factory.Recorder.ForEach(r => Assert.Equal(0, expectedExecutionList.Except(r.ExecutionList).Count()));
+            factory.Recorder.ForEach(r => Assert.Empty(expectedExecutionList.Except(r.ExecutionList)));
         }
 
         [Fact]
@@ -395,8 +472,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             // Arrange
             (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
-            IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
-            IModule edgeAgentModule = new TestModule(Constants.EdgeAgentModuleName, "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            IModule edgeAgentModule = new TestModule(Constants.EdgeAgentModuleName, "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var modules = new List<IModule>
             {
                 module1,
@@ -737,9 +814,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -756,9 +834,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule2", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule2", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -775,9 +854,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule3", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule3", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -794,9 +874,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule4", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule4", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -813,9 +894,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule5", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule5", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
 
             // OnUnhealthy
@@ -834,9 +916,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule6", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule6", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -853,9 +936,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule7", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule7", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -872,9 +956,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule8", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule8", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -891,9 +976,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule9", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule9", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -910,9 +996,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule10", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule10", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
 
             // OnFailure
@@ -931,9 +1018,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule11", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule11", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -950,9 +1038,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule12", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule12", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -969,9 +1058,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule13", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule13", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -988,9 +1078,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule14", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule14", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1007,9 +1098,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule15", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule15", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
 
             // Never
@@ -1028,9 +1120,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule16", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule16", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1047,9 +1140,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule17", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule17", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1066,9 +1160,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule18", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule18", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1085,9 +1180,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule19", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule19", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1104,9 +1200,759 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule20", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule20", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
+            ),
+        };
+
+        static (IRuntimeModule RunningModule, IModule UpdatedModule)[] GetStoppedModuleTestData() => new (IRuntimeModule RunningModule, IModule UpdatedModule)[]
+        {
+            // Always
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule1",
+                    "version1",
+                    RestartPolicy.Always,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule1",
+                    "version1",
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    RestartPolicy.Always,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+
+            // OnUnhealthy
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule2",
+                    "version1",
+                    RestartPolicy.OnUnhealthy,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule2",
+                    "version1",
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    RestartPolicy.OnUnhealthy,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+
+            // OnFailure
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule3",
+                    "version1",
+                    RestartPolicy.OnFailure,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule3",
+                    "version1",
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    RestartPolicy.OnFailure,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+
+            // Never - Never started
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule4",
+                    "version1",
+                    RestartPolicy.Never,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule4",
+                    "version1",
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    RestartPolicy.Never,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+
+            // Never - started before
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule5",
+                    "version1",
+                    RestartPolicy.Never,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.UtcNow.Subtract(TimeSpan.FromDays(2)),
+                    DateTime.UtcNow.Subtract(TimeSpan.FromDays(1)),
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule5",
+                    "version1",
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    RestartPolicy.Never,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            )
+        };
+
+        static (IRuntimeModule RunningModule, IModule UpdatedModule)[] GetUpdateDeployStatusChangeTestData() => new (IRuntimeModule RunningModule, IModule UpdatedModule)[]
+        {
+            // Always
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule1",
+                    "version1",
+                    RestartPolicy.Always,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Running,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule1",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.Always,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule2",
+                    "version1",
+                    RestartPolicy.Always,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Backoff,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule2",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.Always,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule3",
+                    "version1",
+                    RestartPolicy.Always,
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule3",
+                    "version1",
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    RestartPolicy.Always,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule4",
+                    "version1",
+                    RestartPolicy.Always,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule4",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.Always,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule5",
+                    "version1",
+                    RestartPolicy.Always,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Failed,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule5",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.Always,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+
+            // OnUnhealthy
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule6",
+                    "version1",
+                    RestartPolicy.OnUnhealthy,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Running,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule6",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.OnUnhealthy,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule7",
+                    "version1",
+                    RestartPolicy.OnUnhealthy,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Backoff,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule7",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.OnUnhealthy,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule8",
+                    "version1",
+                    RestartPolicy.OnUnhealthy,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Unhealthy,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule8",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.OnUnhealthy,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule9",
+                    "version1",
+                    RestartPolicy.OnUnhealthy,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule9",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.OnUnhealthy,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule10",
+                    "version1",
+                    RestartPolicy.OnUnhealthy,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Failed,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule10",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.OnUnhealthy,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+
+            // OnFailure
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule11",
+                    "version1",
+                    RestartPolicy.OnFailure,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Running,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule11",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.OnFailure,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule12",
+                    "version1",
+                    RestartPolicy.OnFailure,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Backoff,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule12",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.OnFailure,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule13",
+                    "version1",
+                    RestartPolicy.OnFailure,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Unhealthy,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule13",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.OnFailure,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule14",
+                    "version1",
+                    RestartPolicy.OnFailure,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule14",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.OnFailure,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule15",
+                    "version1",
+                    RestartPolicy.OnFailure,
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule15",
+                    "version1",
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    RestartPolicy.OnFailure,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+
+            // Never
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule16",
+                    "version1",
+                    RestartPolicy.Never,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Running,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule16",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.Never,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule17",
+                    "version1",
+                    RestartPolicy.Never,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Backoff,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule17",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.Never,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule18",
+                    "version1",
+                    RestartPolicy.Never,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Unhealthy,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule18",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.Never,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule19",
+                    "version1",
+                    RestartPolicy.Never,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule19",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.Never,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateDeployModule20",
+                    "version1",
+                    RestartPolicy.Never,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Failed,
+                    ImagePullPolicy.OnCreate,
+                    null,
+                    EnvVars),
+                new TestModule(
+                    "updateDeployModule20",
+                    "version1",
+                    "test",
+                    ModuleStatus.Stopped,
+                    Config1,
+                    RestartPolicy.Never,
+                    ImagePullPolicy.OnCreate,
+                    DefaultConfigurationInfo,
+                    EnvVars)
             ),
         };
 

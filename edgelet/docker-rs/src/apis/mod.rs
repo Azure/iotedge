@@ -4,9 +4,9 @@ use serde_json;
 
 #[derive(Debug)]
 pub enum Error<T> {
+    Api(ApiError<T>),
     Hyper(hyper::Error),
     Serde(serde_json::Error),
-    Api(ApiError<T>),
 }
 
 #[derive(Debug)]
@@ -33,6 +33,15 @@ where
             }),
             Err(e) => Error::from(e),
         }
+    }
+}
+
+impl<'de> From<(hyper::StatusCode, serde_json::Value)> for Error<serde_json::Value> {
+    fn from(e: (hyper::StatusCode, serde_json::Value)) -> Self {
+        Error::Api(ApiError {
+            code: e.0,
+            content: Some(e.1),
+        })
     }
 }
 

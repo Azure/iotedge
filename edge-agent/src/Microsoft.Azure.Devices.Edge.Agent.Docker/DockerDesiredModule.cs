@@ -16,9 +16,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             RestartPolicy restartPolicy,
             string type,
             DockerConfig settings,
+            ImagePullPolicy imagePullPolicy,
             ConfigurationInfo configuration,
             IDictionary<string, EnvVal> env)
-            : base(string.Empty, version, desiredStatus, restartPolicy, settings, configuration, env)
+            : base(string.Empty, version, desiredStatus, restartPolicy, settings, imagePullPolicy, configuration, env)
         {
             Preconditions.CheckArgument(type?.Equals("docker") ?? false);
             this.DesiredStatus = Preconditions.CheckIsDefined(desiredStatus);

@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use clap::crate_name;
+
 use edgelet_core;
 use futures::future::{self, FutureResult};
 
-use error::Error;
-use Command;
+use crate::error::Error;
+use crate::Command;
 
 #[derive(Default)]
 pub struct Version;
@@ -20,7 +22,11 @@ impl Command for Version {
 
     #[allow(clippy::print_literal)]
     fn execute(&mut self) -> Self::Future {
-        println!("{} {}", crate_name!(), edgelet_core::version());
+        println!(
+            "{} {}",
+            crate_name!(),
+            edgelet_core::version_with_source_version(),
+        );
         future::ok(())
     }
 }

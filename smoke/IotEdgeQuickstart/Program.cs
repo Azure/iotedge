@@ -55,7 +55,7 @@ Defaults:
   --deployment               deployment json file
   --runtime-log-level        debug
   --clean_up_existing_device false
-  --proxy                    No proxy is used
+  --proxy                    no proxy is used
 ")]
     [HelpOption]
     class Program
@@ -101,6 +101,9 @@ Defaults:
 
         [Option("--no-verify", CommandOptionType.NoValue, Description = "Don't verify the behavior of the deployment (e.g.: temp sensor)")]
         public bool NoVerify { get; } = false;
+
+        [Option("--bypass-edge-installation", CommandOptionType.NoValue, Description = "Don't install bootstrapper")]
+        public bool BypassEdgeInstallation { get; } = false;
 
         [Option("--optimize_for_performance <true/false>", CommandOptionType.SingleValue, Description = "Add OptimizeForPerformance Flag on edgeHub. Only when no deployment is passed.")]
         public bool OptimizeForPerformance { get; } = true;
@@ -159,18 +162,24 @@ Defaults:
                     ? Option.Some(new RegistryCredentials(address, user, password))
                     : Option.None<RegistryCredentials>();
 
+                (bool useProxy, string proxyUrl) = this.Proxy;
+                Option<string> proxy = useProxy
+                    ? Option.Some(proxyUrl)
+                    : Option.Maybe(Environment.GetEnvironmentVariable("https_proxy"));
+
+                (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) = this.UpstreamProtocol;
+                Option<UpstreamProtocolType> upstreamProtocolOption = overrideUpstreamProtocol
+                    ? Option.Some(upstreamProtocol)
+                    : Option.None<UpstreamProtocolType>();
+
                 IBootstrapper bootstrapper;
                 switch (this.BootstrapperType)
                 {
                     case BootstrapperType.Iotedged:
-                        (bool useProxy, string proxyUrl) = this.Proxy;
-                        Option<string> proxy = useProxy
-                            ? Option.Some(proxyUrl)
-                            : Option.Maybe(Environment.GetEnvironmentVariable("https_proxy"));
-
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
-                            bootstrapper = new IotedgedWindows(this.BootstrapperArchivePath, credentials, proxy, this.OfflineInstallationPath);
+                            string offlineInstallationPath = string.IsNullOrEmpty(this.OfflineInstallationPath) ? this.BootstrapperArchivePath : this.OfflineInstallationPath;
+                            bootstrapper = new IotedgedWindows(offlineInstallationPath, credentials, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation);
                         }
                         else
                         {
@@ -178,11 +187,6 @@ Defaults:
                             Option<HttpUris> uris = useHttp
                                 ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
                                 : Option.None<HttpUris>();
-
-                            (bool overrideUpstreamProtocol, UpstreamProtocolType upstreamProtocol) = this.UpstreamProtocol;
-                            Option<UpstreamProtocolType> upstreamProtocolOption = overrideUpstreamProtocol
-                                ? Option.Some(upstreamProtocol)
-                                : Option.None<UpstreamProtocolType>();
 
                             bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, proxy, upstreamProtocolOption);
                         }
@@ -213,12 +217,14 @@ Defaults:
                     connectionString,
                     endpoint,
                     this.UpstreamProtocol.Item2,
+                    proxy,
                     tag,
                     this.DeviceId,
                     this.EdgeHostname,
                     this.LeaveRunning,
                     this.NoDeployment,
                     this.NoVerify,
+                    this.BypassEdgeInstallation,
                     this.VerifyDataFromModule,
                     deployment,
                     twinTest,

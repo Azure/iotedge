@@ -19,6 +19,30 @@ pub enum ErrorKind {
     #[fail(display = "Identity error")]
     Certificate,
 
+    #[fail(display = "An error occurred obtaining the certificate contents")]
+    CertificateContent,
+
+    #[fail(display = "An error occurred creating the certificate")]
+    CertificateCreate,
+
+    #[fail(display = "An error occurred destroying the certificate")]
+    CertificateDestroy,
+
+    #[fail(display = "An error occurred obtaining the certificate's details")]
+    CertificateDetail,
+
+    #[fail(display = "An error occurred getting the certificate")]
+    CertificateGet,
+
+    #[fail(display = "An error occurred obtaining the certificate's key")]
+    CertificateKey,
+
+    #[fail(display = "An error occurred when obtaining the device identity certificate.")]
+    DeviceIdentityCertificate,
+
+    #[fail(display = "An error occurred when signing using the device identity private key.")]
+    DeviceIdentitySign,
+
     #[fail(
         display = "Edge runtime module has not been created in IoT Hub. Please make sure this device is an IoT Edge capable device."
     )]
@@ -30,8 +54,11 @@ pub enum ErrorKind {
     #[fail(display = "An identity manager error occurred.")]
     IdentityManager,
 
-    #[fail(display = "A error occurred in the key store.")]
-    KeyStore,
+    #[fail(display = "Invalid image pull policy configuration {:?}", _0)]
+    InvalidImagePullPolicy(String),
+
+    #[fail(display = "Invalid or unsupported certificate issuer.")]
+    InvalidIssuer,
 
     #[fail(display = "Invalid log tail {:?}", _0)]
     InvalidLogTail(String),
@@ -42,8 +69,17 @@ pub enum ErrorKind {
     #[fail(display = "Invalid module type {:?}", _0)]
     InvalidModuleType(String),
 
+    #[fail(display = "Invalid URL {:?}", _0)]
+    InvalidUrl(String),
+
+    #[fail(display = "An error occurred in the key store.")]
+    KeyStore,
+
     #[fail(display = "Item not found.")]
     KeyStoreItemNotFound,
+
+    #[fail(display = "An error occured when generating a random number.")]
+    MakeRandom,
 
     #[fail(display = "A module runtime error occurred.")]
     ModuleRuntime,
@@ -56,7 +92,7 @@ pub enum ErrorKind {
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -66,7 +102,7 @@ impl Fail for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }

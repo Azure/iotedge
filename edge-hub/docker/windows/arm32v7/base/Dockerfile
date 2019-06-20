@@ -1,7 +1,7 @@
 # Base image for arm32v7 dotnet-runtime container
-FROM mcr.microsoft.com/windows/nanoserver:1809_arm
+FROM mcr.microsoft.com/windows/nanoserver:1809-arm32v7
 
-ENV DOTNET_VERSION 2.1.6
+ENV DOTNET_VERSION 2.1.10
 ENV DOTNET_DOWNLOAD_URL https://dotnetcli.blob.core.windows.net/dotnet/Runtime/$DOTNET_VERSION/dotnet-runtime-${DOTNET_VERSION}-win-arm.zip
  
 RUN curl -SL %DOTNET_DOWNLOAD_URL% --output dotnet.zip \
@@ -12,9 +12,8 @@ RUN curl -SL %DOTNET_DOWNLOAD_URL% --output dotnet.zip \
 USER ContainerAdministrator
 # In order to set system PATH, ContainerAdministrator must be used
 RUN setx /M PATH "%PATH%;C:\Program Files\dotnet"
-# Add an unprivileged user account for running Edge Hub
-RUN net user /add edgehubuser
-USER edgehubuser
+
+USER ContainerUser
  
 # Configure Kestrel web server to bind to port 80 when present
 ENV ASPNETCORE_URLS=http://+:80

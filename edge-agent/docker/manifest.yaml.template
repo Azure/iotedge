@@ -7,6 +7,11 @@ manifests:
       architecture: amd64
       os: linux
   -
+    image: __REGISTRY__/__NAMESPACE__/azureiotedge-agent:__VERSION__-linux-arm64v8
+    platform:
+      architecture: arm64
+      os: linux
+  -
     image: __REGISTRY__/__NAMESPACE__/azureiotedge-agent:__VERSION__-linux-arm32v7
     platform:
       architecture: arm
@@ -15,4 +20,9 @@ manifests:
     image: __REGISTRY__/__NAMESPACE__/azureiotedge-agent:__VERSION__-windows-amd64
     platform:
       architecture: amd64
+      os: windows
+  -
+    image: __REGISTRY__/__NAMESPACE__/azureiotedge-agent:__VERSION__-windows-arm32v7
+    platform:
+      architecture: arm
       os: windows

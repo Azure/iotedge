@@ -35,8 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
     {
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
-        static readonly TestModule TestModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
-        static readonly TestModule UpdateModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+        static readonly TestModule TestModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+        static readonly TestModule UpdateModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
         static readonly TestCommand WrapTargetCommand = new TestCommand(TestCommandType.TestCreate, TestModule);
 
         [Fact]
@@ -175,7 +175,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             TestExecutionExpr testExpr)
         {
             var token = new CancellationToken();
-
             var logFactoryMock = new Mock<ILoggerFactory>();
             var logMock = new Mock<ILogger<LoggingCommandFactory>>();
             var factoryMock = new Mock<ICommandFactory>();
@@ -196,7 +195,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             logMock.Verify(l => l.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), It.IsAny<Func<object, Exception, string>>()), Times.Once);
         }
 
-        static IEnumerable<object[]> CreateTestData()
+        public static IEnumerable<object[]> CreateTestData()
         {
             var moduleIdentity = new Mock<IModuleIdentity>();
             var testModule = new ModuleWithIdentity(TestModule, moduleIdentity.Object);

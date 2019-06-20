@@ -7,10 +7,11 @@ use std::str;
 use failure::{Backtrace, Compat, Context, Fail};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode, Uri};
+use serde_json::json;
 use systemd::Fd;
 use url::Url;
 
-use IntoResponse;
+use crate::IntoResponse;
 
 #[derive(Debug)]
 pub struct Error {
@@ -25,11 +26,38 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred while binding a listener to {}", _0)]
     BindListener(BindListenerType),
 
+    #[fail(display = "Unable to delete a TLS certificate")]
+    CertificateDeletionError,
+
+    #[fail(display = "Unable to create a TLS certificate")]
+    CertificateCreationError,
+
+    #[fail(display = "Unable to convert a TLS certificate into a PKCS#12 certificate")]
+    CertificateConversionError,
+
+    #[fail(display = "Unable to create a certificate expiration timer")]
+    CertificateTimerCreationError,
+
+    #[fail(display = "The certificate timer callback failed")]
+    CertificateTimerRuntimeError,
+
+    #[fail(display = "A valid certificate was not found")]
+    CertificateNotFound,
+
     #[fail(display = "Could not perform HTTP request")]
     Http,
 
     #[fail(display = "HTTP request failed: [{}] {}", _0, _1)]
     HttpWithErrorResponse(StatusCode, String),
+
+    #[fail(display = "An error occurred obtaining the client identity certificate")]
+    IdentityCertificate,
+
+    #[fail(display = "An error occurred obtaining the client identity private key")]
+    IdentityPrivateKey,
+
+    #[fail(display = "Reading identity private key from PEM bytes failed {}", _0)]
+    IdentityPrivateKeyRead(String),
 
     #[fail(display = "Could not initialize")]
     Initialization,
@@ -62,11 +90,26 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred with the proxy {}", _0)]
     Proxy(Uri),
 
+    #[fail(
+        display = "Preparing a PCKS12 client certificate identity failed {}",
+        _0
+    )]
+    PKCS12Identity(String),
+
     #[fail(display = "An error occurred in the service")]
     ServiceError,
 
+    #[fail(display = "An error occurred configuring the TLS stack")]
+    TlsBootstrapError,
+
+    #[fail(display = "An error occurred during creation of the TLS identity from cert")]
+    TlsIdentityCreationError,
+
     #[fail(display = "Token source error")]
     TokenSource,
+
+    #[fail(display = "Could not parse trust bundle")]
+    TrustBundle,
 
     #[fail(
         display = "Could not form well-formed URL by joining {:?} with {:?}",
@@ -76,7 +119,7 @@ pub enum ErrorKind {
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -86,7 +129,7 @@ impl Fail for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }
@@ -125,7 +168,7 @@ impl From<Context<ErrorKind>> for Error {
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response<Body> {
-        let mut fail: &Fail = &self;
+        let mut fail: &dyn Fail = &self;
         let mut message = self.to_string();
         while let Some(cause) = fail.cause() {
             message.push_str(&format!("\n\tcaused by: {}", cause.to_string()));
@@ -165,7 +208,7 @@ pub enum BindListenerType {
 }
 
 impl Display for BindListenerType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             BindListenerType::Address(addr) => write!(f, "address {}", addr),
             BindListenerType::Fd(fd) => write!(f, "fd {}", fd),
@@ -185,7 +228,7 @@ pub enum InvalidUrlReason {
 }
 
 impl Display for InvalidUrlReason {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             InvalidUrlReason::FdNeitherNumberNorName => {
                 write!(f, "URL could not be parsed as fd number nor fd name")

@@ -29,12 +29,10 @@ static void test_hook_gballoc_free(void* ptr)
     free(ptr);
 }
 
-#include <openssl/evp.h>
-#include <openssl/err.h>
 #include "testrunnerswitcher.h"
-#include "umock_c.h"
-#include "umock_c_negative_tests.h"
-#include "umocktypes_charptr.h"
+#include "umock_c/umock_c.h"
+#include "umock_c/umock_c_negative_tests.h"
+#include "umock_c/umocktypes_charptr.h"
 
 //#############################################################################
 // Declare and enable MOCK definitions
@@ -46,7 +44,7 @@ static void test_hook_gballoc_free(void* ptr)
 // store mocks
 MOCKABLE_FUNCTION(, void, mocked_OpenSSL_add_all_algorithms);
 MOCKABLE_FUNCTION(, int, ERR_load_BIO_strings);
-MOCKABLE_FUNCTION(, void, ERR_load_crypto_strings);
+MOCKABLE_FUNCTION(, void, mocked_ERR_load_crypto_strings);
 
 #undef ENABLE_MOCKS
 
@@ -59,7 +57,7 @@ MOCKABLE_FUNCTION(, void, ERR_load_crypto_strings);
 // Test defines and data
 //#############################################################################
 
-DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
+MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
 
@@ -71,7 +69,7 @@ static void test_hook_on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
     char temp_str[256];
     (void)snprintf(temp_str, sizeof(temp_str), "umock_c reported error :%s",
-                   ENUM_TO_STRING(UMOCK_C_ERROR_CODE, error_code));
+                   MU_ENUM_TO_STRING(UMOCK_C_ERROR_CODE, error_code));
     ASSERT_FAIL(temp_str);
 }
 
@@ -82,10 +80,10 @@ static void test_hook_mocked_OpenSSL_add_all_algorithms(void)
 
 static int test_hook_ERR_load_BIO_strings(void)
 {
-
+    return 1;
 }
 
-static void test_hook_ERR_load_crypto_strings(void)
+static void test_hook_mocked_ERR_load_crypto_strings(void)
 {
 
 }
@@ -107,7 +105,7 @@ BEGIN_TEST_SUITE(edge_openssl_common_ut)
 
         REGISTER_GLOBAL_MOCK_HOOK(mocked_OpenSSL_add_all_algorithms, test_hook_mocked_OpenSSL_add_all_algorithms);
         REGISTER_GLOBAL_MOCK_HOOK(ERR_load_BIO_strings, test_hook_ERR_load_BIO_strings);
-        REGISTER_GLOBAL_MOCK_HOOK(ERR_load_crypto_strings, test_hook_ERR_load_crypto_strings);
+        REGISTER_GLOBAL_MOCK_HOOK(mocked_ERR_load_crypto_strings, test_hook_mocked_ERR_load_crypto_strings);
     }
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -142,7 +140,7 @@ BEGIN_TEST_SUITE(edge_openssl_common_ut)
         // arrange
         EXPECTED_CALL(mocked_OpenSSL_add_all_algorithms());
         EXPECTED_CALL(ERR_load_BIO_strings());
-        EXPECTED_CALL(ERR_load_crypto_strings());
+        EXPECTED_CALL(mocked_ERR_load_crypto_strings());
 
         // act 1
         initialize_openssl();

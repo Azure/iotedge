@@ -12,7 +12,7 @@ namespace TemperatureFilter
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using ModuleLib;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Newtonsoft.Json;
 
     class Program
@@ -24,16 +24,6 @@ namespace TemperatureFilter
         static int counter;
 
         public static int Main() => MainAsync().Result;
-
-        /// <summary>
-        /// Handles cleanup operations when app is cancelled or unloads
-        /// </summary>
-        public static Task WhenCancelled(CancellationToken cancellationToken)
-        {
-            var tcs = new TaskCompletionSource<bool>();
-            cancellationToken.Register(s => ((TaskCompletionSource<bool>)s).SetResult(true), tcs);
-            return tcs.Task;
-        }
 
         static async Task<int> MainAsync()
         {
@@ -53,7 +43,7 @@ namespace TemperatureFilter
                 ModuleUtil.DefaultTransientRetryStrategy,
                 Logger);
 
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
             ModuleConfig moduleConfig = await GetConfigurationAsync(moduleClient);
             Logger.LogInformation($"Using TemperatureThreshold value of {moduleConfig.TemperatureThreshold}");

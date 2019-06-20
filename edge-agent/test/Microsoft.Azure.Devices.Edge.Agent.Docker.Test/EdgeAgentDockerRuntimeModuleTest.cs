@@ -20,12 +20,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             DateTime lastStartTimeUtc = DateTime.Parse("2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind);
             DateTime lastExitTimeUtc = DateTime.Parse("2017-11-13T23:49:35.127381Z", null, DateTimeStyles.RoundtripKind);
             var module = new EdgeAgentDockerRuntimeModule(
-                new DockerReportedConfig("booyah", string.Empty, "someSha"),
+                new DockerReportedConfig("booyah:latest", string.Empty, "someSha"),
                 ModuleStatus.Running,
                 0,
                 string.Empty,
                 lastStartTimeUtc,
                 lastExitTimeUtc,
+                ImagePullPolicy.OnCreate,
                 null,
                 new Dictionary<string, EnvVal>());
 
@@ -42,9 +43,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     lastExitTimeUtc = lastExitTimeUtc,
                     statusDescription = string.Empty,
                     type = "docker",
+                    imagePullPolicy = "on-create",
                     settings = new
                     {
-                        image = "booyah",
+                        image = "booyah:latest",
                         imageHash = "someSha",
                         createOptions = "{}"
                     },
@@ -83,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // Assert
             Assert.Equal("docker", edgeAgent.Type);
             Assert.Equal(ModuleStatus.Running, edgeAgent.RuntimeStatus);
-            Assert.Equal("someImage", edgeAgent.Config.Image);
+            Assert.Equal("someImage:latest", edgeAgent.Config.Image);
             // TODO - Change Config for Runtime to DockerReportedConfig.
             // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal(lastStartTimeUtc, edgeAgent.LastStartTimeUtc);
@@ -117,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // Assert
             Assert.Equal("docker", edgeAgent.Type);
             Assert.Equal(ModuleStatus.Running, edgeAgent.RuntimeStatus);
-            Assert.Equal("someImage", edgeAgent.Config.Image);
+            Assert.Equal("someImage:latest", edgeAgent.Config.Image);
             // TODO - Change Config for Runtime to DockerReportedConfig.
             // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal("bing", edgeAgent.ConfigurationInfo.Id);
@@ -136,6 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 string.Empty,
                 lastStartTimeUtc,
                 lastExitTimeUtc,
+                ImagePullPolicy.OnCreate,
                 new ConfigurationInfo("bing"),
                 new Dictionary<string, EnvVal>());
             var updatedModule1 = (EdgeAgentDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Running);
@@ -143,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             Assert.Equal(module, updatedModule1);
             Assert.NotEqual(module, updatedModule2);
-            Assert.Equal(updatedModule2.RuntimeStatus, ModuleStatus.Unknown);
+            Assert.Equal(ModuleStatus.Unknown, updatedModule2.RuntimeStatus);
         }
     }
 }

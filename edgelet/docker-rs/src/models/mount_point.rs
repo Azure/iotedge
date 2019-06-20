@@ -9,7 +9,7 @@
  */
 
 /// MountPoint : A mount point inside a container
-
+use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

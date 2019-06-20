@@ -30,9 +30,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         const int DefaultListenBacklogSize = 200; // connections allowed pending accept
         const int DefaultParentEventLoopCount = 1;
         const int DefaultMaxInboundMessageSize = 256 * 1024;
-        const int DefaultThreadCount = 200;
         const bool AutoRead = false;
 
+        readonly int defaultThreadCount = Environment.ProcessorCount * 2;
         readonly ILogger logger = Logger.Factory.CreateLogger<MqttProtocolHead>();
         readonly ISettingsProvider settingsProvider;
         readonly X509Certificate tlsCertificate;
@@ -42,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly IWebSocketListenerRegistry webSocketListenerRegistry;
         readonly IByteBufferAllocator byteBufferAllocator;
+        readonly IProductInfoStore productInfoStore;
         readonly bool clientCertAuthAllowed;
 
         IChannel serverChannel;
@@ -56,6 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             ISessionStatePersistenceProvider sessionProvider,
             IWebSocketListenerRegistry webSocketListenerRegistry,
             IByteBufferAllocator byteBufferAllocator,
+            IProductInfoStore productInfoStore,
             bool clientCertAuthAllowed)
         {
             this.settingsProvider = Preconditions.CheckNotNull(settingsProvider, nameof(settingsProvider));
@@ -67,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.webSocketListenerRegistry = Preconditions.CheckNotNull(webSocketListenerRegistry, nameof(webSocketListenerRegistry));
             this.byteBufferAllocator = Preconditions.CheckNotNull(byteBufferAllocator);
             this.clientCertAuthAllowed = clientCertAuthAllowed;
+            this.productInfoStore = Preconditions.CheckNotNull(productInfoStore, nameof(productInfoStore));
         }
 
         public string Name => "MQTT";
@@ -119,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         ServerBootstrap SetupServerBootstrap()
         {
             int maxInboundMessageSize = this.settingsProvider.GetIntegerSetting("MaxInboundMessageSize", DefaultMaxInboundMessageSize);
-            int threadCount = this.settingsProvider.GetIntegerSetting("ThreadCount", DefaultThreadCount);
+            int threadCount = this.settingsProvider.GetIntegerSetting("ThreadCount", this.defaultThreadCount);
             int listenBacklogSize = this.settingsProvider.GetIntegerSetting("ListenBacklogSize", DefaultListenBacklogSize);
             int parentEventLoopCount = this.settingsProvider.GetIntegerSetting("EventLoopCount", DefaultParentEventLoopCount);
             var settings = new Settings(this.settingsProvider);
@@ -146,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     new ActionChannelInitializer<ISocketChannel>(
                         channel =>
                         {
-                            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, this.clientCertAuthAllowed);
+                            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, this.productInfoStore, this.clientCertAuthAllowed);
                             // configure the channel pipeline of the new Channel by adding handlers
                             TlsSettings serverSettings = new ServerTlsSettings(
                                 certificate: this.tlsCertificate,
@@ -182,7 +185,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 this.byteBufferAllocator,
                 AutoRead,
                 maxInboundMessageSize,
-                this.clientCertAuthAllowed);
+                this.clientCertAuthAllowed,
+                this.productInfoStore);
 
             this.webSocketListenerRegistry.TryRegister(mqttWebSocketListener);
 

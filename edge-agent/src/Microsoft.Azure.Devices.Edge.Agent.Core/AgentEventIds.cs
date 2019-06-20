@@ -20,6 +20,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const int OrderedRetryPlanRunner = EventIdStart + 1400;
         public const int ModuleManagementHttpClient = EventIdStart + 1500;
         public const int ModuleIdentityLifecycleManager = EventIdStart + 1600;
+        public const int RequestManager = EventIdStart + 1700;
+        public const int AzureBlobLogsUploader = EventIdStart + 1800;
+        public const int StreamRequestListener = EventIdStart + 1900;
+        public const int LogsStreamRequestHandler = EventIdStart + 2000;
+        public const int LogsProvider = EventIdStart + 2100;
+        public const int KubernetesPlanner = EventIdStart + 2200;
+        public const int KubernetesCommand = EventIdStart + 2300;
+        public const int KubernetesOperator = EventIdStart + 2400;
+        public const int LogsUploadRequestHandler = EventIdStart + 2500;
+        public const int ModuleClientProvider = EventIdStart + 2600;
+        public const int LogsRequestHandler = EventIdStart + 2700;
         const int EventIdStart = 100000;
     }
 }

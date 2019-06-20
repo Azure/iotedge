@@ -3,18 +3,27 @@
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
-extern crate edgelet_core;
-extern crate edgelet_hsm;
+use lazy_static::lazy_static;
+use std::sync::Mutex;
 
 use edgelet_core::{
     CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate, IOTEDGED_CA_ALIAS,
 };
-use edgelet_hsm::Crypto;
+use edgelet_hsm::{Crypto, HsmLock};
+mod test_utils;
+use test_utils::TestHSMEnvSetup;
+
+lazy_static! {
+    static ref LOCK: Mutex<()> = Mutex::new(());
+}
 
 #[test]
 fn crypto_create_cert_input_fail() {
     // arrange
-    let crypto = Crypto::new().unwrap();
+    let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
+
+    let hsm_lock = HsmLock::new();
+    let crypto = Crypto::new(hsm_lock).unwrap();
 
     let edgelet_ca_props = CertificateProperties::new(
         3600,

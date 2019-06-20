@@ -19,6 +19,7 @@
 #include <openssl/err.h>
 #include <openssl/ec.h>
 #include <openssl/pem.h>
+#include <openssl/rand.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
@@ -27,6 +28,7 @@
 #include "azure_c_shared_utility/hmacsha256.h"
 #include "edge_openssl_common.h"
 
+#include "hsm_err.h"
 #include "hsm_key.h"
 #include "hsm_log.h"
 #include "hsm_utils.h"
@@ -71,7 +73,7 @@ static const SUBJECT_FIELD_OFFSET subj_offsets[] =
 
 struct CERT_KEY_TAG
 {
-    HSM_CLIENT_KEY_INTERFACE interface;
+    HSM_CLIENT_KEY_INTERFACE intf;
     EVP_PKEY* evp_key;
 };
 typedef struct CERT_KEY_TAG CERT_KEY;
@@ -105,20 +107,113 @@ extern time_t get_utc_time_from_asn_string(const unsigned char *time_value, size
 //#################################################################################################
 // PKI key operations
 //#################################################################################################
+
+// implementation from https://wiki.openssl.org/index.php/EVP_Signing_and_Verifying
+static int caluclate_hmac_sha256
+(
+    EVP_PKEY *evp_key,
+    const unsigned char *tbs,
+    size_t tbs_size,
+    unsigned char **digest,
+    size_t *digest_size
+)
+{
+    int result, status;
+    size_t sign_size = 0;
+    unsigned char *signature;
+    EVP_MD_CTX* ctx;
+    const EVP_MD *md;
+
+    if ((ctx = EVP_MD_CTX_create()) == NULL)
+    {
+        LOG_ERROR("EVP_MD_CTX_create failed");
+        result = __FAILURE__;
+    }
+    else if ((md = EVP_get_digestbyname("SHA256")) == NULL)
+    {
+        LOG_ERROR("EVP_get_digestbyname failed for SHA256");
+        EVP_MD_CTX_destroy(ctx);
+        result = __FAILURE__;
+    }
+    else if ((status = EVP_DigestInit_ex(ctx, md, NULL)) != 1)
+    {
+        LOG_ERROR("EVP_DigestInit_ex failed with error code %d", status);
+        EVP_MD_CTX_destroy(ctx);
+        result = __FAILURE__;
+    }
+    else if ((status = EVP_DigestSignInit(ctx, NULL, md, NULL, evp_key)) != 1)
+    {
+        LOG_ERROR("EVP_DigestSignInit failed with error code %d", status);
+        EVP_MD_CTX_destroy(ctx);
+        result = __FAILURE__;
+    }
+    else if ((status = EVP_DigestSignUpdate(ctx, tbs, tbs_size)) != 1)
+    {
+        LOG_ERROR("EVP_DigestSignUpdate failed with error code %d", status);
+        EVP_MD_CTX_destroy(ctx);
+        result = __FAILURE__;
+    }
+    else if ((status = EVP_DigestSignFinal(ctx, NULL, &sign_size)) != 1)
+    {
+        LOG_ERROR("EVP_DigestSignFinal failed with error code %d", status);
+        EVP_MD_CTX_destroy(ctx);
+        result = __FAILURE__;
+    }
+    else if (sign_size == 0)
+    {
+        LOG_ERROR("EVP_DigestSignFinal returned digest size as zero");
+        EVP_MD_CTX_destroy(ctx);
+        result = __FAILURE__;
+    }
+    else if ((signature = malloc(sign_size)) == NULL)
+    {
+        LOG_ERROR("Failed to allocate memory for digest");
+        EVP_MD_CTX_destroy(ctx);
+        result = __FAILURE__;
+    }
+    else
+    {
+        size_t temp_size = sign_size;
+        if ((status = EVP_DigestSignFinal(ctx, signature, &temp_size)) != 1)
+        {
+            LOG_ERROR("EVP_DigestSignFinal failed with error code %d", status);
+            free(signature);
+            EVP_MD_CTX_destroy(ctx);
+            result = __FAILURE__;
+        }
+        else if (sign_size != temp_size)
+        {
+            LOG_ERROR("Mismatched signature lengths. Expected %zu Got %zu", sign_size, temp_size);
+            free(signature);
+            EVP_MD_CTX_destroy(ctx);
+            result = __FAILURE__;
+        }
+        else
+        {
+            *digest = signature;
+            *digest_size = sign_size;
+            EVP_MD_CTX_destroy(ctx);
+            result = 0;
+        }
+    }
+
+    return result;
+}
+
 static int cert_key_sign
 (
     KEY_HANDLE key_handle,
-    const unsigned char* data_to_be_signed,
+    const unsigned char *data_to_be_signed,
     size_t data_to_be_signed_size,
-    unsigned char** digest,
-    size_t* digest_size
+    unsigned char **digest,
+    size_t *digest_size
 )
 {
-    (void)key_handle;
-    (void)data_to_be_signed;
-    (void)data_to_be_signed_size;
+    int result;
+    CERT_KEY *cert_key = (CERT_KEY*)key_handle;
 
-    LOG_ERROR("Sign for cert keys is not supported");
+    bool digest_params_invalid = (digest == NULL) || (digest_size == NULL);
+    // make sure sane values are always returned
     if (digest != NULL)
     {
         *digest = NULL;
@@ -127,7 +222,31 @@ static int cert_key_sign
     {
         *digest_size = 0;
     }
-    return __FAILURE__;
+    if (digest_params_invalid)
+    {
+        LOG_ERROR("Invalid digest and or digest_size value");
+        result = __FAILURE__;
+    }
+    else if (cert_key == NULL)
+    {
+        LOG_ERROR("Invalid key handle");
+        result = __FAILURE__;
+    }
+    else if ((data_to_be_signed == NULL) || (data_to_be_signed_size == 0))
+    {
+        LOG_ERROR("Invalid data and or data size value");
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = caluclate_hmac_sha256(cert_key->evp_key,
+                                       data_to_be_signed,
+                                       data_to_be_signed_size,
+                                       digest,
+                                       digest_size);
+    }
+
+    return result;
 }
 
 int cert_key_derive_and_sign
@@ -1496,6 +1615,7 @@ KEY_HANDLE create_cert_key(const char* key_file_name)
     EVP_PKEY* evp_key;
     CERT_KEY *cert_key;
 
+    initialize_openssl();
     if (key_file_name == NULL)
     {
         LOG_ERROR("Key file name cannot be NULL");
@@ -1508,17 +1628,17 @@ KEY_HANDLE create_cert_key(const char* key_file_name)
     }
     else if ((cert_key = (CERT_KEY*)malloc(sizeof(CERT_KEY))) == NULL)
     {
-        LOG_ERROR("Could not allocate memory for SAS_KEY");
+        LOG_ERROR("Could not allocate memory to create CERT_KEY");
         destroy_evp_key(evp_key);
         result = NULL;
     }
     else
     {
-        cert_key->interface.hsm_client_key_sign = cert_key_sign;
-        cert_key->interface.hsm_client_key_derive_and_sign = cert_key_derive_and_sign;
-        cert_key->interface.hsm_client_key_encrypt = cert_key_encrypt;
-        cert_key->interface.hsm_client_key_decrypt = cert_key_decrypt;
-        cert_key->interface.hsm_client_key_destroy = cert_key_destroy;
+        cert_key->intf.hsm_client_key_sign = cert_key_sign;
+        cert_key->intf.hsm_client_key_derive_and_sign = cert_key_derive_and_sign;
+        cert_key->intf.hsm_client_key_encrypt = cert_key_encrypt;
+        cert_key->intf.hsm_client_key_decrypt = cert_key_decrypt;
+        cert_key->intf.hsm_client_key_destroy = cert_key_destroy;
         cert_key->evp_key = evp_key;
         result = (KEY_HANDLE)cert_key;
     }
@@ -1758,6 +1878,41 @@ int verify_certificate
             result = verify_certificate_internal(certificate_file_path,
                                                  issuer_certificate_file_path,
                                                  verify_status);
+        }
+    }
+
+    return result;
+}
+
+int generate_rand_buffer(unsigned char *buffer, size_t num_bytes)
+{
+    int result;
+
+    initialize_openssl();
+
+    if ((buffer == NULL) || (num_bytes == 0) || (num_bytes > INT_MAX))
+    {
+        LOG_ERROR("Invalid parameters");
+        result = __FAILURE__;
+    }
+    else
+    {
+        // note RAND_bytes will seed the random number generator
+        // if not initialized once per process or unless cleaned up
+        // In other works we don't have to worry about seeding for
+        // the default implementation.
+        // https://wiki.openssl.org/index.php/Random_Numbers
+        int rc = RAND_bytes(buffer, (int)num_bytes);
+
+        if (rc != 1)
+        {
+            unsigned long err = ERR_get_error();
+            LOG_ERROR("Generating a random number failed. Error code %ld", err);
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
         }
     }
 

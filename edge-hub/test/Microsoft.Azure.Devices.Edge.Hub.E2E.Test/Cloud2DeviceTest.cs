@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        [Fact(Skip = "Need to fix subscription re-create logic")]
+        [Fact]
         [TestPriority(102)]
         public async void Receive_C2D_OfflineSingleMessage_ShouldSucceed()
         {
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        [Fact(Skip = "Need to fix subscription re-create logic")]
+        [Fact]
         [TestPriority(103)]
         public async void Receive_C2D_SingleMessage_AfterOfflineMessage_ShouldSucceed()
         {
@@ -221,7 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 string messageData = Encoding.ASCII.GetString(receivedMessage.GetBytes());
                 Assert.Equal(messageData, payload);
-                Assert.Equal(receivedMessage.Properties.Count, 1);
+                Assert.Equal(1, receivedMessage.Properties.Count);
                 KeyValuePair<string, string> prop = receivedMessage.Properties.Single();
                 Assert.Equal(prop.Key, MessagePropertyName);
                 Assert.Equal(prop.Value, p1Value);

@@ -15,22 +15,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     [ExcludeFromCodeCoverage]
     public class DockerModuleTest
     {
-        const string SerializedModule = @"{""version"":""version1"",""type"":""docker"",""status"":""running"",""restartPolicy"":""on-unhealthy"",""settings"":{""image"":""image1:42"", ""createOptions"": {""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}},""configuration"":{""id"":""1""},""env"":{""Env1"": {""value"":""Val1""}}}";
+        const string SerializedModule = @"{""version"":""version1"",""type"":""docker"",""status"":""running"",""restartPolicy"":""on-unhealthy"",""imagePullPolicy"":""on-create"",""settings"":{""image"":""image1:42"", ""createOptions"": {""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}},""configuration"":{""id"":""1""},""env"":{""Env1"": {""value"":""Val1""}}}";
         static readonly ConfigurationInfo DefaultConfigurationInfo = null;
         static readonly DockerConfig Config1 = new DockerConfig("image1:42", @"{""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}");
         static readonly DockerConfig Config2 = new DockerConfig("image2:42", @"{""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}");
         static readonly IDictionary<string, EnvVal> DefaultEnvVals = new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("Val1") };
-        static readonly IModule Module1 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly IModule Module2 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly IModule Module3 = new DockerModule("mod3", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly IModule Module4 = new DockerModule("mod1", "version2", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly IModule Module6 = new DockerModule("mod1", "version1", ModuleStatus.Unknown, RestartPolicy.OnUnhealthy, Config1, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly IModule Module7 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config2, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly DockerModule Module8 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly IModule Module9 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.Always, Config1, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly IModule Module10 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, DefaultConfigurationInfo, new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("Val2") });
-        static readonly IModule ModuleWithConfig = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.Always, Config1, new ConfigurationInfo("c1"), DefaultEnvVals);
-        static readonly DockerModule ValidJsonModule = new DockerModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, DefaultConfigurationInfo, DefaultEnvVals);
+        static readonly IModule Module1 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, DefaultEnvVals);
+        static readonly IModule Module2 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, DefaultEnvVals);
+        static readonly IModule Module3 = new DockerModule("mod3", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, DefaultEnvVals);
+        static readonly IModule Module4 = new DockerModule("mod1", "version2", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, DefaultEnvVals);
+        static readonly IModule Module6 = new DockerModule("mod1", "version1", ModuleStatus.Unknown, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, DefaultEnvVals);
+        static readonly IModule Module7 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config2, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, DefaultEnvVals);
+        static readonly DockerModule Module8 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, DefaultEnvVals);
+        static readonly IModule Module9 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, DefaultEnvVals);
+        static readonly IModule Module10 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("Val2") });
+        static readonly IModule Module11 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.Never, DefaultConfigurationInfo, DefaultEnvVals);
+        static readonly IModule ModuleWithConfig = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), DefaultEnvVals);
+        static readonly DockerModule ValidJsonModule = new DockerModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, DefaultEnvVals);
+
         static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(
             @"
 {
@@ -84,6 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""type"":""docker"",
          ""status"":""running"",
          ""restartPolicy"": ""on-failure"",
+         ""imagePullPolicy"": ""on-create"",
          ""settings"":{
             ""image"":""image1:ver1"",
             ""createoptions"":{
@@ -102,6 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""type"":""docker"",
          ""status"":""running"",
          ""restartPolicy"": ""always"",
+         ""imagePullPolicy"": ""on-create"",
          ""settings"":{
             ""image"":""image1:ver1"",
             ""createoptions"":{
@@ -117,6 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""type"":""docker"",
          ""status"":""running"",
          ""restartPolicy"": ""on-unhealthy"",
+         ""imagePullPolicy"": ""on-create"",
          ""settings"":{
             ""image"":""image1:ver1"",
             ""createoptions"":{
@@ -132,6 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""type"":""docker"",
          ""status"":""running"",
          ""restartPolicy"": ""never"",
+         ""imagePullPolicy"": ""on-create"",
          ""settings"":{
             ""image"":""image1:ver1"",
          },
@@ -146,6 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""Type"":""docker"",
          ""Status"":""running"",
          ""RestartPolicy"": ""on-unhealthy"",
+         ""ImagePullPolicy"": ""on-create"",
          ""Settings"":{
             ""Image"":""image1:42"",
             ""CreateOptions"": {
@@ -179,6 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""type"":""docker"",
          ""status"":""running"",
          ""restartPolicy"": ""on-unhealthy"",
+         ""imagePullPolicy"": ""on-create"",
          ""settings"":{
             ""image"":""image1:42"",
             ""createoptions"": {
@@ -212,6 +220,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""TYPE"":""docker"",
          ""STATUS"":""running"",
          ""RESTARTPOLICY"": ""on-unhealthy"",
+         ""IMAGEPULLPOLICY"": ""on-create"",
          ""SETTINGS"":{
             ""IMAGE"":""image1:42"",
             ""CREATEOPTIONS"": {
@@ -288,13 +297,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 }
 ");
 
+        public static IEnumerable<object[]> GetInvalidEnvJsonInputs()
+        {
+            return GetJsonTestCases("invalidEnvJson").Select(s => new object[] { s });
+        }
+
+        public static IEnumerable<object[]> GetValidJsonInputs()
+        {
+            return GetJsonTestCases("validJson").Select(s => new object[] { s });
+        }
+
+        public static IEnumerable<object[]> GetExceptionJsonInputs()
+        {
+            return GetJsonTestCases("throwsException").Select(s => new object[] { s });
+        }
+
         [Fact]
         [Unit]
         public void TestConstructor()
         {
-            Assert.Throws<ArgumentNullException>(() => new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, null, null, null));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerModule("mod1", "version1", (ModuleStatus)int.MaxValue, RestartPolicy.OnUnhealthy, Config1, null, null));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerModule("mod1", "version1", ModuleStatus.Running, (RestartPolicy)int.MaxValue, Config1, null, null));
+            Assert.Throws<ArgumentNullException>(() => new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, null, ImagePullPolicy.OnCreate, null, null));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerModule("mod1", "version1", (ModuleStatus)int.MaxValue, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, null, null));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerModule("mod1", "version1", ModuleStatus.Running, (RestartPolicy)int.MaxValue, Config1, ImagePullPolicy.OnCreate, null, null));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, (ImagePullPolicy)int.MaxValue, null, null));
         }
 
         [Fact]
@@ -306,6 +331,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(Module8, Module8);
             Assert.NotEqual(Module1, Module3);
             Assert.NotEqual(Module1, Module9);
+            Assert.NotEqual(Module1, Module11);
             Assert.NotEqual(Module1, Module4);
             Assert.NotEqual(Module1, Module6);
             Assert.NotEqual(Module1, Module7);
@@ -330,6 +356,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(Module1.GetHashCode(), Module2.GetHashCode());
             Assert.NotEqual(Module1.GetHashCode(), Module3.GetHashCode());
             Assert.NotEqual(Module1.GetHashCode(), Module9.GetHashCode());
+            Assert.NotEqual(Module1.GetHashCode(), Module11.GetHashCode());
         }
 
         [Theory]
@@ -394,15 +421,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // Arrange
             string createOptions = @"{""Env"": [""k1=v1"",""k2=v2""]}";
             var config = new DockerConfig("ubuntu:latest", createOptions);
-            var module = new DockerModule("testser", "1.0", ModuleStatus.Running, RestartPolicy.OnUnhealthy, config, null, null);
+            var module = new DockerModule("testser", "1.0", ModuleStatus.Running, RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, null, null);
 
             // Act
             string json = ModuleSerde.Instance.Serialize(module);
 
             // Assert
             var mod2 = ModuleSerde.Instance.Deserialize<DockerModule>(json);
-            Assert.True(JsonConvert.SerializeObject(mod2.Config.CreateOptions).Contains(@"""k1=v1"""));
-            Assert.True(JsonConvert.SerializeObject(mod2.Config.CreateOptions).Contains(@"""k2=v2"""));
+            Assert.Contains(@"""k1=v1""", JsonConvert.SerializeObject(mod2.Config.CreateOptions));
+            Assert.Contains(@"""k2=v2""", JsonConvert.SerializeObject(mod2.Config.CreateOptions));
         }
 
         [Theory]
@@ -418,21 +445,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         {
             var val = (JArray)TestJsonInputs.GetValue(subset);
             return val.Children().Select(token => token.ToString());
-        }
-
-        static IEnumerable<object[]> GetValidJsonInputs()
-        {
-            return GetJsonTestCases("validJson").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetExceptionJsonInputs()
-        {
-            return GetJsonTestCases("throwsException").Select(s => new object[] { s });
-        }
-
-        static IEnumerable<object[]> GetInvalidEnvJsonInputs()
-        {
-            return GetJsonTestCases("invalidEnvJson").Select(s => new object[] { s });
         }
     }
 }

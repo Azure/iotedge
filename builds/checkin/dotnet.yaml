@@ -3,9 +3,11 @@ pr:
   branches:
     include:
       - master
+      - release/*
   paths:
     exclude:
       - edgelet/*
+      - doc/*
 jobs:
 
 ################################################################################

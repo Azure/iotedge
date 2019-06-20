@@ -10,21 +10,16 @@ use std::env;
 use std::net::SocketAddr;
 
 use failure::ResultExt;
+use log::debug;
 use nix::fcntl;
 use nix::sys::socket::{self, AddressFamily, SockType};
 use nix::sys::stat;
 use nix::unistd::Pid;
 
-use error::{Error, ErrorKind, SocketLookupType};
-use {Fd, Socket};
+use crate::error::{Error, ErrorKind, SocketLookupType};
+use crate::{Fd, Socket};
 
-// TODO: This works around https://github.com/rust-lang/cargo/issues/6333
-// `cargo test` opens /dev/random and /dev/urandom at fds 3 and 4 so the first fd bound is 5.
-// Remove the `cfg(test)` definition when that issue is fixed. Also see edgelet-http/tests/systemd.rs
-#[cfg(test)]
-const LISTEN_FDS_START: Fd = 5;
-#[cfg(not(test))]
-const LISTEN_FDS_START: Fd = 3;
+pub const LISTEN_FDS_START: Fd = 3;
 
 const ENV_PID: &str = "LISTEN_PID";
 const ENV_FDS: &str = "LISTEN_FDS";
@@ -252,6 +247,7 @@ mod tests {
     use std::panic;
     use std::sync::{Mutex, MutexGuard};
 
+    use lazy_static::lazy_static;
     use nix::unistd;
 
     lazy_static! {
@@ -267,10 +263,8 @@ mod tests {
         env::set_var(ENV_PID, format!("{}", pid));
     }
 
-    fn create_fd(no: i32, family: AddressFamily, type_: SockType) -> Fd {
-        let fd = socket::socket(family, type_, socket::SockFlag::empty(), None).unwrap();
-        assert_eq!(fd, no);
-        fd
+    fn create_fd(family: AddressFamily, type_: SockType) -> Fd {
+        socket::socket(family, type_, socket::SockFlag::empty(), None).unwrap()
     }
 
     fn close_fds<I: IntoIterator<Item = Socket>>(sockets: I) {
@@ -288,10 +282,10 @@ mod tests {
         let _l = lock_env();
         set_current_pid();
         env::set_var(ENV_FDS, "1");
-        create_fd(LISTEN_FDS_START, AddressFamily::Unix, SockType::Stream);
-        let fds = listen_fds(true, LISTEN_FDS_START).unwrap();
+        let listen_fds_start = create_fd(AddressFamily::Unix, SockType::Stream);
+        let fds = listen_fds(true, listen_fds_start).unwrap();
         assert_eq!(1, fds.len());
-        assert_eq!(vec![Socket::Unix(LISTEN_FDS_START)], fds);
+        assert_eq!(vec![Socket::Unix(listen_fds_start)], fds);
         close_fds(fds);
     }
 
@@ -301,15 +295,19 @@ mod tests {
         set_current_pid();
         env::set_var(ENV_FDS, "2");
         env::set_var(ENV_NAMES, "a:b");
-        create_fd(LISTEN_FDS_START, AddressFamily::Inet, SockType::Stream);
-        create_fd(LISTEN_FDS_START + 1, AddressFamily::Unix, SockType::Stream);
-        let fds = listen_fds_with_names(true, LISTEN_FDS_START).unwrap();
+        let listen_fds_start = create_fd(AddressFamily::Inet, SockType::Stream);
+        assert_eq!(
+            create_fd(AddressFamily::Unix, SockType::Stream),
+            listen_fds_start + 1
+        );
+        let fds = listen_fds_with_names(true, listen_fds_start).unwrap();
         assert_eq!(2, fds.len());
-        if let Socket::Inet(LISTEN_FDS_START, _) = fds["a"][0] {
+        if let Socket::Inet(fd, _) = fds["a"][0] {
+            assert_eq!(fd, listen_fds_start);
         } else {
             panic!("Didn't parse Inet socket");
         }
-        assert_eq!(vec![Socket::Unix(LISTEN_FDS_START + 1)], fds["b"]);
+        assert_eq!(vec![Socket::Unix(listen_fds_start + 1)], fds["b"]);
 
         for (_, socks) in fds {
             close_fds(socks);
@@ -318,18 +316,15 @@ mod tests {
 
     #[test]
     fn test_listen_fds_with_missing_env() {
-        let r = {
-            let _l = lock_env();
-            panic::catch_unwind(|| listen_fds_with_names(true, LISTEN_FDS_START).unwrap())
-        };
+        let _l = lock_env();
 
-        match r {
+        match listen_fds_with_names(true, LISTEN_FDS_START) {
             Ok(_) => panic!("expected listen_fds_with_names to panic"),
-            Err(err) => match err.downcast_ref::<String>().map(String::as_str) {
-                Some(s) if s.contains(ENV_NAMES) => (),
-                other => panic!(
-                    "expected listen_fds_with_names to panic with {} but it panicked with {:?}",
-                    ENV_NAMES, other
+            Err(err) => match err.kind() {
+                ErrorKind::InvalidVar(s) if s == ENV_NAMES => (),
+                _ => panic!(
+                    "expected listen_fds_with_names to raise ErrorKind::InvalidVar({}) but it raised {:?}",
+                    ENV_NAMES, err
                 ),
             },
         }

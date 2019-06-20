@@ -1,18 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(unused_extern_crates, warnings)]
+#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
-    clippy::cyclomatic_complexity,
+    clippy::cognitive_complexity,
+    clippy::module_name_repetitions,
     clippy::similar_names,
     clippy::shadow_unrelated,
-    clippy::stutter,
     clippy::use_self
 )]
-
-extern crate chrono;
-extern crate failure;
-extern crate hsm_sys;
 
 use hsm_sys::*;
 
@@ -21,12 +17,12 @@ mod error;
 pub mod tpm;
 mod x509;
 
-pub use crypto::{
+pub use crate::crypto::{
     Buffer, CertificateProperties, CertificateType, Crypto, HsmCertificate, KeyBytes, PrivateKey,
 };
-pub use error::{Error, ErrorKind};
-pub use tpm::{Tpm, TpmDigest, TpmKey};
-pub use x509::{X509Data, X509};
+pub use crate::error::{Error, ErrorKind};
+pub use crate::tpm::{Tpm, TpmDigest, TpmKey};
+pub use crate::x509::{PrivateKeySignDigest, X509Data, X509};
 
 // Traits
 
@@ -45,10 +41,12 @@ pub trait SignWithTpm {
     ) -> Result<TpmDigest, Error>;
 }
 
-pub trait GetCerts {
+pub trait GetDeviceIdentityCertificate {
     fn get_cert(&self) -> Result<X509Data, Error>;
     fn get_key(&self) -> Result<X509Data, Error>;
     fn get_common_name(&self) -> Result<String, Error>;
+    fn sign_with_private_key(&self, data: &[u8]) -> Result<PrivateKeySignDigest, Error>;
+    fn get_certificate_info(&self) -> Result<HsmCertificate, Error>;
 }
 
 pub trait MakeRandom {
@@ -70,6 +68,10 @@ pub trait CreateCertificate {
     ) -> Result<HsmCertificate, Error>;
 
     fn destroy_certificate(&self, alias: String) -> Result<(), Error>;
+}
+
+pub trait GetCertificate {
+    fn get(&self, alias: String) -> Result<HsmCertificate, Error>;
 }
 
 pub trait Encrypt {

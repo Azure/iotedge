@@ -14,8 +14,8 @@ use edgelet_http::Error as HttpError;
 use edgelet_utils::{ensure_not_empty_with_context, prepare_cert_uri_module};
 use workload::models::IdentityCertificateRequest;
 
-use error::{CertOperation, Error, ErrorKind};
-use IntoResponse;
+use crate::error::{CertOperation, Error, ErrorKind};
+use crate::IntoResponse;
 
 pub struct IdentityCertHandler<T: CreateCertificate, W: WorkloadConfig> {
     hsm: T,
@@ -38,7 +38,7 @@ where
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let hsm = self.hsm.clone();
         let cfg = self.config.clone();
         let max_duration = cfg.get_cert_max_duration(CertificateType::Client);
@@ -124,7 +124,9 @@ mod tests {
     #[derive(Clone, Default)]
     struct TestHsm {
         on_create: Option<
-            Arc<Box<Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + Send + Sync>>,
+            Arc<
+                Box<dyn Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + Send + Sync>,
+            >,
         >,
     }
 
@@ -151,6 +153,10 @@ mod tests {
 
         fn destroy_certificate(&self, _alias: String) -> StdResult<(), CoreError> {
             Ok(())
+        }
+
+        fn get_certificate(&self, _alias: String) -> StdResult<Self::Certificate, CoreError> {
+            Err(CoreError::from(CoreErrorKind::KeyStore))
         }
     }
 
@@ -504,7 +510,7 @@ mod tests {
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         assert_eq!(
-            "Could not create identity cert\n\tcaused by: A error occurred in the key store.",
+            "Could not create identity cert\n\tcaused by: An error occurred in the key store.",
             parse_error_response(response).message(),
         );
     }
@@ -537,7 +543,7 @@ mod tests {
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         assert_eq!(
-            "Could not create identity cert\n\tcaused by: A error occurred in the key store.",
+            "Could not create identity cert\n\tcaused by: An error occurred in the key store.",
             parse_error_response(response).message(),
         );
     }
@@ -570,7 +576,7 @@ mod tests {
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         assert_eq!(
-            "Could not create identity cert\n\tcaused by: A error occurred in the key store.",
+            "Could not create identity cert\n\tcaused by: An error occurred in the key store.",
             parse_error_response(response).message(),
         );
     }
@@ -603,7 +609,7 @@ mod tests {
 
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         assert_eq!(
-            "Could not create identity cert\n\tcaused by: A error occurred in the key store.",
+            "Could not create identity cert\n\tcaused by: An error occurred in the key store.",
             parse_error_response(response).message(),
         );
     }

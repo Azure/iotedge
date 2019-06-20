@@ -4,30 +4,32 @@ use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use crate::constants::*;
-use crate::convert::{auth_to_image_pull_secret, pod_to_module, spec_to_deployment};
-use crate::error::{Error, ErrorKind, Result};
-use crate::module::KubeModule;
-use edgelet_core::{
-    LogOptions, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ModuleTop,
-    RuntimeOperation, SystemInfo,
-};
-use edgelet_docker::DockerConfig;
-use edgelet_utils::{ensure_not_empty_with_context, sanitize_dns_label};
 use failure::Fail;
 use futures::future::Either;
 use futures::prelude::*;
 use futures::{future, stream, Async, Future, Stream};
-use hyper::client::HttpConnector;
 use hyper::service::Service;
-use hyper::{Body, Chunk as HyperChunk};
-use hyper_tls::HttpsConnector;
-use kube_client::{get_config, Client as KubeClient, HttpClient, ValueToken};
+use hyper::{header, Body, Chunk as HyperChunk, Request};
+use log::Level;
 use url::Url;
 
+use edgelet_core::{
+    AuthId, Authenticator, LogOptions, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
+    ModuleSpec, RuntimeOperation, SystemInfo,
+};
+use edgelet_docker::DockerConfig;
+use edgelet_utils::{ensure_not_empty_with_context, log_failure, sanitize_dns_label};
+use kube_client::{Client as KubeClient, Error as KubeClientError, TokenSource};
+
+use crate::constants::*;
+use crate::convert::{auth_to_image_pull_secret, pod_to_module, spec_to_deployment};
+use crate::error::{Error, ErrorKind, Result};
+use crate::module::KubeModule;
+use hyper::header::HeaderValue;
+
 #[derive(Clone)]
-pub struct KubeModuleRuntime<S> {
-    client: Arc<Mutex<RefCell<KubeClient<ValueToken, S>>>>,
+pub struct KubeModuleRuntime<T, S> {
+    client: Arc<Mutex<RefCell<KubeClient<T, S>>>>,
     namespace: String,
     use_pvc: bool,
     iot_hub_hostname: String,
@@ -36,6 +38,7 @@ pub struct KubeModuleRuntime<S> {
     proxy_image: String,
     proxy_config_path: String,
     proxy_config_map_name: String,
+    image_pull_policy: String,
     service_account_name: String,
     workload_uri: Url,
     management_uri: Url,
@@ -51,12 +54,13 @@ pub trait KubeRuntimeData {
     fn proxy_image(&self) -> &str;
     fn proxy_config_path(&self) -> &str;
     fn proxy_config_map_name(&self) -> &str;
+    fn image_pull_policy(&self) -> &str;
     fn service_account_name(&self) -> &str;
     fn workload_uri(&self) -> &Url;
     fn management_uri(&self) -> &Url;
 }
 
-impl<S> KubeRuntimeData for KubeModuleRuntime<S> {
+impl<T, S> KubeRuntimeData for KubeModuleRuntime<T, S> {
     fn namespace(&self) -> &str {
         &self.namespace
     }
@@ -81,6 +85,9 @@ impl<S> KubeRuntimeData for KubeModuleRuntime<S> {
     fn proxy_config_map_name(&self) -> &str {
         &self.proxy_config_map_name
     }
+    fn image_pull_policy(&self) -> &str {
+        &self.image_pull_policy
+    }
     fn service_account_name(&self) -> &str {
         &self.service_account_name
     }
@@ -92,8 +99,9 @@ impl<S> KubeRuntimeData for KubeModuleRuntime<S> {
     }
 }
 
-impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
+impl<T, S> KubeModuleRuntime<T, S> {
     pub fn new(
+        client: KubeClient<T, S>,
         namespace: String,
         use_pvc: bool,
         iot_hub_hostname: String,
@@ -102,6 +110,7 @@ impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
         proxy_image: String,
         proxy_config_path: String,
         proxy_config_map_name: String,
+        image_pull_policy: String,
         service_account_name: String,
         workload_uri: Url,
         management_uri: Url,
@@ -136,6 +145,12 @@ impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
                 proxy_config_map_name.clone(),
             )
         })?;
+        ensure_not_empty_with_context(&image_pull_policy, || {
+            ErrorKind::InvalidRunTimeParameter(
+                String::from("image_pull_policy"),
+                image_pull_policy.clone(),
+            )
+        })?;
         ensure_not_empty_with_context(&service_account_name, || {
             ErrorKind::InvalidRunTimeParameter(
                 String::from("service_account_name"),
@@ -151,7 +166,7 @@ impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
         );
 
         Ok(KubeModuleRuntime {
-            client: Arc::new(Mutex::new(RefCell::new(KubeClient::new(get_config()?)))),
+            client: Arc::new(Mutex::new(RefCell::new(client))),
             namespace,
             use_pvc,
             iot_hub_hostname,
@@ -160,6 +175,7 @@ impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
             proxy_image,
             proxy_config_path,
             proxy_config_map_name,
+            image_pull_policy,
             service_account_name,
             workload_uri,
             management_uri,
@@ -168,23 +184,22 @@ impl KubeModuleRuntime<HttpClient<HttpsConnector<HttpConnector>, Body>> {
     }
 }
 
-impl<S> ModuleRegistry for KubeModuleRuntime<S>
+impl<T, S> ModuleRegistry for KubeModuleRuntime<T, S>
 where
-    S: Send + Service + 'static,
+    T: TokenSource + Clone + Send + 'static,
+    S: Service + Send + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
-    Body: From<<S as Service>::ResBody>,
+    Body: From<S::ResBody>,
     <S::ResBody as Stream>::Item: AsRef<[u8]>,
     <S::ResBody as Stream>::Error: Into<Error>,
-    S::Error: Into<Error>,
-    <<S as hyper::service::Service>::ResBody as futures::Stream>::Error:
-        std::convert::Into<kube_client::Error>,
-    <S as hyper::service::Service>::Error: std::convert::Into<kube_client::Error>,
-    <S as hyper::service::Service>::Future: Send,
+    <S::ResBody as Stream>::Error: Into<KubeClientError>,
+    S::Error: Into<KubeClientError>,
+    S::Future: Send,
 {
     type Error = Error;
-    type PullFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type PullFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type RemoveFuture = Box<dyn Future<Item = (), Error = Self::Error>>;
     type Config = DockerConfig;
 
     fn pull(&self, config: &Self::Config) -> Self::PullFuture {
@@ -252,19 +267,18 @@ where
     }
 }
 
-impl<S> ModuleRuntime for KubeModuleRuntime<S>
+impl<T, S> ModuleRuntime for KubeModuleRuntime<T, S>
 where
+    T: TokenSource + Clone + Send + 'static,
     S: Send + Service + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
-    Body: From<<S as Service>::ResBody>,
+    Body: From<S::ResBody>,
     <S::ResBody as Stream>::Item: AsRef<[u8]>,
     <S::ResBody as Stream>::Error: Into<Error>,
-    S::Error: Into<Error>,
-    <<S as hyper::service::Service>::ResBody as futures::Stream>::Error:
-        std::convert::Into<kube_client::Error>,
-    <S as hyper::service::Service>::Error: std::convert::Into<kube_client::Error>,
-    <S as hyper::service::Service>::Future: Send,
+    <S::ResBody as Stream>::Error: Into<KubeClientError>,
+    S::Error: Into<KubeClientError>,
+    S::Future: Send,
 {
     type Error = Error;
     type Config = DockerConfig;
@@ -273,21 +287,20 @@ where
     type Chunk = Chunk;
     type Logs = Logs;
 
-    type CreateFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
+    type CreateFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type GetFuture =
-        Box<Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type InitFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
+        Box<dyn Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
+    type InitFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type ListFuture = Box<dyn Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
     type ListWithDetailsStream =
-        Box<Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type LogsFuture = Box<Future<Item = Self::Logs, Error = Self::Error> + Send>;
-    type RemoveFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type RestartFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type StartFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type StopFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type SystemInfoFuture = Box<Future<Item = SystemInfo, Error = Self::Error> + Send>;
-    type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error> + Send>;
-    type TopFuture = Box<Future<Item = ModuleTop, Error = Self::Error> + Send>;
+        Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
+    type LogsFuture = Box<dyn Future<Item = Self::Logs, Error = Self::Error> + Send>;
+    type RemoveFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type RestartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type StartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type SystemInfoFuture = Box<dyn Future<Item = SystemInfo, Error = Self::Error> + Send>;
+    type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
     fn init(&self) -> Self::InitFuture {
         Box::new(future::ok(()))
@@ -419,9 +432,66 @@ where
     fn remove_all(&self) -> Self::RemoveAllFuture {
         Box::new(future::ok(()))
     }
+}
 
-    fn top(&self, id: &str) -> Self::TopFuture {
-        Box::new(future::ok(ModuleTop::new(id.to_string(), Vec::new())))
+impl<T, S> Authenticator for KubeModuleRuntime<T, S>
+where
+    T: TokenSource + Clone + 'static,
+    S: Service + Send + 'static,
+    S::ReqBody: From<Vec<u8>>,
+    S::ResBody: Stream,
+    Body: From<S::ResBody>,
+    <S::ResBody as Stream>::Item: AsRef<[u8]>,
+    <S::ResBody as Stream>::Error: Into<KubeClientError>,
+    S::Error: Into<KubeClientError>,
+    S::Future: Send,
+{
+    type Error = Error;
+    type Request = Request<Body>;
+    type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
+
+    fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
+        let token = req
+            .headers()
+            .get(header::AUTHORIZATION)
+            .map(HeaderValue::to_str)
+            .transpose()
+            .map(|token| {
+                token
+                    .filter(|token| token.len() > 6 && &token[..7].to_uppercase() == "BEARER ")
+                    .map(|token| &token[7..])
+            })
+            .map_err(Error::from);
+
+        let fut = match token {
+            Ok(token) => match token {
+                Some(token) => Either::A(Either::A(
+                    self.client
+                        .lock()
+                        .expect("Unexpected lock error")
+                        .borrow_mut()
+                        .token_review(&self.namespace, token)
+                        .map_err(|err| {
+                            log_failure(Level::Warn, &err);
+                            Error::from(err)
+                        })
+                        .map(|token_review| {
+                            token_review
+                                .status
+                                .as_ref()
+                                .filter(|status| status.authenticated.filter(|x| *x).is_some())
+                                .and_then(|status| {
+                                    status.user.as_ref().and_then(|user| user.username.clone())
+                                })
+                                .map_or(AuthId::None, |name| AuthId::Value(name.into()))
+                        }),
+                )),
+                None => Either::A(Either::B(future::ok(AuthId::None))),
+            },
+            Err(e) => Either::B(future::err(e)),
+        };
+
+        Box::new(fut)
     }
 }
 
@@ -478,10 +548,29 @@ impl AsRef<[u8]> for Chunk {
 
 #[cfg(test)]
 mod tests {
-
-    use super::*;
     use std::str::FromStr;
+
+    use futures::future::Future;
+    use hyper::service::{service_fn, Service};
+    use hyper::Error as HyperError;
+    use hyper::{header, Body, Request, Response};
+    use native_tls::TlsConnector;
     use url::Url;
+
+    use edgelet_core::{AuthId, Authenticator};
+    use kube_client::{Client as KubeClient, Config, Error, TokenSource};
+
+    use crate::error::ErrorKind;
+    use crate::runtime::KubeModuleRuntime;
+
+    fn get_config() -> Config<TestTokenSource> {
+        Config::new(
+            Url::parse("https://localhost:443").unwrap(),
+            "/api".to_string(),
+            TestTokenSource,
+            TlsConnector::new().unwrap(),
+        )
+    }
 
     #[test]
     fn runtime_new() {
@@ -492,11 +581,13 @@ mod tests {
         let proxy_image = String::from("proxy-image");
         let proxy_config_path = String::from("proxy-confg-path");
         let proxy_config_map_name = String::from("config-volume");
+        let image_pull_policy = String::from("On-Create");
         let service_account_name = String::from("iotedge");
         let workload_uri = Url::from_str("http://localhost:35000").unwrap();
         let management_uri = Url::from_str("http://localhost:35001").unwrap();
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             String::default(),
             true,
             iot_hub_hostname.clone(),
@@ -505,6 +596,7 @@ mod tests {
             proxy_image.clone(),
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
             service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
@@ -513,6 +605,7 @@ mod tests {
         assert!(result.is_err());
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             namespace.clone(),
             true,
             String::default(),
@@ -521,6 +614,7 @@ mod tests {
             proxy_image.clone(),
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
             service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
@@ -528,6 +622,7 @@ mod tests {
         assert!(result.is_err());
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             namespace.clone(),
             true,
             iot_hub_hostname.clone(),
@@ -536,6 +631,7 @@ mod tests {
             proxy_image.clone(),
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
             service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
@@ -543,6 +639,7 @@ mod tests {
         assert!(result.is_err());
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             namespace.clone(),
             true,
             iot_hub_hostname.clone(),
@@ -551,6 +648,7 @@ mod tests {
             proxy_image.clone(),
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
             service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
@@ -558,6 +656,7 @@ mod tests {
         assert!(result.is_err());
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             namespace.clone(),
             true,
             iot_hub_hostname.clone(),
@@ -566,6 +665,7 @@ mod tests {
             String::default(),
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
             service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
@@ -573,6 +673,7 @@ mod tests {
         assert!(result.is_err());
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             namespace.clone(),
             true,
             iot_hub_hostname.clone(),
@@ -581,6 +682,7 @@ mod tests {
             proxy_image.clone(),
             String::default(),
             proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
             service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
@@ -588,6 +690,7 @@ mod tests {
         assert!(result.is_err());
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             namespace.clone(),
             true,
             iot_hub_hostname.clone(),
@@ -596,6 +699,7 @@ mod tests {
             proxy_image.clone(),
             proxy_config_path.clone(),
             String::default(),
+            image_pull_policy.clone(),
             service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
@@ -603,6 +707,7 @@ mod tests {
         assert!(result.is_err());
 
         let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
             namespace.clone(),
             true,
             iot_hub_hostname.clone(),
@@ -612,9 +717,204 @@ mod tests {
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
             String::default(),
+            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );
         assert!(result.is_err());
+
+        let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
+            namespace.clone(),
+            true,
+            iot_hub_hostname.clone(),
+            device_id.clone(),
+            edge_hostname.clone(),
+            proxy_image.clone(),
+            proxy_config_path.clone(),
+            proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
+            String::default(),
+            workload_uri.clone(),
+            management_uri.clone(),
+        );
+        assert!(result.is_err());
+
+        let result = KubeModuleRuntime::new(
+            KubeClient::new(get_config()),
+            namespace.clone(),
+            true,
+            iot_hub_hostname.clone(),
+            device_id.clone(),
+            edge_hostname.clone(),
+            proxy_image.clone(),
+            proxy_config_path.clone(),
+            proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
+            service_account_name.clone(),
+            workload_uri.clone(),
+            management_uri.clone(),
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn authenticate_returns_none_when_no_auth_token_provided() {
+        let service = service_fn(
+            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                Ok(Response::new(Body::empty()))
+            },
+        );
+        let req = Request::default();
+        let runtime = prepare_module_runtime_with_defaults(service);
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_none_when_invalid_auth_header_provided() {
+        let service = service_fn(
+            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                Ok(Response::new(Body::empty()))
+            },
+        );
+        let runtime = prepare_module_runtime_with_defaults(service);
+
+        let mut req = Request::default();
+        req.headers_mut()
+            .insert(header::AUTHORIZATION, "BeErer token".parse().unwrap());
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_none_when_invalid_auth_token_provided() {
+        let service = service_fn(
+            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                Ok(Response::new(Body::empty()))
+            },
+        );
+        let runtime = prepare_module_runtime_with_defaults(service);
+
+        let mut req = Request::default();
+        req.headers_mut().insert(
+            header::AUTHORIZATION,
+            "\u{3aa}\u{3a9}\u{3a4}".parse().unwrap(),
+        );
+
+        let err = runtime.authenticate(&req).wait().err().unwrap();
+
+        assert_eq!(&ErrorKind::ModuleAuthenticationError, err.kind());
+    }
+
+    #[test]
+    fn authenticate_returns_none_when_unknown_auth_token_provided() {
+        let service = service_fn(
+            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let body = r###"{
+                        "kind": "TokenReview",
+                        "spec": { "token": "token" },
+                        "status": {
+                            "authenticated": false
+                        }
+                    }"###;
+                Ok(Response::new(Body::from(body)))
+            },
+        );
+        let runtime = prepare_module_runtime_with_defaults(service);
+
+        let mut req = Request::default();
+        req.headers_mut().insert(
+            header::AUTHORIZATION,
+            "Bearer token-unknown".parse().unwrap(),
+        );
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_auth_id_when_module_auth_token_provided() {
+        let service = service_fn(
+            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let body = r###"{
+                    "kind": "TokenReview",
+                    "spec": { "token": "token" },
+                    "status": {
+                        "authenticated": true,
+                        "user": {
+                            "username": "module-abc"
+                        }
+                    }
+                }"###;
+                Ok(Response::new(Body::from(body)))
+            },
+        );
+
+        let mut req = Request::default();
+        req.headers_mut()
+            .insert(header::AUTHORIZATION, "Bearer token".parse().unwrap());
+
+        let runtime = prepare_module_runtime_with_defaults(service);
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::Value("module-abc".into()), auth_id);
+    }
+
+    fn prepare_module_runtime_with_defaults<S: Service>(
+        service: S,
+    ) -> KubeModuleRuntime<TestTokenSource, S> {
+        let namespace = String::from("my-namespace");
+        let iot_hub_hostname = String::from("iothostname");
+        let device_id = String::from("my_device_id");
+        let edge_hostname = String::from("edge-hostname");
+        let proxy_image = String::from("proxy-image");
+        let proxy_config_path = String::from("proxy-confg-path");
+        let proxy_config_map_name = String::from("config-volume");
+        let image_pull_policy = String::from("On-Create");
+        let service_account_name = String::from("iotedge");
+        let workload_uri = Url::from_str("http://localhost:35000").unwrap();
+        let management_uri = Url::from_str("http://localhost:35001").unwrap();
+
+        let config = Config::new(
+            Url::parse("https://localhost:443").unwrap(),
+            "/api".to_string(),
+            TestTokenSource,
+            TlsConnector::new().unwrap(),
+        );
+
+        KubeModuleRuntime::new(
+            KubeClient::with_client(config, service),
+            namespace.clone(),
+            true,
+            iot_hub_hostname.clone(),
+            device_id.clone(),
+            edge_hostname.clone(),
+            proxy_image.clone(),
+            proxy_config_path.clone(),
+            proxy_config_map_name.clone(),
+            image_pull_policy.clone(),
+            service_account_name.clone(),
+            workload_uri.clone(),
+            management_uri.clone(),
+        )
+        .unwrap()
+    }
+
+    #[derive(Clone)]
+    struct TestTokenSource;
+
+    impl TokenSource for TestTokenSource {
+        type Error = Error;
+
+        fn get(&self) -> kube_client::error::Result<Option<String>> {
+            Ok(None)
+        }
     }
 }
