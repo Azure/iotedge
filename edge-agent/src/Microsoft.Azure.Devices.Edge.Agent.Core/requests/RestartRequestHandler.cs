@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -49,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             }
 
             Events.RestartingModule(payload.Id);
-            ICommand restartCommand = await this.commandFactory.RestartAsync(payload.Id);
+            ICommand restartCommand = await this.commandFactory.RestartAsync(module);
             await restartCommand.ExecuteAsync(cancellationToken);
             Events.RestartedModule(payload.Id);
             return Option.None<object>();

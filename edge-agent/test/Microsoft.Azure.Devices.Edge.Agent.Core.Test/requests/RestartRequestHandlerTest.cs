@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
@@ -18,19 +19,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var moduleRuntimeInfo1 = new ModuleRuntimeInfo("mod1", "docker", ModuleStatus.Running, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
-            var moduleRuntimeInfo2 = new ModuleRuntimeInfo("mod2", "docker", ModuleStatus.Running, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
-            var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>(MockBehavior.Strict);
-            runtimeInfoProvider.Setup(r => r.GetModules(cts.Token))
-                .ReturnsAsync(new[] { moduleRuntimeInfo1, moduleRuntimeInfo2 });
+            var edgeAgent = Mock.Of<IEdgeAgentModule>(m => m.Name == "edgeAgent");
+            var edgeHub = Mock.Of<IEdgeHubModule>(m => m.Name == "edgeHub");
+            var mod1 = Mock.Of<IRuntimeModule>(m => m.Name == "mod1" && m.RuntimeStatus == ModuleStatus.Running);
+            var mod2 = Mock.Of<IRuntimeModule>(m => m.Name == "mod2" && m.RuntimeStatus == ModuleStatus.Running);
+            var deploymentConfigInfo = new DeploymentConfigInfo(
+                1,
+                new DeploymentConfig(
+                    "1.0",
+                    Mock.Of<IRuntimeInfo>(),
+                    new SystemModules(edgeAgent, edgeHub),
+                    new Dictionary<string, IModule>
+                    {
+                        ["mod1"] = mod1,
+                        ["mod2"] = mod2
+                    }));
+            var configSource = Mock.Of<IConfigSource>(c => c.GetDeploymentConfigInfoAsync() == Task.FromResult(deploymentConfigInfo));
+
+            var moduleSet = ModuleSet.Create(edgeAgent, edgeHub, mod1, mod2);
+            var environment = Mock.Of<IEnvironment>(e => e.GetModulesAsync(cts.Token) == Task.FromResult(moduleSet));
+            var environmentProvider = Mock.Of<IEnvironmentProvider>(e => e.Create(deploymentConfigInfo.DeploymentConfig) == environment);
 
             var restartCommand = new Mock<ICommand>(MockBehavior.Strict);
             restartCommand.Setup(r => r.ExecuteAsync(cts.Token))
                 .Returns(Task.CompletedTask);
             var commandFactory = new Mock<ICommandFactory>(MockBehavior.Strict);
-            commandFactory.Setup(c => c.RestartAsync("mod1")).ReturnsAsync(restartCommand.Object);
+            commandFactory.Setup(c => c.RestartAsync(mod1)).ReturnsAsync(restartCommand.Object);
 
-            var restartRequestHandler = new RestartRequestHandler(runtimeInfoProvider.Object, commandFactory.Object);
+            var restartRequestHandler = new RestartRequestHandler(environmentProvider, configSource, commandFactory.Object);
 
             string payload = "{\"schemaVersion\": \"1.0\",\"id\": \"mod1\"}";
 
@@ -39,9 +55,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
 
             // Assert
             Assert.False(response.HasValue);
-            runtimeInfoProvider.Verify(r => r.GetModules(cts.Token), Times.Once);
             restartCommand.Verify(r => r.ExecuteAsync(cts.Token), Times.Once);
-            commandFactory.Verify(c => c.RestartAsync("mod1"), Times.Once);
+            commandFactory.Verify(c => c.RestartAsync(mod1), Times.Once);
+            Mock.Get(configSource).VerifyAll();
+            Mock.Get(environmentProvider).VerifyAll();
+            Mock.Get(environment).VerifyAll();
         }
 
         [Fact]
@@ -49,29 +67,46 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var moduleRuntimeInfo1 = new ModuleRuntimeInfo("mod1", "docker", ModuleStatus.Running, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
-            var moduleRuntimeInfo2 = new ModuleRuntimeInfo("mod2", "docker", ModuleStatus.Running, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
-            var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>(MockBehavior.Strict);
-            runtimeInfoProvider.Setup(r => r.GetModules(cts.Token))
-                .ReturnsAsync(new[] { moduleRuntimeInfo1, moduleRuntimeInfo2 });
+            var edgeAgent = Mock.Of<IEdgeAgentModule>(m => m.Name == "edgeAgent");
+            var edgeHub = Mock.Of<IEdgeHubModule>(m => m.Name == "edgeHub");
+            var mod1 = Mock.Of<IRuntimeModule>(m => m.Name == "mod1" && m.RuntimeStatus == ModuleStatus.Running);
+            var mod2 = Mock.Of<IRuntimeModule>(m => m.Name == "mod2" && m.RuntimeStatus == ModuleStatus.Running);
+            var deploymentConfigInfo = new DeploymentConfigInfo(
+                1,
+                new DeploymentConfig(
+                    "1.0",
+                    Mock.Of<IRuntimeInfo>(),
+                    new SystemModules(edgeAgent, edgeHub),
+                    new Dictionary<string, IModule>
+                    {
+                        ["mod1"] = mod1,
+                        ["mod2"] = mod2
+                    }));
+            var configSource = Mock.Of<IConfigSource>(c => c.GetDeploymentConfigInfoAsync() == Task.FromResult(deploymentConfigInfo));
+
+            var moduleSet = ModuleSet.Create(edgeAgent, edgeHub, mod1, mod2);
+            var environment = Mock.Of<IEnvironment>(e => e.GetModulesAsync(cts.Token) == Task.FromResult(moduleSet));
+            var environmentProvider = Mock.Of<IEnvironmentProvider>(e => e.Create(deploymentConfigInfo.DeploymentConfig) == environment);
 
             var restartCommand = new Mock<ICommand>(MockBehavior.Strict);
             restartCommand.Setup(r => r.ExecuteAsync(cts.Token))
                 .Returns(Task.CompletedTask);
             var commandFactory = new Mock<ICommandFactory>(MockBehavior.Strict);
-            commandFactory.Setup(c => c.RestartAsync("mod1")).ReturnsAsync(restartCommand.Object);
+            commandFactory.Setup(c => c.RestartAsync(mod1)).ReturnsAsync(restartCommand.Object);
 
-            var restartRequestHandler = new RestartRequestHandler(runtimeInfoProvider.Object, commandFactory.Object);
+            var restartRequestHandler = new RestartRequestHandler(environmentProvider, configSource, commandFactory.Object);
 
             string payload = "{\"schemaVersion\": \"1.0\",\"id\": \"mod3\"}";
 
             // Act
             await Assert.ThrowsAsync<InvalidOperationException>(() => restartRequestHandler.HandleRequest(Option.Some(payload), cts.Token));
 
-            //// Assert
-            runtimeInfoProvider.Verify(r => r.GetModules(cts.Token), Times.Once);
+            // Assert
             restartCommand.Verify(r => r.ExecuteAsync(cts.Token), Times.Never);
-            commandFactory.Verify(c => c.RestartAsync("mod1"), Times.Never);
+            commandFactory.Verify(c => c.RestartAsync(mod1), Times.Never);
+            Mock.Get(configSource).VerifyAll();
+            Mock.Get(environmentProvider).VerifyAll();
+            Mock.Get(environment).VerifyAll();
         }
 
         [Fact]
@@ -79,29 +114,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var moduleRuntimeInfo1 = new ModuleRuntimeInfo("mod1", "docker", ModuleStatus.Running, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
-            var moduleRuntimeInfo2 = new ModuleRuntimeInfo("mod2", "docker", ModuleStatus.Running, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
-            var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>(MockBehavior.Strict);
-            runtimeInfoProvider.Setup(r => r.GetModules(cts.Token))
-                .ReturnsAsync(new[] { moduleRuntimeInfo1, moduleRuntimeInfo2 });
+            var edgeAgent = Mock.Of<IEdgeAgentModule>(m => m.Name == "edgeAgent");
+            var edgeHub = Mock.Of<IEdgeHubModule>(m => m.Name == "edgeHub");
+            var mod1 = Mock.Of<IRuntimeModule>(m => m.Name == "mod1" && m.RuntimeStatus == ModuleStatus.Running);
+            var mod2 = Mock.Of<IRuntimeModule>(m => m.Name == "mod2" && m.RuntimeStatus == ModuleStatus.Running);
+            var deploymentConfigInfo = new DeploymentConfigInfo(
+                1,
+                new DeploymentConfig(
+                    "1.0",
+                    Mock.Of<IRuntimeInfo>(),
+                    new SystemModules(edgeAgent, edgeHub),
+                    new Dictionary<string, IModule>
+                    {
+                        ["mod1"] = mod1,
+                        ["mod2"] = mod2
+                    }));
+            var configSource = Mock.Of<IConfigSource>(c => c.GetDeploymentConfigInfoAsync() == Task.FromResult(deploymentConfigInfo));
+
+            var moduleSet = ModuleSet.Create(edgeAgent, edgeHub, mod1, mod2);
+            var environment = Mock.Of<IEnvironment>(e => e.GetModulesAsync(cts.Token) == Task.FromResult(moduleSet));
+            var environmentProvider = Mock.Of<IEnvironmentProvider>(e => e.Create(deploymentConfigInfo.DeploymentConfig) == environment);
 
             var restartCommand = new Mock<ICommand>(MockBehavior.Strict);
             restartCommand.Setup(r => r.ExecuteAsync(cts.Token))
                 .Returns(Task.CompletedTask);
             var commandFactory = new Mock<ICommandFactory>(MockBehavior.Strict);
-            commandFactory.Setup(c => c.RestartAsync("mod1")).ReturnsAsync(restartCommand.Object);
+            commandFactory.Setup(c => c.RestartAsync(mod1)).ReturnsAsync(restartCommand.Object);
 
-            var restartRequestHandler = new RestartRequestHandler(runtimeInfoProvider.Object, commandFactory.Object);
+            var restartRequestHandler = new RestartRequestHandler(environmentProvider, configSource, commandFactory.Object);
 
             string payload = "{\"schemaVersion\": \"2.0\",\"id\": \"mod1\"}";
 
             // Act
             await Assert.ThrowsAsync<InvalidSchemaVersionException>(() => restartRequestHandler.HandleRequest(Option.Some(payload), cts.Token));
 
-            //// Assert
-            runtimeInfoProvider.Verify(r => r.GetModules(cts.Token), Times.Never);
+            // Assert
             restartCommand.Verify(r => r.ExecuteAsync(cts.Token), Times.Never);
-            commandFactory.Verify(c => c.RestartAsync("mod1"), Times.Never);
+            commandFactory.Verify(c => c.RestartAsync(mod1), Times.Never);
         }
 
         [Fact]
@@ -109,29 +158,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var moduleRuntimeInfo1 = new ModuleRuntimeInfo("mod1", "docker", ModuleStatus.Backoff, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
-            var moduleRuntimeInfo2 = new ModuleRuntimeInfo("mod2", "docker", ModuleStatus.Running, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
-            var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>(MockBehavior.Strict);
-            runtimeInfoProvider.Setup(r => r.GetModules(cts.Token))
-                .ReturnsAsync(new[] { moduleRuntimeInfo1, moduleRuntimeInfo2 });
+            var edgeAgent = Mock.Of<IEdgeAgentModule>(m => m.Name == "edgeAgent");
+            var edgeHub = Mock.Of<IEdgeHubModule>(m => m.Name == "edgeHub");
+            var mod1 = Mock.Of<IRuntimeModule>(m => m.Name == "mod1" && m.RuntimeStatus == ModuleStatus.Failed);
+            var mod2 = Mock.Of<IRuntimeModule>(m => m.Name == "mod2" && m.RuntimeStatus == ModuleStatus.Running);
+            var deploymentConfigInfo = new DeploymentConfigInfo(
+                1,
+                new DeploymentConfig(
+                    "1.0",
+                    Mock.Of<IRuntimeInfo>(),
+                    new SystemModules(edgeAgent, edgeHub),
+                    new Dictionary<string, IModule>
+                    {
+                        ["mod1"] = mod1,
+                        ["mod2"] = mod2
+                    }));
+            var configSource = Mock.Of<IConfigSource>(c => c.GetDeploymentConfigInfoAsync() == Task.FromResult(deploymentConfigInfo));
+
+            var moduleSet = ModuleSet.Create(edgeAgent, edgeHub, mod1, mod2);
+            var environment = Mock.Of<IEnvironment>(e => e.GetModulesAsync(cts.Token) == Task.FromResult(moduleSet));
+            var environmentProvider = Mock.Of<IEnvironmentProvider>(e => e.Create(deploymentConfigInfo.DeploymentConfig) == environment);
 
             var restartCommand = new Mock<ICommand>(MockBehavior.Strict);
             restartCommand.Setup(r => r.ExecuteAsync(cts.Token))
                 .Returns(Task.CompletedTask);
             var commandFactory = new Mock<ICommandFactory>(MockBehavior.Strict);
-            commandFactory.Setup(c => c.RestartAsync("mod1")).ReturnsAsync(restartCommand.Object);
+            commandFactory.Setup(c => c.RestartAsync(mod1)).ReturnsAsync(restartCommand.Object);
 
-            var restartRequestHandler = new RestartRequestHandler(runtimeInfoProvider.Object, commandFactory.Object);
+            var restartRequestHandler = new RestartRequestHandler(environmentProvider, configSource, commandFactory.Object);
 
             string payload = "{\"schemaVersion\": \"1.0\",\"id\": \"mod1\"}";
 
             // Act
             await Assert.ThrowsAsync<InvalidOperationException>(() => restartRequestHandler.HandleRequest(Option.Some(payload), cts.Token));
 
-            //// Assert
-            runtimeInfoProvider.Verify(r => r.GetModules(cts.Token), Times.Once);
+            // Assert
             restartCommand.Verify(r => r.ExecuteAsync(cts.Token), Times.Never);
-            commandFactory.Verify(c => c.RestartAsync("mod1"), Times.Never);
+            commandFactory.Verify(c => c.RestartAsync(mod1), Times.Never);
         }
 
         [Theory]
@@ -141,27 +204,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var moduleRuntimeInfo1 = new ModuleRuntimeInfo("mod1", "docker", ModuleStatus.Backoff, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
-            var moduleRuntimeInfo2 = new ModuleRuntimeInfo("mod2", "docker", ModuleStatus.Running, string.Empty, 0, Util.Option.None<DateTime>(), Util.Option.None<DateTime>());
-            var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>(MockBehavior.Strict);
-            runtimeInfoProvider.Setup(r => r.GetModules(cts.Token))
-                .ReturnsAsync(new[] { moduleRuntimeInfo1, moduleRuntimeInfo2 });
+            var edgeAgent = Mock.Of<IEdgeAgentModule>(m => m.Name == "edgeAgent");
+            var edgeHub = Mock.Of<IEdgeHubModule>(m => m.Name == "edgeHub");
+            var mod1 = Mock.Of<IRuntimeModule>(m => m.Name == "mod1" && m.RuntimeStatus == ModuleStatus.Running);
+            var mod2 = Mock.Of<IRuntimeModule>(m => m.Name == "mod2" && m.RuntimeStatus == ModuleStatus.Running);
+            var deploymentConfigInfo = new DeploymentConfigInfo(
+                1,
+                new DeploymentConfig(
+                    "1.0",
+                    Mock.Of<IRuntimeInfo>(),
+                    new SystemModules(edgeAgent, edgeHub),
+                    new Dictionary<string, IModule>
+                    {
+                        ["mod1"] = mod1,
+                        ["mod2"] = mod2
+                    }));
+            var configSource = Mock.Of<IConfigSource>(c => c.GetDeploymentConfigInfoAsync() == Task.FromResult(deploymentConfigInfo));
+
+            var moduleSet = ModuleSet.Create(edgeAgent, edgeHub, mod1, mod2);
+            var environment = Mock.Of<IEnvironment>(e => e.GetModulesAsync(cts.Token) == Task.FromResult(moduleSet));
+            var environmentProvider = Mock.Of<IEnvironmentProvider>(e => e.Create(deploymentConfigInfo.DeploymentConfig) == environment);
 
             var restartCommand = new Mock<ICommand>(MockBehavior.Strict);
             restartCommand.Setup(r => r.ExecuteAsync(cts.Token))
                 .Returns(Task.CompletedTask);
             var commandFactory = new Mock<ICommandFactory>(MockBehavior.Strict);
-            commandFactory.Setup(c => c.RestartAsync("mod1")).ReturnsAsync(restartCommand.Object);
+            commandFactory.Setup(c => c.RestartAsync(mod1)).ReturnsAsync(restartCommand.Object);
 
-            var restartRequestHandler = new RestartRequestHandler(runtimeInfoProvider.Object, commandFactory.Object);
+            var restartRequestHandler = new RestartRequestHandler(environmentProvider, configSource, commandFactory.Object);
 
             // Act
             await Assert.ThrowsAsync<ArgumentException>(() => restartRequestHandler.HandleRequest(Option.Some(payload), cts.Token));
 
-            //// Assert
-            runtimeInfoProvider.Verify(r => r.GetModules(cts.Token), Times.Never);
+            // Assert
             restartCommand.Verify(r => r.ExecuteAsync(cts.Token), Times.Never);
-            commandFactory.Verify(c => c.RestartAsync("mod1"), Times.Never);
+            commandFactory.Verify(c => c.RestartAsync(mod1), Times.Never);
         }
     }
 }

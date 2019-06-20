@@ -19,6 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
         {
             // Arrange
             const string ModuleName = "boo";
+            var module = new Mock<IRuntimeModule>();
+            module.SetupGet(m => m.Name).Returns(ModuleName);
 
             var containerOperations = new Mock<IContainerOperations>();
             containerOperations

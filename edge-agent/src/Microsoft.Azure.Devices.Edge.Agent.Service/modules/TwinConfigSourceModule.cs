@@ -119,11 +119,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
+                        var environmentProviderTask = c.Resolve<Task<IEnvironmentProvider>>();
                         var commandFactoryTask = c.Resolve<Task<ICommandFactory>>();
-                        IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
+                        var configSourceTask = c.Resolve<Task<IConfigSource>>();
+                        IEnvironmentProvider environmentProvider = await environmentProviderTask;
                         ICommandFactory commandFactory = await commandFactoryTask;
-                        return new RestartRequestHandler(runtimeInfoProvider, commandFactory) as IRequestHandler;
+                        IConfigSource configSource = await configSourceTask;
+                        return new RestartRequestHandler(environmentProvider, configSource, commandFactory) as IRequestHandler;
                     })
                 .As<Task<IRequestHandler>>()
                 .SingleInstance();
