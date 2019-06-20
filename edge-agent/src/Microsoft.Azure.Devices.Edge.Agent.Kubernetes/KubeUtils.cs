@@ -42,6 +42,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         // The prefix is optional. If specified, the prefix must be a DNS subdomain
         public static string SanitizeAnnotationKey(string key)
         {
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new InvalidKubernetesNameException($"Key '{key}' is null or empty");
+            }
+
             char[] annotationSplit = { '/' };
             string[] keySegments = key.Split(annotationSplit, 2);
             if (keySegments.Count() == 2)
@@ -90,6 +95,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             //  - must be all lower case alphanumeric characters or '-'
             //  - must start with an alphabet
             //  - must end with an alphanumeric character
+            if (string.IsNullOrEmpty(name))
+            {
+                throw new InvalidKubernetesNameException($"Name '{name}' is null or empty");
+            }
 
             name = name.ToLower();
 
@@ -128,6 +137,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         // DNS subdomains are DNS labels separated by '.', max 253 characters.
         public static string SanitizeDNSDomain(string name)
         {
+            if (string.IsNullOrEmpty(name))
+            {
+                throw new InvalidKubernetesNameException($"Name '{name}' is null or empty");
+            }
+
             char[] nameSplit = { '.' };
             string[] dnsSegments = name.Split(nameSplit);
             var output = new StringBuilder();
@@ -210,7 +224,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             //  - must be all lower case alphanumeric characters or ['-','.','_']
             //  - must start with an alphabet
             //  - must end with an alphanumeric character
-
+            if (string.IsNullOrEmpty(name))
+            {
+                throw new InvalidKubernetesNameException($"Name '{name}' is null or empty");
+            }
             return SanitizeNameValue(name.ToLower());
         }
     }
