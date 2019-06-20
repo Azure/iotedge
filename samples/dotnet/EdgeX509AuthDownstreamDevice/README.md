@@ -6,7 +6,8 @@ and send messages using a protocol of your choices as a parameter.
 
 ## Build the sample
 
-As a prerequisite you will need the [DotNet Core SDK](https://docs.microsoft.com/en-us/dotnet/core/sdk) installed on your dev box. To build the sample, copy the contents of this directory on your dev box and follow the instructions below.
+As a prerequisite you will need the [DotNet Core SDK](https://docs.microsoft.com/en-us/dotnet/core/sdk) installed on your dev box.
+To build the sample, copy the contents of this directory on your dev box and follow the instructions below.
 
 ```
 $> cd EdgeDownstreamDevice
@@ -25,6 +26,9 @@ Before running the sample, edit the file Properties/launchSettings.json and add 
 
     ```
     HostName=your-hub.azure-devices.net;DeviceId=yourDevice;SharedAccessKey=XXXYYYZZZ=;GatewayHostName=mygateway.contoso.com
+    OR
+    HostName=mygateway.contoso.com;DeviceId=yourDevice;SharedAccessKey=XXXYYYZZZ=
+    This arrangement will only work if the downstream device is a child of the Edge device
     ```
   * Just for reference, here is the IoT Hub connection string format:
 
