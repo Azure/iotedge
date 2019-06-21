@@ -2,8 +2,9 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 {
     using System;
-    using System.IO;
+    using System.Collections.Generic;
     using System.ServiceProcess;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -76,24 +77,42 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 properties);
         }
 
+        public async Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token)
+        {
+            var properties = new List<object>();
+            var message = new StringBuilder("Configured edge daemon");
+
+            await Profiler.Run(
+                async () =>
+                {
+                    await this.InternalStopAsync(token);
+
+                    var yaml = new DaemonConfiguration();
+                    (string m, object[] p) = await config(yaml);
+
+                    message.Append($" {m}");
+                    properties.AddRange(p);
+
+                    await this.InternalStartAsync(token);
+                },
+                message.ToString(),
+                properties);
+        }
+
         Task ConfigureAsync(Option<Uri> proxy, CancellationToken token)
         {
             return proxy.ForEachAsync(
                 p =>
                 {
-                    return Profiler.Run(
-                        async () =>
+                    return this.ConfigureAsync(
+                        config =>
                         {
-                            await this.InternalStopAsync(token);
+                            config.AddHttpsProxy(p);
+                            config.Update();
 
-                            var yaml = new DaemonConfiguration();
-                            yaml.AddHttpsProxy(p);
-                            yaml.Update();
-
-                            await this.InternalStartAsync(token);
+                            return Task.FromResult(("with proxy '{ProxyUri}'", new object[] { p.ToString() }));
                         },
-                        "Configured edge daemon with proxy '{ProxyUri}'",
-                        p);
+                        token);
                 });
         }
 
