@@ -173,6 +173,7 @@ fn run() -> Result<(), Error> {
                         .takes_value(false),
                 ),
         )
+        .subcommand(SubCommand::with_name("check-list").about("List the checks that are run for 'iotedge check'"))
         .subcommand(SubCommand::with_name("list").about("List modules"))
         .subcommand(
             SubCommand::with_name("restart")
@@ -269,9 +270,8 @@ fn run() -> Result<(), Error> {
             )
             .and_then(|mut check| check.execute()),
         ),
-        ("list", Some(_args)) => {
-            tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute())
-        }
+        ("check-list", _) => Check::print_list(),
+        ("list", _) => tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),
         ("restart", Some(args)) => tokio_runtime.block_on(
             Restart::new(
                 args.value_of("MODULE").unwrap().to_string(),
@@ -297,7 +297,7 @@ fn run() -> Result<(), Error> {
                 .with_since(since);
             tokio_runtime.block_on(Logs::new(id, options, runtime()?).execute())
         }
-        ("version", Some(_args)) => tokio_runtime.block_on(Version::new().execute()),
+        ("version", _) => tokio_runtime.block_on(Version::new().execute()),
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
 }
