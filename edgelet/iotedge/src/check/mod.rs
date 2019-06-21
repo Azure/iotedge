@@ -1450,7 +1450,7 @@ fn connection_to_iot_hub_container(
         return Ok(CheckResult::Skipped);
     };
 
-    let network_name = settings.moby_runtime().network();
+    let network_name = settings.moby_runtime().network().name();
 
     let port = port.to_string();
 
