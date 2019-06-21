@@ -117,6 +117,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public Task<CloudToDeviceMethodResult> InvokeMethodAsync(
             string deviceId,
+            CloudToDeviceMethod method,
+            CancellationToken token)
+        {
+            return Retry.Do(
+                () => this.ServiceClient.InvokeDeviceMethodAsync(deviceId, method, token),
+                result => result.Status == 200,
+                e => true,
+                TimeSpan.FromSeconds(5),
+                token);
+        }
+
+        public Task<CloudToDeviceMethodResult> InvokeMethodAsync(
+            string deviceId,
             string moduleId,
             CloudToDeviceMethod method,
             CancellationToken token)
