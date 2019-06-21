@@ -193,5 +193,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 "Completed test '{Name}'",
                 name);
         }
+
+        [Test]
+        public void TransparentGateway()
+        {
+
+        }
     }
 }
