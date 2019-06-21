@@ -26,6 +26,8 @@ Errors have a high likelihood of preventing the IoT Edge runtime or the modules 
 
 Warnings might not affect immediate connectivity but are potential deviations from best practices, and may affect long term stability, offline operation or supportability of the edge device.
 
+If there are warnings but no errors, the tool will exit successfully with code 0. Use `--warnings-as-errors` to treat warnings as errors.
+
 
 # Configuration checks details
 

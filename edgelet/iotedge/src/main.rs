@@ -183,6 +183,13 @@ fn run() -> Result<(), Error> {
                         .value_name("VERBOSE")
                         .help("Increases verbosity of output.")
                         .takes_value(false),
+                )
+                .arg(
+                    Arg::with_name("warnings-as-errors")
+                        .long("warnings-as-errors")
+                        .value_name("WARNINGS_AS_ERRORS")
+                        .help("Treats warnings as errors. Thus 'iotedge check' will exit with non-zero code if it encounters warnings.")
+                        .takes_value(false),
                 ),
         )
         .subcommand(SubCommand::with_name("check-list").about("List the checks that are run for 'iotedge check'"))
@@ -284,6 +291,7 @@ fn run() -> Result<(), Error> {
                     })
                     .expect("arg has a default value"),
                 args.occurrences_of("verbose") > 0,
+                args.occurrences_of("warnings-as-errors") > 0,
             )
             .and_then(|mut check| check.execute()),
         ),

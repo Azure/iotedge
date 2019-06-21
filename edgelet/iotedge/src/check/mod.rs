@@ -183,6 +183,7 @@ pub struct Check {
     ntp_server: String,
     output_format: OutputFormat,
     verbose: bool,
+    warnings_as_errors: bool,
 
     additional_info: AdditionalInfo,
 
@@ -232,6 +233,7 @@ impl Check {
         ntp_server: String,
         output_format: OutputFormat,
         verbose: bool,
+        warnings_as_errors: bool,
     ) -> impl Future<Item = Self, Error = Error> + Send {
         let latest_versions = if let Some(expected_iotedged_version) = expected_iotedged_version {
             future::Either::A(future::ok::<_, Error>(LatestVersions {
@@ -341,6 +343,7 @@ impl Check {
                 ntp_server,
                 output_format,
                 verbose,
+                warnings_as_errors,
 
                 additional_info: AdditionalInfo::new(),
 
@@ -441,7 +444,7 @@ impl Check {
                         });
                     }
 
-                    Ok(CheckResult::Warning(warning)) => {
+                    Ok(CheckResult::Warning(ref warning)) if !self.warnings_as_errors => {
                         num_warnings += 1;
 
                         checks.insert(
@@ -523,7 +526,7 @@ impl Check {
                         });
                     }
 
-                    Err(err) => {
+                    Ok(CheckResult::Warning(err)) | Err(err) => {
                         num_errors += 1;
 
                         checks.insert(
@@ -1806,6 +1809,7 @@ mod tests {
                     "pool.ntp.org:123".to_owned(), // unused for this test
                     super::OutputFormat::Text,     // unused for this test
                     false,
+                    false,
                 ))
                 .unwrap();
 
@@ -1876,6 +1880,7 @@ mod tests {
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
                 false,
+                false,
             ))
             .unwrap();
 
@@ -1922,6 +1927,7 @@ mod tests {
                 "pool.ntp.org:123".to_owned(),              // unused for this test
                 super::OutputFormat::Text,                  // unused for this test
                 false,
+                false,
             ))
             .unwrap();
 
@@ -1959,6 +1965,7 @@ mod tests {
                 None,                          // pretend user did not specify --iothub-hostname
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
+                false,
                 false,
             ))
             .unwrap();
@@ -2001,6 +2008,7 @@ mod tests {
                 None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
+                false,
                 false,
             ))
             .unwrap();
@@ -2053,6 +2061,7 @@ mod tests {
                 None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
+                false,
                 false,
             ))
             .unwrap();
