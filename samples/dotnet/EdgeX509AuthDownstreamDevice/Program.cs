@@ -170,11 +170,6 @@ namespace Microsoft.Azure.Devices.Client.Samples
                 throw new ArgumentException($"Downstram device identity private key path is invalid");
             }
 
-            if (string.IsNullOrWhiteSpace(trustedCACertPath) || !File.Exists(trustedCACertPath))
-            {
-                throw new ArgumentException($"Iot Edge trustred CA certificate path is invalid");
-            }
-
             InstallCACert();
 
             try
@@ -195,7 +190,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
             var (cert, certChain) = GetClientCertificateAndChainFromFile(deviceIdentityCertPath, deviceIdentityPrivateKeyPath);
             InstallChainCertificates(certChain);
             var auth = new DeviceAuthenticationWithX509Certificate(downstreamDeviceId, cert);
-            DeviceClient deviceClient = DeviceClient.Create(iothubHostname, auth, TransportType.Amqp_Tcp_Only);
+            DeviceClient deviceClient = DeviceClient.Create(iothubHostname, iotEdgeGatewayHostname, auth, TransportType.Mqtt_Tcp_Only);
 
             if (deviceClient == null)
             {
@@ -252,7 +247,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
         /// </summary>
         static void InstallCACert()
         {
-            string certPath = Environment.GetEnvironmentVariable("CA_CERTIFICATE_PATH");
+            string certPath = Environment.GetEnvironmentVariable("IOTEDGE_TRUSTED_CA_CERTIFICATE_PEM_PATH");
             if (!string.IsNullOrWhiteSpace(certPath))
             {
                 Console.WriteLine("User configured CA certificate path: {0}", certPath);
@@ -274,7 +269,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
             }
             else
             {
-                Console.WriteLine("CA_CERTIFICATE_PATH was not set or null, not installing any CA certificate");
+                Console.WriteLine("IOTEDGE_TRUSTED_CA_CERTIFICATE_PEM_PATH was not set or null, not installing any CA certificate");
             }
         }
 
