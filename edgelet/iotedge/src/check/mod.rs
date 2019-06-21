@@ -2,7 +2,7 @@
 
 use std;
 use std::borrow::Cow;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::{CStr, OsStr, OsString};
 use std::fs::File;
 use std::io::{Read, Write};
@@ -177,6 +177,7 @@ pub struct Check {
     config_file: PathBuf,
     container_engine_config_path: PathBuf,
     diagnostics_image_name: String,
+    dont_run: BTreeSet<String>,
     iotedged: PathBuf,
     latest_versions: Result<super::LatestVersions, Option<Error>>,
     ntp_server: String,
@@ -224,6 +225,7 @@ impl Check {
         config_file: PathBuf,
         container_engine_config_path: PathBuf,
         diagnostics_image_name: String,
+        dont_run: BTreeSet<String>,
         expected_iotedged_version: Option<String>,
         iotedged: PathBuf,
         iothub_hostname: Option<String>,
@@ -333,6 +335,7 @@ impl Check {
                 config_file,
                 container_engine_config_path,
                 diagnostics_image_name,
+                dont_run,
                 iotedged,
                 latest_versions: latest_versions.map_err(Some),
                 ntp_server,
@@ -347,6 +350,13 @@ impl Check {
                 iothub_hostname,
             })
         })
+    }
+
+    pub fn possible_ids() -> impl Iterator<Item = &'static str> {
+        CHECKS
+            .iter()
+            .flat_map(|(_, section_checks)| *section_checks)
+            .map(|(check_id, _, _)| *check_id)
     }
 
     pub fn print_list() -> Result<(), Error> {
@@ -414,7 +424,12 @@ impl Check {
                     break;
                 }
 
-                match check(self) {
+                let check_result = if self.dont_run.contains(*check_id) {
+                    Ok(CheckResult::Ignored)
+                } else {
+                    check(self)
+                };
+                match check_result {
                     Ok(CheckResult::Ok) => {
                         num_successful += 1;
 
@@ -1784,6 +1799,7 @@ mod tests {
                     config_file.into(),
                     "daemon.json".into(), // unused for this test
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                    Default::default(),
                     Some("1.0.0".to_owned()),      // unused for this test
                     "iotedged".into(),             // unused for this test
                     None,                          // unused for this test
@@ -1853,6 +1869,7 @@ mod tests {
                 config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
                 None,                          // unused for this test
@@ -1898,6 +1915,7 @@ mod tests {
                 config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
                 Some("1.0.0".to_owned()), // unused for this test
                 "iotedged".into(),        // unused for this test
                 Some("something.something.com".to_owned()), // pretend user specified --iothub-hostname
@@ -1935,6 +1953,7 @@ mod tests {
                 config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
                 None,                          // pretend user did not specify --iothub-hostname
@@ -1976,6 +1995,7 @@ mod tests {
                 config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
                 None,                          // unused for this test
@@ -2027,6 +2047,7 @@ mod tests {
                 config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
                 None,                          // unused for this test

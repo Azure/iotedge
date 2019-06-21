@@ -80,6 +80,9 @@ fn run() -> Result<(), Error> {
         edgelet_core::version().replace("~", "-")
     );
 
+    let mut possible_check_id_values: Vec<_> = Check::possible_ids().collect();
+    possible_check_id_values.sort();
+
     let matches = App::new(crate_name!())
         .version(edgelet_core::version_with_source_version())
         .about(crate_description!())
@@ -122,6 +125,15 @@ fn run() -> Result<(), Error> {
                         .help("Sets the name of the azureiotedge-diagnostics image.")
                         .takes_value(true)
                         .default_value(&default_diagnostics_image_name),
+                )
+                .arg(
+                    Arg::with_name("dont-run")
+                        .long("dont-run")
+                        .value_name("DONT_RUN")
+                        .help("Space-separated list of check IDs. The checks listed here will not be run. See 'iotedge check-list' for details of all checks.\n")
+                        .multiple(true)
+                        .takes_value(true)
+                        .possible_values(&possible_check_id_values),
                 )
                 .arg(
                     Arg::with_name("expected-iotedged-version")
@@ -249,6 +261,11 @@ fn run() -> Result<(), Error> {
                 args.value_of("diagnostics-image-name")
                     .expect("arg has a default value")
                     .to_string(),
+                args.values_of("dont-run")
+                    .into_iter()
+                    .flatten()
+                    .map(ToOwned::to_owned)
+                    .collect(),
                 args.value_of("expected-iotedged-version")
                     .map(ToOwned::to_owned),
                 args.value_of_os("iotedged")
