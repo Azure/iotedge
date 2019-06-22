@@ -34,6 +34,9 @@ use self::additional_info::AdditionalInfo;
 mod stdout;
 use self::stdout::Stdout;
 
+mod upstream_protocol_port;
+use self::upstream_protocol_port::UpstreamProtocolPort;
+
 static CHECKS: &[(
     &str, // Section name
     &[(
@@ -96,17 +99,17 @@ static CHECKS: &[(
             (
                 "host-connect-iothub-amqp",
                 "host can connect to and perform TLS handshake with IoT Hub AMQP port",
-                |check| connection_to_iot_hub_host(check, 5671),
+                |check| connection_to_iot_hub_host(check, UpstreamProtocolPort::Amqp),
             ),
             (
                 "host-connect-iothub-https",
                 "host can connect to and perform TLS handshake with IoT Hub HTTPS / WebSockets port",
-                |check| connection_to_iot_hub_host(check, 443),
+                |check| connection_to_iot_hub_host(check, UpstreamProtocolPort::Https),
             ),
             (
                 "host-connect-iothub-mqtt",
                 "host can connect to and perform TLS handshake with IoT Hub MQTT port",
-                |check| connection_to_iot_hub_host(check, 8883),
+                |check| connection_to_iot_hub_host(check, UpstreamProtocolPort::Mqtt),
             ),
             (
                 "container-default-connect-iothub-amqp",
@@ -117,7 +120,7 @@ static CHECKS: &[(
                         // so let the module network checks handle it.
                         Ok(CheckResult::Ignored)
                     } else {
-                        connection_to_iot_hub_container(check, 5671, false)
+                        connection_to_iot_hub_container(check, UpstreamProtocolPort::Amqp, false)
                     }
                 },
             ),
@@ -130,7 +133,7 @@ static CHECKS: &[(
                         // so let the module network checks handle it.
                         Ok(CheckResult::Ignored)
                     } else {
-                        connection_to_iot_hub_container(check, 443, false)
+                        connection_to_iot_hub_container(check, UpstreamProtocolPort::Https, false)
                     }
                 },
             ),
@@ -143,7 +146,7 @@ static CHECKS: &[(
                         // so let the module network checks handle it.
                         Ok(CheckResult::Ignored)
                     } else {
-                        connection_to_iot_hub_container(check, 8883, false)
+                        connection_to_iot_hub_container(check, UpstreamProtocolPort::Mqtt, false)
                     }
                 },
             ),
@@ -151,21 +154,21 @@ static CHECKS: &[(
                 "container-module-connect-iothub-amqp",
                 "container on the IoT Edge module network can connect to IoT Hub AMQP port",
                 |check| {
-                    connection_to_iot_hub_container(check, 5671, true)
+                    connection_to_iot_hub_container(check, UpstreamProtocolPort::Amqp, true)
                 },
             ),
             (
                 "container-module-connect-iothub-https",
                 "container on the IoT Edge module network can connect to IoT Hub HTTPS / WebSockets port",
                 |check| {
-                    connection_to_iot_hub_container(check, 443, true)
+                    connection_to_iot_hub_container(check, UpstreamProtocolPort::Https, true)
                 },
             ),
             (
                 "container-module-connect-iothub-mqtt",
                 "container on the IoT Edge module network can connect to IoT Hub MQTT port",
                 |check| {
-                    connection_to_iot_hub_container(check, 8883, true)
+                    connection_to_iot_hub_container(check, UpstreamProtocolPort::Mqtt, true)
                 },
             ),
             ("edgehub-host-ports", "Edge Hub can bind to ports on host", edge_hub_ports_on_host),
@@ -191,6 +194,7 @@ pub struct Check {
     settings: Option<Settings<DockerConfig>>,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
+    edge_agent_upstream_protocol_port: Option<UpstreamProtocolPort>,
     iothub_hostname: Option<String>,
 }
 
@@ -350,6 +354,7 @@ impl Check {
                 settings: None,
                 docker_host_arg: None,
                 docker_server_version: None,
+                edge_agent_upstream_protocol_port: None,
                 iothub_hostname,
             })
         })
@@ -688,6 +693,27 @@ fn parse_settings(check: &mut Check) -> Result<CheckResult, failure::Error> {
             return Err(err.context(message).into());
         }
     };
+
+    check.edge_agent_upstream_protocol_port = settings
+        .agent()
+        .env()
+        .iter()
+        .find_map(|(name, value)| {
+            if name.to_lowercase() == "upstreamprotocol" {
+                Some(value)
+            } else {
+                None
+            }
+        })
+        .map(|edge_agent_upstream_protocol| {
+            edge_agent_upstream_protocol.parse().map_err(|err| {
+                Context::new(format!(
+                    "agent.env.UpstreamProtocol is set to an invalid value: {}",
+                    err,
+                ))
+            })
+        })
+        .transpose()?;
 
     check.settings = Some(settings);
 
@@ -1468,12 +1494,34 @@ fn connection_to_dps_endpoint(check: &mut Check) -> Result<CheckResult, failure:
     Ok(CheckResult::Ok)
 }
 
-fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResult, failure::Error> {
+fn connection_to_iot_hub_host(
+    check: &mut Check,
+    upstream_protocol_port: UpstreamProtocolPort,
+) -> Result<CheckResult, failure::Error> {
     let iothub_hostname = if let Some(iothub_hostname) = &check.iothub_hostname {
         iothub_hostname
     } else {
         return Ok(CheckResult::Skipped);
     };
+
+    #[allow(clippy::match_same_arms)]
+    match (
+        check.edge_agent_upstream_protocol_port,
+        upstream_protocol_port,
+    ) {
+        (Some(edge_agent_upstream_protocol_port), upstream_protocol_port)
+            if edge_agent_upstream_protocol_port == upstream_protocol_port => {}
+
+        // Edge Agent treats unset UpstreamProtocol to mean Amqp with fallback to AmqpWs
+        (None, UpstreamProtocolPort::Amqp) | (None, UpstreamProtocolPort::Https) => {}
+
+        // iotedged itself uses HTTPS, so always check that regardless of Edge Agent's config
+        (_, UpstreamProtocolPort::Https) => {}
+
+        _ => return Ok(CheckResult::Ignored),
+    }
+
+    let port = upstream_protocol_port.as_port();
 
     resolve_and_tls_handshake(
         &(&**iothub_hostname, port),
@@ -1486,7 +1534,7 @@ fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResul
 
 fn connection_to_iot_hub_container(
     check: &mut Check,
-    port: u16,
+    upstream_protocol_port: UpstreamProtocolPort,
     use_container_runtime_network: bool,
 ) -> Result<CheckResult, failure::Error> {
     let settings = if let Some(settings) = &check.settings {
@@ -1507,9 +1555,22 @@ fn connection_to_iot_hub_container(
         return Ok(CheckResult::Skipped);
     };
 
+    match (
+        check.edge_agent_upstream_protocol_port,
+        upstream_protocol_port,
+    ) {
+        (Some(edge_agent_upstream_protocol_port), upstream_protocol_port)
+            if edge_agent_upstream_protocol_port == upstream_protocol_port => {}
+
+        // Edge Agent treats unset UpstreamProtocol to mean Amqp with fallback to AmqpWs
+        (None, UpstreamProtocolPort::Amqp) | (None, UpstreamProtocolPort::Https) => {}
+
+        _ => return Ok(CheckResult::Ignored),
+    }
+
     let network_name = settings.moby_runtime().network();
 
-    let port = port.to_string();
+    let port = upstream_protocol_port.as_port().to_string();
 
     let mut args = vec!["run", "--rm"];
 

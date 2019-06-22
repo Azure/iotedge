@@ -118,21 +118,27 @@ When using manual provisioning, the FQDN of the IoT Hub is taken from the connec
 
 The IoT Edge daemon only uses the HTTPS protocol to connect to the IoT Hub, but connectivity from the host for the AMQP and MQTT protocols can be useful when investigating issues.
 
+If Edge Agent's `UpstreamProtocol` env var is set in the `config.yaml`, only the ports specified by that will be tested. For example, if set to `Amqp`, the MQTT port will not be tested. The HTTPS port is always tested, since the IoT Edge Security Daemon always uses the HTTPS endpoint.
+
 ## container on the default network can connect to IoT Hub AMQP / HTTPS / MQTT port
 
 The tool launches a diagnostics container on the default (`bridge`) container network. This container connects to the IoT Hub's AMQP port (5671), HTTPS port (443) and MQTT port (8883). This verifies that the IoT Hub is reachable from containers on the default container network.
 
 When using manual provisioning, the FQDN of the IoT Hub is taken from the connection string. For DPS provisioning, you must specify the FQDN of the IoT Hub using the `--iothub-hostname` parameter.
 
-Note that these checks do not perform a TLS handshake with the IoT Hub.
+If Edge Agent's `UpstreamProtocol` env var is set in the `config.yaml`, only the ports specified by that will be tested. For example, if set to `Amqp`, the HTTPS and MQTT ports will not be tested.
 
-Note that these checks do not run for Windows containers.
+Note that these checks do not perform a TLS handshake with the IoT Hub. They only test that a TCP connection can be established to the respective port.
+
+Note that these checks do not run for Windows containers since they are redundant with the following checks.
 
 ## container on the IoT Edge module network can connect to IoT Hub AMQP / HTTPS / MQTT port
 
 The tool launches a diagnostics container on the IoT Edge container network specified by the `moby_runtime.network` field (defaults to `azure-iot-edge` on Linux and `nat` on Windows). This container connects to the IoT Hub's AMQP port (5671), HTTPS port (443) and MQTT port (8883). This verifies that the IoT Hub is reachable from containers on the IoT Edge container network.
 
 When using manual provisioning, the FQDN of the IoT Hub is taken from the connection string. For DPS provisioning, you must specify the FQDN of the IoT Hub using the `--iothub-hostname` parameter.
+
+If Edge Agent's `UpstreamProtocol` env var is set in the `config.yaml`, only the ports specified by that will be tested. For example, if set to `Amqp`, the HTTPS and MQTT ports will not be tested.
 
 Note that these checks do not perform a TLS handshake with the IoT Hub.
 
