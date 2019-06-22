@@ -1,10 +1,10 @@
-use url::Url;
-use edgelet_http_mgmt::*;
 use edgelet_core::{Module, ModuleRuntime};
+use edgelet_http_mgmt::*;
 use futures::future::Future;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SparseModule {
     name: String,
 }

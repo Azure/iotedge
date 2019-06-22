@@ -1,16 +1,18 @@
 [package]
 name = "edge-dashboard"
 version = "0.1.0"
-authors = ["root"]
+authors = ["Azure IoT Edge Devs"]
 edition = "2018"
 
 [dependencies]
 actix-web = "1.0.0"
-os_info = "1.1.1"
-serde_json = "1.0.39"
 dirs = "2.0.1"
-serde = "1.0"
-url = "1.7.2"
 futures = "0.1.25"
-edgelet-http-mgmt = {path = "../../edgelet/edgelet-http-mgmt"}
+os_info = "1.1.1"
+serde = "1.0"
+serde_json = "1.0.39"
+structopt = "0.2.16"
+url = "1.7.2"
+
 edgelet-core = {path = "../../edgelet/edgelet-core"}
+edgelet-http-mgmt = {path = "../../edgelet/edgelet-http-mgmt"}

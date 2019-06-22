@@ -1,9 +1,19 @@
-use actix_web::{HttpServer, HttpRequest, HttpResponse, App, web};
 use std::io;
+
+use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer};
 use serde_json;
 
 mod modules;
 mod state;
+
+/* PR TODOS:
+- parse method
+- config parse for connection string, managmenet uri
+- #cfg macro
+- Path type for config file paths
+- ask Raj about network interface comment - structopt  command line arguments (give ip address and port)
+- 
+*/
 
 /* SOME ISSUES:
     - Linux path to get config.yaml hasn't been tested
@@ -36,16 +46,16 @@ fn get_state(_req: HttpRequest) -> HttpResponse {
         if let Some(details) = string_ref { // if con_string is valid
             let mut new_device;
             if &details[1..10] == "HostName=" {
-                new_device = state::Device::new("manual", details.to_string());
+                new_device = state::Device::new(state::State::Manual, details.to_string());
             } else {
-                new_device = state::Device::new("not provisioned", String::new());
+                new_device = state::Device::new(state::State::NotProvisioned, String::new());
             }
             return_response(&new_device)
         } else { // if con_string can't be converted to a valid device connection string
             HttpResponse::UnprocessableEntity().body("Device connection string unable to be converted")
         }
     } else { // if file doesn't exist or can't be located
-        let new_device = state::Device::new("not installed", String::new());
+        let new_device = state::Device::new(state::State::NotInstalled, String::new());
         return_response(&new_device)
     }
 }
