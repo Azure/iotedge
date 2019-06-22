@@ -69,11 +69,11 @@ impl Settings {
     }
 
     pub fn iot_hub_hostname(&self) -> Option<&str> {
-        self.iot_hub_hostname.as_ref().map(|s| s.as_str())
+        self.iot_hub_hostname.as_ref().map(String::as_str)
     }
 
     pub fn device_id(&self) -> Option<&str> {
-        self.device_id.as_ref().map(|s| s.as_str())
+        self.device_id.as_ref().map(String::as_str)
     }
 
     pub fn proxy_image(&self) -> &str {

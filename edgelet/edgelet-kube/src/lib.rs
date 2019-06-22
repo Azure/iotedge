@@ -73,7 +73,6 @@ mod tests {
             .merge(File::from_str(&config_json.to_string(), FileFormat::Json))
             .unwrap();
 
-        let settings: Settings = config.try_into().unwrap();
-        settings.into()
+        config.try_into().unwrap()
     }
 }
