@@ -837,24 +837,21 @@ mod tests {
         assert_eq!(network.name(), "azure-iot-edge");
         match network {
             MobyNetwork::Network(moby_network) => {
-                assert_eq!(moby_network.ipv6().unwrap(), &true);
-                if let Some(ipam_config) = moby_network.ipam() {
-                    let ipam_1 = Ipam::default()
-                        .with_gateway("172.18.0.1".to_string())
-                        .with_ip_range("172.18.0.0/16".to_string())
-                        .with_subnet("172.18.0.0/16".to_string());
-                    let ipam_2 = Ipam::default()
-                        .with_gateway("2001:4898:e0:3b1:1::1".to_string())
-                        .with_ip_range("2001:4898:e0:3b1:1::/80".to_string())
-                        .with_subnet("2001:4898:e0:3b1:1::/80".to_string());
-                    let expected_ipam_config: Vec<Ipam> = vec![ipam_1, ipam_2];
+                assert_eq!(moby_network.ipv6().unwrap(), true);
+                let ipam_config = moby_network.ipam().expect("Expected IPAM configuration.");
+                let ipam_1 = Ipam::default()
+                    .with_gateway("172.18.0.1".to_string())
+                    .with_ip_range("172.18.0.0/16".to_string())
+                    .with_subnet("172.18.0.0/16".to_string());
+                let ipam_2 = Ipam::default()
+                    .with_gateway("2001:4898:e0:3b1:1::1".to_string())
+                    .with_ip_range("2001:4898:e0:3b1:1::/80".to_string())
+                    .with_subnet("2001:4898:e0:3b1:1::/80".to_string());
+                let expected_ipam_config: Vec<Ipam> = vec![ipam_1, ipam_2];
 
-                    ipam_config.iter().for_each(|ipam_config| {
-                        assert_eq!(expected_ipam_config.contains(ipam_config), true);
-                    });
-                } else {
-                    panic!("Expected IPAM configuration.")
-                }
+                ipam_config.iter().for_each(|ipam_config| {
+                    assert_eq!(expected_ipam_config.contains(ipam_config), true);
+                });
             }
             MobyNetwork::Name(_name) => panic!("Unexpected network configuration."),
         };

@@ -32,8 +32,8 @@ impl Network {
         self
     }
 
-    pub fn ipv6(&self) -> Option<&bool> {
-        self.ipv6.as_ref()
+    pub fn ipv6(&self) -> Option<bool> {
+        self.ipv6
     }
 
     pub fn with_ipv6(mut self, ipv6: Option<bool>) -> Self {
@@ -41,7 +41,7 @@ impl Network {
         self
     }
 
-    pub fn ipam(&self) -> Option<&Vec<Ipam>> {
+    pub fn ipam(&self) -> Option<&[Ipam]> {
         self.ipam.as_ref().map(AsRef::as_ref)
     }
 
@@ -53,6 +53,23 @@ impl Network {
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct Ipam {
+    #[serde(rename = "config", skip_serializing_if = "Option::is_none")]
+    config: Option<IpamConfig>,
+}
+
+impl Ipam {
+    pub fn config(&self) -> Option<&IpamConfig> {
+        self.config.as_ref().map(AsRef::as_ref)
+    }
+
+    pub fn with_config(mut self, config: IpamConfig) -> Self {
+        self.config = Some(config);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct IpamConfig {
     #[serde(rename = "gateway", skip_serializing_if = "Option::is_none")]
     gateway: Option<String>,
 
@@ -63,7 +80,7 @@ pub struct Ipam {
     ip_range: Option<String>,
 }
 
-impl Ipam {
+impl IpamConfig {
     pub fn gateway(&self) -> Option<&str> {
         self.gateway.as_ref().map(AsRef::as_ref)
     }
@@ -148,7 +165,7 @@ mod tests {
             .with_ipam(Some(vec![ipam.clone()]));
 
         assert_eq!(network_name, network.name());
-        assert_eq!(&ipv6, network.ipv6().unwrap());
+        assert_eq!(ipv6, network.ipv6().unwrap());
         assert_eq!(true, network.ipam().unwrap().contains(&ipam));
     }
 

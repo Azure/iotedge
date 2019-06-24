@@ -30,7 +30,7 @@ listen:
   management_uri: "http://0.0.0.0:8080"
 homedir: "C:\\Temp"
 moby_runtime:
-  uri: "npipe://./pipe/iotedge_moby_engine"
+  uri: "http://localhost:2375"
   network:
     name: "azure-iot-edge"
     ipv6: true

@@ -95,25 +95,29 @@ impl DockerModuleRuntime {
     pub fn with_network_configuration(mut self, network_configuration: MobyNetwork) -> Self {
         self.network_id = Some(network_configuration.name().to_string());
         if let MobyNetwork::Network(network) = network_configuration {
-            self.ipv6 = network.ipv6().unwrap_or_else(|| &false).to_owned();
+            self.ipv6 = network.ipv6().unwrap_or_default();
             if let Some(ipam_config) = network.ipam() {
-                let mut config: Vec<::std::collections::HashMap<String, String>> = Vec::new();
-                ipam_config.iter().for_each(|ipam_config| {
-                    let mut config_map = HashMap::new();
-                    if let Some(gateway_config) = ipam_config.gateway() {
-                        config_map.insert("Gateway".to_string(), gateway_config.to_string());
-                    };
+                let config: Vec<_> = ipam_config.iter().filter_map(|ipam_config| {
+                    if let Some(ipam_config) = ipam_config.config() {
+                        let mut config_map = HashMap::new();
+                        if let Some(gateway_config) = ipam_config.gateway() {
+                            config_map.insert("Gateway".to_string(), gateway_config.to_string());
+                        };
 
-                    if let Some(subnet_config) = ipam_config.subnet() {
-                        config_map.insert("Subnet".to_string(), subnet_config.to_string());
-                    };
+                        if let Some(subnet_config) = ipam_config.subnet() {
+                            config_map.insert("Subnet".to_string(), subnet_config.to_string());
+                        };
 
-                    if let Some(ip_range_config) = ipam_config.ip_range() {
-                        config_map.insert("IPRange".to_string(), ip_range_config.to_string());
-                    };
+                        if let Some(ip_range_config) = ipam_config.ip_range() {
+                            config_map.insert("IPRange".to_string(), ip_range_config.to_string());
+                        };
 
-                    config.push(config_map);
-                });
+                        Some(config_map)
+                    }
+                    else{
+                        None
+                    }
+                }).collect();
 
                 self.ipam = Some(Ipam::new().with_config(config));
             }
