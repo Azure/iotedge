@@ -52,23 +52,23 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 }
 
                 this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
-                this.EventHubEndpoint = Get("EVENT_HUB_ENDPOINT");
                 this.DeviceId = GetOrDefault("deviceId", $"end-to-end-{Dns.GetHostName()}-{DateTime.Now:yyyy'-'MM'-'dd'T'HH'-'mm'-'ss'-'fff}");
+                this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
+                this.EdgeHubImage = Option.Maybe(Get("edgeHubImage"));
+                this.EventHubEndpoint = Get("EVENT_HUB_ENDPOINT");
                 this.InstallerPath = Option.Maybe(Get("installerPath"));
+                this.LogFile = Option.Maybe(Get("logFile"));
+                this.MethodReceiverImage = Option.Maybe(Get("methodReceiverImage"));
+                this.MethodSenderImage = Option.Maybe(Get("methodSenderImage"));
+                this.OptimizeForPerformance = context.GetValue("optimizeForPerformance", true);
                 this.PackagePath = Option.Maybe(Get("packagePath"));
                 this.Proxy = Option.Maybe(context.GetValue<Uri>("proxy"));
                 this.Registries = GetAndValidateRegistries();
-                this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
-                this.EdgeHubImage = Option.Maybe(Get("edgeHubImage"));
-                this.TempSensorImage = Option.Maybe(Get("tempSensorImage"));
-                this.MethodSenderImage = Option.Maybe(Get("methodSenderImage"));
-                this.MethodReceiverImage = Option.Maybe(Get("methodReceiverImage"));
-                this.LogFile = Option.Maybe(Get("logFile"));
-                this.Verbose = context.GetValue<bool>("verbose");
-                this.OptimizeForPerformance = context.GetValue("optimizeForPerformance", true);
                 this.SetupTimeout = TimeSpan.FromMinutes(context.GetValue("setupTimeoutMinutes", 5));
                 this.TeardownTimeout = TimeSpan.FromMinutes(context.GetValue("teardownTimeoutMinutes", 2));
+                this.TempSensorImage = Option.Maybe(Get("tempSensorImage"));
                 this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
+                this.Verbose = context.GetValue<bool>("verbose");
         }
 
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
@@ -77,11 +77,23 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         public string ConnectionString { get; }
 
-        public string EventHubEndpoint { get; }
-
         public string DeviceId { get; }
 
+        public Option<string> EdgeAgentImage { get; }
+
+        public Option<string> EdgeHubImage { get; }
+
+        public string EventHubEndpoint { get; }
+
         public Option<string> InstallerPath { get; }
+
+        public Option<string> LogFile { get; }
+
+        public Option<string> MethodReceiverImage { get; }
+
+        public Option<string> MethodSenderImage { get; }
+
+        public bool OptimizeForPerformance { get; }
 
         public Option<string> PackagePath { get; }
 
@@ -89,26 +101,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         public IEnumerable<(string address, string username, string password)> Registries { get; }
 
-        public Option<string> EdgeAgentImage { get; }
-
-        public Option<string> EdgeHubImage { get; }
-
-        public Option<string> TempSensorImage { get; }
-
-        public Option<string> MethodSenderImage { get; }
-
-        public Option<string> MethodReceiverImage { get; }
-
-        public Option<string> LogFile { get; }
-
-        public bool OptimizeForPerformance { get; }
-
-        public bool Verbose { get; }
-
         public TimeSpan SetupTimeout { get; }
 
         public TimeSpan TeardownTimeout { get; }
 
+        public Option<string> TempSensorImage { get; }
+
         public TimeSpan TestTimeout { get; }
+
+        public bool Verbose { get; }
     }
 }
