@@ -2,7 +2,7 @@
 
 use std;
 use std::borrow::Cow;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::{CStr, OsStr, OsString};
 use std::fs::File;
 use std::io::{Read, Write};
@@ -34,15 +34,159 @@ use self::additional_info::AdditionalInfo;
 mod stdout;
 use self::stdout::Stdout;
 
+mod upstream_protocol_port;
+use self::upstream_protocol_port::UpstreamProtocolPort;
+
+static CHECKS: &[(
+    &str, // Section name
+    &[(
+        &str,                                                  // Check ID
+        &str,                                                  // Check description
+        fn(&mut Check) -> Result<CheckResult, failure::Error>, // Check function
+    )],
+)] = &[
+    (
+        "Configuration checks",
+        &[
+            ("config-yaml-well-formed", "config.yaml is well-formed", parse_settings),
+            (
+                "connection-string",
+                "config.yaml has well-formed connection string",
+                settings_connection_string,
+            ),
+            (
+                "container-engine-uri",
+                "container engine is installed and functional",
+                container_engine,
+            ),
+            ("windows-host-version", "Windows host version is supported", host_version),
+            ("hostname", "config.yaml has correct hostname", settings_hostname),
+            (
+                "connect-management-uri",
+                "config.yaml has correct URIs for daemon mgmt endpoint",
+                daemon_mgmt_endpoint_uri,
+            ),
+            ("iotedged-version", "latest security daemon", iotedged_version),
+            ("host-local-time", "host time is close to real time", host_local_time),
+            ("container-local-time", "container time is close to host time", container_local_time),
+            ("container-engine-dns", "DNS server", container_engine_dns),
+            ("certificates-quickstart", "production readiness: certificates", settings_certificates),
+            (
+                "certificates-expiry",
+                "production readiness: certificates expiry",
+                settings_certificates_expiry,
+            ),
+            (
+                "container-engine-is-moby",
+                "production readiness: container engine",
+                settings_moby_runtime_uri,
+            ),
+            (
+                "container-engine-logrotate",
+                "production readiness: logs policy",
+                container_engine_logrotate,
+            ),
+        ],
+    ),
+    (
+        "Connectivity checks",
+        &[
+            (
+                "host-connect-dps-endpoint",
+                "host can connect to and perform TLS handshake with DPS endpoint",
+                connection_to_dps_endpoint,
+            ),
+            (
+                "host-connect-iothub-amqp",
+                "host can connect to and perform TLS handshake with IoT Hub AMQP port",
+                |check| connection_to_iot_hub_host(check, UpstreamProtocolPort::Amqp),
+            ),
+            (
+                "host-connect-iothub-https",
+                "host can connect to and perform TLS handshake with IoT Hub HTTPS / WebSockets port",
+                |check| connection_to_iot_hub_host(check, UpstreamProtocolPort::Https),
+            ),
+            (
+                "host-connect-iothub-mqtt",
+                "host can connect to and perform TLS handshake with IoT Hub MQTT port",
+                |check| connection_to_iot_hub_host(check, UpstreamProtocolPort::Mqtt),
+            ),
+            (
+                "container-default-connect-iothub-amqp",
+                "container on the default network can connect to IoT Hub AMQP port",
+                |check| {
+                    if cfg!(windows) {
+                        // The default network is the same as the IoT Edge module network,
+                        // so let the module network checks handle it.
+                        Ok(CheckResult::Ignored)
+                    } else {
+                        connection_to_iot_hub_container(check, UpstreamProtocolPort::Amqp, false)
+                    }
+                },
+            ),
+            (
+                "container-default-connect-iothub-https",
+                "container on the default network can connect to IoT Hub HTTPS / WebSockets port",
+                |check| {
+                    if cfg!(windows) {
+                        // The default network is the same as the IoT Edge module network,
+                        // so let the module network checks handle it.
+                        Ok(CheckResult::Ignored)
+                    } else {
+                        connection_to_iot_hub_container(check, UpstreamProtocolPort::Https, false)
+                    }
+                },
+            ),
+            (
+                "container-default-connect-iothub-mqtt",
+                "container on the default network can connect to IoT Hub MQTT port",
+                |check| {
+                    if cfg!(windows) {
+                        // The default network is the same as the IoT Edge module network,
+                        // so let the module network checks handle it.
+                        Ok(CheckResult::Ignored)
+                    } else {
+                        connection_to_iot_hub_container(check, UpstreamProtocolPort::Mqtt, false)
+                    }
+                },
+            ),
+            (
+                "container-module-connect-iothub-amqp",
+                "container on the IoT Edge module network can connect to IoT Hub AMQP port",
+                |check| {
+                    connection_to_iot_hub_container(check, UpstreamProtocolPort::Amqp, true)
+                },
+            ),
+            (
+                "container-module-connect-iothub-https",
+                "container on the IoT Edge module network can connect to IoT Hub HTTPS / WebSockets port",
+                |check| {
+                    connection_to_iot_hub_container(check, UpstreamProtocolPort::Https, true)
+                },
+            ),
+            (
+                "container-module-connect-iothub-mqtt",
+                "container on the IoT Edge module network can connect to IoT Hub MQTT port",
+                |check| {
+                    connection_to_iot_hub_container(check, UpstreamProtocolPort::Mqtt, true)
+                },
+            ),
+            ("edgehub-host-ports", "Edge Hub can bind to ports on host", edge_hub_ports_on_host),
+        ],
+    ),
+];
+
 pub struct Check {
     config_file: PathBuf,
     container_engine_config_path: PathBuf,
     diagnostics_image_name: String,
+    dont_run: BTreeSet<String>,
     iotedged: PathBuf,
     latest_versions: Result<super::LatestVersions, Option<Error>>,
     ntp_server: String,
     output_format: OutputFormat,
     verbose: bool,
+    warnings_as_errors: bool,
 
     additional_info: AdditionalInfo,
 
@@ -85,12 +229,14 @@ impl Check {
         config_file: PathBuf,
         container_engine_config_path: PathBuf,
         diagnostics_image_name: String,
+        dont_run: BTreeSet<String>,
         expected_iotedged_version: Option<String>,
         iotedged: PathBuf,
         iothub_hostname: Option<String>,
         ntp_server: String,
         output_format: OutputFormat,
         verbose: bool,
+        warnings_as_errors: bool,
     ) -> impl Future<Item = Self, Error = Error> + Send {
         let latest_versions = if let Some(expected_iotedged_version) = expected_iotedged_version {
             future::Either::A(future::ok::<_, Error>(LatestVersions {
@@ -194,11 +340,13 @@ impl Check {
                 config_file,
                 container_engine_config_path,
                 diagnostics_image_name,
+                dont_run,
                 iotedged,
                 latest_versions: latest_versions.map_err(Some),
                 ntp_server,
                 output_format,
                 verbose,
+                warnings_as_errors,
 
                 additional_info: AdditionalInfo::new(),
 
@@ -210,146 +358,53 @@ impl Check {
         })
     }
 
-    fn execute_inner(&mut self) -> Result<(), Error> {
-        const CHECKS: &[(
-            &str, // Section name
-            &[(
-                &str,                                                  // Check ID
-                &str,                                                  // Check description
-                fn(&mut Check) -> Result<CheckResult, failure::Error>, // Check function
-            )],
-        )] = &[
-            (
-                "Configuration checks",
-                &[
-                    ("config-yaml-well-formed", "config.yaml is well-formed", parse_settings),
-                    (
-                        "connection-string",
-                        "config.yaml has well-formed connection string",
-                        settings_connection_string,
-                    ),
-                    (
-                        "container-engine-uri",
-                        "container engine is installed and functional",
-                        container_engine,
-                    ),
-                    ("windows-host-version", "Windows host version is supported", host_version),
-                    ("hostname", "config.yaml has correct hostname", settings_hostname),
-                    (
-                        "connect-management-uri",
-                        "config.yaml has correct URIs for daemon mgmt endpoint",
-                        daemon_mgmt_endpoint_uri,
-                    ),
-                    ("iotedged-version", "latest security daemon", iotedged_version),
-                    ("host-local-time", "host time is close to real time", host_local_time),
-                    ("container-local-time", "container time is close to host time", container_local_time),
-                    ("container-engine-dns", "DNS server", container_engine_dns),
-                    ("certificates-quickstart", "production readiness: certificates", settings_certificates),
-                    (
-                        "certificates-expiry",
-                        "production readiness: certificates expiry",
-                        settings_certificates_expiry,
-                    ),
-                    (
-                        "container-engine-is-moby",
-                        "production readiness: container engine",
-                        settings_moby_runtime_uri,
-                    ),
-                    (
-                        "container-engine-logrotate",
-                        "production readiness: logs policy",
-                        container_engine_logrotate,
-                    ),
-                ],
-            ),
-            (
-                "Connectivity checks",
-                &[
-                    (
-                        "host-connect-dps-endpoint",
-                        "host can connect to and perform TLS handshake with DPS endpoint",
-                        connection_to_dps_endpoint,
-                    ),
-                    (
-                        "host-connect-iothub-amqp",
-                        "host can connect to and perform TLS handshake with IoT Hub AMQP port",
-                        |check| connection_to_iot_hub_host(check, 5671),
-                    ),
-                    (
-                        "host-connect-iothub-https",
-                        "host can connect to and perform TLS handshake with IoT Hub HTTPS / WebSockets port",
-                        |check| connection_to_iot_hub_host(check, 443),
-                    ),
-                    (
-                        "host-connect-iothub-mqtt",
-                        "host can connect to and perform TLS handshake with IoT Hub MQTT port",
-                        |check| connection_to_iot_hub_host(check, 8883),
-                    ),
-                    (
-                        "container-default-connect-iothub-amqp",
-                        "container on the default network can connect to IoT Hub AMQP port",
-                        |check| {
-                            if cfg!(windows) {
-                                // The default network is the same as the IoT Edge module network,
-                                // so let the module network checks handle it.
-                                Ok(CheckResult::Ignored)
-                            } else {
-                                connection_to_iot_hub_container(check, 5671, false)
-                            }
-                        },
-                    ),
-                    (
-                        "container-default-connect-iothub-https",
-                        "container on the default network can connect to IoT Hub HTTPS / WebSockets port",
-                        |check| {
-                            if cfg!(windows) {
-                                // The default network is the same as the IoT Edge module network,
-                                // so let the module network checks handle it.
-                                Ok(CheckResult::Ignored)
-                            } else {
-                                connection_to_iot_hub_container(check, 443, false)
-                            }
-                        },
-                    ),
-                    (
-                        "container-default-connect-iothub-mqtt",
-                        "container on the default network can connect to IoT Hub MQTT port",
-                        |check| {
-                            if cfg!(windows) {
-                                // The default network is the same as the IoT Edge module network,
-                                // so let the module network checks handle it.
-                                Ok(CheckResult::Ignored)
-                            } else {
-                                connection_to_iot_hub_container(check, 8883, false)
-                            }
-                        },
-                    ),
-                    (
-                        "container-module-connect-iothub-amqp",
-                        "container on the IoT Edge module network can connect to IoT Hub AMQP port",
-                        |check| {
-                            connection_to_iot_hub_container(check, 5671, true)
-                        },
-                    ),
-                    (
-                        "container-module-connect-iothub-https",
-                        "container on the IoT Edge module network can connect to IoT Hub HTTPS / WebSockets port",
-                        |check| {
-                            connection_to_iot_hub_container(check, 443, true)
-                        },
-                    ),
-                    (
-                        "container-module-connect-iothub-mqtt",
-                        "container on the IoT Edge module network can connect to IoT Hub MQTT port",
-                        |check| {
-                            connection_to_iot_hub_container(check, 8883, true)
-                        },
-                    ),
-                    ("edgehub-host-ports", "Edge Hub can bind to ports on host", edge_hub_ports_on_host),
-                ],
-            ),
-        ];
+    pub fn possible_ids() -> impl Iterator<Item = &'static str> {
+        CHECKS
+            .iter()
+            .flat_map(|(_, section_checks)| *section_checks)
+            .map(|(check_id, _, _)| *check_id)
+    }
 
+    pub fn print_list() -> Result<(), Error> {
+        // All our text is ASCII, so we can check for number of chars rather than using unicode-segmentation to count graphemes.
+        let widest_section_name_len = CHECKS
+            .iter()
+            .map(|(section_name, _)| section_name.len())
+            .max()
+            .expect("Have at least one section");
+        let widest_check_id_len = CHECKS
+            .iter()
+            .flat_map(|(_, section_checks)| *section_checks)
+            .map(|(check_id, _, _)| check_id.len())
+            .max()
+            .expect("Have at least one check");
+
+        println!(
+            "CATEGORY{}ID{}DESCRIPTION",
+            " ".repeat(widest_section_name_len - "CATEGORY".len() + 1),
+            " ".repeat(widest_check_id_len - "ID".len() + 1),
+        );
+        println!();
+
+        for (section_name, section_checks) in CHECKS {
+            for (check_id, check_name, _) in *section_checks {
+                println!(
+                    "{}{}{}{}{}",
+                    section_name,
+                    " ".repeat(widest_section_name_len - section_name.len() + 1),
+                    check_id,
+                    " ".repeat(widest_check_id_len - check_id.len() + 1),
+                    check_name,
+                );
+            }
+
+            println!();
+        }
+
+        Ok(())
+    }
+
+    fn execute_inner(&mut self) -> Result<(), Error> {
         let mut checks: BTreeMap<&str, _> = Default::default();
 
         let mut stdout = Stdout::new(self.output_format);
@@ -375,7 +430,12 @@ impl Check {
                     break;
                 }
 
-                match check(self) {
+                let check_result = if self.dont_run.contains(*check_id) {
+                    Ok(CheckResult::Ignored)
+                } else {
+                    check(self)
+                };
+                match check_result {
                     Ok(CheckResult::Ok) => {
                         num_successful += 1;
 
@@ -387,7 +447,7 @@ impl Check {
                         });
                     }
 
-                    Ok(CheckResult::Warning(warning)) => {
+                    Ok(CheckResult::Warning(ref warning)) if !self.warnings_as_errors => {
                         num_warnings += 1;
 
                         checks.insert(
@@ -469,7 +529,7 @@ impl Check {
                         });
                     }
 
-                    Err(err) => {
+                    Ok(CheckResult::Warning(err)) | Err(err) => {
                         num_errors += 1;
 
                         checks.insert(
@@ -1411,12 +1471,17 @@ fn connection_to_dps_endpoint(check: &mut Check) -> Result<CheckResult, failure:
     Ok(CheckResult::Ok)
 }
 
-fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResult, failure::Error> {
+fn connection_to_iot_hub_host(
+    check: &mut Check,
+    upstream_protocol_port: UpstreamProtocolPort,
+) -> Result<CheckResult, failure::Error> {
     let iothub_hostname = if let Some(iothub_hostname) = &check.iothub_hostname {
         iothub_hostname
     } else {
         return Ok(CheckResult::Skipped);
     };
+
+    let port = upstream_protocol_port.as_port();
 
     resolve_and_tls_handshake(
         &(&**iothub_hostname, port),
@@ -1429,7 +1494,7 @@ fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResul
 
 fn connection_to_iot_hub_container(
     check: &mut Check,
-    port: u16,
+    upstream_protocol_port: UpstreamProtocolPort,
     use_container_runtime_network: bool,
 ) -> Result<CheckResult, failure::Error> {
     let settings = if let Some(settings) = &check.settings {
@@ -1452,7 +1517,7 @@ fn connection_to_iot_hub_container(
 
     let network_name = settings.moby_runtime().network();
 
-    let port = port.to_string();
+    let port = upstream_protocol_port.as_port().to_string();
 
     let mut args = vec!["run", "--rm"];
 
@@ -1745,11 +1810,13 @@ mod tests {
                     config_file.into(),
                     "daemon.json".into(), // unused for this test
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                    Default::default(),
                     Some("1.0.0".to_owned()),      // unused for this test
                     "iotedged".into(),             // unused for this test
                     None,                          // unused for this test
                     "pool.ntp.org:123".to_owned(), // unused for this test
                     super::OutputFormat::Text,     // unused for this test
+                    false,
                     false,
                 ))
                 .unwrap();
@@ -1814,11 +1881,13 @@ mod tests {
                 config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
                 None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
+                false,
                 false,
             ))
             .unwrap();
@@ -1859,11 +1928,13 @@ mod tests {
                 config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
                 Some("1.0.0".to_owned()), // unused for this test
                 "iotedged".into(),        // unused for this test
                 Some("something.something.com".to_owned()), // pretend user specified --iothub-hostname
                 "pool.ntp.org:123".to_owned(),              // unused for this test
                 super::OutputFormat::Text,                  // unused for this test
+                false,
                 false,
             ))
             .unwrap();
@@ -1896,11 +1967,13 @@ mod tests {
                 config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
                 None,                          // pretend user did not specify --iothub-hostname
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
+                false,
                 false,
             ))
             .unwrap();
@@ -1937,11 +2010,13 @@ mod tests {
                 config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
                 None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
+                false,
                 false,
             ))
             .unwrap();
@@ -1988,11 +2063,13 @@ mod tests {
                 config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
                 None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
+                false,
                 false,
             ))
             .unwrap();

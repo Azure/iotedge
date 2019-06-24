@@ -26,6 +26,8 @@ Errors have a high likelihood of preventing the IoT Edge runtime or the modules 
 
 Warnings might not affect immediate connectivity but are potential deviations from best practices, and may affect long term stability, offline operation or supportability of the edge device.
 
+If there are warnings but no errors, the tool will exit successfully with code 0. Use `--warnings-as-errors` to treat warnings as errors.
+
 
 # Configuration checks details
 
@@ -122,9 +124,9 @@ The tool launches a diagnostics container on the default (`bridge`) container ne
 
 When using manual provisioning, the FQDN of the IoT Hub is taken from the connection string. For DPS provisioning, you must specify the FQDN of the IoT Hub using the `--iothub-hostname` parameter.
 
-Note that these checks do not perform a TLS handshake with the IoT Hub.
+Note that these checks do not perform a TLS handshake with the IoT Hub. They only test that a TCP connection can be established to the respective port.
 
-Note that these checks do not run for Windows containers.
+Note that these checks do not run for Windows containers since they are redundant with the following checks.
 
 ## container on the IoT Edge module network can connect to IoT Hub AMQP / HTTPS / MQTT port
 
@@ -132,7 +134,7 @@ The tool launches a diagnostics container on the IoT Edge container network spec
 
 When using manual provisioning, the FQDN of the IoT Hub is taken from the connection string. For DPS provisioning, you must specify the FQDN of the IoT Hub using the `--iothub-hostname` parameter.
 
-Note that these checks do not perform a TLS handshake with the IoT Hub.
+Note that these checks do not perform a TLS handshake with the IoT Hub. They only test that a TCP connection can be established to the respective port.
 
 ## Edge Hub can bind to ports on host
 
