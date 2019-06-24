@@ -194,7 +194,6 @@ pub struct Check {
     settings: Option<Settings<DockerConfig>>,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
-    edge_agent_upstream_protocol_port: Option<UpstreamProtocolPort>,
     iothub_hostname: Option<String>,
 }
 
@@ -354,7 +353,6 @@ impl Check {
                 settings: None,
                 docker_host_arg: None,
                 docker_server_version: None,
-                edge_agent_upstream_protocol_port: None,
                 iothub_hostname,
             })
         })
@@ -693,27 +691,6 @@ fn parse_settings(check: &mut Check) -> Result<CheckResult, failure::Error> {
             return Err(err.context(message).into());
         }
     };
-
-    check.edge_agent_upstream_protocol_port = settings
-        .agent()
-        .env()
-        .iter()
-        .find_map(|(name, value)| {
-            if name.to_lowercase() == "upstreamprotocol" {
-                Some(value)
-            } else {
-                None
-            }
-        })
-        .map(|edge_agent_upstream_protocol| {
-            edge_agent_upstream_protocol.parse().map_err(|err| {
-                Context::new(format!(
-                    "agent.env.UpstreamProtocol is set to an invalid value: {}",
-                    err,
-                ))
-            })
-        })
-        .transpose()?;
 
     check.settings = Some(settings);
 
@@ -1504,23 +1481,6 @@ fn connection_to_iot_hub_host(
         return Ok(CheckResult::Skipped);
     };
 
-    #[allow(clippy::match_same_arms)]
-    match (
-        check.edge_agent_upstream_protocol_port,
-        upstream_protocol_port,
-    ) {
-        (Some(edge_agent_upstream_protocol_port), upstream_protocol_port)
-            if edge_agent_upstream_protocol_port == upstream_protocol_port => {}
-
-        // Edge Agent treats unset UpstreamProtocol to mean Amqp with fallback to AmqpWs
-        (None, UpstreamProtocolPort::Amqp) | (None, UpstreamProtocolPort::Https) => {}
-
-        // iotedged itself uses HTTPS, so always check that regardless of Edge Agent's config
-        (_, UpstreamProtocolPort::Https) => {}
-
-        _ => return Ok(CheckResult::Ignored),
-    }
-
     let port = upstream_protocol_port.as_port();
 
     resolve_and_tls_handshake(
@@ -1554,19 +1514,6 @@ fn connection_to_iot_hub_container(
     } else {
         return Ok(CheckResult::Skipped);
     };
-
-    match (
-        check.edge_agent_upstream_protocol_port,
-        upstream_protocol_port,
-    ) {
-        (Some(edge_agent_upstream_protocol_port), upstream_protocol_port)
-            if edge_agent_upstream_protocol_port == upstream_protocol_port => {}
-
-        // Edge Agent treats unset UpstreamProtocol to mean Amqp with fallback to AmqpWs
-        (None, UpstreamProtocolPort::Amqp) | (None, UpstreamProtocolPort::Https) => {}
-
-        _ => return Ok(CheckResult::Ignored),
-    }
 
     let network_name = settings.moby_runtime().network();
 

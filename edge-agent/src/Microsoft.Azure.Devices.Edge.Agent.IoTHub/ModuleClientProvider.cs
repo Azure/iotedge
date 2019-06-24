@@ -153,9 +153,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     {
                         // The device SDK doesn't appear to be falling back to WebSocket from TCP,
                         // so we'll do it explicitly until we can get the SDK sorted out.
-                        //
-                        // Note: `iotedge check`'s `connection_to_iot_hub_container` also contains logic to determine the default upstream protocol.
-                        // Ensure any changes here are replicated there.
                         Try<ISdkModuleClient> result = await Fallback.ExecuteAsync(
                             () => this.CreateAndOpenSdkModuleClient(UpstreamProtocol.Amqp, statusChangedHandler),
                             () => this.CreateAndOpenSdkModuleClient(UpstreamProtocol.AmqpWs, statusChangedHandler));

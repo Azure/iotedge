@@ -17,19 +17,3 @@ impl UpstreamProtocolPort {
         }
     }
 }
-
-impl std::str::FromStr for UpstreamProtocolPort {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match &*s.to_lowercase() {
-            "amqp" => Ok(UpstreamProtocolPort::Amqp),
-            "amqpws" | "mqttws" => Ok(UpstreamProtocolPort::Https),
-            "mqtt" => Ok(UpstreamProtocolPort::Mqtt),
-            _ => Err(format!(
-                r#"expected one of "Amqp", "AmqpWs", "Mqtt" or "MqttWs" but got {:?}"#,
-                s,
-            )),
-        }
-    }
-}
