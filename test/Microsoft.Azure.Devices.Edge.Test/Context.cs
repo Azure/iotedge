@@ -56,6 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 this.MethodReceiverImage = Option.Maybe(Get("methodReceiverImage"));
                 this.LogFile = Option.Maybe(Get("logFile"));
                 this.Verbose = context.GetValue<bool>("verbose");
+                this.OptimizeForPerformance = context.GetValue("optimizeForPerformance", true);
                 this.SetupTimeout = TimeSpan.FromMinutes(context.GetValue("setupTimeoutMinutes", 5));
                 this.TeardownTimeout = TimeSpan.FromMinutes(context.GetValue("teardownTimeoutMinutes", 2));
                 this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
@@ -90,6 +91,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public Option<string> MethodReceiverImage { get; }
 
         public Option<string> LogFile { get; }
+
+        public bool OptimizeForPerformance { get; }
 
         public bool Verbose { get; }
 
