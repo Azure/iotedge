@@ -1,8 +1,13 @@
+extern crate yaml_rust;
+
+use std::collections::HashMap;
 use std::env;
 use std::io::Result;
 use std::fs;
 use std::path::Path;
+
 use serde::{Deserialize, Serialize};
+use yaml_rust::YamlLoader;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum State {
@@ -24,64 +29,74 @@ pub struct Device {
 impl Device {
     // makes a new Device struct based on the state
     pub fn new(state: State, conn_str: String) -> Self {
+        let map = parse_query(&conn_str, ';', '=');
+        // println!("{:?}", map);
         Device {
             state: state,
-            hub_name: get_hub_name(&conn_str),
-            device_id: get_device_id(&conn_str),
+            hub_name: get_val(&map, "HostName"),
+            device_id: get_val(&map, "DeviceId"),
         }
     }
 }
-
 // returns the connection string given the config.yaml file contents
 pub fn get_connection_string(contents: String) -> Option<String> {
-    let pattern = "device_connection_string: ";
-    let start = &contents.find(pattern)? + pattern.len();
-    let end = &contents.find("# DPS TPM provisioning configuration")? + 0;
-    let conn_str = contents[start..end].trim().to_string();
-    println!("conn_str: {}", conn_str);
-    Some(conn_str)
+    if let Ok(doc) = YamlLoader::load_from_str(&contents) {
+        doc[0]["provisioning"]["device_connection_string"].as_str().map(|c| c.to_string())
+    } else {
+        None
+    }
 }
 
-// returns a tuple of the hub name and device IDs
-pub fn get_device_details(device_string: String) -> Option<(String, String)> {
-    let hub_name = get_hub_name(&device_string)?;
-    let device_id = get_device_id(&device_string)?;
-    println!("hub_name: {}", hub_name);
-    println!("device_id: {}", device_id);
-    Some((hub_name, device_id))
+// returns the value as an Option from the map
+pub fn get_val(map: &HashMap<&str, String>, key: &str) -> Option<String> {
+    if key == "HostName" {
+        if let Some(val) = map.get("HostName") {
+            let list: Vec<&str> = val.split('.').collect();
+            return Some(list[0].to_string());
+        } else {
+            return None;
+        }
+    } 
+    map.get(key).map(|val| val.to_string())
 }
 
-// TODO - replace with a better parser (from edgelet)
-// returns the hub name of the edge device
-pub fn get_hub_name(dev_str: &str) -> Option<String> {
-    let start_pattern = "HostName=";
-    let start = dev_str.find(start_pattern)? + start_pattern.len();
-    let end = dev_str.find(".azure-devices.net")?;
-    Some(dev_str[start..end].trim().to_string())
+// parses the given connection string by delimiters
+pub fn parse_query(query: &str, pair_delim: char, kv_delim: char) -> HashMap<&str, String> {
+    query
+        .split(pair_delim)
+        .filter_map(|seg| {
+            if seg.is_empty() {
+                None
+            } else {
+                let mut tokens = seg.splitn(2, kv_delim);
+                if let Some(key) = tokens.next() {
+                    let val = tokens.next().unwrap_or("").to_string();
+                    Some((key, val))
+                } else {
+                    None
+                }
+            }
+        })
+        .collect()
 }
 
-// TODO - replace with a better parser (from edgelet)
-// returns the device ID of the edge device
-pub fn get_device_id(dev_str: &str) -> Option<String> {
-    let start_pattern = "DeviceId=";
-    let start = dev_str.find(start_pattern)? + start_pattern.len();
-    let end = dev_str.find(";SharedAccessKey=")?;
-    Some(dev_str[start..end].trim().to_string())
+// returns the config.yaml file if the OS at runtime is windows
+pub fn handle_windows() -> Result<String> {
+    if let Ok(csidl_path) = env::var("CSIDL_COMMON_APPDATA") {
+        return fs::read_to_string(Path::new(&csidl_path).join("/iotedge/config.yaml"));
+    } else if let Ok(program_path) = env::var("ProgramData") {
+        return fs::read_to_string(Path::new(&program_path).join("/iotedge/config.yaml"));
+    } 
+    fs::read_to_string(Path::new("C:/ProgramData/iotedge/config.yaml"))
+    // fs::read_to_string(".\\src\\tests.txt")
 }
 
 // returns the contents of the config.yaml file from the current device
 pub fn get_file() -> Result<String> {
-    if os_info::get().os_type() == os_info::Type::Windows {
-        if let Ok(csidl_path) = env::var("CSIDL_COMMON_APPDATA") {
-            // use join method
-            fs::read_to_string(Path::new(&format!("{}/iotedge/config.yaml", csidl_path)))
-        } else if let Ok(program_path) = env::var("ProgramData") {
-            fs::read_to_string(Path::new(&format!("{}/iotedge/config.yaml", program_path)))
-        } else {
-            fs::read_to_string(Path::new("C:/ProgramData/iotedge/config.yaml"))
-        }
-        // fs::read_to_string(".\\src\\tests.txt")
-    } else { // this branch hasn't been tested yet
-        fs::read_to_string("/etc/iotedge/config.yaml")
-    }
+    #[cfg(target_os = "windows")]
+    return handle_windows();
+   
+    #[cfg(target_os = "linux")] 
+    fs::read_to_string("src/test.txt")
+    // fs::read_to_string("/etc/iotedge/config.yaml")
 }

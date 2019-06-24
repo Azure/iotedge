@@ -13,6 +13,7 @@ serde = "1.0"
 serde_json = "1.0.39"
 structopt = "0.2.16"
 url = "1.7.2"
+yaml-rust = "0.4"
 
 edgelet-core = {path = "../../edgelet/edgelet-core"}
 edgelet-http-mgmt = {path = "../../edgelet/edgelet-http-mgmt"}

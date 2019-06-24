@@ -2,31 +2,19 @@ use std::io;
 
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer};
 use serde_json;
+use structopt::StructOpt;
 
 mod modules;
 mod state;
 
-/* PR TODOS:
-- parse method
-- config parse for connection string, managmenet uri
-- #cfg macro
-- Path type for config file paths
-- ask Raj about network interface comment - structopt  command line arguments (give ip address and port)
-- 
+/* PR TODO:
+    - ask Raj about network interface comment - structopt  command line arguments (give ip address and port)
 */
 
-/* SOME ISSUES:
-    - Linux path to get config.yaml hasn't been tested
-    - DPS state is TBD on how to handle
-    - CSIDL env var hasn't been tried/tested
-    - HttpResponse types probably incorrect
-    - Running after compiling for the first time - when accessing localhost, I get "refused to connect" which auto-refreshes to the expected JSON display after a couple of seconds
-*/
-
-/* TODOs:
-    - Check edgelet code to see better parser (split on ';', etc.)
+/* TODO:
     - Change functions to return Result<_, Error> + make custom Error modules crate
         ** can import Cargo.toml dependencies from other folders
+    - DPS handling
 */
 
 // returns an HttpResponse for creation of a new device
@@ -45,7 +33,7 @@ fn get_state(_req: HttpRequest) -> HttpResponse {
         let string_ref: Option<&str> = con_string.as_ref().map(|s| s.as_ref());
         if let Some(details) = string_ref { // if con_string is valid
             let mut new_device;
-            if &details[1..10] == "HostName=" {
+            if details.contains("HostName=") {
                 new_device = state::Device::new(state::State::Manual, details.to_string());
             } else {
                 new_device = state::Device::new(state::State::NotProvisioned, String::new());
@@ -78,10 +66,28 @@ fn get_modules(_req: HttpRequest) -> HttpResponse {
     }
 }
 
+#[derive(StructOpt)]
+struct Localhost {
+    ip_addr: Option<String>,
+    port: Option<String>,
+}
+
 fn main() -> io::Result<()> {
+    let args = Localhost::from_args();
+
+    // println!("IP_Addr: {:?}, Port: {:?}", args.ip_addr, args.port);
+
+    let mut address = "127.0.0.1:8088".to_string();
+
+    if let Some(ip) = args.ip_addr {
+        if let Some(port) = args.port {
+            address = format!("{}:{}", ip, port);
+        }
+    }
+
     HttpServer::new(|| {
         App::new()
             .service(web::resource("/api/provisioning-state").route(web::get().to(get_state)))
             .service(web::resource("/api/modules").route(web::get().to(get_modules)))
-    }).bind("127.0.0.1:8088")?.run()
+    }).bind(address)?.run()
 }
