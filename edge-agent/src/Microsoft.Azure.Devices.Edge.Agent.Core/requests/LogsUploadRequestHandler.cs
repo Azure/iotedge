@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class LogsUploadRequestHandler : RequestHandlerBase<LogsUploadRequest, object>
+    public class LogsUploadRequestHandler : RequestHandlerBase<LogsUploadRequest, TaskStatusResponse>
     {
         static readonly Version ExpectedSchemaVersion = new Version("1.0");
 
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
         public override string RequestName => "UploadLogs";
 
-        protected override async Task<Option<object>> HandleRequestInternal(Option<LogsUploadRequest> payloadOption, CancellationToken cancellationToken)
+        protected override async Task<Option<TaskStatusResponse>> HandleRequestInternal(Option<LogsUploadRequest> payloadOption, CancellationToken cancellationToken)
         {
             LogsUploadRequest payload = payloadOption.Expect(() => new ArgumentException("Request payload not found"));
             if (ExpectedSchemaVersion.CompareMajorVersion(payload.SchemaVersion, "logs upload request schema") != 0)
@@ -47,8 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 false);
             IList<(string id, ModuleLogOptions logOptions)> logOptionsList = await requestToOptionsMapper.MapToLogOptions(payload.Items, cancellationToken);
             IEnumerable<Task> uploadLogsTasks = logOptionsList.Select(l => this.UploadLogs(payload.SasUrl, l.id, l.logOptions, cancellationToken));
-            await Task.WhenAll(uploadLogsTasks);
-            return Option.None<object>();
+            (string correlationId, BackgroundTaskStatus status) = BackgroundTask.Run(() => Task.WhenAll(uploadLogsTasks), "upload logs");
+            return Option.Some(TaskStatusResponse.Create(correlationId, status));
         }
 
         async Task UploadLogs(string sasUrl, string id, ModuleLogOptions moduleLogOptions, CancellationToken token)
