@@ -710,7 +710,7 @@ mod tests {
                     assert_eq!(module.env.as_ref().map(Vec::len).unwrap(), 3);
                     assert_eq!(module.volume_mounts.as_ref().map(Vec::len).unwrap(), 7);
                     assert_eq!(module.image.as_ref().unwrap(), "my-image:v1.0");
-                    assert_eq!(module.image_pull_policy.as_ref().unwrap(), "On-Create");
+                    assert_eq!(module.image_pull_policy.as_ref().unwrap(), "OnCreate");
                 }
                 if let Some(proxy) = podspec
                     .containers
