@@ -11,7 +11,7 @@ pub struct Network {
     ipv6: Option<bool>,
 
     #[serde(rename = "ipam", skip_serializing_if = "Option::is_none")]
-    ipam: Option<Vec<Ipam>>,
+    ipam: Option<Ipam>,
 }
 
 impl Network {
@@ -41,12 +41,12 @@ impl Network {
         self
     }
 
-    pub fn ipam(&self) -> Option<&[Ipam]> {
-        self.ipam.as_ref().map(AsRef::as_ref)
+    pub fn ipam(&self) -> Option<&Ipam> {
+        self.ipam.as_ref()
     }
 
-    pub fn with_ipam(mut self, ipam: Option<Vec<Ipam>>) -> Self {
-        self.ipam = ipam;
+    pub fn with_ipam(mut self, ipam: Ipam) -> Self {
+        self.ipam = Some(ipam);
         self
     }
 }
@@ -54,15 +54,15 @@ impl Network {
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct Ipam {
     #[serde(rename = "config", skip_serializing_if = "Option::is_none")]
-    config: Option<IpamConfig>,
+    config: Option<Vec<IpamConfig>>,
 }
 
 impl Ipam {
-    pub fn config(&self) -> Option<&IpamConfig> {
+    pub fn config(&self) -> Option<&[IpamConfig]> {
         self.config.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn with_config(mut self, config: IpamConfig) -> Self {
+    pub fn with_config(mut self, config: Vec<IpamConfig>) -> Self {
         self.config = Some(config);
         self
     }
@@ -136,37 +136,38 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_ipam_with_values() {
+    fn test_ipam_config_with_values() {
         let gateway = "172.18.0.1";
         let subnet = "172.18.0.0/16";
         let ip_range = "172.18.0.0/24";
 
-        let ipam = Ipam::default()
+        let ipam_config = IpamConfig::default()
             .with_gateway(gateway.to_string())
             .with_ip_range(ip_range.to_string())
             .with_subnet(subnet.to_string());
 
-        assert_eq!(gateway, ipam.gateway().unwrap());
-        assert_eq!(subnet, ipam.subnet().unwrap());
-        assert_eq!(ip_range, ipam.ip_range().unwrap());
+        assert_eq!(gateway, ipam_config.gateway().unwrap());
+        assert_eq!(subnet, ipam_config.subnet().unwrap());
+        assert_eq!(ip_range, ipam_config.ip_range().unwrap());
     }
 
     #[test]
     fn test_network_with_values() {
-        let ipam = Ipam::default()
+        let ipam_config = IpamConfig::default()
             .with_gateway("172.18.0.1".to_string())
             .with_ip_range("172.18.0.0/16".to_string())
             .with_subnet("172.18.0.0/16".to_string());
 
+        let ipam = Ipam::default().with_config(vec![ipam_config.clone()]);
         let network_name = "my-network";
         let ipv6 = true;
         let network = Network::new(network_name.to_string())
             .with_ipv6(Some(ipv6))
-            .with_ipam(Some(vec![ipam.clone()]));
+            .with_ipam(ipam.clone());
 
         assert_eq!(network_name, network.name());
         assert_eq!(ipv6, network.ipv6().unwrap());
-        assert_eq!(true, network.ipam().unwrap().contains(&ipam));
+        assert_eq!(ipam, network.ipam().unwrap().clone());
     }
 
     #[test]

@@ -525,7 +525,7 @@ pub enum ParseManualDeviceConnectionStringError {
 mod tests {
     use super::*;
     use config::{Config, File, FileFormat};
-    use edgelet_core::{Ipam, DEFAULT_NETWORKID};
+    use edgelet_core::{IpamConfig, DEFAULT_NETWORKID};
     use edgelet_docker::DockerConfig;
     use std::cmp::Ordering;
     use std::fs::File as FsFile;
@@ -838,16 +838,17 @@ mod tests {
         match network {
             MobyNetwork::Network(moby_network) => {
                 assert_eq!(moby_network.ipv6().unwrap(), true);
-                let ipam_config = moby_network.ipam().expect("Expected IPAM configuration.");
-                let ipam_1 = Ipam::default()
+                let ipam_spec = moby_network.ipam().expect("Expected IPAM specification.");
+                let ipam_config = ipam_spec.config().expect("Expected IPAM configuration.");
+                let ipam_1 = IpamConfig::default()
                     .with_gateway("172.18.0.1".to_string())
                     .with_ip_range("172.18.0.0/16".to_string())
                     .with_subnet("172.18.0.0/16".to_string());
-                let ipam_2 = Ipam::default()
+                let ipam_2 = IpamConfig::default()
                     .with_gateway("2001:4898:e0:3b1:1::1".to_string())
                     .with_ip_range("2001:4898:e0:3b1:1::/80".to_string())
                     .with_subnet("2001:4898:e0:3b1:1::/80".to_string());
-                let expected_ipam_config: Vec<Ipam> = vec![ipam_1, ipam_2];
+                let expected_ipam_config: Vec<IpamConfig> = vec![ipam_1, ipam_2];
 
                 ipam_config.iter().for_each(|ipam_config| {
                     assert_eq!(expected_ipam_config.contains(ipam_config), true);

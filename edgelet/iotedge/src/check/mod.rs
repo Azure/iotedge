@@ -20,7 +20,7 @@ use regex::Regex;
 use serde_json;
 
 use edgelet_config::{Provisioning, Settings};
-use edgelet_core::{self, UrlExt};
+use edgelet_core::{self, MobyNetwork, UrlExt};
 use edgelet_docker::DockerConfig;
 use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
@@ -244,6 +244,7 @@ impl Check {
                     ("host-local-time", "host time is close to real time", host_local_time),
                     ("container-local-time", "container time is close to host time", container_local_time),
                     ("container-engine-dns", "DNS server", container_engine_dns),
+                    ("container-engine-ipv6", "IPv6 network configuration", container_engine_network),
                     ("certificates-quickstart", "production readiness: certificates", settings_certificates),
                     (
                         "certificates-expiry",
@@ -727,6 +728,65 @@ fn container_engine(check: &mut Check) -> Result<CheckResult, failure::Error> {
     Ok(CheckResult::Ok)
 }
 
+fn container_engine_network(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    const MESSAGE: &str =
+        "Container engine is not configured for IPv6 communication.\n\
+         Please see https://docs.docker.com/v17.09/engine/userguide/networking/default_network/ipv6 \
+         for a guide on how to enable IPv6 support.\n";
+
+    #[derive(serde_derive::Deserialize)]
+    struct DaemonConfig {
+        ipv6: Option<bool>,
+    }
+
+    let is_edge_ipv6_configured = &check.settings.as_ref().map_or(false, |settings| {
+        let moby_network = settings.moby_runtime().network();
+        if let MobyNetwork::Network(network) = moby_network {
+            network.ipv6().unwrap_or_default()
+        } else {
+            false
+        }
+    });
+
+    let daemon_config_file = File::open(&check.container_engine_config_path)
+        .with_context(|_| {
+            format!(
+                "Could not open container engine config file {}",
+                check.container_engine_config_path.display(),
+            )
+        })
+        .context(MESSAGE);
+    let daemon_config_file = match daemon_config_file {
+        Ok(daemon_config_file) => daemon_config_file,
+        Err(err) => {
+            if *is_edge_ipv6_configured {
+                return Ok(CheckResult::Fatal(err.into()));
+            } else {
+                return Ok(CheckResult::Ok);
+            }
+        }
+    };
+    let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)
+        .with_context(|_| {
+            format!(
+                "Could not parse container engine config file {}",
+                check.container_engine_config_path.display(),
+            )
+        })
+        .context(MESSAGE)?;
+
+    if daemon_config.ipv6.unwrap_or_default() {
+        #[cfg(windows)]
+            return Ok(CheckResult::Fatal(Context::new("IPv6 container network configuration is not supported for the Windows operating system.").into()));
+        #[cfg(unix)]
+            return Ok(CheckResult::Ok);
+    } else if *is_edge_ipv6_configured {
+        Ok(CheckResult::Fatal(Context::new(MESSAGE).into()))
+    } else {
+        Ok(CheckResult::Skipped)
+    }
+}
+
 fn host_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
     #[cfg(unix)]
     {
@@ -752,21 +812,21 @@ fn host_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
 
         let os_version = self::additional_info::os_version().context("Could not get OS version")?;
         match os_version {
-            // When using Windows containers, the host OS version must match the container OS version.
-            // Since our containers are built with 10.0.17763 base images, we require the same for the host OS.
-            //
-            // If this needs to be changed, also update the host OS version check in the Windows install script
-            // (scripts/windows/setup/IotEdgeSecurityDaemon.ps1)
-            (10, 0, 17763, _) => (),
+                // When using Windows containers, the host OS version must match the container OS version.
+                // Since our containers are built with 10.0.17763 base images, we require the same for the host OS.
+                //
+                // If this needs to be changed, also update the host OS version check in the Windows install script
+                // (scripts/windows/setup/IotEdgeSecurityDaemon.ps1)
+                (10, 0, 17763, _) => (),
 
-            (major_version, minor_version, build_number, _) => {
-                return Ok(CheckResult::Fatal(Context::new(format!(
-                    "The host has an unsupported OS version {}.{}.{}. IoT Edge on Windows only supports OS version 10.0.17763.\n\
+                (major_version, minor_version, build_number, _) => {
+                    return Ok(CheckResult::Fatal(Context::new(format!(
+                        "The host has an unsupported OS version {}.{}.{}. IoT Edge on Windows only supports OS version 10.0.17763.\n\
                      Please see https://aka.ms/iotedge-platsup for details.",
-                    major_version, minor_version, build_number,
-                )).into()))
+                        major_version, minor_version, build_number,
+                    )).into()))
+                }
             }
-        }
 
         Ok(CheckResult::Ok)
     }

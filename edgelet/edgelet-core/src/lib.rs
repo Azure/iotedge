@@ -36,7 +36,7 @@ pub use module::{
     ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, ModuleTop,
     RegistryOperation, RuntimeOperation, SystemInfo,
 };
-pub use network::{Ipam, MobyNetwork, Network};
+pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
 pub use watchdog::RetryLimit;
 pub use workload::WorkloadConfig;
 
