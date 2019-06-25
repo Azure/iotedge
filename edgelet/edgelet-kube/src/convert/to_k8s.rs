@@ -710,7 +710,7 @@ mod tests {
                     assert_eq!(module.env.as_ref().map(Vec::len).unwrap(), 3);
                     assert_eq!(module.volume_mounts.as_ref().map(Vec::len).unwrap(), 7);
                     assert_eq!(module.image.as_ref().unwrap(), "my-image:v1.0");
-                    assert_eq!(module.image_pull_policy.as_ref().unwrap(), "OnCreate");
+                    assert_eq!(module.image_pull_policy.as_ref().unwrap(), "On-Create");
                 }
                 if let Some(proxy) = podspec
                     .containers
@@ -721,7 +721,7 @@ mod tests {
                     assert_eq!(proxy.env.as_ref().map(Vec::len).unwrap(), 3);
                     assert_eq!(proxy.volume_mounts.as_ref().map(Vec::len).unwrap(), 1);
                     assert_eq!(proxy.image.as_ref().unwrap(), "proxy:latest");
-                    assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "OnCreate");
+                    assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "On-Create");
                 }
                 assert_eq!(podspec.service_account_name.as_ref().unwrap(), "edgeagent");
                 assert!(podspec.image_pull_secrets.is_some());
