@@ -54,6 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string agentImage = Context.Current.EdgeAgentImage.Expect(() => new ArgumentException());
             string hubImage = Context.Current.EdgeHubImage.Expect(() => new ArgumentException());
             string sensorImage = Context.Current.TempSensorImage.Expect(() => new ArgumentException());
+            bool optimizeForPerformance = Context.Current.OptimizeForPerformance;
             Option<Uri> proxy = Context.Current.Proxy;
 
             CancellationToken token = this.cts.Token;
@@ -77,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     Context.Current.Registry.ForEach(
                         r => builder.AddRegistryCredentials(r.address, r.username, r.password));
                     builder.AddEdgeAgent(agentImage).WithProxy(proxy);
-                    builder.AddEdgeHub(hubImage).WithProxy(proxy);
+                    builder.AddEdgeHub(hubImage, optimizeForPerformance).WithProxy(proxy);
                     builder.AddModule("tempSensor", sensorImage);
                     await builder.Build().DeployAsync(iotHub, token);
 
@@ -134,6 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string hubImage = Context.Current.EdgeHubImage.Expect(() => new ArgumentException());
             string senderImage = Context.Current.MethodSenderImage.Expect(() => new ArgumentException());
             string receiverImage = Context.Current.MethodReceiverImage.Expect(() => new ArgumentException());
+            bool optimizeForPerformance = Context.Current.OptimizeForPerformance;
             Option<Uri> proxy = Context.Current.Proxy;
 
             CancellationToken token = this.cts.Token;
@@ -161,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     Context.Current.Registry.ForEach(
                         r => builder.AddRegistryCredentials(r.address, r.username, r.password));
                     builder.AddEdgeAgent(agentImage).WithProxy(proxy);
-                    builder.AddEdgeHub(hubImage).WithProxy(proxy);
+                    builder.AddEdgeHub(hubImage, optimizeForPerformance).WithProxy(proxy);
                     builder.AddModule(methodSender, senderImage)
                         .WithEnvironment(
                             new[]
