@@ -2,6 +2,7 @@
 namespace IotEdgeQuickstart
 {
     using System;
+    using System.IO;
     using System.Runtime.InteropServices;
     using System.Threading.Tasks;
     using IotEdgeQuickstart.Details;
@@ -141,6 +142,24 @@ Defaults:
         [Option("--offline-installation-path <path>", Description = "Packages folder for offline installation")]
         public string OfflineInstallationPath { get; } = string.Empty;
 
+        [Option("--dps-scope-id", Description = "Optional input applicable only when using DPS for provisioning the IoT Edge")]
+        public string DPSScopeId { get; } = string.Empty;
+
+        [Option("--dps-registration-id", Description = "Optional input applicable only when using DPS for provisioning the IoT Edge. This is the expected to be the device id in IoT Hub when provisioning completes.")]
+        public string DPSRegistrationId { get; } = string.Empty;
+
+        [Option("--dps-endpoint", Description = "Optional input applicable only when using DPS for provisioning the IoT Edge")]
+        public string DPSEndpoint { get; } = "https://global.azure-devices-provisioning.net";
+
+        [Option("--dps-symmetric-key", Description = "Optional input applicable only when using the DPS symmetric key flow to provisioning the IoT Edge")]
+        public string DPSSymmetricKey { get; } = string.Empty;
+
+        [Option("--device_identity_cert", Description = "path to the device identity certificate and its chain")]
+        public string DeviceIdentityCert { get; } = string.Empty;
+
+        [Option("--device_identity_pk", Description = "path to the device identity private key file")]
+        public string DeviceIdentityPk { get; } = string.Empty;
+
         // ReSharper disable once UnusedMember.Local
         static int Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args).Result;
 
@@ -201,6 +220,34 @@ Defaults:
 
                 string connectionString = this.IotHubConnectionString ??
                                           await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+
+                if (!string.IsNullOrEmpty(this.DPSScopeId))
+                {
+                    if (string.IsNullOrEmpty(this.DPSEndpoint))
+                    {
+                        throw new ArgumentException("DPS Endpoint cannot be null or empty if a DPS is being used");
+                    }
+
+                    if (string.IsNullOrEmpty(this.DPSSymmetricKey))
+                    {
+                        if (string.IsNullOrEmpty(this.DeviceIdentityCert) || !File.Exists(this.DeviceIdentityCert))
+                        {
+                            throw new ArgumentException("Device identity certificate path is invalid");
+                        }
+
+                        if (string.IsNullOrEmpty(this.DeviceIdentityPk) || !File.Exists(this.DeviceIdentityPk))
+                        {
+                            throw new ArgumentException("Device identity certificate path is invalid");
+                        }
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrEmpty(this.DeviceIdentityCert) || !string.IsNullOrEmpty(this.DeviceIdentityPk))
+                        {
+                            throw new ArgumentException("Both device identity certificate and DPS symmetric key cannot be set");
+                        }
+                    }
+                }
 
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
                                   await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");

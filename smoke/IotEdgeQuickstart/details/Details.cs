@@ -104,7 +104,7 @@ namespace IotEdgeQuickstart.Details
 
         readonly Option<RegistryCredentials> credentials;
 
-        readonly string iothubConnectionString;
+        readonly Option<DPSAttestation> dpsAttestation;
 
         readonly string eventhubCompatibleEndpointWithEntityPath;
 
@@ -151,11 +151,12 @@ namespace IotEdgeQuickstart.Details
             string deviceCaCerts,
             bool optimizedForPerformance,
             LogLevel runtimeLogLevel,
-            bool cleanUpExistingDeviceOnSuccess)
+            bool cleanUpExistingDeviceOnSuccess,
+            Option<DPSAttestation> dpsAttestation)
         {
             this.bootstrapper = bootstrapper;
             this.credentials = credentials;
-            this.iothubConnectionString = iothubConnectionString;
+            this.dpsAttestation = dpsAttestation;
             this.eventhubCompatibleEndpointWithEntityPath = eventhubCompatibleEndpointWithEntityPath;
 
             switch (upstreamProtocol)
