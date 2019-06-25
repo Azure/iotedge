@@ -204,7 +204,7 @@ where
         label_selector: Option<&str>,
     ) -> impl Future<Item = apps::DeploymentList, Error = Error> {
         let field_selector =
-            name.and_then(|deployment_name| Some(format!("metadata.name={}", deployment_name)));
+            name.map(|deployment_name| format!("metadata.name={}", deployment_name));
         let params = apps::ListNamespacedDeploymentOptional {
             field_selector: field_selector.as_ref().map(String::as_ref),
             label_selector,
@@ -248,8 +248,7 @@ where
         namespace: &str,
         name: Option<&str>,
     ) -> impl Future<Item = api_core::SecretList, Error = Error> {
-        let field_selector =
-            name.and_then(|secret_name| Some(format!("metadata.name={}", secret_name)));
+        let field_selector = name.map(|secret_name| format!("metadata.name={}", secret_name));
         let params = api_core::ListNamespacedSecretOptional {
             field_selector: field_selector.as_ref().map(String::as_ref),
             ..api_core::ListNamespacedSecretOptional::default()
@@ -348,9 +347,8 @@ where
         name: Option<&str>,
         label_selector: Option<&str>,
     ) -> impl Future<Item = api_core::ServiceAccountList, Error = Error> {
-        let field_selector = name.and_then(|service_account_name| {
-            Some(format!("metadata.name={}", service_account_name))
-        });
+        let field_selector =
+            name.map(|service_account_name| format!("metadata.name={}", service_account_name));
         let params = api_core::ListNamespacedServiceAccountOptional {
             field_selector: field_selector.as_ref().map(String::as_ref),
             label_selector,
@@ -428,8 +426,7 @@ where
         name: Option<&str>,
         label_selector: Option<&str>,
     ) -> impl Future<Item = rbac::ClusterRoleBindingList, Error = Error> {
-        let field_selector =
-            name.and_then(|role_binding| Some(format!("metadata.name={}", role_binding)));
+        let field_selector = name.map(|role_binding| format!("metadata.name={}", role_binding));
         let params = rbac::ListClusterRoleBindingOptional {
             field_selector: field_selector.as_ref().map(String::as_ref),
             label_selector,

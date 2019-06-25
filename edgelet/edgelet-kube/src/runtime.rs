@@ -60,7 +60,7 @@ pub trait KubeRuntimeData {
 // NOTE:
 //  We are manually implementing Clone here for KubeModuleRuntime because
 //  #[derive(Clone] will cause the compiler to implicitly require Clone on
-//  T and S which we don't really need to be Clone because we wrap it inside
+//  T and S which don't really need to be Clone because we wrap it inside
 //  an Arc (for the "client" field).
 //
 //  Requiring Clone on S in particular is problematic because we typically use
@@ -198,12 +198,8 @@ impl<T, S> KubeModuleRuntime<T, S> {
         })
     }
 
-    pub fn client(&self) -> Arc<Mutex<RefCell<KubeClient<T, S>>>> {
+    pub(crate) fn client(&self) -> Arc<Mutex<RefCell<KubeClient<T, S>>>> {
         self.client.clone()
-    }
-
-    pub fn device_hub_selector(&self) -> &str {
-        &self.device_hub_selector
     }
 }
 
@@ -411,39 +407,41 @@ where
     type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
 
     fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
-        let token = req
+        let fut = req
             .headers()
             .typed_get::<Authorization>()
-            .map(|auth| auth.and_then(|auth| auth.as_bearer().cloned()))
-            .map_err(Error::from);
+            .map(|auth| {
+                auth.and_then(|auth| {
+                    auth.as_bearer().map(|token| {
+                        let fut = self
+                            .client
+                            .lock()
+                            .expect("Unexpected lock error")
+                            .borrow_mut()
+                            .token_review(self.namespace(), token.as_str())
+                            .map_err(|err| {
+                                log_failure(Level::Warn, &err);
+                                Error::from(err)
+                            })
+                            .map(|token_review| {
+                                token_review
+                                    .status
+                                    .as_ref()
+                                    .filter(|status| status.authenticated.filter(|x| *x).is_some())
+                                    .and_then(|status| {
+                                        status.user.as_ref().and_then(|user| user.username.clone())
+                                    })
+                                    .map_or(AuthId::None, |name| AuthId::Value(name.into()))
+                            });
 
-        let fut = match token {
-            Ok(token) => match token {
-                Some(token) => Either::A(Either::A(
-                    self.client
-                        .lock()
-                        .expect("Unexpected lock error")
-                        .borrow_mut()
-                        .token_review(&self.namespace, token.as_str())
-                        .map_err(|err| {
-                            log_failure(Level::Warn, &err);
-                            Error::from(err)
-                        })
-                        .map(|token_review| {
-                            token_review
-                                .status
-                                .as_ref()
-                                .filter(|status| status.authenticated.filter(|x| *x).is_some())
-                                .and_then(|status| {
-                                    status.user.as_ref().and_then(|user| user.username.clone())
-                                })
-                                .map_or(AuthId::None, |name| AuthId::Value(name.into()))
-                        }),
-                )),
-                None => Either::A(Either::B(future::ok(AuthId::None))),
-            },
-            Err(e) => Either::B(future::err(e)),
-        };
+                        Either::A(fut)
+                    })
+                })
+                .unwrap_or_else(|| Either::B(future::ok(AuthId::None)))
+            })
+            .map_err(Error::from)
+            .into_future()
+            .flatten();
 
         Box::new(fut)
     }

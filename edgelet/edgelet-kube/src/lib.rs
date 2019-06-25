@@ -9,7 +9,7 @@
     clippy::use_self
 )]
 
-pub mod constants; //todo should be hidden from outside but visible for integration tests
+mod constants;
 mod convert;
 mod error;
 mod module;

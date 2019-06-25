@@ -6,6 +6,7 @@ use futures::{future, Future, Stream};
 use hyper::service::Service;
 use hyper::Body;
 
+use edgelet_core::ModuleSpec;
 use edgelet_docker::DockerConfig;
 use kube_client::{Error as KubeClientError, TokenSource};
 
@@ -14,7 +15,6 @@ use crate::convert::{spec_to_deployment, spec_to_role_binding, spec_to_service_a
 use crate::error::Error;
 use crate::runtime::KubeRuntimeData;
 use crate::KubeModuleRuntime;
-use edgelet_core::ModuleSpec;
 
 pub fn create_module<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
@@ -35,13 +35,11 @@ where
     let runtime_for_deployment = runtime.clone();
     let module_for_deployment = module.clone();
 
-    let inner = create_or_update_service_account(&runtime, &module)
+    create_or_update_service_account(&runtime, &module)
         .and_then(move |_| create_or_update_role_binding(&runtime_for_sa, &module_for_sa))
         .and_then(move |_| {
             create_or_update_deployment(&runtime_for_deployment, &module_for_deployment)
-        });
-
-    Box::new(inner)
+        })
 }
 
 fn create_or_update_service_account<T, S>(
@@ -57,23 +55,20 @@ where
     S::Error: Into<KubeClientError>,
     S::Future: Send,
 {
-    let f = spec_to_service_account(runtime, module)
+    spec_to_service_account(runtime, module)
         .map_err(Error::from)
         .map(|(name, new_service_account)| {
-            let namespace = runtime.namespace().to_owned();
             runtime
                 .client()
                 .lock()
                 .expect("Unexpected lock error")
                 .borrow_mut()
-                .replace_service_account(&namespace, &name, &new_service_account)
+                .replace_service_account(runtime.namespace(), &name, &new_service_account)
                 .map_err(Error::from)
                 .map(|_| ())
         })
         .into_future()
-        .flatten();
-
-    Box::new(f)
+        .flatten()
 }
 
 fn create_or_update_role_binding<T, S>(
@@ -89,21 +84,18 @@ where
     S::Error: Into<KubeClientError>,
     S::Future: Send,
 {
-    let f = spec_to_role_binding(runtime, module)
+    spec_to_role_binding(runtime, module)
         .map_err(Error::from)
         .map(|(name, new_role_binding)| {
             // create new role only for edge agent
-            if new_role_binding.metadata.as_ref().unwrap().name
-                == Some(EDGE_EDGE_AGENT_NAME.to_owned())
-            {
-                let namespace = runtime.namespace().to_owned();
+            if name == EDGE_EDGE_AGENT_NAME {
                 Either::A(
                     runtime
                         .client()
                         .lock()
                         .expect("Unexpected lock error")
                         .borrow_mut()
-                        .replace_role_binding(&namespace, &name, &new_role_binding)
+                        .replace_role_binding(runtime.namespace(), &name, &new_role_binding)
                         .map_err(Error::from)
                         .map(|_| ()),
                 )
@@ -112,9 +104,7 @@ where
             }
         })
         .into_future()
-        .flatten();
-
-    Box::new(f)
+        .flatten()
 }
 
 fn create_or_update_deployment<T, S>(
@@ -130,21 +120,18 @@ where
     S::Error: Into<KubeClientError>,
     S::Future: Send,
 {
-    let f = spec_to_deployment(runtime, module)
+    spec_to_deployment(runtime, module)
         .map_err(Error::from)
         .map(|(name, new_deployment)| {
-            let namespace = runtime.namespace().to_owned();
             runtime
                 .client()
                 .lock()
                 .expect("Unexpected lock error")
                 .borrow_mut()
-                .replace_deployment(&namespace, &name, &new_deployment)
+                .replace_deployment(runtime.namespace(), &name, &new_deployment)
                 .map_err(Error::from)
                 .map(|_| ())
         })
         .into_future()
-        .flatten();
-
-    Box::new(f)
+        .flatten()
 }

@@ -24,7 +24,7 @@ use edgelet_kube::{KubeModuleRuntime, KubeRuntimeData};
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 use kube_client::{Client as KubeClient, Config, Error, HttpClient, TokenSource};
 
-use edgelet_kube::constants::*;
+// TODO reuse code from edgelet-test-utils once it merged in master
 
 #[derive(Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
 struct RequestPath(String);
@@ -366,9 +366,9 @@ fn create_creates_or_updates_service_account_role_binding_deployment_for_edgeage
     let module = create_module_spec("$edgeAgent");
 
     let dispatch_table = routes!(
-        PUT format!("/api/v1/namespaces/{}/serviceaccounts/{}", runtime.namespace(), EDGE_EDGE_AGENT_NAME) => replace_service_account_handler(),
-        PUT format!("/apis/rbac.authorization.k8s.io/v1/clusterrolebindings/{}", EDGE_EDGE_AGENT_NAME) => replace_role_binding_handler(),
-        PUT format!("/apis/apps/v1/namespaces/{}/deployments/{}", runtime.namespace(), EDGE_EDGE_AGENT_NAME) => replace_deployment_handler(),
+        PUT format!("/api/v1/namespaces/{}/serviceaccounts/edgeagent", runtime.namespace()) => replace_service_account_handler(),
+        PUT "/apis/rbac.authorization.k8s.io/v1/clusterrolebindings/edgeagent" => replace_role_binding_handler(),
+        PUT format!("/apis/apps/v1/namespaces/{}/deployments/edgeagent", runtime.namespace()) => replace_deployment_handler(),
     );
 
     let server = run_tcp_server(
