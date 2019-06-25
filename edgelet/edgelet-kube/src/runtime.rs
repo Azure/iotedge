@@ -676,7 +676,7 @@ mod tests {
         );
         assert!(result.is_ok());
     }
-  
+
     #[derive(Clone)]
     struct TestTokenSource;
 
