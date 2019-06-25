@@ -247,7 +247,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void ReauthenticatingClients()
             {
-                Log.LogInformation((int)EventIds.ReauthenticatingClients, "Reauthenticating connected clients");
+                Log.LogDebug((int)EventIds.ReauthenticatingClients, "Entering task to reauthenticate connected clients");
             }
 
             public static void EdgeHubConnectionReestablished()
