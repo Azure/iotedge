@@ -264,6 +264,7 @@ jobs:
             $(images.artifact.name.windows)/e2e_deployment_files/stress_deployment.template.windows.json
             $(images.artifact.name.windows)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1
             $(images.artifact.name.windows)/scripts/windows/test/Run-E2ETest.ps1
+            $(images.artifact.name.windows)/scripts/windows/test/Setup-Env.ps1
             $(images.artifact.name.windows)/artifactInfo.txt
       # Deploy stress test
       - template: templates/stresstest-deploy-windows.yaml
@@ -329,6 +330,7 @@ jobs:
             $(images.artifact.name.windows)/e2e_deployment_files/stress_deployment.template.windows.json
             $(images.artifact.name.windows)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1
             $(images.artifact.name.windows)/scripts/windows/test/Run-E2ETest.ps1
+            $(images.artifact.name.windows)/scripts/windows/test/Setup-Env.ps1
             $(images.artifact.name.windows)/artifactInfo.txt
       # Deploy stress test
       - template: templates/stresstest-deploy-windows.yaml
