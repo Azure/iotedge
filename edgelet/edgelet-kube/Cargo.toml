@@ -17,9 +17,18 @@ serde_derive = "1.0"
 serde_json = "1.0"
 url = "1.7"
 native-tls = "0.2"
+typed-headers = "0.1"
 
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
 edgelet-utils = { path = "../edgelet-utils" }
 kube-client = { path = "../kube-client" }
+
+[dev_dependencies]
+tokio = "0.1"
+maplit = "1.0"
+objekt = "0.1"
+time = "0.1"
+
+edgelet-test-utils = { path = "../edgelet-test-utils" }

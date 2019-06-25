@@ -6,9 +6,9 @@ use std::fmt::Display;
 use edgelet_core::{ModuleRuntimeErrorReason, RuntimeOperation};
 use edgelet_docker::Error as DockerError;
 use failure::{Backtrace, Context, Fail};
-use hyper::header::ToStrError;
 use kube_client::Error as KubeClientError;
 use serde_json::Error as JsonError;
+use typed_headers::Error as HeaderError;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -126,6 +126,7 @@ impl From<KubeClientError> for Error {
         }
     }
 }
+
 impl From<DockerError> for Error {
     fn from(error: DockerError) -> Self {
         Error {
@@ -133,6 +134,7 @@ impl From<DockerError> for Error {
         }
     }
 }
+
 impl From<JsonError> for Error {
     fn from(error: JsonError) -> Self {
         Error {
@@ -140,8 +142,9 @@ impl From<JsonError> for Error {
         }
     }
 }
-impl From<ToStrError> for Error {
-    fn from(error: ToStrError) -> Self {
+
+impl From<HeaderError> for Error {
+    fn from(error: HeaderError) -> Self {
         Error {
             inner: error.context(ErrorKind::ModuleAuthenticationError),
         }
