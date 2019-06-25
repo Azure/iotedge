@@ -37,8 +37,7 @@ fn create_app() -> App<'static, 'static> {
                 .required(false)
                 .takes_value(false),
         )
-    }
-    else {
+    } else {
         app
     }
 }
@@ -51,8 +50,7 @@ fn init_common(running_as_windows_service: bool) -> Result<Settings<DockerConfig
         if cfg!(windows) && matches.is_present("use-event-logger") {
             #[cfg(windows)]
             logging::init_win_log();
-        }
-        else {
+        } else {
             logging::init();
         }
     }
@@ -72,9 +70,8 @@ fn init_common(running_as_windows_service: bool) -> Result<Settings<DockerConfig
             None
         });
 
-    let settings =
-        Settings::<DockerConfig>::new(config_file)
-            .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+    let settings = Settings::<DockerConfig>::new(config_file)
+        .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
 
     Ok(settings)
 }
