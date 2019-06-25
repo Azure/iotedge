@@ -839,7 +839,7 @@ fn container_engine_ipv6(check: &mut Check) -> Result<CheckResult, failure::Erro
         #[cfg(windows)]
             return Ok(CheckResult::Fatal(Context::new("IPv6 container network configuration is not supported for the Windows operating system.").into()));
         #[cfg(unix)]
-            return Ok(CheckResult::Ok);
+        return Ok(CheckResult::Ok);
     } else if *is_edge_ipv6_configured {
         Ok(CheckResult::Fatal(Context::new(MESSAGE).into()))
     } else {
