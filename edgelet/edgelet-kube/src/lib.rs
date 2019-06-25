@@ -15,5 +15,6 @@ mod error;
 mod module;
 mod runtime;
 
-pub use self::module::KubeModule;
-pub use self::runtime::KubeModuleRuntime;
+pub use error::{Error, ErrorKind};
+pub use module::KubeModule;
+pub use runtime::{KubeModuleRuntime, KubeRuntimeData};
