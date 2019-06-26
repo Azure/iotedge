@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Text;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
@@ -9,16 +10,51 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     public static class KubeUtils
     {
         const string Alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const string Numeric = "0123456789";
         const string AllowedCharsLabelValues = "-._";
         const string AllowedCharsDns = "-";
         const string AllowedCharsGeneric = "-.";
         const int MaxK8SValueLength = 253;
         const int MaxDnsNameLength = 63;
         const int MaxLabelValueLength = 63;
+        static readonly HashSet<char> AlphaHashSet;
+        static readonly HashSet<char> AlphaNumericHashSet;
+        static readonly HashSet<char> AllowedLabelsHashSet;
+        static readonly HashSet<char> AllowedDnsHashSet;
+        static readonly HashSet<char> AllowedGenericHashSet;
 
-        static bool IsAlpha(char ch) => Alphabet.IndexOf(ch) != -1;
+        static bool IsAlpha(char ch) => AlphaHashSet.Contains(ch);
 
-        static bool IsAlphaNumeric(char ch) => IsAlpha(ch) || Char.IsDigit(ch);
+        static bool IsAlphaNumeric(char ch) => AlphaNumericHashSet.Contains(ch);
+
+        static KubeUtils()
+        {
+            AlphaHashSet = new HashSet<char>();
+            foreach (char c in Alphabet)
+            {
+                AlphaHashSet.Add(c);
+            }
+            AlphaNumericHashSet = new HashSet<char>(AlphaHashSet);
+            foreach (char c in Numeric)
+            {
+                AlphaNumericHashSet.Add(c);
+            }
+            AllowedLabelsHashSet = new HashSet<char>(AlphaNumericHashSet);
+            foreach (char c in AllowedCharsLabelValues)
+            {
+                AllowedLabelsHashSet.Add(c);
+            }
+            AllowedDnsHashSet = new HashSet<char>(AlphaNumericHashSet);
+            foreach (char c in AllowedCharsDns)
+            {
+                AllowedDnsHashSet.Add(c);
+            }
+            AllowedGenericHashSet = new HashSet<char>(AlphaNumericHashSet);
+            foreach (char c in AllowedCharsGeneric)
+            {
+                AllowedGenericHashSet.Add(c);
+            }
+        }
 
 
         // Valid annotation keys have two segments: an optional prefix and name, separated by a slash (/). 
@@ -58,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             var output = new StringBuilder();
             for (int i = 0; i < name.Length; i++)
             {
-                if (IsAlphaNumeric(name[i]) || AllowedCharsGeneric.IndexOf(name[i]) != -1)
+                if (AllowedGenericHashSet.Contains(name[i]))
                 {
                     output.Append(name[i]);
                 }
@@ -106,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             var output = new StringBuilder();
             for (int i = start; i <= end; i++)
             {
-                if (IsAlphaNumeric(name[i]) || AllowedCharsDns.IndexOf(name[i]) != -1)
+                if (AllowedDnsHashSet.Contains(name[i]))
                 {
                     output.Append(name[i]);
                 }
@@ -189,7 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             var output = new StringBuilder();
             for (int i = start; i <= end; i++)
             {
-                if (IsAlphaNumeric(name[i]) || AllowedCharsLabelValues.IndexOf(name[i]) != -1)
+                if (AllowedLabelsHashSet.Contains(name[i]))
                 {
                     output.Append(name[i]);
                 }
