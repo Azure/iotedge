@@ -109,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         }
 
         // DNS label (as per RFC 1035)
-        public static string SanitizeDNSValue(string name, int maxLength = MaxDnsNameLength)
+        public static string SanitizeDNSValue(string name)
         {
             // The name returned from here must conform to following rules (as per RFC 1035):
             //  - length must be <= 63 characters
@@ -147,9 +147,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     output.Append(name[i]);
                 }
             }
-            if (output.Length > maxLength)
+            if (output.Length > MaxDnsNameLength)
             {
-                throw new InvalidKubernetesNameException($"DNS name '{name}' exceeded maximum length of {maxLength}");
+                throw new InvalidKubernetesNameException($"DNS name '{name}' exceeded maximum length of {MaxDnsNameLength}");
             }
 
             return output.ToString();
