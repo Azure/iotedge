@@ -1,0 +1,72 @@
+parameters:
+  testName: ''
+  release.label: ''
+  edgelet.artifact.name: ''
+  images.artifact.name: ''
+  container.registry: ''
+  container.registry.username: ''
+  container.registry.password: ''
+  iotHub.connectionString: ''
+  eventHub.connectionString: ''
+  snitch.build.number: ''
+  snitch.alert.url: ''
+  snitch.storage.account: ''
+  snitch.storage.masterKey: ''
+  amqp.settings.enabled: 'true'
+  mqtt.settings.enabled: 'true'
+  loadGen.message.frequency: ''
+  loadGen1.transportType: 'Amqp_Tcp_Only'
+  loadGen2.transportType: 'Amqp_WebSocket_Only'
+  loadGen3.transportType: 'Mqtt_Tcp_Only'
+  loadGen4.transportType: 'Mqtt_WebSocket_Only'
+
+steps:
+  - task: CopyFiles@2
+    displayName: 'Copy Edgelet Artifact to $(iotuap-x64-machine)'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
+      TargetFolder: "\\\\$(iotuap-x64-machine)\\c$\\Data\\e2etests\\artifacts\\${{ parameters['edgelet.artifact.name'] }}"
+      #CleanTargetFolder: true
+  - task: CopyFiles@2
+    displayName: 'Copy Images Artifact to $(iotuap-x64-machine)'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
+      TargetFolder: "\\\\$(iotuap-x64-machine)\\c$\\Data\\e2etests\\artifacts\\${{ parameters['images.artifact.name'] }}"
+      #CleanTargetFolder: true
+  - task: PowerShellOnTargetMachines@3
+    displayName: 'Environment Setup/Cleanup ($(iotuap-x64-machine))'
+    inputs:
+      Machines: '$(iotuap-x64-machine)'
+      UserName: '$(iotuap-x64-login)'
+      UserPassword: '$(iotuap-x64-password)'
+      InlineScript: |
+        #Requires -RunAsAdministrator
+        $ArtifactInfo=convertfrom-stringdata (get-content C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\artifactInfo.txt -raw)
+        C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\scripts\windows\test\Setup-Env.ps1 -E2ETestFolder "C:\Data\e2etests" -ArtifactImageBuildNumber "$($ArtifactInfo.BuildNumber)"
+      CommunicationProtocol: Http
+  - powershell: |
+      $startDateTime = Get-Date
+      $timeoutMinutes = 5
+      
+      Write-Host "Waiting device $(iotuap-x64-machine) to become online (for up to $timeoutMinutes minutes)..."
+      
+      Do { $Ping = Test-Connection $(iotuap-x64-machine) -quiet }
+      Until ($Ping -eq "True" -or (Get-Date) -gt $startDateTime.AddMinutes($timeoutMinutes))
+      
+      If ($Ping -eq "True") { Write-Host "Device $(iotuap-x64-machine) is online." }
+      Else { Write-Host "Time out, device $(iotuap-x64-machine) is offline." }
+      
+      Exit $Ping -ne "True"
+
+    displayName: 'Wait for $(iotuap-x64-machine) to boot up'
+  - task: PowerShellOnTargetMachines@3
+    displayName: "Run ${{ parameters['testName'] }} Test on $(iotuap-x64-machine)"
+    inputs:
+      Machines: '$(iotuap-x64-machine)'
+      UserName: '$(iotuap-x64-login)'
+      UserPassword: '$(iotuap-x64-password)'
+      InlineScript: |
+        #Requires -RunAsAdministrator
+        $ArtifactInfo=convertfrom-stringdata (get-content C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\artifactInfo.txt -raw)
+        C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\scripts\windows\test\Run-E2ETest.ps1 -E2ETestFolder "C:\Data\e2etests" -ReleaseLabel "${{ parameters['release.label'] }}" -ArtifactImageBuildNumber "$($ArtifactInfo.BuildNumber)" -TestName "${{ parameters['testName'] }}" -ContainerRegistry "${{ parameters['container.registry'] }}" -ContainerRegistryUsername "${{ parameters['container.registry.username'] }}" -ContainerRegistryPassword "${{ parameters['container.registry.password'] }}" -IoTHubConnectionString "${{ parameters['iotHub.connectionString'] }}" -EventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" -SnitchBuildNumber "${{ parameters['snitch.build.number'] }}" -SnitchStorageAccount "${{ parameters['snitch.storage.account'] }}" -SnitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" -SnitchAlertUrl "${{ parameters['snitch.alert.url'] }}" -LoadGen1TransportType "${{ parameters['loadGen1.transportType'] }}" -LoadGen2TransportType "${{ parameters['loadGen2.transportType'] }}" -LoadGen3TransportType "${{ parameters['loadGen3.transportType'] }}" -LoadGen4TransportType "${{ parameters['loadGen4.transportType'] }}" -AmqpSettingsEnabled "${{ parameters['amqp.settings.enabled'] }}" -MqttSettingsEnabled "${{ parameters['mqtt.settings.enabled'] }}" -LoadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" -BypassEdgeInstallation
+      CommunicationProtocol: Http
