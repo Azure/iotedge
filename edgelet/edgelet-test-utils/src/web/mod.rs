@@ -28,7 +28,7 @@ pub fn run_tcp_server<F, R>(
     handler: F,
 ) -> impl Future<Item = (), Error = hyper::Error>
 where
-    F: 'static + Fn(Request<Body>) -> R + Clone + Send + Sync,
+    F: 'static + Fn(Request<Body>) -> R + Clone + Send,
     R: 'static + Future<Item = Response<Body>, Error = hyper::Error> + Send,
 {
     let addr = &format!("{}:{}", ip, port).parse().unwrap();

@@ -7,7 +7,9 @@ mod to_docker;
 mod to_k8s;
 
 pub use self::to_docker::pod_to_module;
-pub use self::to_k8s::{auth_to_image_pull_secret, spec_to_deployment};
+pub use self::to_k8s::{
+    auth_to_image_pull_secret, spec_to_deployment, spec_to_role_binding, spec_to_service_account,
+};
 
 pub fn sanitize_dns_value(name: &str) -> Result<String> {
     let name_string = sanitize_dns_label(name);
