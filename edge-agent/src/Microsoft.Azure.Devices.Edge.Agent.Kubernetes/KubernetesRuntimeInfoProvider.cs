@@ -20,13 +20,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
     public class KubernetesRuntimeInfoProvider : IKubernetesOperator, IRuntimeInfoProvider, INotifyPropertyChanged
     {
+        readonly string deviceNamespace;
         readonly IKubernetes client;
         Option<Watcher<V1Pod>> podWatch;
         readonly Dictionary<string, ModuleRuntimeInfo> moduleRuntimeInfos;
         readonly AsyncLock moduleLock;
 
-        public KubernetesRuntimeInfoProvider(IKubernetes client)
+        public KubernetesRuntimeInfoProvider(string deviceNamespace, IKubernetes client)
         {
+            this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace,nameof(deviceNamespace));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
 
             this.podWatch = Option.None<Watcher<V1Pod>>();
@@ -63,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                                 this.podWatch = Option.None<Watcher<V1Pod>>();
 
                                 // kick off a new watch
-                                this.client.ListNamespacedPodWithHttpMessagesAsync(KubeUtils.K8sNamespace, watch: true).ContinueWith(this.ListPodComplete);
+                                this.client.ListNamespacedPodWithHttpMessagesAsync(deviceNamespace, watch: true).ContinueWith(this.ListPodComplete);
                             },
                             onError: Events.ExceptionInPodWatch
                         ));
@@ -82,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         }
 
 
-        public void Start() => this.client.ListNamespacedPodWithHttpMessagesAsync(KubeUtils.K8sNamespace, watch: true).ContinueWith(this.ListPodComplete);
+        public void Start() => this.client.ListNamespacedPodWithHttpMessagesAsync(deviceNamespace, watch: true).ContinueWith(this.ListPodComplete);
 
         public Task CloseAsync(CancellationToken token) => Task.CompletedTask;
 

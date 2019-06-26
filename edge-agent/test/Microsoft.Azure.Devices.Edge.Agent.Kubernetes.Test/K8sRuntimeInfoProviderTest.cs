@@ -23,12 +23,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     public class K8sRuntimeInfoProviderTest
     {
         private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(150);
+        const string PodwatchNamespace = "msiot-dwr-hub-dwr-ha3";
 
         [Unit]
         [Fact]
         public void ConstructorChecksNull()
         {
-            Assert.Throws<ArgumentNullException>(() => new KubernetesRuntimeInfoProvider(null));
+            var client = new Mock<IKubernetes>(MockBehavior.Strict);
+
+            Assert.Throws<ArgumentException>(() => new KubernetesRuntimeInfoProvider(null,null));
+            Assert.Throws<ArgumentNullException>(() => new KubernetesRuntimeInfoProvider("namespace ",null));
+            Assert.Throws<ArgumentException>(() => new KubernetesRuntimeInfoProvider(null,client.Object));
         }
 
 
@@ -46,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         public async void GetModuleLogsTest()
         {
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            var k8sRuntimeInfo = new KubernetesRuntimeInfoProvider(client.Object);
+            var k8sRuntimeInfo = new KubernetesRuntimeInfoProvider(PodwatchNamespace, client.Object);
             var result = await k8sRuntimeInfo.GetModuleLogs("module", true, Option.None<int>(), Option.None<int>(), CancellationToken.None);
             Assert.True(result.Length == 0);
         }
@@ -62,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             client.Setup(
                 kc =>
                     kc.ListNodeWithHttpMessagesAsync(null, null, null, null, null, null, null, null, null, It.IsAny<CancellationToken>())).ReturnsAsync(() => response);
-            var k8sRuntimeInfo = new KubernetesRuntimeInfoProvider(client.Object);
+            var k8sRuntimeInfo = new KubernetesRuntimeInfoProvider(PodwatchNamespace, client.Object);
 
             var result = await k8sRuntimeInfo.GetSystemInfo();
             Assert.Equal(expectedInfo.Architecture, result.Architecture);
@@ -140,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                         Host = server.Uri.ToString()
                     });
 
-                var k8sRuntimeInfo = new KubernetesRuntimeInfoProvider(client);
+                var k8sRuntimeInfo = new KubernetesRuntimeInfoProvider(PodwatchNamespace, client);
 
                 k8sRuntimeInfo.PropertyChanged += (sender, args) =>
                 {
@@ -219,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                         Host = server.Uri.ToString()
                     });
 
-                var k8sRuntimeInfo = new KubernetesRuntimeInfoProvider(client);
+                var k8sRuntimeInfo = new KubernetesRuntimeInfoProvider(PodwatchNamespace, client);
 
                 k8sRuntimeInfo.PropertyChanged += (sender, args) =>
                 {
@@ -274,7 +279,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     Host = server.Uri.ToString()
                 });
 
-                var k8sRuntimeInfo = new KubernetesRuntimeInfoProvider(client);
+                var k8sRuntimeInfo = new KubernetesRuntimeInfoProvider(PodwatchNamespace, client);
 
                 k8sRuntimeInfo.PropertyChanged += (sender, args) =>
                 {

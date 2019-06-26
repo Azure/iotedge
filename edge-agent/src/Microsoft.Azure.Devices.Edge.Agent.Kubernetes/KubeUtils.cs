@@ -20,20 +20,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         static bool IsAlphaNumeric(char ch) => IsAlpha(ch) || Char.IsDigit(ch);
 
-        public static readonly string K8sNamespace = Constants.k8sNamespaceBaseName;
 
         static KubeUtils()
         {
-            // build the k8s namespace to which all things belong
-            string nsBaseName = Environment.GetEnvironmentVariable(Constants.k8sNamespaceBaseName);
-            string deviceId = Environment.GetEnvironmentVariable(CoreConstants.DeviceIdVariableName);
-            string hubName = Environment.GetEnvironmentVariable(CoreConstants.IotHubHostnameVariableName);
-            if (hubName != null && deviceId != null && nsBaseName != null)
-            {
-                hubName = hubName.Split('.').FirstOrDefault() ?? hubName;
-
-                K8sNamespace = $"{nsBaseName}-{hubName.ToLower()}-{deviceId.ToLower()}";
-            }
         }
 
         // Valid annotation keys have two segments: an optional prefix and name, separated by a slash (/). 
