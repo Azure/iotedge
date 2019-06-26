@@ -264,6 +264,7 @@ jobs:
             $(images.artifact.name.windows)/e2e_deployment_files/long_haul_deployment.template.windows.json
             $(images.artifact.name.windows)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1
             $(images.artifact.name.windows)/scripts/windows/test/Run-E2ETest.ps1
+            $(images.artifact.name.windows)/scripts/windows/test/Setup-Env.ps1
             $(images.artifact.name.windows)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy-windows.yaml
@@ -329,6 +330,7 @@ jobs:
             $(images.artifact.name.windows)/e2e_deployment_files/long_haul_deployment.template.windows.json
             $(images.artifact.name.windows)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1
             $(images.artifact.name.windows)/scripts/windows/test/Run-E2ETest.ps1
+            $(images.artifact.name.windows)/scripts/windows/test/Setup-Env.ps1
             $(images.artifact.name.windows)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy-windows.yaml
@@ -346,4 +348,69 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
-         
+
+################################################################################
+  - job: iotuap_amd64_moby
+################################################################################
+    displayName: Windows IoT Core AMD64 Moby
+    condition: eq(variables['run.iotuap.amd64.moby'], 'true')
+    pool:
+      name: $(pool.name)
+      demands:
+        #- longhaul_iotuap_x64 -equals true
+        - run-long-haul -equals true
+        - runner-os-name -equals WinIoTCore_x64
+    variables:
+      edgelet.artifact.name: 'iotedged-windows'
+    steps:
+      - checkout: none
+      - task: AzureKeyVault@1
+        displayName: 'Access Key Vault Secrets'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl'
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Edgelet Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          branchName: $(edgelet.package.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(edgelet.artifact.name)
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Images Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(images.build)
+          branchName: $(images.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(images.artifact.name.windows)
+          itemPattern: |
+            $(images.artifact.name.windows)/IotEdgeQuickstart/x64/*
+            $(images.artifact.name.windows)/e2e_deployment_files/long_haul_deployment.template.windows.json
+            $(images.artifact.name.windows)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1
+            $(images.artifact.name.windows)/scripts/windows/test/Run-E2ETest.ps1
+            $(images.artifact.name.windows)/scripts/windows/test/Setup-Env.ps1
+            $(images.artifact.name.windows)/artifactInfo.txt
+      # Deploy LongHaul test
+      - template: templates/deploy-iotuap.yaml
+        parameters:
+          testName: 'LongHaul'
+          release.label: 'iotuap-lh'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.windows)'
+          container.registry: '$(container.registry)'
+          container.registry.username: '$(edgebuilds-azurecr-io-username)'
+          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+          iotHub.connectionString: '$(IotHubStressConnString)'
+          eventHub.connectionString: '$(EventHubStressConnStr)'
+          snitch.build.number: '$(snitch.build.number)'
+          snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
+          snitch.storage.account: '$(snitch.storage.account)'
+          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
+          loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
