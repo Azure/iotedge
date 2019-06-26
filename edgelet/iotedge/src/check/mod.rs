@@ -882,7 +882,7 @@ fn host_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
             (major_version, minor_version, build_number, _) => {
                 return Ok(CheckResult::Fatal(Context::new(format!(
                     "The host has an unsupported OS version {}.{}.{}. IoT Edge on Windows only supports OS version 10.0.17763.\n\
-                 Please see https://aka.ms/iotedge-platsup for details.",
+                    Please see https://aka.ms/iotedge-platsup for details.",
                     major_version, minor_version, build_number,
                 )).into()))
             }
