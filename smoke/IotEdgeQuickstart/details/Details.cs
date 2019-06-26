@@ -104,6 +104,8 @@ namespace IotEdgeQuickstart.Details
 
         readonly Option<RegistryCredentials> credentials;
 
+        readonly string iothubConnectionString;
+
         readonly Option<DPSAttestation> dpsAttestation;
 
         readonly string eventhubCompatibleEndpointWithEntityPath;
@@ -156,6 +158,7 @@ namespace IotEdgeQuickstart.Details
         {
             this.bootstrapper = bootstrapper;
             this.credentials = credentials;
+            this.iothubConnectionString = iothubConnectionString;
             this.dpsAttestation = dpsAttestation;
             this.eventhubCompatibleEndpointWithEntityPath = eventhubCompatibleEndpointWithEntityPath;
 
@@ -233,7 +236,12 @@ namespace IotEdgeQuickstart.Details
             }
             else
             {
-                await this.CreateEdgeDeviceIdentity(rm);
+                // if dpsAttestion is enabled, do not create a device as the
+                // ESD will register with DPS to create the device in IoT Hub
+                if (!this.dpsAttestation.HasValue)
+                {
+                    await this.CreateEdgeDeviceIdentity(rm);
+                }
             }
         }
 

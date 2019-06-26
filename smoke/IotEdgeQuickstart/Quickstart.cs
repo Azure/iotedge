@@ -37,7 +37,7 @@ namespace IotEdgeQuickstart
             bool optimizedForPerformance,
             LogLevel runtimeLogLevel,
             bool cleanUpExistingDeviceOnSuccess,
-            Option<DPSAttattestation> dpsAttestation)
+            Option<DPSAttestation> dpsAttestation)
             : base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, upstreamProtocol, proxy, imageTag, deviceId, hostname, deploymentFileName, twinTestFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, runtimeLogLevel, cleanUpExistingDeviceOnSuccess, dpsAttestation)
         {
             this.leaveRunning = leaveRunning;

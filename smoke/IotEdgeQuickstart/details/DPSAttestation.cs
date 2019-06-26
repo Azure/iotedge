@@ -6,28 +6,31 @@ namespace IotEdgeQuickstart.Details
 
     public class DPSAttestation
     {
+        public string EndPoint { get; }
         public string ScopeId { get; }
         public Option<string> RegistrationId { get; }
         public Option<string> SymmetricKey { get; }
         public Option<string> DeviceIdentityCertificate { get; }
         public Option<string> DeviceIdentityPrivateKey { get; }
 
-        public DPSAttestation(string scopeId, string registrationId, string symmetricKey)
+        public DPSAttestation(string endPoint, string scopeId, string registrationId, string symmetricKey)
         {
-            this.ScopeId = Preconditions.CheckNotNull(scopeId, nameof(scopeId));
-            this.RegistrationId = Option.Some(Preconditions.CheckNotNull(registrationId, nameof(registrationId)));
-            this.SymmetricKey = Option.Some(Preconditions.CheckNotNull(symmetricKey, nameof(symmetricKey)));
+            this.EndPoint = Preconditions.CheckNonWhiteSpace(endPoint, nameof(endPoint));
+            this.ScopeId = Preconditions.CheckNonWhiteSpace(scopeId, nameof(scopeId));
+            this.RegistrationId = Option.Some(Preconditions.CheckNonWhiteSpace(registrationId, nameof(registrationId)));
+            this.SymmetricKey = Option.Some(Preconditions.CheckNonWhiteSpace(symmetricKey, nameof(symmetricKey)));
             this.DeviceIdentityCertificate = Option.None<string>();
             this.DeviceIdentityPrivateKey = Option.None<string>();
         }
 
-        public DPSAttestation(string scopeId, Option<string> registrationId, string certPath, string privateKeyPath)
+        public DPSAttestation(string endPoint, string scopeId, Option<string> registrationId, string certPath, string privateKeyPath)
         {
-            this.ScopeId = Preconditions.CheckNotNull(scopeId, nameof(scopeId));
+            this.EndPoint = Preconditions.CheckNonWhiteSpace(endPoint, nameof(endPoint));
+            this.ScopeId = Preconditions.CheckNonWhiteSpace(scopeId, nameof(scopeId));
             this.RegistrationId = registrationId;
             this.SymmetricKey = Option.None<string>();
-            this.DeviceIdentityCertificate = Option.Some(Preconditions.CheckNotNull(certPath, nameof(certPath)));
-            this.DeviceIdentityPrivateKey = Option.Some(Preconditions.CheckNotNull(privateKeyPath, nameof(privateKeyPath)));
+            this.DeviceIdentityCertificate = Option.Some(Preconditions.CheckNonWhiteSpace(certPath, nameof(certPath)));
+            this.DeviceIdentityPrivateKey = Option.Some(Preconditions.CheckNonWhiteSpace(privateKeyPath, nameof(privateKeyPath)));
         }
     }
 }

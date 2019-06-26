@@ -221,6 +221,7 @@ Defaults:
                 string connectionString = this.IotHubConnectionString ??
                                           await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
 
+                Option<DPSAttestation> dpsAttestation = Option.None<DPSAttestation>();
                 if (!string.IsNullOrEmpty(this.DPSScopeId))
                 {
                     if (string.IsNullOrEmpty(this.DPSEndpoint))
@@ -246,7 +247,9 @@ Defaults:
                         {
                             throw new ArgumentException("Both device identity certificate and DPS symmetric key cannot be set");
                         }
+                        dpsAttestation = Option.Some(new DPSAttestation(this.DPSEndpoint, this.DPSScopeId, this.DPSRegistrationId, this.DPSSymmetricKey));
                     }
+
                 }
 
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
@@ -280,7 +283,8 @@ Defaults:
                     this.DeviceCaCerts,
                     this.OptimizeForPerformance,
                     this.RuntimeLogLevel,
-                    this.CleanUpExistingDeviceOnSuccess);
+                    this.CleanUpExistingDeviceOnSuccess,
+                    dpsAttestation);
                 await test.RunAsync();
             }
             catch (Exception ex)
