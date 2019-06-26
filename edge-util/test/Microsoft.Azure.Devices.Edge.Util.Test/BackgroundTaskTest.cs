@@ -62,29 +62,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
-        public async Task TaskCancelledTest()
-        {
-            CancellationTokenSource cts = new CancellationTokenSource();
-            async Task TestTask()
-            {
-                await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
-            }
-
-            (string correlationId, BackgroundTaskStatus backgroundTaskStatus) = BackgroundTask.Run(TestTask, "testTask", cts.Token);
-
-            Assert.NotEmpty(correlationId);
-            Assert.Equal(BackgroundTaskRunStatus.Running, backgroundTaskStatus.Status);
-            Assert.False(backgroundTaskStatus.Exception.HasValue);
-
-            cts.Cancel();
-            await Task.Delay(TimeSpan.FromSeconds(4));
-            backgroundTaskStatus = BackgroundTask.GetStatus(correlationId);
-
-            Assert.Equal(BackgroundTaskRunStatus.Cancelled, backgroundTaskStatus.Status);
-            Assert.False(backgroundTaskStatus.Exception.HasValue);
-        }
-
-        [Fact]
         public async Task MultipleTasksTest()
         {
             CancellationTokenSource cts = new CancellationTokenSource();
@@ -92,27 +69,27 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             bool isCompleted1 = false;
             async Task TestTask1()
             {
-                await Task.Delay(TimeSpan.FromSeconds(4), cts.Token);
-                isCompleted1 = false;
+                await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
+                isCompleted1 = true;
             }
 
             bool isCompleted2 = false;
             async Task TestTask2()
             {
-                await Task.Delay(TimeSpan.FromSeconds(9), cts.Token);
-                isCompleted2 = false;
+                await Task.Delay(TimeSpan.FromSeconds(8), cts.Token);
+                isCompleted2 = true;
             }
 
             bool isCompleted3 = false;
             async Task TestTask3()
             {
                 await Task.Delay(TimeSpan.FromSeconds(14), cts.Token);
-                isCompleted3 = false;
+                isCompleted3 = true;
             }
 
             (string correlationId1, BackgroundTaskStatus backgroundTaskStatus1) = BackgroundTask.Run(TestTask1, "testTask1", cts.Token);
-            (string correlationId2, BackgroundTaskStatus backgroundTaskStatus2) = BackgroundTask.Run(TestTask2, "testTask1", cts.Token);
-            (string correlationId3, BackgroundTaskStatus backgroundTaskStatus3) = BackgroundTask.Run(TestTask3, "testTask1", cts.Token);
+            (string correlationId2, BackgroundTaskStatus backgroundTaskStatus2) = BackgroundTask.Run(TestTask2, "testTask2", cts.Token);
+            (string correlationId3, BackgroundTaskStatus backgroundTaskStatus3) = BackgroundTask.Run(TestTask3, "testTask3", cts.Token);
 
             Assert.NotEmpty(correlationId1);
             Assert.NotNull(backgroundTaskStatus1);
@@ -152,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.False(backgroundTaskStatus3.Exception.HasValue);
             Assert.False(isCompleted3);
 
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(TimeSpan.FromSeconds(7));
 
             backgroundTaskStatus1 = BackgroundTask.GetStatus(correlationId1);
             Assert.NotNull(backgroundTaskStatus1);
@@ -172,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.False(backgroundTaskStatus3.Exception.HasValue);
             Assert.False(isCompleted3);
 
-            await Task.Delay(TimeSpan.FromSeconds(15));
+            await Task.Delay(TimeSpan.FromSeconds(7));
 
             backgroundTaskStatus1 = BackgroundTask.GetStatus(correlationId1);
             Assert.NotNull(backgroundTaskStatus1);

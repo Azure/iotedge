@@ -88,7 +88,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
                             switch (t.Status)
                             {
                                 case TaskStatus.Faulted:
-                                    return new BackgroundTaskStatus(BackgroundTaskRunStatus.Failed, operation, Option.Maybe(t.Exception as Exception));
+                                    Exception exception = t.Exception is AggregateException aggregateException
+                                        ? aggregateException.InnerException
+                                        : t.Exception;
+                                    return new BackgroundTaskStatus(BackgroundTaskRunStatus.Failed, operation, Option.Some(exception));
 
                                 case TaskStatus.Canceled:
                                     return new BackgroundTaskStatus(BackgroundTaskRunStatus.Cancelled, operation);
