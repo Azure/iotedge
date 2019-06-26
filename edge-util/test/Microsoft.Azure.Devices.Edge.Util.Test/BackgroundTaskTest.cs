@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.False(completed);
             Assert.False(backgroundTaskStatus.Exception.HasValue);
 
-            await Task.Delay(TimeSpan.FromSeconds(4));
+            await Task.Delay(TimeSpan.FromSeconds(5));
             backgroundTaskStatus = BackgroundTask.GetStatus(correlationId);
 
             Assert.Equal(BackgroundTaskRunStatus.Completed, backgroundTaskStatus.Status);
