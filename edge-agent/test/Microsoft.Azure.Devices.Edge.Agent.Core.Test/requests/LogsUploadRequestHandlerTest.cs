@@ -151,7 +151,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             Option<string> response = await logsUploadRequestHandler.HandleRequest(Option.Maybe(payload), CancellationToken.None);
 
             // Assert
-            Assert.False(response.HasValue);
+            Assert.True(response.HasValue);
+            var taskStatusResponse = response.OrDefault().FromJson<TaskStatusResponse>();
+            Assert.NotNull(taskStatusResponse);
+            Assert.NotEmpty(taskStatusResponse.CorrelationId);
+            Assert.Equal(string.Empty, taskStatusResponse.Message);
+
             logsProvider.VerifyAll();
             logsUploader.VerifyAll();
             runtimeInfoProvider.VerifyAll();
