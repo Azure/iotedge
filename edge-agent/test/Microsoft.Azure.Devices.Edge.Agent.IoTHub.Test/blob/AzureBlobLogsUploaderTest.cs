@@ -23,8 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
         const string BlobNameRegexPattern = @"(?<iothub>.*)/(?<deviceid>.*)/(?<id>.*)-(?<timestamp>\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}).(?<extension>\w{2})";
 
         [Theory]
-        [InlineData(LogsContentEncoding.Gzip, LogsContentType.Json, "gz")]
-        [InlineData(LogsContentEncoding.Gzip, LogsContentType.Text, "gz")]
+        [InlineData(LogsContentEncoding.Gzip, LogsContentType.Json, "json.gz")]
+        [InlineData(LogsContentEncoding.Gzip, LogsContentType.Text, "log.gz")]
         [InlineData(LogsContentEncoding.None, LogsContentType.Json, "json")]
         [InlineData(LogsContentEncoding.None, LogsContentType.Text, "log")]
         public void GetExtensionTest(LogsContentEncoding contentEncoding, LogsContentType contentType, string expectedExtension)
