@@ -85,7 +85,7 @@ It is possible to specify a DNS server in the Edge device's deployment instead o
 
 ## IPv6 network configuration
 
-This check validates that if IPv6 container network configuration is enabled in `config.yaml` (by setting the value of `moby_runtime.network.ipv6` field to  `true`), the container engine's `daemon.json` file also has IPv6 support enabled. To enable IPv6 support for the container runtime, please refer to this guide <https://docs.docker.com/v17.09/engine/userguide/networking/default_network/ipv6>.
+This check validates that if IPv6 container network configuration is enabled in `config.yaml` (by setting the value of `moby_runtime.network.ipv6` field to `true`), the container engine's `daemon.json` file also has IPv6 support enabled. To enable IPv6 support for the container runtime, please refer to this guide <https://docs.docker.com/v17.09/engine/userguide/networking/default_network/ipv6>.
 
 IPv6 container runtime network configuration is currently not supported for the Windows operating system and this check fails if IPv6 support is enabled in the container enginer's `daemon.json` file.
 

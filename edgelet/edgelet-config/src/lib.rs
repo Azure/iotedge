@@ -25,8 +25,8 @@ use sha2::{Digest, Sha256};
 use url::Url;
 
 use edgelet_core::crypto::MemoryKey;
-use edgelet_core::network::MobyNetwork;
 use edgelet_core::watchdog::RetryLimit;
+use edgelet_core::MobyNetwork;
 use edgelet_core::ModuleSpec;
 use edgelet_utils::log_failure;
 
@@ -851,7 +851,7 @@ mod tests {
                 let expected_ipam_config: Vec<IpamConfig> = vec![ipam_1, ipam_2];
 
                 ipam_config.iter().for_each(|ipam_config| {
-                    assert_eq!(expected_ipam_config.contains(ipam_config), true);
+                    assert!(expected_ipam_config.contains(ipam_config));
                 });
             }
             MobyNetwork::Name(_name) => panic!("Unexpected network configuration."),

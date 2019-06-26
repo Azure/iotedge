@@ -17,7 +17,7 @@ pub mod crypto;
 mod error;
 mod identity;
 mod module;
-pub mod network;
+mod network;
 pub mod watchdog;
 pub mod workload;
 
