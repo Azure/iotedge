@@ -562,8 +562,7 @@ fn check_settings_state<M, C>(
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(), Error>
 where
-    M: MakeModuleRuntime + ModuleRuntime,
-    M::RemoveAllFuture: 'static,
+    M: MakeModuleRuntime + ModuleRuntime + 'static,
     M::Settings: Serialize,
     C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
@@ -608,8 +607,7 @@ fn reconfigure<M, C>(
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(), Error>
 where
-    M: MakeModuleRuntime + ModuleRuntime,
-    M::RemoveAllFuture: 'static,
+    M: MakeModuleRuntime + ModuleRuntime + 'static,
     M::Settings: Serialize,
     C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
@@ -1534,7 +1532,7 @@ mod tests {
             .unwrap()
             .write_all(base64_to_write.as_bytes())
             .unwrap();
-        assert_eq!(diff_with_cached(&settings, &path), false);
+        assert!(!diff_with_cached(&settings, &path));
     }
 
     #[test]
@@ -1550,7 +1548,7 @@ mod tests {
             .write_all(base64_to_write.as_bytes())
             .unwrap();
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
-        assert_eq!(diff_with_cached(&settings, &path), false);
+        assert!(!diff_with_cached(&settings, &path));
     }
 
     #[test]
@@ -1566,7 +1564,7 @@ mod tests {
             .write_all(base64_to_write.as_bytes())
             .unwrap();
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_DEFAULT))).unwrap();
-        assert_eq!(diff_with_cached(&settings, &path), false);
+        assert!(!diff_with_cached(&settings, &path));
     }
 
     #[test]
@@ -1582,7 +1580,7 @@ mod tests {
             .write_all(base64_to_write.as_bytes())
             .unwrap();
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
-        assert_eq!(diff_with_cached(&settings, &path), false);
+        assert!(!diff_with_cached(&settings, &path));
     }
 
     #[test]
@@ -1598,12 +1596,12 @@ mod tests {
             .write_all(base64_to_write.as_bytes())
             .unwrap();
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
-        assert_eq!(diff_with_cached(&settings, &path), true);
+        assert!(diff_with_cached(&settings, &path));
     }
 
     #[test]
     fn diff_with_no_file_returns_true() {
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
-        assert_eq!(diff_with_cached(&settings, Path::new("i dont exist")), true);
+        assert!(diff_with_cached(&settings, Path::new("i dont exist")));
     }
 }

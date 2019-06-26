@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt;
-use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -14,7 +13,6 @@ use hyper::{Body, Chunk as HyperChunk, Client};
 use management::apis::client::APIClient;
 use management::apis::configuration::Configuration;
 use management::models::{Config, ModuleDetails as HttpModuleDetails};
-use provisioning::ProvisioningResult;
 use serde_json;
 use url::Url;
 
@@ -141,61 +139,6 @@ impl ModuleRegistry for ModuleClient {
 
     fn remove(&self, _name: &str) -> Self::RemoveFuture {
         future::ok(())
-    }
-}
-
-pub struct Settings;
-
-impl RuntimeSettings for Settings {
-    type Config = ModuleConfig;
-
-    fn provisioning(&self) -> &Provisioning {
-        unimplemented!()
-    }
-
-    fn agent(&self) -> &ModuleSpec<Self::Config> {
-        unimplemented!()
-    }
-
-    fn agent_mut(&mut self) -> &mut ModuleSpec<Self::Config> {
-        unimplemented!()
-    }
-
-    fn hostname(&self) -> &str {
-        unimplemented!()
-    }
-
-    fn connect(&self) -> &Connect {
-        unimplemented!()
-    }
-
-    fn listen(&self) -> &Listen {
-        unimplemented!()
-    }
-
-    fn homedir(&self) -> &Path {
-        unimplemented!()
-    }
-
-    fn certificates(&self) -> Option<&Certificates> {
-        unimplemented!()
-    }
-
-    fn watchdog(&self) -> &WatchdogSettings {
-        unimplemented!()
-    }
-}
-
-impl MakeModuleRuntime for ModuleClient {
-    type Config = ModuleConfig;
-    type Settings = Settings;
-    type ProvisioningResult = ProvisioningResult;
-    type ModuleRuntime = Self;
-    type Error = Error;
-    type Future = Box<dyn Future<Item = Self::ModuleRuntime, Error = Self::Error> + Send>;
-
-    fn make_runtime(_: Self::Settings, _: Self::ProvisioningResult) -> Self::Future {
-        unimplemented!()
     }
 }
 

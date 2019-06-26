@@ -3,9 +3,7 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
-use std::cmp::Ordering;
-use std::collections::{BTreeMap, HashMap};
-use std::error::Error as StdError;
+use std::collections::HashMap;
 use std::str;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
@@ -15,10 +13,10 @@ use config::{Config, File, FileFormat};
 use failure::Fail;
 use futures::future;
 use futures::prelude::*;
-use hyper::body::Payload;
 use hyper::{Body, Method, Request, Response, StatusCode};
+use json_patch::merge;
 use maplit::btreemap;
-use serde_json::json;
+use serde_json::{self, json, Value as JsonValue};
 use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
 use url::form_urlencoded::parse as parse_query;
 
@@ -26,7 +24,7 @@ use url::form_urlencoded::parse as parse_query;
 use docker::models::AuthConfig;
 use docker::models::{
     ContainerCreateBody, ContainerHostConfig, ContainerNetworkSettings, ContainerSummary,
-    HostConfig, HostConfigPortBindings, ImageDeleteResponseItem,
+    HostConfig, HostConfigPortBindings, ImageDeleteResponseItem, NetworkConfig,
 };
 
 use edgelet_core::{
@@ -35,7 +33,10 @@ use edgelet_core::{
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
 use edgelet_docker::{Error, ErrorKind};
-use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
+use edgelet_test_utils::web::{
+    make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
+};
+use edgelet_test_utils::{get_unused_tcp_port, routes, run_tcp_server};
 use hyper::Error as HyperError;
 use provisioning::{ProvisioningResult, ReprovisioningStatus};
 
@@ -46,9 +47,9 @@ const INVALID_IMAGE_NAME: &str = "invalidname:latest";
 #[cfg(unix)]
 const INVALID_IMAGE_HOST: &str = "invalidhost.com/nginx:latest";
 
-fn settings_with_docker_uri(uri: &str) -> Settings {
+fn make_settings(merge_json: Option<JsonValue>) -> Settings {
     let mut config = Config::default();
-    let config_json = json!({
+    let mut config_json = json!({
         "provisioning": {
             "source": "manual",
             "device_connection_string": "HostName=moo.azure-devices.net;DeviceId=boo;SharedAccessKey=boo"
@@ -73,10 +74,14 @@ fn settings_with_docker_uri(uri: &str) -> Settings {
         },
         "homedir": "/var/lib/iotedge",
         "moby_runtime": {
-            "uri": uri,
+            "uri": "unix:///var/run/docker.sock",
             "network": "azure-iot-edge"
         }
     });
+
+    if let Some(merge_json) = merge_json {
+        merge(&mut config_json, &merge_json);
+    }
 
     config
         .merge(File::from_str(&config_json.to_string(), FileFormat::Json))
@@ -93,88 +98,6 @@ fn provisioning_result() -> ProvisioningResult {
         ReprovisioningStatus::DeviceDataNotUpdated,
         None,
     )
-}
-
-#[derive(Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
-struct RequestPath(String);
-
-#[derive(Clone, PartialEq, Eq, Hash)]
-struct HttpMethod(Method);
-
-impl Ord for HttpMethod {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.as_str().cmp(other.0.as_str())
-    }
-}
-
-impl PartialOrd for HttpMethod {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-trait CloneableService: objekt::Clone {
-    type ReqBody: Payload;
-    type ResBody: Payload;
-    type Error: Into<Box<dyn StdError + Send + Sync>>;
-    type Future: Future<Item = Response<Self::ResBody>, Error = Self::Error>;
-
-    fn call(&self, req: Request<Self::ReqBody>) -> Self::Future;
-}
-
-objekt::clone_trait_object!(CloneableService<
-    ReqBody = Body,
-    ResBody = Body,
-    Error = HyperError,
-    Future = ResponseFuture,
-> + Send);
-
-type ResponseFuture = Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send>;
-type RequestHandler = Box<
-    dyn CloneableService<
-            ReqBody = Body,
-            ResBody = Body,
-            Error = HyperError,
-            Future = ResponseFuture,
-        > + Send,
->;
-
-impl<T, F> CloneableService for T
-where
-    T: Fn(Request<Body>) -> F + Clone,
-    F: IntoFuture<Item = Response<Body>, Error = HyperError>,
-{
-    type ReqBody = Body;
-    type ResBody = Body;
-    type Error = F::Error;
-    type Future = F::Future;
-
-    fn call(&self, req: Request<Self::ReqBody>) -> Self::Future {
-        (self)(req).into_future()
-    }
-}
-
-fn make_req_dispatcher(
-    dispatch_table: BTreeMap<(HttpMethod, RequestPath), RequestHandler>,
-    default_handler: RequestHandler,
-) -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-    move |req: Request<Body>| {
-        let key = (
-            HttpMethod(req.method().clone()),
-            RequestPath(req.uri().path().to_string()),
-        );
-        let handler = dispatch_table.get(&key).unwrap_or(&default_handler);
-
-        Box::new(handler.call(req))
-    }
-}
-
-macro_rules! routes {
-    ($($method:ident $path:expr => $handler:expr),+ $(,)*) => ({
-        btreemap! {
-            $((HttpMethod(Method::$method), RequestPath(From::from($path))) => Box::new($handler) as RequestHandler,)*
-        }
-    });
 }
 
 fn make_get_networks_handler(
@@ -196,10 +119,10 @@ fn make_get_networks_handler(
 }
 
 fn make_create_network_handler(
-    on_post: impl Fn() -> () + Clone + Send + 'static,
+    on_post: impl Fn(Request<Body>) -> () + Clone + Send + 'static,
 ) -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-    move |_| {
-        on_post();
+    move |req| {
+        on_post(req);
 
         let response = json!({
             "Id": "12345",
@@ -230,7 +153,7 @@ fn not_found_handler(_: Request<Body>) -> ResponseFuture {
 
 fn make_network_handler(
     on_get: impl Fn() -> String + Clone + Send + 'static,
-    on_post: impl Fn() -> () + Clone + Send + 'static,
+    on_post: impl Fn(Request<Body>) -> () + Clone + Send + 'static,
 ) -> impl Fn(Request<Body>) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> + Clone
 {
     let dispatch_table = routes!(
@@ -246,7 +169,7 @@ fn default_get_networks_handler() -> impl Fn(Request<Body>) -> ResponseFuture + 
 }
 
 fn default_create_network_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-    make_create_network_handler(|| ())
+    make_create_network_handler(|_| ())
 }
 
 fn default_network_handler(
@@ -318,7 +241,11 @@ fn image_pull_with_invalid_image_name_fails() {
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     )
     .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
 
     let task =
         DockerModuleRuntime::make_runtime(settings, provisioning_result()).and_then(|runtime| {
@@ -422,7 +349,11 @@ fn image_pull_with_invalid_image_host_fails() {
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     )
     .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
 
     let task =
         DockerModuleRuntime::make_runtime(settings, provisioning_result()).and_then(|runtime| {
@@ -541,7 +472,11 @@ fn image_pull_with_invalid_creds_fails() {
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     )
     .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
 
     let task =
         DockerModuleRuntime::make_runtime(settings, provisioning_result()).and_then(|runtime| {
@@ -642,7 +577,11 @@ fn image_pull_succeeds() {
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     )
     .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
 
     let task =
         DockerModuleRuntime::make_runtime(settings, provisioning_result()).and_then(|runtime| {
@@ -732,7 +671,11 @@ fn image_pull_with_creds_succeeds() {
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     )
     .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
 
     let task =
         DockerModuleRuntime::make_runtime(settings, provisioning_result()).and_then(|runtime| {
@@ -793,7 +736,11 @@ fn image_remove_succeeds() {
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     )
     .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
         .and_then(|runtime| ModuleRegistry::remove(&runtime, IMAGE_NAME));
@@ -902,7 +849,11 @@ fn container_create_succeeds() {
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     )
     .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
 
     let task =
         DockerModuleRuntime::make_runtime(settings, provisioning_result()).and_then(|runtime| {
@@ -982,7 +933,11 @@ fn container_start_succeeds() {
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     )
     .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
         .and_then(|runtime| runtime.start("m1"));
@@ -1016,7 +971,11 @@ fn container_stop_succeeds() {
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     )
     .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
         .and_then(|runtime| runtime.stop("m1", None));
@@ -1051,7 +1010,11 @@ fn container_stop_with_timeout_succeeds() {
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     )
     .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
         .and_then(|runtime| runtime.stop("m1", Some(Duration::from_secs(600))));
@@ -1085,7 +1048,11 @@ fn container_remove_succeeds() {
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     )
     .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
         .and_then(|runtime| ModuleRuntime::remove(&runtime, "m1"));
@@ -1202,7 +1169,11 @@ fn container_list_succeeds() {
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     )
     .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
         .and_then(|runtime| runtime.list());
@@ -1281,7 +1252,11 @@ fn container_logs_succeeds() {
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     )
     .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
 
     let task =
         DockerModuleRuntime::make_runtime(settings, provisioning_result()).and_then(|runtime| {
@@ -1315,7 +1290,11 @@ fn image_remove_with_white_space_name_fails() {
     let port = get_unused_tcp_port();
     let server = run_tcp_server("127.0.0.1", port, default_network_handler())
         .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
     let image_name = "     ";
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
@@ -1345,7 +1324,11 @@ fn create_fails_for_non_docker_type() {
     let port = get_unused_tcp_port();
     let server = run_tcp_server("127.0.0.1", port, default_network_handler())
         .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
     let name = "not_docker";
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
@@ -1380,7 +1363,11 @@ fn start_fails_for_empty_id() {
     let port = get_unused_tcp_port();
     let server = run_tcp_server("127.0.0.1", port, default_network_handler())
         .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
     let name = "";
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
@@ -1408,7 +1395,11 @@ fn start_fails_for_white_space_id() {
     let port = get_unused_tcp_port();
     let server = run_tcp_server("127.0.0.1", port, default_network_handler())
         .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
     let name = "      ";
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
@@ -1436,7 +1427,11 @@ fn stop_fails_for_empty_id() {
     let port = get_unused_tcp_port();
     let server = run_tcp_server("127.0.0.1", port, default_network_handler())
         .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
     let name = "";
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
@@ -1464,7 +1459,11 @@ fn stop_fails_for_white_space_id() {
     let port = get_unused_tcp_port();
     let server = run_tcp_server("127.0.0.1", port, default_network_handler())
         .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
     let name = "     ";
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
@@ -1492,7 +1491,11 @@ fn restart_fails_for_empty_id() {
     let port = get_unused_tcp_port();
     let server = run_tcp_server("127.0.0.1", port, default_network_handler())
         .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
     let name = "";
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
@@ -1520,7 +1523,11 @@ fn restart_fails_for_white_space_id() {
     let port = get_unused_tcp_port();
     let server = run_tcp_server("127.0.0.1", port, default_network_handler())
         .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
     let name = "      ";
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
@@ -1548,7 +1555,11 @@ fn remove_fails_for_empty_id() {
     let port = get_unused_tcp_port();
     let server = run_tcp_server("127.0.0.1", port, default_network_handler())
         .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
     let name = "";
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
@@ -1576,7 +1587,11 @@ fn remove_fails_for_white_space_id() {
     let port = get_unused_tcp_port();
     let server = run_tcp_server("127.0.0.1", port, default_network_handler())
         .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
     let name = "      ";
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
@@ -1604,7 +1619,11 @@ fn get_fails_for_empty_id() {
     let port = get_unused_tcp_port();
     let server = run_tcp_server("127.0.0.1", port, default_network_handler())
         .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
     let name = "";
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
@@ -1632,7 +1651,11 @@ fn get_fails_for_white_space_id() {
     let port = get_unused_tcp_port();
     let server = run_tcp_server("127.0.0.1", port, default_network_handler())
         .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
     let name = "    ";
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
@@ -1672,7 +1695,7 @@ fn runtime_init_network_does_not_exist_create() {
 
             json!([]).to_string()
         },
-        move || {
+        move |_| {
             let mut create_got_called_w = create_got_called_lock.write().unwrap();
             *create_got_called_w = true;
         },
@@ -1681,7 +1704,95 @@ fn runtime_init_network_does_not_exist_create() {
     let server =
         run_tcp_server("127.0.0.1", port, network_handler).map_err(|err| eprintln!("{}", err));
 
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
+
+    //act
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result());
+
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+    runtime.block_on(task).unwrap();
+
+    //assert
+    assert_eq!(true, *list_got_called_lock_cloned.read().unwrap());
+    assert_eq!(true, *create_got_called_lock_cloned.read().unwrap());
+}
+
+#[test]
+fn network_ipv6_create() {
+    let list_got_called_lock = Arc::new(RwLock::new(false));
+    let list_got_called_lock_cloned = list_got_called_lock.clone();
+
+    let create_got_called_lock = Arc::new(RwLock::new(false));
+    let create_got_called_lock_cloned = create_got_called_lock.clone();
+
+    let port = get_unused_tcp_port();
+
+    let network_handler = make_network_handler(
+        move || {
+            let mut list_got_called_w = list_got_called_lock.write().unwrap();
+            *list_got_called_w = true;
+
+            json!([]).to_string()
+        },
+        move |req| {
+            let mut create_got_called_w = create_got_called_lock.write().unwrap();
+            *create_got_called_w = true;
+
+            let task = req
+                .into_body()
+                .concat2()
+                .map(|body| {
+                    let network: NetworkConfig = serde_json::from_slice(&body).unwrap();
+                    assert_eq!("my-network", network.name().as_str());
+                    let ipam_config = network.IPAM().unwrap().config().unwrap();
+
+                    let ipam_config_0 = ipam_config.get(0).unwrap();
+                    assert_eq!(ipam_config_0["Gateway"], "172.18.0.1");
+                    assert_eq!(ipam_config_0["Subnet"], "172.18.0.0/16");
+                    assert_eq!(ipam_config_0["IPRange"], "172.18.0.0/16");
+
+                    let ipam_config_1 = ipam_config.get(1).unwrap();
+                    assert_eq!(ipam_config_1["Gateway"], "172.20.0.1");
+                    assert_eq!(ipam_config_1["Subnet"], "172.20.0.0/16");
+                    assert_eq!(ipam_config_1["IPRange"], "172.20.0.0/24");
+                })
+                .map_err(|err| panic!("{:?}", err));
+
+            tokio::spawn(task).into_future().wait().unwrap();
+        },
+    );
+
+    let server =
+        run_tcp_server("127.0.0.1", port, network_handler).map_err(|err| eprintln!("{}", err));
+
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port),
+            "network": {
+                "name": "my-network",
+                "ipv6": true,
+                "ipam": {
+                    "config": [
+                        {
+                            "gateway": "172.18.0.1",
+                            "subnet": "172.18.0.0/16",
+                            "ip_range": "172.18.0.0/16"
+                        },
+                        {
+                            "gateway": "172.20.0.1",
+                            "subnet": "172.20.0.0/16",
+                            "ip_range": "172.20.0.0/24"
+                        }
+                    ]
+                }
+            }
+        }
+    })));
 
     //act
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result());
@@ -1731,7 +1842,7 @@ fn runtime_init_network_exist_do_not_create() {
             ])
             .to_string()
         },
-        move || {
+        move |_| {
             let mut create_got_called_w = create_got_called_lock.write().unwrap();
             *create_got_called_w = true;
         },
@@ -1740,7 +1851,11 @@ fn runtime_init_network_exist_do_not_create() {
     let server =
         run_tcp_server("127.0.0.1", port, network_handler).map_err(|err| eprintln!("{}", err));
 
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
 
     //act
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result());
@@ -1800,7 +1915,11 @@ fn runtime_system_info_succeeds() {
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     )
     .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
         .and_then(|runtime| runtime.system_info());
@@ -1855,7 +1974,11 @@ fn runtime_system_info_none_returns_unkown() {
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     )
     .map_err(|err| eprintln!("{}", err));
-    let settings = settings_with_docker_uri(&format!("http://localhost:{}", port));
+    let settings = make_settings(Some(json!({
+        "moby_runtime": {
+            "uri": &format!("http://localhost:{}", port)
+        }
+    })));
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result())
         .and_then(|runtime| runtime.system_info());

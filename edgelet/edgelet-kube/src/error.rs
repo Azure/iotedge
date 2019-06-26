@@ -7,10 +7,10 @@ use config::ConfigError;
 use edgelet_core::{ModuleRuntimeErrorReason, RuntimeOperation};
 use edgelet_docker::Error as DockerError;
 use failure::{Backtrace, Context, Fail};
-use hyper::header::ToStrError;
 use hyper::Error as HyperError;
 use kube_client::Error as KubeClientError;
 use serde_json::Error as JsonError;
+use typed_headers::Error as HeaderError;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -157,8 +157,8 @@ impl From<JsonError> for Error {
     }
 }
 
-impl From<ToStrError> for Error {
-    fn from(error: ToStrError) -> Self {
+impl From<HeaderError> for Error {
+    fn from(error: HeaderError) -> Self {
         Error {
             inner: error.context(ErrorKind::ModuleAuthenticationError),
         }

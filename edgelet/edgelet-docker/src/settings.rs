@@ -5,7 +5,7 @@ use std::path::Path;
 use config::{Config, Environment};
 use docker::models::HostConfig;
 use edgelet_core::{
-    Certificates, Connect, Listen, ModuleSpec, Provisioning, RuntimeSettings,
+    Certificates, Connect, Listen, MobyNetwork, ModuleSpec, Provisioning, RuntimeSettings,
     Settings as BaseSettings, UrlExt, WatchdogSettings,
 };
 use edgelet_utils::YamlFileSource;
@@ -22,9 +22,6 @@ pub const DEFAULTS: &str = include_str!("../config/unix/default.yaml");
 #[cfg(windows)]
 pub const DEFAULTS: &str = include_str!("../config/windows/default.yaml");
 
-/// This is the name of the network created by the iotedged
-const DEFAULT_NETWORKID: &str = "azure-iot-edge";
-
 /// This is the key for the docker network Id.
 const EDGE_NETWORKID_KEY: &str = "NetworkId";
 
@@ -34,7 +31,7 @@ const UNIX_SCHEME: &str = "unix";
 pub struct MobyRuntime {
     #[serde(with = "url_serde")]
     uri: Url,
-    network: String,
+    network: MobyNetwork,
 }
 
 impl MobyRuntime {
@@ -42,12 +39,8 @@ impl MobyRuntime {
         &self.uri
     }
 
-    pub fn network(&self) -> &str {
-        if self.network.is_empty() {
-            &DEFAULT_NETWORKID
-        } else {
-            &self.network
-        }
+    pub fn network(&self) -> &MobyNetwork {
+        &self.network
     }
 }
 
@@ -158,14 +151,16 @@ fn agent_vol_mount(settings: &mut Settings) -> Result<(), LoadSettingsError> {
         if uri.scheme() == UNIX_SCHEME {
             let path = uri
                 .to_uds_file_path()
-                .context(ErrorKind::InvalidSocketUri)?;
+                .context(ErrorKind::InvalidSocketUri(uri.to_string()))?;
             // On Windows we mount the parent folder because we can't mount the
             // socket files directly
             #[cfg(windows)]
-            let path = path.parent().ok_or_else(|| ErrorKind::InvalidSocketUri)?;
+            let path = path
+                .parent()
+                .ok_or_else(|| ErrorKind::InvalidSocketUri(uri.to_string()))?;
             let path = path
                 .to_str()
-                .ok_or_else(|| ErrorKind::InvalidSocketUri)?
+                .ok_or_else(|| ErrorKind::InvalidSocketUri(uri.to_string()))?
                 .to_string();
             let bind = format!("{}:{}", &path, &path);
             if !binds.contains(&bind) {
@@ -188,7 +183,7 @@ fn agent_vol_mount(settings: &mut Settings) -> Result<(), LoadSettingsError> {
 }
 
 fn agent_env(settings: &mut Settings) {
-    let network_id = settings.moby_runtime().network().to_string();
+    let network_id = settings.moby_runtime().network().name().to_string();
     settings
         .agent_mut()
         .env_mut()
@@ -243,7 +238,9 @@ mod tests {
 
     use config::{File, FileFormat};
 
-    use edgelet_core::{AttestationMethod, DEFAULT_CONNECTION_STRING};
+    use edgelet_core::{
+        AttestationMethod, IpamConfig, DEFAULT_CONNECTION_STRING, DEFAULT_NETWORKID,
+    };
 
     #[cfg(unix)]
     static GOOD_SETTINGS: &str = "test/linux/sample_settings.yaml";
@@ -275,6 +272,8 @@ mod tests {
     static BAD_SETTINGS_DPS_X5092: &str = "test/linux/bad_settings.dps.x509.2.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_EXTERNAL: &str = "test/linux/sample_settings.external.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_NETWORK: &str = "test/linux/sample_settings.network.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
@@ -306,6 +305,8 @@ mod tests {
     static BAD_SETTINGS_DPS_X5092: &str = "test/windows/bad_settings.dps.x509.2.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_EXTERNAL: &str = "test/windows/sample_settings.external.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_NETWORK: &str = "test/windows/sample_settings.network.yaml";
 
     fn unwrap_manual_provisioning(p: &Provisioning) -> String {
         match p {
@@ -334,15 +335,51 @@ mod tests {
     fn network_default() {
         let moby1 = MobyRuntime {
             uri: Url::parse("http://test").unwrap(),
-            network: "".to_string(),
+            network: MobyNetwork::Name("".to_string()),
         };
-        assert_eq!(DEFAULT_NETWORKID, moby1.network());
+        assert_eq!(DEFAULT_NETWORKID, moby1.network().name());
 
         let moby2 = MobyRuntime {
             uri: Url::parse("http://test").unwrap(),
-            network: "some-network".to_string(),
+            network: MobyNetwork::Name("some-network".to_string()),
         };
-        assert_eq!("some-network", moby2.network());
+        assert_eq!("some-network", moby2.network().name());
+    }
+
+    #[test]
+    fn network_get_settings() {
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_NETWORK)));
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+        let moby_runtime = s.moby_runtime();
+        assert_eq!(
+            moby_runtime.uri().to_owned().into_string(),
+            "http://localhost:2375/".to_string()
+        );
+
+        let network = moby_runtime.network();
+        assert_eq!(network.name(), "azure-iot-edge");
+        match network {
+            MobyNetwork::Network(moby_network) => {
+                assert_eq!(moby_network.ipv6().unwrap(), true);
+                let ipam_spec = moby_network.ipam().expect("Expected IPAM specification.");
+                let ipam_config = ipam_spec.config().expect("Expected IPAM configuration.");
+                let ipam_1 = IpamConfig::default()
+                    .with_gateway("172.18.0.1".to_string())
+                    .with_ip_range("172.18.0.0/16".to_string())
+                    .with_subnet("172.18.0.0/16".to_string());
+                let ipam_2 = IpamConfig::default()
+                    .with_gateway("2001:4898:e0:3b1:1::1".to_string())
+                    .with_ip_range("2001:4898:e0:3b1:1::/80".to_string())
+                    .with_subnet("2001:4898:e0:3b1:1::/80".to_string());
+                let expected_ipam_config: Vec<IpamConfig> = vec![ipam_1, ipam_2];
+
+                ipam_config.iter().for_each(|ipam_config| {
+                    assert!(expected_ipam_config.contains(ipam_config));
+                });
+            }
+            MobyNetwork::Name(_name) => panic!("Unexpected network configuration."),
+        };
     }
 
     #[test]

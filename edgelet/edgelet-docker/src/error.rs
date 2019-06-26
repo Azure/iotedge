@@ -68,6 +68,9 @@ pub enum ErrorKind {
     #[fail(display = "Invalid module type {:?}", _0)]
     InvalidModuleType(String),
 
+    #[fail(display = "Invalid socket URI: {:?}", _0)]
+    InvalidSocketUri(String),
+
     #[fail(display = "{}", _0)]
     ModuleOperation(ModuleOperation),
 
@@ -82,15 +85,6 @@ pub enum ErrorKind {
 
     #[fail(display = "{}", _0)]
     RuntimeOperation(RuntimeOperation),
-
-    #[fail(display = "Docker module runtime has not been initialized. Call 'init' first.")]
-    Uninitialized,
-
-    #[fail(display = "Docker module runtime has already been initialized.")]
-    AlreadyInitialized,
-
-    #[fail(display = "Invalid socket URI")]
-    InvalidSocketUri,
 }
 
 impl Fail for Error {

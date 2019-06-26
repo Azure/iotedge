@@ -9,11 +9,11 @@ use futures::future::Either;
 use futures::prelude::*;
 use futures::{future, stream, Async, Future, Stream};
 use hyper::client::HttpConnector;
-use hyper::header::HeaderValue;
 use hyper::service::Service;
-use hyper::{header, Body, Chunk as HyperChunk, Request};
+use hyper::{Body, Chunk as HyperChunk, Request};
 use hyper_tls::HttpsConnector;
 use log::Level;
+use typed_headers::{Authorization, HeaderMapExt};
 
 use edgelet_core::{
     AuthId, Authenticator, LogOptions, MakeModuleRuntime, ModuleRegistry, ModuleRuntime,
@@ -27,12 +27,11 @@ use kube_client::{
 };
 use provisioning::ProvisioningResult;
 
-use crate::convert::{auth_to_image_pull_secret, pod_to_module, spec_to_deployment};
+use crate::convert::{auth_to_image_pull_secret, pod_to_module};
 use crate::error::{Error, ErrorKind};
-use crate::module::KubeModule;
+use crate::module::{create_module, KubeModule};
 use crate::settings::Settings;
 
-#[derive(Clone)]
 pub struct KubeModuleRuntime<T, S> {
     client: Arc<Mutex<RefCell<KubeClient<T, S>>>>,
     settings: Settings,
@@ -45,18 +44,41 @@ impl<T, S> KubeModuleRuntime<T, S> {
             settings,
         }
     }
+
+    pub(crate) fn client(&self) -> Arc<Mutex<RefCell<KubeClient<T, S>>>> {
+        self.client.clone()
+    }
+
+    pub(crate) fn settings(&self) -> &Settings {
+        &self.settings
+    }
+}
+
+// NOTE:
+//  We are manually implementing Clone here for KubeModuleRuntime because
+//  #[derive(Clone] will cause the compiler to implicitly require Clone on
+//  T and S which don't really need to be Clone because we wrap it inside
+//  an Arc (for the "client" field).
+//
+//  Requiring Clone on S in particular is problematic because we typically use
+//  the kube_client::HttpClient struct for this type which does not (and cannot)
+//  implement Clone.
+impl<T, S> Clone for KubeModuleRuntime<T, S> {
+    fn clone(&self) -> Self {
+        KubeModuleRuntime {
+            client: self.client.clone(),
+            settings: self.settings.clone(),
+        }
+    }
 }
 
 impl<T, S> ModuleRegistry for KubeModuleRuntime<T, S>
 where
-    T: TokenSource + Clone + Send + 'static,
+    T: TokenSource + Send + 'static,
     S: Service + Send + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    <S::ResBody as Stream>::Item: AsRef<[u8]>,
-    <S::ResBody as Stream>::Error: Into<Error>,
-    <S::ResBody as Stream>::Error: Into<KubeClientError>,
     S::Error: Into<KubeClientError>,
     S::Future: Send,
 {
@@ -94,8 +116,8 @@ where
                                         .expect("Unexpected lock error")
                                         .borrow_mut()
                                         .replace_secret(
-                                            secret_name.as_str(),
                                             namespace_copy.as_str(),
+                                            secret_name.as_str(),
                                             &pull_secret,
                                         )
                                         .map_err(Error::from)
@@ -158,14 +180,11 @@ impl MakeModuleRuntime
 
 impl<T, S> ModuleRuntime for KubeModuleRuntime<T, S>
 where
-    T: TokenSource + Clone + Send + 'static,
-    S: Send + Service + 'static,
+    T: TokenSource + Send + 'static,
+    S: Service + Send + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    <S::ResBody as Stream>::Item: AsRef<[u8]>,
-    <S::ResBody as Stream>::Error: Into<Error>,
-    <S::ResBody as Stream>::Error: Into<KubeClientError>,
     S::Error: Into<KubeClientError>,
     S::Future: Send,
 {
@@ -191,62 +210,7 @@ where
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
-        let f = spec_to_deployment(&self.settings, &module)
-            .map_err(Error::from)
-            .map(|(name, new_deployment)| {
-                let client_copy = self.client.clone();
-                let namespace_copy = self.settings.namespace().to_owned();
-                self.client
-                    .lock()
-                    .expect("Unexpected lock error")
-                    .borrow_mut()
-                    .list_deployments(
-                        self.settings.namespace(),
-                        Some(&name),
-                        Some(&self.settings.device_hub_selector()),
-                    )
-                    .map_err(Error::from)
-                    .and_then(move |deployments| {
-                        if let Some(current_deployment) =
-                            deployments.items.into_iter().find(|deployment| {
-                                deployment.metadata.as_ref().map_or(false, |meta| {
-                                    meta.name.as_ref().map_or(false, |n| *n == name)
-                                })
-                            })
-                        {
-                            // found deployment, if the deployment found doesn't match, replace it.
-                            if current_deployment == new_deployment {
-                                Either::A(Either::A(future::ok(())))
-                            } else {
-                                let fut = client_copy
-                                    .lock()
-                                    .expect("Unexpected lock error")
-                                    .borrow_mut()
-                                    .replace_deployment(
-                                        name.as_str(),
-                                        namespace_copy.as_str(),
-                                        &new_deployment,
-                                    )
-                                    .map_err(Error::from)
-                                    .map(|_| ());
-                                Either::A(Either::B(fut))
-                            }
-                        } else {
-                            // Not found - create it.
-                            let fut = client_copy
-                                .lock()
-                                .expect("Unexpected lock error")
-                                .borrow_mut()
-                                .create_deployment(namespace_copy.as_str(), &new_deployment)
-                                .map_err(Error::from)
-                                .map(|_| ());
-                            Either::B(fut)
-                        }
-                    })
-            })
-            .into_future()
-            .flatten();
-        Box::new(f)
+        Box::new(create_module(self, &module))
     }
 
     fn get(&self, _id: &str) -> Self::GetFuture {
@@ -323,13 +287,11 @@ where
 
 impl<T, S> Authenticator for KubeModuleRuntime<T, S>
 where
-    T: TokenSource + Clone + 'static,
+    T: TokenSource + 'static,
     S: Service + Send + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    <S::ResBody as Stream>::Item: AsRef<[u8]>,
-    <S::ResBody as Stream>::Error: Into<KubeClientError>,
     S::Error: Into<KubeClientError>,
     S::Future: Send,
 {
@@ -338,45 +300,41 @@ where
     type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
 
     fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
-        let token = req
+        let fut = req
             .headers()
-            .get(header::AUTHORIZATION)
-            .map(HeaderValue::to_str)
-            .transpose()
-            .map(|token| {
-                token
-                    .filter(|token| token.len() > 6 && &token[..7].to_uppercase() == "BEARER ")
-                    .map(|token| &token[7..])
-            })
-            .map_err(Error::from);
+            .typed_get::<Authorization>()
+            .map(|auth| {
+                auth.and_then(|auth| {
+                    auth.as_bearer().map(|token| {
+                        let fut = self
+                            .client
+                            .lock()
+                            .expect("Unexpected lock error")
+                            .borrow_mut()
+                            .token_review(self.settings.namespace(), token.as_str())
+                            .map_err(|err| {
+                                log_failure(Level::Warn, &err);
+                                Error::from(err)
+                            })
+                            .map(|token_review| {
+                                token_review
+                                    .status
+                                    .as_ref()
+                                    .filter(|status| status.authenticated.filter(|x| *x).is_some())
+                                    .and_then(|status| {
+                                        status.user.as_ref().and_then(|user| user.username.clone())
+                                    })
+                                    .map_or(AuthId::None, |name| AuthId::Value(name.into()))
+                            });
 
-        let fut = match token {
-            Ok(token) => match token {
-                Some(token) => Either::A(Either::A(
-                    self.client
-                        .lock()
-                        .expect("Unexpected lock error")
-                        .borrow_mut()
-                        .token_review(&self.settings.namespace(), token)
-                        .map_err(|err| {
-                            log_failure(Level::Warn, &err);
-                            Error::from(err)
-                        })
-                        .map(|token_review| {
-                            token_review
-                                .status
-                                .as_ref()
-                                .filter(|status| status.authenticated.filter(|x| *x).is_some())
-                                .and_then(|status| {
-                                    status.user.as_ref().and_then(|user| user.username.clone())
-                                })
-                                .map_or(AuthId::None, |name| AuthId::Value(name.into()))
-                        }),
-                )),
-                None => Either::A(Either::B(future::ok(AuthId::None))),
-            },
-            Err(e) => Either::B(future::err(e)),
-        };
+                        Either::A(fut)
+                    })
+                })
+                .unwrap_or_else(|| Either::B(future::ok(AuthId::None)))
+            })
+            .map_err(Error::from)
+            .into_future()
+            .flatten();
 
         Box::new(fut)
     }
@@ -430,158 +388,5 @@ impl Extend<u8> for Chunk {
 impl AsRef<[u8]> for Chunk {
     fn as_ref(&self) -> &[u8] {
         self.0.as_ref()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use futures::future::Future;
-    use hyper::service::{service_fn, Service};
-    use hyper::Error as HyperError;
-    use hyper::{header, Body, Request, Response};
-    use native_tls::TlsConnector;
-    use url::Url;
-
-    use edgelet_core::{AuthId, Authenticator};
-    use kube_client::{Client as KubeClient, Config, Error, TokenSource};
-
-    use crate::error::ErrorKind;
-    use crate::runtime::KubeModuleRuntime;
-    use crate::tests::make_settings;
-
-    #[test]
-    fn authenticate_returns_none_when_no_auth_token_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                Ok(Response::new(Body::empty()))
-            },
-        );
-        let req = Request::default();
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-        assert_eq!(AuthId::None, auth_id);
-    }
-
-    #[test]
-    fn authenticate_returns_none_when_invalid_auth_header_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                Ok(Response::new(Body::empty()))
-            },
-        );
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let mut req = Request::default();
-        req.headers_mut()
-            .insert(header::AUTHORIZATION, "BeErer token".parse().unwrap());
-
-        let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-        assert_eq!(AuthId::None, auth_id);
-    }
-
-    #[test]
-    fn authenticate_returns_none_when_invalid_auth_token_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                Ok(Response::new(Body::empty()))
-            },
-        );
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let mut req = Request::default();
-        req.headers_mut().insert(
-            header::AUTHORIZATION,
-            "\u{3aa}\u{3a9}\u{3a4}".parse().unwrap(),
-        );
-
-        let err = runtime.authenticate(&req).wait().err().unwrap();
-
-        assert_eq!(&ErrorKind::ModuleAuthenticationError, err.kind());
-    }
-
-    #[test]
-    fn authenticate_returns_none_when_unknown_auth_token_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                let body = r###"{
-                        "kind": "TokenReview",
-                        "spec": { "token": "token" },
-                        "status": {
-                            "authenticated": false
-                        }
-                    }"###;
-                Ok(Response::new(Body::from(body)))
-            },
-        );
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let mut req = Request::default();
-        req.headers_mut().insert(
-            header::AUTHORIZATION,
-            "Bearer token-unknown".parse().unwrap(),
-        );
-
-        let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-        assert_eq!(AuthId::None, auth_id);
-    }
-
-    #[test]
-    fn authenticate_returns_auth_id_when_module_auth_token_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                let body = r###"{
-                    "kind": "TokenReview",
-                    "spec": { "token": "token" },
-                    "status": {
-                        "authenticated": true,
-                        "user": {
-                            "username": "module-abc"
-                        }
-                    }
-                }"###;
-                Ok(Response::new(Body::from(body)))
-            },
-        );
-
-        let mut req = Request::default();
-        req.headers_mut()
-            .insert(header::AUTHORIZATION, "Bearer token".parse().unwrap());
-
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-        assert_eq!(AuthId::Value("module-abc".into()), auth_id);
-    }
-
-    fn prepare_module_runtime_with_defaults<S: Service>(
-        service: S,
-    ) -> KubeModuleRuntime<TestTokenSource, S> {
-        let config = Config::new(
-            Url::parse("https://localhost:443").unwrap(),
-            "/api".to_string(),
-            TestTokenSource,
-            TlsConnector::new().unwrap(),
-        );
-
-        KubeModuleRuntime::new(
-            KubeClient::with_client(config, service),
-            make_settings(None),
-        )
-    }
-
-    #[derive(Clone)]
-    struct TestTokenSource;
-
-    impl TokenSource for TestTokenSource {
-        type Error = Error;
-
-        fn get(&self) -> kube_client::error::Result<Option<String>> {
-            Ok(None)
-        }
     }
 }

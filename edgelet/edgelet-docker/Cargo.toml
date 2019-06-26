@@ -28,8 +28,8 @@ edgelet-utils = { path = "../edgelet-utils" }
 provisioning = { path = "../provisioning" }
 
 [dev_dependencies]
+json-patch = "0.2.5"
 maplit = "1.0"
-objekt = "0.1"
 time = "0.1"
 typed-headers = "0.1"
 

@@ -25,8 +25,3 @@ url_serde = "0.2"
 tokio = "0.1"
 
 edgelet-utils = { path = "../edgelet-utils" }
-
-[dev-dependencies]
-base64 = "0.9"
-
-docker = { path = "../docker-rs" }

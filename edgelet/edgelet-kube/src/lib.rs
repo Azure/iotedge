@@ -16,9 +16,10 @@ mod module;
 mod runtime;
 mod settings;
 
-pub use self::module::KubeModule;
-pub use self::runtime::KubeModuleRuntime;
-pub use self::settings::Settings;
+pub use error::{Error, ErrorKind};
+pub use module::KubeModule;
+pub use runtime::KubeModuleRuntime;
+pub use settings::Settings;
 
 #[cfg(test)]
 mod tests {

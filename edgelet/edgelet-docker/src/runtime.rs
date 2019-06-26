@@ -18,11 +18,11 @@ use url::Url;
 
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
-use docker::models::{ContainerCreateBody, InlineResponse200, NetworkConfig};
+use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
-    AuthId, Authenticator, LogOptions, MakeModuleRuntime, Module, ModuleId, ModuleRegistry,
-    ModuleRuntime, ModuleRuntimeState, ModuleSpec, RegistryOperation, RuntimeOperation,
-    SystemInfo as CoreSystemInfo, UrlExt,
+    AuthId, Authenticator, LogOptions, MakeModuleRuntime, MobyNetwork, Module, ModuleId,
+    ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, RegistryOperation,
+    RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -192,7 +192,8 @@ impl MakeModuleRuntime for DockerModuleRuntime {
         #[allow(clippy::result_map_unwrap_or_else)]
         let created = init_client(settings.moby_runtime().uri())
             .map(|client| {
-                let network_id = settings.moby_runtime().network().to_string();
+                let network_id = settings.moby_runtime().network().name().to_string();
+                let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
                 info!("Using runtime network id {}", network_id);
 
                 let filter = format!(r#"{{"name":{{"{}":true}}}}"#, network_id);
@@ -202,9 +203,16 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                     .network_list(&filter)
                     .and_then(move |existing_networks| {
                         if existing_networks.is_empty() {
+                            let mut network_config =
+                                NetworkConfig::new(network_id).with_enable_i_pv6(enable_i_pv6);
+
+                            if let Some(ipam_config) = ipam {
+                                network_config.set_IPAM(ipam_config);
+                            };
+
                             let fut = client_copy
                                 .network_api()
-                                .network_create(NetworkConfig::new(network_id))
+                                .network_create(network_config)
                                 .map(move |_| client_copy);
                             future::Either::A(fut)
                         } else {
@@ -232,6 +240,41 @@ impl MakeModuleRuntime for DockerModuleRuntime {
             });
 
         Box::new(created)
+    }
+}
+
+fn get_ipv6_settings(network_configuration: &MobyNetwork) -> (bool, Option<Ipam>) {
+    if let MobyNetwork::Network(network) = network_configuration {
+        let ipv6 = network.ipv6().clone().unwrap_or_default();
+        network
+            .ipam()
+            .and_then(|ipam| ipam.config())
+            .map(|ipam_config| {
+                let config = ipam_config
+                    .iter()
+                    .map(|ipam_config| {
+                        let mut config_map = HashMap::new();
+                        if let Some(gateway_config) = ipam_config.gateway() {
+                            config_map.insert("Gateway".to_string(), gateway_config.to_string());
+                        };
+
+                        if let Some(subnet_config) = ipam_config.subnet() {
+                            config_map.insert("Subnet".to_string(), subnet_config.to_string());
+                        };
+
+                        if let Some(ip_range_config) = ipam_config.ip_range() {
+                            config_map.insert("IPRange".to_string(), ip_range_config.to_string());
+                        };
+
+                        config_map
+                    })
+                    .collect();
+
+                (ipv6, Some(Ipam::new().with_config(config)))
+            })
+            .unwrap_or_else(|| (ipv6, None))
+    } else {
+        (false, None)
     }
 }
 
@@ -858,7 +901,8 @@ mod tests {
     use ::config::{Config, File, FileFormat};
     use futures::future::FutureResult;
     use futures::stream::Empty;
-    use serde_json::json;
+    use json_patch::merge;
+    use serde_json::{self, json, Value as JsonValue};
 
     use edgelet_core::{
         Certificates, Connect, Listen, ModuleRegistry, ModuleTop, Provisioning, RuntimeSettings,
@@ -876,9 +920,9 @@ mod tests {
         )
     }
 
-    fn settings_with_docker_uri(uri: &str) -> Settings {
+    fn make_settings(merge_json: Option<JsonValue>) -> Settings {
         let mut config = Config::default();
-        let config_json = json!({
+        let mut config_json = json!({
             "provisioning": {
                 "source": "manual",
                 "device_connection_string": "HostName=moo.azure-devices.net;DeviceId=boo;SharedAccessKey=boo"
@@ -903,10 +947,14 @@ mod tests {
             },
             "homedir": "/var/lib/iotedge",
             "moby_runtime": {
-                "uri": uri,
+                "uri": "unix:///var/run/docker.sock",
                 "network": "azure-iot-edge"
             }
         });
+
+        if let Some(merge_json) = merge_json {
+            merge(&mut config_json, &merge_json);
+        }
 
         config
             .merge(File::from_str(&config_json.to_string(), FileFormat::Json))
@@ -918,7 +966,11 @@ mod tests {
     #[test]
     #[should_panic(expected = "URL does not have a recognized scheme")]
     fn invalid_uri_prefix_fails() {
-        let settings = settings_with_docker_uri("foo:///this/is/not/valid");
+        let settings = make_settings(Some(json!({
+            "moby_runtime": {
+                "uri": "foo:///this/is/not/valid"
+            }
+        })));
         let _runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result())
             .wait()
             .unwrap();
@@ -928,7 +980,11 @@ mod tests {
     #[test]
     #[should_panic(expected = "Socket file could not be found")]
     fn invalid_uds_path_fails() {
-        let settings = settings_with_docker_uri("unix:///this/file/does/not/exist");
+        let settings = make_settings(Some(json!({
+            "moby_runtime": {
+                "uri": "unix:///this/file/does/not/exist"
+            }
+        })));
         let _runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result())
             .wait()
             .unwrap();

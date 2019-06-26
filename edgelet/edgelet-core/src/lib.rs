@@ -18,7 +18,7 @@ mod error;
 mod identity;
 mod module;
 mod network;
-pub mod settings;
+mod settings;
 pub mod watchdog;
 pub mod workload;
 
