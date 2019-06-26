@@ -125,7 +125,7 @@
               "createOptions": ""
             }
           },
-          // Work needed to enable snitcher for Windows
+          // Work needed to enable snitcher for Windows Enterprise/Server x64, Windows IoT Core x64 and Windows IoT Core arm32
           // "snitcher": {
           //   "version": "2.0",
           //   "type": "docker",
@@ -188,7 +188,7 @@
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
           }
-          // No windows version of influxdb
+          // No windows version of influxdb (Windows Enterprise/Server x64, Windows IoT Core x64 and Windows IoT Core arm32)
           // "influxdb": {
           //   "version": "1.0",
           //   "type": "docker",

@@ -9,8 +9,9 @@ use futures::future::Either;
 use futures::prelude::*;
 use futures::{future, stream, Async, Future, Stream};
 use hyper::service::Service;
-use hyper::{header, Body, Chunk as HyperChunk, Request};
+use hyper::{Body, Chunk as HyperChunk, Request};
 use log::Level;
+use typed_headers::{Authorization, HeaderMapExt};
 use url::Url;
 
 use edgelet_core::{
@@ -22,12 +23,10 @@ use edgelet_utils::{ensure_not_empty_with_context, log_failure, sanitize_dns_lab
 use kube_client::{Client as KubeClient, Error as KubeClientError, TokenSource};
 
 use crate::constants::*;
-use crate::convert::{auth_to_image_pull_secret, pod_to_module, spec_to_deployment};
+use crate::convert::{auth_to_image_pull_secret, pod_to_module};
 use crate::error::{Error, ErrorKind, Result};
-use crate::module::KubeModule;
-use hyper::header::HeaderValue;
+use crate::module::{create_module, KubeModule};
 
-#[derive(Clone)]
 pub struct KubeModuleRuntime<T, S> {
     client: Arc<Mutex<RefCell<KubeClient<T, S>>>>,
     namespace: String,
@@ -39,7 +38,6 @@ pub struct KubeModuleRuntime<T, S> {
     proxy_config_path: String,
     proxy_config_map_name: String,
     image_pull_policy: String,
-    service_account_name: String,
     workload_uri: Url,
     management_uri: Url,
     device_hub_selector: String,
@@ -55,9 +53,37 @@ pub trait KubeRuntimeData {
     fn proxy_config_path(&self) -> &str;
     fn proxy_config_map_name(&self) -> &str;
     fn image_pull_policy(&self) -> &str;
-    fn service_account_name(&self) -> &str;
     fn workload_uri(&self) -> &Url;
     fn management_uri(&self) -> &Url;
+}
+
+// NOTE:
+//  We are manually implementing Clone here for KubeModuleRuntime because
+//  #[derive(Clone] will cause the compiler to implicitly require Clone on
+//  T and S which don't really need to be Clone because we wrap it inside
+//  an Arc (for the "client" field).
+//
+//  Requiring Clone on S in particular is problematic because we typically use
+//  the kube_client::HttpClient struct for this type which does not (and cannot)
+//  implement Clone.
+impl<T, S> Clone for KubeModuleRuntime<T, S> {
+    fn clone(&self) -> Self {
+        KubeModuleRuntime {
+            client: self.client.clone(),
+            namespace: self.namespace.clone(),
+            use_pvc: self.use_pvc,
+            iot_hub_hostname: self.iot_hub_hostname.clone(),
+            device_id: self.device_id.clone(),
+            edge_hostname: self.edge_hostname.clone(),
+            proxy_image: self.proxy_image.clone(),
+            proxy_config_path: self.proxy_config_path.clone(),
+            proxy_config_map_name: self.proxy_config_map_name.clone(),
+            image_pull_policy: self.image_pull_policy.clone(),
+            workload_uri: self.workload_uri.clone(),
+            management_uri: self.management_uri.clone(),
+            device_hub_selector: self.device_hub_selector.clone(),
+        }
+    }
 }
 
 impl<T, S> KubeRuntimeData for KubeModuleRuntime<T, S> {
@@ -88,9 +114,6 @@ impl<T, S> KubeRuntimeData for KubeModuleRuntime<T, S> {
     fn image_pull_policy(&self) -> &str {
         &self.image_pull_policy
     }
-    fn service_account_name(&self) -> &str {
-        &self.service_account_name
-    }
     fn workload_uri(&self) -> &Url {
         &self.workload_uri
     }
@@ -111,7 +134,6 @@ impl<T, S> KubeModuleRuntime<T, S> {
         proxy_config_path: String,
         proxy_config_map_name: String,
         image_pull_policy: String,
-        service_account_name: String,
         workload_uri: Url,
         management_uri: Url,
     ) -> Result<Self> {
@@ -151,12 +173,6 @@ impl<T, S> KubeModuleRuntime<T, S> {
                 image_pull_policy.clone(),
             )
         })?;
-        ensure_not_empty_with_context(&service_account_name, || {
-            ErrorKind::InvalidRunTimeParameter(
-                String::from("service_account_name"),
-                service_account_name.clone(),
-            )
-        })?;
         let device_hub_selector = format!(
             "{}={},{}={}",
             EDGE_DEVICE_LABEL,
@@ -176,24 +192,24 @@ impl<T, S> KubeModuleRuntime<T, S> {
             proxy_config_path,
             proxy_config_map_name,
             image_pull_policy,
-            service_account_name,
             workload_uri,
             management_uri,
             device_hub_selector,
         })
     }
+
+    pub(crate) fn client(&self) -> Arc<Mutex<RefCell<KubeClient<T, S>>>> {
+        self.client.clone()
+    }
 }
 
 impl<T, S> ModuleRegistry for KubeModuleRuntime<T, S>
 where
-    T: TokenSource + Clone + Send + 'static,
+    T: TokenSource + Send + 'static,
     S: Service + Send + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    <S::ResBody as Stream>::Item: AsRef<[u8]>,
-    <S::ResBody as Stream>::Error: Into<Error>,
-    <S::ResBody as Stream>::Error: Into<KubeClientError>,
     S::Error: Into<KubeClientError>,
     S::Future: Send,
 {
@@ -231,8 +247,8 @@ where
                                         .expect("Unexpected lock error")
                                         .borrow_mut()
                                         .replace_secret(
-                                            secret_name.as_str(),
                                             namespace_copy.as_str(),
+                                            secret_name.as_str(),
                                             &pull_secret,
                                         )
                                         .map_err(Error::from)
@@ -269,14 +285,11 @@ where
 
 impl<T, S> ModuleRuntime for KubeModuleRuntime<T, S>
 where
-    T: TokenSource + Clone + Send + 'static,
-    S: Send + Service + 'static,
+    T: TokenSource + Send + 'static,
+    S: Service + Send + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    <S::ResBody as Stream>::Item: AsRef<[u8]>,
-    <S::ResBody as Stream>::Error: Into<Error>,
-    <S::ResBody as Stream>::Error: Into<KubeClientError>,
     S::Error: Into<KubeClientError>,
     S::Future: Send,
 {
@@ -307,62 +320,7 @@ where
     }
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
-        let f = spec_to_deployment(self, &module)
-            .map_err(Error::from)
-            .map(|(name, new_deployment)| {
-                let client_copy = self.client.clone();
-                let namespace_copy = self.namespace().to_owned();
-                self.client
-                    .lock()
-                    .expect("Unexpected lock error")
-                    .borrow_mut()
-                    .list_deployments(
-                        self.namespace(),
-                        Some(&name),
-                        Some(&self.device_hub_selector),
-                    )
-                    .map_err(Error::from)
-                    .and_then(move |deployments| {
-                        if let Some(current_deployment) =
-                            deployments.items.into_iter().find(|deployment| {
-                                deployment.metadata.as_ref().map_or(false, |meta| {
-                                    meta.name.as_ref().map_or(false, |n| *n == name)
-                                })
-                            })
-                        {
-                            // found deployment, if the deployment found doesn't match, replace it.
-                            if current_deployment == new_deployment {
-                                Either::A(Either::A(future::ok(())))
-                            } else {
-                                let fut = client_copy
-                                    .lock()
-                                    .expect("Unexpected lock error")
-                                    .borrow_mut()
-                                    .replace_deployment(
-                                        name.as_str(),
-                                        namespace_copy.as_str(),
-                                        &new_deployment,
-                                    )
-                                    .map_err(Error::from)
-                                    .map(|_| ());
-                                Either::A(Either::B(fut))
-                            }
-                        } else {
-                            // Not found - create it.
-                            let fut = client_copy
-                                .lock()
-                                .expect("Unexpected lock error")
-                                .borrow_mut()
-                                .create_deployment(namespace_copy.as_str(), &new_deployment)
-                                .map_err(Error::from)
-                                .map(|_| ());
-                            Either::B(fut)
-                        }
-                    })
-            })
-            .into_future()
-            .flatten();
-        Box::new(f)
+        Box::new(create_module(self, &module))
     }
 
     fn get(&self, _id: &str) -> Self::GetFuture {
@@ -436,13 +394,11 @@ where
 
 impl<T, S> Authenticator for KubeModuleRuntime<T, S>
 where
-    T: TokenSource + Clone + 'static,
+    T: TokenSource + 'static,
     S: Service + Send + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    <S::ResBody as Stream>::Item: AsRef<[u8]>,
-    <S::ResBody as Stream>::Error: Into<KubeClientError>,
     S::Error: Into<KubeClientError>,
     S::Future: Send,
 {
@@ -451,45 +407,41 @@ where
     type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
 
     fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
-        let token = req
+        let fut = req
             .headers()
-            .get(header::AUTHORIZATION)
-            .map(HeaderValue::to_str)
-            .transpose()
-            .map(|token| {
-                token
-                    .filter(|token| token.len() > 6 && &token[..7].to_uppercase() == "BEARER ")
-                    .map(|token| &token[7..])
-            })
-            .map_err(Error::from);
+            .typed_get::<Authorization>()
+            .map(|auth| {
+                auth.and_then(|auth| {
+                    auth.as_bearer().map(|token| {
+                        let fut = self
+                            .client
+                            .lock()
+                            .expect("Unexpected lock error")
+                            .borrow_mut()
+                            .token_review(self.namespace(), token.as_str())
+                            .map_err(|err| {
+                                log_failure(Level::Warn, &err);
+                                Error::from(err)
+                            })
+                            .map(|token_review| {
+                                token_review
+                                    .status
+                                    .as_ref()
+                                    .filter(|status| status.authenticated.filter(|x| *x).is_some())
+                                    .and_then(|status| {
+                                        status.user.as_ref().and_then(|user| user.username.clone())
+                                    })
+                                    .map_or(AuthId::None, |name| AuthId::Value(name.into()))
+                            });
 
-        let fut = match token {
-            Ok(token) => match token {
-                Some(token) => Either::A(Either::A(
-                    self.client
-                        .lock()
-                        .expect("Unexpected lock error")
-                        .borrow_mut()
-                        .token_review(&self.namespace, token)
-                        .map_err(|err| {
-                            log_failure(Level::Warn, &err);
-                            Error::from(err)
-                        })
-                        .map(|token_review| {
-                            token_review
-                                .status
-                                .as_ref()
-                                .filter(|status| status.authenticated.filter(|x| *x).is_some())
-                                .and_then(|status| {
-                                    status.user.as_ref().and_then(|user| user.username.clone())
-                                })
-                                .map_or(AuthId::None, |name| AuthId::Value(name.into()))
-                        }),
-                )),
-                None => Either::A(Either::B(future::ok(AuthId::None))),
-            },
-            Err(e) => Either::B(future::err(e)),
-        };
+                        Either::A(fut)
+                    })
+                })
+                .unwrap_or_else(|| Either::B(future::ok(AuthId::None)))
+            })
+            .map_err(Error::from)
+            .into_future()
+            .flatten();
 
         Box::new(fut)
     }
@@ -550,17 +502,11 @@ impl AsRef<[u8]> for Chunk {
 mod tests {
     use std::str::FromStr;
 
-    use futures::future::Future;
-    use hyper::service::{service_fn, Service};
-    use hyper::Error as HyperError;
-    use hyper::{header, Body, Request, Response};
     use native_tls::TlsConnector;
     use url::Url;
 
-    use edgelet_core::{AuthId, Authenticator};
     use kube_client::{Client as KubeClient, Config, Error, TokenSource};
 
-    use crate::error::ErrorKind;
     use crate::runtime::KubeModuleRuntime;
 
     fn get_config() -> Config<TestTokenSource> {
@@ -581,8 +527,7 @@ mod tests {
         let proxy_image = String::from("proxy-image");
         let proxy_config_path = String::from("proxy-confg-path");
         let proxy_config_map_name = String::from("config-volume");
-        let image_pull_policy = String::from("On-Create");
-        let service_account_name = String::from("iotedge");
+        let image_pull_policy = String::from("OnCreate");
         let workload_uri = Url::from_str("http://localhost:35000").unwrap();
         let management_uri = Url::from_str("http://localhost:35001").unwrap();
 
@@ -597,7 +542,6 @@ mod tests {
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
             image_pull_policy.clone(),
-            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );
@@ -615,7 +559,6 @@ mod tests {
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
             image_pull_policy.clone(),
-            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );
@@ -632,7 +575,6 @@ mod tests {
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
             image_pull_policy.clone(),
-            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );
@@ -649,7 +591,6 @@ mod tests {
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
             image_pull_policy.clone(),
-            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );
@@ -666,7 +607,6 @@ mod tests {
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
             image_pull_policy.clone(),
-            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );
@@ -683,7 +623,6 @@ mod tests {
             String::default(),
             proxy_config_map_name.clone(),
             image_pull_policy.clone(),
-            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );
@@ -700,7 +639,6 @@ mod tests {
             proxy_config_path.clone(),
             String::default(),
             image_pull_policy.clone(),
-            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );
@@ -716,24 +654,6 @@ mod tests {
             proxy_image.clone(),
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
-            String::default(),
-            service_account_name.clone(),
-            workload_uri.clone(),
-            management_uri.clone(),
-        );
-        assert!(result.is_err());
-
-        let result = KubeModuleRuntime::new(
-            KubeClient::new(get_config()),
-            namespace.clone(),
-            true,
-            iot_hub_hostname.clone(),
-            device_id.clone(),
-            edge_hostname.clone(),
-            proxy_image.clone(),
-            proxy_config_path.clone(),
-            proxy_config_map_name.clone(),
-            image_pull_policy.clone(),
             String::default(),
             workload_uri.clone(),
             management_uri.clone(),
@@ -751,160 +671,10 @@ mod tests {
             proxy_config_path.clone(),
             proxy_config_map_name.clone(),
             image_pull_policy.clone(),
-            service_account_name.clone(),
             workload_uri.clone(),
             management_uri.clone(),
         );
         assert!(result.is_ok());
-    }
-
-    #[test]
-    fn authenticate_returns_none_when_no_auth_token_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                Ok(Response::new(Body::empty()))
-            },
-        );
-        let req = Request::default();
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-        assert_eq!(AuthId::None, auth_id);
-    }
-
-    #[test]
-    fn authenticate_returns_none_when_invalid_auth_header_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                Ok(Response::new(Body::empty()))
-            },
-        );
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let mut req = Request::default();
-        req.headers_mut()
-            .insert(header::AUTHORIZATION, "BeErer token".parse().unwrap());
-
-        let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-        assert_eq!(AuthId::None, auth_id);
-    }
-
-    #[test]
-    fn authenticate_returns_none_when_invalid_auth_token_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                Ok(Response::new(Body::empty()))
-            },
-        );
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let mut req = Request::default();
-        req.headers_mut().insert(
-            header::AUTHORIZATION,
-            "\u{3aa}\u{3a9}\u{3a4}".parse().unwrap(),
-        );
-
-        let err = runtime.authenticate(&req).wait().err().unwrap();
-
-        assert_eq!(&ErrorKind::ModuleAuthenticationError, err.kind());
-    }
-
-    #[test]
-    fn authenticate_returns_none_when_unknown_auth_token_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                let body = r###"{
-                        "kind": "TokenReview",
-                        "spec": { "token": "token" },
-                        "status": {
-                            "authenticated": false
-                        }
-                    }"###;
-                Ok(Response::new(Body::from(body)))
-            },
-        );
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let mut req = Request::default();
-        req.headers_mut().insert(
-            header::AUTHORIZATION,
-            "Bearer token-unknown".parse().unwrap(),
-        );
-
-        let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-        assert_eq!(AuthId::None, auth_id);
-    }
-
-    #[test]
-    fn authenticate_returns_auth_id_when_module_auth_token_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                let body = r###"{
-                    "kind": "TokenReview",
-                    "spec": { "token": "token" },
-                    "status": {
-                        "authenticated": true,
-                        "user": {
-                            "username": "module-abc"
-                        }
-                    }
-                }"###;
-                Ok(Response::new(Body::from(body)))
-            },
-        );
-
-        let mut req = Request::default();
-        req.headers_mut()
-            .insert(header::AUTHORIZATION, "Bearer token".parse().unwrap());
-
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-        assert_eq!(AuthId::Value("module-abc".into()), auth_id);
-    }
-
-    fn prepare_module_runtime_with_defaults<S: Service>(
-        service: S,
-    ) -> KubeModuleRuntime<TestTokenSource, S> {
-        let namespace = String::from("my-namespace");
-        let iot_hub_hostname = String::from("iothostname");
-        let device_id = String::from("my_device_id");
-        let edge_hostname = String::from("edge-hostname");
-        let proxy_image = String::from("proxy-image");
-        let proxy_config_path = String::from("proxy-confg-path");
-        let proxy_config_map_name = String::from("config-volume");
-        let image_pull_policy = String::from("On-Create");
-        let service_account_name = String::from("iotedge");
-        let workload_uri = Url::from_str("http://localhost:35000").unwrap();
-        let management_uri = Url::from_str("http://localhost:35001").unwrap();
-
-        let config = Config::new(
-            Url::parse("https://localhost:443").unwrap(),
-            "/api".to_string(),
-            TestTokenSource,
-            TlsConnector::new().unwrap(),
-        );
-
-        KubeModuleRuntime::new(
-            KubeClient::with_client(config, service),
-            namespace.clone(),
-            true,
-            iot_hub_hostname.clone(),
-            device_id.clone(),
-            edge_hostname.clone(),
-            proxy_image.clone(),
-            proxy_config_path.clone(),
-            proxy_config_map_name.clone(),
-            image_pull_policy.clone(),
-            service_account_name.clone(),
-            workload_uri.clone(),
-            management_uri.clone(),
-        )
-        .unwrap()
     }
 
     #[derive(Clone)]

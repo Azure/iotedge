@@ -1,5 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+mod create;
+
+pub use create::create_module;
+
 use edgelet_core::{Module, ModuleRuntimeState, ModuleStatus};
 use edgelet_docker::DockerConfig;
 use edgelet_utils::ensure_not_empty_with_context;
