@@ -63,6 +63,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 Func<ArraySegment<byte>, Task> uploaderCallback = await this.logsUploader.GetUploaderCallback(sasUrl, id, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
                 await this.logsProvider.GetLogsStream(id, moduleLogOptions, uploaderCallback, token);
             }
+
+            Events.UploadLogsFinished(id);
         }
 
         static class Events
@@ -73,7 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             enum EventIds
             {
                 MismatchedMinorVersions = IdStart,
-                ProcessingRequest
+                ProcessingRequest,
+                UploadLogsFinished
             }
 
             public static void MismatchedMinorVersions(string payloadSchemaVersion, Version expectedSchemaVersion)
@@ -84,6 +87,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             public static void ProcessingRequest(LogsUploadRequest payload)
             {
                 Log.LogInformation((int)EventIds.ProcessingRequest, $"Processing request to upload logs for {payload.ToJson()}");
+            }
+
+            public static void UploadLogsFinished(string id)
+            {
+                Log.LogInformation((int)EventIds.UploadLogsFinished, $"Finished uploading logs for module {id}");
             }
         }
     }
