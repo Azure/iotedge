@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 false);
             IList<(string id, ModuleLogOptions logOptions)> logOptionsList = await requestToOptionsMapper.MapToLogOptions(payload.Items, cancellationToken);
             IEnumerable<Task> uploadLogsTasks = logOptionsList.Select(l => this.UploadLogs(payload.SasUrl, l.id, l.logOptions, cancellationToken));
-            (string correlationId, BackgroundTaskStatus status) = BackgroundTask.Run(() => Task.WhenAll(uploadLogsTasks), "upload logs");
+            (string correlationId, BackgroundTaskStatus status) = BackgroundTask.Run(() => Task.WhenAll(uploadLogsTasks), "upload logs", cancellationToken);
             return Option.Some(TaskStatusResponse.Create(correlationId, status));
         }
 

@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 {
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
 
     public class TaskStatusResponse
     {
@@ -28,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         }
 
         [JsonProperty("status")]
+        [JsonConverter(typeof(StringEnumConverter))]
         public BackgroundTaskRunStatus Status { get; }
 
         [JsonProperty("message")]

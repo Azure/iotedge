@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
@@ -73,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
     {
         static readonly ConcurrentDictionary<string, BackgroundTaskStatus> TaskStatuses = new ConcurrentDictionary<string, BackgroundTaskStatus>();
 
-        public static (string correlationId, BackgroundTaskStatus backgroundTaskStatus) Run(Func<Task> task, string operation)
+        public static (string correlationId, BackgroundTaskStatus backgroundTaskStatus) Run(Func<Task> task, string operation, CancellationToken cancellationToken)
         {
             var tid = Guid.NewGuid().ToString();
             BackgroundTaskStatus backgroundTaskStatus = new BackgroundTaskStatus(BackgroundTaskRunStatus.Running, operation);
@@ -90,10 +91,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
                                     return new BackgroundTaskStatus(BackgroundTaskRunStatus.Failed, operation, Option.Maybe(t.Exception as Exception));
 
                                 case TaskStatus.Canceled:
-                                    return new BackgroundTaskStatus(BackgroundTaskRunStatus.Running, operation);
+                                    return new BackgroundTaskStatus(BackgroundTaskRunStatus.Cancelled, operation);
 
                                 case TaskStatus.RanToCompletion:
-                                    return new BackgroundTaskStatus(BackgroundTaskRunStatus.Running, operation);
+                                    return new BackgroundTaskStatus(BackgroundTaskRunStatus.Completed, operation);
 
                                 default:
                                     return new BackgroundTaskStatus(BackgroundTaskRunStatus.Unknown, operation);
@@ -102,7 +103,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
                         BackgroundTaskStatus newStatus = GetNewStatus();
                         TaskStatuses.TryUpdate(tid, newStatus, backgroundTaskStatus);
-                    }));
+                    }, cancellationToken),
+                cancellationToken);
             return (tid, backgroundTaskStatus);
         }
 
