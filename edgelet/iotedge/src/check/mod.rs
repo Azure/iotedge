@@ -835,15 +835,11 @@ fn container_engine_ipv6(check: &mut Check) -> Result<CheckResult, failure::Erro
         })
         .context(MESSAGE)?;
 
-    if daemon_config.ipv6.unwrap_or_default() {
-        #[cfg(windows)]
-        return Ok(CheckResult::Fatal(Context::new("IPv6 container network configuration is not supported for the Windows operating system.").into()));
-        #[cfg(unix)]
-        return Ok(CheckResult::Ok);
-    } else if is_edge_ipv6_configured {
-        Ok(CheckResult::Fatal(Context::new(MESSAGE).into()))
-    } else {
-        Ok(CheckResult::Skipped)
+    match (daemon_config.ipv6.unwrap_or_default(), is_edge_ipv6_configured) {
+        (true, _) if cfg!(windows) => Err(Context::new("IPv6 container network configuration is not supported for the Windows operating system.").into()),
+        (false, true) => Err(Context::new(MESSAGE).into()),
+        (false, false) => Ok(CheckResult::Ignored),
+        _ => Ok(CheckResult::Ok),
     }
 }
 
