@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.WindowsAzure.Storage.Blob;
     using Moq;
     using Xunit;
     using Match = System.Text.RegularExpressions.Match;

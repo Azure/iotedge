@@ -55,5 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 return hashCode;
             }
         }
+
+        public override string ToString() => $"Background task Status = {this.Status}, Operation = {this.Operation}";
     }
 }

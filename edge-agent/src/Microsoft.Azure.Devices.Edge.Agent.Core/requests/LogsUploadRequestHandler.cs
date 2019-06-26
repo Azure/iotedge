@@ -47,7 +47,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 false);
             IList<(string id, ModuleLogOptions logOptions)> logOptionsList = await requestToOptionsMapper.MapToLogOptions(payload.Items, cancellationToken);
             IEnumerable<Task> uploadLogsTasks = logOptionsList.Select(l => this.UploadLogs(payload.SasUrl, l.id, l.logOptions, cancellationToken));
-            (string correlationId, BackgroundTaskStatus status) = BackgroundTask.Run(() => Task.WhenAll(uploadLogsTasks), "upload logs", cancellationToken);
+            (string correlationId, BackgroundTaskStatus status) = BackgroundTask.Run(
+                () =>
+                {
+                    try
+                    {
+                        return Task.WhenAll(uploadLogsTasks);
+                    }
+                    catch (Exception e)
+                    {
+                        Events.ErrorUploadingLogs(e);
+                        throw;
+                    }
+                },
+                "upload logs",
+                cancellationToken);
             return Option.Some(TaskStatusResponse.Create(correlationId, status));
         }
 
@@ -76,7 +90,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             {
                 MismatchedMinorVersions = IdStart,
                 ProcessingRequest,
-                UploadLogsFinished
+                UploadLogsFinished,
+                ErrorUploadingLogs
             }
 
             public static void MismatchedMinorVersions(string payloadSchemaVersion, Version expectedSchemaVersion)
@@ -92,6 +107,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             public static void UploadLogsFinished(string id)
             {
                 Log.LogInformation((int)EventIds.UploadLogsFinished, $"Finished uploading logs for module {id}");
+            }
+
+            public static void ErrorUploadingLogs(Exception ex)
+            {
+                Log.LogInformation((int)EventIds.ErrorUploadingLogs, ex, "Error uploading logs");
             }
         }
     }

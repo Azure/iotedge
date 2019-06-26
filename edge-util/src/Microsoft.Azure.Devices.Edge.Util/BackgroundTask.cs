@@ -12,9 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static (string correlationId, BackgroundTaskStatus backgroundTaskStatus) Run(Func<Task> task, string operation, CancellationToken cancellationToken)
         {
-            var correlationId = Guid.NewGuid().ToString();
             BackgroundTaskStatus backgroundTaskStatus = new BackgroundTaskStatus(BackgroundTaskRunStatus.Running, operation);
-            TaskStatuses.TryAdd(correlationId, backgroundTaskStatus);
+            string correlationId = AddNewTask(backgroundTaskStatus);
             Task.Run(
                 () => task().ContinueWith(
                     t =>
@@ -41,10 +40,27 @@ namespace Microsoft.Azure.Devices.Edge.Util
                         }
 
                         BackgroundTaskStatus newStatus = GetNewStatus();
-                        TaskStatuses.TryUpdate(correlationId, newStatus, backgroundTaskStatus);
+                        if (!TaskStatuses.TryUpdate(correlationId, newStatus, backgroundTaskStatus))
+                        {
+                            // This should never happen.
+                            BackgroundTaskStatus currentTask = GetStatus(correlationId);
+                            throw new InvalidOperationException($"Failed to update background task status to - {newStatus}. Current task = {currentTask}");
+                        }
                     }, cancellationToken),
                 cancellationToken);
             return (correlationId, backgroundTaskStatus);
+        }
+
+        static string AddNewTask(BackgroundTaskStatus backgroundTaskStatus)
+        {
+            while (true)
+            {
+                var correlationId = Guid.NewGuid().ToString();
+                if (TaskStatuses.TryAdd(correlationId, backgroundTaskStatus))
+                {
+                    return correlationId;
+                }
+            }
         }
 
         public static BackgroundTaskStatus GetStatus(string correlationId) =>
