@@ -13,6 +13,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class EdgeDaemon : IEdgeDaemon
     {
+        public static async Task<string> CollectLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token)
+        {
+            string args = $"-u iotedge -u docker --since \"{testStartTime:yyyy-MM-dd HH:mm:ss}\" --no-pager";
+            string[] output = await Process.RunAsync("journalctl", args, token);
+
+            string daemonLog = $"{filePrefix}-iotedged.log";
+            await File.WriteAllLinesAsync(daemonLog, output, token);
+
+            return daemonLog;
+        }
+
         public async Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
             await InstallAsync(packagesPath, token);
