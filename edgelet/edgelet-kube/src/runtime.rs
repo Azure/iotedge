@@ -10,8 +10,6 @@ use futures::prelude::*;
 use futures::{future, stream, Async, Future, Stream};
 use hyper::service::Service;
 use hyper::{Body, Chunk as HyperChunk, Request};
-use log::Level;
-use typed_headers::{Authorization, HeaderMapExt};
 use url::Url;
 
 use edgelet_core::{
@@ -19,13 +17,13 @@ use edgelet_core::{
     ModuleSpec, RuntimeOperation, SystemInfo,
 };
 use edgelet_docker::DockerConfig;
-use edgelet_utils::{ensure_not_empty_with_context, log_failure, sanitize_dns_label};
+use edgelet_utils::{ensure_not_empty_with_context, sanitize_dns_label};
 use kube_client::{Client as KubeClient, Error as KubeClientError, TokenSource};
 
 use crate::constants::*;
 use crate::convert::{auth_to_image_pull_secret, pod_to_module};
 use crate::error::{Error, ErrorKind, Result};
-use crate::module::{create_module, KubeModule};
+use crate::module::{authenticate, create_module, KubeModule};
 
 pub struct KubeModuleRuntime<T, S> {
     client: Arc<Mutex<RefCell<KubeClient<T, S>>>>,
@@ -394,7 +392,7 @@ where
 
 impl<T, S> Authenticator for KubeModuleRuntime<T, S>
 where
-    T: TokenSource + 'static,
+    T: TokenSource + Send + 'static,
     S: Service + Send + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
@@ -407,43 +405,7 @@ where
     type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
 
     fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
-        let fut = req
-            .headers()
-            .typed_get::<Authorization>()
-            .map(|auth| {
-                auth.and_then(|auth| {
-                    auth.as_bearer().map(|token| {
-                        let fut = self
-                            .client
-                            .lock()
-                            .expect("Unexpected lock error")
-                            .borrow_mut()
-                            .token_review(self.namespace(), token.as_str())
-                            .map_err(|err| {
-                                log_failure(Level::Warn, &err);
-                                Error::from(err)
-                            })
-                            .map(|token_review| {
-                                token_review
-                                    .status
-                                    .as_ref()
-                                    .filter(|status| status.authenticated.filter(|x| *x).is_some())
-                                    .and_then(|status| {
-                                        status.user.as_ref().and_then(|user| user.username.clone())
-                                    })
-                                    .map_or(AuthId::None, |name| AuthId::Value(name.into()))
-                            });
-
-                        Either::A(fut)
-                    })
-                })
-                .unwrap_or_else(|| Either::B(future::ok(AuthId::None)))
-            })
-            .map_err(Error::from)
-            .into_future()
-            .flatten();
-
-        Box::new(fut)
+        Box::new(authenticate(&self.clone(), req))
     }
 }
 
