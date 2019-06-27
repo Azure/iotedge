@@ -12,7 +12,7 @@ use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Ipam {
     /// Name of the IPAM driver to use.
     #[serde(rename = "Driver", skip_serializing_if = "Option::is_none")]

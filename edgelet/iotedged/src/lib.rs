@@ -212,11 +212,11 @@ impl Main {
 
         info!(
             "Using runtime network id {}",
-            settings.moby_runtime().network()
+            settings.moby_runtime().network().name()
         );
         let runtime = DockerModuleRuntime::new(settings.moby_runtime().uri())
             .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?
-            .with_network_id(settings.moby_runtime().network().to_string());
+            .with_network_configuration(settings.moby_runtime().network().clone());
 
         init_docker_runtime(&runtime, &mut tokio_runtime)?;
 
@@ -1058,7 +1058,7 @@ fn build_env(
     );
     env.insert(
         EDGE_NETWORKID_KEY.to_string(),
-        settings.moby_runtime().network().to_string(),
+        settings.moby_runtime().network().name().to_string(),
     );
     for (key, val) in spec_env.iter() {
         env.insert(key.clone(), val.clone());
