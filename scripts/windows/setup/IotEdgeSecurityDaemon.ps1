@@ -8,10 +8,14 @@ New-Module -Name IoTEdge -ScriptBlock {
 #requires -RunAsAdministrator
 
 Set-Variable Windows1607 -Value 14393 -Option Constant
-Set-Variable Windows1803 -Value 17134 -Option Constant
 Set-Variable Windows1809 -Value 17763 -Option Constant
 
 Set-Variable MinBuildForLinuxContainers -Value $Windows1607
+
+# When using Windows containers, the host OS version must match the container OS version.
+# Since our containers are built with 10.0.17763 base images, we require the same for the host OS.
+#
+# If this needs to be changed, also update the host OS version check in the `iotedge check` tool (edgelet/iotedge/src/check/mod.rs)
 Set-Variable SupportedBuildsForWindowsContainers -Value @($Windows1809)
 
 Set-Variable DockerServiceName -Value 'com.docker.service' -Option Constant
