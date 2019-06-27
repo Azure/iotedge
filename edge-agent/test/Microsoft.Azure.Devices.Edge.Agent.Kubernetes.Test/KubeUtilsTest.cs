@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [InlineData("", "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijab-------j.com/a")]
         [InlineData("", "iothub.azure-device.net/abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij")]
         [InlineData(null, null)]
-        public void SanitizeAnnotationKeyFailTest(string expected, string raw) => Assert.Throws<InvalidKubernetesNameException>(() => KubeUtils.SanitizeAnnotationKey(raw));
+        public void SanitizeAnnotationKeyFailTest(string _, string raw) => Assert.Throws<InvalidKubernetesNameException>(() => KubeUtils.SanitizeAnnotationKey(raw));
 
         [Theory]
         [InlineData("edgeagent", "$edgeAgent")]
@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
         [Theory]
         [MemberData(nameof(GetLongDnsDomain))]
-        public void SanitizeK8sValueFailTest(string expected, string raw) => Assert.Throws<InvalidKubernetesNameException>(() => KubeUtils.SanitizeK8sValue(raw));
+        public void SanitizeK8sValueFailTest(string _, string raw) => Assert.Throws<InvalidKubernetesNameException>(() => KubeUtils.SanitizeK8sValue(raw));
 
         [Theory]
         [InlineData("edgeagent", "$edgeAgent")]
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         // Must start with alphabet and end with alphanumeric
         [InlineData("", "ABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJAB-------J")]
         [InlineData(null, null)]
-        public void SanitizeDnsValueFailTest(string expected, string raw) => Assert.Throws<InvalidKubernetesNameException>(() => KubeUtils.SanitizeDNSValue(raw));
+        public void SanitizeDnsValueFailTest(string _, string raw) => Assert.Throws<InvalidKubernetesNameException>(() => KubeUtils.SanitizeDNSValue(raw));
 
         public static IEnumerable<object[]> GetLongDnsDomain()
         {
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [InlineData("", "ABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJAB-------J.com")]
         [MemberData(nameof(GetLongDnsDomain))]
         [InlineData(null, null)]
-        public void SanitizeDNSDomainFailTest(string expected, string raw) => Assert.Throws<InvalidKubernetesNameException>(() => KubeUtils.SanitizeDNSDomain(raw));
+        public void SanitizeDNSDomainFailTest(string _, string raw) => Assert.Throws<InvalidKubernetesNameException>(() => KubeUtils.SanitizeDNSDomain(raw));
 
         [Theory]
         [InlineData("edgeagent", "$edgeAgent")]
@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         // must end with an alphanumeric character
         [InlineData("", "ABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJAB-------J")]
         [InlineData(null, null)]
-        public void SanitizeLabelValueFailTest(string expected, string raw) => Assert.Throws<InvalidKubernetesNameException>(() => KubeUtils.SanitizeLabelValue(raw));
+        public void SanitizeLabelValueFailTest(string _, string raw) => Assert.Throws<InvalidKubernetesNameException>(() => KubeUtils.SanitizeLabelValue(raw));
 
     }
 }
