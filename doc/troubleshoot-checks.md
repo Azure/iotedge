@@ -83,6 +83,12 @@ This check validates that a DNS server has been specified in the container engin
 
 It is possible to specify a DNS server in the Edge device's deployment instead of in the container engine's `daemon.json`, and the tool does not detect this. If you have done so, you should ignore this warning.
 
+## IPv6 network configuration
+
+This check validates that if IPv6 container network configuration is enabled in `config.yaml` (by setting the value of `moby_runtime.network.ipv6` field to `true`), the container engine's `daemon.json` file also has IPv6 support enabled. To enable IPv6 support for the container runtime, please refer to this guide <https://aka.ms/iotedge-docker-ipv6>.
+
+IPv6 container runtime network configuration is currently not supported for the Windows operating system and this check fails if IPv6 support is enabled in the container enginer's `daemon.json` file.
+
 ## production readiness: certificates (*warning*)
 
 This check validates that device CA and trusted CA certificates have been defined in the `certificates` section of the `config.yaml`. If these certificates are not specified, the device operates in quickstart mode and is not supported in production. Certificate management best practices are documented at <https://aka.ms/iotedge-prod-checklist-certs>
