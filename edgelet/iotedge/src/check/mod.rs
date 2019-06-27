@@ -791,7 +791,7 @@ fn container_engine(check: &mut Check) -> Result<CheckResult, failure::Error> {
 fn container_engine_ipv6(check: &mut Check) -> Result<CheckResult, failure::Error> {
     const MESSAGE: &str =
         "Container engine is not configured for IPv6 communication.\n\
-         Please see https://aka.ms/iotedge-docker-ipv6 for a guide on how to enable IPv6 support.\n";
+         Please see https://aka.ms/iotedge-docker-ipv6 for a guide on how to enable IPv6 support.";
 
     #[derive(serde_derive::Deserialize)]
     struct DaemonConfig {
