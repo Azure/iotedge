@@ -5,15 +5,19 @@ authors = ["Azure IoT Edge Devs"]
 edition = "2018"
 
 [dependencies]
-actix-web = "1.0.0"
+actix-web = "1.0"
 dirs = "2.0.1"
+failure = "0.1"
 futures = "0.1.25"
 os_info = "1.1.1"
 serde = "1.0"
-serde_json = "1.0.39"
+serde_derive = "1.0"
+serde_json = "1.0"
 structopt = "0.2.16"
 url = "1.7.2"
 yaml-rust = "0.4"
 
-edgelet-core = {path = "../../edgelet/edgelet-core"}
+edgelet-core = { path = "../../edgelet/edgelet-core" }
+edgelet-config = { path = "../../edgelet/edgelet-config" }
+edgelet-docker = { path = "../../edgelet/edgelet-docker" }
 edgelet-http-mgmt = {path = "../../edgelet/edgelet-http-mgmt"}

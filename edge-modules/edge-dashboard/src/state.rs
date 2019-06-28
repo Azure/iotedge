@@ -2,8 +2,8 @@ extern crate yaml_rust;
 
 use std::collections::HashMap;
 use std::env;
-use std::io::Result;
 use std::fs;
+use std::io::Result;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
@@ -41,7 +41,9 @@ impl Device {
 // returns the connection string given the config.yaml file contents
 pub fn get_connection_string(contents: String) -> Option<String> {
     if let Ok(doc) = YamlLoader::load_from_str(&contents) {
-        doc[0]["provisioning"]["device_connection_string"].as_str().map(|c| c.to_string())
+        doc[0]["provisioning"]["device_connection_string"]
+            .as_str()
+            .map(|c| c.to_string())
     } else {
         None
     }
@@ -56,7 +58,7 @@ pub fn get_val(map: &HashMap<&str, String>, key: &str) -> Option<String> {
         } else {
             return None;
         }
-    } 
+    }
     map.get(key).map(|val| val.to_string())
 }
 
@@ -86,7 +88,7 @@ pub fn handle_windows() -> Result<String> {
         return fs::read_to_string(Path::new(&csidl_path).join("/iotedge/config.yaml"));
     } else if let Ok(program_path) = env::var("ProgramData") {
         return fs::read_to_string(Path::new(&program_path).join("/iotedge/config.yaml"));
-    } 
+    }
     fs::read_to_string(Path::new("C:/ProgramData/iotedge/config.yaml"))
     // fs::read_to_string(".\\src\\tests.txt")
 }
@@ -95,8 +97,8 @@ pub fn handle_windows() -> Result<String> {
 pub fn get_file() -> Result<String> {
     #[cfg(target_os = "windows")]
     return handle_windows();
-   
-    #[cfg(target_os = "linux")] 
+
+    #[cfg(target_os = "linux")]
     fs::read_to_string("src/test.txt")
     // fs::read_to_string("/etc/iotedge/config.yaml")
 }
