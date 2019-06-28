@@ -17,45 +17,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         const int MaxK8SValueLength = 253;
         const int MaxDnsNameLength = 63;
         const int MaxLabelValueLength = 63;
-        static readonly HashSet<char> AlphaHashSet;
-        static readonly HashSet<char> AlphaNumericHashSet;
-        static readonly HashSet<char> AllowedLabelsHashSet;
-        static readonly HashSet<char> AllowedDnsHashSet;
-        static readonly HashSet<char> AllowedGenericHashSet;
+        static readonly HashSet<char> AlphaHashSet = new HashSet<char>(Alphabet.ToCharArray());
+        static readonly HashSet<char> AlphaNumericHashSet = new HashSet<char>( (Alphabet+Numeric).ToCharArray());
+        static readonly HashSet<char> AllowedLabelsHashSet = new HashSet<char>((Alphabet+Numeric+AllowedCharsLabelValues).ToCharArray());
+        static readonly HashSet<char> AllowedDnsHashSet = new HashSet<char>((Alphabet+Numeric+AllowedCharsDns).ToCharArray());
+        static readonly HashSet<char> AllowedGenericHashSet = new HashSet<char>((Alphabet+Numeric+AllowedCharsGeneric).ToCharArray());
 
         static bool IsAlpha(char ch) => AlphaHashSet.Contains(ch);
 
         static bool IsAlphaNumeric(char ch) => AlphaNumericHashSet.Contains(ch);
-
-        static KubeUtils()
-        {
-            AlphaHashSet = new HashSet<char>();
-            foreach (char c in Alphabet)
-            {
-                AlphaHashSet.Add(c);
-            }
-            AlphaNumericHashSet = new HashSet<char>(AlphaHashSet);
-            foreach (char c in Numeric)
-            {
-                AlphaNumericHashSet.Add(c);
-            }
-            AllowedLabelsHashSet = new HashSet<char>(AlphaNumericHashSet);
-            foreach (char c in AllowedCharsLabelValues)
-            {
-                AllowedLabelsHashSet.Add(c);
-            }
-            AllowedDnsHashSet = new HashSet<char>(AlphaNumericHashSet);
-            foreach (char c in AllowedCharsDns)
-            {
-                AllowedDnsHashSet.Add(c);
-            }
-            AllowedGenericHashSet = new HashSet<char>(AlphaNumericHashSet);
-            foreach (char c in AllowedCharsGeneric)
-            {
-                AllowedGenericHashSet.Add(c);
-            }
-        }
-
 
         // Valid annotation keys have two segments: an optional prefix and name, separated by a slash (/). 
         // The name segment is required and must be 63 characters or less, beginning and ending with an 
@@ -70,14 +40,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             char[] annotationSplit = { '/' };
             string[] keySegments = key.Split(annotationSplit, 2);
+            string output;
             if (keySegments.Count() == 2)
             {
-                return SanitizeDNSDomain(keySegments[0]) + "/" + SanitizeNameValue(keySegments[1]);
+                output = SanitizeDNSDomain(keySegments[0]) + "/" + SanitizeNameValue(keySegments[1]);
             }
             else
             {
-                return SanitizeNameValue(key);
+                output = SanitizeNameValue(key);
             }
+
+            if (string.IsNullOrEmpty(output))
+            {
+                throw new InvalidKubernetesNameException($"Key '{key}' as sanitized is empty");
+            }
+
+            return output;
         }
 
         // Alphanumeric, '-' and '.' up to 253 characters.
@@ -118,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             //  - must end with an alphanumeric character
             if (string.IsNullOrEmpty(name))
             {
-                throw new InvalidKubernetesNameException($"Name '{name}' is null or empty");
+                throw new InvalidKubernetesNameException($"DNS Name '{name}' is null or empty");
             }
 
             name = name.ToLower();
@@ -128,6 +106,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             while (start < name.Length && !IsAlpha(name[start]))
             {
                 start++;
+            }
+
+            if (start == name.Length)
+            {
+                throw new InvalidKubernetesNameException($"DNS name '{name}' does not start with a valid character");
             }
 
             // get index of last character from right that's an alphanumeric
@@ -151,6 +134,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 throw new InvalidKubernetesNameException($"DNS name '{name}' exceeded maximum length of {MaxDnsNameLength}");
             }
+            if (output.Length == 0)
+            {
+                throw new InvalidKubernetesNameException($"DNS name '{name}' as sanitized is empty");
+            }
 
             return output.ToString();
         }
@@ -160,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         {
             if (string.IsNullOrEmpty(name))
             {
-                throw new InvalidKubernetesNameException($"Name '{name}' is null or empty");
+                throw new InvalidKubernetesNameException($"DNS subdomain '{name}' is null or empty");
             }
 
             char[] nameSplit = { '.' };
@@ -169,15 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             bool firstSegment = true;
             foreach (var segment in dnsSegments)
             {
-                if (segment == string.Empty)
-                {
-                    continue;
-                }
                 string sanitized = SanitizeDNSValue(segment);
-                if (sanitized == string.Empty)
-                {
-                    continue;
-                }
 
                 if (firstSegment)
                 {
@@ -195,6 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 throw new InvalidKubernetesNameException($"DNS subdomain '{name}' as sanitized exceeded maximum length of {MaxK8SValueLength}");
             }
+
             return output.ToString();
         }
 
@@ -211,6 +191,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             while (start < name.Length && !IsAlphaNumeric(name[start]))
             {
                 start++;
+            }
+            if (start == name.Length)
+            {
+                throw new InvalidKubernetesNameException($"Name '{name}' does not start with a valid character");
             }
 
             // get index of last character from right that's an alphanumeric
@@ -233,6 +217,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             if (output.Length > MaxLabelValueLength)
             {
                 throw new InvalidKubernetesNameException($"Name '{name}' exceeded maximum length of {MaxLabelValueLength}");
+            }
+
+            if (output.Length == 0)
+            {
+                throw new InvalidKubernetesNameException($"Name '{name}' as sanitized is empty");
             }
 
             return output.ToString();
