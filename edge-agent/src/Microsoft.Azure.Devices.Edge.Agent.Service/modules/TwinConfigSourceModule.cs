@@ -86,7 +86,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     {
                         new PingRequestHandler(),
                         new LogsUploadRequestHandler(logsUploader, logsProvider, runtimeInfoProvider),
-                        new LogsRequestHandler(logsProvider, runtimeInfoProvider)
+                        new LogsRequestHandler(logsProvider, runtimeInfoProvider),
+                        new TaskStatusRequestHandler()
                     };
                     return new RequestManager(requestHandlers, this.requestTimeout) as IRequestManager;
                 })
