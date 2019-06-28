@@ -4,8 +4,8 @@ namespace IotEdgeQuickstart.Details
 
     public class DeviceProvisioningMethod
     {
-        Option<string> ManualConnectionString { get; }
-        Option<DPSAttestation> Dps { get; }
+        public Option<string> ManualConnectionString { get; }
+        public Option<DPSAttestation> Dps { get; }
 
         public DeviceProvisioningMethod(string deviceConnectionString)
         {
@@ -13,10 +13,10 @@ namespace IotEdgeQuickstart.Details
             this.Dps = Option.None<DPSAttestation>();
         }
 
-        public DeviceProvisioningMethod(Option<DPSAttestation> dps)
+        public DeviceProvisioningMethod(DPSAttestation dps)
         {
             this.ManualConnectionString = Option.None<string>();
-            this.Dps = dps;
+            this.Dps = Option.Some(Preconditions.CheckNotNull(dps, nameof(dps)));
         }
     }
 }

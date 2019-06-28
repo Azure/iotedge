@@ -248,15 +248,23 @@ namespace IotEdgeQuickstart.Details
         protected Task ConfigureBootstrapper()
         {
             Console.WriteLine("Configuring bootstrapper.");
-            IotHubConnectionStringBuilder builder =
-                IotHubConnectionStringBuilder.Create(this.context.IotHubConnectionString);
+            DeviceProvisioningMethod method = this.dpsAttestation.Match(
+                dps =>
+                {
+                    return new DeviceProvisioningMethod(dps);
+                },
+                () =>
+                {
+                    IotHubConnectionStringBuilder builder =
+                        IotHubConnectionStringBuilder.Create(this.context.IotHubConnectionString);
+                    string connectionString =
+                        $"HostName={builder.HostName};" +
+                        $"DeviceId={this.context.Device.Id};" +
+                        $"SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey}";
 
-            string connectionString =
-                $"HostName={builder.HostName};" +
-                $"DeviceId={this.context.Device.Id};" +
-                $"SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey}";
-
-            return this.bootstrapper.Configure(connectionString, this.EdgeAgentImage(), this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
+                    return new DeviceProvisioningMethod(connectionString);
+                });
+            return this.bootstrapper.Configure(method, this.EdgeAgentImage(), this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
         }
 
         protected Task StartBootstrapper()

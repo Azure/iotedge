@@ -111,7 +111,7 @@ namespace IotEdgeQuickstart.Details
             return Task.CompletedTask;
         }
 
-        public async Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
+        public async Task Configure(DeviceProvisioningMethod method, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
             const string HidePowerShellProgressBar = "$ProgressPreference='SilentlyContinue'";
 
@@ -139,7 +139,7 @@ namespace IotEdgeQuickstart.Details
                 {
                     Console.WriteLine("Installing iotedge...");
                     args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon -Manual " +
-                           $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
+                           $"-ContainerOs Windows -AgentImage '{image}'";
 
                     this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
 
@@ -152,8 +152,25 @@ namespace IotEdgeQuickstart.Details
                 {
                     Console.WriteLine("Initializing iotedge...");
                     args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Initialize-IoTEdge -Manual " +
-                           $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
+                           $"-ContainerOs Windows -AgentImage '{image}'";
                 }
+
+                args += method.ManualConnectionString.Map(
+                    cs => {
+                        return $"-DeviceConnectionString '{cs}'";
+                    }).GetOrElse(string.Empty);
+
+                args += method.Dps.Map(
+                    dps =>
+                    {
+                        string dpsArgs = string.Empty;
+                        dpsArgs += $" -ScopeId '{dps.ScopeId}'";
+                        dps.RegistrationId.ForEach(id => { dpsArgs += $" -RegistrationId '{id}'"; });
+                        dps.DeviceIdentityCertificate.ForEach(certPath => { dpsArgs += $" -X509IdentityCertificate '{certPath}'"; });
+                        dps.DeviceIdentityPrivateKey.ForEach(pkPath => { dpsArgs += $" -X509IdentityPrivateKey '{pkPath}'"; });
+                        dps.SymmetricKey.ForEach(symmKey => { dpsArgs += $" -SymmetricKey '{symmKey}'"; });
+                        return dpsArgs;
+                    }).GetOrElse(string.Empty);
 
                 string commandForDebug = args;
 

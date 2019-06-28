@@ -4,10 +4,18 @@ namespace IotEdgeQuickstart.Details
 {
     using Microsoft.Azure.Devices.Edge.Util;
 
+    public enum DPSAttestationType
+    {
+        SymmetricKey,
+        Tpm,
+        X509
+    }
+
     public class DPSAttestation
     {
         public string EndPoint { get; }
         public string ScopeId { get; }
+        public DPSAttestationType AttestationType { get; }
         public Option<string> RegistrationId { get; }
         public Option<string> SymmetricKey { get; }
         public Option<string> DeviceIdentityCertificate { get; }
@@ -21,6 +29,7 @@ namespace IotEdgeQuickstart.Details
             this.SymmetricKey = Option.Some(Preconditions.CheckNonWhiteSpace(symmetricKey, nameof(symmetricKey)));
             this.DeviceIdentityCertificate = Option.None<string>();
             this.DeviceIdentityPrivateKey = Option.None<string>();
+            this.AttestationType = DPSAttestationType.SymmetricKey;
         }
 
         public DPSAttestation(string endPoint, string scopeId, Option<string> registrationId, string certPath, string privateKeyPath)
@@ -31,6 +40,7 @@ namespace IotEdgeQuickstart.Details
             this.SymmetricKey = Option.None<string>();
             this.DeviceIdentityCertificate = Option.Some(Preconditions.CheckNonWhiteSpace(certPath, nameof(certPath)));
             this.DeviceIdentityPrivateKey = Option.Some(Preconditions.CheckNonWhiteSpace(privateKeyPath, nameof(privateKeyPath)));
+            this.AttestationType = DPSAttestationType.X509;
         }
     }
 }

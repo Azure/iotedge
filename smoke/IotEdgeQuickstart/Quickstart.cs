@@ -13,6 +13,7 @@ namespace IotEdgeQuickstart
         readonly bool noVerify;
         readonly bool bypassEdgeInstallation;
         readonly string verifyDataFromModule;
+        readonly bool dpsProvisionTest;
 
         public Quickstart(
             IBootstrapper bootstrapper,
@@ -45,6 +46,7 @@ namespace IotEdgeQuickstart
             this.noVerify = noVerify;
             this.bypassEdgeInstallation = bypassEdgeInstallation;
             this.verifyDataFromModule = verifyDataFromModule;
+            this.dpsProvisionTest = dpsAttestation.HasValue;
         }
 
         public async Task RunAsync()
@@ -71,20 +73,26 @@ namespace IotEdgeQuickstart
                     await this.VerifyEdgeAgentIsRunning();
                     await this.VerifyEdgeAgentIsConnectedToIotHub();
 
-                    if (!this.noDeployment)
-                    {
-                        await this.DeployToEdgeDevice();
-                        if (!this.noVerify)
+                    //// for DPS tests we only ensure that the Edge agent is up an running
+                    //// more tests that execute at scale deployments will be implemented
+                    //// in the new test framework
+                    //if (!this.dpsProvisionTest)
+                    //{
+                        if (!this.noDeployment)
                         {
-                            await this.VerifyDataOnIoTHub(this.verifyDataFromModule);
-                            await this.VerifyTwinAsync();
-                        }
+                            await this.DeployToEdgeDevice();
+                            if (!this.noVerify)
+                            {
+                                await this.VerifyDataOnIoTHub(this.verifyDataFromModule);
+                                await this.VerifyTwinAsync();
+                            }
 
-                        if (this.leaveRunning == LeaveRunning.Core)
-                        {
-                            await this.RemoveTempSensorFromEdgeDevice();
+                            if (this.leaveRunning == LeaveRunning.Core)
+                            {
+                                await this.RemoveTempSensorFromEdgeDevice();
+                            }
                         }
-                    }
+                    //}
                 }
                 catch (Exception e)
                 {
