@@ -20,4 +20,5 @@ yaml-rust = "0.4"
 edgelet-core = { path = "../../edgelet/edgelet-core" }
 edgelet-config = { path = "../../edgelet/edgelet-config" }
 edgelet-docker = { path = "../../edgelet/edgelet-docker" }
-edgelet-http-mgmt = {path = "../../edgelet/edgelet-http-mgmt"}
+edgelet-http-mgmt = { path = "../../edgelet/edgelet-http-mgmt" }
+management = { path = "../../edgelet/management" }

@@ -200,8 +200,8 @@ hostname: "<ADD HOSTNAME HERE>"
 ###############################################################################
 
 connect:
-  management_uri: "unix:///C:/ProgramData/iotedge/mgmt/sock"
-  workload_uri: "unix:///C:/ProgramData/iotedge/workload/sock"
+  management_uri: "http://127.0.0.1:4000"
+  workload_uri: "http://127.0.0.1:4001"
 
 ###############################################################################
 # Listen settings
@@ -226,8 +226,8 @@ connect:
 ###############################################################################
 
 listen:
-  management_uri: "unix:///C:/ProgramData/iotedge/mgmt/sock"
-  workload_uri: "unix:///C:/ProgramData/iotedge/workload/sock"
+  management_uri: "http://127.0.0.1:4000"
+  workload_uri: "http://127.0.0.1:4001"
 
 ###############################################################################
 # Home Directory

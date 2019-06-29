@@ -1,22 +1,24 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 mod error;
-mod settings;
 mod modules;
-
+mod settings;
 
 #[cfg(windows)]
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use actix_web::error::ErrorInternalServerError;
 use actix_web::Error as ActixError;
 use actix_web::*;
 use edgelet_config::Settings as EdgeSettings;
 use edgelet_core::{Module, ModuleRuntime};
 use edgelet_docker::DockerConfig;
 use edgelet_http_mgmt::*;
-use futures::future::ok;
+use management::*;
+use futures::Async;
+use futures::future::{ok, Either};
 use futures::Future;
 use structopt::StructOpt;
 use url::Url;
@@ -38,6 +40,23 @@ impl Context {
         Context {
             edge_config,
             settings,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct SparseModule {
+    name: String,
+    // id: String,
+    status: String,
+}
+
+impl SparseModule {
+    pub fn new(name: String, status: String) -> Self {
+        SparseModule {
+            name,
+            // id,
+            status,
         }
     }
 }
@@ -65,7 +84,7 @@ impl Main {
         HttpServer::new(move || {
             App::new()
                 .register_data(context.clone())
-                .service(web::resource("/api/modules").route(web::get().to(get_modules)))
+                .service(web::resource("/api/modules").route(web::get().to_async(get_modules)))
         })
         .bind(address)?
         .run()?;
@@ -82,32 +101,52 @@ pub fn get_modules(
         .as_ref()
         .map(|config| {
             let mgmt_uri = config.connect().management_uri();
-            let api_ver = "2018-06-28"; // take this from url 
-            let contents = Url::parse(&format!("http://{}/modules/?api-version={}", mgmt_uri, api_ver)).unwrap_or_else(|err| {
+            let api_ver = "2018-06-28"; // take this from url
+            let contents = Url::parse(&format!(
+                "{}/modules/?api-version={}",
+                mgmt_uri, api_ver
+            ))
+            .unwrap; /*_or_else(|err| {
                 HttpResponse::NotFound()
                     .content_type("text/plain")
                     .body(format!("{:?}", err))
-            });
-            let mod_client = ModuleClient::new(&contents).unwrap();
-            let mod_list: String = mod_client.list().wait().unwrap().iter().map(|c| c.name().to_string()).collect();
-            HttpResponse::Ok()
-                .content_type("text/html")
-                .body(format!("{:?}", mod_list))
+            });*/ // TODO: fix unwrap
+            let mod_client = ModuleClient::new(&contents).unwrap(); // TODO: fix unwrap
+            Either::A(
+                mod_client
+                    .list()
+                    .map(|data| {
+                        let x: Vec<SparseModule> = data.iter().map(|c| {
+                            let mut status = "".to_string();
+                            if let Ok(Async::Ready(t)) = c.runtime_state().poll() {
+                                status = (*(t.status().clone()).to_string()).to_string();
+                            }
+                            SparseModule::new(c.name().to_string(), status)
+                        }).collect();
+                        HttpResponse::Ok()
+                            .content_type("text/html")
+                            .body(format!("{:?}", x)) 
+                    })
+                    .map_err(ErrorInternalServerError),
+            )
+            /*HttpResponse::Ok()
+            .content_type("text/html")
+            .body(format!("{:?}", mod_list))*/
         })
         .unwrap_or_else(|err| {
-            HttpResponse::ServiceUnavailable()
+            Either::B(ok(HttpResponse::ServiceUnavailable()
                 .content_type("text/plain")
-                .body(format!("{:?}", err))
+                .body(format!("{:?}", err))))
         });
 
-    Box::new(ok(response))
+    Box::new(response)
 }
 
 fn get_default_config_path() -> PathBuf {
     #[cfg(not(windows))]
     {
-        // Path::new("/etc/iotedge/config.yaml").to_owned()
-        Path::new("src/test.txt").to_owned()
+        Path::new("/etc/iotedge/config.yaml").to_owned()
+        // Path::new("src/test.txt").to_owned()
     }
 
     #[cfg(windows)]
