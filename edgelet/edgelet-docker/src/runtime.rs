@@ -20,8 +20,8 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
-    AuthId, Authenticator, LogOptions, MakeModuleRuntime, MobyNetwork, Module, ModuleId,
-    ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, RegistryOperation,
+    AuthId, Authenticator, Ipam as CoreIpam, LogOptions, MakeModuleRuntime, MobyNetwork, Module,
+    ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, RegistryOperation,
     RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
@@ -245,11 +245,10 @@ impl MakeModuleRuntime for DockerModuleRuntime {
 
 fn get_ipv6_settings(network_configuration: &MobyNetwork) -> (bool, Option<Ipam>) {
     if let MobyNetwork::Network(network) = network_configuration {
-        let ipv6 = network.ipv6().clone().unwrap_or_default();
-        network
-            .ipam()
-            .and_then(|ipam| ipam.config())
-            .map(|ipam_config| {
+        let ipv6 = network.ipv6().unwrap_or_default();
+        network.ipam().and_then(CoreIpam::config).map_or_else(
+            || (ipv6, None),
+            |ipam_config| {
                 let config = ipam_config
                     .iter()
                     .map(|ipam_config| {
@@ -271,8 +270,8 @@ fn get_ipv6_settings(network_configuration: &MobyNetwork) -> (bool, Option<Ipam>
                     .collect();
 
                 (ipv6, Some(Ipam::new().with_config(config)))
-            })
-            .unwrap_or_else(|| (ipv6, None))
+            },
+        )
     } else {
         (false, None)
     }
