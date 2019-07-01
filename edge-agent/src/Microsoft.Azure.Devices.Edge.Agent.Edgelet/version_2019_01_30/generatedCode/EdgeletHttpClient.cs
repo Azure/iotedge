@@ -1704,6 +1704,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.Generate
         [Newtonsoft.Json.JsonProperty("type", Required = Newtonsoft.Json.Required.Always)]
         public string Type { get; set; }
 
+        [Newtonsoft.Json.JsonProperty("imagePullPolicy", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        [Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
+        public ImagePullPolicy? ImagePullPolicy { get; set; }
+
         [Newtonsoft.Json.JsonProperty("config", Required = Newtonsoft.Json.Required.Always)]
         public Config Config { get; set; } = new Config();
 
@@ -1954,6 +1958,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.Generate
         {
             return Newtonsoft.Json.JsonConvert.DeserializeObject<ErrorResponse>(data);
         }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "9.13.2.0 (Newtonsoft.Json v11.0.0.0)")]
+    public enum ImagePullPolicy
+    {
+        [System.Runtime.Serialization.EnumMember(Value = @"On-Create")]
+        OnCreate = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Never")]
+        Never = 1,
 
     }
 

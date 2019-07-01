@@ -17,6 +17,7 @@ pub mod crypto;
 mod error;
 mod identity;
 mod module;
+mod network;
 pub mod watchdog;
 pub mod workload;
 
@@ -31,10 +32,11 @@ pub use crypto::{
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
 pub use module::{
-    LogOptions, LogTail, Module, ModuleOperation, ModuleRegistry, ModuleRuntime,
+    ImagePullPolicy, LogOptions, LogTail, Module, ModuleOperation, ModuleRegistry, ModuleRuntime,
     ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, ModuleTop,
     RegistryOperation, RuntimeOperation, SystemInfo,
 };
+pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
 pub use watchdog::RetryLimit;
 pub use workload::WorkloadConfig;
 
@@ -96,3 +98,6 @@ impl UrlExt for Url {
 }
 
 pub const UNIX_SCHEME: &str = "unix";
+
+/// This is the name of the network created by the iotedged
+pub const DEFAULT_NETWORKID: &str = "azure-iot-edge";

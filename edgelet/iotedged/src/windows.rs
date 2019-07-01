@@ -113,6 +113,10 @@ pub fn run() -> Result<(), Error> {
         run_as_console()?;
         Ok(())
     } else {
+        // Initialize logging before starting the service so that errors can be logged even if the service never starts,
+        // such as if we couldn't connect to the service controller.
+        app::init_win_svc_logging();
+
         // kick-off the Windows service dance
         service_dispatcher::start(IOTEDGED_SERVICE_NAME, ffi_service_main)
             .map_err(ServiceError::from)
