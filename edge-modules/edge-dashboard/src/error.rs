@@ -1,6 +1,9 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 use std::io::Error as IoError;
 
 use edgelet_config::LoadSettingsError;
+use edgelet_http_mgmt::*;
 use failure::Fail;
 use url::ParseError;
 
@@ -12,8 +15,8 @@ pub enum Error {
     #[fail(display = "I/O error: {}", _0)]
     Io(IoError),
 
-    #[fail(display = "Parse error: {}", _0)]
-    Parse(ParseError),
+    #[fail(display = "Invalid request error: {}", _0)]
+    InvalidRequest(edgelet_http_mgmt::Error),
 }
 
 impl From<LoadSettingsError> for Error {
@@ -28,8 +31,8 @@ impl From<IoError> for Error {
     }
 }
 
-impl From<ParseError> for Error {
-    fn from(err: ParseError) -> Self {
-        Error::Parse(err)
+impl From<edgelet_http_mgmt::Error> for Error {
+    fn from(err: edgelet_http_mgmt::Error) -> Self {
+        Error::InvalidRequest(err)
     }
 }

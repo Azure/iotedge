@@ -3,6 +3,7 @@
 mod error;
 mod modules;
 mod settings;
+mod state;
 
 #[cfg(windows)]
 use std::env;
@@ -16,10 +17,10 @@ use edgelet_config::Settings as EdgeSettings;
 use edgelet_core::{Module, ModuleRuntime};
 use edgelet_docker::DockerConfig;
 use edgelet_http_mgmt::*;
-use management::*;
-use futures::Async;
 use futures::future::{ok, Either};
+use futures::Async;
 use futures::Future;
+use management::*;
 use structopt::StructOpt;
 use url::Url;
 
@@ -85,11 +86,38 @@ impl Main {
             App::new()
                 .register_data(context.clone())
                 .service(web::resource("/api/modules").route(web::get().to_async(get_modules)))
+                .service(web::resource("/api/provisioning-state").route(web::get().to(get_state)))
         })
         .bind(address)?
         .run()?;
 
         Ok(())
+    }
+}
+
+fn get_state(_req: HttpRequest) -> HttpResponse {
+    if let Ok(contents) = state::get_file() {
+        // if file exists and can be located
+        let con_string = &state::get_connection_string(contents);
+        let string_ref: Option<&str> = con_string.as_ref().map(|s| s.as_ref());
+        if let Some(details) = string_ref {
+            // if con_string is valid
+            let mut new_device;
+            if details.contains("HostName=") {
+                new_device = state::Device::new(state::State::Manual, details.to_string());
+            } else {
+                new_device = state::Device::new(state::State::NotProvisioned, String::new());
+            }
+            state::return_response(&new_device)
+        } else {
+            // if con_string can't be converted to a valid device connection string
+            HttpResponse::UnprocessableEntity()
+                .body("Device connection string unable to be converted")
+        }
+    } else {
+        // if file doesn't exist or can't be located
+        let new_device = state::Device::new(state::State::NotInstalled, String::new());
+        state::return_response(&new_device)
     }
 }
 
@@ -102,30 +130,50 @@ pub fn get_modules(
         .map(|config| {
             let mgmt_uri = config.connect().management_uri();
             let api_ver = "2018-06-28"; // take this from url
-            let contents = Url::parse(&format!(
-                "{}/modules/?api-version={}",
-                mgmt_uri, api_ver
-            ))
-            .unwrap; /*_or_else(|err| {
-                HttpResponse::NotFound()
-                    .content_type("text/plain")
-                    .body(format!("{:?}", err))
-            });*/ // TODO: fix unwrap
+            // let contents = Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
+            //     .unwrap_or_else(|err| {
+            //         HttpResponse::NotFound()
+            //             .content_type("text/plain")
+            //             .body(format!("{:?}", err))
+            //     }); // TODO: fix unwrap
+
+            // let mod_client;
+            // if let Ok(url) = Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver)) {
+            //     if let Ok(list) = ModuleClient::new(&url) {
+            //         mod_client = list.clone();
+            //     } else {
+            //         HttpResponse::NotFound() // http-mgmt error
+            //             .content_type("text/plain")
+            //             .body(format!("{:?}", err))
+            //     }
+            // } else {
+            //     HttpResponse::NotFound() // parse error
+            //         .content_type("text/plain")
+            //         .body(format!("{:?}", err))
+            // }
+
+            // let mod_client = Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver)).and_then(|url| ModuleClient::new(&url));
+
+            let contents =
+                Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver)).unwrap();
             let mod_client = ModuleClient::new(&contents).unwrap(); // TODO: fix unwrap
             Either::A(
                 mod_client
                     .list()
                     .map(|data| {
-                        let x: Vec<SparseModule> = data.iter().map(|c| {
-                            let mut status = "".to_string();
-                            if let Ok(Async::Ready(t)) = c.runtime_state().poll() {
-                                status = (*(t.status().clone()).to_string()).to_string();
-                            }
-                            SparseModule::new(c.name().to_string(), status)
-                        }).collect();
+                        let x: Vec<SparseModule> = data
+                            .iter()
+                            .map(|c| {
+                                let mut status = "".to_string();
+                                if let Ok(Async::Ready(t)) = c.runtime_state().poll() {
+                                    status = (*(t.status().clone()).to_string()).to_string();
+                                }
+                                SparseModule::new(c.name().to_string(), status)
+                            })
+                            .collect();
                         HttpResponse::Ok()
                             .content_type("text/html")
-                            .body(format!("{:?}", x)) 
+                            .body(format!("{:?}", x))
                     })
                     .map_err(ErrorInternalServerError),
             )
