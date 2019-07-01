@@ -246,8 +246,8 @@ fn authenticate_returns_none_when_module_auth_token_provided_but_service_account
     let runtime = create_runtime(&format!("http://localhost:{}", port));
 
     let dispatch_table = routes!(
-            POST "/apis/authentication.k8s.io/v1/tokenreviews" => authenticated_token_review_handler(),
-        );
+        POST "/apis/authentication.k8s.io/v1/tokenreviews" => authenticated_token_review_handler(),
+    );
 
     let server = run_tcp_server(
         "127.0.0.1",
