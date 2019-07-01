@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -9,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
+    using NUnit.Framework.Interfaces;
     using Serilog;
 
     class EndToEndWithCustomCertificates
@@ -17,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         IEdgeDaemon daemon;
         EdgeCertificateAuthority edgeCa;
         IotHub iotHub;
+        DateTime testStartTime;
 
         [OneTimeSetUp]
         public async Task BeforeAll()
@@ -101,10 +104,35 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [SetUp]
-        public void BeforeAny() => this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
+        public void BeforeAny()
+        {
+            this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
+            this.testStartTime = DateTime.Now;
+        }
 
         [TearDown]
-        public void AfterAny() => this.cts.Dispose();
+        public async Task AfterAnyAsync()
+        {
+            await Profiler.Run(
+                async () =>
+                {
+                    this.cts.Dispose();
+
+                    if (TestContext.CurrentContext.Result.Outcome != ResultState.Ignored)
+                    {
+                        using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
+                        {
+                            string prefix = $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
+                            IEnumerable<string> paths = await EdgeLogs.CollectAsync(this.testStartTime, prefix, cts.Token);
+                            foreach (string path in paths)
+                            {
+                                TestContext.AddTestAttachment(path);
+                            }
+                        }
+                    }
+                },
+                "Completed test teardown");
+        }
 
         static readonly (AuthType, Protocol, bool)[] TransparentGatewayArgs =
         {
