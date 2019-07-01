@@ -1,12 +1,14 @@
-using System.Collections.Generic;
-using k8s.Models;
-using Microsoft.Azure.Devices.Edge.Agent.Core;
-using Microsoft.Azure.Devices.Edge.Util;
-using Newtonsoft.Json;
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
-    class EdgeDeploymentDefinition
+    using System.Collections.Generic;
+    using k8s.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
+
+    class EdgeDeploymentDefinition : IEdgeDeploymentDefinition
     {
         [JsonProperty(PropertyName = "apiVersion")]
         public string ApiVersion { get; set; }
