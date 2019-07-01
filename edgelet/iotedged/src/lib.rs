@@ -165,24 +165,21 @@ enum StartApiReturnStatus {
 
 pub struct Main<M>
 where
-    M: MakeModuleRuntime + ModuleRuntime,
+    M: MakeModuleRuntime,
 {
     settings: M::Settings,
 }
 
 impl<M> Main<M>
 where
-    M: 'static + ModuleRuntime + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
-    M: MakeModuleRuntime<
-        ProvisioningResult = ProvisioningResult,
-        Config = <M as ModuleRuntime>::Config,
-        ModuleRuntime = M,
-    >,
-    <M::Module as Module>::Config: Clone + DeserializeOwned + Serialize,
+    M: MakeModuleRuntime<ProvisioningResult = ProvisioningResult> + Send + 'static,
+    M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
+        Clone + DeserializeOwned + Serialize,
     M::Settings: 'static + Clone + Serialize,
-    M::Logs: Into<Body>,
-    <M as Authenticator>::Error: Fail + Sync,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
+    <M::ModuleRuntime as Authenticator>::Error: Fail + Sync,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     pub fn new(settings: M::Settings) -> Self {
         Main { settings }
@@ -258,17 +255,17 @@ where
             ($key_store:ident, $provisioning_result:ident, $root_key:ident) => {{
                 info!("Finished provisioning edge device.");
 
-                let runtime: M = init_runtime(
+                let runtime = init_runtime::<M>(
                     settings.clone(),
                     &mut tokio_runtime,
                     $provisioning_result.clone(),
                 )?;
 
                 if $provisioning_result.reconfigure() != ReprovisioningStatus::DeviceDataNotUpdated {
-                    // If there was a DPS reprovision and device key was updated results in obsolete
-                    // module keys in IoTHub from the previous provisioning. We delete all containers
-                    // after each DPS provisioning run so that IoTHub can be updated with new module
-                    // keys when the deployment is executed by EdgeAgent.
+                    // If this device was reprovisioned and the device key was updated it causes
+                    // module keys to be obsoleted in IoTHub from the previous provisioning. We therefore
+                    // delete all containers after each DPS provisioning run so that IoTHub can be updated
+                    // with new module keys when the deployment is executed by EdgeAgent.
                     info!(
                         "Reprovisioning status {:?} will trigger reconfiguration of modules.",
                         $provisioning_result.reconfigure()
@@ -282,7 +279,7 @@ where
                 }
 
                 // Detect if the settings were changed and if the device needs to be reconfigured
-                check_settings_state(
+                check_settings_state::<M, _>(
                     cache_subdir_path.clone(),
                     EDGE_SETTINGS_STATE_FILENAME,
                     &settings,
@@ -300,7 +297,7 @@ where
                 // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
                 // is received. If the TLS cert needs a restart, we will loop again.
                 loop {
-                    let code = start_api(
+                    let code = start_api::<_, _, _, _, _, M>(
                         &settings,
                         hyper_client.clone(),
                         &runtime,
@@ -557,12 +554,12 @@ fn check_settings_state<M, C>(
     subdir_path: PathBuf,
     filename: &str,
     settings: &M::Settings,
-    runtime: &M,
+    runtime: &M::ModuleRuntime,
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(), Error>
 where
-    M: MakeModuleRuntime + ModuleRuntime + 'static,
+    M: MakeModuleRuntime + 'static,
     M::Settings: Serialize,
     C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
@@ -586,7 +583,7 @@ where
         };
     }
     if reconfig_reqd {
-        reconfigure(
+        reconfigure::<M, _>(
             subdir_path,
             filename,
             settings,
@@ -602,12 +599,12 @@ fn reconfigure<M, C>(
     subdir: PathBuf,
     filename: &str,
     settings: &M::Settings,
-    runtime: &M,
+    runtime: &M::ModuleRuntime,
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(), Error>
 where
-    M: MakeModuleRuntime + ModuleRuntime + 'static,
+    M: MakeModuleRuntime + 'static,
     M::Settings: Serialize,
     C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
@@ -656,7 +653,7 @@ where
 fn start_api<HC, K, F, C, W, M>(
     settings: &M::Settings,
     hyper_client: HC,
-    runtime: &M,
+    runtime: &M::ModuleRuntime,
     key_store: &DerivedKeyStore<K>,
     workload_config: W,
     root_key: K,
@@ -678,12 +675,14 @@ where
         + Sync
         + 'static,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
-    M: ModuleRuntime + Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
-    M: MakeModuleRuntime<Config = <M as ModuleRuntime>::Config>,
-    <M::Module as Module>::Config: Clone + DeserializeOwned + Serialize,
-    M::Logs: Into<Body>,
-    <M as Authenticator>::Error: Fail + Sync,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    M::ModuleRuntime: Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
+    M: MakeModuleRuntime + 'static,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
+        Clone + DeserializeOwned + Serialize,
+    M::Settings: 'static,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
+    <M::ModuleRuntime as Authenticator>::Error: Fail + Sync,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     let hub_name = workload_config.iot_hub_name().to_string();
     let device_id = workload_config.device_id().to_string();
@@ -734,9 +733,10 @@ where
 
     let cert_manager = Arc::new(cert_manager);
 
-    let mgmt = start_management(settings, runtime, &id_man, mgmt_rx, cert_manager.clone());
+    let mgmt =
+        start_management::<_, _, _, M>(settings, runtime, &id_man, mgmt_rx, cert_manager.clone());
 
-    let workload = start_workload(
+    let workload = start_workload::<_, _, _, _, M>(
         settings,
         key_store,
         runtime,
@@ -747,7 +747,7 @@ where
     );
 
     let (runt_tx, runt_rx) = oneshot::channel();
-    let edge_rt = start_runtime(
+    let edge_rt = start_runtime::<_, _, M>(
         runtime.clone(),
         &id_man,
         &hub_name,
@@ -798,12 +798,10 @@ fn init_runtime<M>(
     settings: M::Settings,
     tokio_runtime: &mut tokio::runtime::Runtime,
     provisioning_result: M::ProvisioningResult,
-) -> Result<M, Error>
+) -> Result<M::ModuleRuntime, Error>
 where
-    M: ModuleRuntime
-        + MakeModuleRuntime<ModuleRuntime = M, Config = <M as ModuleRuntime>::Config>
-        + Send
-        + 'static,
+    M: MakeModuleRuntime + Send + 'static,
+    M::ModuleRuntime: Send,
     M::Future: 'static,
 {
     info!("Initializing the module runtime...");
@@ -990,7 +988,7 @@ where
 }
 
 fn start_runtime<K, HC, M>(
-    runtime: M,
+    runtime: M::ModuleRuntime,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     hostname: &str,
     device_id: &str,
@@ -1000,15 +998,16 @@ fn start_runtime<K, HC, M>(
 where
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl,
-    M: 'static + ModuleRuntime + Clone + Send + Sync,
-    M: MakeModuleRuntime<Config = <M as ModuleRuntime>::Config>,
-    <M::Module as Module>::Config: Clone + DeserializeOwned + Serialize,
-    M::Logs: Into<Body>,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    M: MakeModuleRuntime,
+    M::ModuleRuntime: Clone + 'static,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
+        Clone + DeserializeOwned + Serialize,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     let spec = settings.agent().clone();
     let env = build_env(spec.env(), hostname, device_id, settings);
-    let spec = ModuleSpec::<<M as ModuleRuntime>::Config>::new(
+    let spec = ModuleSpec::<<M::ModuleRuntime as ModuleRuntime>::Config>::new(
         EDGE_RUNTIME_MODULE_NAME.to_string(),
         spec.type_().to_string(),
         spec.config().clone(),
@@ -1069,7 +1068,7 @@ where
 
 fn start_management<C, K, HC, M>(
     settings: &M::Settings,
-    runtime: &M,
+    runtime: &M::ModuleRuntime,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
     cert_manager: Arc<CertificateManager<C>>,
@@ -1078,17 +1077,12 @@ where
     C: CreateCertificate + Clone,
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl + Send + Sync,
-    M: MakeModuleRuntime
-        + ModuleRuntime
-        + Authenticator<Request = Request<Body>>
-        + Send
-        + Sync
-        + Clone
-        + 'static,
-    <M::AuthenticateFuture as Future>::Error: Fail,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-    <M::Module as Module>::Config: DeserializeOwned + Serialize,
-    M::Logs: Into<Body>,
+    M: MakeModuleRuntime,
+    M::ModuleRuntime: Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
+    <<M::ModuleRuntime as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config: DeserializeOwned + Serialize,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
 {
     info!("Starting management API...");
 
@@ -1120,7 +1114,7 @@ where
 fn start_workload<K, C, CE, W, M>(
     settings: &M::Settings,
     key_store: &K,
-    runtime: &M,
+    runtime: &M::ModuleRuntime,
     shutdown: Receiver<()>,
     crypto: &C,
     cert_manager: Arc<CertificateManager<CE>>,
@@ -1139,17 +1133,14 @@ where
         + 'static,
     CE: CreateCertificate + Clone,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
-    M: MakeModuleRuntime
-        + ModuleRuntime
-        + Authenticator<Request = Request<Body>>
-        + Send
-        + Sync
-        + Clone
-        + 'static,
-    <M::AuthenticateFuture as Future>::Error: Fail,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-    <M::Module as Module>::Config: DeserializeOwned + Serialize,
-    M::Logs: Into<Body>,
+    M: MakeModuleRuntime + 'static,
+    M::Settings: 'static,
+    M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
+    <<M::ModuleRuntime as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
+        Clone + DeserializeOwned + Serialize,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
 {
     info!("Starting workload API...");
 
@@ -1327,7 +1318,7 @@ mod tests {
             fail_device_ca_alias: true,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        let result = check_settings_state(
+        let result = check_settings_state::<TestRuntime<_, Settings>, _>(
             tmp_dir.path().to_path_buf(),
             "settings_state",
             &settings,
@@ -1363,7 +1354,7 @@ mod tests {
             fail_device_ca_alias: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        let result = check_settings_state(
+        let result = check_settings_state::<TestRuntime<_, Settings>, _>(
             tmp_dir.path().to_path_buf(),
             "settings_state",
             &settings,
@@ -1399,7 +1390,7 @@ mod tests {
             fail_device_ca_alias: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        check_settings_state(
+        check_settings_state::<TestRuntime<_, Settings>, _>(
             tmp_dir.path().to_path_buf(),
             "settings_state",
             &settings,
@@ -1442,7 +1433,7 @@ mod tests {
             fail_device_ca_alias: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        check_settings_state(
+        check_settings_state::<TestRuntime<_, Settings>, _>(
             tmp_dir.path().to_path_buf(),
             "settings_state",
             &settings,
@@ -1459,7 +1450,7 @@ mod tests {
 
         let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        check_settings_state(
+        check_settings_state::<TestRuntime<_, Settings>, _>(
             tmp_dir.path().to_path_buf(),
             "settings_state",
             &settings1,

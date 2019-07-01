@@ -251,7 +251,7 @@ struct TestKubeSettings {
 
 impl TestKubeSettings {
     fn new(kube_settings: Settings, api_server: Url) -> Self {
-        TestKubeSettings {
+        Self {
             kube_settings,
             api_server,
         }
