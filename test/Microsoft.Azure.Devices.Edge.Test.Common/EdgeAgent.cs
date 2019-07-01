@@ -11,9 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
         }
 
-        public Task PingAsync(CancellationToken token)
-        {
-            return Profiler.Run(
+        public Task PingAsync(CancellationToken token) =>
+            Profiler.Run(
                 () => this.iotHub.InvokeMethodAsync(
                     this.deviceId,
                     $"${this.Id}",
@@ -21,6 +20,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     token),
                 "Pinged module '{Module}' from the cloud",
                 this.Id);
-        }
     }
 }

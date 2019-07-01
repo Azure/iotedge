@@ -96,12 +96,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 properties);
         }
 
-        public async Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token)
+        public Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token)
         {
             var properties = new List<object>();
             var message = new StringBuilder("Configured edge daemon");
 
-            await Profiler.Run(
+            return Profiler.Run(
                 async () =>
                 {
                     await this.InternalStopAsync(token);

@@ -41,6 +41,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             node[leaf] = value;
         }
 
+        public void RemoveIfExists(string dottedKey)
+        {
+            Dictionary<object, object> node = this.root;
+            string[] segments = dottedKey.Split('.');
+            foreach (string key in segments.SkipLast(1))
+            {
+                if (!node.ContainsKey(key))
+                {
+                    return;
+                }
+
+                node = (Dictionary<object, object>)node[key];
+            }
+
+            string leaf = segments.Last();
+            node.Remove(leaf);
+        }
+
         public override string ToString()
         {
             var serializer = new Serializer();

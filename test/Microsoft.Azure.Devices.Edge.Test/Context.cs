@@ -51,6 +51,30 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     return result;
                 }
 
+                Option<(string, string, string)> GetAndValidateRootCaKeys()
+                {
+                    // If any root CA key materials (cert file, key file, password) are
+                    // given, then they must *all* be given, otherwise throw an error.
+                    string certificate = Get("rootCaCertificatePath");
+                    string key = Get("rootCaPrivateKeyPath");
+                    string password = Get("ROOT_CA_PASSWORD");
+
+                    if (!string.IsNullOrWhiteSpace(certificate) ||
+                        !string.IsNullOrWhiteSpace(key) ||
+                        !string.IsNullOrWhiteSpace(password))
+                    {
+                        Preconditions.CheckNonWhiteSpace(certificate, nameof(certificate));
+                        Preconditions.CheckNonWhiteSpace(key, nameof(key));
+                        Preconditions.CheckNonWhiteSpace(password, nameof(password));
+                        Preconditions.CheckArgument(File.Exists(certificate));
+                        Preconditions.CheckArgument(File.Exists(key));
+                        return Option.Some((certificate, key, password));
+                    }
+
+                    return Option.None<(string, string, string)>();
+                }
+
+                this.CaCertScriptPath = Get("caCertScriptPath");
                 this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
                 this.DeviceId = GetOrDefault("deviceId", $"end-to-end-{Dns.GetHostName()}-{DateTime.Now:yyyy'-'MM'-'dd'T'HH'-'mm'-'ss'-'fff}");
                 this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
@@ -64,6 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 this.PackagePath = Option.Maybe(Get("packagePath"));
                 this.Proxy = Option.Maybe(context.GetValue<Uri>("proxy"));
                 this.Registries = GetAndValidateRegistries();
+                this.RootCaKeys = GetAndValidateRootCaKeys();
                 this.SetupTimeout = TimeSpan.FromMinutes(context.GetValue("setupTimeoutMinutes", 5));
                 this.TeardownTimeout = TimeSpan.FromMinutes(context.GetValue("teardownTimeoutMinutes", 2));
                 this.TempSensorImage = Option.Maybe(Get("tempSensorImage"));
@@ -74,6 +99,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
 
         public static Context Current => Default.Value;
+
+        public string CaCertScriptPath { get; }
 
         public string ConnectionString { get; }
 
@@ -100,6 +127,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public Option<Uri> Proxy { get; }
 
         public IEnumerable<(string address, string username, string password)> Registries { get; }
+
+        public Option<(string certificate, string key, string password)> RootCaKeys { get; }
 
         public TimeSpan SetupTimeout { get; }
 

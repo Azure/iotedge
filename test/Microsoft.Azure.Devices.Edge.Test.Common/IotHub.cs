@@ -78,11 +78,30 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, CancellationToken token)
         {
-            var device = new Device(deviceId)
-            {
-                Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
-                Capabilities = new DeviceCapabilities() { IotEdge = true }
-            };
+            return this.CreateDeviceIdentityAsync(
+                deviceId,
+                id => new Device(id)
+                {
+                    Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
+                    Capabilities = new DeviceCapabilities() { IotEdge = true }
+                },
+                token);
+        }
+
+        public Task<Device> CreateLeafDeviceIdentityAsync(string deviceId, CancellationToken token)
+        {
+            return this.CreateDeviceIdentityAsync(
+                deviceId,
+                id => new Device(id)
+                {
+                    Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas }
+                },
+                token);
+        }
+
+        Task<Device> CreateDeviceIdentityAsync(string deviceId, Func<string, Device> deviceFactory, CancellationToken token)
+        {
+            Device device = deviceFactory(deviceId);
             return this.RegistryManager.AddDeviceAsync(device, token);
         }
 
