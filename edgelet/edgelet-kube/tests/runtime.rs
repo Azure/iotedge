@@ -549,7 +549,6 @@ fn get_service_account_with_annotations_handler() -> impl Fn(Request<Body>) -> R
 fn get_service_account_without_annotations_handler(
 ) -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
     move |_| {
-        println!("adf");
         response(StatusCode::OK, || {
             json!({
                 "kind": "ServiceAccount",
