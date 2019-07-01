@@ -19,8 +19,7 @@ use failure::{Context, Fail};
 use log::{debug, Level};
 use regex::Regex;
 use serde::de::DeserializeOwned;
-use serde::Serialize;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use url::Url;
 
@@ -207,7 +206,7 @@ impl<'de> serde::Deserialize<'de> for Dps {
     where
         D: serde::Deserializer<'de>,
     {
-        #[derive(Debug, serde_derive::Deserialize)]
+        #[derive(Debug, Deserialize)]
         struct Inner {
             #[serde(with = "url_serde")]
             global_endpoint: Url,
