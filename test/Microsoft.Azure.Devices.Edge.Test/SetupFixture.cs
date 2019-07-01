@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
+    using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -48,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         // a test times out. We need teardown to run, to remove the
                         // device registration from IoT Hub and stop the daemon. So
                         // we have our own timeout mechanism.
+                        DateTime startTime = DateTime.Now;
                         CancellationToken token = cts.Token;
 
                         Assert.IsNull(this.device);
@@ -62,11 +65,30 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             Context.Current.PackagePath,
                             Context.Current.Proxy,
                             token);
-                        await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
 
-                        var agent = new EdgeAgent(this.device.Id, this.iotHub);
-                        await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
-                        await agent.PingAsync(token);
+                        try
+                        {
+                            await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
+
+                            var agent = new EdgeAgent(this.device.Id, this.iotHub);
+                            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+                            await agent.PingAsync(token);
+                        }
+
+                        // ReSharper disable once RedundantCatchClause
+                        catch
+                        {
+                            throw;
+                        }
+                        finally
+                        {
+                            string prefix = $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
+                            IEnumerable<string> paths = await EdgeLogs.CollectAsync(startTime, prefix, token);
+                            foreach (string path in paths)
+                            {
+                                TestContext.AddTestAttachment(path);
+                            }
+                        }
                     }
                 },
                 "Completed end-to-end test setup");
@@ -80,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 await Profiler.Run(
                     async () =>
                     {
-                        using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
+                        using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
                         {
                             CancellationToken token = cts.Token;
 

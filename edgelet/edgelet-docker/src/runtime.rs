@@ -18,10 +18,10 @@ use url::Url;
 
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
-use docker::models::{ContainerCreateBody, InlineResponse200, NetworkConfig};
+use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
-    AuthId, Authenticator, LogOptions, Module, ModuleId, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeState, ModuleSpec, RegistryOperation, RuntimeOperation,
+    AuthId, Authenticator, LogOptions, MobyNetwork, Module, ModuleId, ModuleRegistry,
+    ModuleRuntime, ModuleRuntimeState, ModuleSpec, RegistryOperation, RuntimeOperation,
     SystemInfo as CoreSystemInfo, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
@@ -53,6 +53,8 @@ lazy_static! {
 pub struct DockerModuleRuntime {
     client: DockerClient<UrlConnector>,
     network_id: Option<String>,
+    ipv6: bool,
+    ipam: Option<Ipam>,
 }
 
 impl DockerModuleRuntime {
@@ -80,11 +82,49 @@ impl DockerModuleRuntime {
         Ok(DockerModuleRuntime {
             client: DockerClient::new(APIClient::new(configuration)),
             network_id: None,
+            ipv6: false,
+            ipam: None,
         })
     }
 
     pub fn with_network_id(mut self, network_id: String) -> Self {
         self.network_id = Some(network_id);
+        self
+    }
+
+    pub fn with_network_configuration(mut self, network_configuration: MobyNetwork) -> Self {
+        self.network_id = Some(network_configuration.name().to_string());
+        if let MobyNetwork::Network(network) = network_configuration {
+            self.ipv6 = network.ipv6().unwrap_or_default();
+            if let Some(ipam) = network.ipam() {
+                if let Some(ipam_config) = ipam.config() {
+                    let config: Vec<_> = ipam_config
+                        .iter()
+                        .map(|ipam_config| {
+                            let mut config_map = HashMap::new();
+                            if let Some(gateway_config) = ipam_config.gateway() {
+                                config_map
+                                    .insert("Gateway".to_string(), gateway_config.to_string());
+                            };
+
+                            if let Some(subnet_config) = ipam_config.subnet() {
+                                config_map.insert("Subnet".to_string(), subnet_config.to_string());
+                            };
+
+                            if let Some(ip_range_config) = ipam_config.ip_range() {
+                                config_map
+                                    .insert("IPRange".to_string(), ip_range_config.to_string());
+                            };
+
+                            config_map
+                        })
+                        .collect();
+
+                    self.ipam = Some(Ipam::new().with_config(config));
+                }
+            }
+        }
+
         self
     }
 
@@ -236,15 +276,24 @@ impl ModuleRuntime for DockerModuleRuntime {
             |id| {
                 let filter = format!(r#"{{"name":{{"{}":true}}}}"#, id);
                 let client_copy = self.client.clone();
+                let enable_i_pv6 = self.ipv6;
+                let ipam = self.ipam.clone();
                 let fut = self
                     .client
                     .network_api()
                     .network_list(&filter)
                     .and_then(move |existing_networks| {
                         if existing_networks.is_empty() {
+                            let mut network_config =
+                                NetworkConfig::new(id).with_enable_i_pv6(enable_i_pv6);
+
+                            if let Some(ipam_config) = ipam {
+                                network_config.set_IPAM(ipam_config);
+                            };
+
                             let fut = client_copy
                                 .network_api()
-                                .network_create(NetworkConfig::new(id))
+                                .network_create(network_config)
                                 .map(|_| ());
                             future::Either::A(fut)
                         } else {
@@ -859,7 +908,9 @@ mod tests {
     use url::Url;
 
     use docker::models::ContainerCreateBody;
-    use edgelet_core::{ImagePullPolicy, ModuleId, ModuleRegistry, ModuleTop};
+    use edgelet_core::{
+        ImagePullPolicy, Ipam as CoreIpam, IpamConfig, ModuleId, ModuleRegistry, ModuleTop, Network,
+    };
 
     use crate::error::{Error, ErrorKind};
 
@@ -934,6 +985,44 @@ mod tests {
             .unwrap()
             .block_on(task)
             .unwrap();
+    }
+
+    #[test]
+    fn with_network_configuration_succeeds() {
+        let ipam_configuration = IpamConfig::default()
+            .with_gateway("172.18.0.1".to_string())
+            .with_ip_range("172.18.0.0/16".to_string())
+            .with_subnet("172.18.0.0/16".to_string());
+
+        let ipam = CoreIpam::default().with_config(vec![ipam_configuration.clone()]);
+        let network_name = "my-network";
+        let ipv6 = true;
+        let network = Network::new(network_name.to_string())
+            .with_ipv6(Some(ipv6))
+            .with_ipam(ipam);
+
+        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap())
+            .unwrap()
+            .with_network_configuration(MobyNetwork::Network(network));
+
+        assert_eq!(network_name, mri.network_id.unwrap());
+        assert_eq!(ipv6, mri.ipv6);
+
+        let ipam_mri = mri.ipam.unwrap();
+        let ipam_config = ipam_mri.config().unwrap().to_owned();
+        let ipam_config_0 = ipam_config.get(0).unwrap();
+        assert_eq!(
+            ipam_config_0["Gateway"],
+            ipam_configuration.gateway().unwrap()
+        );
+        assert_eq!(
+            ipam_config_0["Subnet"],
+            ipam_configuration.subnet().unwrap()
+        );
+        assert_eq!(
+            ipam_config_0["IPRange"],
+            ipam_configuration.ip_range().unwrap()
+        );
     }
 
     #[test]

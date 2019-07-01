@@ -80,7 +80,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             Option<string> response = await logsUploadRequestHandler.HandleRequest(Option.Maybe(payload), CancellationToken.None);
 
             // Assert
-            Assert.False(response.HasValue);
+            Assert.True(response.HasValue);
+            var taskStatusResponse = response.OrDefault().FromJson<TaskStatusResponse>();
+            Assert.NotNull(taskStatusResponse);
+            Assert.NotEmpty(taskStatusResponse.CorrelationId);
+            Assert.Equal(string.Empty, taskStatusResponse.Message);
+
+            await WaitForBackgroundTaskCompletion(taskStatusResponse.CorrelationId).TimeoutAfter(TimeSpan.FromSeconds(5));
+
             logsProvider.VerifyAll();
             logsUploader.VerifyAll();
             Mock.Get(runtimeInfoProvider).VerifyAll();
@@ -151,10 +158,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             Option<string> response = await logsUploadRequestHandler.HandleRequest(Option.Maybe(payload), CancellationToken.None);
 
             // Assert
-            Assert.False(response.HasValue);
+            Assert.True(response.HasValue);
+            var taskStatusResponse = response.OrDefault().FromJson<TaskStatusResponse>();
+            Assert.NotNull(taskStatusResponse);
+            Assert.NotEmpty(taskStatusResponse.CorrelationId);
+            Assert.Equal(string.Empty, taskStatusResponse.Message);
+
+            await WaitForBackgroundTaskCompletion(taskStatusResponse.CorrelationId).TimeoutAfter(TimeSpan.FromSeconds(5));
+
             logsProvider.VerifyAll();
             logsUploader.VerifyAll();
             runtimeInfoProvider.VerifyAll();
+        }
+
+        static async Task WaitForBackgroundTaskCompletion(string correlationId)
+        {
+            while (true)
+            {
+                BackgroundTaskStatus status = BackgroundTask.GetStatus(correlationId);
+                if (status.Status != BackgroundTaskRunStatus.Running)
+                {
+                    break;
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(1));
+            }
         }
 
         [Theory]
