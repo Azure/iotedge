@@ -5,7 +5,7 @@
 ## Edge Agent
 ### Bug Fixes
 * Fix file extension for logs uploaded to blob store
-* Ability to get status of logs upload request
+* Add ability to get status of logs upload request
 
 # 1.0.8-rc2 (2019-06-18)
 * Stability improvements
