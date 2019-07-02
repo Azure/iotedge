@@ -1,12 +1,9 @@
-extern crate yaml_rust;
-
 use std::collections::HashMap;
 use std::fs;
 use std::io::Result;
 
 use actix_web::*;
 use serde::{Deserialize, Serialize};
-use yaml_rust::YamlLoader;
 
 /* TODO:
     - DPS handling
@@ -39,16 +36,6 @@ impl Device {
             hub_name: get_val(&map, "HostName"),
             device_id: get_val(&map, "DeviceId"),
         }
-    }
-}
-// returns the connection string given the config.yaml file contents
-pub fn get_connection_string(contents: String) -> Option<String> {
-    if let Ok(doc) = YamlLoader::load_from_str(&contents) {
-        doc[0]["provisioning"]["device_connection_string"]
-            .as_str()
-            .map(|c| c.to_string())
-    } else {
-        None
     }
 }
 

@@ -1,5 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#[macro_use]
+extern crate serde_derive;
+
 mod error;
 mod modules;
 mod settings;
@@ -13,6 +16,7 @@ use std::sync::Arc;
 use actix_web::error::ErrorInternalServerError;
 use actix_web::Error as ActixError;
 use actix_web::*;
+use edgelet_config::Provisioning;
 use edgelet_config::Settings as EdgeSettings;
 use edgelet_core::{Module, ModuleRuntime};
 use edgelet_docker::DockerConfig;
@@ -83,8 +87,8 @@ impl Main {
         HttpServer::new(move || {
             App::new()
                 .register_data(context.clone())
-                .service(web::resource("/api/modules").route(web::get().to_async(get_modules)))
-                .service(web::resource("/api/provisioning-state").route(web::get().to(get_state)))
+                .service(web::resource("/api/modules/").to_async(get_modules))
+                .service(web::resource("/api/provisioning-state/").to(get_state))
         })
         .bind(address)?
         .run()?;
@@ -93,43 +97,42 @@ impl Main {
     }
 }
 
-fn get_state(_req: HttpRequest/*, context: web::Data<Arc<Context>>*/) -> HttpResponse {
-    if let Ok(contents) = state::get_file() {
+#[derive(Deserialize)]
+pub struct AuthRequest {
+    version: String,
+}
+
+fn get_state(
+    _req: HttpRequest,
+    context: web::Data<Arc<Context>>,
+    _info: web::Query<AuthRequest>,
+) -> HttpResponse {
+    // println!("Query string version: {}", info.version);
+    if let Ok(_) = state::get_file() {
         // if file exists and can be located
-
-        // TODO: make config parse dev_conn_str using context
-        // context.edge_config.as_ref().map(|config| {
-        //     let dev_conn_str = config.provisioning().Manual.device_connection_string();
-        //     let mut new_device;
-        //     if let Provisioning::Manual(type) = config.provisioning() {
-        //         let dev_conn_str = type.device_connection_string();
-        //         new_device = state::Device::new(state::State::Manual, dev_conn_str.to_string());
-        //     } else {
-        //         // handle non-manual (dps/external) here
-        //         new_device = state::Device::new(state::State::Manual, dev_conn_str.to_string());
-        //     }
-        //     state::return_response(&new_device)
-        // })
-        // .unwrap_or_else(|_|
-        //     HttpResponse::Ok().body("")
-        // )
-
-        let con_string = &state::get_connection_string(contents);
-        let string_ref: Option<&str> = con_string.as_ref().map(|s| s.as_ref());
-        if let Some(details) = string_ref {
-            // if con_string is valid
-            let mut new_device;
-            if details.contains("HostName=") {
-                new_device = state::Device::new(state::State::Manual, details.to_string());
-            } else {
-                new_device = state::Device::new(state::State::NotProvisioned, String::new());
-            }
-            state::return_response(&new_device)
-        } else {
-            // if con_string can't be converted to a valid device connection string
-            HttpResponse::UnprocessableEntity()
-                .body("Device connection string unable to be converted")
-        }
+        context
+            .edge_config
+            .as_ref()
+            .map(|config| {
+                let mut new_device;
+                if let Provisioning::Manual(val) = config.provisioning() {
+                    let dev_conn_str = val.device_connection_string();
+                    if dev_conn_str == edgelet_config::DEFAULT_CONNECTION_STRING {
+                        new_device = state::Device::new(state::State::NotProvisioned, String::new())
+                    } else {
+                        new_device =
+                            state::Device::new(state::State::Manual, dev_conn_str.to_string());
+                    }
+                } else {
+                    // handle non-manual (dps/external) here
+                    new_device = state::Device::new(state::State::Manual, String::new());
+                }
+                state::return_response(&new_device)
+            })
+            .unwrap_or_else(|_| {
+                HttpResponse::UnprocessableEntity()
+                    .body("Device connection string unable to be processed")
+            })
     } else {
         // if file doesn't exist or can't be located
         let new_device = state::Device::new(state::State::NotInstalled, String::new());
@@ -139,13 +142,15 @@ fn get_state(_req: HttpRequest/*, context: web::Data<Arc<Context>>*/) -> HttpRes
 
 pub fn get_modules(
     context: web::Data<Arc<Context>>,
+    info: web::Query<AuthRequest>,
 ) -> Box<dyn Future<Item = HttpResponse, Error = ActixError>> {
     let response = context
         .edge_config
         .as_ref()
         .map(|config| {
             let mgmt_uri = config.connect().management_uri();
-            let api_ver = "2018-06-28"; // take this from url
+            let api_ver = &info.version;
+            // println!("API Version: {}", api_ver);
             Either::A(
                 Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
                     .map_err(ErrorInternalServerError)
