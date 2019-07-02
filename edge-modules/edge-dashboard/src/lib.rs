@@ -17,15 +17,13 @@ use edgelet_config::Settings as EdgeSettings;
 use edgelet_core::{Module, ModuleRuntime};
 use edgelet_docker::DockerConfig;
 use edgelet_http_mgmt::*;
-use futures::future::{ok, Either};
+use futures::future::{ok, Either, IntoFuture};
 use futures::Async;
 use futures::Future;
-use management::*;
 use structopt::StructOpt;
 use url::Url;
 
 pub use error::Error;
-use modules::*;
 use settings::Settings;
 
 pub struct Context {
@@ -95,9 +93,27 @@ impl Main {
     }
 }
 
-fn get_state(_req: HttpRequest) -> HttpResponse {
+fn get_state(_req: HttpRequest/*, context: web::Data<Arc<Context>>*/) -> HttpResponse {
     if let Ok(contents) = state::get_file() {
         // if file exists and can be located
+
+        // TODO: make config parse dev_conn_str using context
+        // context.edge_config.as_ref().map(|config| {
+        //     let dev_conn_str = config.provisioning().Manual.device_connection_string();
+        //     let mut new_device;
+        //     if let Provisioning::Manual(type) = config.provisioning() {
+        //         let dev_conn_str = type.device_connection_string();
+        //         new_device = state::Device::new(state::State::Manual, dev_conn_str.to_string());
+        //     } else {
+        //         // handle non-manual (dps/external) here
+        //         new_device = state::Device::new(state::State::Manual, dev_conn_str.to_string());
+        //     }
+        //     state::return_response(&new_device)
+        // })
+        // .unwrap_or_else(|_|
+        //     HttpResponse::Ok().body("")
+        // )
+
         let con_string = &state::get_connection_string(contents);
         let string_ref: Option<&str> = con_string.as_ref().map(|s| s.as_ref());
         if let Some(details) = string_ref {
@@ -130,56 +146,34 @@ pub fn get_modules(
         .map(|config| {
             let mgmt_uri = config.connect().management_uri();
             let api_ver = "2018-06-28"; // take this from url
-            // let contents = Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
-            //     .unwrap_or_else(|err| {
-            //         HttpResponse::NotFound()
-            //             .content_type("text/plain")
-            //             .body(format!("{:?}", err))
-            //     }); // TODO: fix unwrap
-
-            // let mod_client;
-            // if let Ok(url) = Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver)) {
-            //     if let Ok(list) = ModuleClient::new(&url) {
-            //         mod_client = list.clone();
-            //     } else {
-            //         HttpResponse::NotFound() // http-mgmt error
-            //             .content_type("text/plain")
-            //             .body(format!("{:?}", err))
-            //     }
-            // } else {
-            //     HttpResponse::NotFound() // parse error
-            //         .content_type("text/plain")
-            //         .body(format!("{:?}", err))
-            // }
-
-            // let mod_client = Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver)).and_then(|url| ModuleClient::new(&url));
-
-            let contents =
-                Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver)).unwrap();
-            let mod_client = ModuleClient::new(&contents).unwrap(); // TODO: fix unwrap
             Either::A(
-                mod_client
-                    .list()
-                    .map(|data| {
-                        let x: Vec<SparseModule> = data
-                            .iter()
-                            .map(|c| {
-                                let mut status = "".to_string();
-                                if let Ok(Async::Ready(t)) = c.runtime_state().poll() {
-                                    status = (*(t.status().clone()).to_string()).to_string();
-                                }
-                                SparseModule::new(c.name().to_string(), status)
+                Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
+                    .map_err(ErrorInternalServerError)
+                    .and_then(|url| ModuleClient::new(&url).map_err(ErrorInternalServerError))
+                    .map(|mod_client| {
+                        mod_client
+                            .list()
+                            .map(|data| {
+                                let x: Vec<SparseModule> = data
+                                    .iter()
+                                    .map(|c| {
+                                        let mut status = "".to_string();
+                                        if let Ok(Async::Ready(t)) = c.runtime_state().poll() {
+                                            status =
+                                                (*(t.status().clone()).to_string()).to_string();
+                                        }
+                                        SparseModule::new(c.name().to_string(), status)
+                                    })
+                                    .collect();
+                                HttpResponse::Ok()
+                                    .content_type("text/html")
+                                    .body(format!("{:?}", x))
                             })
-                            .collect();
-                        HttpResponse::Ok()
-                            .content_type("text/html")
-                            .body(format!("{:?}", x))
+                            .map_err(ErrorInternalServerError)
                     })
-                    .map_err(ErrorInternalServerError),
+                    .into_future()
+                    .flatten(),
             )
-            /*HttpResponse::Ok()
-            .content_type("text/html")
-            .body(format!("{:?}", mod_list))*/
         })
         .unwrap_or_else(|err| {
             Either::B(ok(HttpResponse::ServiceUnavailable()

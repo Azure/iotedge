@@ -1,14 +1,16 @@
 extern crate yaml_rust;
 
 use std::collections::HashMap;
-use std::env;
 use std::fs;
 use std::io::Result;
-use std::path::Path;
 
 use actix_web::*;
 use serde::{Deserialize, Serialize};
 use yaml_rust::YamlLoader;
+
+/* TODO:
+    - DPS handling
+*/
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum State {
@@ -84,6 +86,7 @@ pub fn parse_query(query: &str, pair_delim: char, kv_delim: char) -> HashMap<&st
 }
 
 // returns the config.yaml file if the OS at runtime is windows
+#[cfg(windows)]
 pub fn handle_windows() -> Result<String> {
     if let Ok(csidl_path) = env::var("CSIDL_COMMON_APPDATA") {
         return fs::read_to_string(Path::new(&csidl_path).join("/iotedge/config.yaml"));
