@@ -251,6 +251,14 @@ where
         info!("Finished initializing hsm.");
 
         let cache_subdir_path = Path::new(&settings.homedir()).join(EDGE_SETTINGS_SUBDIR);
+        // make sure the cache directory exists
+        DirBuilder::new()
+            .recursive(true)
+            .create(&cache_subdir_path)
+            .context(ErrorKind::Initialize(
+                InitializeErrorReason::CreateCacheDirectory,
+            ))?;
+
         macro_rules! start_edgelet {
             ($key_store:ident, $provisioning_result:ident, $root_key:ident) => {{
                 info!("Finished provisioning edge device.");

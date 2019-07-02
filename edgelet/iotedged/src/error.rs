@@ -155,6 +155,7 @@ pub enum InitializeErrorReason {
     CreateCertificateManager,
     CreateMasterEncryptionKey,
     CreateSettingsDirectory,
+    CreateCacheDirectory,
     CreateTlsCertificate,
     DestroyWorkloadCa,
     DeviceClient,
@@ -196,6 +197,10 @@ impl fmt::Display for InitializeErrorReason {
 
             InitializeErrorReason::CreateSettingsDirectory => {
                 write!(f, "Could not create settings directory")
+            }
+
+            InitializeErrorReason::CreateCacheDirectory => {
+                write!(f, "Could not create cache directory")
             }
 
             InitializeErrorReason::CreateTlsCertificate => {
