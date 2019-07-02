@@ -18,7 +18,7 @@ use actix_web::Error as ActixError;
 use actix_web::*;
 use edgelet_config::Provisioning;
 use edgelet_config::Settings as EdgeSettings;
-use edgelet_core::{Module, ModuleRuntime};
+use edgelet_core::{Module as EdgeModule, ModuleRuntime};
 use edgelet_docker::DockerConfig;
 use edgelet_http_mgmt::*;
 use futures::future::{ok, Either, IntoFuture};
@@ -48,15 +48,15 @@ impl Context {
 }
 
 #[derive(Debug)]
-pub struct SparseModule {
+pub struct Module {
     name: String,
     // id: String,
     status: String,
 }
 
-impl SparseModule {
+impl Module {
     pub fn new(name: String, status: String) -> Self {
-        SparseModule {
+        Module {
             name,
             // id,
             status,
@@ -159,7 +159,7 @@ pub fn get_modules(
                         mod_client
                             .list()
                             .map(|data| {
-                                let x: Vec<SparseModule> = data
+                                let x: Vec<Module> = data
                                     .iter()
                                     .map(|c| {
                                         let mut status = "".to_string();
@@ -167,7 +167,7 @@ pub fn get_modules(
                                             status =
                                                 (*(t.status().clone()).to_string()).to_string();
                                         }
-                                        SparseModule::new(c.name().to_string(), status)
+                                        Module::new(c.name().to_string(), status)
                                     })
                                     .collect();
                                 HttpResponse::Ok()
