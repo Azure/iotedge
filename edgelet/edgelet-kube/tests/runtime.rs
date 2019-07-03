@@ -217,7 +217,7 @@ fn authenticate_returns_none_when_unknown_auth_token_provided() {
 fn authenticate_returns_none_when_module_auth_token_provided_but_service_account_does_not_exists() {
     let port = get_unused_tcp_port();
 
-    let runtime = create_runtime(&format!("http://localhost:{}", port));
+    let (_, runtime) = create_runtime(&format!("http://localhost:{}", port));
 
     let dispatch_table = routes!(
         POST "/apis/authentication.k8s.io/v1/tokenreviews" => authenticated_token_review_handler(),
@@ -248,11 +248,11 @@ fn authenticate_returns_sa_name_when_module_auth_token_provided_but_service_acco
 ) {
     let port = get_unused_tcp_port();
 
-    let (_, runtime) = create_runtime(&format!("http://localhost:{}", port));
+    let (settings, runtime) = create_runtime(&format!("http://localhost:{}", port));
 
     let dispatch_table = routes!(
         POST "/apis/authentication.k8s.io/v1/tokenreviews" => authenticated_token_review_handler(),
-        GET format!("/api/v1/namespaces/{}/serviceaccounts/edgeagent", runtime.namespace()) => get_service_account_without_annotations_handler(),
+        GET format!("/api/v1/namespaces/{}/serviceaccounts/edgeagent", settings.namespace()) => get_service_account_without_annotations_handler(),
     );
 
     let server = run_tcp_server(
@@ -279,11 +279,11 @@ fn authenticate_returns_sa_name_when_module_auth_token_provided_but_service_acco
 fn authenticate_returns_auth_id_when_module_auth_token_provided() {
     let port = get_unused_tcp_port();
 
-    let (_, runtime) = create_runtime(&format!("http://localhost:{}", port));
+    let (settings, runtime) = create_runtime(&format!("http://localhost:{}", port));
 
     let dispatch_table = routes!(
         POST "/apis/authentication.k8s.io/v1/tokenreviews" => authenticated_token_review_handler(),
-        GET format!("/api/v1/namespaces/{}/serviceaccounts/edgeagent", runtime.namespace()) => get_service_account_with_annotations_handler(),
+        GET format!("/api/v1/namespaces/{}/serviceaccounts/edgeagent", settings.namespace()) => get_service_account_with_annotations_handler(),
     );
 
     let server = run_tcp_server(

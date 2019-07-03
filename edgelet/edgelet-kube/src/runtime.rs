@@ -11,10 +11,7 @@ use futures::{future, stream, Async, Future, Stream};
 use hyper::client::HttpConnector;
 use hyper::service::Service;
 use hyper::{Body, Chunk as HyperChunk, Request};
-use url::Url;
 use hyper_tls::HttpsConnector;
-use log::Level;
-use typed_headers::{Authorization, HeaderMapExt};
 
 use edgelet_core::{
     AuthId, Authenticator, LogOptions, MakeModuleRuntime, ModuleRegistry, ModuleRuntime,
@@ -22,7 +19,6 @@ use edgelet_core::{
     SystemInfo,
 };
 use edgelet_docker::DockerConfig;
-use edgelet_utils::log_failure;
 use kube_client::{
     get_config, Client as KubeClient, Error as KubeClientError, HttpClient, TokenSource, ValueToken,
 };
@@ -67,8 +63,8 @@ impl<T, S> KubeModuleRuntime<T, S> {
 impl<T, S> Clone for KubeModuleRuntime<T, S> {
     fn clone(&self) -> Self {
         KubeModuleRuntime {
-            client: self.client.clone(),
-            settings: self.settings.clone(),
+            client: self.client().clone(),
+            settings: self.settings().clone(),
         }
     }
 }
@@ -92,16 +88,16 @@ where
         // Find and generate image pull secrets.
         if let Some(auth) = config.auth() {
             // Have authorization for this module spec, create this if it doesn't exist.
-            let fut = auth_to_image_pull_secret(self.settings.namespace(), auth)
+            let fut = auth_to_image_pull_secret(self.settings().namespace(), auth)
                 .map_err(Error::from)
                 .map(|(secret_name, pull_secret)| {
                     let client_copy = self.client.clone();
-                    let namespace_copy = self.settings.namespace().to_owned();
+                    let namespace_copy = self.settings().namespace().to_owned();
                     self.client
                         .lock()
                         .expect("Unexpected lock error")
                         .borrow_mut()
-                        .list_secrets(self.settings.namespace(), Some(secret_name.as_str()))
+                        .list_secrets(self.settings().namespace(), Some(secret_name.as_str()))
                         .map_err(Error::from)
                         .and_then(move |secrets| {
                             if let Some(current_secret) = secrets.items.into_iter().find(|secret| {
@@ -249,8 +245,8 @@ where
             .expect("Unexpected lock error")
             .borrow_mut()
             .list_pods(
-                self.settings.namespace(),
-                Some(&self.settings.device_hub_selector()),
+                self.settings().namespace(),
+                Some(&self.settings().device_hub_selector()),
             )
             .map_err(Error::from)
             .and_then(|pods| {

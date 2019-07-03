@@ -16,7 +16,7 @@ use kube_client::{Client as KubeClient, Error as KubeClientError, TokenSource};
 
 use crate::constants::EDGE_ORIGINAL_MODULEID;
 use crate::error::Error;
-use crate::{KubeModuleRuntime, KubeRuntimeData};
+use crate::KubeModuleRuntime;
 
 pub fn authenticate<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
@@ -37,13 +37,13 @@ where
             auth.and_then(|auth| {
                 auth.as_bearer().map(|token| {
                     let client_copy = runtime.client();
-                    let namespace = runtime.namespace().to_owned();
+                    let namespace = runtime.settings().namespace().to_owned();
                     let fut = runtime
                         .client()
                         .lock()
                         .expect("Unexpected lock error")
                         .borrow_mut()
-                        .token_review(runtime.namespace(), token.as_str())
+                        .token_review(runtime.settings().namespace(), token.as_str())
                         .map_err(|err| {
                             log_failure(Level::Warn, &err);
                             Error::from(err)
