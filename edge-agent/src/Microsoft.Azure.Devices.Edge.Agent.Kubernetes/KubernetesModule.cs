@@ -6,11 +6,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Collections.Generic;
     using System.Collections.Immutable;
 
-    public class KubernetesModule : IModule
+    public class KubernetesModule<TConfig> : IModule<TConfig>
     {
         static readonly DictionaryComparer<string, EnvVal> EnvDictionaryComparer = new DictionaryComparer<string, EnvVal>();
 
-        public KubernetesModule(IModule module)
+        public KubernetesModule(IModule<TConfig> module)
         {
             this.Name = module.Name;
             this.Version = module.Version;
@@ -19,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.RestartPolicy = module.RestartPolicy;
             this.ConfigurationInfo = module.ConfigurationInfo;
             this.Env = module.Env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
+            this.Config = module.Config;
         }
 
         public string Name { get; set; }
@@ -37,7 +38,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public ImagePullPolicy ImagePullPolicy { get; set; }
 
+        public TConfig Config { get; }
+
         public virtual bool Equals(IModule other)
+        {
+            if (ReferenceEquals(null, other))
+                return false;
+            if (ReferenceEquals(this, other))
+                return true;
+            return this.Equals(other);
+        }
+
+        public bool Equals(IModule<TConfig> other)
         {
             if (ReferenceEquals(null, other))
                 return false;
@@ -48,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public bool OnlyModuleStatusChanged(IModule other)
         {
-            return other is KubernetesModule &&
+            return other is KubernetesModule<TConfig> &&
                 string.Equals(this.Name, other.Name) &&
                 string.Equals(this.Version, other.Version) &&
                 string.Equals(this.Type, other.Type) &&
