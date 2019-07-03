@@ -69,8 +69,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             token);
 
                         var builder = new EdgeConfigBuilder(device.Id);
-                        Context.Current.Registry.ForEach(
-                            r => builder.AddRegistryCredentials(r.address, r.username, r.password));
+                        foreach ((string address, string username, string password) in Context.Current.Registries)
+                        {
+                            builder.AddRegistryCredentials(address, username, password);
+                        }
                         builder.AddEdgeAgent(agentImage).WithProxy(proxy);
                         builder.AddEdgeHub(hubImage, optimizeForPerformance).WithProxy(proxy);
                         await builder.Build().DeployAsync(this.iotHub, token);
