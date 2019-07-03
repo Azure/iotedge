@@ -155,6 +155,7 @@ pub enum InitializeErrorReason {
     CreateCertificateManager,
     CreateMasterEncryptionKey,
     CreateSettingsDirectory,
+    CreateCacheDirectory,
     CreateTlsCertificate,
     DestroyWorkloadCa,
     DeviceClient,
@@ -166,7 +167,6 @@ pub enum InitializeErrorReason {
     InvalidDeviceConfig,
     InvalidHubConfig,
     InvalidProxyUri,
-    InvalidSocketUri,
     IssuerCAExpiration,
     LoadSettings,
     ManagementService,
@@ -197,6 +197,10 @@ impl fmt::Display for InitializeErrorReason {
 
             InitializeErrorReason::CreateSettingsDirectory => {
                 write!(f, "Could not create settings directory")
+            }
+
+            InitializeErrorReason::CreateCacheDirectory => {
+                write!(f, "Could not create cache directory")
             }
 
             InitializeErrorReason::CreateTlsCertificate => {
@@ -232,8 +236,6 @@ impl fmt::Display for InitializeErrorReason {
             }
 
             InitializeErrorReason::InvalidProxyUri => write!(f, "Invalid proxy URI"),
-
-            InitializeErrorReason::InvalidSocketUri => write!(f, "Invalid socket URI"),
 
             InitializeErrorReason::IssuerCAExpiration => {
                 write!(f, "Edge device CA has expired or is near expiration")

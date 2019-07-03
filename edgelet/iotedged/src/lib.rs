@@ -24,39 +24,36 @@ pub mod windows;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
-use std::fs::{DirBuilder, File};
-use std::io::Write;
+use std::fs::{DirBuilder, File, OpenOptions};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use failure::{Fail, ResultExt};
+use failure::{Context, Fail, ResultExt};
 use futures::future::{Either, IntoFuture};
 use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future};
 use hyper::server::conn::Http;
 use hyper::{Body, Request, Uri};
-use log::{debug, info};
+use log::{debug, info, Level};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use url::Url;
 
-use docker::models::HostConfig;
 use dps::DPS_API_VERSION;
-use edgelet_config::{
-    AttestationMethod, Dps, Manual, Provisioning, Settings, SymmetricKeyAttestationInfo,
-    TpmAttestationInfo, DEFAULT_CONNECTION_STRING,
-};
 use edgelet_core::crypto::{
     Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetIssuerAlias, GetTrustBundle,
     KeyIdentity, KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
-    Authenticator, Certificate, CertificateIssuer, CertificateProperties, CertificateType, Module,
-    ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, UrlExt, WorkloadConfig, UNIX_SCHEME,
+    AttestationMethod, Authenticator, Certificate, CertificateIssuer, CertificateProperties,
+    CertificateType, Dps, MakeModuleRuntime, Manual, Module, ModuleRuntime,
+    ModuleRuntimeErrorReason, ModuleSpec, Provisioning,
+    ProvisioningResult as CoreProvisioningResult, RuntimeSettings, SymmetricKeyAttestationInfo,
+    TpmAttestationInfo, WorkloadConfig, DEFAULT_CONNECTION_STRING,
 };
-use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_http::certificate_manager::CertificateManager;
@@ -67,6 +64,7 @@ use edgelet_http_external_provisioning::ExternalProvisioningClient;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
+use edgelet_utils::log_failure;
 pub use error::{Error, ErrorKind, InitializeErrorReason};
 use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
@@ -134,9 +132,6 @@ const TRUSTED_CA_CERTS_KEY: &str = "IOTEDGE_TRUSTED_CA_CERTS";
 /// provisioning mode.
 const EXTERNAL_PROVISIONING_ENDPOINT_KEY: &str = "IOTEDGE_EXTERNAL_PROVISIONING_ENDPOINT";
 
-/// This is the key for the docker network Id.
-const EDGE_NETWORKID_KEY: &str = "NetworkId";
-
 /// This is the key for the largest API version that this edgelet supports
 const API_VERSION_KEY: &str = "IOTEDGE_APIVERSION";
 
@@ -168,12 +163,25 @@ enum StartApiReturnStatus {
     Shutdown,
 }
 
-pub struct Main {
-    settings: Settings<DockerConfig>,
+pub struct Main<M>
+where
+    M: MakeModuleRuntime,
+{
+    settings: M::Settings,
 }
 
-impl Main {
-    pub fn new(settings: Settings<DockerConfig>) -> Self {
+impl<M> Main<M>
+where
+    M: MakeModuleRuntime<ProvisioningResult = ProvisioningResult> + Send + 'static,
+    M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
+        Clone + DeserializeOwned + Serialize,
+    M::Settings: 'static + Clone + Serialize,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
+    <M::ModuleRuntime as Authenticator>::Error: Fail + Sync,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+{
+    pub fn new(settings: M::Settings) -> Self {
         Main { settings }
     }
 
@@ -185,7 +193,6 @@ impl Main {
         G: Fn() -> F,
     {
         let Main { settings } = self;
-
         let hsm_lock = HsmLock::new();
 
         let mut tokio_runtime = tokio::runtime::Runtime::new()
@@ -209,16 +216,6 @@ impl Main {
 
         let hyper_client = MaybeProxyClient::new(get_proxy_uri(None)?, None, None)
             .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
-
-        info!(
-            "Using runtime network id {}",
-            settings.moby_runtime().network().name()
-        );
-        let runtime = DockerModuleRuntime::new(settings.moby_runtime().uri())
-            .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?
-            .with_network_configuration(settings.moby_runtime().network().clone());
-
-        init_docker_runtime(&runtime, &mut tokio_runtime)?;
 
         info!(
             "Configuring {} as the home directory.",
@@ -253,20 +250,51 @@ impl Main {
             .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
         info!("Finished initializing hsm.");
 
-        // Detect if the settings were changed and if the device needs to be reconfigured
         let cache_subdir_path = Path::new(&settings.homedir()).join(EDGE_SETTINGS_SUBDIR);
-        check_settings_state(
-            cache_subdir_path.clone(),
-            EDGE_SETTINGS_STATE_FILENAME,
-            &settings,
-            &runtime,
-            &crypto,
-            &mut tokio_runtime,
-        )?;
+        // make sure the cache directory exists
+        DirBuilder::new()
+            .recursive(true)
+            .create(&cache_subdir_path)
+            .context(ErrorKind::Initialize(
+                InitializeErrorReason::CreateCacheDirectory,
+            ))?;
 
         macro_rules! start_edgelet {
-            ($key_store:ident, $provisioning_result:ident, $root_key:ident, $runtime:ident) => {{
+            ($key_store:ident, $provisioning_result:ident, $root_key:ident) => {{
                 info!("Finished provisioning edge device.");
+
+                let runtime = init_runtime::<M>(
+                    settings.clone(),
+                    &mut tokio_runtime,
+                    $provisioning_result.clone(),
+                )?;
+
+                if $provisioning_result.reconfigure() != ReprovisioningStatus::DeviceDataNotUpdated {
+                    // If this device was reprovisioned and the device key was updated it causes
+                    // module keys to be obsoleted in IoTHub from the previous provisioning. We therefore
+                    // delete all containers after each DPS provisioning run so that IoTHub can be updated
+                    // with new module keys when the deployment is executed by EdgeAgent.
+                    info!(
+                        "Reprovisioning status {:?} will trigger reconfiguration of modules.",
+                        $provisioning_result.reconfigure()
+                    );
+
+                    tokio_runtime
+                        .block_on(runtime.remove_all())
+                        .context(ErrorKind::Initialize(
+                            InitializeErrorReason::RemoveExistingModules,
+                        ))?;
+                }
+
+                // Detect if the settings were changed and if the device needs to be reconfigured
+                check_settings_state::<M, _>(
+                    cache_subdir_path.clone(),
+                    EDGE_SETTINGS_STATE_FILENAME,
+                    &settings,
+                    &runtime,
+                    &crypto,
+                    &mut tokio_runtime,
+                )?;
 
                 let cfg = WorkloadData::new(
                     $provisioning_result.hub_name().to_string(),
@@ -277,10 +305,10 @@ impl Main {
                 // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
                 // is received. If the TLS cert needs a restart, we will loop again.
                 loop {
-                    let code = start_api(
+                    let code = start_api::<_, _, _, _, _, M>(
                         &settings,
                         hyper_client.clone(),
-                        &$runtime,
+                        &runtime,
                         &$key_store,
                         cfg.clone(),
                         $root_key.clone(),
@@ -302,7 +330,7 @@ impl Main {
                 info!("Starting provisioning edge device via manual mode...");
                 let (key_store, provisioning_result, root_key) =
                     manual_provision(&manual, &mut tokio_runtime)?;
-                start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                start_edgelet!(key_store, provisioning_result, root_key);
             }
             Provisioning::External(external) => {
                 info!("Starting provisioning edge device via external provisioning mode...");
@@ -336,11 +364,11 @@ impl Main {
                     AuthType::SymmetricKey(symmetric_key) => {
                         if let Some(key) = symmetric_key.key() {
                             let (derived_key_store, memory_key) = external_provision_payload(key);
-                            start_edgelet!(derived_key_store, prov_result, memory_key, runtime);
+                            start_edgelet!(derived_key_store, prov_result, memory_key);
                         } else {
                             let (derived_key_store, tpm_key) =
                                 external_provision_tpm(hsm_lock.clone())?;
-                            start_edgelet!(derived_key_store, prov_result, tpm_key, runtime);
+                            start_edgelet!(derived_key_store, prov_result, tpm_key);
                         }
                     }
                     AuthType::X509(_) => {
@@ -357,30 +385,27 @@ impl Main {
                 match dps.attestation() {
                     AttestationMethod::Tpm(ref tpm) => {
                         info!("Starting provisioning edge device via TPM...");
-                        let (key_store, provisioning_result, root_key, runtime) =
-                            dps_tpm_provision(
-                                &dps,
-                                hyper_client.clone(),
-                                dps_path,
-                                runtime,
-                                &mut tokio_runtime,
-                                tpm,
-                                hsm_lock.clone(),
-                            )?;
-                        start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                        let (key_store, provisioning_result, root_key) = dps_tpm_provision(
+                            &dps,
+                            hyper_client.clone(),
+                            dps_path,
+                            &mut tokio_runtime,
+                            tpm,
+                            hsm_lock.clone(),
+                        )?;
+                        start_edgelet!(key_store, provisioning_result, root_key);
                     }
                     AttestationMethod::SymmetricKey(ref symmetric_key_info) => {
                         info!("Starting provisioning edge device via symmetric key...");
-                        let (key_store, provisioning_result, root_key, runtime) =
+                        let (key_store, provisioning_result, root_key) =
                             dps_symmetric_key_provision(
                                 &dps,
                                 hyper_client.clone(),
                                 dps_path,
-                                runtime,
                                 &mut tokio_runtime,
                                 symmetric_key_info,
                             )?;
-                        start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                        start_edgelet!(key_store, provisioning_result, root_key);
                     }
                     AttestationMethod::X509(ref _x509) => {
                         panic!("Provisioning of Edge device via x509 is currently unsupported");
@@ -484,23 +509,72 @@ where
     Ok(())
 }
 
+fn diff_with_cached<S>(settings: &S, path: &Path) -> bool
+where
+    S: Serialize,
+{
+    fn diff_with_cached_inner<S>(cached_settings: &S, path: &Path) -> Result<bool, DiffError>
+    where
+        S: Serialize,
+    {
+        let mut file = OpenOptions::new().read(true).open(path)?;
+        let mut buffer = String::new();
+        file.read_to_string(&mut buffer)?;
+        let s = serde_json::to_string(cached_settings)?;
+        let s = Sha256::digest_str(&s);
+        let encoded = base64::encode(&s);
+        if encoded == buffer {
+            debug!("Config state matches supplied config.");
+            Ok(false)
+        } else {
+            Ok(true)
+        }
+    }
+
+    match diff_with_cached_inner(settings, path) {
+        Ok(result) => result,
+
+        Err(err) => {
+            log_failure(Level::Debug, &err);
+            debug!("Error reading config backup.");
+            true
+        }
+    }
+}
+
+#[derive(Debug, Fail)]
+#[fail(display = "Could not load settings")]
+pub struct DiffError(#[cause] Context<Box<dyn std::fmt::Display + Send + Sync>>);
+
+impl From<std::io::Error> for DiffError {
+    fn from(err: std::io::Error) -> Self {
+        DiffError(Context::new(Box::new(err)))
+    }
+}
+
+impl From<serde_json::Error> for DiffError {
+    fn from(err: serde_json::Error) -> Self {
+        DiffError(Context::new(Box::new(err)))
+    }
+}
+
 fn check_settings_state<M, C>(
     subdir_path: PathBuf,
     filename: &str,
-    settings: &Settings<DockerConfig>,
-    runtime: &M,
+    settings: &M::Settings,
+    runtime: &M::ModuleRuntime,
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(), Error>
 where
-    M: ModuleRuntime,
-    <M as ModuleRuntime>::RemoveAllFuture: 'static,
+    M: MakeModuleRuntime + 'static,
+    M::Settings: Serialize,
     C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
     info!("Detecting if configuration file has changed...");
     let path = subdir_path.join(filename);
     let mut reconfig_reqd = false;
-    let diff = settings.diff_with_cached(&path);
+    let diff = diff_with_cached(settings, &path);
     if diff {
         info!("Change to configuration file detected.");
         reconfig_reqd = true;
@@ -517,7 +591,7 @@ where
         };
     }
     if reconfig_reqd {
-        reconfigure(
+        reconfigure::<M, _>(
             subdir_path,
             filename,
             settings,
@@ -532,14 +606,14 @@ where
 fn reconfigure<M, C>(
     subdir: PathBuf,
     filename: &str,
-    settings: &Settings<DockerConfig>,
-    runtime: &M,
+    settings: &M::Settings,
+    runtime: &M::ModuleRuntime,
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(), Error>
 where
-    M: ModuleRuntime,
-    <M as ModuleRuntime>::RemoveAllFuture: 'static,
+    M: MakeModuleRuntime + 'static,
+    M::Settings: Serialize,
     C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
     // Remove all edge containers and destroy the cache (settings and dps backup)
@@ -584,10 +658,10 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-fn start_api<HC, K, F, C, W>(
-    settings: &Settings<DockerConfig>,
+fn start_api<HC, K, F, C, W, M>(
+    settings: &M::Settings,
     hyper_client: HC,
-    runtime: &DockerModuleRuntime,
+    runtime: &M::ModuleRuntime,
     key_store: &DerivedKeyStore<K>,
     workload_config: W,
     root_key: K,
@@ -609,6 +683,14 @@ where
         + Sync
         + 'static,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
+    M::ModuleRuntime: Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
+    M: MakeModuleRuntime + 'static,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
+        Clone + DeserializeOwned + Serialize,
+    M::Settings: 'static,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
+    <M::ModuleRuntime as Authenticator>::Error: Fail + Sync,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     let hub_name = workload_config.iot_hub_name().to_string();
     let device_id = workload_config.device_id().to_string();
@@ -659,10 +741,11 @@ where
 
     let cert_manager = Arc::new(cert_manager);
 
-    let mgmt = start_management(&settings, runtime, &id_man, mgmt_rx, cert_manager.clone());
+    let mgmt =
+        start_management::<_, _, _, M>(settings, runtime, &id_man, mgmt_rx, cert_manager.clone());
 
-    let workload = start_workload(
-        &settings,
+    let workload = start_workload::<_, _, _, _, M>(
+        settings,
         key_store,
         runtime,
         work_rx,
@@ -672,7 +755,14 @@ where
     );
 
     let (runt_tx, runt_rx) = oneshot::channel();
-    let edge_rt = start_runtime(&runtime, &id_man, &hub_name, &device_id, &settings, runt_rx)?;
+    let edge_rt = start_runtime::<_, _, M>(
+        runtime.clone(),
+        &id_man,
+        &hub_name,
+        &device_id,
+        &settings,
+        runt_rx,
+    )?;
 
     // Wait for the watchdog to finish, and then send signal to the workload and management services.
     // This way the edgeAgent can finish shutting down all modules.
@@ -712,16 +802,23 @@ where
     Ok(restart_code)
 }
 
-fn init_docker_runtime(
-    runtime: &DockerModuleRuntime,
+fn init_runtime<M>(
+    settings: M::Settings,
     tokio_runtime: &mut tokio::runtime::Runtime,
-) -> Result<(), Error> {
+    provisioning_result: M::ProvisioningResult,
+) -> Result<M::ModuleRuntime, Error>
+where
+    M: MakeModuleRuntime + Send + 'static,
+    M::ModuleRuntime: Send,
+    M::Future: 'static,
+{
     info!("Initializing the module runtime...");
-    tokio_runtime
-        .block_on(runtime.init())
+    let runtime = tokio_runtime
+        .block_on(M::make_runtime(settings, provisioning_result))
         .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?;
     info!("Finished initializing the module runtime.");
-    Ok(())
+
+    Ok(runtime)
 }
 
 fn manual_provision(
@@ -792,17 +889,15 @@ fn external_provision_tpm(
         })
 }
 
-fn dps_symmetric_key_provision<HC, M>(
+fn dps_symmetric_key_provision<HC>(
     provisioning: &Dps,
     hyper_client: HC,
     backup_path: PathBuf,
-    runtime: M,
     tokio_runtime: &mut tokio::runtime::Runtime,
     key: &SymmetricKeyAttestationInfo,
-) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey, M), Error>
+) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error>
 where
     HC: 'static + ClientImpl,
-    M: ModuleRuntime + Send + 'static,
 {
     let mut memory_hsm = MemoryKeyStore::new();
     let key_bytes =
@@ -834,49 +929,26 @@ where
             })
             .and_then(move |prov_result| {
                 info!("Successful DPS provisioning.");
-                if prov_result.reconfigure() == ReprovisioningStatus::DeviceDataNotUpdated {
-                    Either::B(future::ok((prov_result, runtime)))
-                } else {
-                    // If there was a DPS reprovision and device key was updated results in obsolete
-                    // module keys in IoTHub from the previous provisioning. We delete all containers
-                    // after each DPS provisioning run so that IoTHub can be updated with new module
-                    // keys when the deployment is executed by EdgeAgent.
-                    info!(
-                        "Reprovisioning status {:?} will trigger reconfiguration of modules.",
-                        prov_result.reconfigure()
-                    );
-
-                    let remove = runtime.remove_all().then(|result| {
-                        result.context(ErrorKind::Initialize(
-                            InitializeErrorReason::DpsProvisioningClient,
-                        ))?;
-                        Ok((prov_result, runtime))
-                    });
-                    Either::A(remove)
-                }
-            })
-            .and_then(move |(prov_result, runtime)| {
                 let k = memory_hsm.get(&KeyIdentity::Device, "primary").context(
                     ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient),
                 )?;
                 let derived_key_store = DerivedKeyStore::new(k.clone());
-                Ok((derived_key_store, prov_result, k, runtime))
+                Ok((derived_key_store, prov_result, k))
             });
+
     tokio_runtime.block_on(provision)
 }
 
-fn dps_tpm_provision<HC, M>(
+fn dps_tpm_provision<HC>(
     provisioning: &Dps,
     hyper_client: HC,
     backup_path: PathBuf,
-    runtime: M,
     tokio_runtime: &mut tokio::runtime::Runtime,
     tpm_attestation_info: &TpmAttestationInfo,
     hsm_lock: Arc<HsmLock>,
-) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey, M), Error>
+) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey), Error>
 where
     HC: 'static + ClientImpl,
-    M: ModuleRuntime + Send + 'static,
 {
     let tpm = Tpm::new().context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
@@ -910,52 +982,40 @@ where
                 InitializeErrorReason::DpsProvisioningClient,
             )))
         })
-        .and_then(|prov_result| {
-            if prov_result.reconfigure() == ReprovisioningStatus::DeviceDataNotUpdated {
-                Either::B(future::ok((prov_result, runtime)))
-            } else {
-                info!("Successful DPS provisioning. This will trigger reconfiguration of modules.");
-                // Each time DPS reprovisions, it gets back a new device key. This results in obsolete
-                // module keys in IoTHub from the previous provisioning. We delete all containers
-                // after each DPS provisioning run so that IoTHub can be updated with new module
-                // keys when the deployment is executed by EdgeAgent.
-                let remove = runtime.remove_all().then(|result| {
-                    result.context(ErrorKind::Initialize(
-                        InitializeErrorReason::DpsProvisioningClient,
-                    ))?;
-                    Ok((prov_result, runtime))
-                });
-                Either::A(remove)
-            }
-        })
-        .and_then(move |(prov_result, runtime)| {
+        .and_then(move |prov_result| {
             let k = tpm_hsm
                 .get(&KeyIdentity::Device, "primary")
                 .context(ErrorKind::Initialize(
                     InitializeErrorReason::DpsProvisioningClient,
                 ))?;
             let derived_key_store = DerivedKeyStore::new(k.clone());
-            Ok((derived_key_store, prov_result, k, runtime))
+            Ok((derived_key_store, prov_result, k))
         });
 
     tokio_runtime.block_on(provision)
 }
 
-fn start_runtime<K, HC>(
-    runtime: &DockerModuleRuntime,
+fn start_runtime<K, HC, M>(
+    runtime: M::ModuleRuntime,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     hostname: &str,
     device_id: &str,
-    settings: &Settings<DockerConfig>,
+    settings: &M::Settings,
     shutdown: Receiver<()>,
 ) -> Result<impl Future<Item = (), Error = Error>, Error>
 where
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl,
+    M: MakeModuleRuntime,
+    M::ModuleRuntime: Clone + 'static,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
+        Clone + DeserializeOwned + Serialize,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     let spec = settings.agent().clone();
     let env = build_env(spec.env(), hostname, device_id, settings);
-    let mut spec = ModuleSpec::<DockerConfig>::new(
+    let spec = ModuleSpec::<<M::ModuleRuntime as ModuleRuntime>::Config>::new(
         EDGE_RUNTIME_MODULE_NAME.to_string(),
         spec.type_().to_string(),
         spec.config().clone(),
@@ -964,17 +1024,8 @@ where
     )
     .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
 
-    // volume mount management and workload URIs
-    vol_mount_uri(
-        spec.config_mut(),
-        &[
-            settings.connect().management_uri(),
-            settings.connect().workload_uri(),
-        ],
-    )?;
-
     let watchdog = Watchdog::new(
-        runtime.clone(),
+        runtime,
         id_man.clone(),
         settings.watchdog().max_retries().clone(),
     );
@@ -985,56 +1036,16 @@ where
     Ok(runtime_future)
 }
 
-fn vol_mount_uri(config: &mut DockerConfig, uris: &[&Url]) -> Result<(), Error> {
-    let create_options = config
-        .clone_create_options()
-        .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
-    let host_config = create_options
-        .host_config()
-        .cloned()
-        .unwrap_or_else(HostConfig::new);
-    let mut binds = host_config.binds().map_or_else(Vec::new, ToOwned::to_owned);
-
-    // if the url is a domain socket URL then vol mount it into the container
-    for uri in uris {
-        if uri.scheme() == UNIX_SCHEME {
-            let path = uri.to_uds_file_path().context(ErrorKind::Initialize(
-                InitializeErrorReason::InvalidSocketUri,
-            ))?;
-            // On Windows we mount the parent folder because we can't mount the
-            // socket files directly
-            #[cfg(windows)]
-            let path = path
-                .parent()
-                .ok_or_else(|| ErrorKind::Initialize(InitializeErrorReason::InvalidSocketUri))?;
-            let path = path
-                .to_str()
-                .ok_or_else(|| ErrorKind::Initialize(InitializeErrorReason::InvalidSocketUri))?
-                .to_string();
-            let bind = format!("{}:{}", &path, &path);
-            if !binds.contains(&bind) {
-                binds.push(bind);
-            }
-        }
-    }
-
-    if !binds.is_empty() {
-        let host_config = host_config.with_binds(binds);
-        let create_options = create_options.with_host_config(host_config);
-
-        config.set_create_options(create_options);
-    }
-
-    Ok(())
-}
-
 // Add the environment variables needed by the EdgeAgent.
-fn build_env(
+fn build_env<S>(
     spec_env: &HashMap<String, String>,
     hostname: &str,
     device_id: &str,
-    settings: &Settings<DockerConfig>,
-) -> HashMap<String, String> {
+    settings: &S,
+) -> HashMap<String, String>
+where
+    S: RuntimeSettings,
+{
     let mut env = HashMap::new();
     env.insert(HOSTNAME_KEY.to_string(), hostname.to_string());
     env.insert(
@@ -1056,10 +1067,6 @@ fn build_env(
         EDGE_RUNTIME_MODE_KEY.to_string(),
         EDGE_RUNTIME_MODE.to_string(),
     );
-    env.insert(
-        EDGE_NETWORKID_KEY.to_string(),
-        settings.moby_runtime().network().name().to_string(),
-    );
     for (key, val) in spec_env.iter() {
         env.insert(key.clone(), val.clone());
     }
@@ -1068,8 +1075,8 @@ fn build_env(
 }
 
 fn start_management<C, K, HC, M>(
-    settings: &Settings<DockerConfig>,
-    runtime: &M,
+    settings: &M::Settings,
+    runtime: &M::ModuleRuntime,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
     cert_manager: Arc<CertificateManager<C>>,
@@ -1078,11 +1085,12 @@ where
     C: CreateCertificate + Clone,
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl + Send + Sync,
-    M: ModuleRuntime + Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
-    <M::AuthenticateFuture as Future>::Error: Fail,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-    <M::Module as Module>::Config: DeserializeOwned + Serialize,
-    M::Logs: Into<Body>,
+    M: MakeModuleRuntime,
+    M::ModuleRuntime: Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
+    <<M::ModuleRuntime as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config: DeserializeOwned + Serialize,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
 {
     info!("Starting management API...");
 
@@ -1112,9 +1120,9 @@ where
 }
 
 fn start_workload<K, C, CE, W, M>(
-    settings: &Settings<DockerConfig>,
+    settings: &M::Settings,
     key_store: &K,
-    runtime: &M,
+    runtime: &M::ModuleRuntime,
     shutdown: Receiver<()>,
     crypto: &C,
     cert_manager: Arc<CertificateManager<CE>>,
@@ -1133,11 +1141,14 @@ where
         + 'static,
     CE: CreateCertificate + Clone,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
-    M: ModuleRuntime + Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
-    <M::AuthenticateFuture as Future>::Error: Fail,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-    <M::Module as Module>::Config: DeserializeOwned + Serialize,
-    M::Logs: Into<Body>,
+    M: MakeModuleRuntime + 'static,
+    M::Settings: 'static,
+    M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
+    <<M::ModuleRuntime as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
+        Clone + DeserializeOwned + Serialize,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
 {
     info!("Starting workload API...");
 
@@ -1177,20 +1188,36 @@ mod tests {
 
     use edgelet_core::ModuleRuntimeState;
     use edgelet_core::{KeyBytes, PrivateKey};
+    use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
     use edgelet_test_utils::cert::TestCert;
     use edgelet_test_utils::module::*;
 
     use super::*;
+    use docker::models::ContainerCreateBody;
 
     #[cfg(unix)]
-    static SETTINGS: &str = "../edgelet-config/test/linux/sample_settings.yaml";
+    static GOOD_SETTINGS: &str = "../edgelet-docker/test/linux/sample_settings.yaml";
     #[cfg(unix)]
-    static SETTINGS1: &str = "../edgelet-config/test/linux/sample_settings1.yaml";
+    static GOOD_SETTINGS1: &str = "test/linux/sample_settings1.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS2: &str = "test/linux/sample_settings2.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_DPS_TPM1: &str = "test/linux/sample_settings.dps.tpm.1.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_DPS_DEFAULT: &str =
+        "../edgelet-docker/test/linux/sample_settings.dps.default.yaml";
 
     #[cfg(windows)]
-    static SETTINGS: &str = "../edgelet-config/test/windows/sample_settings.yaml";
+    static GOOD_SETTINGS: &str = "../edgelet-docker/test/windows/sample_settings.yaml";
     #[cfg(windows)]
-    static SETTINGS1: &str = "../edgelet-config/test/windows/sample_settings1.yaml";
+    static GOOD_SETTINGS1: &str = "test/windows/sample_settings1.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS2: &str = "test/windows/sample_settings2.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_DPS_TPM1: &str = "test/windows/sample_settings.dps.tpm.1.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_DPS_DEFAULT: &str =
+        "../edgelet-docker/test/windows/sample_settings.dps.default.yaml";
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub struct Error;
@@ -1268,8 +1295,8 @@ mod tests {
 
     #[test]
     fn default_settings_raise_unconfigured_error() {
-        let settings = Settings::<DockerConfig>::new(None).unwrap();
-        let main = Main::new(settings);
+        let settings = Settings::new(None).unwrap();
+        let main = Main::<DockerModuleRuntime>::new(settings);
         let result = main.run_until(signal::shutdown);
         match result.unwrap_err().kind() {
             ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
@@ -1280,18 +1307,26 @@ mod tests {
     #[test]
     fn settings_with_invalid_issuer_ca_fails() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
-        let config = TestConfig::new("microsoft/test-image".to_string());
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let config = DockerConfig::new(
+            "microsoft/test-image".to_string(),
+            ContainerCreateBody::new(),
+            None,
+        )
+        .unwrap();
         let state = ModuleRuntimeState::default();
-        let module: TestModule<Error> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
+        let module: TestModule<Error, _> =
+            TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
+            .wait()
+            .unwrap()
+            .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
             fail_device_ca_alias: true,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        let result = check_settings_state(
+        let result = check_settings_state::<TestRuntime<_, Settings>, _>(
             tmp_dir.path().to_path_buf(),
             "settings_state",
             &settings,
@@ -1308,18 +1343,26 @@ mod tests {
     #[test]
     fn settings_with_expired_issuer_ca_fails() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
-        let config = TestConfig::new("microsoft/test-image".to_string());
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let config = DockerConfig::new(
+            "microsoft/test-image".to_string(),
+            ContainerCreateBody::new(),
+            None,
+        )
+        .unwrap();
         let state = ModuleRuntimeState::default();
-        let module: TestModule<Error> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
+        let module: TestModule<Error, _> =
+            TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
+            .wait()
+            .unwrap()
+            .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: true,
             fail_device_ca_alias: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        let result = check_settings_state(
+        let result = check_settings_state::<TestRuntime<_, Settings>, _>(
             tmp_dir.path().to_path_buf(),
             "settings_state",
             &settings,
@@ -1336,18 +1379,26 @@ mod tests {
     #[test]
     fn settings_first_time_creates_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
-        let config = TestConfig::new("microsoft/test-image".to_string());
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let config = DockerConfig::new(
+            "microsoft/test-image".to_string(),
+            ContainerCreateBody::new(),
+            None,
+        )
+        .unwrap();
         let state = ModuleRuntimeState::default();
-        let module: TestModule<Error> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
+        let module: TestModule<Error, _> =
+            TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
+            .wait()
+            .unwrap()
+            .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
             fail_device_ca_alias: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        check_settings_state(
+        check_settings_state::<TestRuntime<_, Settings>, _>(
             tmp_dir.path().to_path_buf(),
             "settings_state",
             &settings,
@@ -1371,18 +1422,26 @@ mod tests {
     #[test]
     fn settings_change_creates_new_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
-        let config = TestConfig::new("microsoft/test-image".to_string());
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let config = DockerConfig::new(
+            "microsoft/test-image".to_string(),
+            ContainerCreateBody::new(),
+            None,
+        )
+        .unwrap();
         let state = ModuleRuntimeState::default();
-        let module: TestModule<Error> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
+        let module: TestModule<Error, _> =
+            TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
+            .wait()
+            .unwrap()
+            .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
             fail_device_ca_alias: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        check_settings_state(
+        check_settings_state::<TestRuntime<_, Settings>, _>(
             tmp_dir.path().to_path_buf(),
             "settings_state",
             &settings,
@@ -1397,9 +1456,9 @@ mod tests {
             .read_to_string(&mut written)
             .unwrap();
 
-        let settings1 = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS1))).unwrap();
+        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        check_settings_state(
+        check_settings_state::<TestRuntime<_, Settings>, _>(
             tmp_dir.path().to_path_buf(),
             "settings_state",
             &settings1,
@@ -1458,5 +1517,90 @@ mod tests {
                 .to_string(),
             proxy_val
         );
+    }
+
+    #[test]
+    fn diff_with_same_cached_returns_false() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let path = tmp_dir.path().join("cache");
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings_to_write = serde_json::to_string(&settings).unwrap();
+        let sha_to_write = Sha256::digest_str(&settings_to_write);
+        let base64_to_write = base64::encode(&sha_to_write);
+        File::create(&path)
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+        assert!(!diff_with_cached(&settings, &path));
+    }
+
+    #[test]
+    fn diff_with_tpm_default_and_explicit_returns_false() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let path = tmp_dir.path().join("cache");
+        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_DEFAULT))).unwrap();
+        let settings_to_write = serde_json::to_string(&settings1).unwrap();
+        let sha_to_write = Sha256::digest_str(&settings_to_write);
+        let base64_to_write = base64::encode(&sha_to_write);
+        File::create(&path)
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
+        assert!(!diff_with_cached(&settings, &path));
+    }
+
+    #[test]
+    fn diff_with_tpm_explicit_and_default_returns_false() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let path = tmp_dir.path().join("cache");
+        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
+        let settings_to_write = serde_json::to_string(&settings1).unwrap();
+        let sha_to_write = Sha256::digest_str(&settings_to_write);
+        let base64_to_write = base64::encode(&sha_to_write);
+        File::create(&path)
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_DEFAULT))).unwrap();
+        assert!(!diff_with_cached(&settings, &path));
+    }
+
+    #[test]
+    fn diff_with_same_cached_env_var_unordered_returns_false() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let path = tmp_dir.path().join("cache");
+        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS2))).unwrap();
+        let settings_to_write = serde_json::to_string(&settings1).unwrap();
+        let sha_to_write = Sha256::digest_str(&settings_to_write);
+        let base64_to_write = base64::encode(&sha_to_write);
+        File::create(&path)
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        assert!(!diff_with_cached(&settings, &path));
+    }
+
+    #[test]
+    fn diff_with_different_cached_returns_true() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let path = tmp_dir.path().join("cache");
+        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
+        let settings_to_write = serde_json::to_string(&settings1).unwrap();
+        let sha_to_write = Sha256::digest_str(&settings_to_write);
+        let base64_to_write = base64::encode(&sha_to_write);
+        File::create(&path)
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        assert!(diff_with_cached(&settings, &path));
+    }
+
+    #[test]
+    fn diff_with_no_file_returns_true() {
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        assert!(diff_with_cached(&settings, Path::new("i dont exist")));
     }
 }

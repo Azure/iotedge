@@ -28,7 +28,6 @@ tokio = "0.1"
 url = "1.7"
 
 docker = { path = "../docker-rs" }
-edgelet-config = { path = "../edgelet-config" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
 edgelet-http = { path = "../edgelet-http" }
