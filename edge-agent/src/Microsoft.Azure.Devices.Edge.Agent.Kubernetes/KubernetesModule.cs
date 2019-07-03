@@ -2,9 +2,10 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
-    using Microsoft.Azure.Devices.Edge.Util;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class KubernetesModule<TConfig> : IModule<TConfig>
     {
@@ -40,22 +41,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public TConfig Config { get; }
 
-        public virtual bool Equals(IModule other)
-        {
-            if (ReferenceEquals(null, other))
-                return false;
-            if (ReferenceEquals(this, other))
-                return true;
-            return this.Equals(other);
-        }
+        public virtual bool Equals(IModule other) => this.Equals(other as KubernetesModule<TConfig>);
 
-        public bool Equals(IModule<TConfig> other)
+        public bool Equals(IModule<TConfig> other) => this.Equals(other as KubernetesModule<TConfig>);
+
+        public bool Equals(KubernetesModule<TConfig> other)
         {
             if (ReferenceEquals(null, other))
                 return false;
             if (ReferenceEquals(this, other))
                 return true;
-            return this.Equals(other);
+            return string.Equals(this.Name, other.Name) &&
+                string.Equals(this.Version, other.Version) &&
+                string.Equals(this.Type, other.Type) &&
+                this.DesiredStatus != other.DesiredStatus &&
+                this.RestartPolicy == other.RestartPolicy &&
+                this.ConfigurationInfo == other.ConfigurationInfo &&
+                this.ImagePullPolicy == other.ImagePullPolicy &&
+                this.Config is DockerConfig &&
+                this.Config as DockerConfig == other.Config as DockerConfig &&
+                EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
         public bool OnlyModuleStatusChanged(IModule other)
