@@ -16,6 +16,7 @@ use url::Url;
 
 use dps::registration::{DpsAuthKind, DpsClient, DpsTokenSource};
 use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, MemoryKey, MemoryKeyStore};
+use edgelet_core::ProvisioningResult as CoreProvisioningResult;
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http_external_provisioning::ExternalProvisioningInterface;
@@ -125,12 +126,20 @@ pub struct ProvisioningResult {
 }
 
 impl ProvisioningResult {
-    pub fn device_id(&self) -> &str {
-        &self.device_id
-    }
-
-    pub fn hub_name(&self) -> &str {
-        &self.hub_name
+    pub fn new(
+        device_id: &str,
+        hub_name: &str,
+        sha256_thumbprint: Option<&str>,
+        reconfigure: ReprovisioningStatus,
+        credentials: Option<Credentials>,
+    ) -> Self {
+        ProvisioningResult {
+            device_id: device_id.to_owned(),
+            hub_name: hub_name.to_owned(),
+            sha256_thumbprint: sha256_thumbprint.map(&str::to_owned),
+            reconfigure,
+            credentials,
+        }
     }
 
     pub fn reconfigure(&self) -> ReprovisioningStatus {
@@ -139,6 +148,16 @@ impl ProvisioningResult {
 
     pub fn credentials(&self) -> Option<&Credentials> {
         self.credentials.as_ref()
+    }
+}
+
+impl CoreProvisioningResult for ProvisioningResult {
+    fn device_id(&self) -> &str {
+        &self.device_id
+    }
+
+    fn hub_name(&self) -> &str {
+        &self.hub_name
     }
 }
 
@@ -682,7 +701,7 @@ where
 mod tests {
     use super::*;
 
-    use edgelet_config::{Manual, ParseManualDeviceConnectionStringError};
+    use edgelet_core::{Manual, ParseManualDeviceConnectionStringError};
     use external_provisioning::models::{Credentials, DeviceProvisioningInfo};
     use failure::Fail;
     use std::fmt::{self, Display};
