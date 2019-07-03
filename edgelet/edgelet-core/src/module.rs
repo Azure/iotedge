@@ -17,6 +17,7 @@ use serde_json;
 use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};
 
 use crate::error::{Error, ErrorKind, Result};
+use crate::settings::RuntimeSettings;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -225,6 +226,10 @@ impl<T> ModuleSpec<T> {
         &self.env
     }
 
+    pub fn env_mut(&mut self) -> &mut HashMap<String, String> {
+        &mut self.env
+    }
+
     pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
         self.env = env;
         self
@@ -396,10 +401,29 @@ impl ModuleTop {
     }
 }
 
-pub trait ModuleRuntime {
+pub trait ProvisioningResult {
+    fn device_id(&self) -> &str;
+    fn hub_name(&self) -> &str;
+}
+
+pub trait MakeModuleRuntime {
+    type Config: Clone + Send;
+    type Settings: RuntimeSettings<Config = Self::Config>;
+    type ProvisioningResult: ProvisioningResult;
+    type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
+    type Error: Fail;
+    type Future: Future<Item = Self::ModuleRuntime, Error = Self::Error> + Send;
+
+    fn make_runtime(
+        settings: Self::Settings,
+        provisioning_result: Self::ProvisioningResult,
+    ) -> Self::Future;
+}
+
+pub trait ModuleRuntime: Sized {
     type Error: Fail;
 
-    type Config: Send;
+    type Config: Clone + Send;
     type Module: Module<Config = Self::Config> + Send;
     type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
     type Chunk: AsRef<[u8]>;
@@ -407,7 +431,6 @@ pub trait ModuleRuntime {
 
     type CreateFuture: Future<Item = (), Error = Self::Error> + Send;
     type GetFuture: Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send;
-    type InitFuture: Future<Item = (), Error = Self::Error> + Send;
     type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error> + Send;
     type ListWithDetailsStream: Stream<
             Item = (Self::Module, ModuleRuntimeState),
@@ -421,7 +444,6 @@ pub trait ModuleRuntime {
     type SystemInfoFuture: Future<Item = SystemInfo, Error = Self::Error> + Send;
     type RemoveAllFuture: Future<Item = (), Error = Self::Error> + Send;
 
-    fn init(&self) -> Self::InitFuture;
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
     fn get(&self, id: &str) -> Self::GetFuture;
     fn start(&self, id: &str) -> Self::StartFuture;

@@ -52,7 +52,7 @@ This means that a route from the `azure-iot-edge` subnet to the internet must ex
 
 ### Configuring `azure-iot-edge`
 
-This network name is configured via the `moby_runtime` section of the `iotedged`'s config file (`/etc/iotedge/config.yaml):
+This network is configured via the `moby_runtime` section of the `iotedged`'s config file (`/etc/iotedge/config.yaml):
 
 ```yaml
 moby_runtime:
@@ -60,7 +60,26 @@ moby_runtime:
   network: "azure-iot-edge"
 ```
 
-Any changes to the specific settings of this network must be made out of band, via the Moby Engine.
+Additional container network configuration such as enabling IPv6 networking and providing the IPAM settings can be achieved by specifying the relevant configuration in the network settings.
+
+```yaml
+moby_runtime:
+  uri: "unix:///var/run/docker.sock"
+  network:
+    name: "azure-iot-edge"
+    ipv6: true
+    ipam:
+      - 
+          gateway: '172.18.0.1'
+          subnet: '172.18.0.0/16'
+          ip_range: '172.18.0.0/16'
+      - 
+          gateway: '2021:ffff:e0:3b1:1::1'
+          subnet: '2021:ffff:e0:3b1:1::/80'
+          ip_range: '2021:ffff:e0:3b1:1::/80'
+```
+
+Any changes to other specific settings of this network must be made out of band, via the Moby Engine.
 Read the Docker [networking guide][4] for more information.
 
 This network can be configured before starting IoT Edge, as the `iotedged` does a "get or create" operation on the network when starting.

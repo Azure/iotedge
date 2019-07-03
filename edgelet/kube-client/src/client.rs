@@ -13,6 +13,7 @@ use hyper_tls::HttpsConnector;
 use k8s_openapi::api::apps::v1 as apps;
 use k8s_openapi::api::authentication::v1 as auth;
 use k8s_openapi::api::core::v1 as api_core;
+use k8s_openapi::api::rbac::v1 as rbac;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 use k8s_openapi::{http, Response as K8sResponse, ResponseBody};
 use log::debug;
@@ -20,7 +21,7 @@ use log::debug;
 use crate::config::{Config, TokenSource};
 use crate::error::{Error, ErrorKind};
 
-pub struct HttpClient<C, B>(HyperClient<C, B>);
+pub struct HttpClient<C, B>(pub HyperClient<C, B>);
 
 impl<C, B> Service for HttpClient<C, B>
 where
@@ -43,7 +44,7 @@ pub struct Client<T, S> {
     client: S,
 }
 
-impl<T: TokenSource + Clone> Client<T, HttpClient<HttpsConnector<HttpConnector>, Body>> {
+impl<T: TokenSource> Client<T, HttpClient<HttpsConnector<HttpConnector>, Body>> {
     pub fn new(config: Config<T>) -> Client<T, HttpClient<HttpsConnector<HttpConnector>, Body>> {
         let mut http = HttpConnector::new(4);
         // if we don't do this then the HttpConnector rejects the "https" scheme
@@ -60,20 +61,18 @@ impl<T: TokenSource + Clone> Client<T, HttpClient<HttpsConnector<HttpConnector>,
 
 // with_client method lives in its own block because we don't need whole set of constrains
 // everywhere in the code, in tests for instance
-impl<T: TokenSource + Clone, S> Client<T, S> {
+impl<T: TokenSource, S> Client<T, S> {
     pub fn with_client(config: Config<T>, client: S) -> Self {
         Client { config, client }
     }
 }
 
-impl<T: TokenSource + Clone, S> Client<T, S>
+impl<T: TokenSource, S> Client<T, S>
 where
     S: Service + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<<S as Service>::ResBody>,
-    <S::ResBody as Stream>::Item: AsRef<[u8]>,
-    <S::ResBody as Stream>::Error: Into<Error>,
     S::Error: Into<Error>,
 {
     pub fn create_config_map(
@@ -205,7 +204,7 @@ where
         label_selector: Option<&str>,
     ) -> impl Future<Item = apps::DeploymentList, Error = Error> {
         let field_selector =
-            name.and_then(|deployment_name| Some(format!("metadata.name={}", deployment_name)));
+            name.map(|deployment_name| format!("metadata.name={}", deployment_name));
         let params = apps::ListNamespacedDeploymentOptional {
             field_selector: field_selector.as_ref().map(String::as_ref),
             label_selector,
@@ -249,8 +248,7 @@ where
         namespace: &str,
         name: Option<&str>,
     ) -> impl Future<Item = api_core::SecretList, Error = Error> {
-        let field_selector =
-            name.and_then(|secret_name| Some(format!("metadata.name={}", secret_name)));
+        let field_selector = name.map(|secret_name| format!("metadata.name={}", secret_name));
         let params = api_core::ListNamespacedSecretOptional {
             field_selector: field_selector.as_ref().map(String::as_ref),
             ..api_core::ListNamespacedSecretOptional::default()
@@ -341,6 +339,157 @@ where
             })
             .into_future()
             .flatten()
+    }
+
+    pub fn list_service_accounts(
+        &mut self,
+        namespace: &str,
+        name: Option<&str>,
+        label_selector: Option<&str>,
+    ) -> impl Future<Item = api_core::ServiceAccountList, Error = Error> {
+        let field_selector =
+            name.map(|service_account_name| format!("metadata.name={}", service_account_name));
+        let params = api_core::ListNamespacedServiceAccountOptional {
+            field_selector: field_selector.as_ref().map(String::as_ref),
+            label_selector,
+            ..api_core::ListNamespacedServiceAccountOptional::default()
+        };
+
+        api_core::ServiceAccount::list_namespaced_service_account(namespace, params)
+            .map_err(Error::from)
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    api_core::ListNamespacedServiceAccountResponse::Ok(service_account_list) => {
+                        Ok(service_account_list)
+                    }
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
+            })
+            .into_future()
+            .flatten()
+    }
+
+    pub fn create_service_account(
+        &mut self,
+        namespace: &str,
+        service_account: &api_core::ServiceAccount,
+    ) -> impl Future<Item = api_core::ServiceAccount, Error = Error> {
+        api_core::ServiceAccount::create_namespaced_service_account(
+            namespace,
+            &service_account,
+            api_core::CreateNamespacedServiceAccountOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                api_core::CreateNamespacedServiceAccountResponse::Accepted(service_account)
+                | api_core::CreateNamespacedServiceAccountResponse::Created(service_account)
+                | api_core::CreateNamespacedServiceAccountResponse::Ok(service_account) => {
+                    Ok(service_account)
+                }
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
+        })
+        .into_future()
+        .flatten()
+    }
+
+    pub fn replace_service_account(
+        &mut self,
+        namespace: &str,
+        name: &str,
+        service_account: &api_core::ServiceAccount,
+    ) -> impl Future<Item = api_core::ServiceAccount, Error = Error> {
+        api_core::ServiceAccount::replace_namespaced_service_account(
+            name,
+            namespace,
+            service_account,
+            api_core::ReplaceNamespacedServiceAccountOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                api_core::ReplaceNamespacedServiceAccountResponse::Created(service_account)
+                | api_core::ReplaceNamespacedServiceAccountResponse::Ok(service_account) => {
+                    Ok(service_account)
+                }
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
+        })
+        .into_future()
+        .flatten()
+    }
+
+    pub fn list_role_binding(
+        &mut self,
+        _namespace: &str,
+        name: Option<&str>,
+        label_selector: Option<&str>,
+    ) -> impl Future<Item = rbac::ClusterRoleBindingList, Error = Error> {
+        let field_selector = name.map(|role_binding| format!("metadata.name={}", role_binding));
+        let params = rbac::ListClusterRoleBindingOptional {
+            field_selector: field_selector.as_ref().map(String::as_ref),
+            label_selector,
+            ..rbac::ListClusterRoleBindingOptional::default()
+        };
+
+        rbac::ClusterRoleBinding::list_cluster_role_binding(params)
+            .map_err(Error::from)
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    rbac::ListClusterRoleBindingResponse::Ok(role_binding_list) => {
+                        Ok(role_binding_list)
+                    }
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
+            })
+            .into_future()
+            .flatten()
+    }
+
+    pub fn create_role_binding(
+        &mut self,
+        _namespace: &str,
+        role_binding: &rbac::ClusterRoleBinding,
+    ) -> impl Future<Item = rbac::ClusterRoleBinding, Error = Error> {
+        rbac::ClusterRoleBinding::create_cluster_role_binding(
+            role_binding,
+            rbac::CreateClusterRoleBindingOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                rbac::CreateClusterRoleBindingResponse::Accepted(role_binding)
+                | rbac::CreateClusterRoleBindingResponse::Created(role_binding)
+                | rbac::CreateClusterRoleBindingResponse::Ok(role_binding) => Ok(role_binding),
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
+        })
+        .into_future()
+        .flatten()
+    }
+
+    pub fn replace_role_binding(
+        &mut self,
+        _namespace: &str,
+        name: &str,
+        role_binding: &rbac::ClusterRoleBinding,
+    ) -> impl Future<Item = rbac::ClusterRoleBinding, Error = Error> {
+        rbac::ClusterRoleBinding::replace_cluster_role_binding(
+            name,
+            role_binding,
+            rbac::ReplaceClusterRoleBindingOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                rbac::ReplaceClusterRoleBindingResponse::Created(role_binding)
+                | rbac::ReplaceClusterRoleBindingResponse::Ok(role_binding) => Ok(role_binding),
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
+        })
+        .into_future()
+        .flatten()
     }
 
     #[allow(clippy::type_complexity)]
