@@ -88,13 +88,31 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 token);
         }
 
-        public Task<Device> CreateLeafDeviceIdentityAsync(string deviceId, CancellationToken token)
+        public async Task<Device> CreateLeafDeviceIdentityAsync(string deviceId, Option<string> parentId, CancellationToken token)
         {
-            return this.CreateDeviceIdentityAsync(
-                deviceId,
-                id => new Device(id)
+            var scope = Option.None<string>();
+
+            await parentId.ForEachAsync(
+                async p =>
                 {
-                    Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas }
+                    Device edge = await this.GetDeviceIdentityAsync(p, token);
+                    if (edge == null)
+                    {
+                        throw new ArgumentException($"Device '{p}' not found in '{this.Hostname}'");
+                    }
+                    scope = Option.Some(edge.Scope);
+                });
+
+            return await this.CreateDeviceIdentityAsync(
+                deviceId,
+                id =>
+                {
+                    var leaf = new Device(id)
+                    {
+                        Authentication = new AuthenticationMechanism { Type = AuthenticationType.Sas }
+                    };
+                    scope.ForEach(s => leaf.Scope = s);
+                    return leaf;
                 },
                 token);
         }

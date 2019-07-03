@@ -140,8 +140,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             (AuthType.Sas, Protocol.Mqtt, false),
             (AuthType.Sas, Protocol.Amqp, false),
-            // (AuthType.Sas, Protocol.Mqtt, true),
-            // (AuthType.Sas, Protocol.Amqp, true),
+            (AuthType.Sas, Protocol.Mqtt, true),
+            (AuthType.Sas, Protocol.Amqp, true),
             // (AuthType.X509Certificate, Protocol.Mqtt, true),
             // (AuthType.X509Certificate, Protocol.Amqp, true),
             // (AuthType.X509Thumbprint, Protocol.Mqtt, true),
@@ -163,9 +163,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     string suffix = inScope ? "scoped-leaf" : "leaf";
                     string leafDeviceId = $"{Context.Current.DeviceId}-{protocol.ToString()}-{auth.ToString()}-{suffix}";
-                    Option<string> scope = inScope ? Option.Some(Context.Current.DeviceId) : Option.None<string>();
+                    Option<string> parentId = inScope ? Option.Some(Context.Current.DeviceId) : Option.None<string>();
 
-                    var leaf = await LeafDevice.CreateAsync(leafDeviceId, protocol, auth, scope, this.edgeCa, this.iotHub, token);
+                    var leaf = await LeafDevice.CreateAsync(leafDeviceId, protocol, auth, parentId, this.edgeCa, this.iotHub, token);
 
                     try
                     {

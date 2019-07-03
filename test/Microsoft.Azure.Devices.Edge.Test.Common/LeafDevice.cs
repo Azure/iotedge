@@ -27,9 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly EdgeCertificateAuthority edgeCa;
         readonly IotHub iotHub;
         readonly string messageId;
-        readonly Option<string> scope;
 
-        LeafDevice(Device device, DeviceClient client, AuthType auth, Option<string> scope, EdgeCertificateAuthority edgeCa, IotHub iotHub)
+        LeafDevice(Device device, DeviceClient client, AuthType auth, EdgeCertificateAuthority edgeCa, IotHub iotHub)
         {
             this.auth = auth;
             this.client = client;
@@ -37,14 +36,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.edgeCa = edgeCa;
             this.iotHub = iotHub;
             this.messageId = Guid.NewGuid().ToString();
-            this.scope = scope;
         }
 
         public static Task<LeafDevice> CreateAsync(
             string leafDeviceId,
             Protocol protocol,
             AuthType auth,
-            Option<string> scope,
+            Option<string> parentId,
             EdgeCertificateAuthority edgeCa,
             IotHub iotHub,
             CancellationToken token)
@@ -55,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     ITransportSettings transport = protocol.ToTransportSettings();
                     Platform.InstallTrustedCertificates(edgeCa.Certificates.TrustedCertificates, transport);
 
-                    Device leaf = await iotHub.CreateLeafDeviceIdentityAsync(leafDeviceId, token);
+                    Device leaf = await iotHub.CreateLeafDeviceIdentityAsync(leafDeviceId, parentId, token);
 
                     string connectionString =
                         $"HostName={iotHub.Hostname};" +
@@ -66,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     var client = DeviceClient.CreateFromConnectionString(connectionString, new[] { transport });
                     await client.SetMethodHandlerAsync("DirectMethod", DirectMethod, null, token);
 
-                    return new LeafDevice(leaf, client, auth, scope, edgeCa, iotHub);
+                    return new LeafDevice(leaf, client, auth, edgeCa, iotHub);
                 },
                 "Created leaf device '{Device}' on hub '{IotHub}'",
                 leafDeviceId,
