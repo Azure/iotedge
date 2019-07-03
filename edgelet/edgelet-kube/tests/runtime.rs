@@ -1,112 +1,37 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::cmp::Ordering;
-use std::collections::{BTreeMap, HashMap};
-use std::error::Error as StdError;
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
 
-use futures::{future, Future, IntoFuture};
-use hyper::body::Payload;
+use std::collections::HashMap;
+use std::path::Path;
+
+use config::{Config, File, FileFormat};
+use futures::future::FutureResult;
+use futures::{future, Future};
 use hyper::client::{Client as HyperClient, HttpConnector};
-use hyper::error::Error as HyperError;
 use hyper::{header, Body, Method, Request, Response, StatusCode};
+use json_patch::merge;
 use maplit::btreemap;
 use native_tls::TlsConnector;
-use serde_json::json;
+use serde_json::{self, json, Value as JsonValue};
 use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
 use url::Url;
 
 use docker::models::{AuthConfig, ContainerCreateBody, HostConfig, Mount};
-use edgelet_core::{AuthId, ImagePullPolicy, ModuleSpec};
-use edgelet_core::{Authenticator, ModuleRuntime};
+use edgelet_core::{
+    AuthId, Authenticator, Certificates, Connect, ImagePullPolicy, Listen, MakeModuleRuntime,
+    ModuleRuntime, ModuleSpec, Provisioning, ProvisioningResult as CoreProvisioningResult,
+    RuntimeSettings, WatchdogSettings,
+};
 use edgelet_docker::DockerConfig;
-use edgelet_kube::ErrorKind;
-use edgelet_kube::{KubeModuleRuntime, KubeRuntimeData};
-use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
-use kube_client::{Client as KubeClient, Config, Error, HttpClient, TokenSource};
-
-// TODO reuse code from edgelet-test-utils once it merged in master
-
-#[derive(Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
-struct RequestPath(String);
-
-#[derive(Clone, PartialEq, Eq, Hash)]
-struct HttpMethod(Method);
-
-impl Ord for HttpMethod {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.as_str().cmp(other.0.as_str())
-    }
-}
-
-impl PartialOrd for HttpMethod {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-trait CloneableService: objekt::Clone {
-    type ReqBody: Payload;
-    type ResBody: Payload;
-    type Error: Into<Box<dyn StdError + Send + Sync>>;
-    type Future: Future<Item = Response<Self::ResBody>, Error = Self::Error>;
-
-    fn call(&self, req: Request<Self::ReqBody>) -> Self::Future;
-}
-
-objekt::clone_trait_object!(CloneableService<
-    ReqBody = Body,
-    ResBody = Body,
-    Error = HyperError,
-    Future = ResponseFuture,
-> + Send);
-
-type ResponseFuture = Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send>;
-type RequestHandler = Box<
-    dyn CloneableService<
-            ReqBody = Body,
-            ResBody = Body,
-            Error = HyperError,
-            Future = ResponseFuture,
-        > + Send,
->;
-
-impl<T, F> CloneableService for T
-where
-    T: Fn(Request<Body>) -> F + Clone,
-    F: IntoFuture<Item = Response<Body>, Error = HyperError>,
-{
-    type ReqBody = Body;
-    type ResBody = Body;
-    type Error = F::Error;
-    type Future = F::Future;
-
-    fn call(&self, req: Request<Self::ReqBody>) -> Self::Future {
-        (self)(req).into_future()
-    }
-}
-
-fn make_req_dispatcher(
-    dispatch_table: BTreeMap<(HttpMethod, RequestPath), RequestHandler>,
-    default_handler: RequestHandler,
-) -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-    move |req: Request<Body>| {
-        let key = (
-            HttpMethod(req.method().clone()),
-            RequestPath(req.uri().path().to_string()),
-        );
-        let handler = dispatch_table.get(&key).unwrap_or(&default_handler);
-
-        Box::new(handler.call(req))
-    }
-}
-
-macro_rules! routes {
-    ($($method:ident $path:expr => $handler:expr),+ $(,)*) => ({
-        btreemap! {
-            $((HttpMethod(Method::$method), RequestPath(From::from($path))) => Box::new($handler) as RequestHandler,)*
-        }
-    });
-}
+use edgelet_kube::{ErrorKind, KubeModuleRuntime, Settings};
+use edgelet_test_utils::web::{
+    make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
+};
+use edgelet_test_utils::{get_unused_tcp_port, routes, run_tcp_server};
+use kube_client::{Client as KubeClient, Config as KubeConfig, Error, HttpClient, TokenSource};
+use provisioning::{ProvisioningResult, ReprovisioningStatus};
 
 fn not_found_handler(_: Request<Body>) -> ResponseFuture {
     let response = Response::builder()
@@ -115,6 +40,55 @@ fn not_found_handler(_: Request<Body>) -> ResponseFuture {
         .unwrap();
 
     Box::new(future::ok(response))
+}
+
+fn make_settings(merge_json: Option<JsonValue>) -> Settings {
+    let mut config = Config::default();
+    let mut config_json = json!({
+        "provisioning": {
+            "source": "manual",
+            "device_connection_string": "HostName=moo.azure-devices.net;DeviceId=boo;SharedAccessKey=boo"
+        },
+        "agent": {
+            "name": "edgeAgent",
+            "type": "docker",
+            "env": {},
+            "config": {
+                "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
+                "auth": {}
+            }
+        },
+        "hostname": "default1",
+        "connect": {
+            "management_uri": "http://localhost:35000",
+            "workload_uri": "http://localhost:35001"
+        },
+        "listen": {
+            "management_uri": "http://localhost:35000",
+            "workload_uri": "http://localhost:35001"
+        },
+        "homedir": "/var/lib/iotedge",
+        "namespace": "default",
+        "use_pvc": true,
+        "iot_hub_hostname": "iotHub",
+        "device_id": "device1",
+        "proxy_image": "proxy:latest",
+        "proxy_config_path": "/etc/traefik",
+        "proxy_config_map_name": "device1-iotedged-proxy-config",
+        "image_pull_policy": "IfNotPresent",
+        "service_account_name": "iotedge",
+        "device_hub_selector": "",
+    });
+
+    if let Some(merge_json) = merge_json {
+        merge(&mut config_json, &merge_json);
+    }
+
+    config
+        .merge(File::from_str(&config_json.to_string(), FileFormat::Json))
+        .unwrap();
+
+    config.try_into().unwrap()
 }
 
 #[test]
@@ -132,7 +106,7 @@ fn authenticate_returns_none_when_no_auth_token_provided() {
     )
     .map_err(|err| eprintln!("{}", err));
 
-    let runtime = create_runtime(&format!("http://localhost:{}", port));
+    let (_, runtime) = create_runtime(&format!("http://localhost:{}", port));
 
     let req = Request::default();
 
@@ -160,7 +134,7 @@ fn authenticate_returns_none_when_invalid_auth_header_provided() {
     )
     .map_err(|err| eprintln!("{}", err));
 
-    let runtime = create_runtime(&format!("http://localhost:{}", port));
+    let (_, runtime) = create_runtime(&format!("http://localhost:{}", port));
 
     let mut req = Request::default();
     req.headers_mut()
@@ -190,7 +164,7 @@ fn authenticate_returns_none_when_invalid_auth_token_provided() {
     )
     .map_err(|err| eprintln!("{}", err));
 
-    let runtime = create_runtime(&format!("http://localhost:{}", port));
+    let (_, runtime) = create_runtime(&format!("http://localhost:{}", port));
 
     let mut req = Request::default();
     req.headers_mut().insert(
@@ -222,7 +196,7 @@ fn authenticate_returns_none_when_unknown_auth_token_provided() {
     )
     .map_err(|err| eprintln!("{}", err));
 
-    let runtime = create_runtime(&format!("http://localhost:{}", port));
+    let (_, runtime) = create_runtime(&format!("http://localhost:{}", port));
 
     let mut req = Request::default();
     req.headers_mut().insert(
@@ -254,7 +228,7 @@ fn authenticate_returns_auth_id_when_module_auth_token_provided() {
     )
     .map_err(|err| eprintln!("{}", err));
 
-    let runtime = create_runtime(&format!("http://localhost:{}", port));
+    let (_, runtime) = create_runtime(&format!("http://localhost:{}", port));
 
     let mut req = Request::default();
     req.headers_mut()
@@ -269,42 +243,135 @@ fn authenticate_returns_auth_id_when_module_auth_token_provided() {
     assert_eq!(AuthId::Value("module-abc".into()), auth_id);
 }
 
-fn create_runtime(
-    url: &str,
-) -> KubeModuleRuntime<TestTokenSource, HttpClient<HttpConnector, Body>> {
-    let namespace = String::from("my-namespace");
-    let iot_hub_hostname = String::from("iothostname");
-    let device_id = String::from("my_device_id");
-    let edge_hostname = String::from("edge-hostname");
-    let proxy_image = String::from("proxy-image");
-    let proxy_config_path = String::from("proxy-confg-path");
-    let proxy_config_map_name = String::from("config-volume");
-    let image_pull_policy = String::from("IfNotPresent");
-    let workload_uri = Url::parse("http://localhost:35000").unwrap();
-    let management_uri = Url::parse("http://localhost:35001").unwrap();
-
-    let client = KubeClient::with_client(get_config(url), HttpClient(HyperClient::new()));
-
-    KubeModuleRuntime::new(
-        client,
-        namespace.clone(),
-        true,
-        iot_hub_hostname.clone(),
-        device_id.clone(),
-        edge_hostname.clone(),
-        proxy_image.clone(),
-        proxy_config_path.clone(),
-        proxy_config_map_name.clone(),
-        image_pull_policy.clone(),
-        workload_uri.clone(),
-        management_uri.clone(),
-    )
-    .unwrap()
+#[derive(Clone)]
+struct TestKubeSettings {
+    kube_settings: Settings,
+    api_server: Url,
 }
 
-fn get_config(url: &str) -> Config<TestTokenSource> {
-    Config::new(
-        Url::parse(url).unwrap(),
+impl TestKubeSettings {
+    fn new(kube_settings: Settings, api_server: Url) -> Self {
+        Self {
+            kube_settings,
+            api_server,
+        }
+    }
+
+    fn into_kube_settings(self) -> Settings {
+        self.kube_settings
+    }
+
+    fn api_server(&self) -> &Url {
+        &self.api_server
+    }
+
+    fn with_device_id(mut self, device_id: &str) -> Self {
+        self.kube_settings = self.kube_settings.with_device_id(device_id);
+        self
+    }
+
+    fn with_iot_hub_hostname(mut self, iot_hub_hostname: &str) -> Self {
+        self.kube_settings = self.kube_settings.with_iot_hub_hostname(iot_hub_hostname);
+        self
+    }
+
+    fn namespace(&self) -> &str {
+        self.kube_settings.namespace()
+    }
+}
+
+impl RuntimeSettings for TestKubeSettings {
+    type Config = DockerConfig;
+
+    fn provisioning(&self) -> &Provisioning {
+        self.kube_settings.provisioning()
+    }
+
+    fn agent(&self) -> &ModuleSpec<Self::Config> {
+        self.kube_settings.agent()
+    }
+
+    fn agent_mut(&mut self) -> &mut ModuleSpec<Self::Config> {
+        self.kube_settings.agent_mut()
+    }
+
+    fn hostname(&self) -> &str {
+        self.kube_settings.hostname()
+    }
+
+    fn connect(&self) -> &Connect {
+        self.kube_settings.connect()
+    }
+
+    fn listen(&self) -> &Listen {
+        self.kube_settings.listen()
+    }
+
+    fn homedir(&self) -> &Path {
+        self.kube_settings.homedir()
+    }
+
+    fn certificates(&self) -> Option<&Certificates> {
+        self.kube_settings.certificates()
+    }
+
+    fn watchdog(&self) -> &WatchdogSettings {
+        self.kube_settings.watchdog()
+    }
+}
+
+struct TestKubeModuleRuntime(KubeModuleRuntime<TestTokenSource, HttpClient<HttpConnector, Body>>);
+
+impl MakeModuleRuntime for TestKubeModuleRuntime {
+    type Config = DockerConfig;
+    type Settings = TestKubeSettings;
+    type ProvisioningResult = ProvisioningResult;
+    type ModuleRuntime = KubeModuleRuntime<TestTokenSource, HttpClient<HttpConnector, Body>>;
+    type Error = Error;
+    type Future = FutureResult<Self::ModuleRuntime, Self::Error>;
+
+    fn make_runtime(
+        settings: Self::Settings,
+        provisioning_result: Self::ProvisioningResult,
+    ) -> Self::Future {
+        let settings = settings
+            .with_device_id(provisioning_result.device_id())
+            .with_iot_hub_hostname(provisioning_result.hub_name());
+
+        future::ok(KubeModuleRuntime::new(
+            KubeClient::with_client(
+                get_config(settings.api_server()),
+                HttpClient(HyperClient::new()),
+            ),
+            settings.into_kube_settings(),
+        ))
+    }
+}
+
+fn create_runtime(
+    url: &str,
+) -> (
+    TestKubeSettings,
+    KubeModuleRuntime<TestTokenSource, HttpClient<HttpConnector, Body>>,
+) {
+    let provisioning_result = ProvisioningResult::new(
+        "my_device_id",
+        "iothostname",
+        None,
+        ReprovisioningStatus::DeviceDataNotUpdated,
+        None,
+    );
+    let settings = TestKubeSettings::new(make_settings(None), url.parse().unwrap());
+    let runtime = TestKubeModuleRuntime::make_runtime(settings.clone(), provisioning_result)
+        .wait()
+        .unwrap();
+
+    (settings, runtime)
+}
+
+fn get_config(api_server: &Url) -> KubeConfig<TestTokenSource> {
+    KubeConfig::new(
+        api_server.clone(),
         "/api".to_string(),
         TestTokenSource,
         TlsConnector::new().unwrap(),
@@ -362,13 +429,13 @@ fn make_token_review_handler(
 fn create_creates_or_updates_service_account_role_binding_deployment_for_edgeagent() {
     let port = get_unused_tcp_port();
 
-    let runtime = create_runtime(&format!("http://localhost:{}", port));
+    let (settings, runtime) = create_runtime(&format!("http://localhost:{}", port));
     let module = create_module_spec("$edgeAgent");
 
     let dispatch_table = routes!(
-        PUT format!("/api/v1/namespaces/{}/serviceaccounts/edgeagent", runtime.namespace()) => replace_service_account_handler(),
+        PUT format!("/api/v1/namespaces/{}/serviceaccounts/edgeagent", settings.namespace()) => replace_service_account_handler(),
         PUT "/apis/rbac.authorization.k8s.io/v1/clusterrolebindings/edgeagent" => replace_role_binding_handler(),
-        PUT format!("/apis/apps/v1/namespaces/{}/deployments/edgeagent", runtime.namespace()) => replace_deployment_handler(),
+        PUT format!("/apis/apps/v1/namespaces/{}/deployments/edgeagent", settings.namespace()) => replace_deployment_handler(),
     );
 
     let server = run_tcp_server(
@@ -389,12 +456,12 @@ fn create_creates_or_updates_service_account_role_binding_deployment_for_edgeage
 fn create_do_not_create_role_binding_for_module_that_is_not_edgeagent() {
     let port = get_unused_tcp_port();
 
-    let runtime = create_runtime(&format!("http://localhost:{}", port));
+    let (settings, runtime) = create_runtime(&format!("http://localhost:{}", port));
     let module = create_module_spec("temp-sensor");
 
     let dispatch_table = routes!(
-        PUT format!("/api/v1/namespaces/{}/serviceaccounts/{}", runtime.namespace(), "temp-sensor") => replace_service_account_handler(),
-        PUT format!("/apis/apps/v1/namespaces/{}/deployments/{}", runtime.namespace(), "temp-sensor") => replace_deployment_handler(),
+        PUT format!("/api/v1/namespaces/{}/serviceaccounts/{}", settings.namespace(), "temp-sensor") => replace_service_account_handler(),
+        PUT format!("/apis/apps/v1/namespaces/{}/deployments/{}", settings.namespace(), "temp-sensor") => replace_deployment_handler(),
     );
 
     let server = run_tcp_server(

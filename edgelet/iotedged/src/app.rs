@@ -6,9 +6,8 @@ use clap::{crate_authors, crate_description, crate_name, App, Arg};
 use failure::ResultExt;
 use log::info;
 
-use edgelet_config::Settings;
 use edgelet_core;
-use edgelet_docker::DockerConfig;
+use edgelet_docker::Settings;
 
 use crate::error::{Error, ErrorKind, InitializeErrorReason};
 use crate::logging;
@@ -42,7 +41,7 @@ fn create_app() -> App<'static, 'static> {
     }
 }
 
-fn init_common(running_as_windows_service: bool) -> Result<Settings<DockerConfig>, Error> {
+fn init_common(running_as_windows_service: bool) -> Result<Settings, Error> {
     let matches = create_app().get_matches();
 
     // If running as a Windows service, logging was already initialized by init_win_svc_logging(), so don't do it again.
@@ -70,18 +69,18 @@ fn init_common(running_as_windows_service: bool) -> Result<Settings<DockerConfig
             None
         });
 
-    let settings = Settings::<DockerConfig>::new(config_file)
+    let settings = Settings::new(config_file)
         .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
 
     Ok(settings)
 }
 
-pub fn init() -> Result<Settings<DockerConfig>, Error> {
+pub fn init() -> Result<Settings, Error> {
     init_common(false)
 }
 
 #[cfg(windows)]
-pub fn init_win_svc() -> Result<Settings<DockerConfig>, Error> {
+pub fn init_win_svc() -> Result<Settings, Error> {
     init_common(true)
 }
 
