@@ -136,8 +136,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         static readonly (AuthType, Protocol, bool)[] TransparentGatewayArgs =
         {
-            // (AuthType.Sas, Protocol.Mqtt, false),
-            (AuthType.Sas, Protocol.Amqp, false)
+            (AuthType.Sas, Protocol.Mqtt, false),
+            (AuthType.Sas, Protocol.Amqp, false),
             // (AuthType.Sas, Protocol.Mqtt, true),
             // (AuthType.Sas, Protocol.Amqp, true),
             // (AuthType.X509Certificate, Protocol.Mqtt, true),
@@ -153,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             CancellationToken token = this.cts.Token;
 
-            string name = $"transparent gateway";
+            string name = $"transparent gateway ({auth.ToString()}, {protocol.ToString()}, inScope={inScope})";
             Log.Information("Running test '{Name}'", name);
 
             await Profiler.Run(
