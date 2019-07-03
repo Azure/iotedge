@@ -91,6 +91,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public void Dispose()
         {
+            this.deviceConnectivityManager.DeviceConnected -= this.HandleDeviceConnectedEvent;
+            this.deviceConnectivityManager.DeviceDisconnected -= this.HandleDeviceDisconnectedEvent;
             this.underlyingClient?.Dispose();
         }
 
