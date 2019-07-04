@@ -153,7 +153,6 @@ impl ModuleRuntime for ModuleClient {
     type CreateFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type GetFuture =
         Box<dyn Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type InitFuture = FutureResult<(), Self::Error>;
     type ListFuture = Box<dyn Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
     type ListWithDetailsStream =
         Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
@@ -164,14 +163,6 @@ impl ModuleRuntime for ModuleClient {
     type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-
-    fn system_info(&self) -> Self::SystemInfoFuture {
-        unimplemented!()
-    }
-
-    fn init(&self) -> Self::InitFuture {
-        future::ok(())
-    }
 
     fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         unimplemented!()
@@ -251,6 +242,10 @@ impl ModuleRuntime for ModuleClient {
     }
 
     fn remove(&self, _id: &str) -> Self::RemoveFuture {
+        unimplemented!()
+    }
+
+    fn system_info(&self) -> Self::SystemInfoFuture {
         unimplemented!()
     }
 

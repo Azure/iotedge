@@ -21,6 +21,7 @@ edgelet-docker = { path = "../edgelet-docker" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-iothub = { path = "../edgelet-iothub" }
 management = { path = "../management" }
+provisioning = { path = "../provisioning" }
 
 [dev-dependencies]
 chrono = { version = "0.4", features = ["serde"] }
