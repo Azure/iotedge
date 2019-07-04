@@ -4,12 +4,13 @@ namespace IotEdgeQuickstart
     using System;
     using System.IO;
     using System.Runtime.InteropServices;
+    using System.Security.Cryptography;
+    using System.Text;
     using System.Threading.Tasks;
     using IotEdgeQuickstart.Details;
     using McMaster.Extensions.CommandLineUtils;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-
     [Command(
         Name = "IotEdgeQuickstart",
         Description = "An app which automates the \"Quickstart\" tutorial (https://docs.microsoft.com/en-us/azure/iot-edge/quickstart-linux)",
@@ -151,8 +152,8 @@ Defaults:
         [Option("--dps-endpoint", Description = "Optional input applicable only when using DPS for provisioning the IoT Edge")]
         public string DPSEndpoint { get; } = "https://global.azure-devices-provisioning.net";
 
-        [Option("--dps-symmetric-key", Description = "Optional input applicable only when using the DPS symmetric key flow to provisioning the IoT Edge")]
-        public string DPSSymmetricKey { get; } = string.Empty;
+        [Option("--dps-master-symmetric-key", Description = "Optional input applicable only when using the DPS symmetric key flow to provisioning the IoT Edge")]
+        public string DPSMasterSymmetricKey { get; } = string.Empty;
 
         [Option("--device_identity_cert", Description = "path to the device identity certificate and its chain")]
         public string DeviceIdentityCert { get; } = string.Empty;
@@ -229,7 +230,7 @@ Defaults:
                         throw new ArgumentException("DPS Endpoint cannot be null or empty if a DPS is being used");
                     }
 
-                    if (string.IsNullOrEmpty(this.DPSSymmetricKey))
+                    if (string.IsNullOrEmpty(this.DPSMasterSymmetricKey))
                     {
                         if (string.IsNullOrEmpty(this.DeviceIdentityCert) || !File.Exists(this.DeviceIdentityCert))
                         {
@@ -247,7 +248,8 @@ Defaults:
                         {
                             throw new ArgumentException("Both device identity certificate and DPS symmetric key cannot be set");
                         }
-                        dpsAttestation = Option.Some(new DPSAttestation(this.DPSEndpoint, this.DPSScopeId, this.DPSRegistrationId, this.DPSSymmetricKey));
+                        string deviceKey = ComputeDerivedSymmetricKey(Convert.FromBase64String(this.DPSMasterSymmetricKey), this.DPSRegistrationId);
+                        dpsAttestation = Option.Some(new DPSAttestation(this.DPSEndpoint, this.DPSScopeId, this.DPSRegistrationId, deviceKey));
                     }
 
                 }
@@ -307,6 +309,14 @@ Defaults:
             string value = await SecretsHelper.GetSecret(key);
             string[] vals = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             return (vals[0], vals[1]);
+        }
+
+        string ComputeDerivedSymmetricKey(byte[] masterKey, string registrationId)
+        {
+            using (var hmac = new HMACSHA256(masterKey))
+            {
+                return Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(registrationId)));
+            }
         }
     }
 

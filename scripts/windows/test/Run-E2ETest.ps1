@@ -84,7 +84,16 @@
         Enable amqp protocol head in Edge Hub.
 
     .PARAMETER MqttSettingsEnabled
-        Enable mqtt protocol head in Edge Hub. 
+        Enable mqtt protocol head in Edge Hub.
+
+    .PARAMETER DpsScopeId
+        DPS scope id. Required only when using DPS to provision the device.
+
+    .PARAMETER DpsRegistrationId
+        DPS registation id. Required only when using DPS symmetric key to provision the Edge device.
+
+    .PARAMETER DpsMasterSymmetricKey
+        DPS registation id. Required only when using DPS symmetric key to provision the Edge device.
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -115,6 +124,21 @@
             -EdgeE2ERootCAKeyRSAFile "file path"   #if not provided, a default path will be checked
             -EdgeE2ETestRootCAPassword "xxxx"
 
+        DPS symmetric key provisioning test command
+        .\Run-E2ETest.ps1
+            -E2ETestFolder "C:\Data\e2etests"
+            -ReleaseLabel "Release-ARM-1"
+            -ArtifactImageBuildNumber "20190101.1"
+            -TestName "DpsSymmetricKeyProvisioning"
+            -ContainerRegistry "yourpipeline.azurecr.io"
+            -ContainerRegistryUsername "xxxx"
+            -ContainerRegistryPassword "xxxx"
+            -IoTHubConnectionString "xxxx"
+            -EventHubConnectionString "xxxx"
+            -ProxyUri "http://proxyserver:3128"
+            -DpsScopeId "scope-id"
+            -DpsMasterSymmetricKey "key"
+
     .NOTES
         This script is to make running E2E tests easier and centralize E2E test steps in 1 place for reusability.
         It shares common tasks such as clean up and installation of IoT Edge Security Daemon.
@@ -133,7 +157,21 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $ArtifactImageBuildNumber = $(Throw "Artifact image build number is required"),
 
-    [ValidateSet("All", "DirectMethodAmqp", "DirectMethodAmqpMqtt", "DirectMethodMqtt", "DirectMethodMqttAmqp", "LongHaul", "QuickstartCerts", "Stress", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway")]
+    [ValidateSet("All",
+                 "DirectMethodAmqp",
+                 "DirectMethodAmqpMqtt",
+                 "DirectMethodMqtt",
+                 "DirectMethodMqttAmqp",
+                 "DpsSymmetricKeyProvisioning",
+                 "DpsTpmProvisioning",
+                 "DpsX509Provisioning",
+                 "LongHaul",
+                 "QuickstartCerts",
+                 "Stress",
+                 "TempFilter",
+                 "TempFilterFunctions",
+                 "TempSensor",
+                 "TransparentGateway")]
     [string] $TestName = "All",
 
     [ValidateNotNullOrEmpty()]
@@ -146,7 +184,13 @@ Param (
     [string] $ContainerRegistryPassword = $(Throw "Container registry password is required"),
 
     [ValidateNotNullOrEmpty()]
-    [string] $IoTHubConnectionString = $(Throw "IoT hub connection string is required"),
+    [string] $DpsScopeId = $null,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $DpsRegistrationId = $null,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $DpsMasterSymmetricKey = $null,
 
     [ValidateNotNullOrEmpty()]
     [string] $EventHubConnectionString = $(Throw "Event hub connection string is required"),
@@ -160,10 +204,13 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $EdgeE2ETestRootCAPassword = $null,
 
-    [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
-    [string] $ProxyUri = $null,
+    [ValidateNotNullOrEmpty()]
+    [string] $IoTHubConnectionString = $(Throw "IoT hub connection string is required"),
 
     [string] $LoadGenMessageFrequency = $null,
+
+    [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
+    [string] $ProxyUri = $null,
 
     [ValidateNotNullOrEmpty()]
     [string] $SnitchAlertUrl = $null,
@@ -197,6 +244,15 @@ Param (
     [switch] $BypassEdgeInstallation
 
 )
+
+Add-Type -TypeDefinition @"
+enum DpsProvisioningType
+{
+    SymmetricKey = 0,
+    Tpm = 1,
+    X509 = 2,
+}
+"@
 
 Set-StrictMode -Version "Latest"
 $ErrorActionPreference = "Stop"
@@ -568,6 +624,18 @@ Function RunAllTests
     $testExitCode = RunDirectMethodMqttAmqpTest
     $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
 
+    $TestName = "DpsSymmetricKeyProvisioning"
+    $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::SymmetricKey)
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+
+    $TestName = "DpsTpmProvisioning"
+    $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::Tpm)
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+
+    $TestName = "DpsX509Provisioning"
+    $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::X509)
+    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+
     $TestName = "QuickstartCerts"
     $testExitCode = RunQuickstartCertsTest
     $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
@@ -713,6 +781,46 @@ Function RunDirectMethodMqttAmqpTest
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             --upstream-protocol 'MqttWs' ``
+            --proxy `"$ProxyUri`""
+    }
+    $testCommand = AppendInstallationOption($testCommand)
+    Invoke-Expression $testCommand | Out-Host
+    $testExitCode = $LastExitCode
+
+    PrintLogs $testStartAt $testExitCode
+    Return $testExitCode
+}
+
+Function RunDpsProvisioningTest
+{
+    param
+    (
+        [DpsProvisioningType] $type
+    )
+
+    TestSetup
+
+    $testStartAt = Get-Date
+    $registationId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DPS$type"
+    PrintHighlightedMessage "Run DPS provisioning test $type for registration id ""$registationId"" started at $testStartAt"
+
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
+            -d `"$registationId`" ``
+            -c `"$IoTHubConnectionString`" ``
+            -e `"$EventHubConnectionString`" ``
+            -n `"$env:computername`" ``
+            -r `"$ContainerRegistry`" ``
+            -u `"$ContainerRegistryUsername`" ``
+            -p `"$ContainerRegistryPassword`" ``
+            -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+            -l `"$DeploymentWorkingFilePath`" ``
+            --dps-scope-id `"$DpsScopeId`" ``
+            --dps-registration-id `"$registationId`" ``
+            --dps-master-symmetric-key `"$DpsMasterSymmetricKey`" ``
+            $BypassInstallationFlag"
+    If ($ProxyUri) {
+        $testCommand = "$testCommand ``
+            --upstream-protocol 'AmqpWs' ``
             --proxy `"$ProxyUri`""
     }
     $testCommand = AppendInstallationOption($testCommand)
@@ -1130,6 +1238,9 @@ Function RunTest
         "DirectMethodAmqpMqtt" { $testExitCode = RunDirectMethodAmqpMqttTest; break }
         "DirectMethodMqtt" { $testExitCode = RunDirectMethodMqttTest; break }
         "DirectMethodMqttAmqp" { $testExitCode = RunDirectMethodMqttAmqpTest; break }
+        "DpsSymmetricKeyProvisioning" { $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::SymmetricKey); break }
+        "DpsTpmProvisioning" { $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::Tpm); break }
+        "DpsX509Provisioning" { $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::X509); break }
         "QuickstartCerts" { $testExitCode = RunQuickstartCertsTest; break }
         "LongHaul" { $testExitCode = RunLongHaulTest; break }
         "Stress" { $testExitCode = RunStressTest; break }
@@ -1251,7 +1362,7 @@ Function PrintHighlightedMessage
 
 $Architecture = GetArchitecture
 $OptimizeForPerformance=$True
-If ($Architecture -eq "arm32v7") 
+If ($Architecture -eq "arm32v7")
 {
     $OptimizeForPerformance=$False
 }
