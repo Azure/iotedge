@@ -246,7 +246,7 @@ Param (
 )
 
 Add-Type -TypeDefinition @"
-enum DpsProvisioningType
+public enum DpsProvisioningType
 {
     SymmetricKey = 0,
     Tpm = 1,

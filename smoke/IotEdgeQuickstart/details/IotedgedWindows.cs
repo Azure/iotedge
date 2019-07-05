@@ -138,7 +138,7 @@ namespace IotEdgeQuickstart.Details
                 if (this.requireEdgeInstallation)
                 {
                     Console.WriteLine("Installing iotedge...");
-                    args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon -Manual " +
+                    args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon " +
                            $"-ContainerOs Windows -AgentImage '{image}'";
 
                     this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
@@ -151,13 +151,13 @@ namespace IotEdgeQuickstart.Details
                 else
                 {
                     Console.WriteLine("Initializing iotedge...");
-                    args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Initialize-IoTEdge -Manual " +
+                    args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Initialize-IoTEdge " +
                            $"-ContainerOs Windows -AgentImage '{image}'";
                 }
 
                 args += method.ManualConnectionString.Map(
                     cs => {
-                        return $"-DeviceConnectionString '{cs}'";
+                        return $" -Manual -DeviceConnectionString '{cs}'";
                     }).GetOrElse(string.Empty);
 
                 args += method.Dps.Map(
