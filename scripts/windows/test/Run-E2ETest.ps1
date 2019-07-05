@@ -92,16 +92,6 @@
     .PARAMETER DpsMasterSymmetricKey
         DPS master symmetric key. Required only when using DPS symmetric key to provision the Edge device.
 
-    .PARAMETER DeviceIdentityCertificatePath
-        Path to the device identity certificate full chain.
-        Required only when using DPS X.509 provisioning of the Edge device or when manually
-        configuring the Edge using X.509 certificates.
-
-    .PARAMETER DeviceIdentityPrivateKeyPath
-        Path to the device identity private key.
-        Required only when using DPS X.509 provisioning of the Edge device or when manually
-        configuring the Edge using X.509 certificates.
-
     .EXAMPLE
         .\Run-E2ETest.ps1
             -E2ETestFolder "C:\Data\e2etests"
@@ -146,7 +136,7 @@
             -DpsScopeId "scope-id"
             -DpsMasterSymmetricKey "key"
 
-        DPS X.509 provisioning test command
+        DPS X.509 provisioning test command using test generated identity certificates
         .\Run-E2ETest.ps1
             -E2ETestFolder "C:\Data\e2etests"
             -ReleaseLabel "Release-ARM-1"
@@ -159,8 +149,9 @@
             -EventHubConnectionString "xxxx"
             -ProxyUri "http://proxyserver:3128"
             -DpsScopeId "scope-id"
-            -DeviceIdentityCertificatePath "<path>"
-            -DeviceIdentityPrivateKeyPath "<path>"
+            -EdgeE2ERootCACertRSAFile "file path"  #if not provided, a default path will be checked
+            -EdgeE2ERootCAKeyRSAFile "file path"   #if not provided, a default path will be checked
+            -EdgeE2ETestRootCAPassword "xxxx"
 
     .NOTES
         This script is to make running E2E tests easier and centralize E2E test steps in 1 place for reusability.
@@ -208,9 +199,6 @@ Param (
 
     [ValidateNotNullOrEmpty()]
     [string] $DpsScopeId = $null,
-
-    [ValidateNotNullOrEmpty()]
-    [string] $DpsRegistrationId = $null,
 
     [ValidateNotNullOrEmpty()]
     [string] $DpsMasterSymmetricKey = $null,
@@ -847,20 +835,20 @@ Function RunDpsProvisioningTest
             $BypassInstallationFlag"
 
     switch ($provisioningType) {
-        [DpsProvisioningType]::SymmetricKey
+        ([DpsProvisioningType]::SymmetricKey)
         {
             $testCommand = "$testCommand ``
                 --dps-registration-id `"$registationId`" ``
                 --dps-master-symmetric-key `"$DpsMasterSymmetricKey`""
         }
 
-        [DpsProvisioningType]::Tpm
+        ([DpsProvisioningType]::Tpm)
         {
             $testCommand = "$testCommand ``
                 --dps-registration-id `"$registationId`""
         }
 
-        [DpsProvisioningType]::X509
+        ([DpsProvisioningType]::X509)
         {
             # setup certificate generation tools to create the Edge device and leaf device certificates
             PrepareCertificateTools
