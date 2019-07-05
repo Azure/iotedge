@@ -89,11 +89,18 @@
     .PARAMETER DpsScopeId
         DPS scope id. Required only when using DPS to provision the device.
 
-    .PARAMETER DpsRegistrationId
-        DPS registation id. Required only when using DPS symmetric key to provision the Edge device.
-
     .PARAMETER DpsMasterSymmetricKey
-        DPS registation id. Required only when using DPS symmetric key to provision the Edge device.
+        DPS master symmetric key. Required only when using DPS symmetric key to provision the Edge device.
+
+    .PARAMETER DeviceIdentityCertificatePath
+        Path to the device identity certificate full chain.
+        Required only when using DPS X.509 provisioning of the Edge device or when manually
+        configuring the Edge using X.509 certificates.
+
+    .PARAMETER DeviceIdentityPrivateKeyPath
+        Path to the device identity private key.
+        Required only when using DPS X.509 provisioning of the Edge device or when manually
+        configuring the Edge using X.509 certificates.
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -138,6 +145,22 @@
             -ProxyUri "http://proxyserver:3128"
             -DpsScopeId "scope-id"
             -DpsMasterSymmetricKey "key"
+
+        DPS X.509 provisioning test command
+        .\Run-E2ETest.ps1
+            -E2ETestFolder "C:\Data\e2etests"
+            -ReleaseLabel "Release-ARM-1"
+            -ArtifactImageBuildNumber "20190101.1"
+            -TestName "DpsSymmetricKeyProvisioning"
+            -ContainerRegistry "yourpipeline.azurecr.io"
+            -ContainerRegistryUsername "xxxx"
+            -ContainerRegistryPassword "xxxx"
+            -IoTHubConnectionString "xxxx"
+            -EventHubConnectionString "xxxx"
+            -ProxyUri "http://proxyserver:3128"
+            -DpsScopeId "scope-id"
+            -DeviceIdentityCertificatePath "<path>"
+            -DeviceIdentityPrivateKeyPath "<path>"
 
     .NOTES
         This script is to make running E2E tests easier and centralize E2E test steps in 1 place for reusability.
@@ -373,6 +396,7 @@ Function PrepareTestFromArtifacts
 
     # Deployment file
     If (($TestName -like "DirectMethod*") -Or
+        ($TestName -like "Dps*") -Or
         ($TestName -eq "LongHaul") -Or
         ($TestName -eq "Stress") -Or
         ($TestName -eq "TempFilter") -Or
@@ -409,6 +433,11 @@ Function PrepareTestFromArtifacts
                         (Get-Content $DeploymentWorkingFilePath).replace('<ClientTransportType>','Amqp_Tcp_Only') | Set-Content $DeploymentWorkingFilePath
                     }
                 }
+            }
+            "Dps.*"
+            {
+                Write-Host "Copy deployment file from $QuickstartDeploymentArtifactFilePath"
+                Copy-Item $QuickstartDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
             }
             {$_ -in "LongHaul","Stress"}
             {
@@ -451,7 +480,7 @@ Function PrepareTestFromArtifacts
                 Write-Host "Copy deployment file from $ModuleToFunctionDeploymentArtifactFilePath"
                 Copy-Item $ModuleToFunctionDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
             }
-            "TempSensor" # Only when $ProxyUri is specified
+            "TempSensor"
             {
                 Write-Host "Copy deployment file from $QuickstartDeploymentArtifactFilePath"
                 Copy-Item $QuickstartDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
@@ -795,14 +824,14 @@ Function RunDpsProvisioningTest
 {
     param
     (
-        [DpsProvisioningType] $type
+        [DpsProvisioningType] $provisioningType
     )
 
     TestSetup
 
     $testStartAt = Get-Date
-    $registationId = "e2e-${ReleaseLabel}-Windows-${Architecture}-DPS$type"
-    PrintHighlightedMessage "Run DPS provisioning test $type for registration id ""$registationId"" started at $testStartAt"
+    $registationId = "e2e-${ReleaseLabel}-Win-${Architecture}-DPS-$provisioningType"
+    PrintHighlightedMessage "Run DPS provisioning test $provisioningType for registration id ""$registationId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
             -d `"$registationId`" ``
@@ -815,9 +844,45 @@ Function RunDpsProvisioningTest
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
             --dps-scope-id `"$DpsScopeId`" ``
-            --dps-registration-id `"$registationId`" ``
-            --dps-master-symmetric-key `"$DpsMasterSymmetricKey`" ``
             $BypassInstallationFlag"
+
+    switch ($provisioningType) {
+        [DpsProvisioningType]::SymmetricKey
+        {
+            $testCommand = "$testCommand ``
+                --dps-registration-id `"$registationId`" ``
+                --dps-master-symmetric-key `"$DpsMasterSymmetricKey`""
+        }
+
+        [DpsProvisioningType]::Tpm
+        {
+            $testCommand = "$testCommand ``
+                --dps-registration-id `"$registationId`""
+        }
+
+        [DpsProvisioningType]::X509
+        {
+            # setup certificate generation tools to create the Edge device and leaf device certificates
+            PrepareCertificateTools
+
+            # dot source the certificate generation script
+            . "$EdgeCertGenScript"
+
+            # install the provided root CA to seed the certificate chain
+            Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
+
+            # generate the edge identity certificate
+            New-CACertsDevice $registationId
+
+            $identityPkPath = "$EdgeCertGenScriptDir\private\iot-device-${registationId}.key.pem"
+            $identityCertPath = "$EdgeCertGenScriptDir\certs\iot-device-${registationId}-full-chain.cert.pem"
+
+            $testCommand = "$testCommand ``
+                --device_identity_pk `"$identityPkPath`" ``
+                --device_identity_cert `"$identityCertPath`""
+        }
+    }
+
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
             --upstream-protocol 'AmqpWs' ``

@@ -73,26 +73,20 @@ namespace IotEdgeQuickstart
                     await this.VerifyEdgeAgentIsRunning();
                     await this.VerifyEdgeAgentIsConnectedToIotHub();
 
-                    //// for DPS tests we only ensure that the Edge agent is up an running
-                    //// more tests that execute at scale deployments will be implemented
-                    //// in the new test framework
-                    //if (!this.dpsProvisionTest)
-                    //{
-                        if (!this.noDeployment)
+                    if (!this.noDeployment)
+                    {
+                        await this.DeployToEdgeDevice();
+                        if (!this.noVerify)
                         {
-                            await this.DeployToEdgeDevice();
-                            if (!this.noVerify)
-                            {
-                                await this.VerifyDataOnIoTHub(this.verifyDataFromModule);
-                                await this.VerifyTwinAsync();
-                            }
-
-                            if (this.leaveRunning == LeaveRunning.Core)
-                            {
-                                await this.RemoveTempSensorFromEdgeDevice();
-                            }
+                            await this.VerifyDataOnIoTHub(this.verifyDataFromModule);
+                            await this.VerifyTwinAsync();
                         }
-                    //}
+
+                        if (this.leaveRunning == LeaveRunning.Core)
+                        {
+                            await this.RemoveTempSensorFromEdgeDevice();
+                        }
+                    }
                 }
                 catch (Exception e)
                 {

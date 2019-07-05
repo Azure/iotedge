@@ -155,10 +155,10 @@ Defaults:
         [Option("--dps-master-symmetric-key", Description = "Optional input applicable only when using the DPS symmetric key flow to provisioning the IoT Edge")]
         public string DPSMasterSymmetricKey { get; } = string.Empty;
 
-        [Option("--device_identity_cert", Description = "path to the device identity certificate and its chain")]
+        [Option("--device_identity_cert", Description = "Optional path to the device identity full chain certificate. Used for either DPS or manual provisioning flows.")]
         public string DeviceIdentityCert { get; } = string.Empty;
 
-        [Option("--device_identity_pk", Description = "path to the device identity private key file")]
+        [Option("--device_identity_pk", Description = "Optional path to the device identity private key file. Used for either DPS or manual provisioning flows")]
         public string DeviceIdentityPk { get; } = string.Empty;
 
         // ReSharper disable once UnusedMember.Local
