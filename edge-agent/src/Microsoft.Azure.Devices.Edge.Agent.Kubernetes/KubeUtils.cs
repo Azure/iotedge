@@ -18,10 +18,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         const int MaxDnsNameLength = 63;
         const int MaxLabelValueLength = 63;
         static readonly HashSet<char> AlphaHashSet = new HashSet<char>(Alphabet.ToCharArray());
-        static readonly HashSet<char> AlphaNumericHashSet = new HashSet<char>( (Alphabet+Numeric).ToCharArray());
-        static readonly HashSet<char> AllowedLabelsHashSet = new HashSet<char>((Alphabet+Numeric+AllowedCharsLabelValues).ToCharArray());
-        static readonly HashSet<char> AllowedDnsHashSet = new HashSet<char>((Alphabet+Numeric+AllowedCharsDns).ToCharArray());
-        static readonly HashSet<char> AllowedGenericHashSet = new HashSet<char>((Alphabet+Numeric+AllowedCharsGeneric).ToCharArray());
+        static readonly HashSet<char> AlphaNumericHashSet = new HashSet<char>((Alphabet + Numeric).ToCharArray());
+        static readonly HashSet<char> AllowedLabelsHashSet = new HashSet<char>((Alphabet + Numeric + AllowedCharsLabelValues).ToCharArray());
+        static readonly HashSet<char> AllowedDnsHashSet = new HashSet<char>((Alphabet + Numeric + AllowedCharsDns).ToCharArray());
+        static readonly HashSet<char> AllowedGenericHashSet = new HashSet<char>((Alphabet + Numeric + AllowedCharsGeneric).ToCharArray());
 
         static bool IsAlpha(char ch) => AlphaHashSet.Contains(ch);
 
@@ -130,10 +130,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     output.Append(name[i]);
                 }
             }
+
             if (output.Length > MaxDnsNameLength)
             {
                 throw new InvalidKubernetesNameException($"DNS name '{name}' exceeded maximum length of {MaxDnsNameLength}");
             }
+
             if (output.Length == 0)
             {
                 throw new InvalidKubernetesNameException($"DNS name '{name}' as sanitized is empty");
@@ -192,6 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 start++;
             }
+
             if (start == name.Length)
             {
                 throw new InvalidKubernetesNameException($"Name '{name}' does not start with a valid character");
@@ -214,6 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     output.Append(name[i]);
                 }
             }
+
             if (output.Length > MaxLabelValueLength)
             {
                 throw new InvalidKubernetesNameException($"Name '{name}' exceeded maximum length of {MaxLabelValueLength}");
@@ -238,6 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 throw new InvalidKubernetesNameException($"Name '{name}' is null or empty");
             }
+
             return SanitizeNameValue(name.ToLower());
         }
     }

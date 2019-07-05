@@ -17,6 +17,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         [EnumMember(Value = "NodePort")]
         NodePort,
-
     }
 }

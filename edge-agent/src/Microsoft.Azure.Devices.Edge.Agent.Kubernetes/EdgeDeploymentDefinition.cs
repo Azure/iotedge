@@ -16,7 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         [JsonProperty(PropertyName = "kind")]
         public string Kind { get; set; }
 
-
         [JsonProperty(PropertyName = "metadata")]
         public V1ObjectMeta Metadata { get; }
 
@@ -25,10 +24,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public EdgeDeploymentDefinition(string apiVersion, string kind, V1ObjectMeta metadata, IList<KubernetesModule<TConfig>> spec)
         {
-            ApiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
-            Kind = Preconditions.CheckNonWhiteSpace(kind, nameof(kind));
-            Metadata = Preconditions.CheckNotNull(metadata, nameof(metadata));
-            Spec = Preconditions.CheckNotNull(spec, nameof(spec));
+            this.ApiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
+            this.Kind = Preconditions.CheckNonWhiteSpace(kind, nameof(kind));
+            this.Metadata = Preconditions.CheckNotNull(metadata, nameof(metadata));
+            this.Spec = Preconditions.CheckNotNull(spec, nameof(spec));
         }
     }
 }

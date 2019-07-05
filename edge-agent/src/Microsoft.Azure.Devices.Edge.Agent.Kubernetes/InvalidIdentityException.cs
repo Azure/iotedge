@@ -7,14 +7,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     [Serializable]
     public class InvalidIdentityException : Exception
     {
-        public InvalidIdentityException(string message) : base(message)
+        public InvalidIdentityException(string message)
+            : base(message)
         {
-
         }
-        public InvalidIdentityException(string message, Exception inner) : base(message, inner)
-        {
 
+        public InvalidIdentityException(string message, Exception inner)
+            : base(message, inner)
+        {
         }
     }
 }
-
