@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             : new Linux.EdgeDaemon() as IEdgeDaemon;
 
         public static string GetConfigYamlPath() => IsWindows()
-            ? @"C:\ProgramData\iotedge\config.yaml"
+            ? Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\iotedge\config.yaml"
             : "/etc/iotedge/config.yaml";
 
         public static bool IsWindows() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
