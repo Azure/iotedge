@@ -13,7 +13,6 @@ use kube_client::{Error as KubeClientError, TokenSource};
 use crate::constants::EDGE_EDGE_AGENT_NAME;
 use crate::convert::{spec_to_deployment, spec_to_role_binding, spec_to_service_account};
 use crate::error::Error;
-use crate::runtime::KubeRuntimeData;
 use crate::KubeModuleRuntime;
 
 pub fn create_module<T, S>(
@@ -55,7 +54,7 @@ where
     S::Error: Into<KubeClientError>,
     S::Future: Send,
 {
-    spec_to_service_account(runtime, module)
+    spec_to_service_account(runtime.settings(), module)
         .map_err(Error::from)
         .map(|(name, new_service_account)| {
             runtime
@@ -63,7 +62,11 @@ where
                 .lock()
                 .expect("Unexpected lock error")
                 .borrow_mut()
-                .replace_service_account(runtime.namespace(), &name, &new_service_account)
+                .replace_service_account(
+                    runtime.settings().namespace(),
+                    &name,
+                    &new_service_account,
+                )
                 .map_err(Error::from)
                 .map(|_| ())
         })
@@ -84,7 +87,7 @@ where
     S::Error: Into<KubeClientError>,
     S::Future: Send,
 {
-    spec_to_role_binding(runtime, module)
+    spec_to_role_binding(runtime.settings(), module)
         .map_err(Error::from)
         .map(|(name, new_role_binding)| {
             // create new role only for edge agent
@@ -95,7 +98,11 @@ where
                         .lock()
                         .expect("Unexpected lock error")
                         .borrow_mut()
-                        .replace_role_binding(runtime.namespace(), &name, &new_role_binding)
+                        .replace_role_binding(
+                            runtime.settings().namespace(),
+                            &name,
+                            &new_role_binding,
+                        )
                         .map_err(Error::from)
                         .map(|_| ()),
                 )
@@ -120,7 +127,7 @@ where
     S::Error: Into<KubeClientError>,
     S::Future: Send,
 {
-    spec_to_deployment(runtime, module)
+    spec_to_deployment(runtime.settings(), module)
         .map_err(Error::from)
         .map(|(name, new_deployment)| {
             runtime
@@ -128,7 +135,7 @@ where
                 .lock()
                 .expect("Unexpected lock error")
                 .borrow_mut()
-                .replace_deployment(runtime.namespace(), &name, &new_deployment)
+                .replace_deployment(runtime.settings().namespace(), &name, &new_deployment)
                 .map_err(Error::from)
                 .map(|_| ())
         })

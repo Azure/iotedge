@@ -19,9 +19,8 @@ use libc;
 use regex::Regex;
 use serde_json;
 
-use edgelet_config::{Provisioning, Settings};
-use edgelet_core::{self, MobyNetwork, UrlExt};
-use edgelet_docker::DockerConfig;
+use edgelet_core::{self, MobyNetwork, Provisioning, RuntimeSettings, UrlExt};
+use edgelet_docker::Settings;
 use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
 
@@ -192,7 +191,7 @@ pub struct Check {
     additional_info: AdditionalInfo,
 
     // These optional fields are populated by the checks
-    settings: Option<Settings<DockerConfig>>,
+    settings: Option<Settings>,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
     iothub_hostname: Option<String>,
@@ -1854,7 +1853,7 @@ mod tests {
 
         for filename in &["sample_settings.yaml", "sample_settings.tg.yaml"] {
             let config_file = format!(
-                "{}/../edgelet-config/test/{}/{}",
+                "{}/../edgelet-docker/test/{}/{}",
                 env!("CARGO_MANIFEST_DIR"),
                 if cfg!(windows) { "windows" } else { "linux" },
                 filename,
@@ -1925,7 +1924,7 @@ mod tests {
 
         let filename = "bad_sample_settings.yaml";
         let config_file = format!(
-            "{}/../edgelet-config/test/{}/{}",
+            "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
             filename,
@@ -1972,7 +1971,7 @@ mod tests {
 
         let filename = "sample_settings.dps.sym.yaml";
         let config_file = format!(
-            "{}/../edgelet-config/test/{}/{}",
+            "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
             filename,
@@ -2011,7 +2010,7 @@ mod tests {
 
         let filename = "sample_settings.dps.sym.yaml";
         let config_file = format!(
-            "{}/../edgelet-config/test/{}/{}",
+            "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
             filename,
@@ -2054,7 +2053,7 @@ mod tests {
 
         let filename = "sample_settings_notmoby.yaml";
         let config_file = format!(
-            "{}/../edgelet-config/test/{}/{}",
+            "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
             filename,
@@ -2107,7 +2106,7 @@ mod tests {
 
         let filename = "sample_settings.yaml";
         let config_file = format!(
-            "{}/../edgelet-config/test/{}/{}",
+            "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
             filename,

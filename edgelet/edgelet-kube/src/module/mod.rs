@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+mod authentication;
 mod create;
 
+pub use authentication::authenticate;
 pub use create::create_module;
 
 use edgelet_core::{Module, ModuleRuntimeState, ModuleStatus};
