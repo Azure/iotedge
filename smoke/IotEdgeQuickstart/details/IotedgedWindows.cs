@@ -164,13 +164,15 @@ namespace IotEdgeQuickstart.Details
                     dps =>
                     {
                         string dpsArgs = string.Empty;
-                        dpsArgs += $" -ScopeId '{dps.ScopeId}'";
+                        dpsArgs += $" -Dps -ScopeId '{dps.ScopeId}'";
                         dps.RegistrationId.ForEach(id => { dpsArgs += $" -RegistrationId '{id}'"; });
                         dps.DeviceIdentityCertificate.ForEach(certPath => { dpsArgs += $" -X509IdentityCertificate '{certPath}'"; });
                         dps.DeviceIdentityPrivateKey.ForEach(pkPath => { dpsArgs += $" -X509IdentityPrivateKey '{pkPath}'"; });
                         dps.SymmetricKey.ForEach(symmKey => { dpsArgs += $" -SymmetricKey '{symmKey}'"; });
                         return dpsArgs;
                     }).GetOrElse(string.Empty);
+
+                Console.WriteLine($">>>>>>>>>>>>>>> '{args}'...");
 
                 string commandForDebug = args;
 
