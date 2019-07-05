@@ -67,8 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                                 // kick off a new watch
                                 this.client.ListNamespacedPodWithHttpMessagesAsync(this.deviceNamespace, watch: true).ContinueWith(this.ListPodComplete);
                             },
-                            onError: Events.ExceptionInPodWatch
-                        ));
+                            onError: Events.ExceptionInPodWatch));
                 }
                 else
                 {
@@ -294,8 +293,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesRuntimeInfoProvider>();
             const int IdStart = KubernetesEventIds.KubernetesReporter;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesRuntimeInfoProvider>();
 
             enum EventIds
             {
