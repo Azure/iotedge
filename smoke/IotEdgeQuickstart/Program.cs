@@ -241,6 +241,7 @@ Defaults:
                         {
                             throw new ArgumentException("Device identity certificate path is invalid");
                         }
+                        dpsAttestation = Option.Some(new DPSAttestation(this.DPSEndpoint, this.DPSScopeId, Option.None<string>(), this.DeviceIdentityCert, this.DeviceIdentityPk));
                     }
                     else
                     {
@@ -251,7 +252,6 @@ Defaults:
                         string deviceKey = ComputeDerivedSymmetricKey(Convert.FromBase64String(this.DPSMasterSymmetricKey), this.DPSRegistrationId);
                         dpsAttestation = Option.Some(new DPSAttestation(this.DPSEndpoint, this.DPSScopeId, this.DPSRegistrationId, deviceKey));
                     }
-
                 }
 
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??

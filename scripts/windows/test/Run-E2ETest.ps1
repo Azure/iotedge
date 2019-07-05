@@ -141,7 +141,7 @@
             -E2ETestFolder "C:\Data\e2etests"
             -ReleaseLabel "Release-ARM-1"
             -ArtifactImageBuildNumber "20190101.1"
-            -TestName "DpsSymmetricKeyProvisioning"
+            -TestName "DpsX509Provisioning"
             -ContainerRegistry "yourpipeline.azurecr.io"
             -ContainerRegistryUsername "xxxx"
             -ContainerRegistryPassword "xxxx"
