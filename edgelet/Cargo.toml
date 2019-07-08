@@ -2,7 +2,6 @@
 members = [
     "docker-rs",
     "dps",
-    "edgelet-config",
     "edgelet-core",
     "edgelet-docker",
     "edgelet-hsm",

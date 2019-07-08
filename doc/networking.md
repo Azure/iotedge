@@ -69,14 +69,15 @@ moby_runtime:
     name: "azure-iot-edge"
     ipv6: true
     ipam:
-      - 
-          gateway: '172.18.0.1'
-          subnet: '172.18.0.0/16'
-          ip_range: '172.18.0.0/16'
-      - 
-          gateway: '2021:ffff:e0:3b1:1::1'
-          subnet: '2021:ffff:e0:3b1:1::/80'
-          ip_range: '2021:ffff:e0:3b1:1::/80'
+      config:
+        - 
+            gateway: '172.18.0.1'
+            subnet: '172.18.0.0/16'
+            ip_range: '172.18.0.0/16'
+        - 
+            gateway: '2021:ffff:e0:3b1:1::1'
+            subnet: '2021:ffff:e0:3b1:1::/80'
+            ip_range: '2021:ffff:e0:3b1:1::/80'
 ```
 
 Any changes to other specific settings of this network must be made out of band, via the Moby Engine.
