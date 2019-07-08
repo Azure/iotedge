@@ -143,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             (AuthType.Sas, Protocol.Mqtt, true),
             (AuthType.Sas, Protocol.Amqp, true),
             // (AuthType.X509Certificate, Protocol.Mqtt, true),
-            // (AuthType.X509Certificate, Protocol.Amqp, true),
+            (AuthType.X509Certificate, Protocol.Amqp, true),
             // (AuthType.X509Thumbprint, Protocol.Mqtt, true),
             // (AuthType.X509Thumbprint, Protocol.Amqp, true)
         };

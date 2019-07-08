@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             Log.Verbose(string.Join("\n", output));
         }
 
-        public static void InstallTrustedCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings) =>
-            transportSettings.SetupCertificateValidation(certs);
+        public static void InstallEdgeCertificates(X509Certificate2 cert, ITransportSettings transportSettings) =>
+            transportSettings.SetupCertificateValidation(cert);
     }
 }

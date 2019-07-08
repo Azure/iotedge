@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 
     static class TransportSettingsExtensions
     {
-        public static void SetupCertificateValidation(this ITransportSettings transportSettings, IEnumerable<X509Certificate2> trustedCerts)
+        public static void SetupCertificateValidation(this ITransportSettings transportSettings, X509Certificate2 trustedCert)
         {
             switch (transportSettings.GetTransportType())
             {
@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
                         {
                             amqpTransportSettings.RemoteCertificateValidationCallback =
                                 (sender, certificate, chain, sslPolicyErrors) =>
-                                    ValidateCertificate(trustedCerts.First(), certificate, chain, sslPolicyErrors);
+                                    ValidateCertificate(trustedCert, certificate, chain, sslPolicyErrors);
                         }
                     }
 
@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
                         {
                             mqttTransportSettings.RemoteCertificateValidationCallback =
                                 (sender, certificate, chain, sslPolicyErrors) =>
-                                    ValidateCertificate(trustedCerts.First(), certificate, chain, sslPolicyErrors);
+                                    ValidateCertificate(trustedCert, certificate, chain, sslPolicyErrors);
                         }
                     }
 

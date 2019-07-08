@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Runtime.InteropServices;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
@@ -43,15 +44,29 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             ? Windows.CertHelper.InstallRootCertificateAsync(certPath, keyPath, password, scriptPath, token)
             : Linux.CertHelper.InstallRootCertificateAsync(certPath, keyPath, password, scriptPath, token);
 
-        public static void InstallTrustedCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings)
+        public static void InstallEdgeCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings)
         {
             if (IsWindows())
             {
-                Windows.CertHelper.InstallTrustedCertificates(certs, transportSettings);
+                Windows.CertHelper.InstallEdgeCertificates(certs.First(), transportSettings);
             }
             else
             {
-                Linux.CertHelper.InstallTrustedCertificates(certs);
+                InstallTrustedCertificates(certs);
+            }
+        }
+
+        public static void InstallTrustedCertificates(IEnumerable<X509Certificate2> certs)
+        {
+            // On Windows, store certs under intermediate CA instead of root CA to avoid security UI in automated tests
+            var name = IsWindows() ? StoreName.CertificateAuthority : StoreName.Root;
+            using (var store = new X509Store(name, StoreLocation.CurrentUser))
+            {
+                store.Open(OpenFlags.ReadWrite);
+                foreach (var cert in certs)
+                {
+                    store.Add(cert);
+                }
             }
         }
 

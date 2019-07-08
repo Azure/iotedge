@@ -78,19 +78,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, CancellationToken token)
         {
-            return this.CreateDeviceIdentityAsync(
-                deviceId,
-                id => new Device(id)
-                {
-                    Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
-                    Capabilities = new DeviceCapabilities() { IotEdge = true }
-                },
-                token);
+            Device edge = new Device(deviceId)
+            {
+                Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
+                Capabilities = new DeviceCapabilities() { IotEdge = true }
+            };
+            return this.RegistryManager.AddDeviceAsync(edge, token);
         }
 
         public async Task<Device> CreateLeafDeviceIdentityAsync(string deviceId, Option<string> parentId, CancellationToken token)
         {
-            var scope = Option.None<string>();
+            Device leaf = new Device(deviceId)
+            {
+                Authentication = new AuthenticationMechanism { Type = AuthenticationType.Sas }
+            };
 
             await parentId.ForEachAsync(
                 async p =>
@@ -100,27 +101,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     {
                         throw new ArgumentException($"Device '{p}' not found in '{this.Hostname}'");
                     }
-                    scope = Option.Some(edge.Scope);
+                    leaf.Scope = edge.Scope;
                 });
 
-            return await this.CreateDeviceIdentityAsync(
-                deviceId,
-                id =>
-                {
-                    var leaf = new Device(id)
-                    {
-                        Authentication = new AuthenticationMechanism { Type = AuthenticationType.Sas }
-                    };
-                    scope.ForEach(s => leaf.Scope = s);
-                    return leaf;
-                },
-                token);
-        }
-
-        Task<Device> CreateDeviceIdentityAsync(string deviceId, Func<string, Device> deviceFactory, CancellationToken token)
-        {
-            Device device = deviceFactory(deviceId);
-            return this.RegistryManager.AddDeviceAsync(device, token);
+            return await this.RegistryManager.AddDeviceAsync(leaf, token);
         }
 
         public Task DeleteDeviceIdentityAsync(Device device, CancellationToken token) =>
