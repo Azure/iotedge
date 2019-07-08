@@ -1,5 +1,5 @@
 # 1.0.8-rc3 (2019-07-02)
-* Upgrade C# Client SDK to 1.20.1 and Service SDK to 1.18.1
+* Upgrade C# Client SDK to 1.20.3 and Service SDK to 1.18.1
 * Various improvements to `iotedge check` troubleshooting command
 
 ## Edge Agent
