@@ -238,7 +238,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 var runtimeModules = await k8sRuntimeInfo.GetModules(CancellationToken.None);
                 var moduleRuntimeInfos = runtimeModules as ModuleRuntimeInfo[] ?? runtimeModules.ToArray();
 
-                Assert.Equal(1, moduleRuntimeInfos.Length);
+                Assert.Single(moduleRuntimeInfos);
                 foreach (var i in moduleRuntimeInfos)
                 {
                     Assert.Equal("edgeAgent", i.Name);
