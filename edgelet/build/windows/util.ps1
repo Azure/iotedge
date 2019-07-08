@@ -148,7 +148,6 @@ dtoa = { git = "https://github.com/philipktlin/dtoa", branch = "arm" }
 iovec = { git = "https://github.com/philipktlin/iovec", branch = "arm" }
 mio = { git = "https://github.com/philipktlin/mio", branch = "arm" }
 miow = { git = "https://github.com/philipktlin/miow", branch = "arm" }
-serde-hjson = { git = "https://github.com/philipktlin/hjson-rust", branch = "arm" }
 winapi = { git = "https://github.com/philipktlin/winapi-rs", branch = "arm/v0.3.5" }
 
 [patch."https://github.com/Azure/mio-uds-windows.git"]

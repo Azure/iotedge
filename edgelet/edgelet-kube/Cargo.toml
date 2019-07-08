@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 base64 = "0.9"
-config = "0.9"
+config = { version = "0.9", default-features = false, features = ["yaml"] }
 failure = "0.1"
 futures = "0.1"
 hyper = "0.12"
@@ -29,6 +29,7 @@ kube-client = { path = "../kube-client" }
 provisioning = { path = "../provisioning" }
 
 [dev_dependencies]
+config = { version = "0.9", default-features = false, features = ["json", "yaml"] }
 json-patch = "0.2.5"
 maplit = "1.0"
 time = "0.1"
