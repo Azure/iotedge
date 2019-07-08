@@ -341,6 +341,29 @@ where
             .flatten()
     }
 
+    pub fn get_service_account(
+        &mut self,
+        namespace: &str,
+        name: &str,
+    ) -> impl Future<Item = api_core::ServiceAccount, Error = Error> {
+        api_core::ServiceAccount::read_namespaced_service_account(
+            name,
+            namespace,
+            api_core::ReadNamespacedServiceAccountOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                api_core::ReadNamespacedServiceAccountResponse::Ok(service_account) => {
+                    Ok(service_account)
+                }
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
+        })
+        .into_future()
+        .flatten()
+    }
+
     pub fn list_service_accounts(
         &mut self,
         namespace: &str,
