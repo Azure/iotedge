@@ -162,7 +162,7 @@ pub mod impl_macos {
     use std::{io, mem};
 
     use libc::getpeereid;
-    use tokio_uds::{UCred, UnixStream};
+    use tokio_uds::UnixStream;
 
     use super::*;
 
@@ -170,13 +170,14 @@ pub mod impl_macos {
         unsafe {
             let raw_fd = sock.as_raw_fd();
 
-            let mut ucred: UCred = mem::uninitialized();
+            let mut uid = 0;
+            let mut gid = 0;
 
-            let ret = getpeereid(raw_fd, &mut ucred.uid, &mut ucred.gid);
+            let ret = getpeereid(raw_fd, &mut uid, &mut gid);
 
             if ret == 0 {
                 #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
-                Ok(Pid::Value(ucred.uid as _))
+                Ok(Pid::Value(uid as _))
             } else {
                 Err(io::Error::last_os_error())
             }

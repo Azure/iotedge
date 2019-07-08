@@ -18,7 +18,7 @@ use serde_json;
 use crate::constants::*;
 use crate::convert::sanitize_dns_value;
 use crate::error::{ErrorKind, Result};
-use crate::runtime::KubeRuntimeData;
+use crate::settings::Settings;
 
 // Use username and server from Docker AuthConfig to construct an image pull secret name.
 fn auth_to_pull_secret_name(auth: &AuthConfig) -> Option<String> {
@@ -109,8 +109,8 @@ pub fn auth_to_image_pull_secret(
 }
 
 /// Convert Docker `ModuleSpec` to K8s `PodSpec`
-fn spec_to_podspec<R: KubeRuntimeData>(
-    runtime: &R,
+fn spec_to_podspec(
+    settings: &Settings,
     spec: &ModuleSpec<DockerConfig>,
     module_label_value: String,
     module_image: String,
@@ -144,7 +144,7 @@ fn spec_to_podspec<R: KubeRuntimeData>(
         })
         .collect();
     // Pass along "USE_PERSISTENT_VOLUMES" to EdgeAgent
-    if runtime.use_pvc() && EDGE_EDGE_AGENT_NAME == module_label_value {
+    if settings.use_pvc() && EDGE_EDGE_AGENT_NAME == module_label_value {
         let env_var = api_core::EnvVar {
             name: USE_PERSISTENT_VOLUME_CLAIMS.to_string(),
             value: Some("True".to_string()),
@@ -156,7 +156,7 @@ fn spec_to_podspec<R: KubeRuntimeData>(
     // Bind/volume mounts
     // ConfigMap volume name is fixed: "config-volume"
     let proxy_config_volume_source = api_core::ConfigMapVolumeSource {
-        name: Some(runtime.proxy_config_map_name().to_string()),
+        name: Some(settings.proxy_config_map_name().to_string()),
         ..api_core::ConfigMapVolumeSource::default()
     };
     // Volume entry for proxy's config map.
@@ -169,7 +169,7 @@ fn spec_to_podspec<R: KubeRuntimeData>(
 
     // Where to mount proxy config map.
     let proxy_volume_mount = api_core::VolumeMount {
-        mount_path: runtime.proxy_config_path().to_string(),
+        mount_path: settings.proxy_config_path().to_string(),
         name: PROXY_CONFIG_VOLUME_NAME.to_string(),
         read_only: Some(true),
         ..api_core::VolumeMount::default()
@@ -265,7 +265,7 @@ fn spec_to_podspec<R: KubeRuntimeData>(
                     if let (Some(source), Some(target)) = (mount.source(), mount.target()) {
                         let volume_name = sanitize_dns_value(source)?;
 
-                        let volume = if runtime.use_pvc() {
+                        let volume = if settings.use_pvc() {
                             api_core::Volume {
                                 name: volume_name.clone(),
                                 persistent_volume_claim: Some(
@@ -315,7 +315,7 @@ fn spec_to_podspec<R: KubeRuntimeData>(
                 name: module_label_value.clone(),
                 env: Some(env_vars.clone()),
                 image: Some(module_image),
-                image_pull_policy: Some(runtime.image_pull_policy().to_string()),
+                image_pull_policy: Some(settings.image_pull_policy().to_string()),
                 security_context: security,
                 volume_mounts: Some(volume_mounts),
                 ..api_core::Container::default()
@@ -324,8 +324,8 @@ fn spec_to_podspec<R: KubeRuntimeData>(
             api_core::Container {
                 name: PROXY_CONTAINER_NAME.to_string(),
                 env: Some(env_vars),
-                image: Some(runtime.proxy_image().to_string()),
-                image_pull_policy: Some(runtime.image_pull_policy().to_string()),
+                image: Some(settings.proxy_image().to_string()),
+                image_pull_policy: Some(settings.image_pull_policy().to_string()),
                 volume_mounts: Some(proxy_volume_mounts),
                 ..api_core::Container::default()
             },
@@ -338,15 +338,19 @@ fn spec_to_podspec<R: KubeRuntimeData>(
 }
 
 /// Convert Docker Module Spec into a K8S Deployment.
-pub fn spec_to_deployment<R: KubeRuntimeData>(
-    runtime: &R,
+pub fn spec_to_deployment(
+    settings: &Settings,
     spec: &ModuleSpec<DockerConfig>,
 ) -> Result<(String, apps::Deployment)> {
     // Set some values...
     let module_label_value = sanitize_dns_value(spec.name())?;
-    let device_label_value = sanitize_dns_value(runtime.device_id())?;
-    let hubname_label = sanitize_dns_value(runtime.iot_hub_hostname())?;
-
+    let device_label_value =
+        sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
+    let hubname_label = sanitize_dns_value(
+        settings
+            .iot_hub_hostname()
+            .ok_or(ErrorKind::MissingHubName)?,
+    )?;
     let deployment_name = module_label_value.clone();
     let module_image = spec.config().image().to_string();
 
@@ -372,7 +376,7 @@ pub fn spec_to_deployment<R: KubeRuntimeData>(
     let deployment = apps::Deployment {
         metadata: Some(api_meta::ObjectMeta {
             name: Some(deployment_name.clone()),
-            namespace: Some(runtime.namespace().to_string()),
+            namespace: Some(settings.namespace().to_string()),
             labels: Some(deployment_labels),
             ..api_meta::ObjectMeta::default()
         }),
@@ -389,7 +393,7 @@ pub fn spec_to_deployment<R: KubeRuntimeData>(
                     ..api_meta::ObjectMeta::default()
                 }),
                 spec: Some(spec_to_podspec(
-                    runtime,
+                    settings,
                     spec,
                     module_label_value,
                     module_image,
@@ -402,13 +406,18 @@ pub fn spec_to_deployment<R: KubeRuntimeData>(
     Ok((deployment_name, deployment))
 }
 
-pub fn spec_to_service_account<R: KubeRuntimeData>(
-    runtime: &R,
+pub fn spec_to_service_account(
+    settings: &Settings,
     spec: &ModuleSpec<DockerConfig>,
 ) -> Result<(String, api_core::ServiceAccount)> {
     let module_label_value = sanitize_dns_value(spec.name())?;
-    let device_label_value = sanitize_dns_value(runtime.device_id())?;
-    let hubname_label = sanitize_dns_value(runtime.iot_hub_hostname())?;
+    let device_label_value =
+        sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
+    let hubname_label = sanitize_dns_value(
+        settings
+            .iot_hub_hostname()
+            .ok_or(ErrorKind::MissingHubName)?,
+    )?;
 
     let service_account_name = module_label_value.clone();
 
@@ -425,7 +434,7 @@ pub fn spec_to_service_account<R: KubeRuntimeData>(
     let service_account = api_core::ServiceAccount {
         metadata: Some(api_meta::ObjectMeta {
             name: Some(service_account_name.clone()),
-            namespace: Some(runtime.namespace().to_string()),
+            namespace: Some(settings.namespace().to_string()),
             labels: Some(labels),
             annotations: Some(annotations),
             ..api_meta::ObjectMeta::default()
@@ -436,13 +445,18 @@ pub fn spec_to_service_account<R: KubeRuntimeData>(
     Ok((service_account_name, service_account))
 }
 
-pub fn spec_to_role_binding<R: KubeRuntimeData>(
-    runtime: &R,
+pub fn spec_to_role_binding(
+    settings: &Settings,
     spec: &ModuleSpec<DockerConfig>,
 ) -> Result<(String, rbac::ClusterRoleBinding)> {
     let module_label_value = sanitize_dns_value(spec.name())?;
-    let device_label_value = sanitize_dns_value(runtime.device_id())?;
-    let hubname_label = sanitize_dns_value(runtime.iot_hub_hostname())?;
+    let device_label_value =
+        sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
+    let hubname_label = sanitize_dns_value(
+        settings
+            .iot_hub_hostname()
+            .ok_or(ErrorKind::MissingHubName)?,
+    )?;
 
     let role_binding_name = module_label_value.clone();
 
@@ -459,7 +473,7 @@ pub fn spec_to_role_binding<R: KubeRuntimeData>(
     let role_binding = rbac::ClusterRoleBinding {
         metadata: Some(api_meta::ObjectMeta {
             name: Some(role_binding_name.clone()),
-            namespace: Some(runtime.namespace().to_string()),
+            namespace: Some(settings.namespace().to_string()),
             labels: Some(labels),
             annotations: Some(annotations),
             ..api_meta::ObjectMeta::default()
@@ -473,7 +487,7 @@ pub fn spec_to_role_binding<R: KubeRuntimeData>(
             api_group: None,
             kind: "ServiceAccount".into(),
             name: module_label_value,
-            namespace: Some(runtime.namespace().into()),
+            namespace: Some(settings.namespace().into()),
         }],
     };
 
@@ -490,7 +504,7 @@ mod tests {
     use crate::convert::to_k8s::auth_to_image_pull_secret;
     use crate::convert::to_k8s::{Auth, AuthEntry};
     use crate::convert::{spec_to_role_binding, spec_to_service_account};
-    use crate::runtime::KubeRuntimeData;
+    use crate::tests::make_settings;
     use docker::models::AuthConfig;
     use docker::models::ContainerCreateBody;
     use docker::models::HostConfig;
@@ -498,91 +512,9 @@ mod tests {
     use edgelet_core::{ImagePullPolicy, ModuleSpec};
     use edgelet_docker::DockerConfig;
     use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
-    use serde_json;
     use std::collections::BTreeMap;
     use std::collections::HashMap;
     use std::str;
-    use url::Url;
-
-    struct KubeRuntimeTest {
-        use_pvc: bool,
-        namespace: String,
-        iot_hub_hostname: String,
-        device_id: String,
-        edge_hostname: String,
-        proxy_image: String,
-        proxy_config_path: String,
-        proxy_config_map_name: String,
-        image_pull_policy: String,
-        workload_uri: Url,
-        management_uri: Url,
-    }
-
-    impl KubeRuntimeTest {
-        pub fn new(
-            use_pvc: bool,
-            namespace: String,
-            iot_hub_hostname: String,
-            device_id: String,
-            edge_hostname: String,
-            proxy_image: String,
-            proxy_config_path: String,
-            proxy_config_map_name: String,
-            image_pull_policy: String,
-            workload_uri: Url,
-            management_uri: Url,
-        ) -> KubeRuntimeTest {
-            KubeRuntimeTest {
-                use_pvc,
-                namespace,
-                iot_hub_hostname,
-                device_id,
-                edge_hostname,
-                proxy_image,
-                proxy_config_path,
-                proxy_config_map_name,
-                image_pull_policy,
-                workload_uri,
-                management_uri,
-            }
-        }
-    }
-
-    impl KubeRuntimeData for KubeRuntimeTest {
-        fn namespace(&self) -> &str {
-            &self.namespace
-        }
-        fn use_pvc(&self) -> bool {
-            self.use_pvc
-        }
-        fn iot_hub_hostname(&self) -> &str {
-            &self.iot_hub_hostname
-        }
-        fn device_id(&self) -> &str {
-            &self.device_id
-        }
-        fn edge_hostname(&self) -> &str {
-            &self.edge_hostname
-        }
-        fn proxy_image(&self) -> &str {
-            &self.proxy_image
-        }
-        fn proxy_config_path(&self) -> &str {
-            &self.proxy_config_path
-        }
-        fn proxy_config_map_name(&self) -> &str {
-            &self.proxy_config_map_name
-        }
-        fn image_pull_policy(&self) -> &str {
-            &self.image_pull_policy
-        }
-        fn workload_uri(&self) -> &Url {
-            &self.workload_uri
-        }
-        fn management_uri(&self) -> &Url {
-            &self.management_uri
-        }
-    }
 
     fn create_module_spec() -> ModuleSpec<DockerConfig> {
         let create_body = ContainerCreateBody::new()
@@ -660,22 +592,9 @@ mod tests {
     #[allow(clippy::cognitive_complexity)]
     #[test]
     fn deployment_success() {
-        let runtime = KubeRuntimeTest::new(
-            true,
-            String::from("default1"),
-            String::from("iotHub"),
-            String::from("device1"),
-            String::from("$edgeAgent"),
-            String::from("proxy:latest"),
-            String::from("/etc/traefik"),
-            String::from("device1-iotedged-proxy-config"),
-            String::from("OnCreate"),
-            Url::parse("http://localhost:35000").unwrap(),
-            Url::parse("http://localhost:35001").unwrap(),
-        );
         let module_config = create_module_spec();
 
-        let (name, deployment) = spec_to_deployment(&runtime, &module_config).unwrap();
+        let (name, deployment) = spec_to_deployment(&make_settings(None), &module_config).unwrap();
         assert_eq!(name, "edgeagent");
         validate_deployment_metadata(
             "edgeagent",
@@ -710,7 +629,7 @@ mod tests {
                     assert_eq!(module.env.as_ref().map(Vec::len).unwrap(), 3);
                     assert_eq!(module.volume_mounts.as_ref().map(Vec::len).unwrap(), 7);
                     assert_eq!(module.image.as_ref().unwrap(), "my-image:v1.0");
-                    assert_eq!(module.image_pull_policy.as_ref().unwrap(), "OnCreate");
+                    assert_eq!(module.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
                 }
                 if let Some(proxy) = podspec
                     .containers
@@ -721,7 +640,7 @@ mod tests {
                     assert_eq!(proxy.env.as_ref().map(Vec::len).unwrap(), 3);
                     assert_eq!(proxy.volume_mounts.as_ref().map(Vec::len).unwrap(), 1);
                     assert_eq!(proxy.image.as_ref().unwrap(), "proxy:latest");
-                    assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "OnCreate");
+                    assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
                 }
                 assert_eq!(podspec.service_account_name.as_ref().unwrap(), "edgeagent");
                 assert!(podspec.image_pull_secrets.is_some());
@@ -778,29 +697,16 @@ mod tests {
 
     #[test]
     fn module_to_service_account() {
-        let runtime = KubeRuntimeTest::new(
-            true,
-            String::from("default1"),
-            String::from("iotHub"),
-            String::from("device1"),
-            String::from("$edgeAgent"),
-            String::from("proxy:latest"),
-            String::from("/etc/traefik"),
-            String::from("device1-iotedged-proxy-config"),
-            String::from("IfNotPresent"),
-            Url::parse("http://localhost:35000").unwrap(),
-            Url::parse("http://localhost:35001").unwrap(),
-        );
-
         let module = create_module_spec();
 
-        let (name, service_account) = spec_to_service_account(&runtime, &module).unwrap();
+        let (name, service_account) =
+            spec_to_service_account(&make_settings(None), &module).unwrap();
         assert_eq!(name, "edgeagent");
 
         assert!(service_account.metadata.is_some());
         if let Some(metadata) = service_account.metadata {
             assert_eq!(metadata.name, Some("edgeagent".to_string()));
-            assert_eq!(metadata.namespace, Some("default1".to_string()));
+            assert_eq!(metadata.namespace, Some("default".to_string()));
 
             assert!(metadata.annotations.is_some());
             if let Some(annotations) = metadata.annotations {
@@ -820,28 +726,14 @@ mod tests {
 
     #[test]
     fn module_to_role_binding() {
-        let runtime = KubeRuntimeTest::new(
-            true,
-            String::from("default1"),
-            String::from("iotHub"),
-            String::from("device1"),
-            String::from("$edgeAgent"),
-            String::from("proxy:latest"),
-            String::from("/etc/traefik"),
-            String::from("device1-iotedged-proxy-config"),
-            String::from("IfNotPresent"),
-            Url::parse("http://localhost:35000").unwrap(),
-            Url::parse("http://localhost:35001").unwrap(),
-        );
-
         let module = create_module_spec();
 
-        let (name, role_binding) = spec_to_role_binding(&runtime, &module).unwrap();
+        let (name, role_binding) = spec_to_role_binding(&make_settings(None), &module).unwrap();
         assert_eq!(name, "edgeagent");
         assert!(role_binding.metadata.is_some());
         if let Some(metadata) = role_binding.metadata {
             assert_eq!(metadata.name, Some("edgeagent".to_string()));
-            assert_eq!(metadata.namespace, Some("default1".to_string()));
+            assert_eq!(metadata.namespace, Some("default".to_string()));
 
             assert!(metadata.annotations.is_some());
             if let Some(annotations) = metadata.annotations {
@@ -867,6 +759,6 @@ mod tests {
         assert_eq!(subject.api_group, None);
         assert_eq!(subject.kind, "ServiceAccount");
         assert_eq!(subject.name, "edgeagent");
-        assert_eq!(subject.namespace, Some("default1".to_string()));
+        assert_eq!(subject.namespace, Some("default".to_string()));
     }
 }

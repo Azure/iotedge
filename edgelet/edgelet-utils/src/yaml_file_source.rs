@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs::File;
@@ -13,7 +15,7 @@ use yaml_rust::{Yaml, YamlLoader};
 /// This causes issues with fields like `agent.config.createOptions` since the config crate returns `agent.config.createoptions`
 /// which the serde deserializer ignores.
 #[derive(Clone, Debug)]
-pub(crate) enum YamlFileSource {
+pub enum YamlFileSource {
     File(PathBuf),
     String(&'static str),
 }
