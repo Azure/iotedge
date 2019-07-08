@@ -7,13 +7,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     [Serializable]
     public class KuberenetesResponseException : Exception
     {
-        public KuberenetesResponseException(string message) : base(message)
+        public KuberenetesResponseException(string message)
+            : base(message)
         {
-
         }
-        public KuberenetesResponseException(string message, Exception inner) : base(message, inner)
-        {
 
+        public KuberenetesResponseException(string message, Exception inner)
+            : base(message, inner)
+        {
         }
     }
 }

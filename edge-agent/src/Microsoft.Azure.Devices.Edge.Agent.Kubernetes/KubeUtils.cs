@@ -18,18 +18,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         const int MaxDnsNameLength = 63;
         const int MaxLabelValueLength = 63;
         static readonly HashSet<char> AlphaHashSet = new HashSet<char>(Alphabet.ToCharArray());
-        static readonly HashSet<char> AlphaNumericHashSet = new HashSet<char>( (Alphabet+Numeric).ToCharArray());
-        static readonly HashSet<char> AllowedLabelsHashSet = new HashSet<char>((Alphabet+Numeric+AllowedCharsLabelValues).ToCharArray());
-        static readonly HashSet<char> AllowedDnsHashSet = new HashSet<char>((Alphabet+Numeric+AllowedCharsDns).ToCharArray());
-        static readonly HashSet<char> AllowedGenericHashSet = new HashSet<char>((Alphabet+Numeric+AllowedCharsGeneric).ToCharArray());
+        static readonly HashSet<char> AlphaNumericHashSet = new HashSet<char>((Alphabet + Numeric).ToCharArray());
+        static readonly HashSet<char> AllowedLabelsHashSet = new HashSet<char>((Alphabet + Numeric + AllowedCharsLabelValues).ToCharArray());
+        static readonly HashSet<char> AllowedDnsHashSet = new HashSet<char>((Alphabet + Numeric + AllowedCharsDns).ToCharArray());
+        static readonly HashSet<char> AllowedGenericHashSet = new HashSet<char>((Alphabet + Numeric + AllowedCharsGeneric).ToCharArray());
 
         static bool IsAlpha(char ch) => AlphaHashSet.Contains(ch);
 
         static bool IsAlphaNumeric(char ch) => AlphaNumericHashSet.Contains(ch);
 
-        // Valid annotation keys have two segments: an optional prefix and name, separated by a slash (/). 
-        // The name segment is required and must be 63 characters or less, beginning and ending with an 
-        // alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between. 
+        // Valid annotation keys have two segments: an optional prefix and name, separated by a slash (/).
+        // The name segment is required and must be 63 characters or less, beginning and ending with an
+        // alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
         // The prefix is optional. If specified, the prefix must be a DNS subdomain
         public static string SanitizeAnnotationKey(string key)
         {
@@ -130,10 +130,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     output.Append(name[i]);
                 }
             }
+
             if (output.Length > MaxDnsNameLength)
             {
                 throw new InvalidKubernetesNameException($"DNS name '{name}' exceeded maximum length of {MaxDnsNameLength}");
             }
+
             if (output.Length == 0)
             {
                 throw new InvalidKubernetesNameException($"DNS name '{name}' as sanitized is empty");
@@ -192,6 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 start++;
             }
+
             if (start == name.Length)
             {
                 throw new InvalidKubernetesNameException($"Name '{name}' does not start with a valid character");
@@ -214,6 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     output.Append(name[i]);
                 }
             }
+
             if (output.Length > MaxLabelValueLength)
             {
                 throw new InvalidKubernetesNameException($"Name '{name}' exceeded maximum length of {MaxLabelValueLength}");
@@ -238,6 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 throw new InvalidKubernetesNameException($"Name '{name}' is null or empty");
             }
+
             return SanitizeNameValue(name.ToLower());
         }
     }
