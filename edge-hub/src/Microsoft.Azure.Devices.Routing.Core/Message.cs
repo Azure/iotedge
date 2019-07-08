@@ -7,9 +7,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Globalization;
     using System.Linq;
     using System.Text;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Newtonsoft.Json;
     using SystemPropertiesList = SystemProperties;
 
