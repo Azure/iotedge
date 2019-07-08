@@ -334,6 +334,12 @@ function process_args() {
             ROOT_CA_PASSWORD="$arg"
             INSTALL_CA_CERT=1
             save_next_arg=0
+        elif [ $saveNextArg -eq 28 ]; then
+            DPS_SCOPE_ID="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 29 ]; then
+            DPS_MASTER_SYMMETRIC_KEY="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -364,6 +370,8 @@ function process_args() {
                 '-install-root-ca-cert' ) saveNextArg=25;;
                 '-install-root-ca-key' ) saveNextArg=26;;
                 '-install-root-ca-key-password' ) saveNextArg=27;;
+                '-dpsScopeId' ) saveNextArg=28;;
+                '-dpsMasterSymmetricKey' ) saveNextArg=29;
                 * ) usage;;
             esac
         fi
@@ -933,6 +941,8 @@ function usage() {
     echo ' -amqpSettingsEnabled            Enable amqp protocol head in Edge Hub.'
     echo ' -mqttSettingsEnabled            Enable mqtt protocol head in Edge Hub.'
     echo ' -longHaulProtocolHead           Specify which protocol head is used to run long haul test for ARM32v7 device. Valid values are amqp (default) and mqtt.'
+    echo ' -dpsScopeId                     DPS scope id. Required only when using DPS to provision the device.'
+    echo ' -dpsMasterSymmetricKey          DPS master symmetric key. Required only when using DPS symmetric key to provision the Edge device.'
     echo ' -cert_script-dir                Optional path to certificate generation script dir'
     echo ' -install-root-ca-cert           Optional path to root CA certificate to be used for certificate generation'
     echo ' -install-root-ca-key            Optional path to root CA certificate private key to be used for certificate generation'
@@ -991,5 +1001,7 @@ ROOT_CA_CERT_PATH=
 ROOT_CA_KEY_PATH=
 ROOT_CA_PASSWORD=
 INSTALL_CA_CERT=0
+DPS_SCOPE_ID=
+DPS_MASTER_SYMMETRIC_KEY=
 
 run_test
