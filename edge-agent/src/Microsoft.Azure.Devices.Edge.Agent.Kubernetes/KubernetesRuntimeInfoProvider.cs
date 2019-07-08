@@ -126,12 +126,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         async Task WatchPodEventsAsync(WatchEventType type, V1Pod item)
         {
             // if the pod doesn't have the module label set then we are not interested in it
-            if (!item.Metadata.Labels.ContainsKey(Constants.K8sEdgeModuleLabel))
+            if (!item.Metadata.Labels.TryGetValue(Constants.K8sEdgeModuleLabel, out string podName))
             {
                 return;
             }
 
-            string podName = item.Metadata.Labels[Constants.K8sEdgeModuleLabel];
             Events.PodStatus(type, podName);
             switch (type)
             {
@@ -241,8 +240,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             ReportedModuleStatus moduleStatus = this.ConvertPodStatusToModuleStatus(containerStatus);
             RuntimeData runtimeData = GetRuntimedata(containerStatus.OrDefault());
 
-            string moduleName = name;
-            pod.Metadata?.Annotations?.TryGetValue(Constants.K8sEdgeOriginalModuleId, out moduleName);
+            string moduleName = string.Empty;
+            if (! (pod.Metadata?.Annotations?.TryGetValue(Constants.K8sEdgeOriginalModuleId, out moduleName) ?? false))
+            {
+                moduleName = name;
+            }
 
             var reportedConfig = new AgentDocker.DockerReportedConfig(runtimeData.ImageName, string.Empty, string.Empty);
             return new ModuleRuntimeInfo<AgentDocker.DockerReportedConfig>(
