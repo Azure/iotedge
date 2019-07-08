@@ -118,6 +118,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        public static void AddIfNonEmpty(this IDictionary<string, string> dictionary, string key, string value)
+        {
+            if (!string.IsNullOrWhiteSpace(key) && !string.IsNullOrWhiteSpace(value))
+            {
+                dictionary.Add(key, value);
+            }
+        }
+
         public static bool TryGetNonEmptyValue<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, out TValue value)
             where TValue : class
         {
