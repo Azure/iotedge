@@ -241,7 +241,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             RuntimeData runtimeData = GetRuntimedata(containerStatus.OrDefault());
 
             string moduleName = string.Empty;
-            if (! (pod.Metadata?.Annotations?.TryGetValue(Constants.K8sEdgeOriginalModuleId, out moduleName) ?? false))
+            if (!(pod.Metadata?.Annotations?.TryGetValue(Constants.K8sEdgeOriginalModuleId, out moduleName) ?? false))
             {
                 moduleName = name;
             }
