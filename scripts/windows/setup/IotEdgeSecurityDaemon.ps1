@@ -317,9 +317,8 @@ function Update-IoTEdge {
         # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
         [Uri] $Proxy,
 
-        # If set to a directory path, the installer prefers to use IoTEdge CAB and VC Runtime MSI files from inside this directory
-        # over downloading them from the internet. Thus placing both files in this directory can be used to have a completely offline install,
-        # or a specific component's file can be placed to override the online file corresponding to that specific component.
+        # If set to a directory path, the installer uses the IoTEdge CAB and VC Runtime MSI files from inside this directory
+        # instead of downloading them from the internet. Thus placing both files in this directory can be used to have a completely offline install.
         [String] $OfflineInstallationPath,
 
         # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
@@ -384,9 +383,8 @@ function Deploy-IoTEdge {
         # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
         [Uri] $Proxy,
 
-        # If set to a directory path, the installer prefers to use IoTEdge CAB and VC Runtime MSI files from inside this directory
-        # over downloading them from the internet. Thus placing both files in this directory can be used to have a completely offline install,
-        # or a specific component's file can be placed to override the online file corresponding to that specific component.
+        # If set to a directory path, the installer uses the IoTEdge CAB and VC Runtime MSI files from inside this directory
+        # instead of downloading them from the internet. Thus placing both files in this directory can be used to have a completely offline install.
         [String] $OfflineInstallationPath,
 
         # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
@@ -557,9 +555,8 @@ function Install-IoTEdge {
         # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
         [Uri] $Proxy,
 
-        # If set to a directory path, the installer prefers to use IoTEdge CAB, Moby Engine CAB, Moby CLI CAB and VC Runtime MSI files from inside this directory
-        # over downloading them from the internet. Thus placing all four files in this directory can be used to have a completely offline install,
-        # or a specific subset can be placed to override the online versions of those specific components.
+        # If set to a directory path, the installer uses the IoTEdge CAB and VC Runtime MSI files from inside this directory
+        # instead of downloading them from the internet. Thus placing both files in this directory can be used to have a completely offline install.
         [String] $OfflineInstallationPath,
 
         # IoT Edge Agent image to pull for the initial configuration.
@@ -1239,18 +1236,29 @@ function Delete-Directory([string] $Path) {
     }
 
     # Removing "$MobyDataRootDirectory" is tricky. Windows base images contain files owned by TrustedInstaller, etc
-    # Deleting them is a three-step process:
+    # It can also silently succeed but actually delete only some of the files.
     #
-    # 1. Take ownership of all files
-    Invoke-Native "takeown /r /skipsl /d y /f ""$Path"""
+    # So try up to three times to ensure the directory really does get deleted.
+    for ($i = 0; $i -lt 3; $i++) {
+        # Deleting is a three-step process:
+        #
+        # 1. Take ownership of all files
+        Invoke-Native "takeown /r /skipsl /d y /f ""$Path""" -DoNotThrow
 
-    # 2. Reset their ACLs so that they inherit from their container
-    Invoke-Native "icacls ""$Path"" /reset /t /l /q /c"
+        # 2. Reset their ACLs so that they inherit from their container
+        Invoke-Native "icacls ""$Path"" /reset /t /l /q /c" -DoNotThrow
 
-    # 3. Use cmd's "rd" rather than "Remove-Item" since the latter gets tripped up by reparse points, etc.
-    #    Prepend the path with "\\?\" since the layer directories have long names, so the paths usually exceed 260 characters,
-    #    and IoT Core's filesystem doesn't seem to automatically use (or even have) short names
-    Invoke-Native "rd /s /q ""\\?\$Path"""
+        # 3. Use cmd's "rd" rather than "Remove-Item" since the latter gets tripped up by reparse points, etc.
+        #    Prepend the path with "\\?\" since the layer directories have long names, so the paths usually exceed 260 characters,
+        #    and IoT Core's filesystem doesn't seem to automatically use (or even have) short names
+        Invoke-Native "rd /s /q ""\\?\$Path""" -DoNotThrow
+
+        if (-not (Test-Path $Path)) {
+            return
+        }
+    }
+
+    throw
 }
 
 function Remove-IoTEdgeResources([bool] $LegacyInstaller) {
@@ -1975,7 +1983,14 @@ function Remove-BuiltinWritePermissions([string] $Path) {
 }
 
 function Download-File([string] $Description, [string] $Url, [string] $DownloadFilename, [string] $LocalCacheGlob, [ref] $Delete) {
-    if (($OfflineInstallationPath -ne '') -and (Test-Path "$OfflineInstallationPath\$LocalCacheGlob")) {
+    if ($OfflineInstallationPath -ne '') {
+        if (-not (Test-Path "$OfflineInstallationPath\$LocalCacheGlob")) {
+            Write-HostRed
+            Write-HostRed "Could not find $Description at $OfflineInstallationPath\$LocalCacheGlob"
+            Write-HostRed "Please download it from $Url and save it under $OfflineInstallationPath"
+            throw
+        }
+
         $result = (Get-Item "$OfflineInstallationPath\$LocalCacheGlob" | Select-Object -First 1).FullName
 
         $Delete.Value = $false
