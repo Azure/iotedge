@@ -56,40 +56,49 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     Platform.InstallEdgeCertificates(edgeCa.Certificates.TrustedCertificates, transport);
 
                     Device leaf = await iotHub.CreateLeafDeviceIdentityAsync(leafDeviceId, parentId, token);
-                    string edgeHostname = Dns.GetHostName().ToLower();
-                    DeviceClient client;
 
-                    if (auth == AuthType.X509Certificate)
+                    try
                     {
-                        // TODO: Cert gen fails in openssl.exe if leaf deviceId > 64 chars
-                        LeafCertificates certFiles = await edgeCa.GenerateLeafCertificatesAsync(leaf.Id, token);
-                        // TODO: The method CertificateHelper.GetServerCertificateAndChainFromFile should be 'GetCertificateAndChainFromFile'
-                        (X509Certificate2 leafCert, IEnumerable<X509Certificate2> trustedCerts) =
-                            CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);
-                        // .NET runtime requires that we install the chain of CA certs, otherwise it can't
-                        // provide them to a server during authentication.
-                        Platform.InstallTrustedCertificates(trustedCerts);
+                        string edgeHostname = Dns.GetHostName().ToLower();
+                        DeviceClient client;
 
-                        client = DeviceClient.Create(
-                            iotHub.Hostname,
-                            edgeHostname,
-                            new DeviceAuthenticationWithX509Certificate(leaf.Id, leafCert),
-                            new[] { transport });
+                        if (auth == AuthType.X509Certificate)
+                        {
+                            // TODO: Cert gen fails in openssl.exe if leaf deviceId > 64 chars
+                            LeafCertificates certFiles = await edgeCa.GenerateLeafCertificatesAsync(leaf.Id, token);
+                            // TODO: The method CertificateHelper.GetServerCertificateAndChainFromFile should be 'GetCertificateAndChainFromFile'
+                            (X509Certificate2 leafCert, IEnumerable<X509Certificate2> trustedCerts) =
+                                CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);
+                            // .NET runtime requires that we install the chain of CA certs, otherwise it can't
+                            // provide them to a server during authentication.
+                            Platform.InstallTrustedCertificates(trustedCerts);
+
+                            client = DeviceClient.Create(
+                                iotHub.Hostname,
+                                edgeHostname,
+                                new DeviceAuthenticationWithX509Certificate(leaf.Id, leafCert),
+                                new[] { transport });
+                        }
+                        else
+                        {
+                            string connectionString =
+                                $"HostName={iotHub.Hostname};" +
+                                $"DeviceId={leaf.Id};" +
+                                $"SharedAccessKey={leaf.Authentication.SymmetricKey.PrimaryKey};" +
+                                $"GatewayHostName={edgeHostname}";
+
+                            client = DeviceClient.CreateFromConnectionString(connectionString, new[] { transport });
+                        }
+
+                        await client.SetMethodHandlerAsync("DirectMethod", DirectMethod, null, token);
+
+                        return new LeafDevice(leaf, client, auth, edgeCa, iotHub);
                     }
-                    else
+                    catch
                     {
-                        string connectionString =
-                            $"HostName={iotHub.Hostname};" +
-                            $"DeviceId={leaf.Id};" +
-                            $"SharedAccessKey={leaf.Authentication.SymmetricKey.PrimaryKey};" +
-                            $"GatewayHostName={edgeHostname}";
-
-                        client = DeviceClient.CreateFromConnectionString(connectionString, new[] { transport });
+                        await DeleteIdentityAsync(leaf, iotHub, token);
+                        throw;
                     }
-
-                    await client.SetMethodHandlerAsync("DirectMethod", DirectMethod, null, token);
-
-                    return new LeafDevice(leaf, client, auth, edgeCa, iotHub);
                 },
                 "Created leaf device '{Device}' on hub '{IotHub}'",
                 leafDeviceId,
@@ -134,10 +143,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         // BUG: callers can continue to try to use this object after DeleteIdentityAsync has been called.
         public Task DeleteIdentityAsync(CancellationToken token) =>
+            DeleteIdentityAsync(this.device, this.iotHub, token);
+
+        static Task DeleteIdentityAsync(Device device, IotHub iotHub, CancellationToken token) =>
             Profiler.Run(
-                () => this.iotHub.DeleteDeviceIdentityAsync(this.device, token),
+                () => iotHub.DeleteDeviceIdentityAsync(device, token),
                 "Deleted device '{Device}'",
-                this.device.Id);
+                device.Id);
 
         static Task<MethodResponse> DirectMethod(MethodRequest request, object context)
         {
