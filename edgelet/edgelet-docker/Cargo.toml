@@ -8,7 +8,7 @@ edition = "2018"
 [dependencies]
 base64 = "0.9"
 chrono = { version = "0.4", features = ["serde"] }
-config = "0.9"
+config = { version = "0.9", default-features = false, features = ["yaml"] }
 failure = "0.1"
 futures = "0.1"
 hyper = "0.12"
@@ -28,6 +28,7 @@ edgelet-utils = { path = "../edgelet-utils" }
 provisioning = { path = "../provisioning" }
 
 [dev_dependencies]
+config = { version = "0.9", default-features = false, features = ["json", "yaml"] }
 json-patch = "0.2.5"
 maplit = "1.0"
 time = "0.1"

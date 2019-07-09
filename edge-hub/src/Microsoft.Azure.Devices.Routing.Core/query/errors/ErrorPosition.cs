@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Errors
 {
     using System;
     using System.Globalization;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
     /// Compilation error line number and column. Line and column both start at 1

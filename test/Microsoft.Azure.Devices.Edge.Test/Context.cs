@@ -2,7 +2,9 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Net;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -21,25 +23,32 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                 string GetOrDefault(string name, string defaultValue) => context.GetValue(name, defaultValue);
 
-                Option<(string, string, string)> GetAndValidateRegistry()
+                IEnumerable<(string, string, string)> GetAndValidateRegistries()
                 {
-                    // If any container registry arguments (server, username, password)
-                    // are given, then they must *all* be given, otherwise throw an error.
-                    string registry = Get("registry");
-                    string username = Get("user");
-                    string password = Get("CONTAINER_REGISTRY_PASSWORD");
+                    var result = new List<(string, string, string)>();
 
-                    if (!string.IsNullOrWhiteSpace(registry) ||
-                        !string.IsNullOrWhiteSpace(username) ||
-                        !string.IsNullOrWhiteSpace(password))
+                    var registries = context.GetSection("registries").GetChildren().ToArray();
+                    foreach (var reg in registries)
                     {
+                        string registry = reg.GetValue<string>("address");
+                        string username = reg.GetValue<string>("username");
+                        // To specify a password as an environment variable instead of in the
+                        // JSON file (so it's not stored in the clear on the filesystem), name
+                        // the variable like this: E2E_REGISTRIES__<index>__PASSWORD, where
+                        // <index> is the 0-based number corresponding to an element in the
+                        // "registries" JSON array.
+                        string password = reg.GetValue<string>("PASSWORD");
+
+                        // If any container registry arguments (server, username, password)
+                        // are given, then they must *all* be given, otherwise throw an error.
                         Preconditions.CheckNonWhiteSpace(registry, nameof(registry));
                         Preconditions.CheckNonWhiteSpace(username, nameof(username));
                         Preconditions.CheckNonWhiteSpace(password, nameof(password));
-                        return Option.Some((registry, username, password));
+
+                        result.Add((registry, username, password));
                     }
 
-                    return Option.None<(string, string, string)>();
+                    return result;
                 }
 
                 this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
@@ -48,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 this.InstallerPath = Option.Maybe(Get("installerPath"));
                 this.PackagePath = Option.Maybe(Get("packagePath"));
                 this.Proxy = Option.Maybe(context.GetValue<Uri>("proxy"));
-                this.Registry = GetAndValidateRegistry();
+                this.Registries = GetAndValidateRegistries();
                 this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
                 this.EdgeHubImage = Option.Maybe(Get("edgeHubImage"));
                 this.TempSensorImage = Option.Maybe(Get("tempSensorImage"));
@@ -78,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         public Option<Uri> Proxy { get; }
 
-        public Option<(string address, string username, string password)> Registry { get; }
+        public IEnumerable<(string address, string username, string password)> Registries { get; }
 
         public Option<string> EdgeAgentImage { get; }
 

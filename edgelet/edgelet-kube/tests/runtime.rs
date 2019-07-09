@@ -116,7 +116,7 @@ fn authenticate_returns_none_when_no_auth_token_provided() {
     runtime.spawn(server);
     let auth_id = runtime.block_on(task).unwrap();
 
-    assert_eq!(AuthId::None, auth_id)
+    assert_eq!(auth_id, AuthId::None)
 }
 
 #[test]
@@ -146,7 +146,7 @@ fn authenticate_returns_none_when_invalid_auth_header_provided() {
     runtime.spawn(server);
     let auth_id = runtime.block_on(task).unwrap();
 
-    assert_eq!(AuthId::None, auth_id)
+    assert_eq!(auth_id, AuthId::None)
 }
 
 #[test]
@@ -176,9 +176,9 @@ fn authenticate_returns_none_when_invalid_auth_token_provided() {
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
-    let err = runtime.block_on(task).err().unwrap();
+    let err = runtime.block_on(task).unwrap_err();
 
-    assert_eq!(&ErrorKind::ModuleAuthenticationError, err.kind());
+    assert_eq!(err.kind(), &ErrorKind::ModuleAuthenticationError);
 }
 
 #[test]
@@ -210,15 +210,17 @@ fn authenticate_returns_none_when_unknown_auth_token_provided() {
     runtime.spawn(server);
     let auth_id = runtime.block_on(task).unwrap();
 
-    assert_eq!(AuthId::None, auth_id)
+    assert_eq!(auth_id, AuthId::None)
 }
 
 #[test]
-fn authenticate_returns_auth_id_when_module_auth_token_provided() {
+fn authenticate_returns_none_when_module_auth_token_provided_but_service_account_does_not_exists() {
     let port = get_unused_tcp_port();
 
+    let (_, runtime) = create_runtime(&format!("http://localhost:{}", port));
+
     let dispatch_table = routes!(
-        POST "/apis/authentication.k8s.io/v1/tokenreviews" => authenticated_token_review_handler()
+        POST "/apis/authentication.k8s.io/v1/tokenreviews" => authenticated_token_review_handler(),
     );
 
     let server = run_tcp_server(
@@ -228,7 +230,37 @@ fn authenticate_returns_auth_id_when_module_auth_token_provided() {
     )
     .map_err(|err| eprintln!("{}", err));
 
-    let (_, runtime) = create_runtime(&format!("http://localhost:{}", port));
+    let mut req = Request::default();
+    req.headers_mut()
+        .insert(header::AUTHORIZATION, "Bearer token".parse().unwrap());
+
+    let task = runtime.authenticate(&req);
+
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+    let err = runtime.block_on(task).unwrap_err();
+
+    assert_eq!(err.kind(), &ErrorKind::KubeClient);
+}
+
+#[test]
+fn authenticate_returns_sa_name_when_module_auth_token_provided_but_service_account_does_not_contain_original_name(
+) {
+    let port = get_unused_tcp_port();
+
+    let (settings, runtime) = create_runtime(&format!("http://localhost:{}", port));
+
+    let dispatch_table = routes!(
+        POST "/apis/authentication.k8s.io/v1/tokenreviews" => authenticated_token_review_handler(),
+        GET format!("/api/v1/namespaces/{}/serviceaccounts/edgeagent", settings.namespace()) => get_service_account_without_annotations_handler(),
+    );
+
+    let server = run_tcp_server(
+        "127.0.0.1",
+        port,
+        make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
+    )
+    .map_err(|err| eprintln!("{}", err));
 
     let mut req = Request::default();
     req.headers_mut()
@@ -240,7 +272,38 @@ fn authenticate_returns_auth_id_when_module_auth_token_provided() {
     runtime.spawn(server);
     let auth_id = runtime.block_on(task).unwrap();
 
-    assert_eq!(AuthId::Value("module-abc".into()), auth_id);
+    assert_eq!(auth_id, AuthId::Value("edgeagent".into()));
+}
+
+#[test]
+fn authenticate_returns_auth_id_when_module_auth_token_provided() {
+    let port = get_unused_tcp_port();
+
+    let (settings, runtime) = create_runtime(&format!("http://localhost:{}", port));
+
+    let dispatch_table = routes!(
+        POST "/apis/authentication.k8s.io/v1/tokenreviews" => authenticated_token_review_handler(),
+        GET format!("/api/v1/namespaces/{}/serviceaccounts/edgeagent", settings.namespace()) => get_service_account_with_annotations_handler(),
+    );
+
+    let server = run_tcp_server(
+        "127.0.0.1",
+        port,
+        make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
+    )
+    .map_err(|err| eprintln!("{}", err));
+
+    let mut req = Request::default();
+    req.headers_mut()
+        .insert(header::AUTHORIZATION, "Bearer token".parse().unwrap());
+
+    let task = runtime.authenticate(&req);
+
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    runtime.spawn(server);
+    let auth_id = runtime.block_on(task).unwrap();
+
+    assert_eq!(auth_id, AuthId::Value("$edgeAgent".into()));
 }
 
 #[derive(Clone)]
@@ -386,7 +449,7 @@ fn authenticated_token_review_handler() -> impl Fn(Request<Body>) -> ResponseFut
             "status": {
                 "authenticated": true,
                 "user": {
-                    "username": "module-abc"
+                    "username": "system:serviceaccount:my-namespace:edgeagent"
                 }
             }}
         )
@@ -434,7 +497,7 @@ fn create_creates_or_updates_service_account_role_binding_deployment_for_edgeage
 
     let dispatch_table = routes!(
         PUT format!("/api/v1/namespaces/{}/serviceaccounts/edgeagent", settings.namespace()) => replace_service_account_handler(),
-        PUT "/apis/rbac.authorization.k8s.io/v1/clusterrolebindings/edgeagent" => replace_role_binding_handler(),
+        PUT format!("/apis/rbac.authorization.k8s.io/v1/namespaces/{}/rolebindings/edgeagent", settings.namespace()) => replace_role_binding_handler(),
         PUT format!("/apis/apps/v1/namespaces/{}/deployments/edgeagent", settings.namespace()) => replace_deployment_handler(),
     );
 
@@ -530,6 +593,43 @@ fn create_module_spec(name: &str) -> ModuleSpec<DockerConfig> {
     .unwrap()
 }
 
+fn get_service_account_with_annotations_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone
+{
+    move |_| {
+        response(StatusCode::OK, || {
+            json!({
+                "kind": "ServiceAccount",
+                "apiVersion": "v1",
+                "metadata": {
+                    "name": "edgeagent",
+                    "namespace": "my-namespace",
+                    "annotations": {
+                        "net.azure-devices.edge.original-moduleid": "$edgeAgent"
+                    }
+                }
+            })
+            .to_string()
+        })
+    }
+}
+
+fn get_service_account_without_annotations_handler(
+) -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+    move |_| {
+        response(StatusCode::OK, || {
+            json!({
+                "kind": "ServiceAccount",
+                "apiVersion": "v1",
+                "metadata": {
+                    "name": "edgeagent",
+                    "namespace": "my-namespace",
+                }
+            })
+            .to_string()
+        })
+    }
+}
+
 fn replace_service_account_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
     move |_| {
         response(StatusCode::OK, || {
@@ -550,10 +650,11 @@ fn replace_role_binding_handler() -> impl Fn(Request<Body>) -> ResponseFuture + 
     move |_| {
         response(StatusCode::OK, || {
             json!({
-                "kind": "ClusterRoleBinding",
+                "kind": "RoleBinding",
                 "apiVersion": "rbac.authorization.k8s.io/v1",
                 "metadata": {
-                    "name": "edgeagent"
+                    "name": "edgeagent",
+                    "namespace": "my-namespace",
                 },
                 "subjects": [
                     {
@@ -581,7 +682,7 @@ fn replace_deployment_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Cl
                 "apiVersion": "apps/v1",
                 "metadata": {
                     "name": "edgeagent",
-                    "namespace": "msiot-dmolokan-iothub-dmolokan-edge-aks",
+                    "namespace": "my-namespace",
                 },
             })
             .to_string()
