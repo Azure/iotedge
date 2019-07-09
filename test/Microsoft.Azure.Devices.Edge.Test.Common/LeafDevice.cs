@@ -14,23 +14,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Edge.Util;
     using Serilog;
 
-    public enum AuthType
-    {
-        Sas,
-        X509Certificate,
-        X509Thumbprint
-    }
-
     public class LeafDevice
     {
-        readonly AuthType auth;
+        readonly Authentication auth;
         readonly DeviceClient client;
         readonly Device device;
         readonly EdgeCertificateAuthority edgeCa;
         readonly IotHub iotHub;
         readonly string messageId;
 
-        LeafDevice(Device device, DeviceClient client, AuthType auth, EdgeCertificateAuthority edgeCa, IotHub iotHub)
+        LeafDevice(Device device, DeviceClient client, Authentication auth, EdgeCertificateAuthority edgeCa, IotHub iotHub)
         {
             this.auth = auth;
             this.client = client;
@@ -43,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public static Task<LeafDevice> CreateAsync(
             string leafDeviceId,
             Protocol protocol,
-            AuthType auth,
+            Authentication auth,
             Option<string> parentId,
             EdgeCertificateAuthority edgeCa,
             IotHub iotHub,
@@ -55,14 +48,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     ITransportSettings transport = protocol.ToTransportSettings();
                     Platform.InstallEdgeCertificates(edgeCa.Certificates.TrustedCertificates, transport);
 
-                    Device leaf = await iotHub.CreateLeafDeviceIdentityAsync(leafDeviceId, parentId, token);
+                    Device leaf = await iotHub.CreateLeafDeviceIdentityAsync(
+                        leafDeviceId,
+                        parentId,
+                        auth.ToAuthenticationType(),
+                        token);
 
                     try
                     {
                         string edgeHostname = Dns.GetHostName().ToLower();
                         DeviceClient client;
 
-                        if (auth == AuthType.X509Certificate)
+                        if (auth == Authentication.X509Certificate)
                         {
                             // TODO: Cert gen fails in openssl.exe if leaf deviceId > 64 chars
                             LeafCertificates certFiles = await edgeCa.GenerateLeafCertificatesAsync(leaf.Id, token);

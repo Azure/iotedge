@@ -86,11 +86,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return this.RegistryManager.AddDeviceAsync(edge, token);
         }
 
-        public async Task<Device> CreateLeafDeviceIdentityAsync(string deviceId, Option<string> parentId, CancellationToken token)
+        public async Task<Device> CreateLeafDeviceIdentityAsync(
+            string deviceId,
+            Option<string> parentId,
+            AuthenticationType auth,
+            CancellationToken token)
         {
             Device leaf = new Device(deviceId)
             {
-                Authentication = new AuthenticationMechanism { Type = AuthenticationType.Sas }
+                Authentication = new AuthenticationMechanism { Type = auth }
             };
 
             await parentId.ForEachAsync(

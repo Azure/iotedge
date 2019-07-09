@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.Linq;
     using System.Net.Security;
     using System.Security.Cryptography.X509Certificates;
@@ -47,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 
                     break;
                 default:
-                    throw new InvalidOperationException($"Unsupported Transport Type {transportSettings.GetTransportType()}");
+                    throw new InvalidEnumArgumentException();
             }
         }
 
