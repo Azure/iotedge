@@ -143,7 +143,6 @@ function PatchRustForArm {
 
 [patch.crates-io]
 backtrace = { git = "https://github.com/philipktlin/backtrace-rs", branch = "arm" }
-cmake = { git = "https://github.com/philipktlin/cmake-rs", branch = "arm" }
 dtoa = { git = "https://github.com/philipktlin/dtoa", branch = "arm" }
 iovec = { git = "https://github.com/philipktlin/iovec", branch = "arm" }
 mio = { git = "https://github.com/philipktlin/mio", branch = "arm" }
