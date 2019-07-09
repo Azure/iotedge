@@ -1,15 +1,25 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 {
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using System.Collections.Generic;
     using System.Text;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     [Unit]
     public class KubeUtilsTest
     {
+        public static IEnumerable<object[]> GetLongDnsDomain()
+        {
+            var raw_output = new StringBuilder();
+            for (int i = 0; i <= 255; i += 2)
+            {
+                raw_output.Append((char)('a' + (i % 26)));
+                raw_output.Append('.');
+            }
+
+            yield return new object[] { raw_output.ToString() };
+        }
 
         [Theory]
         [InlineData("edgeAgent", "$edgeAgent")]
@@ -33,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [InlineData("edgeagent", "$edgeAgent")]
         [InlineData("edgehub", "$edgeHub")]
         [InlineData("---a-0---", "---a-0---")]
-        [InlineData(null,null)]
+        [InlineData(null, null)]
         public void SanitizeK8sValueTest(string expected, string raw) => Assert.Equal(expected, KubeUtils.SanitizeK8sValue(raw));
 
         [Theory]
@@ -67,18 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [InlineData("$$$$$$")]
         public void SanitizeDnsValueFailTest(string raw) => Assert.Throws<InvalidKubernetesNameException>(() => KubeUtils.SanitizeDNSValue(raw));
 
-        public static IEnumerable<object[]> GetLongDnsDomain()
-        {
-            var raw_output = new StringBuilder();
-            for (int i = 0; i <= 255; i+=2)
-            {
-                raw_output.Append((char)('a' + (i % 26)));
-                raw_output.Append('.');
-            }
-
-            yield return new object[] { raw_output.ToString() };
-        }
-
         [Theory]
         // must be a one or more DNS labels separated by dots (.), not longer than 253 characters in total
         [InlineData("edgeagent", "$edgeAgent")]
@@ -97,7 +95,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [InlineData("$$$$.com")]
         [InlineData("a.&&&&.org")]
         public void SanitizeDNSDomainFailTest(string raw) => Assert.Throws<InvalidKubernetesNameException>(() => KubeUtils.SanitizeDNSDomain(raw));
-
 
         [Theory]
         [InlineData("edgeagent", "$edgeAgent")]
@@ -123,6 +120,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [InlineData("    ")]
         [InlineData("$%^&")]
         public void SanitizeLabelValueFailTest(string raw) => Assert.Throws<InvalidKubernetesNameException>(() => KubeUtils.SanitizeLabelValue(raw));
-
     }
 }
