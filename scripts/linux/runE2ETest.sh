@@ -331,15 +331,15 @@ function process_args() {
         elif [ $saveNextArg -eq 25 ]; then
             ROOT_CA_CERT_PATH="$arg"
             INSTALL_CA_CERT=1
-            save_next_arg=0
+            saveNextArg=0
         elif [ $saveNextArg -eq 26 ]; then
             ROOT_CA_KEY_PATH="$arg"
             INSTALL_CA_CERT=1
-            save_next_arg=0
+            saveNextArg=0
         elif [ $saveNextArg -eq 27 ]; then
             ROOT_CA_PASSWORD="$arg"
             INSTALL_CA_CERT=1
-            save_next_arg=0
+            saveNextArg=0
         elif [ $saveNextArg -eq 28 ]; then
             DPS_SCOPE_ID="$arg"
             saveNextArg=0
@@ -391,9 +391,6 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$IOTHUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
-    #[[ -z "$CERT_SCRIPT_DIR" ]] && { print_error 'Certificate script dir is required'; exit 1; }
-    set_certificate_generation_tools_dir
-    #[[ ! -d "$CERT_SCRIPT_DIR" ]] && { print_error 'Certificate script dir is invalid'; exit 1; }
 
     echo 'Required parameters are provided'
 }
@@ -569,19 +566,19 @@ function run_dps_provisioning_test() {
     local dps_command_flags=""
     if [[ $provisioning_type == "SymmetricKey" ]]; then
         dps_command_flags="--dps-scope-id=$DPS_SCOPE_ID \
-		           --dps-registration-id=$registration_id \
-			   --dps-master-symmetric-key=$DPS_MASTER_SYMMETRIC_KEY"
+		                   --dps-registration-id=$registration_id \
+			               --dps-master-symmetric-key=$DPS_MASTER_SYMMETRIC_KEY"
     elif [[ $provisioning_type == "Tpm"  ]]; then
-        dps_command_flags="--dps-scope-id=\"$DPS_SCOPE_ID\" \
-                           --dps-registration-id=\"$registration_id\""
+        dps_command_flags="--dps-scope-id=$DPS_SCOPE_ID \
+                           --dps-registration-id=$registration_id"
     else # x.509 provisioning
         # generate the edge device identity primary certificate and key
         FORCE_NO_PROD_WARNING="true" ${CERT_SCRIPT_DIR}/certGen.sh create_device_certificate "${registration_id}"
-        local edge_device_id_cert=$(readlink -f ${CERT_SCRIPT_DIR}/certs/iot-device-${registation_id}-full-chain.cert.pem)
-        local edge_device_id_key=$(readlink -f ${CERT_SCRIPT_DIR}/private/iot-device-${registation_id}.key.pem)
-        dps_command_flags="--dps-scope-id=\"$DPS_SCOPE_ID\" \
-                           --device_identity_pk=\"$identityPkPath\" \
-                           --device_identity_cert=\"$identityCertPath\""
+        local edge_device_id_cert=$(readlink -f ${CERT_SCRIPT_DIR}/certs/iot-device-${registration_id}-full-chain.cert.pem)
+        local edge_device_id_key=$(readlink -f ${CERT_SCRIPT_DIR}/private/iot-device-${registration_id}.key.pem)
+        dps_command_flags="--dps-scope-id=$DPS_SCOPE_ID \
+                           --device_identity_pk=$edge_device_id_key \
+                           --device_identity_cert=$edge_device_id_cert"
     fi
 
     SECONDS=0
@@ -827,6 +824,9 @@ function run_tempsensor_test() {
 function run_test()
 {
     if [[ $INSTALL_CA_CERT -eq 1 ]]; then
+        set_certificate_generation_tools_dir
+        [[ -z "$CERT_SCRIPT_DIR" ]] && { print_error 'Certificate script dir is required'; exit 1; }
+        [[ ! -d "$CERT_SCRIPT_DIR" ]] && { print_error 'Certificate script dir is invalid'; exit 1; }
         FORCE_NO_PROD_WARNING="true" ${CERT_SCRIPT_DIR}/certGen.sh install_root_ca_from_files ${ROOT_CA_CERT_PATH} ${ROOT_CA_KEY_PATH} ${ROOT_CA_PASSWORD}
     fi
 
@@ -839,9 +839,9 @@ function run_test()
         'directmethodmqtt') run_directmethodmqtt_test && ret=$? || ret=$?;;
         'directmethodmqttamqp') run_directmethodmqttamqp_test && ret=$? || ret=$?;;
         'directmethodmqttws') run_directmethodmqttws_test && ret=$? || ret=$?;;
-	'dpssymmetrickeyprovisioning') run_dps_provisioning_test "SymmetricKey" && ret=$? || ret=$?;;
-	'dpstpmprovisioning') run_dps_provisioning_test "Tpm" && ret=$? || ret=$?;;
-	'dpsx509provisioning') run_dps_provisioning_test "X509" && ret=$? || ret=$?;;
+	    'dpssymmetrickeyprovisioning') run_dps_provisioning_test "SymmetricKey" && ret=$? || ret=$?;;
+	    'dpstpmprovisioning') run_dps_provisioning_test "Tpm" && ret=$? || ret=$?;;
+	    'dpsx509provisioning') run_dps_provisioning_test "X509" && ret=$? || ret=$?;;
         'quickstartcerts') run_quickstartcerts_test && ret=$? || ret=$?;;
         'longhaul') run_longhaul_test && ret=$? || ret=$?;;
         'stress') run_stress_test && ret=$? || ret=$?;;
@@ -973,13 +973,6 @@ function usage() {
 
 process_args "$@"
 
-#CERT_SCRIPT_DIR=
-#ROOT_CA_CERT_PATH=
-#ROOT_CA_KEY_PATH=
-#ROOT_CA_PASSWORD=
-#INSTALL_CA_CERT=0
-#DPS_SCOPE_ID=
-#DPS_MASTER_SYMMETRIC_KEY=
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 LONG_HAUL_PROTOCOL_HEAD="${LONG_HAUL_PROTOCOL_HEAD:-amqp}"
