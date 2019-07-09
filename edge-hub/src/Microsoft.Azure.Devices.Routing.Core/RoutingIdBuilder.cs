@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System;
     using System.Globalization;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class RoutingIdBuilder
     {

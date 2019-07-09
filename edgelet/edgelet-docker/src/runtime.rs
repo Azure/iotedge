@@ -20,12 +20,13 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
-    AuthId, Authenticator, LogOptions, MobyNetwork, Module, ModuleId, ModuleRegistry,
-    ModuleRuntime, ModuleRuntimeState, ModuleSpec, RegistryOperation, RuntimeOperation,
-    SystemInfo as CoreSystemInfo, UrlExt,
+    AuthId, Authenticator, Ipam as CoreIpam, LogOptions, MakeModuleRuntime, MobyNetwork, Module,
+    ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, RegistryOperation,
+    RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
+use provisioning::ProvisioningResult;
 
 use crate::client::DockerClient;
 use crate::config::DockerConfig;
@@ -33,6 +34,7 @@ use crate::error::{Error, ErrorKind, Result};
 use crate::module::{
     runtime_state, DockerModule, DockerModuleTop, MODULE_TYPE as DOCKER_MODULE_TYPE,
 };
+use crate::settings::Settings;
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -52,82 +54,9 @@ lazy_static! {
 #[derive(Clone)]
 pub struct DockerModuleRuntime {
     client: DockerClient<UrlConnector>,
-    network_id: Option<String>,
-    ipv6: bool,
-    ipam: Option<Ipam>,
 }
 
 impl DockerModuleRuntime {
-    pub fn new(docker_url: &Url) -> Result<Self> {
-        // build the hyper client
-        let client = Client::builder()
-            .build(UrlConnector::new(docker_url).context(ErrorKind::Initialization)?);
-
-        // extract base path - the bit that comes after the scheme
-        let base_path = docker_url
-            .to_base_path()
-            .context(ErrorKind::Initialization)?;
-        let mut configuration = Configuration::new(client);
-        configuration.base_path = base_path
-            .to_str()
-            .ok_or(ErrorKind::Initialization)?
-            .to_string();
-
-        let scheme = docker_url.scheme().to_string();
-        configuration.uri_composer = Box::new(move |base_path, path| {
-            Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)
-                .context(ErrorKind::Initialization)?)
-        });
-
-        Ok(DockerModuleRuntime {
-            client: DockerClient::new(APIClient::new(configuration)),
-            network_id: None,
-            ipv6: false,
-            ipam: None,
-        })
-    }
-
-    pub fn with_network_id(mut self, network_id: String) -> Self {
-        self.network_id = Some(network_id);
-        self
-    }
-
-    pub fn with_network_configuration(mut self, network_configuration: MobyNetwork) -> Self {
-        self.network_id = Some(network_configuration.name().to_string());
-        if let MobyNetwork::Network(network) = network_configuration {
-            self.ipv6 = network.ipv6().unwrap_or_default();
-            if let Some(ipam) = network.ipam() {
-                if let Some(ipam_config) = ipam.config() {
-                    let config: Vec<_> = ipam_config
-                        .iter()
-                        .map(|ipam_config| {
-                            let mut config_map = HashMap::new();
-                            if let Some(gateway_config) = ipam_config.gateway() {
-                                config_map
-                                    .insert("Gateway".to_string(), gateway_config.to_string());
-                            };
-
-                            if let Some(subnet_config) = ipam_config.subnet() {
-                                config_map.insert("Subnet".to_string(), subnet_config.to_string());
-                            };
-
-                            if let Some(ip_range_config) = ipam_config.ip_range() {
-                                config_map
-                                    .insert("IPRange".to_string(), ip_range_config.to_string());
-                            };
-
-                            config_map
-                        })
-                        .collect();
-
-                    self.ipam = Some(Ipam::new().with_config(config));
-                }
-            }
-        }
-
-        self
-    }
-
     fn merge_env(cur_env: Option<&[String]>, new_env: &HashMap<String, String>) -> Vec<String> {
         // build a new merged hashmap containing string slices for keys and values
         // pointing into String instances in new_env
@@ -245,6 +174,109 @@ where
     Ok(name)
 }
 
+impl MakeModuleRuntime for DockerModuleRuntime {
+    type Config = DockerConfig;
+    type Settings = Settings;
+    type ProvisioningResult = ProvisioningResult;
+    type ModuleRuntime = Self;
+    type Error = Error;
+    type Future = Box<dyn Future<Item = Self, Error = Self::Error> + Send>;
+
+    fn make_runtime(settings: Settings, _: ProvisioningResult) -> Self::Future {
+        info!("Initializing module runtime...");
+
+        // Clippy incorrectly flags the use of `.map(..).unwrap_or_else(..)` code as being replaceable
+        // with `.ok().map_or_else`. This is incorrect because `.ok()` will result in the error being dropped.
+        // So we suppress this lint. There's an open issue for this on the Clippy repo:
+        //      https://github.com/rust-lang/rust-clippy/issues/3730
+        #[allow(clippy::result_map_unwrap_or_else)]
+        let created = init_client(settings.moby_runtime().uri())
+            .map(|client| {
+                let network_id = settings.moby_runtime().network().name().to_string();
+                let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
+                info!("Using runtime network id {}", network_id);
+
+                let filter = format!(r#"{{"name":{{"{}":true}}}}"#, network_id);
+                let client_copy = client.clone();
+                let fut = client
+                    .network_api()
+                    .network_list(&filter)
+                    .and_then(move |existing_networks| {
+                        if existing_networks.is_empty() {
+                            let mut network_config =
+                                NetworkConfig::new(network_id).with_enable_i_pv6(enable_i_pv6);
+
+                            if let Some(ipam_config) = ipam {
+                                network_config.set_IPAM(ipam_config);
+                            };
+
+                            let fut = client_copy
+                                .network_api()
+                                .network_create(network_config)
+                                .map(move |_| client_copy);
+                            future::Either::A(fut)
+                        } else {
+                            future::Either::B(future::ok(client_copy))
+                        }
+                    })
+                    .map_err(|err| {
+                        let e = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::Init),
+                        );
+                        log_failure(Level::Warn, &e);
+                        e
+                    })
+                    .map(|client| {
+                        info!("Successfully initialized module runtime");
+                        DockerModuleRuntime { client }
+                    });
+
+                future::Either::A(fut)
+            })
+            .unwrap_or_else(|err| {
+                log_failure(Level::Warn, &err);
+                future::Either::B(Err(err).into_future())
+            });
+
+        Box::new(created)
+    }
+}
+
+fn get_ipv6_settings(network_configuration: &MobyNetwork) -> (bool, Option<Ipam>) {
+    if let MobyNetwork::Network(network) = network_configuration {
+        let ipv6 = network.ipv6().unwrap_or_default();
+        network.ipam().and_then(CoreIpam::config).map_or_else(
+            || (ipv6, None),
+            |ipam_config| {
+                let config = ipam_config
+                    .iter()
+                    .map(|ipam_config| {
+                        let mut config_map = HashMap::new();
+                        if let Some(gateway_config) = ipam_config.gateway() {
+                            config_map.insert("Gateway".to_string(), gateway_config.to_string());
+                        };
+
+                        if let Some(subnet_config) = ipam_config.subnet() {
+                            config_map.insert("Subnet".to_string(), subnet_config.to_string());
+                        };
+
+                        if let Some(ip_range_config) = ipam_config.ip_range() {
+                            config_map.insert("IPRange".to_string(), ip_range_config.to_string());
+                        };
+
+                        config_map
+                    })
+                    .collect();
+
+                (ipv6, Some(Ipam::new().with_config(config)))
+            },
+        )
+    } else {
+        (false, None)
+    }
+}
+
 impl ModuleRuntime for DockerModuleRuntime {
     type Error = Error;
     type Config = DockerConfig;
@@ -256,7 +288,6 @@ impl ModuleRuntime for DockerModuleRuntime {
     type CreateFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type GetFuture =
         Box<dyn Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type InitFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type ListFuture = Box<dyn Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
     type ListWithDetailsStream =
         Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
@@ -267,61 +298,6 @@ impl ModuleRuntime for DockerModuleRuntime {
     type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-
-    fn init(&self) -> Self::InitFuture {
-        info!("Initializing module runtime...");
-
-        let created = self.network_id.clone().map_or_else(
-            || future::Either::B(future::ok(())),
-            |id| {
-                let filter = format!(r#"{{"name":{{"{}":true}}}}"#, id);
-                let client_copy = self.client.clone();
-                let enable_i_pv6 = self.ipv6;
-                let ipam = self.ipam.clone();
-                let fut = self
-                    .client
-                    .network_api()
-                    .network_list(&filter)
-                    .and_then(move |existing_networks| {
-                        if existing_networks.is_empty() {
-                            let mut network_config =
-                                NetworkConfig::new(id).with_enable_i_pv6(enable_i_pv6);
-
-                            if let Some(ipam_config) = ipam {
-                                network_config.set_IPAM(ipam_config);
-                            };
-
-                            let fut = client_copy
-                                .network_api()
-                                .network_create(network_config)
-                                .map(|_| ());
-                            future::Either::A(fut)
-                        } else {
-                            future::Either::B(future::ok(()))
-                        }
-                    })
-                    .map_err(|err| {
-                        let e = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::Init),
-                        );
-                        log_failure(Level::Warn, &e);
-                        e
-                    });
-                future::Either::A(fut)
-            },
-        );
-        let created = created.then(|result| {
-            match result {
-                Ok(()) => info!("Successfully initialized module runtime"),
-                Err(ref err) => log_failure(Level::Warn, err),
-            }
-
-            result
-        });
-
-        Box::new(created)
-    }
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         info!("Creating module {}...", module.name());
@@ -392,7 +368,6 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn get(&self, id: &str) -> Self::GetFuture {
         debug!("Getting module {}...", id);
-
         let id = id.to_string();
 
         if let Err(err) = ensure_not_empty_with_context(&id, || {
@@ -441,7 +416,6 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn start(&self, id: &str) -> Self::StartFuture {
         info!("Starting module {}...", id);
-
         let id = id.to_string();
 
         if let Err(err) = ensure_not_empty_with_context(&id, || {
@@ -473,7 +447,6 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Self::StopFuture {
         info!("Stopping module {}...", id);
-
         let id = id.to_string();
 
         if let Err(err) = ensure_not_empty_with_context(&id, || {
@@ -510,43 +483,8 @@ impl ModuleRuntime for DockerModuleRuntime {
         )
     }
 
-    fn system_info(&self) -> Self::SystemInfoFuture {
-        info!("Querying system info...");
-
-        Box::new(
-            self.client
-                .system_api()
-                .system_info()
-                .then(|result| match result {
-                    Ok(system_info) => {
-                        let system_info = CoreSystemInfo::new(
-                            system_info
-                                .os_type()
-                                .unwrap_or(&String::from("Unknown"))
-                                .to_string(),
-                            system_info
-                                .architecture()
-                                .unwrap_or(&String::from("Unknown"))
-                                .to_string(),
-                        );
-                        info!("Successfully queried system info");
-                        Ok(system_info)
-                    }
-                    Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo),
-                        );
-                        log_failure(Level::Warn, &err);
-                        Err(err)
-                    }
-                }),
-        )
-    }
-
     fn restart(&self, id: &str) -> Self::RestartFuture {
         info!("Restarting module {}...", id);
-
         let id = id.to_string();
 
         if let Err(err) = ensure_not_empty_with_context(&id, || {
@@ -603,6 +541,40 @@ impl ModuleRuntime for DockerModuleRuntime {
                         let err = Error::from_docker_error(
                             err,
                             ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(id)),
+                        );
+                        log_failure(Level::Warn, &err);
+                        Err(err)
+                    }
+                }),
+        )
+    }
+
+    fn system_info(&self) -> Self::SystemInfoFuture {
+        info!("Querying system info...");
+
+        Box::new(
+            self.client
+                .system_api()
+                .system_info()
+                .then(|result| match result {
+                    Ok(system_info) => {
+                        let system_info = CoreSystemInfo::new(
+                            system_info
+                                .os_type()
+                                .unwrap_or(&String::from("Unknown"))
+                                .to_string(),
+                            system_info
+                                .architecture()
+                                .unwrap_or(&String::from("Unknown"))
+                                .to_string(),
+                        );
+                        info!("Successfully queried system info");
+                        Ok(system_info)
+                    }
+                    Err(err) => {
+                        let err = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo),
                         );
                         log_failure(Level::Warn, &err);
                         Err(err)
@@ -683,7 +655,6 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture {
         info!("Getting logs for module {}...", id);
-
         let id = id.to_string();
 
         let tail = &options.tail().to_string();
@@ -739,6 +710,30 @@ impl Authenticator for DockerModuleRuntime {
     fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
         authenticate(self, req)
     }
+}
+
+fn init_client(docker_url: &Url) -> Result<DockerClient<UrlConnector>> {
+    // build the hyper client
+    let client =
+        Client::builder().build(UrlConnector::new(docker_url).context(ErrorKind::Initialization)?);
+
+    // extract base path - the bit that comes after the scheme
+    let base_path = docker_url
+        .to_base_path()
+        .context(ErrorKind::Initialization)?;
+    let mut configuration = Configuration::new(client);
+    configuration.base_path = base_path
+        .to_str()
+        .ok_or(ErrorKind::Initialization)?
+        .to_string();
+
+    let scheme = docker_url.scheme().to_string();
+    configuration.uri_composer = Box::new(move |base_path, path| {
+        Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)
+            .context(ErrorKind::Initialization)?)
+    });
+
+    Ok(DockerClient::new(APIClient::new(configuration)))
 }
 
 #[derive(Debug)]
@@ -802,7 +797,7 @@ where
     MR: ModuleRuntime<Error = Error, Config = <M as Module>::Config, Module = M>,
     <MR as ModuleRuntime>::ListFuture: 'static,
     M: Module<Error = Error> + Send + 'static,
-    <M as Module>::Config: Send,
+    <M as Module>::Config: Clone + Send,
 {
     Box::new(
         runtime
@@ -900,129 +895,98 @@ where
 mod tests {
     use super::*;
 
+    use std::path::Path;
+
+    use ::config::{Config, File, FileFormat};
     use futures::future::FutureResult;
     use futures::stream::Empty;
-    #[cfg(unix)]
-    use tempfile::NamedTempFile;
-    use tokio;
-    use url::Url;
+    use json_patch::merge;
+    use serde_json::{self, json, Value as JsonValue};
 
-    use docker::models::ContainerCreateBody;
     use edgelet_core::{
-        ImagePullPolicy, Ipam as CoreIpam, IpamConfig, ModuleId, ModuleRegistry, ModuleTop, Network,
+        Certificates, Connect, Listen, ModuleRegistry, ModuleTop, Provisioning, RuntimeSettings,
+        WatchdogSettings,
     };
+    use provisioning::ReprovisioningStatus;
 
-    use crate::error::{Error, ErrorKind};
+    fn provisioning_result() -> ProvisioningResult {
+        ProvisioningResult::new(
+            "d1",
+            "h1",
+            None,
+            ReprovisioningStatus::DeviceDataNotUpdated,
+            None,
+        )
+    }
+
+    fn make_settings(merge_json: Option<JsonValue>) -> Settings {
+        let mut config = Config::default();
+        let mut config_json = json!({
+            "provisioning": {
+                "source": "manual",
+                "device_connection_string": "HostName=moo.azure-devices.net;DeviceId=boo;SharedAccessKey=boo"
+            },
+            "agent": {
+                "name": "edgeAgent",
+                "type": "docker",
+                "env": {},
+                "config": {
+                    "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
+                    "auth": {}
+                }
+            },
+            "hostname": "zoo",
+            "connect": {
+                "management_uri": "unix:///var/run/iotedge/mgmt.sock",
+                "workload_uri": "unix:///var/run/iotedge/workload.sock"
+            },
+            "listen": {
+                "management_uri": "unix:///var/run/iotedge/mgmt.sock",
+                "workload_uri": "unix:///var/run/iotedge/workload.sock"
+            },
+            "homedir": "/var/lib/iotedge",
+            "moby_runtime": {
+                "uri": "unix:///var/run/docker.sock",
+                "network": "azure-iot-edge"
+            }
+        });
+
+        if let Some(merge_json) = merge_json {
+            merge(&mut config_json, &merge_json);
+        }
+
+        config
+            .merge(File::from_str(&config_json.to_string(), FileFormat::Json))
+            .unwrap();
+
+        config.try_into().unwrap()
+    }
 
     #[test]
     #[should_panic(expected = "URL does not have a recognized scheme")]
     fn invalid_uri_prefix_fails() {
-        let _mri =
-            DockerModuleRuntime::new(&Url::parse("foo:///this/is/not/valid").unwrap()).unwrap();
+        let settings = make_settings(Some(json!({
+            "moby_runtime": {
+                "uri": "foo:///this/is/not/valid"
+            }
+        })));
+        let _runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result())
+            .wait()
+            .unwrap();
     }
 
     #[cfg(unix)]
     #[test]
     #[should_panic(expected = "Socket file could not be found")]
     fn invalid_uds_path_fails() {
-        let _mri =
-            DockerModuleRuntime::new(&Url::parse("unix:///this/file/does/not/exist").unwrap())
-                .unwrap();
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn create_with_uds_succeeds() {
-        let file = NamedTempFile::new().unwrap();
-        let file_path = file.path().to_str().unwrap();
-        let _mri = DockerModuleRuntime::new(&Url::parse(&format!("unix://{}", file_path)).unwrap())
+        let settings = make_settings(Some(json!({
+            "moby_runtime": {
+                "uri": "unix:///this/file/does/not/exist"
+            }
+        })));
+        let _runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result())
+            .wait()
             .unwrap();
-    }
-
-    #[test]
-    fn image_remove_with_empty_name_fails() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "";
-
-        let task = ModuleRegistry::remove(&mri, name).then(|res| match res {
-            Ok(_) => Err("Expected error but got a result.".to_string()),
-            Err(err) => match err.kind() {
-                ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(s)) if s == name => {
-                    Ok(())
-                }
-                kind => panic!(
-                    "Expected `RegistryOperation(RemoveImage)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn image_remove_with_white_space_name_fails() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "     ";
-
-        let task = ModuleRegistry::remove(&mri, name).then(|res| match res {
-            Ok(_) => Err("Expected error but got a result.".to_string()),
-            Err(err) => match err.kind() {
-                ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(s)) if s == name => {
-                    Ok(())
-                }
-                kind => panic!(
-                    "Expected `RegistryOperation(RemoveImage)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn with_network_configuration_succeeds() {
-        let ipam_configuration = IpamConfig::default()
-            .with_gateway("172.18.0.1".to_string())
-            .with_ip_range("172.18.0.0/16".to_string())
-            .with_subnet("172.18.0.0/16".to_string());
-
-        let ipam = CoreIpam::default().with_config(vec![ipam_configuration.clone()]);
-        let network_name = "my-network";
-        let ipv6 = true;
-        let network = Network::new(network_name.to_string())
-            .with_ipv6(Some(ipv6))
-            .with_ipam(ipam);
-
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap())
-            .unwrap()
-            .with_network_configuration(MobyNetwork::Network(network));
-
-        assert_eq!(network_name, mri.network_id.unwrap());
-        assert_eq!(ipv6, mri.ipv6);
-
-        let ipam_mri = mri.ipam.unwrap();
-        let ipam_config = ipam_mri.config().unwrap().to_owned();
-        let ipam_config_0 = ipam_config.get(0).unwrap();
-        assert_eq!(
-            ipam_config_0["Gateway"],
-            ipam_configuration.gateway().unwrap()
-        );
-        assert_eq!(
-            ipam_config_0["Subnet"],
-            ipam_configuration.subnet().unwrap()
-        );
-        assert_eq!(
-            ipam_config_0["IPRange"],
-            ipam_configuration.ip_range().unwrap()
-        );
     }
 
     #[test]
@@ -1063,275 +1027,6 @@ mod tests {
             DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
         merged_env.sort();
         assert_eq!(vec!["k1=v1", "k2=v2", "k3=v3"], merged_env);
-    }
-
-    #[test]
-    fn create_fails_for_non_docker_type() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "not_docker".to_string();
-
-        let module_config = ModuleSpec::new(
-            "m1".to_string(),
-            name.clone(),
-            DockerConfig::new("nginx:latest".to_string(), ContainerCreateBody::new(), None)
-                .unwrap(),
-            HashMap::new(),
-            ImagePullPolicy::default(),
-        )
-        .unwrap();
-
-        let task = mri.create(module_config).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::InvalidModuleType(s) if s == &name => Ok::<_, Error>(()),
-                kind => panic!("Expected `InvalidModuleType` error but got {:?}.", kind),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn start_fails_for_empty_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "";
-
-        let task = mri.start(name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(StartModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn start_fails_for_white_space_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "      ";
-
-        let task = mri.start(name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(StartModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn stop_fails_for_empty_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "";
-
-        let task = mri.stop(name, None).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(StopModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn stop_fails_for_white_space_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "     ";
-
-        let task = mri.stop(name, None).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(StopModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn restart_fails_for_empty_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "";
-
-        let task = mri.restart(name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(RestartModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn restart_fails_for_white_space_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "     ";
-
-        let task = mri.restart(name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(RestartModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn remove_fails_for_empty_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "";
-
-        let task = ModuleRuntime::remove(&mri, name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(RemoveModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn remove_fails_for_white_space_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "    ";
-
-        let task = ModuleRuntime::remove(&mri, name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(RemoveModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn get_fails_for_empty_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "";
-
-        let task = ModuleRuntime::get(&mri, name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(GetModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn get_fails_for_white_space_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "    ";
-
-        let task = ModuleRuntime::get(&mri, name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(GetModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
     }
 
     #[test]
@@ -1476,7 +1171,50 @@ mod tests {
         assert_eq!("missing field `Name`", format!("{}", name.unwrap_err()));
     }
 
+    #[derive(Clone)]
     struct TestConfig;
+
+    struct TestSettings;
+
+    impl RuntimeSettings for TestSettings {
+        type Config = TestConfig;
+
+        fn provisioning(&self) -> &Provisioning {
+            unimplemented!()
+        }
+
+        fn agent(&self) -> &ModuleSpec<Self::Config> {
+            unimplemented!()
+        }
+
+        fn agent_mut(&mut self) -> &mut ModuleSpec<Self::Config> {
+            unimplemented!()
+        }
+
+        fn hostname(&self) -> &str {
+            unimplemented!()
+        }
+
+        fn connect(&self) -> &Connect {
+            unimplemented!()
+        }
+
+        fn listen(&self) -> &Listen {
+            unimplemented!()
+        }
+
+        fn homedir(&self) -> &Path {
+            unimplemented!()
+        }
+
+        fn certificates(&self) -> Option<&Certificates> {
+            unimplemented!()
+        }
+
+        fn watchdog(&self) -> &WatchdogSettings {
+            unimplemented!()
+        }
+    }
 
     #[derive(Clone, Copy, Debug, PartialEq)]
     enum TestModuleRuntimeStateBehavior {
@@ -1527,10 +1265,10 @@ mod tests {
     }
 
     impl ModuleRegistry for TestModuleList {
-        type Config = TestConfig;
         type Error = Error;
         type PullFuture = FutureResult<(), Self::Error>;
         type RemoveFuture = FutureResult<(), Self::Error>;
+        type Config = TestConfig;
 
         fn pull(&self, _config: &Self::Config) -> Self::PullFuture {
             unimplemented!()
@@ -1557,6 +1295,22 @@ mod tests {
         }
     }
 
+    impl MakeModuleRuntime for TestModuleList {
+        type Config = TestConfig;
+        type ProvisioningResult = ProvisioningResult;
+        type ModuleRuntime = Self;
+        type Settings = TestSettings;
+        type Error = Error;
+        type Future = FutureResult<Self, Self::Error>;
+
+        fn make_runtime(
+            _settings: Self::Settings,
+            _provisioning_result: Self::ProvisioningResult,
+        ) -> Self::Future {
+            unimplemented!()
+        }
+    }
+
     impl ModuleRuntime for TestModuleList {
         type Error = Error;
         type Config = TestConfig;
@@ -1567,7 +1321,6 @@ mod tests {
 
         type CreateFuture = FutureResult<(), Self::Error>;
         type GetFuture = FutureResult<(Self::Module, ModuleRuntimeState), Self::Error>;
-        type InitFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
         type ListWithDetailsStream =
             Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
@@ -1578,10 +1331,6 @@ mod tests {
         type StopFuture = FutureResult<(), Self::Error>;
         type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
         type RemoveAllFuture = FutureResult<(), Self::Error>;
-
-        fn init(&self) -> Self::InitFuture {
-            unimplemented!()
-        }
 
         fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
             unimplemented!()
@@ -1599,15 +1348,15 @@ mod tests {
             unimplemented!()
         }
 
-        fn system_info(&self) -> Self::SystemInfoFuture {
-            unimplemented!()
-        }
-
         fn restart(&self, _id: &str) -> Self::RestartFuture {
             unimplemented!()
         }
 
         fn remove(&self, _id: &str) -> Self::RemoveFuture {
+            unimplemented!()
+        }
+
+        fn system_info(&self) -> Self::SystemInfoFuture {
             unimplemented!()
         }
 
