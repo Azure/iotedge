@@ -3,8 +3,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 {
     using System;
     using System.Linq;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
 
     public class Args : IArgs
     {

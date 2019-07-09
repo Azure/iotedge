@@ -23,7 +23,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using ISinkResult = Microsoft.Azure.Devices.Routing.Core.ISinkResult<Devices.Routing.Core.IMessage>;
-    using Option = Microsoft.Azure.Devices.Routing.Core.Util.Option;
     using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
 
     public class CloudEndpoint : Endpoint
@@ -146,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 var succeeded = new List<IRoutingMessage>();
                 var failed = new List<IRoutingMessage>();
                 var invalid = new List<InvalidDetails<IRoutingMessage>>();
-                Devices.Routing.Core.Util.Option<SendFailureDetails> sendFailureDetails =
+                Option<SendFailureDetails> sendFailureDetails =
                     Option.None<SendFailureDetails>();
 
                 Events.ProcessingMessageGroups(routingMessages, routingMessageGroups.Count, this.cloudEndpoint.FanOutFactor);
@@ -173,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     succeeded,
                     failed,
                     invalid,
-                    sendFailureDetails.GetOrElse(null));
+                    sendFailureDetails.GetOrElse(default(SendFailureDetails)));
             }
 
             // Process all messages for a particular client
@@ -182,7 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 var succeeded = new List<IRoutingMessage>();
                 var failed = new List<IRoutingMessage>();
                 var invalid = new List<InvalidDetails<IRoutingMessage>>();
-                Devices.Routing.Core.Util.Option<SendFailureDetails> sendFailureDetails =
+                Option<SendFailureDetails> sendFailureDetails =
                     Option.None<SendFailureDetails>();
 
                 // Find the maximum message size, and divide messages into largest batches
@@ -202,7 +201,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     succeeded,
                     failed,
                     invalid,
-                    sendFailureDetails.GetOrElse(null));
+                    sendFailureDetails.GetOrElse(default(SendFailureDetails)));
             }
 
             async Task<ISinkResult<IRoutingMessage>> ProcessClientMessagesBatch(string id, List<IRoutingMessage> routingMessages, CancellationToken token)

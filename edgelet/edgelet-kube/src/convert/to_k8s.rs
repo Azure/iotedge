@@ -448,7 +448,7 @@ pub fn spec_to_service_account(
 pub fn spec_to_role_binding(
     settings: &Settings,
     spec: &ModuleSpec<DockerConfig>,
-) -> Result<(String, rbac::ClusterRoleBinding)> {
+) -> Result<(String, rbac::RoleBinding)> {
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
         sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
@@ -470,7 +470,7 @@ pub fn spec_to_role_binding(
     let mut annotations = BTreeMap::new();
     annotations.insert(EDGE_ORIGINAL_MODULEID.to_string(), spec.name().to_string());
 
-    let role_binding = rbac::ClusterRoleBinding {
+    let role_binding = rbac::RoleBinding {
         metadata: Some(api_meta::ObjectMeta {
             name: Some(role_binding_name.clone()),
             namespace: Some(settings.namespace().to_string()),
