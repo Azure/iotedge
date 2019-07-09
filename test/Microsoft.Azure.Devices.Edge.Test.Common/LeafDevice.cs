@@ -16,14 +16,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class LeafDevice
     {
-        readonly Authentication auth;
+        readonly AuthenticationType auth;
         readonly DeviceClient client;
         readonly Device device;
         readonly EdgeCertificateAuthority edgeCa;
         readonly IotHub iotHub;
         readonly string messageId;
 
-        LeafDevice(Device device, DeviceClient client, Authentication auth, EdgeCertificateAuthority edgeCa, IotHub iotHub)
+        LeafDevice(Device device, DeviceClient client, AuthenticationType auth, EdgeCertificateAuthority edgeCa, IotHub iotHub)
         {
             this.auth = auth;
             this.client = client;
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public static Task<LeafDevice> CreateAsync(
             string leafDeviceId,
             Protocol protocol,
-            Authentication auth,
+            AuthenticationType auth,
             Option<string> parentId,
             EdgeCertificateAuthority edgeCa,
             IotHub iotHub,
@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     Device leaf = await iotHub.CreateLeafDeviceIdentityAsync(
                         leafDeviceId,
                         parentId,
-                        auth.ToAuthenticationType(),
+                        auth,
                         token);
 
                     try
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         string edgeHostname = Dns.GetHostName().ToLower();
                         DeviceClient client;
 
-                        if (auth == Authentication.X509Certificate)
+                        if (auth == AuthenticationType.CertificateAuthority)
                         {
                             // TODO: Cert gen fails in openssl.exe if leaf deviceId > 64 chars
                             LeafCertificates certFiles = await edgeCa.GenerateLeafCertificatesAsync(leaf.Id, token);

@@ -136,22 +136,22 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 "Completed test teardown");
         }
 
-        static readonly (Authentication, Protocol, bool)[] TransparentGatewayArgs =
+        static readonly (AuthenticationType, Protocol, bool)[] TransparentGatewayArgs =
         {
-            (Authentication.Sas, Protocol.Mqtt, false),
-            (Authentication.Sas, Protocol.Amqp, false),
-            (Authentication.Sas, Protocol.Mqtt, true),
-            (Authentication.Sas, Protocol.Amqp, true),
-            (Authentication.X509Certificate, Protocol.Mqtt, true),
-            // (Authentication.X509Certificate, Protocol.Amqp, true), <= Failing in recent builds, uncomment when fixed
-            // (AuthType.X509Thumbprint, Protocol.Mqtt, true),
-            // (AuthType.X509Thumbprint, Protocol.Amqp, true)
+            (AuthenticationType.Sas, Protocol.Mqtt, false),
+            (AuthenticationType.Sas, Protocol.Amqp, false),
+            (AuthenticationType.Sas, Protocol.Mqtt, true),
+            (AuthenticationType.Sas, Protocol.Amqp, true),
+            (AuthenticationType.CertificateAuthority, Protocol.Mqtt, true),
+            // (AuthenticationType.CertificateAuthority, Protocol.Amqp, true), // TODO: Failing in recent builds, uncomment when fixed
+            // (AuthenticationType.SelfSigned, Protocol.Mqtt, true),
+            // (AuthenticationType.SelfSigned, Protocol.Amqp, true)
         };
 
         [TestCaseSource(nameof(TransparentGatewayArgs))]
-        public async Task TransparentGateway((Authentication, Protocol, bool) args)
+        public async Task TransparentGateway((AuthenticationType, Protocol, bool) args)
         {
-            (Authentication auth, Protocol protocol, bool inScope) = args;
+            (AuthenticationType auth, Protocol protocol, bool inScope) = args;
 
             CancellationToken token = this.cts.Token;
 
