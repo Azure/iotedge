@@ -16,6 +16,7 @@ use url::Url;
 
 use dps::registration::{DpsAuthKind, DpsClient, DpsTokenSource};
 use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, MemoryKey, MemoryKeyStore};
+use edgelet_core::ProvisioningResult as CoreProvisioningResult;
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http_external_provisioning::ExternalProvisioningInterface;
@@ -125,12 +126,20 @@ pub struct ProvisioningResult {
 }
 
 impl ProvisioningResult {
-    pub fn device_id(&self) -> &str {
-        &self.device_id
-    }
-
-    pub fn hub_name(&self) -> &str {
-        &self.hub_name
+    pub fn new(
+        device_id: &str,
+        hub_name: &str,
+        sha256_thumbprint: Option<&str>,
+        reconfigure: ReprovisioningStatus,
+        credentials: Option<Credentials>,
+    ) -> Self {
+        ProvisioningResult {
+            device_id: device_id.to_owned(),
+            hub_name: hub_name.to_owned(),
+            sha256_thumbprint: sha256_thumbprint.map(&str::to_owned),
+            reconfigure,
+            credentials,
+        }
     }
 
     pub fn reconfigure(&self) -> ReprovisioningStatus {
@@ -139,6 +148,16 @@ impl ProvisioningResult {
 
     pub fn credentials(&self) -> Option<&Credentials> {
         self.credentials.as_ref()
+    }
+}
+
+impl CoreProvisioningResult for ProvisioningResult {
+    fn device_id(&self) -> &str {
+        &self.device_id
+    }
+
+    fn hub_name(&self) -> &str {
+        &self.hub_name
     }
 }
 
@@ -587,7 +606,9 @@ where
             .read_to_string(&mut buffer)
             .context(ErrorKind::CouldNotRestore)?;
         info!("Restoring device credentials from backup");
-        let prov_result = serde_json::from_str(&buffer).context(ErrorKind::CouldNotRestore)?;
+        let mut prov_result: ProvisioningResult =
+            serde_json::from_str(&buffer).context(ErrorKind::CouldNotRestore)?;
+        prov_result.reconfigure = ReprovisioningStatus::DeviceDataNotUpdated;
         Ok(prov_result)
     }
 
@@ -680,7 +701,7 @@ where
 mod tests {
     use super::*;
 
-    use edgelet_config::{Manual, ParseManualDeviceConnectionStringError};
+    use edgelet_core::{Manual, ParseManualDeviceConnectionStringError};
     use external_provisioning::models::{Credentials, DeviceProvisioningInfo};
     use failure::Fail;
     use std::fmt::{self, Display};
@@ -895,6 +916,39 @@ mod tests {
             .unwrap();
 
         let prov_wrapper_err = BackupProvisioning::new(TestProvisioning {}, file_path_clone);
+        let task1 = prov_wrapper_err
+            .provision(MemoryKeyStore::new())
+            .then(|result| {
+                let prov_result = result.expect("Unexpected");
+                assert_eq!(prov_result.device_id(), "TestDevice");
+                assert_eq!(prov_result.hub_name(), "TestHub");
+                assert_eq!(
+                    prov_result.reconfigure(),
+                    ReprovisioningStatus::DeviceDataNotUpdated
+                );
+                Ok::<_, Error>(())
+            });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task1)
+            .unwrap();
+    }
+
+    #[test]
+    fn provisioning_restore_no_reconfigure() {
+        let test_provisioner = TestProvisioning {};
+        let tmp_dir = TempDir::new("backup").unwrap();
+        let file_path = tmp_dir.path().join("dps_backup.json");
+        let file_path_clone = file_path.clone();
+        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path);
+        let task = prov_wrapper.provision(MemoryKeyStore::new());
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+
+        let prov_wrapper_err =
+            BackupProvisioning::new(TestProvisioningWithError {}, file_path_clone);
         let task1 = prov_wrapper_err
             .provision(MemoryKeyStore::new())
             .then(|result| {

@@ -212,21 +212,6 @@ Function AppendInstallationOption([string] $testCommand)
     Return $testCommand += " -a `"$IoTEdgedWorkingFolder`""
 }
 
-Function CleanUp
-{
-    PrintHighlightedMessage "Test Clean Up"
-
-    Write-Host "Uninstall iotedged"
-    Invoke-Expression $InstallationScriptPath
-    Uninstall-IoTEdge -Force
-
-    # This may require once IoT Edge created its only bridge network
-    #Write-Host "Remove nat VM switch"
-    #Remove-VMSwitch -Force 'nat' -ErrorAction SilentlyContinue
-    #Write-Host "Restart Host Network Service"
-    #Restart-Service -name hns
-}
-
 Function GetArchitecture
 {
     $processorArchitecture = $ENV:PROCESSOR_ARCHITECTURE
@@ -1161,10 +1146,16 @@ Function SetEnvironmentVariable
 
 Function TestSetup
 {
+    Write-Host "Environment setup..."
     ValidateTestParameters
     If (!$BypassEdgeInstallation)
     {
-        CleanUp | Out-Host
+        # Cleanup/Setup
+        $testCommand = "&$EnvSetupScriptPath ``
+            -ArtifactImageBuildNumber `"$ArtifactImageBuildNumber`" ``
+            -E2ETestFolder `"$E2ETestFolder`""
+            
+        Invoke-Expression $testCommand | Out-Host
     }
     InitializeWorkingFolder
     PrepareTestFromArtifacts
@@ -1265,6 +1256,7 @@ If ($Architecture -eq "arm32v7")
 }
 $E2ETestFolder = (Resolve-Path $E2ETestFolder).Path
 $DefaultOpensslInstallPath = "C:\vcpkg\installed\x64-windows\tools\openssl"
+$EnvSetupScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\test\Setup-Env.ps1"
 $InstallationScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\setup\IotEdgeSecurityDaemon.ps1"
 $EdgeCertGenScriptDir = Join-Path $E2ETestFolder "artifacts\core-windows\CACertificates"
 $EdgeCertGenScript = Join-Path $EdgeCertGenScriptDir "ca-certs.ps1"
@@ -1330,4 +1322,5 @@ Else
 # Evaluate collection of test results for final pass/fail result
 RunTest | ForEach-Object {$retCode = 0} {$retCode = $retCode -bor $_}
 Write-Host "Exit test with code $retCode"
+
 Exit $retCode -gt 0

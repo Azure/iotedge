@@ -80,6 +80,9 @@ fn run() -> Result<(), Error> {
         edgelet_core::version().replace("~", "-")
     );
 
+    let mut possible_check_id_values: Vec<_> = Check::possible_ids().collect();
+    possible_check_id_values.sort();
+
     let matches = App::new(crate_name!())
         .version(edgelet_core::version_with_source_version())
         .about(crate_description!())
@@ -124,6 +127,15 @@ fn run() -> Result<(), Error> {
                         .default_value(&default_diagnostics_image_name),
                 )
                 .arg(
+                    Arg::with_name("dont-run")
+                        .long("dont-run")
+                        .value_name("DONT_RUN")
+                        .help("Space-separated list of check IDs. The checks listed here will not be run. See 'iotedge check-list' for details of all checks.\n")
+                        .multiple(true)
+                        .takes_value(true)
+                        .possible_values(&possible_check_id_values),
+                )
+                .arg(
                     Arg::with_name("expected-iotedged-version")
                         .long("expected-iotedged-version")
                         .value_name("VERSION")
@@ -160,7 +172,7 @@ fn run() -> Result<(), Error> {
                         .long("output")
                         .short("o")
                         .value_name("FORMAT")
-                        .help("Output format.")
+                        .help("Output format. Note that JSON output contains some additional host information like OS name and version.")
                         .takes_value(true)
                         .possible_values(&["json", "text"])
                         .default_value("text"),
@@ -171,8 +183,16 @@ fn run() -> Result<(), Error> {
                         .value_name("VERBOSE")
                         .help("Increases verbosity of output.")
                         .takes_value(false),
+                )
+                .arg(
+                    Arg::with_name("warnings-as-errors")
+                        .long("warnings-as-errors")
+                        .value_name("WARNINGS_AS_ERRORS")
+                        .help("Treats warnings as errors. Thus 'iotedge check' will exit with non-zero code if it encounters warnings.")
+                        .takes_value(false),
                 ),
         )
+        .subcommand(SubCommand::with_name("check-list").about("List the checks that are run for 'iotedge check'"))
         .subcommand(SubCommand::with_name("list").about("List modules"))
         .subcommand(
             SubCommand::with_name("restart")
@@ -219,15 +239,18 @@ fn run() -> Result<(), Error> {
         .subcommand(SubCommand::with_name("version").about("Show the version information"))
         .get_matches();
 
-    let url = matches.value_of("host").map_or_else(
-        || Err(Error::from(ErrorKind::MissingHostParameter)),
-        |h| {
-            Url::parse(h)
-                .context(ErrorKind::BadHostParameter)
-                .map_err(Error::from)
-        },
-    )?;
-    let runtime = ModuleClient::new(&url).context(ErrorKind::ModuleRuntime)?;
+    let runtime = || -> Result<_, Error> {
+        let url = matches.value_of("host").map_or_else(
+            || Err(Error::from(ErrorKind::MissingHostParameter)),
+            |h| {
+                Url::parse(h)
+                    .context(ErrorKind::BadHostParameter)
+                    .map_err(Error::from)
+            },
+        )?;
+        let runtime = ModuleClient::new(&url).context(ErrorKind::ModuleRuntime)?;
+        Ok(runtime)
+    };
 
     let mut tokio_runtime = tokio::runtime::Runtime::new().context(ErrorKind::InitializeTokio)?;
 
@@ -245,6 +268,11 @@ fn run() -> Result<(), Error> {
                 args.value_of("diagnostics-image-name")
                     .expect("arg has a default value")
                     .to_string(),
+                args.values_of("dont-run")
+                    .into_iter()
+                    .flatten()
+                    .map(ToOwned::to_owned)
+                    .collect(),
                 args.value_of("expected-iotedged-version")
                     .map(ToOwned::to_owned),
                 args.value_of_os("iotedged")
@@ -263,14 +291,16 @@ fn run() -> Result<(), Error> {
                     })
                     .expect("arg has a default value"),
                 args.occurrences_of("verbose") > 0,
+                args.occurrences_of("warnings-as-errors") > 0,
             )
             .and_then(|mut check| check.execute()),
         ),
-        ("list", Some(_args)) => tokio_runtime.block_on(List::new(runtime, io::stdout()).execute()),
+        ("check-list", _) => Check::print_list(),
+        ("list", _) => tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),
         ("restart", Some(args)) => tokio_runtime.block_on(
             Restart::new(
                 args.value_of("MODULE").unwrap().to_string(),
-                runtime,
+                runtime()?,
                 io::stdout(),
             )
             .execute(),
@@ -290,9 +320,9 @@ fn run() -> Result<(), Error> {
                 .with_follow(follow)
                 .with_tail(tail)
                 .with_since(since);
-            tokio_runtime.block_on(Logs::new(id, options, runtime).execute())
+            tokio_runtime.block_on(Logs::new(id, options, runtime()?).execute())
         }
-        ("version", Some(_args)) => tokio_runtime.block_on(Version::new().execute()),
+        ("version", _) => tokio_runtime.block_on(Version::new().execute()),
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
 }
