@@ -1109,7 +1109,7 @@ Function RunTransparentGatewayTest
     # Relevant bug for investigation: https://msazure.visualstudio.com/One/_workitems/edit/4683653
     RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-x509th-inscope-leaf" $edgeDeviceId
 
-    Return $testExitCode;
+    Return $testExitCode
 }
 
 Function RunTest
