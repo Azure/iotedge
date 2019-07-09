@@ -476,79 +476,12 @@ Function PrintLogs
     $now = Get-Date
     PrintHighlightedMessage "Test finished with exit code $testExitCode at $now, took $($now - $testStartTime)"
 
-    If ($testExitCode -eq 0)
-    {
-        Return
-    }
+    #If ($testExitCode -eq 0)
+    #{
+    #    Return
+    #}
 
-    # Need to use Get-WinEvent, since Get-EventLog is not supported in Windows IoT Core ARM
-    Get-WinEvent -ea SilentlyContinue `
-        -FilterHashtable @{ProviderName= "iotedged";
-        LogName = "application"; StartTime = $testStartTime} |
-        select TimeCreated, Message |
-        sort-object @{Expression="TimeCreated";Descending=$false} |
-        format-table -autosize -wrap | Out-Host
-
-    $dockerCmd ="docker -H npipe:////./pipe/iotedge_moby_engine"
-
-    Try
-    {
-        Write-Host "EDGE AGENT LOGS"
-        Invoke-Expression "$dockerCmd logs edgeAgent" | Out-Host
-    }
-    Catch
-    {
-        Write-Host "Exception caught when output Edge Agent logs"
-    }
-
-    Try
-    {
-        Write-Host "EDGE HUB LOGS"
-        Invoke-Expression "$dockerCmd logs edgeHub" | Out-Host
-    }
-    Catch
-    {
-        Write-Host "Exception caught when output Edge Hub logs"
-    }
-
-    if (($TestName -eq "TempSensor") -Or `
-        ($TestName -eq "TempFilter") -Or `
-        ($TestName -eq "TempFilterFunctions"))
-    {
-        Try
-        {
-            Write-Host "TEMP SENSOR LOGS"
-            Invoke-Expression "$dockerCmd logs tempSensor" | Out-Host
-        }
-        Catch
-        {
-            Write-Host "Exception caught when output Temp Sensor logs"
-        }
-    }
-
-    if ($TestName -eq "TempFilter")
-    {
-        Try {
-            Write-Host "TEMP FILTER LOGS"
-            Invoke-Expression "$dockerCmd logs tempFilter" | Out-Host
-        }
-        Catch
-        {
-            Write-Host "Cannot output Temp Filter logs"
-        }
-    }
-
-    if ($TestName -eq "TempFilterFunctions")
-    {
-        Try {
-            Write-Host "TEMP FILTER FUNCTIONS LOGS"
-            Invoke-Expression "$dockerCmd logs tempFilterFunctions" | Out-Host
-        }
-        Catch
-        {
-            Write-Host "Cannot output Temp Filter Functions logs"
-        }
-    }
+    
 }
 
 Function RunAllTests
@@ -1101,37 +1034,41 @@ Function RunTransparentGatewayTest
     }
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
-    $result = 0;
 
     # run the various leaf device tests and "bitwise or" the results (-bor).
     # This ensures that if at least one of these tests fail, then that failed result will carry through the rest of the suite and be reported as a single failure.
     $deviceId = "e2e-${ReleaseLabel}-Win-${Architecture}"
+    $currentTestOutput = 0
 
     $result = RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-noscope-leaf" $null
-    $result = $result -bor 00
+    $currentTestOutput = $result -bor $currentTestOutput
 
     $result = RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-noscope-leaf" $null
-    $result = $result -bor 00
+    $currentTestOutput = $result -bor $currentTestOutput
 
     $result = RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-inscope-leaf" $edgeDeviceId
-    $result = $result -bor 00
+    $currentTestOutput = $result -bor $currentTestOutput
 
     $result = RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-inscope-leaf" $edgeDeviceId
-    $result = $result -bor 00
+    $currentTestOutput = $result -bor $currentTestOutput
 
     $result = RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x509ca-inscope-leaf" $edgeDeviceId
-    $result = $result -bor 00
-    
+    $currentTestOutput = $result -bor $currentTestOutput
+
+    # The below test is failing.
+    # Relevant bug for investigation: https://msazure.visualstudio.com/One/_workitems/edit/4683653
     $result = RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x509ca-inscope-leaf" $edgeDeviceId
-    $result = $result -bor 00
+    $currentTestOutput = $result -bor $currentTestOutput
 
     $result = RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-x509th-inscope-leaf" $edgeDeviceId
-    $result = $result -bor 00
+    $currentTestOutput = $result -bor $currentTestOutput
 
+    # The below test is failing.
+    # Relevant bug for investigation: https://msazure.visualstudio.com/One/_workitems/edit/4683653
     $result = RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-x509th-inscope-leaf" $edgeDeviceId
-    $result = $result -bor 00
+    $currentTestOutput = $result -bor $currentTestOutput
 
-    Return $result;
+    Return $currentTestOutput;
 }
 
 Function RunTest
