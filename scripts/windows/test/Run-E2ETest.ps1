@@ -1102,40 +1102,29 @@ Function RunTransparentGatewayTest
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
 
-    # run the various leaf device tests and "bitwise or" the results (-bor).
-    # This ensures that if at least one of these tests fail, then that failed result will carry through the rest of the suite and be reported as a single failure.
+    $testExitCode = $LastExitCode
+
+    # run the various leaf device tests
     $deviceId = "e2e-${ReleaseLabel}-Win-${Architecture}"
-    $currentTestOutput = 0
 
-    $result = RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-noscope-leaf" $null
-    $currentTestOutput = $result -bor $currentTestOutput
+    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-noscope-leaf" $null
+    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-noscope-leaf" $null
 
-    $result = RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-noscope-leaf" $null
-    $currentTestOutput = $result -bor $currentTestOutput
+    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-inscope-leaf" $edgeDeviceId
 
-    $result = RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-inscope-leaf" $edgeDeviceId
-    $currentTestOutput = $result -bor $currentTestOutput
+    RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x509ca-inscope-leaf" $edgeDeviceId
+    # The below test is failing.
+    # Relevant bug for investigation: https://msazure.visualstudio.com/One/_workitems/edit/4683653
+    RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x509ca-inscope-leaf" $edgeDeviceId
 
-    $result = RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-inscope-leaf" $edgeDeviceId
-    $currentTestOutput = $result -bor $currentTestOutput
-
-    $result = RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x509ca-inscope-leaf" $edgeDeviceId
-    $currentTestOutput = $result -bor $currentTestOutput
+    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-x509th-inscope-leaf" $edgeDeviceId
 
     # The below test is failing.
     # Relevant bug for investigation: https://msazure.visualstudio.com/One/_workitems/edit/4683653
-    $result = RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x509ca-inscope-leaf" $edgeDeviceId
-    $currentTestOutput = $result -bor $currentTestOutput
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-x509th-inscope-leaf" $edgeDeviceId
 
-    $result = RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-x509th-inscope-leaf" $edgeDeviceId
-    $currentTestOutput = $result -bor $currentTestOutput
-
-    # The below test is failing.
-    # Relevant bug for investigation: https://msazure.visualstudio.com/One/_workitems/edit/4683653
-    $result = RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-x509th-inscope-leaf" $edgeDeviceId
-    $currentTestOutput = $result -bor $currentTestOutput
-
-    Return $currentTestOutput;
+    Return $testExitCode;
 }
 
 Function RunTest
@@ -1338,6 +1327,7 @@ Else
     $BypassInstallationFlag = $null
 }
 
-$retCode = RunTest
+# Evaluate collection of test results for final pass/fail result
+RunTest | ForEach-Object {$retCode = 0} {$retCode = $retCode -bor $_}
 Write-Host "Exit test with code $retCode"
 Exit $retCode -gt 0
