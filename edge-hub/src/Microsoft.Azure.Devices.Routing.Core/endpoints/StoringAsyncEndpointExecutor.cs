@@ -7,12 +7,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
-    using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Extensions.Logging;
     using Nito.AsyncEx;
     using static System.FormattableString;
-    using AsyncLock = Microsoft.Azure.Devices.Routing.Core.Util.Concurrency.AsyncLock;
+    using AsyncLock = Edge.Util.Concurrency.AsyncLock;
 
     public class StoringAsyncEndpointExecutor : IEndpointExecutor
     {

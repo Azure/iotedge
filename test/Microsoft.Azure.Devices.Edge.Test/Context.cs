@@ -2,16 +2,17 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Net;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
     public class Context
     {
-        static readonly Lazy<Context> Default = new Lazy<Context>(
-            () =>
-            {
+        public Context()
+        {
                 IConfiguration context = new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
                     .AddJsonFile("context.json")
@@ -22,83 +23,92 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                 string GetOrDefault(string name, string defaultValue) => context.GetValue(name, defaultValue);
 
-                Option<(string, string, string)> GetAndValidateRegistry()
+                IEnumerable<(string, string, string)> GetAndValidateRegistries()
                 {
-                    // If any container registry arguments (server, username, password)
-                    // are given, then they must *all* be given, otherwise throw an error.
-                    string registry = Get("registry");
-                    string username = Get("user");
-                    string password = Get("CONTAINER_REGISTRY_PASSWORD");
+                    var result = new List<(string, string, string)>();
 
-                    if (!string.IsNullOrWhiteSpace(registry) ||
-                        !string.IsNullOrWhiteSpace(username) ||
-                        !string.IsNullOrWhiteSpace(password))
+                    var registries = context.GetSection("registries").GetChildren().ToArray();
+                    foreach (var reg in registries)
                     {
+                        string registry = reg.GetValue<string>("address");
+                        string username = reg.GetValue<string>("username");
+                        // To specify a password as an environment variable instead of in the
+                        // JSON file (so it's not stored in the clear on the filesystem), name
+                        // the variable like this: E2E_REGISTRIES__<index>__PASSWORD, where
+                        // <index> is the 0-based number corresponding to an element in the
+                        // "registries" JSON array.
+                        string password = reg.GetValue<string>("PASSWORD");
+
+                        // If any container registry arguments (server, username, password)
+                        // are given, then they must *all* be given, otherwise throw an error.
                         Preconditions.CheckNonWhiteSpace(registry, nameof(registry));
                         Preconditions.CheckNonWhiteSpace(username, nameof(username));
                         Preconditions.CheckNonWhiteSpace(password, nameof(password));
-                        return Option.Some((registry, username, password));
+
+                        result.Add((registry, username, password));
                     }
 
-                    return Option.None<(string, string, string)>();
+                    return result;
                 }
 
-                return new Context
-                {
-                    ConnectionString = Get("IOT_HUB_CONNECTION_STRING"),
-                    EventHubEndpoint = Get("EVENT_HUB_ENDPOINT"),
-                    DeviceId = GetOrDefault("deviceId", $"end-to-end-{Dns.GetHostName()}-{DateTime.Now:yyyy'-'MM'-'dd'T'HH'-'mm'-'ss'-'fff}"),
-                    InstallerPath = Option.Maybe(Get("installerPath")),
-                    PackagePath = Option.Maybe(Get("packagePath")),
-                    Proxy = Option.Maybe(context.GetValue<Uri>("proxy")),
-                    Registry = GetAndValidateRegistry(),
-                    EdgeAgentImage = Option.Maybe(Get("edgeAgentImage")),
-                    EdgeHubImage = Option.Maybe(Get("edgeHubImage")),
-                    TempSensorImage = Option.Maybe(Get("tempSensorImage")),
-                    MethodSenderImage = Option.Maybe(Get("methodSenderImage")),
-                    MethodReceiverImage = Option.Maybe(Get("methodReceiverImage")),
-                    LogFile = Option.Maybe(Get("logFile")),
-                    Verbose = context.GetValue("verbose", false),
-                    SetupTimeout = TimeSpan.FromMinutes(context.GetValue("setupTimeoutMinutes", 5)),
-                    TeardownTimeout = TimeSpan.FromMinutes(context.GetValue("teardownTimeoutMinutes", 2)),
-                    TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5))
-                };
-            });
+                this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
+                this.EventHubEndpoint = Get("EVENT_HUB_ENDPOINT");
+                this.DeviceId = GetOrDefault("deviceId", $"end-to-end-{Dns.GetHostName()}-{DateTime.Now:yyyy'-'MM'-'dd'T'HH'-'mm'-'ss'-'fff}");
+                this.InstallerPath = Option.Maybe(Get("installerPath"));
+                this.PackagePath = Option.Maybe(Get("packagePath"));
+                this.Proxy = Option.Maybe(context.GetValue<Uri>("proxy"));
+                this.Registries = GetAndValidateRegistries();
+                this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
+                this.EdgeHubImage = Option.Maybe(Get("edgeHubImage"));
+                this.TempSensorImage = Option.Maybe(Get("tempSensorImage"));
+                this.MethodSenderImage = Option.Maybe(Get("methodSenderImage"));
+                this.MethodReceiverImage = Option.Maybe(Get("methodReceiverImage"));
+                this.LogFile = Option.Maybe(Get("logFile"));
+                this.Verbose = context.GetValue<bool>("verbose");
+                this.OptimizeForPerformance = context.GetValue("optimizeForPerformance", true);
+                this.SetupTimeout = TimeSpan.FromMinutes(context.GetValue("setupTimeoutMinutes", 5));
+                this.TeardownTimeout = TimeSpan.FromMinutes(context.GetValue("teardownTimeoutMinutes", 2));
+                this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
+        }
+
+        static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
 
         public static Context Current => Default.Value;
 
-        public string ConnectionString { get; private set; }
+        public string ConnectionString { get; }
 
-        public string EventHubEndpoint { get; private set; }
+        public string EventHubEndpoint { get; }
 
-        public string DeviceId { get; private set; }
+        public string DeviceId { get; }
 
-        public Option<string> InstallerPath { get; private set; }
+        public Option<string> InstallerPath { get; }
 
-        public Option<string> PackagePath { get; private set; }
+        public Option<string> PackagePath { get; }
 
-        public Option<Uri> Proxy { get; private set; }
+        public Option<Uri> Proxy { get; }
 
-        public Option<(string address, string username, string password)> Registry { get; private set; }
+        public IEnumerable<(string address, string username, string password)> Registries { get; }
 
-        public Option<string> EdgeAgentImage { get; private set; }
+        public Option<string> EdgeAgentImage { get; }
 
-        public Option<string> EdgeHubImage { get; private set; }
+        public Option<string> EdgeHubImage { get; }
 
-        public Option<string> TempSensorImage { get; private set; }
+        public Option<string> TempSensorImage { get; }
 
-        public Option<string> MethodSenderImage { get; private set; }
+        public Option<string> MethodSenderImage { get; }
 
-        public Option<string> MethodReceiverImage { get; private set; }
+        public Option<string> MethodReceiverImage { get; }
 
-        public Option<string> LogFile { get; private set; }
+        public Option<string> LogFile { get; }
 
-        public bool Verbose { get; private set; }
+        public bool OptimizeForPerformance { get; }
 
-        public TimeSpan SetupTimeout { get; private set; }
+        public bool Verbose { get; }
 
-        public TimeSpan TeardownTimeout { get; private set; }
+        public TimeSpan SetupTimeout { get; }
 
-        public TimeSpan TestTimeout { get; private set; }
+        public TimeSpan TeardownTimeout { get; }
+
+        public TimeSpan TestTimeout { get; }
     }
 }
