@@ -476,12 +476,79 @@ Function PrintLogs
     $now = Get-Date
     PrintHighlightedMessage "Test finished with exit code $testExitCode at $now, took $($now - $testStartTime)"
 
-    #If ($testExitCode -eq 0)
-    #{
-    #    Return
-    #}
+    If ($testExitCode -eq 0)
+    {
+        Return
+    }
 
-    
+    # Need to use Get-WinEvent, since Get-EventLog is not supported in Windows IoT Core ARM
+    Get-WinEvent -ea SilentlyContinue `
+        -FilterHashtable @{ProviderName= "iotedged";
+        LogName = "application"; StartTime = $testStartTime} |
+        select TimeCreated, Message |
+        sort-object @{Expression="TimeCreated";Descending=$false} |
+        format-table -autosize -wrap | Out-Host
+
+    $dockerCmd ="docker -H npipe:////./pipe/iotedge_moby_engine"
+
+    Try
+    {
+        Write-Host "EDGE AGENT LOGS"
+        Invoke-Expression "$dockerCmd logs edgeAgent" | Out-Host
+    }
+    Catch
+    {
+        Write-Host "Exception caught when output Edge Agent logs"
+    }
+
+    Try
+    {
+        Write-Host "EDGE HUB LOGS"
+        Invoke-Expression "$dockerCmd logs edgeHub" | Out-Host
+    }
+    Catch
+    {
+        Write-Host "Exception caught when output Edge Hub logs"
+    }
+
+    if (($TestName -eq "TempSensor") -Or `
+        ($TestName -eq "TempFilter") -Or `
+        ($TestName -eq "TempFilterFunctions"))
+    {
+        Try
+        {
+            Write-Host "TEMP SENSOR LOGS"
+            Invoke-Expression "$dockerCmd logs tempSensor" | Out-Host
+        }
+        Catch
+        {
+            Write-Host "Exception caught when output Temp Sensor logs"
+        }
+    }
+
+    if ($TestName -eq "TempFilter")
+    {
+        Try {
+            Write-Host "TEMP FILTER LOGS"
+            Invoke-Expression "$dockerCmd logs tempFilter" | Out-Host
+        }
+        Catch
+        {
+            Write-Host "Cannot output Temp Filter logs"
+        }
+    }
+
+    if ($TestName -eq "TempFilterFunctions")
+    {
+        Try {
+            Write-Host "TEMP FILTER FUNCTIONS LOGS"
+            Invoke-Expression "$dockerCmd logs tempFilterFunctions" | Out-Host
+        }
+        Catch
+        {
+            Write-Host "Cannot output Temp Filter Functions logs"
+        }
+    }
 }
 
 Function RunAllTests
