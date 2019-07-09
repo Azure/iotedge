@@ -30,6 +30,12 @@ function create_iotedge_service_config {
 Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/iotedge.service.d/override.conf"
 }
 
+function set_certificate_generation_tools_dir() {
+    if [[ -z $CERT_SCRIPT_DIR ]]; then
+        CERT_SCRIPT_DIR="$E2E_TEST_DIR/artifacts/core-linux/CACertificates"
+    fi
+}
+
 function get_image_architecture_label() {
     local arch
     arch="$(uname -m)"
@@ -322,15 +328,15 @@ function process_args() {
         elif [ $saveNextArg -eq 24 ]; then
             CERT_SCRIPT_DIR="$arg"
             saveNextArg=0
-        elif [ $save_next_arg -eq 25 ]; then
+        elif [ $saveNextArg -eq 25 ]; then
             ROOT_CA_CERT_PATH="$arg"
             INSTALL_CA_CERT=1
             save_next_arg=0
-        elif [ $save_next_arg -eq 26 ]; then
+        elif [ $saveNextArg -eq 26 ]; then
             ROOT_CA_KEY_PATH="$arg"
             INSTALL_CA_CERT=1
             save_next_arg=0
-        elif [ $save_next_arg -eq 27 ]; then
+        elif [ $saveNextArg -eq 27 ]; then
             ROOT_CA_PASSWORD="$arg"
             INSTALL_CA_CERT=1
             save_next_arg=0
@@ -366,12 +372,12 @@ function process_args() {
                 '-amqpSettingsEnabled' ) saveNextArg=21;;
                 '-mqttSettingsEnabled' ) saveNextArg=22;;
                 '-longHaulProtocolHead' ) saveNextArg=23;;
-                '-cert_script-dir' ) saveNextArg=24;;
-                '-install-root-ca-cert' ) saveNextArg=25;;
-                '-install-root-ca-key' ) saveNextArg=26;;
-                '-install-root-ca-key-password' ) saveNextArg=27;;
+                '-certScriptDir' ) saveNextArg=24;;
+                '-installRootCACertPath' ) saveNextArg=25;;
+                '-installRootCAKeyPath' ) saveNextArg=26;;
+                '-installRootCAKeyPassword' ) saveNextArg=27;;
                 '-dpsScopeId' ) saveNextArg=28;;
-                '-dpsMasterSymmetricKey' ) saveNextArg=29;
+                '-dpsMasterSymmetricKey' ) saveNextArg=29;;
                 * ) usage;;
             esac
         fi
@@ -385,8 +391,9 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$IOTHUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
-    [[ -z "$CERT_SCRIPT_DIR" ]] && { print_error 'Certificate script dir is required'; exit 1; }
-    [[ ! -d "$CERT_SCRIPT_DIR" ]] && { print_error 'Certificate script dir is invalid'; exit 1; }
+    #[[ -z "$CERT_SCRIPT_DIR" ]] && { print_error 'Certificate script dir is required'; exit 1; }
+    set_certificate_generation_tools_dir
+    #[[ ! -d "$CERT_SCRIPT_DIR" ]] && { print_error 'Certificate script dir is invalid'; exit 1; }
 
     echo 'Required parameters are provided'
 }
@@ -555,21 +562,21 @@ function run_dps_provisioning_test() {
     print_highlighted_message "Run DPS provisioning test using $provisioning_type for $image_architecture_label"
     test_setup
 
-    local registation_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-DPS-$provisioning_type"
+    local registration_id="e2e-$RELEASE_LABEL-Linux-$image_architecture_label-DPS-$provisioning_type"
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
-    print_highlighted_message "Run DPS provisioning test $provisioning_type for registration id '$registation_id' started at $test_start_time"
+    print_highlighted_message "Run DPS provisioning test $provisioning_type for registration id '$registration_id' started at $test_start_time"
 
     local dps_command_flags=""
     if [[ $provisioning_type == "SymmetricKey" ]]; then
-        dps_command_flags="--dps-scope-id=\"$DPS_SCOPE_ID\" \
-                           --dps-registration-id=\"$registation_id\" \
-                           --dps-master-symmetric-key=\"$DPS_MASTER_SYMMETRIC_KEY\""
+        dps_command_flags="--dps-scope-id=$DPS_SCOPE_ID \
+		           --dps-registration-id=$registration_id \
+			   --dps-master-symmetric-key=$DPS_MASTER_SYMMETRIC_KEY"
     elif [[ $provisioning_type == "Tpm"  ]]; then
         dps_command_flags="--dps-scope-id=\"$DPS_SCOPE_ID\" \
-                           --dps-registration-id=\"$registation_id\""
+                           --dps-registration-id=\"$registration_id\""
     else # x.509 provisioning
         # generate the edge device identity primary certificate and key
-        FORCE_NO_PROD_WARNING="true" ${CERT_SCRIPT_DIR}/certGen.sh create_device_certificate "${registation_id}"
+        FORCE_NO_PROD_WARNING="true" ${CERT_SCRIPT_DIR}/certGen.sh create_device_certificate "${registration_id}"
         local edge_device_id_cert=$(readlink -f ${CERT_SCRIPT_DIR}/certs/iot-device-${registation_id}-full-chain.cert.pem)
         local edge_device_id_key=$(readlink -f ${CERT_SCRIPT_DIR}/private/iot-device-${registation_id}.key.pem)
         dps_command_flags="--dps-scope-id=\"$DPS_SCOPE_ID\" \
@@ -579,8 +586,8 @@ function run_dps_provisioning_test() {
 
     SECONDS=0
     local ret=0
-    "$quickstart_working_folder/IotEdgeQuickstart" \
-        -d "$registation_id" \
+    echo "$quickstart_working_folder/IotEdgeQuickstart.linux-x64/IotEdgeQuickstart" \
+        -d "$registration_id" \
         -a "$iotedge_package" \
         -c "$IOTHUB_CONNECTION_STRING" \
         -e "$EVENTHUB_CONNECTION_STRING" \
@@ -590,7 +597,21 @@ function run_dps_provisioning_test() {
         -n "$(hostname)" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
         --optimize_for_performance="$optimize_for_performance" \
-        "$dps_command_flags" \
+        $dps_command_flags \
+        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$?
+
+    "$quickstart_working_folder/IotEdgeQuickstart.linux-x64/IotEdgeQuickstart" \
+	        -d "$registration_id" \
+	            -a "$iotedge_package" \
+	            -c "$IOTHUB_CONNECTION_STRING" \
+	        -e "$EVENTHUB_CONNECTION_STRING" \
+            -r "$CONTAINER_REGISTRY" \
+        -u "$CONTAINER_REGISTRY_USERNAME" \
+        -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
+        -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
+        --optimize_for_performance="$optimize_for_performance" \
+        $dps_command_flags \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -818,9 +839,9 @@ function run_test()
         'directmethodmqtt') run_directmethodmqtt_test && ret=$? || ret=$?;;
         'directmethodmqttamqp') run_directmethodmqttamqp_test && ret=$? || ret=$?;;
         'directmethodmqttws') run_directmethodmqttws_test && ret=$? || ret=$?;;
-        'dpssymmetrickeyprovisioning' run_dps_provisioning_test "SymmetricKey" && ret=$? || ret=$?;;
-        'dpstpmprovisioning' run_dps_provisioning_test "Tpm" && ret=$? || ret=$?;;
-        'dpsx509provisioning' run_dps_provisioning_test "X509" && ret=$? || ret=$?;;
+	'dpssymmetrickeyprovisioning') run_dps_provisioning_test "SymmetricKey" && ret=$? || ret=$?;;
+	'dpstpmprovisioning') run_dps_provisioning_test "Tpm" && ret=$? || ret=$?;;
+	'dpsx509provisioning') run_dps_provisioning_test "X509" && ret=$? || ret=$?;;
         'quickstartcerts') run_quickstartcerts_test && ret=$? || ret=$?;;
         'longhaul') run_longhaul_test && ret=$? || ret=$?;;
         'stress') run_stress_test && ret=$? || ret=$?;;
@@ -943,15 +964,22 @@ function usage() {
     echo ' -longHaulProtocolHead           Specify which protocol head is used to run long haul test for ARM32v7 device. Valid values are amqp (default) and mqtt.'
     echo ' -dpsScopeId                     DPS scope id. Required only when using DPS to provision the device.'
     echo ' -dpsMasterSymmetricKey          DPS master symmetric key. Required only when using DPS symmetric key to provision the Edge device.'
-    echo ' -cert_script-dir                Optional path to certificate generation script dir'
-    echo ' -install-root-ca-cert           Optional path to root CA certificate to be used for certificate generation'
-    echo ' -install-root-ca-key            Optional path to root CA certificate private key to be used for certificate generation'
-    echo ' -install-root-ca-key-password   Optional password to access the root CA certificate private key to be used for certificate generation'
+    echo ' -certScriptDir                  Optional path to certificate generation script dir'
+    echo ' -installRootCACertPath          Optional path to root CA certificate to be used for certificate generation'
+    echo ' -installRootCAKeyPath           Optional path to root CA certificate private key to be used for certificate generation'
+    echo ' -installRootCAKeyPassword       Optional password to access the root CA certificate private key to be used for certificate generation'
     exit 1;
 }
 
 process_args "$@"
 
+#CERT_SCRIPT_DIR=
+#ROOT_CA_CERT_PATH=
+#ROOT_CA_KEY_PATH=
+#ROOT_CA_PASSWORD=
+#INSTALL_CA_CERT=0
+#DPS_SCOPE_ID=
+#DPS_MASTER_SYMMETRIC_KEY=
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 LONG_HAUL_PROTOCOL_HEAD="${LONG_HAUL_PROTOCOL_HEAD:-amqp}"
@@ -996,12 +1024,5 @@ stress_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployme
 deployment_working_file="$working_folder/deployment.json"
 quickstart_working_folder="$working_folder/quickstart"
 leafdevice_working_folder="$working_folder/leafdevice"
-CERT_SCRIPT_DIR="$E2E_TEST_DIR/artifacts/core-linux/CACertificates"
-ROOT_CA_CERT_PATH=
-ROOT_CA_KEY_PATH=
-ROOT_CA_PASSWORD=
-INSTALL_CA_CERT=0
-DPS_SCOPE_ID=
-DPS_MASTER_SYMMETRIC_KEY=
 
 run_test
