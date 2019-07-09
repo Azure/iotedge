@@ -10,7 +10,7 @@ edition = "2018"
 [dependencies]
 atty = "0.2"
 bytes = "0.4"
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 chrono-humanize = "0.0.11"
 clap = "2.31"
 failure = "0.1"
@@ -28,7 +28,6 @@ tokio = "0.1"
 url = "1.7"
 
 docker = { path = "../docker-rs" }
-edgelet-config = { path = "../edgelet-config" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
 edgelet-http = { path = "../edgelet-http" }

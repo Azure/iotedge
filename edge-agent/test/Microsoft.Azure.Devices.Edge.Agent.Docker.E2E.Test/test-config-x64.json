@@ -21,5 +21,53 @@
             "args": "run --rm --link nginx-server:nginx-server appropriate/curl curl -s -o /dev/null -w '%{http_code}' http://nginx-server",
             "outputEquals": "'200'"
         }
+    },
+    {
+        "name": "bash",
+        "version": "1.0",
+        "image": "bash:latest",
+        "imagePullPolicyTestConfig": {
+            "imagePullPolicy": "never",
+            "pullImage": "false"
+        },
+        "validator": {
+            "$type": "RunCommandValidator",
+            "command": "curl",
+            "args": "-X GET -s -o /dev/null -w \"%{http_code}\" --unix-socket /var/run/docker.sock http://docker/containers/bash/json",
+            "exitCode" : 0,
+            "outputEquals": "404"
+        }
+    },
+    {
+        "name": "bash",
+        "version": "1.0",
+        "image": "bash:latest",
+        "imagePullPolicyTestConfig": {
+            "imagePullPolicy": "never",
+            "pullImage": "true"
+        },
+        "validator": {
+            "$type": "RunCommandValidator",
+            "command": "curl",
+            "args": "-X GET -s -o /dev/null -w \"%{http_code}\" --unix-socket /var/run/docker.sock http://docker/containers/bash/json",
+            "exitCode" : 0,
+            "outputEquals": "200"
+        }
+    },
+    {
+        "name": "bash",
+        "version": "1.0",
+        "image": "bash:latest",
+        "imagePullPolicyTestConfig": {
+            "imagePullPolicy": "on-create",
+            "pullImage": "false"
+        },
+        "validator": {
+            "$type": "RunCommandValidator",
+            "command": "curl",
+            "args": "-X GET -s -o /dev/null -w \"%{http_code}\" --unix-socket /var/run/docker.sock http://docker/containers/bash/json",
+            "exitCode" : 0,
+            "outputEquals": "200"
+        }
     }
 ]

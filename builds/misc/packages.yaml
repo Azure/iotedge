@@ -157,6 +157,11 @@ jobs:
           os: ubuntu16.04
           target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
           target.libiothsm: edgelet/target/hsm/build
+        Ubuntu1804-aarch64:
+          arch: aarch64
+          os: ubuntu18.04
+          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+          target.libiothsm: edgelet/target/hsm/build
     steps:
       - bash: 'echo "##vso[task.setvariable variable=PATH;]${CARGO_HOME:-"$HOME/.cargo"}/bin:$PATH"'
         displayName: Modify path

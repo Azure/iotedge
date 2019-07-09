@@ -17,6 +17,8 @@ pub mod crypto;
 mod error;
 mod identity;
 mod module;
+mod network;
+mod settings;
 pub mod watchdog;
 pub mod workload;
 
@@ -31,11 +33,17 @@ pub use crypto::{
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
 pub use module::{
-    LogOptions, LogTail, Module, ModuleOperation, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, ModuleTop,
-    RegistryOperation, RuntimeOperation, SystemInfo,
+    ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation,
+    ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec,
+    ModuleStatus, ModuleTop, ProvisioningResult, RegistryOperation, RuntimeOperation, SystemInfo,
 };
-pub use watchdog::RetryLimit;
+pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
+pub use settings::{
+    AttestationMethod, Certificates, Connect, Dps, Listen, Manual,
+    ParseManualDeviceConnectionStringError, Provisioning, RetryLimit, RuntimeSettings, Settings,
+    SymmetricKeyAttestationInfo, TpmAttestationInfo, WatchdogSettings, X509AttestationInfo,
+    DEFAULT_CONNECTION_STRING,
+};
 pub use workload::WorkloadConfig;
 
 lazy_static! {
@@ -96,3 +104,6 @@ impl UrlExt for Url {
 }
 
 pub const UNIX_SCHEME: &str = "unix";
+
+/// This is the name of the network created by the iotedged
+pub const DEFAULT_NETWORKID: &str = "azure-iot-edge";

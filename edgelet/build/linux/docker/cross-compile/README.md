@@ -22,6 +22,7 @@ The table below lists what platforms we cross compile for and how to build these
 | Centos 7.5                   | arm32 | Dockerfile.centos7.armv7-unknown-linux-gnueabi       | `centos/build_arm_toolchain_container.sh armv7-unknown-linux-gnueabi` |
 | Centos 7.5                   | amd64 | Dockerfile.centos7.x86\_64-unknown-linux-gnu         | `centos/build_amd64_container.sh` |
 | Ubuntu 16.04                 | arm64 | Dockerfile.ubuntu16.04.aarch64-unknown-linux-gnueabi | `ubuntu16.04/build_arm64_toolchain_container.sh aarch64-unknown-linux-gnu` |
+| Ubuntu 18.04                 | arm64 | Dockerfile.ubuntu18.04.aarch64-unknown-linux-gnueabi | `ubuntu18.04/build_arm64_toolchain_container.sh aarch64-unknown-linux-gnu` |
 
 
 To construct the container for the appropriate cross compile, set your 

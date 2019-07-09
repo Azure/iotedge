@@ -27,12 +27,12 @@ Need Support?
 
 ## Context (Environment)
 
-### Output of `iotedge check --output json`
+### Output of `iotedge check`
 
 <details>
 <summary>Click here</summary>
 
-```json
+```
 // Paste here
 ```
 </details>
