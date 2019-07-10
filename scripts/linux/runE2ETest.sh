@@ -566,8 +566,8 @@ function run_dps_provisioning_test() {
     local dps_command_flags=""
     if [[ $provisioning_type == "SymmetricKey" ]]; then
         dps_command_flags="--dps-scope-id=$DPS_SCOPE_ID \
-		                   --dps-registration-id=$registration_id \
-			               --dps-master-symmetric-key=$DPS_MASTER_SYMMETRIC_KEY"
+                           --dps-registration-id=$registration_id \
+                           --dps-master-symmetric-key=$DPS_MASTER_SYMMETRIC_KEY"
     elif [[ $provisioning_type == "Tpm"  ]]; then
         dps_command_flags="--dps-scope-id=$DPS_SCOPE_ID \
                            --dps-registration-id=$registration_id"
@@ -583,26 +583,13 @@ function run_dps_provisioning_test() {
 
     SECONDS=0
     local ret=0
-    echo "$quickstart_working_folder/IotEdgeQuickstart.linux-x64/IotEdgeQuickstart" \
+    # note the registration id is the expected device id to be provisioned by DPS
+    "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$registration_id" \
         -a "$iotedge_package" \
         -c "$IOTHUB_CONNECTION_STRING" \
         -e "$EVENTHUB_CONNECTION_STRING" \
         -r "$CONTAINER_REGISTRY" \
-        -u "$CONTAINER_REGISTRY_USERNAME" \
-        -p "$CONTAINER_REGISTRY_PASSWORD" \
-        -n "$(hostname)" \
-        -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
-        --optimize_for_performance="$optimize_for_performance" \
-        $dps_command_flags \
-        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$?
-
-    "$quickstart_working_folder/IotEdgeQuickstart.linux-x64/IotEdgeQuickstart" \
-	        -d "$registration_id" \
-	            -a "$iotedge_package" \
-	            -c "$IOTHUB_CONNECTION_STRING" \
-	        -e "$EVENTHUB_CONNECTION_STRING" \
-            -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
@@ -839,9 +826,9 @@ function run_test()
         'directmethodmqtt') run_directmethodmqtt_test && ret=$? || ret=$?;;
         'directmethodmqttamqp') run_directmethodmqttamqp_test && ret=$? || ret=$?;;
         'directmethodmqttws') run_directmethodmqttws_test && ret=$? || ret=$?;;
-	    'dpssymmetrickeyprovisioning') run_dps_provisioning_test "SymmetricKey" && ret=$? || ret=$?;;
-	    'dpstpmprovisioning') run_dps_provisioning_test "Tpm" && ret=$? || ret=$?;;
-	    'dpsx509provisioning') run_dps_provisioning_test "X509" && ret=$? || ret=$?;;
+        'dpssymmetrickeyprovisioning') run_dps_provisioning_test "SymmetricKey" && ret=$? || ret=$?;;
+        'dpstpmprovisioning') run_dps_provisioning_test "Tpm" && ret=$? || ret=$?;;
+        'dpsx509provisioning') run_dps_provisioning_test "X509" && ret=$? || ret=$?;;
         'quickstartcerts') run_quickstartcerts_test && ret=$? || ret=$?;;
         'longhaul') run_longhaul_test && ret=$? || ret=$?;;
         'stress') run_stress_test && ret=$? || ret=$?;;
