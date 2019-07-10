@@ -103,6 +103,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeAgentServiceAccountName = "ServiceAccountName";
 
+        public const string EdgeletWorkloadApiVersion = "2018-06-28";
+
         public static class Labels
         {
             public const string Version = "net.azure-devices.edge.version";

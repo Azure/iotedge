@@ -27,6 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         static bool IsAlphaNumeric(char ch) => AlphaNumericHashSet.Contains(ch);
 
+        public static readonly string K8sNamespace = Constants.K8sNamespaceBaseName;
+
         // Valid annotation keys have two segments: an optional prefix and name, separated by a slash (/).
         // The name segment is required and must be 63 characters or less, beginning and ending with an
         // alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
