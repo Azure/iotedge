@@ -864,8 +864,8 @@ Function RunDpsProvisioningTest
 
             # for windows X.509 mutual auth clients to work, the expectation is that the root
             # and any intermediate certificates (public certs only) be installed in the certificate store
-            Install-Certificate -Path "$EdgeCertGenScriptDir\certs\azure-iot-test-only.root.ca.cert.pem" -StoreLocation LocalMachine -StoreName AuthRoot
-            Install-Certificate -Path "$EdgeCertGenScriptDir\certs\azure-iot-test-only.intermediate.cert.pem" -StoreLocation LocalMachine -StoreName CertificateAuthority
+            Import-Certificate -Path "$EdgeCertGenScriptDir\certs\azure-iot-test-only.root.ca.cert.pem" -CertStoreLocation cert:\LocalMachine\Root
+            Import-Certificate -Path "$EdgeCertGenScriptDir\certs\azure-iot-test-only.intermediate.cert.pem" -CertStoreLocation cert:\LocalMachine\Root
 
             $identityPkPath = "$EdgeCertGenScriptDir\private\iot-device-${registationId}.key.pem"
             $identityCertPath = "$EdgeCertGenScriptDir\certs\iot-device-${registationId}-full-chain.cert.pem"
