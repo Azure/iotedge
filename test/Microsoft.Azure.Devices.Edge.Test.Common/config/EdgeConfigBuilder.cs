@@ -9,18 +9,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     {
         readonly string deviceId;
         readonly Dictionary<string, IModuleConfigBuilder> moduleBuilders;
-        Option<(string address, string username, string password)> registry;
+        readonly List<(string address, string username, string password)> registries;
 
         public EdgeConfigBuilder(string deviceId)
         {
             this.deviceId = deviceId;
             this.moduleBuilders = new Dictionary<string, IModuleConfigBuilder>();
-            this.registry = Option.None<(string, string, string)>();
+            this.registries = new List<(string, string, string)>();
         }
 
         public void AddRegistryCredentials(string address, string username, string password)
         {
-            this.registry = Option.Some((address, username, password));
+            this.registries.Add((address, username, password));
         }
 
         public IModuleConfigBuilder AddEdgeAgent(string image = null)
@@ -95,19 +95,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             };
 
             // Registry credentials under settings
-            this.registry.ForEach(
-                r =>
+            if (this.registries.Count != 0)
+            {
+                var credentials = new Dictionary<string, object>();
+                for (int i = 0; i < this.registries.Count; ++i)
                 {
-                    settings["registryCredentials"] = new
+                    (string address, string username, string password) = this.registries[i];
+                    credentials.Add($"reg{i}", new
                     {
-                        reg1 = new
-                        {
-                            r.username,
-                            r.password,
-                            r.address
-                        }
-                    };
-                });
+                        username,
+                        password,
+                        address
+                    });
+                }
+
+                settings["registryCredentials"] = credentials;
+            }
 
             // Deployment info for edge agent
             var systemModules = new Dictionary<string, object>()

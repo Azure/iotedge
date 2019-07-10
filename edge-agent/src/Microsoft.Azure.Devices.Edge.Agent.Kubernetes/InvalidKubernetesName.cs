@@ -7,14 +7,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     [Serializable]
     public class InvalidKubernetesNameException : Exception
     {
-        public InvalidKubernetesNameException(string message) : base(message)
+        public InvalidKubernetesNameException(string message)
+            : base(message)
         {
-
         }
-        public InvalidKubernetesNameException(string message, Exception inner) : base(message, inner)
-        {
 
+        public InvalidKubernetesNameException(string message, Exception inner)
+            : base(message, inner)
+        {
         }
     }
 }
-
