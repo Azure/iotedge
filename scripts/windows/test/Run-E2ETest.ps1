@@ -1087,7 +1087,10 @@ Function RunTransparentGatewayTest
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
 
-    $testExitCode = $LastExitCode
+    # if the deployment of edge runtime and modules fails, then return immediately.
+    if($LastExitCode -eq 1) {
+      Return $LastExitCode
+    }
 
     # run the various leaf device tests
     $deviceId = "e2e-${ReleaseLabel}-Win-${Architecture}"
@@ -1323,4 +1326,4 @@ Else
 RunTest | ForEach-Object {$retCode = 0} {$retCode = $retCode -bor $_}
 Write-Host "Exit test with code $retCode"
 
-Exit $retCode -gt 0
+Exit $retCode
