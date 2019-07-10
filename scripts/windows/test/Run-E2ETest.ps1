@@ -818,11 +818,11 @@ Function RunDpsProvisioningTest
     TestSetup
 
     $testStartAt = Get-Date
-    $registationId = "e2e-${ReleaseLabel}-Win-${Architecture}-DPS-$provisioningType"
-    PrintHighlightedMessage "Run DPS provisioning test $provisioningType for registration id ""$registationId"" started at $testStartAt"
+    $registrationId = "e2e-${ReleaseLabel}-Win-${Architecture}-DPS-$provisioningType"
+    PrintHighlightedMessage "Run DPS provisioning test $provisioningType for registration id ""$registrationId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
-            -d `"$registationId`" ``
+            -d `"$registrationId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
             -n `"$env:computername`" ``
@@ -838,14 +838,14 @@ Function RunDpsProvisioningTest
         ([DpsProvisioningType]::SymmetricKey)
         {
             $testCommand = "$testCommand ``
-                --dps-registration-id `"$registationId`" ``
+                --dps-registration-id `"$registrationId`" ``
                 --dps-master-symmetric-key `"$DpsMasterSymmetricKey`""
         }
 
         ([DpsProvisioningType]::Tpm)
         {
             $testCommand = "$testCommand ``
-                --dps-registration-id `"$registationId`""
+                --dps-registration-id `"$registrationId`""
         }
 
         ([DpsProvisioningType]::X509)
@@ -860,15 +860,15 @@ Function RunDpsProvisioningTest
             Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
 
             # generate the edge identity certificate
-            New-CACertsDevice $registationId
+            New-CACertsDevice $registrationId
 
             # for windows X.509 mutual auth clients to work, the expectation is that the root
             # and any intermediate certificates (public certs only) be installed in the certificate store
-            Import-Certificate -FilePath "$EdgeCertGenScriptDir\certs\azure-iot-test-only.root.ca.cert.pem" -CertStoreLocation cert:\LocalMachine\Root
-            Import-Certificate -FilePath "$EdgeCertGenScriptDir\certs\azure-iot-test-only.intermediate.cert.pem" -CertStoreLocation cert:\LocalMachine\Root
+            Import-Certificate -FilePath "$EdgeCertGenScriptDir\certs\azure-iot-test-only.root.ca.cert.pem" -CertStoreLocation "cert:\LocalMachine\Root"
+            Import-Certificate -FilePath "$EdgeCertGenScriptDir\certs\azure-iot-test-only.intermediate.cert.pem" -CertStoreLocation "cert:\LocalMachine\Root"
 
-            $identityPkPath = "$EdgeCertGenScriptDir\private\iot-device-${registationId}.key.pem"
-            $identityCertPath = "$EdgeCertGenScriptDir\certs\iot-device-${registationId}-full-chain.cert.pem"
+            $identityPkPath = "$EdgeCertGenScriptDir\private\iot-device-${registrationId}.key.pem"
+            $identityCertPath = "$EdgeCertGenScriptDir\certs\iot-device-${registrationId}-full-chain.cert.pem"
 
             $testCommand = "$testCommand ``
                 --device_identity_pk `"$identityPkPath`" ``
