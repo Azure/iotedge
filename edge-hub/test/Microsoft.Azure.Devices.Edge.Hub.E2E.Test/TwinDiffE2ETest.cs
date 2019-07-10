@@ -425,7 +425,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             // replicate the patch operation locally
             var delayTask = Task.Delay(TimeSpan.FromSeconds(10));
-            while (!desiredPropertiesUpdateCallbackTriggered && delayTask != Task.CompletedTask)
+            while (!desiredPropertiesUpdateCallbackTriggered && !delayTask.IsCompleted)
             {
                 await Task.Delay(TimeSpan.FromMilliseconds(500));
             }
