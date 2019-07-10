@@ -1,6 +1,0 @@
-dependencies:
-- name: edge-kubernetes-crd
-  repository: file://../edge-kubernetes-crd
-  version: 0.1.6
-digest: sha256:f479e4f973188eaf7027d26003a92f25866fb24c5c4553244c4e0ea4e6336630
-generated: "2019-07-08T17:05:38.323835-07:00"

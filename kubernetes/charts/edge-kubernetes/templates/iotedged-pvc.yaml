@@ -7,7 +7,7 @@ metadata:
 spec:
   resources:
     requests:
-      storage: 100Mi
+      storage: {{ .Values.iotedged.data.persistentVolumeClaim.size }}
   accessModes:
     - ReadWriteMany
   storageClassName: {{ .Values.iotedged.data.persistentVolumeClaim.storageClassName | quote }}

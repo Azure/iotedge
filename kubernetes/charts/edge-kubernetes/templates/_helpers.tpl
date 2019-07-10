@@ -100,7 +100,7 @@ Parse the hub name from connection string.
 {{- end -}}
 
 {{/*
-Generate namespace name from connection string
+Generate namespace from release namespace parameter.
 */}}
 {{- define "edge-kubernetes.namespace" -}}
 {{ .Release.Namespace }}
