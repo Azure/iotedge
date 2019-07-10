@@ -70,7 +70,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use edgelet_core::{self, ModuleRuntimeState};
+    use edgelet_core::{self, MakeModuleRuntime, ModuleRuntimeState};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
     use futures::Stream;
@@ -84,9 +84,12 @@ mod tests {
         // arrange
         let state = ModuleRuntimeState::default();
         let config = TestConfig::new("microsoft/test-image".to_string());
-        let module: TestModule<Error> =
+        let module: TestModule<Error, _> =
             TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
+        let runtime = TestRuntime::make_runtime(TestSettings::new(), TestProvisioningResult::new())
+            .wait()
+            .unwrap()
+            .with_module(Ok(module));
         let handler = GetSystemInfo::new(runtime);
         let request = Request::get("http://localhost/info")
             .body(Body::default())
@@ -120,7 +123,10 @@ mod tests {
     #[test]
     fn system_info_failed() {
         // arrange
-        let runtime = TestRuntime::new(Err(Error::General));
+        let runtime = TestRuntime::make_runtime(TestSettings::new(), TestProvisioningResult::new())
+            .wait()
+            .unwrap()
+            .with_module(Err(Error::General));
         let handler = GetSystemInfo::new(runtime);
         let request = Request::get("http://localhost/modules")
             .body(Body::default())
