@@ -158,8 +158,8 @@ pub use self::impl_macos::get_pid;
 
 #[cfg(target_os = "macos")]
 pub mod impl_macos {
+    use std::io;
     use std::os::unix::io::AsRawFd;
-    use std::{io, mem};
 
     use libc::getpeereid;
     use tokio_uds::UnixStream;

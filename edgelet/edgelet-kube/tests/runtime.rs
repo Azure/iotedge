@@ -497,7 +497,7 @@ fn create_creates_or_updates_service_account_role_binding_deployment_for_edgeage
 
     let dispatch_table = routes!(
         PUT format!("/api/v1/namespaces/{}/serviceaccounts/edgeagent", settings.namespace()) => replace_service_account_handler(),
-        PUT "/apis/rbac.authorization.k8s.io/v1/clusterrolebindings/edgeagent" => replace_role_binding_handler(),
+        PUT format!("/apis/rbac.authorization.k8s.io/v1/namespaces/{}/rolebindings/edgeagent", settings.namespace()) => replace_role_binding_handler(),
         PUT format!("/apis/apps/v1/namespaces/{}/deployments/edgeagent", settings.namespace()) => replace_deployment_handler(),
     );
 
@@ -650,10 +650,11 @@ fn replace_role_binding_handler() -> impl Fn(Request<Body>) -> ResponseFuture + 
     move |_| {
         response(StatusCode::OK, || {
             json!({
-                "kind": "ClusterRoleBinding",
+                "kind": "RoleBinding",
                 "apiVersion": "rbac.authorization.k8s.io/v1",
                 "metadata": {
-                    "name": "edgeagent"
+                    "name": "edgeagent",
+                    "namespace": "my-namespace",
                 },
                 "subjects": [
                     {
@@ -681,7 +682,7 @@ fn replace_deployment_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Cl
                 "apiVersion": "apps/v1",
                 "metadata": {
                     "name": "edgeagent",
-                    "namespace": "msiot-dmolokan-iothub-dmolokan-edge-aks",
+                    "namespace": "my-namespace",
                 },
             })
             .to_string()
