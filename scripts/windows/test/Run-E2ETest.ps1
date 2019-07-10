@@ -1326,4 +1326,4 @@ Else
 RunTest | ForEach-Object {$retCode = 0} {$retCode = $retCode -bor $_}
 Write-Host "Exit test with code $retCode"
 
-Exit $retCode
+Exit $retCode -gt 0
