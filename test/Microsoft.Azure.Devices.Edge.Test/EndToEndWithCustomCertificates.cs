@@ -144,8 +144,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             (AuthenticationType.Sas, Protocol.Amqp, true),
             (AuthenticationType.CertificateAuthority, Protocol.Mqtt, true),
             // (AuthenticationType.CertificateAuthority, Protocol.Amqp, true), // TODO: Failing in recent builds, uncomment when fixed
-            // (AuthenticationType.SelfSigned, Protocol.Mqtt, true),
-            // (AuthenticationType.SelfSigned, Protocol.Amqp, true)
+            (AuthenticationType.SelfSigned, Protocol.Mqtt, true),
+            // (AuthenticationType.SelfSigned, Protocol.Amqp, true) // TODO: Failing in recent builds, uncomment when fixed
         };
 
         [TestCaseSource(nameof(TransparentGatewayArgs))]

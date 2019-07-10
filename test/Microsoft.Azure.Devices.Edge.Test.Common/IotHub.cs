@@ -90,11 +90,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string deviceId,
             Option<string> parentId,
             AuthenticationType auth,
+            Option<X509Thumbprint> thumbprint,
             CancellationToken token)
         {
+            var mechanism = new AuthenticationMechanism { Type = auth };
+            if (auth == AuthenticationType.SelfSigned)
+            {
+                mechanism.X509Thumbprint = thumbprint.Expect(() => new ArgumentException());
+            }
+
             Device leaf = new Device(deviceId)
             {
-                Authentication = new AuthenticationMechanism { Type = auth }
+                Authentication = mechanism
             };
 
             await parentId.ForEachAsync(
