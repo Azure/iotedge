@@ -42,7 +42,7 @@ run_command "cd /target/hsm/build && make package"
 
 # Old CPACK produces non-standard deb package filenames.
 # This renames them
-for f in $BUILD_DIR/$PACKAGE_NAME-*-Linux.deb ; do
+for f in $BUILD_DIR/$PACKAGE_NAME-*-Linux-libraries.deb ; do
     echo "Renaming package $(basename "$f") to $(basename "$BUILD_DIR/${PACKAGE_NAME}_${VERSION}_armhf.deb")"
     mv -f "$f" "$BUILD_DIR/${PACKAGE_NAME}_${VERSION}_armhf.deb"
 done
