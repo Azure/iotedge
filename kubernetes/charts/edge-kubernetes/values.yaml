@@ -53,11 +53,7 @@ edgeAgent:
     repository: azureiotedge/azureiotedge-agent
     tag: 0.1.0-alpha
     pullPolicy: Always
-  # Optional registry credentials used in the configuration file for iotedged
-  # registryCredentials:
-  #   username: '<USERNAME>'
-  #   password: '<PASSWORD>'
-  #   serveraddress: '<SERVER ADDRESS>'
+  hostname: "localhost"
   env:
     authScheme: 'sasToken'
     # Set this to one of "LoadBalancer", "NodePort", or "ClusterIP" to tell the
@@ -95,6 +91,3 @@ edgeAgent:
 
 # Azure IoT Hub device connection string
 deviceConnectionString: '<ADD DEVICE CONNECTION STRING HERE>'
-
-# Deploy debug container?
-deployDebugContainer: false

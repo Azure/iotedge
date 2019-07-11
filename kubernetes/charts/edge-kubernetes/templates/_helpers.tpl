@@ -48,25 +48,21 @@ agent:
   env: {}
   config:
     image: "{{ .Values.edgeAgent.image.repository }}:{{ .Values.edgeAgent.image.tag }}"
-    {{- if .Values.edgeAgent.registryCredentials }}
+    {{- if .Values.registryCredentials }}
     auth:
-      username: {{ .Values.edgeAgent.registryCredentials.username | quote }}
-      password: {{ .Values.edgeAgent.registryCredentials.password | quote }}
-      serveraddress: {{ .Values.edgeAgent.registryCredentials.serveraddress | quote }}
+      username: {{ .Values.registryCredentials.username | quote }}
+      password: {{ .Values.registryCredentials.password | quote }}
     {{ else }}
     auth: {}
     {{ end }}
-hostname: "localhost"
+hostname: {{ .Values.edgeAgent.hostname }}
 connect:
-  management_uri: "http://0.0.0.0:{{ .Values.iotedged.ports.management }}"
-  workload_uri: "http://0.0.0.0:{{ .Values.iotedged.ports.workload }}"
+  management_uri: "http://localhost:{{ .Values.iotedged.ports.management }}"
+  workload_uri: "http://localhost:{{ .Values.iotedged.ports.workload }}"
 listen:
   management_uri: "http://0.0.0.0:{{ .Values.iotedged.ports.management }}"
   workload_uri: "http://0.0.0.0:{{ .Values.iotedged.ports.workload }}"
 homedir: {{ .Values.iotedged.data.targetPath | quote }}
-moby_runtime:
-  uri: "unix:///var/run/docker.sock"
-  network: "azure-iot-edge"
 {{ end }}
 
 {{/* Template for rendering registry credentials. */}}
