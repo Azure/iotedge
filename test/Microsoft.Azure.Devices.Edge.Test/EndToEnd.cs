@@ -18,14 +18,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
         DateTime testStartTime;
 
         [SetUp]
-        public void Setup()
+        public void BeforeEach()
         {
             this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
             this.testStartTime = DateTime.Now;
         }
 
         [TearDown]
-        public async Task TeardownAsync()
+        public async Task AfterEachAsync()
         {
             await Profiler.Run(
                 async () =>

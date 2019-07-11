@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [OneTimeSetUp]
-        public async Task Setup()
+        public async Task BeforeAllAsync()
         {
             await Profiler.Run(
                 async () =>
@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [OneTimeTearDown]
-        public async Task Teardown()
+        public async Task AfterAllAsync()
         {
             try
             {

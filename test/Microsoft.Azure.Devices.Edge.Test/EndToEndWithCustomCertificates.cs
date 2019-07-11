@@ -106,14 +106,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [SetUp]
-        public void BeforeAny()
+        public void BeforeEach()
         {
             this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
             this.testStartTime = DateTime.Now;
         }
 
         [TearDown]
-        public async Task AfterAnyAsync()
+        public async Task AfterEachAsync()
         {
             await Profiler.Run(
                 async () =>
