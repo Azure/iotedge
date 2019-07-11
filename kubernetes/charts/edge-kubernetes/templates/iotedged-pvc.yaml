@@ -9,6 +9,6 @@ spec:
     requests:
       storage: {{ .Values.iotedged.data.persistentVolumeClaim.size }}
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   storageClassName: {{ .Values.iotedged.data.persistentVolumeClaim.storageClassName | quote }}
   {{- end }}
