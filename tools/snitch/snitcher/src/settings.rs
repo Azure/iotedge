@@ -1,14 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use error::{Error, ErrorKind, Result};
 use std::collections::HashMap;
 use std::default::Default;
 use std::env;
 use std::time::Duration;
 
+use serde::Deserialize;
 use serde_yaml;
 use url::Url;
-use url_serde;
+
+use crate::error::{Error, ErrorKind, Result};
 
 const DEFAULT_TEST_DURATION_SECS: u64 = 60 * 60 * 8;
 

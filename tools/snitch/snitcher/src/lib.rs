@@ -1,65 +1,36 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #![deny(warnings)]
-extern crate azure_sdk_for_rust;
-extern crate backtrace;
-extern crate byteorder;
-extern crate bytes;
-extern crate chrono;
-extern crate futures;
-extern crate hex;
-extern crate http;
-extern crate humantime;
-extern crate hyper;
-extern crate hyper_tls;
-extern crate libflate;
-#[macro_use]
-extern crate log;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-#[cfg(not(test))]
-extern crate serde_json;
-#[cfg(test)]
-#[macro_use]
-extern crate serde_json;
-extern crate serde_yaml;
-extern crate tar;
-extern crate tokio;
-#[cfg(unix)]
-extern crate tokio_uds;
-#[cfg(windows)]
-extern crate tokio_uds_windows;
-extern crate url;
-extern crate url_serde;
 
 pub mod client;
 pub mod connect;
-pub mod docker;
+mod docker;
 pub mod error;
-pub mod influx;
+mod influx;
 pub mod report;
 pub mod settings;
-pub mod uds;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-use azure_sdk_for_rust::core::lease::{LeaseState, LeaseStatus};
-use azure_sdk_for_rust::core::ContainerNameSupport;
-use azure_sdk_for_rust::storage::blob::{Blob, BlobType, PUT_OPTIONS_DEFAULT};
-use azure_sdk_for_rust::storage::client::Client as AzureStorageClient;
-use azure_sdk_for_rust::storage::client::Container as BlobContainer;
+use azure_sdk_for_rust::prelude::{
+    BlobNameSupport, BodySupport, ContainerNameSupport, ContentTypeSupport, PrefixSupport,
+    PublicAccessSupport,
+};
+use azure_sdk_for_rust::storage::client::{
+    Blob, Client as AzureStorageClient, Container as AzureStorageContainer,
+};
 use azure_sdk_for_rust::storage::container::PublicAccess;
-use azure_sdk_for_rust::storage::container::PublicAccessSupport;
 use bytes::{BufMut, Bytes};
 use chrono::Utc;
+use edgelet_http::UrlConnector;
 use futures::future::{self, loop_fn, Either, Loop};
 use futures::{Future, IntoFuture, Stream};
 use humantime::format_duration;
 use hyper::{Client as HyperClient, Method};
 use hyper_tls::HttpsConnector;
+use log::{debug, info};
 use serde_json::Value as JsonValue;
 use tokio::timer::{Delay, Interval};
 
@@ -69,7 +40,6 @@ use error::Error;
 use influx::QueryResults;
 use report::{MessageAnalysis, Report};
 use settings::Settings;
-use uds::{UnixConnector, Uri};
 
 const LOGS_FILE_NAME: &str = "logs.tar.gz";
 
@@ -227,19 +197,27 @@ pub fn upload_file(
     AzureStorageClient::new(
         settings.blob_storage_account(),
         settings.blob_storage_master_key(),
-    ).map(|client| {
+    )
+    .map(|client| {
         let fut = client
-            .list()
+            .list_containers()
+            .with_prefix(&report_id)
             .finalize()
             .and_then(move |containers| {
-                if containers.iter().find(|c| &c.name == &report_id).is_none() {
+                if containers
+                    .incomplete_vector
+                    .vector
+                    .iter()
+                    .find(|c| &c.name == &report_id)
+                    .is_none()
+                {
                     debug!(
                         "Blob container {} not found. Creating container.",
                         report_id
                     );
                     Either::A(
                         client
-                            .create()
+                            .create_container()
                             .with_container_name(&report_id)
                             .with_public_access(PublicAccess::Container)
                             .finalize()
@@ -251,40 +229,21 @@ pub fn upload_file(
                 }
             })
             .and_then(move |(client, report_id)| {
-                let blob = Blob {
-                    name,
-                    container_name: report_id.to_owned(),
-                    snapshot_time: None,
-                    last_modified: Utc::now(),
-                    etag: String::new(),
-                    content_length: data.len() as u64,
-                    content_type: Some("application/gzip".to_owned()),
-                    content_encoding: None,
-                    content_language: None,
-                    content_md5: None,
-                    cache_control: None,
-                    x_ms_blob_sequence_number: None,
-                    blob_type: BlobType::BlockBlob,
-                    lease_status: LeaseStatus::Unlocked,
-                    lease_state: LeaseState::Available,
-                    lease_duration: None,
-                    copy_id: None,
-                    copy_status: None,
-                    copy_source: None,
-                    copy_progress: None,
-                    copy_completion: None,
-                    copy_status_description: None,
-                };
-
-                blob.put(&client, &PUT_OPTIONS_DEFAULT, Some(data.as_ref()))
+                client
+                    .put_block_blob()
+                    .with_container_name(&report_id)
+                    .with_blob_name(&name)
+                    .with_body(data.as_ref())
+                    .with_content_type("application/gzip")
+                    .finalize()
                     .map(|_| ())
             })
             .map_err(Error::from);
 
         Either::A(fut)
     })
-        .map_err(Error::from)
-        .unwrap_or_else(|err| Either::B(future::err(err)))
+    .map_err(Error::from)
+    .unwrap_or_else(|err| Either::B(future::err(err)))
 }
 
 pub fn get_metrics(
@@ -302,7 +261,8 @@ pub fn get_metrics(
 
             let fut = future::join_all(queries.clone().into_iter().map(move |(name, query)| {
                 influx.clone().query(&query).map(|results| (name, results))
-            })).map(|results| {
+            }))
+            .map(|results| {
                 results
                     .into_iter()
                     .filter(|(_, v)| v.is_some())
@@ -320,8 +280,9 @@ pub fn get_module_logs(
     settings: &Settings,
 ) -> impl Future<Item = Vec<(Container, String)>, Error = Error> + Send {
     info!("Fetching module logs");
-    Uri::from_url(settings.docker_url())
-        .map(|uri| {
+    UrlConnector::new(settings.docker_url())
+        .map_err(Error::from)
+        .map(|connector| {
             let docker_client = client::Client::new(
                 HyperClientService::new(
                     HyperClient::builder()
@@ -329,9 +290,9 @@ pub fn get_module_logs(
                         // When using UDS this is the only mode in which things work. Not pooling
                         // connections for UDS is probably OK (?).
                         .keep_alive(false)
-                        .build(UnixConnector),
+                        .build(connector),
                 ),
-                uri.into(),
+                settings.docker_url().clone(),
             );
             let docker = DockerClient::new(docker_client);
             let docker_copy = docker.clone();
@@ -371,7 +332,8 @@ pub fn fetch_message_analysis(
     client::Client::new(
         HyperClientService::new(HyperClient::new()),
         settings.analyzer_url().clone(),
-    ).request::<(), Vec<MessageAnalysis>>(
+    )
+    .request::<(), Vec<MessageAnalysis>>(
         Method::GET,
         settings.analyzer_url().path(),
         None,
@@ -450,68 +412,4 @@ where
             }
         })
     })
-}
-
-#[cfg(test)]
-mod tests {
-    extern crate env_logger;
-
-    use super::*;
-
-    #[test]
-    fn module_logs() {
-        env_logger::init();
-
-        let settings = Settings::default().merge_env().unwrap();
-        let tasks = get_module_logs(&settings)
-            .map(|_| ())
-            .map_err(|err| panic!("ERROR: {:?}", err));
-        tokio::run(tasks);
-    }
-
-    #[test]
-    fn upload_blob() {
-        env_logger::init();
-
-        let settings = Settings::default().merge_env().unwrap();
-        let tasks = upload_file("424242", &settings, "booyah/logs.tar.gz", &[1, 2, 3, 4, 5])
-            .map(|_| ())
-            .map_err(|err| panic!("ERROR: {:?}", err));
-        tokio::run(tasks);
-    }
-
-    #[test]
-    fn analysis() {
-        env_logger::init();
-
-        let settings = Settings::default().merge_env().unwrap();
-        let tasks = fetch_message_analysis(&settings)
-            .map(|_| ())
-            .map_err(|err| panic!("ERROR: {:?}", err));
-        tokio::run(tasks);
-    }
-
-    #[test]
-    fn alert_report() {
-        let json = json!({
-            "attachments": {
-                "logs.tar.gz": "https://blob/logs.tar.gz"
-            },
-            "id": "123456",
-            "messageAnalysis": [],
-            "metrics": {},
-            "notes": [
-                "Test report generated at: 2018-08-07T17:45:55.364690739+00:00"
-            ]
-        });
-        env_logger::init();
-        let settings = Settings::default().merge_env().unwrap();
-
-        debug!("Alert URL: {}", settings.alert().to_url().unwrap());
-
-        let tasks = raise_alert(&settings, json)
-            .map(|_| ())
-            .map_err(|err| panic!("ERROR: {:?}", err));
-        tokio::run(tasks);
-    }
 }

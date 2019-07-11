@@ -8,9 +8,10 @@ use bytes::Bytes;
 use futures::{future, Future};
 use hyper::service::Service;
 use hyper::{Body, Error as HyperError, Method};
+use serde::Deserialize;
 
-use client::Client;
-use error::Error;
+use crate::client::Client;
+use crate::error::Error;
 
 #[derive(Clone)]
 pub struct DockerClient<S>
