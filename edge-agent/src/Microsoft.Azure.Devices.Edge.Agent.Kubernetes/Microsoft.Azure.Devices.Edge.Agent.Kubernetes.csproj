@@ -15,11 +15,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="commands\" />
-    <Folder Include="planners\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="KubernetesClient" Version="1.5.18" />
   </ItemGroup>
 
