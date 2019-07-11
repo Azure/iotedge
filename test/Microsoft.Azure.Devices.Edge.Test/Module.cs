@@ -7,12 +7,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
+    using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
     using NUnit.Framework.Interfaces;
     using Serilog;
 
-    public class EndToEnd
+    public class Module
     {
         CancellationTokenSource cts;
         DateTime testStartTime;
