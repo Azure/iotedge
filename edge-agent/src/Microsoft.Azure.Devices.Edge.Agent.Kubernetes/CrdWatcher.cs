@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using DockerModels = global::Docker.DotNet.Models;
+using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
 using k8s;
 using k8s.Models;
 using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -11,31 +8,28 @@ using Microsoft.Azure.Devices.Edge.Util;
 using Microsoft.Azure.Devices.Edge.Util.Concurrency;
 using Microsoft.Rest;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using Microsoft.Extensions.Logging;
-using DockerModels = global::Docker.DotNet.Models;
-using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
 using VolumeOptions =
     Microsoft.Azure.Devices.Edge.Util.Option<(System.Collections.Generic.List<k8s.Models.V1Volume>,
         System.Collections.Generic.List<k8s.Models.V1VolumeMount>, System.Collections.Generic.List<k8s.Models.V1VolumeMount>)>;
-using System.IO;
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
-    public class EdgeOperator<TConfig> : IKubernetesOperator, IRuntimeInfoProvider
+    public class CrdWatcher<TConfig>
     {
-        public const string SocketDir = "/var/run/iotedge";
-        public const string SocketVolumeName = "workload";
-        public const string EdgeHubHostname = "edgehub";
-        public const string ConfigVolumeName = "config-volume";
+        private const string SocketDir = "/var/run/iotedge";
+        private const string ConfigVolumeName = "config-volume";
+        private const string SocketVolumeName = "workload";
+        private const string EdgeHubHostname = "edgehub";
 
         readonly IKubernetes client;
-
-        Option<Watcher<V1Pod>> podWatch;
-        readonly Dictionary<string, ModuleRuntimeInfo> moduleRuntimeInfos;
-        readonly AsyncLock moduleLock;
         Option<Watcher<object>> operatorWatch;
+        readonly AsyncLock watchLock = new AsyncLock();
+        readonly TypeSpecificSerDe<EdgeDeploymentDefinition<TConfig>> deploymentSerde;
         readonly string iotHubHostname;
         readonly string deviceId;
         readonly string edgeHostname;
@@ -45,16 +39,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
         readonly string serviceAccountName;
+        readonly string defaultMapServiceType;
         readonly Uri workloadUri;
         readonly Uri managementUri;
-        readonly string defaultMapServiceType;
-        readonly TypeSpecificSerDe<EdgeDeploymentDefinition<TConfig>> deploymentSerde;
-        readonly JsonSerializerSettings crdSerializerSettings;
-        readonly AsyncLock watchLock;
         readonly IModuleIdentityLifecycleManager moduleIdentityLifecycleManager;
         ModuleSet currentModules;
+        readonly KubernetesEventLogger<CrdWatcher<TConfig>> logger = new KubernetesEventLogger<CrdWatcher<TConfig>>();
 
-        public EdgeOperator(
+
+        // TODO : Fill out constructor
+        public CrdWatcher(
             string iotHubHostname,
             string deviceId,
             string edgeHostname,
@@ -62,105 +56,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string proxyConfigPath,
             string proxyConfigVolumeName,
             string serviceAccountName,
+            string resourceName,
+            string deploymentSelector,
+            string defaultMapServiceType,
             Uri workloadUri,
             Uri managementUri,
-            PortMapServiceType defaultMapServiceType,
-            IKubernetes client,
-            IModuleIdentityLifecycleManager moduleIdentityLifecycleManager)
+            TypeSpecificSerDe<EdgeDeploymentDefinition<TConfig>> deploymentSerde,
+            IModuleIdentityLifecycleManager moduleIdentityLifecycleManager,
+            IKubernetes client)
         {
-            this.iotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
-            this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.edgeHostname = Preconditions.CheckNonWhiteSpace(edgeHostname, nameof(edgeHostname));
-            this.proxyImage = Preconditions.CheckNonWhiteSpace(proxyImage, nameof(proxyImage));
-            this.proxyConfigPath = Preconditions.CheckNonWhiteSpace(proxyConfigPath, nameof(proxyConfigPath));
-            this.proxyConfigVolumeName = Preconditions.CheckNonWhiteSpace(proxyConfigVolumeName, nameof(proxyConfigVolumeName));
-            this.serviceAccountName = Preconditions.CheckNonWhiteSpace(serviceAccountName, nameof(serviceAccountName));
-            this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
-            this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
-            this.defaultMapServiceType = Preconditions.CheckNotNull(defaultMapServiceType, nameof(defaultMapServiceType)).ToString();
-            this.client = Preconditions.CheckNotNull(client, nameof(client));
-            this.moduleRuntimeInfos = new Dictionary<string, ModuleRuntimeInfo>();
-            this.moduleLock = new AsyncLock();
-            this.watchLock = new AsyncLock();
-            this.podWatch = Option.None<Watcher<V1Pod>>();
-            this.resourceName = KubeUtils.SanitizeK8sValue(this.iotHubHostname) + Constants.K8sNameDivider + KubeUtils.SanitizeK8sValue(this.deviceId);
-            this.deploymentSelector = Constants.K8sEdgeDeviceLabel + " = " + KubeUtils.SanitizeK8sValue(this.deviceId) + "," + Constants.K8sEdgeHubNameLabel + "=" + KubeUtils.SanitizeK8sValue(this.iotHubHostname);
-            var deserializerTypesMap = new Dictionary<Type, IDictionary<string, Type>>
-            {
-                [typeof(IModule)] = new Dictionary<string, Type>
-                {
-                    ["docker"] = typeof(CombinedDockerModule)
-                }
-            };
-
-            this.deploymentSerde = new TypeSpecificSerDe<EdgeDeploymentDefinition<TConfig>>(deserializerTypesMap, new CamelCasePropertyNamesContractResolver());
-            this.crdSerializerSettings = new JsonSerializerSettings
-            {
-                ContractResolver = new CamelCasePropertyNamesContractResolver()
-            };
-
+            this.iotHubHostname = iotHubHostname;
+            this.deviceId = deviceId;
+            this.edgeHostname = edgeHostname;
+            this.proxyImage = proxyImage;
+            this.proxyConfigPath = proxyConfigPath;
+            this.proxyConfigVolumeName = proxyConfigVolumeName;
+            this.serviceAccountName = serviceAccountName;
+            this.resourceName = resourceName;
+            this.deploymentSelector = deploymentSelector;
+            this.defaultMapServiceType = defaultMapServiceType;
+            this.workloadUri = workloadUri;
+            this.managementUri = managementUri;
+            this.deploymentSerde = deploymentSerde;
             this.moduleIdentityLifecycleManager = moduleIdentityLifecycleManager;
-            this.currentModules = ModuleSet.Empty;
+            this.client = client;
         }
 
-        public Task CloseAsync(CancellationToken token)
-        {
-            return Task.CompletedTask;
-        }
-
-        public void Dispose()
-        {
-            this.podWatch.ForEach(watch => watch.Dispose());
-            this.operatorWatch.ForEach(watch => watch.Dispose());
-        }
-
-        public async Task<IEnumerable<ModuleRuntimeInfo>> GetModules(CancellationToken cancellationToken)
-        {
-            using (await this.moduleLock.LockAsync(cancellationToken))
-            {
-                return this.moduleRuntimeInfos.Select(kvp => kvp.Value);
-            }
-        }
-
-        public async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<int> since, CancellationToken cancellationToken)
-        {
-            return await this.client.ReadNamespacedPodLogAsync(
-                module,
-                Constants.K8sNamespace,
-                follow: follow,
-                tailLines: tail.GetOrElse(null),
-                sinceSeconds: since.GetOrElse(null),
-                cancellationToken: cancellationToken);
-        }
-
-        public async Task<SystemInfo> GetSystemInfo()
-        {
-            V1NodeList k8SNodes = await this.client.ListNodeAsync();
-            V1Node firstNode = k8SNodes.Items.FirstOrDefault();
-            if (firstNode != default(V1Node))
-            {
-                return new SystemInfo(firstNode.Status.NodeInfo.OperatingSystem, firstNode.Status.NodeInfo.Architecture, firstNode.Status.NodeInfo.OsImage);
-            }
-
-            return new SystemInfo(string.Empty, string.Empty, string.Empty);
-        }
-
-        public void Start()
-        {
-            // The following "List..." requests do not return until there is something to return, so if we "await" here,
-            // there is a chance that one or both of these requests will block forever - we won't start creating these pods and CRDs
-            // until we receive a deployment.
-            // Considering setting up these watches is critical to the operation of EdgeAgent, throwing an exception and letting the process crash
-            // is an acceptable fate if these tasks fail.
-
-            // Pod watching for module runtime status.
-            this.client.ListNamespacedPodWithHttpMessagesAsync(KubeUtils.K8sNamespace, watch: true).ContinueWith(this.ListPodComplete);
-
-            // CRD watch
-            this.client.ListClusterCustomObjectWithHttpMessagesAsync(Constants.K8sCrdGroup, Constants.K8sApiVersion, Constants.K8sCrdPlural, watch: true).ContinueWith(this.ListCrdComplete);
-        }
-
-        private async Task ListCrdComplete(Task<HttpOperationResponse<object>> customObjectWatchTask)
+        public async Task ListCrdComplete(Task<HttpOperationResponse<object>> customObjectWatchTask)
         {
             if (customObjectWatchTask != null)
             {
@@ -178,12 +100,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                                 }
                                 catch (Exception ex) when (!ex.IsFatal())
                                 {
-                                    KubernetesEventLogger<TConfig>.ExceptionInCustomResourceWatch(ex);
+                                    this.logger.ExceptionInCustomResourceWatch(ex);
                                 }
                             },
                             onClosed: () =>
                             {
-                                KubernetesEventLogger<TConfig>.CrdWatchClosed();
+                                this.logger.CrdWatchClosed();
 
                                 // get rid of the current crd watch object since we got closed
                                 this.operatorWatch.ForEach(watch => watch.Dispose());
@@ -194,20 +116,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                                     Constants.K8sCrdGroup,
                                     Constants.K8sApiVersion,
                                     Constants.K8sCrdPlural,
-                                    watch: true).ContinueWith(ListCrdComplete);
+                                    watch: true).ContinueWith(this.ListCrdComplete);
                             },
-                            onError: KubernetesEventLogger<TConfig>.ExceptionInCustomResourceWatch
+                            onError: this.logger.ExceptionInCustomResourceWatch
                         ));
                 }
                 else
                 {
-                    KubernetesEventLogger<TConfig>.NullListResponse("ListClusterCustomObjectWithHttpMessagesAsync", "http response");
+                    this.logger.NullListResponse("ListClusterCustomObjectWithHttpMessagesAsync", "http response");
                     throw new NullReferenceException("Null response from ListClusterCustomObjectWithHttpMessagesAsync");
                 }
             }
             else
             {
-                KubernetesEventLogger<TConfig>.NullListResponse("ListClusterCustomObjectWithHttpMessagesAsync", "task");
+                this.logger.NullListResponse("ListClusterCustomObjectWithHttpMessagesAsync", "task");
                 throw new NullReferenceException("Null Task from ListClusterCustomObjectWithHttpMessagesAsync");
             }
         }
@@ -224,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 }
                 catch (Exception e)
                 {
-                    KubernetesEventLogger<TConfig>.EdgeDeploymentDeserializeFail(e);
+                    this.logger.EdgeDeploymentDeserializeFail(e);
                     return;
                 }
 
@@ -233,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 {
                     V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(KubeUtils.K8sNamespace, labelSelector: this.deploymentSelector);
                     V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(KubeUtils.K8sNamespace, labelSelector: this.deploymentSelector);
-                    KubernetesEventLogger<TConfig>.DeploymentStatus(type, this.resourceName);
+                    this.logger.DeploymentStatus(type, this.resourceName);
                     switch (type)
                     {
                         case WatchEventType.Added:
@@ -242,28 +164,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                             break;
 
                         case WatchEventType.Deleted:
-                        {
-                            // Delete the deployment.
-                            // Delete any services.
-                            IEnumerable<Task<V1Status>> removeServiceTasks = currentServices.Items.Select(i => this.client.DeleteNamespacedServiceAsync(i.Metadata.Name, KubeUtils.K8sNamespace, new V1DeleteOptions()));
-                            await Task.WhenAll(removeServiceTasks);
-                            IEnumerable<Task<V1Status>> removeDeploymentTasks = currentDeployments.Items.Select(
-                                d => this.client.DeleteNamespacedDeployment1Async(
-                                    d.Metadata.Name,
-                                    KubeUtils.K8sNamespace,
-                                    new V1DeleteOptions(propagationPolicy: "Foreground"),
-                                    propagationPolicy: "Foreground"));
-                            await Task.WhenAll(removeDeploymentTasks);
-                        }
+                            {
+                                // Delete the deployment.
+                                // Delete any services.
+                                IEnumerable<Task<V1Status>> removeServiceTasks = currentServices.Items.Select(i => this.client.DeleteNamespacedServiceAsync(i.Metadata.Name, KubeUtils.K8sNamespace, new V1DeleteOptions()));
+                                await Task.WhenAll(removeServiceTasks);
+                                IEnumerable<Task<V1Status>> removeDeploymentTasks = currentDeployments.Items.Select(
+                                    d => this.client.DeleteNamespacedDeployment1Async(
+                                        d.Metadata.Name,
+                                        KubeUtils.K8sNamespace,
+                                        new V1DeleteOptions(propagationPolicy: "Foreground"),
+                                        propagationPolicy: "Foreground"));
+                                await Task.WhenAll(removeDeploymentTasks);
+                            }
                             break;
                         case WatchEventType.Error:
-                            KubernetesEventLogger<TConfig>.DeploymentError();
+                            this.logger.DeploymentError();
                             break;
                     }
                 }
                 else
                 {
-                    KubernetesEventLogger<TConfig>.DeploymentNameMismatch(customObject.Metadata.Name, this.resourceName);
+                    this.logger.DeploymentNameMismatch(customObject.Metadata.Name, this.resourceName);
                 }
             }
         }
@@ -330,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 }
                 else
                 {
-                    KubernetesEventLogger<TConfig>.InvalidModuleType(module);
+                    this.logger.InvalidModuleType(module);
                 }
             }
 
@@ -369,7 +291,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
                         servicesRemoved.Add(s);
                         newServices.Add(s);
-                        KubernetesEventLogger<TConfig>.UpdateService(s.Metadata.Name);
+                        this.logger.UpdateService(s.Metadata.Name);
                     }
                     else
                     {
@@ -381,7 +303,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         s.Metadata.Annotations[Constants.CreationString] = creationString;
 
                         newServices.Add(s);
-                        KubernetesEventLogger<TConfig>.CreateService(s.Metadata.Name);
+                        this.logger.CreateService(s.Metadata.Name);
                     }
                 });
             var deploymentsUpdated = new List<V1Deployment>();
@@ -419,7 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         }
 
                         deploymentsUpdated.Add(d);
-                        KubernetesEventLogger<TConfig>.UpdateDeployment(d.Metadata.Name);
+                        this.logger.UpdateDeployment(d.Metadata.Name);
                     }
                     else
                     {
@@ -430,7 +352,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         };
                         d.Metadata.Annotations = annotations;
                         newDeployments.Add(d);
-                        KubernetesEventLogger<TConfig>.CreateDeployment(d.Metadata.Name);
+                        this.logger.CreateDeployment(d.Metadata.Name);
                     }
                 });
 
@@ -438,7 +360,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IEnumerable<Task<V1Status>> removeServiceTasks = servicesRemoved.Select(
                 i =>
                 {
-                    KubernetesEventLogger<TConfig>.DeletingService(i);
+                    this.logger.DeletingService(i);
                     return this.client.DeleteNamespacedServiceAsync(i.Metadata.Name, KubeUtils.K8sNamespace, new V1DeleteOptions());
                 });
             await Task.WhenAll(removeServiceTasks);
@@ -446,7 +368,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IEnumerable<Task<V1Status>> removeDeploymentTasks = deploymentsRemoved.Select(
                 d =>
                 {
-                    KubernetesEventLogger<TConfig>.DeletingDeployment(d);
+                    this.logger.DeletingDeployment(d);
                     return this.client.DeleteNamespacedDeployment1Async(d.Metadata.Name, KubeUtils.K8sNamespace, new V1DeleteOptions(propagationPolicy: "Foreground"), propagationPolicy: "Foreground");
                 });
             await Task.WhenAll(removeDeploymentTasks);
@@ -455,7 +377,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IEnumerable<Task<V1Service>> createServiceTasks = newServices.Select(
                 s =>
                 {
-                    KubernetesEventLogger<TConfig>.CreatingService(s);
+                    this.logger.CreatingService(s);
                     return this.client.CreateNamespacedServiceAsync(s, KubeUtils.K8sNamespace);
                 });
             await Task.WhenAll(createServiceTasks);
@@ -463,7 +385,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IEnumerable<Task<V1Deployment>> createDeploymentTasks = newDeployments.Select(
                 deployment =>
                 {
-                    KubernetesEventLogger<TConfig>.CreatingDeployment(deployment);
+                    this.logger.CreatingDeployment(deployment);
                     return this.client.CreateNamespacedDeploymentAsync(deployment, KubeUtils.K8sNamespace);
                 });
             await Task.WhenAll(createDeploymentTasks);
@@ -553,7 +475,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
             else
             {
-                KubernetesEventLogger<TConfig>.InvalidModuleType(module);
+                this.logger.InvalidModuleType(module);
             }
 
             return new V1PodTemplateSpec();
@@ -680,6 +602,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return envList;
         }
 
+        private Option<List<(int Port, string Protocol)>> GetExposedPorts(IDictionary<string, DockerModels.EmptyStruct> exposedPorts)
+        {
+            var serviceList = new List<(int, string)>();
+            foreach (KeyValuePair<string, DockerModels.EmptyStruct> exposedPort in exposedPorts)
+            {
+                string[] portProtocol = exposedPort.Key.Split('/');
+                if (portProtocol.Length == 2)
+                {
+                    if (int.TryParse(portProtocol[0], out int port) && this.ValidateProtocol(portProtocol[1], out string protocol))
+                    {
+                        serviceList.Add((port, protocol));
+                    }
+                    else
+                    {
+                        this.logger.ExposedPortValue(exposedPort.Key);
+                    }
+                }
+            }
+
+            return (serviceList.Count > 0) ? Option.Some(serviceList) : Option.None<List<(int, string)>>();
+        }
+
         private Option<V1Service> GetServiceFromModule(Dictionary<string, string> labels, KubernetesModule<TConfig> module, IModuleIdentity moduleIdentity)
         {
             var portList = new List<V1ServicePort>();
@@ -735,7 +679,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                                     }
                                     else
                                     {
-                                        KubernetesEventLogger<TConfig>.PortBindingValue(module, portBinding.Key);
+                                        this.logger.PortBindingValue(module, portBinding.Key);
                                     }
                                 }
                             }
@@ -773,28 +717,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
         }
 
-        private Option<List<(int Port, string Protocol)>> GetExposedPorts(IDictionary<string, DockerModels.EmptyStruct> exposedPorts)
-        {
-            var serviceList = new List<(int, string)>();
-            foreach (KeyValuePair<string, DockerModels.EmptyStruct> exposedPort in exposedPorts)
-            {
-                string[] portProtocol = exposedPort.Key.Split('/');
-                if (portProtocol.Length == 2)
-                {
-                    if (int.TryParse(portProtocol[0], out int port) && this.ValidateProtocol(portProtocol[1], out string protocol))
-                    {
-                        serviceList.Add((port, protocol));
-                    }
-                    else
-                    {
-                        KubernetesEventLogger<TConfig>.ExposedPortValue(exposedPort.Key);
-                    }
-                }
-            }
-
-            return (serviceList.Count > 0) ? Option.Some(serviceList) : Option.None<List<(int, string)>>();
-        }
-
         private bool ValidateProtocol(string dockerProtocol, out string k8SProtocol)
         {
             bool result = true;
@@ -828,7 +750,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         return service.Metadata.Name;
                     }
 
-                    KubernetesEventLogger<TConfig>.InvalidCreationString("service", "null service");
+                    this.logger.InvalidCreationString("service", "null service");
                     throw new NullReferenceException("null service in list");
                 },
                 service =>
@@ -843,13 +765,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                             }
                         }
 
-                        KubernetesEventLogger<TConfig>.InvalidCreationString(service.Kind, service.Metadata?.Name);
+                        this.logger.InvalidCreationString(service.Kind, service.Metadata?.Name);
 
                         var serviceWithoutStatus = new V1Service(service.ApiVersion, service.Kind, service.Metadata, service.Spec);
                         return JsonConvert.SerializeObject(serviceWithoutStatus);
                     }
 
-                    KubernetesEventLogger<TConfig>.InvalidCreationString("service", "null service");
+                    this.logger.InvalidCreationString("service", "null service");
                     throw new NullReferenceException("null service in list");
                 });
         }
@@ -864,7 +786,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         return deployment.Metadata.Name;
                     }
 
-                    KubernetesEventLogger<TConfig>.InvalidCreationString("deployment", "null deployment");
+                    this.logger.InvalidCreationString("deployment", "null deployment");
                     throw new NullReferenceException("null deployment in list");
                 },
                 deployment =>
@@ -879,182 +801,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                             }
                         }
 
-                        KubernetesEventLogger<TConfig>.InvalidCreationString(deployment.Kind, deployment.Metadata?.Name);
+                        this.logger.InvalidCreationString(deployment.Kind, deployment.Metadata?.Name);
                         var deploymentWithoutStatus = new V1Deployment(deployment.ApiVersion, deployment.Kind, deployment.Metadata, deployment.Spec);
                         return JsonConvert.SerializeObject(deploymentWithoutStatus);
                     }
 
-                    KubernetesEventLogger<TConfig>.InvalidCreationString("deployment", "null deployment");
+                    this.logger.InvalidCreationString("deployment", "null deployment");
                     throw new NullReferenceException("null deployment in list");
                 });
         }
-
-        // TODO : BEGIN POD WATCH
-        private async Task ListPodComplete(Task<HttpOperationResponse<V1PodList>> podListRespTask)
-        {
-            if (podListRespTask != null)
-            {
-                HttpOperationResponse<V1PodList> podListResp = await podListRespTask;
-                if (podListResp != null)
-                {
-                    this.podWatch = Option.Some(
-                        podListResp.Watch<V1Pod>(
-                            onEvent: async (type, item) =>
-                            {
-                                try
-                                {
-                                    await this.WatchPodEventsAsync(type, item);
-                                }
-                                catch (Exception ex) when (!ex.IsFatal())
-                                {
-                                    KubernetesEventLogger<TConfig>.ExceptionInPodWatch(ex);
-                                }
-                            },
-                            onClosed: () =>
-                            {
-                                KubernetesEventLogger<TConfig>.PodWatchClosed();
-
-                                // get rid of the current pod watch object since we got closed
-                                this.podWatch.ForEach(watch => watch.Dispose());
-                                this.podWatch = Option.None<Watcher<V1Pod>>();
-
-                                // kick off a new watch
-                                this.client.ListNamespacedPodWithHttpMessagesAsync(KubeUtils.K8sNamespace, watch: true).ContinueWith(this.ListPodComplete);
-                            },
-                            onError: KubernetesEventLogger<TConfig>.ExceptionInPodWatch
-                        ));
-                }
-                else
-                {
-                    KubernetesEventLogger<TConfig>.NullListResponse("ListNamespacedPodWithHttpMessagesAsync", "http response");
-                    throw new NullReferenceException("Null response from ListNamespacedPodWithHttpMessagesAsync");
-                }
-            }
-            else
-            {
-                KubernetesEventLogger<TConfig>.NullListResponse("ListNamespacedPodWithHttpMessagesAsync", "task");
-                throw new NullReferenceException("Null Task from ListNamespacedPodWithHttpMessagesAsync");
-            }
-        }
-
-        private async Task WatchPodEventsAsync(WatchEventType type, V1Pod item)
-        {
-            // if the pod doesn't have the module label set then we are not interested in it
-            if (item.Metadata.Labels.ContainsKey(Constants.K8sEdgeModuleLabel) == false)
-            {
-                return;
-            }
-
-            string podName = item.Metadata.Labels[Constants.K8sEdgeModuleLabel];
-            KubernetesEventLogger<TConfig>.PodStatus(type, podName);
-            switch (type)
-            {
-                case WatchEventType.Added:
-                case WatchEventType.Modified:
-                case WatchEventType.Error:
-                    ModuleRuntimeInfo runtimeInfo = this.ConvertPodToRuntime(podName, item);
-                    using (await this.moduleLock.LockAsync())
-                    {
-                        this.moduleRuntimeInfos[podName] = runtimeInfo;
-                    }
-
-                    break;
-                case WatchEventType.Deleted:
-                    using (await this.moduleLock.LockAsync())
-                    {
-                        ModuleRuntimeInfo removedRuntimeInfo;
-                        if (!this.moduleRuntimeInfos.TryRemove(podName, out removedRuntimeInfo))
-                        {
-                            KubernetesEventLogger<TConfig>.PodStatusRemoveError(podName);
-                        }
-                    }
-
-                    break;
-            }
-        }
-
-        private ModuleRuntimeInfo ConvertPodToRuntime(string name, V1Pod pod)
-        {
-            string moduleName = name;
-            pod.Metadata?.Annotations?.TryGetValue(Constants.K8sEdgeOriginalModuleId, out moduleName);
-
-            Option<V1ContainerStatus> containerStatus = this.GetContainerByName(name, pod);
-            (ModuleStatus moduleStatus, string statusDescription) = this.ConvertPodStatusToModuleStatus(containerStatus);
-            (int exitCode, Option<DateTime> startTime, Option<DateTime> exitTime, string imageHash) = this.GetRuntimedata(containerStatus.OrDefault());
-
-            var reportedConfig = new AgentDocker.DockerReportedConfig(string.Empty, string.Empty, imageHash);
-            return new ModuleRuntimeInfo<AgentDocker.DockerReportedConfig>(
-                ModuleIdentityHelper.GetModuleName(moduleName),
-                "docker",
-                moduleStatus,
-                statusDescription,
-                exitCode,
-                startTime,
-                exitTime,
-                reportedConfig);
-        }
-
-        private Option<V1ContainerStatus> GetContainerByName(string name, V1Pod pod)
-        {
-            string containerName = KubeUtils.SanitizeDNSValue(name);
-            if (pod.Status?.ContainerStatuses != null)
-            {
-                foreach (var status in pod.Status.ContainerStatuses)
-                {
-                    if (string.Equals(status.Name, containerName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return Option.Some(status);
-                    }
-                }
-            }
-
-            return Option.None<V1ContainerStatus>();
-        }
-
-        private (ModuleStatus, string) ConvertPodStatusToModuleStatus(Option<V1ContainerStatus> podStatus)
-        {
-            // TODO: Possibly refine this?
-            return podStatus.Map(
-                pod =>
-                {
-                    if (pod.State.Running != null)
-                    {
-                        return (ModuleStatus.Running, $"Started at {pod.State.Running.StartedAt.GetValueOrDefault(DateTime.Now)}");
-                    }
-                    else if (pod.State.Terminated != null)
-                    {
-                        return (ModuleStatus.Failed, pod.State.Terminated.Message);
-                    }
-                    else if (pod.State.Waiting != null)
-                    {
-                        return (ModuleStatus.Failed, pod.State.Waiting.Message);
-                    }
-
-                    return (ModuleStatus.Unknown, "Unknown");
-                }).GetOrElse(() => (ModuleStatus.Unknown, "Unknown"));
-        }
-
-        private (int, Option<DateTime>, Option<DateTime>, string image) GetRuntimedata(V1ContainerStatus status)
-        {
-            if (status?.LastState?.Running != null)
-            {
-                if (status.LastState.Running.StartedAt.HasValue)
-                {
-                    return (0, Option.Some(status.LastState.Running.StartedAt.Value), Option.None<DateTime>(), status.Image);
-                }
-            }
-            else
-            {
-                if (status?.LastState?.Terminated?.StartedAt != null &&
-                    status.LastState.Terminated.FinishedAt.HasValue)
-                {
-                    return (0, Option.Some(status.LastState.Terminated.StartedAt.Value), Option.Some(status.LastState.Terminated.FinishedAt.Value), status.Image);
-                }
-            }
-
-            return (0, Option.None<DateTime>(), Option.None<DateTime>(), String.Empty);
-        }
-
-        // TODO : END POD WATCH
     }
 }
