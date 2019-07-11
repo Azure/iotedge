@@ -94,7 +94,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                         try
                         {
-                            // TODO: The method CertificateHelper.GetServerCertificateAndChainFromFile should be 'GetCertificateAndChainFromFile'
                             (X509Certificate2 leafCert, IEnumerable<X509Certificate2> trustedCerts) =
                                 CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);
                             // .NET runtime requires that we install the chain of CA certs, otherwise it can't
@@ -159,7 +158,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                         try
                         {
-                            // TODO: The method CertificateHelper.GetServerCertificateAndChainFromFile should be 'GetCertificateAndChainFromFile'
                             (X509Certificate2 leafCert, _) =
                                 CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);
 
