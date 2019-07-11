@@ -20,19 +20,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class LeafDevice
     {
-        readonly AuthenticationType auth;
         readonly DeviceClient client;
         readonly Device device;
-        readonly EdgeCertificateAuthority edgeCa;
         readonly IotHub iotHub;
         readonly string messageId;
 
-        LeafDevice(Device device, DeviceClient client, AuthenticationType auth, EdgeCertificateAuthority edgeCa, IotHub iotHub)
+        LeafDevice(Device device, DeviceClient client, IotHub iotHub)
         {
-            this.auth = auth;
             this.client = client;
             this.device = device;
-            this.edgeCa = edgeCa;
             this.iotHub = iotHub;
             this.messageId = Guid.NewGuid().ToString();
         }
@@ -76,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                             await client.SetMethodHandlerAsync("DirectMethod", DirectMethod, null, token);
 
-                            return new LeafDevice(leaf, client, auth, edgeCa, iotHub);
+                            return new LeafDevice(leaf, client, iotHub);
                         }
                         catch
                         {
@@ -113,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                             await client.SetMethodHandlerAsync("DirectMethod", DirectMethod, null, token);
 
-                            return new LeafDevice(leaf, client, auth, edgeCa, iotHub);
+                            return new LeafDevice(leaf, client, iotHub);
                         }
                         catch
                         {
@@ -134,17 +130,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             secondary.CertificatePath
                         };
 
-                        string[] streams = await Task.WhenAll(paths.Select(
-                            async p =>
-                            {
-                                using (var sr = new StreamReader(p))
+                        string[] streams = await Task.WhenAll(
+                            paths.Select(
+                                async p =>
                                 {
-                                    return await sr.ReadToEndAsync();
-                                }
-                            }));
+                                    using (var sr = new StreamReader(p))
+                                    {
+                                        return await sr.ReadToEndAsync();
+                                    }
+                                }));
 
-                        IEnumerable<string> thumbprints = CertificateHelper.GetCertificatesFromPem(streams)
-                            .Select(c => c.Thumbprint.ToUpper(CultureInfo.InvariantCulture));
+                        string[] thumbprints = CertificateHelper.GetCertificatesFromPem(streams)
+                            .Select(c => c.Thumbprint?.ToUpper(CultureInfo.InvariantCulture))
+                            .ToArray();
 
                         var x509Thumbprint = new X509Thumbprint
                         {
@@ -162,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         try
                         {
                             // TODO: The method CertificateHelper.GetServerCertificateAndChainFromFile should be 'GetCertificateAndChainFromFile'
-                            (X509Certificate2 leafCert, var _) =
+                            (X509Certificate2 leafCert, _) =
                                 CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);
 
                             DeviceClient client = DeviceClient.Create(
@@ -173,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                             await client.SetMethodHandlerAsync("DirectMethod", DirectMethod, null, token);
 
-                            return new LeafDevice(leaf, client, auth, edgeCa, iotHub);
+                            return new LeafDevice(leaf, client, iotHub);
                         }
                         catch
                         {
@@ -221,11 +219,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public Task InvokeDirectMethodAsync(CancellationToken token) =>
             Profiler.Run(
-                    () => this.iotHub.InvokeMethodAsync(
-                        this.device.Id,
-                        new CloudToDeviceMethod("DirectMethod"),
-                        token),
-                    "Invoked method on leaf device from the cloud");
+                () => this.iotHub.InvokeMethodAsync(
+                    this.device.Id,
+                    new CloudToDeviceMethod("DirectMethod"),
+                    token),
+                "Invoked method on leaf device from the cloud");
 
         // BUG: callers can continue to try to use this object after DeleteIdentityAsync has been called.
         public Task DeleteIdentityAsync(CancellationToken token) =>

@@ -68,6 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         {
                             builder.AddRegistryCredentials(address, username, password);
                         }
+
                         builder.AddEdgeAgent(agentImage).WithProxy(proxy);
                         builder.AddEdgeHub(hubImage, Context.Current.OptimizeForPerformance).WithProxy(proxy);
                         await builder.Build().DeployAsync(this.iotHub, token);

@@ -112,6 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     {
                         throw new ArgumentException($"Device '{p}' not found in '{this.Hostname}'");
                     }
+
                     leaf.Scope = edge.Scope;
                 });
 

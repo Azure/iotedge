@@ -101,12 +101,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 for (int i = 0; i < this.registries.Count; ++i)
                 {
                     (string address, string username, string password) = this.registries[i];
-                    credentials.Add($"reg{i}", new
-                    {
-                        username,
-                        password,
-                        address
-                    });
+                    credentials.Add(
+                        $"reg{i}",
+                        new
+                        {
+                            username,
+                            password,
+                            address
+                        });
                 }
 
                 settings["registryCredentials"] = credentials;

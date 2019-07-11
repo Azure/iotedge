@@ -12,7 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
         {
             await Platform.InstallRootCertificateAsync(certificatePath, keyPath, password, scriptPath, token);
             return new RootCertificateAuthority(
-                certificatePath, keyPath, scriptPath);
+                certificatePath,
+                keyPath,
+                scriptPath);
         }
 
         RootCertificateAuthority(string certificatePath, string keyPath, string scriptPath)

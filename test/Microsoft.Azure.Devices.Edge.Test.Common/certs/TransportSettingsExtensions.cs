@@ -1,10 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 {
-    using System;
-    using System.Collections.Generic;
     using System.ComponentModel;
-    using System.Linq;
     using System.Net.Security;
     using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Devices.Client;

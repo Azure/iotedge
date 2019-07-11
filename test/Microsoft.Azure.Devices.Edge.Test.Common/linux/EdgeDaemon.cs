@@ -142,7 +142,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     config.Update();
 
                     return (message, properties);
-                }, token);
+                },
+                token);
         }
 
         public Task StartAsync(CancellationToken token) => Profiler.Run(
