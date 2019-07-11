@@ -42,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Protocol protocol,
             AuthenticationType auth,
             Option<string> parentId,
+            bool useSecondaryCertificate,
             EdgeCertificateAuthority edgeCa,
             IotHub iotHub,
             CancellationToken token)
@@ -125,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         // TODO: Cert gen fails in openssl.exe if leaf deviceId > 64 chars
                         LeafCertificates primary = await edgeCa.GenerateLeafCertificatesAsync($"{leafDeviceId}-pri", token);
                         LeafCertificates secondary = await edgeCa.GenerateLeafCertificatesAsync($"{leafDeviceId}-sec", token);
-                        LeafCertificates certFiles = primary;
+                        LeafCertificates certFiles = useSecondaryCertificate ? secondary : primary;
 
                         var paths = new List<string>
                         {

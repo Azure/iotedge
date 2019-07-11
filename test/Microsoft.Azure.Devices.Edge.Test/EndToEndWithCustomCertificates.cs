@@ -136,26 +136,30 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 "Completed test teardown");
         }
 
-        static readonly (AuthenticationType, Protocol, bool)[] TransparentGatewayArgs =
+        static readonly (AuthenticationType, Protocol, bool, bool)[] TransparentGatewayArgs =
         {
-            (AuthenticationType.Sas, Protocol.Mqtt, false),
-            (AuthenticationType.Sas, Protocol.Amqp, false),
-            (AuthenticationType.Sas, Protocol.Mqtt, true),
-            (AuthenticationType.Sas, Protocol.Amqp, true),
-            (AuthenticationType.CertificateAuthority, Protocol.Mqtt, true),
-            // (AuthenticationType.CertificateAuthority, Protocol.Amqp, true), // TODO: Failing in recent builds, uncomment when fixed
-            (AuthenticationType.SelfSigned, Protocol.Mqtt, true),
-            // (AuthenticationType.SelfSigned, Protocol.Amqp, true) // TODO: Failing in recent builds, uncomment when fixed
+            (AuthenticationType.Sas, Protocol.Mqtt, false, false),
+            (AuthenticationType.Sas, Protocol.Amqp, false, false),
+            (AuthenticationType.Sas, Protocol.Mqtt, true, false),
+            (AuthenticationType.Sas, Protocol.Amqp, true, false),
+            (AuthenticationType.CertificateAuthority, Protocol.Mqtt, true, false),
+            // (AuthenticationType.CertificateAuthority, Protocol.Amqp, true, false), // TODO: Failing in recent builds, uncomment when fixed
+            (AuthenticationType.SelfSigned, Protocol.Mqtt, true, false),
+            (AuthenticationType.SelfSigned, Protocol.Mqtt, true, true),
+            // (AuthenticationType.SelfSigned, Protocol.Amqp, true, false) // TODO: Failing in recent builds, uncomment when fixed
+            // (AuthenticationType.SelfSigned, Protocol.Amqp, true, true) // TODO: Failing in recent builds, uncomment when fixed
         };
 
         [TestCaseSource(nameof(TransparentGatewayArgs))]
-        public async Task TransparentGateway((AuthenticationType, Protocol, bool) args)
+        public async Task TransparentGateway((AuthenticationType, Protocol, bool, bool) args)
         {
-            (AuthenticationType auth, Protocol protocol, bool inScope) = args;
+            (AuthenticationType auth, Protocol protocol, bool inScope, bool useSecondaryCertificate) = args;
 
             CancellationToken token = this.cts.Token;
 
-            string name = $"transparent gateway ({auth.ToString()}, {protocol.ToString()}, inScope={inScope})";
+            string name = auth == AuthenticationType.Sas && inScope ? $", inScope" : "";
+            name += auth == AuthenticationType.SelfSigned && useSecondaryCertificate ? $", useSecondaryCertificate" : "";
+            name = $"transparent gateway ({auth.ToString()}, {protocol.ToString()}{name})";
             Log.Information("Running test '{Name}'", name);
 
             await Profiler.Run(
@@ -165,7 +169,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     string leafDeviceId = $"{Context.Current.DeviceId}-{protocol.ToString()}-{auth.ToString()}-{suffix}";
                     Option<string> parentId = inScope ? Option.Some(Context.Current.DeviceId) : Option.None<string>();
 
-                    var leaf = await LeafDevice.CreateAsync(leafDeviceId, protocol, auth, parentId, this.edgeCa, this.iotHub, token);
+                    var leaf = await LeafDevice.CreateAsync(
+                        leafDeviceId,
+                        protocol,
+                        auth,
+                        parentId,
+                        useSecondaryCertificate,
+                        this.edgeCa,
+                        this.iotHub,
+                        token);
 
                     try
                     {
