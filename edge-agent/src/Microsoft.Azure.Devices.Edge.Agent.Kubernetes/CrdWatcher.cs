@@ -47,7 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly KubernetesEventLogger<CrdWatcher<TConfig>> logger = new KubernetesEventLogger<CrdWatcher<TConfig>>();
 
 
-        // TODO : Fill out constructor
         public CrdWatcher(
             string iotHubHostname,
             string deviceId,
