@@ -136,45 +136,37 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 "Completed test teardown");
         }
 
-        static readonly (AuthenticationType, Protocol, bool, bool)[] TransparentGatewayArgs =
+        [Test]
+        public async Task TransparentGateway(
+            [Values] TestAuthenticationType testAuth,
+            [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
         {
-            (AuthenticationType.Sas, Protocol.Mqtt, false, false),
-            (AuthenticationType.Sas, Protocol.Amqp, false, false),
-            (AuthenticationType.Sas, Protocol.Mqtt, true, false),
-            (AuthenticationType.Sas, Protocol.Amqp, true, false),
-            (AuthenticationType.CertificateAuthority, Protocol.Mqtt, true, false),
-            // (AuthenticationType.CertificateAuthority, Protocol.Amqp, true, false), // TODO: Failing in recent builds, uncomment when fixed
-            (AuthenticationType.SelfSigned, Protocol.Mqtt, true, false),
-            (AuthenticationType.SelfSigned, Protocol.Mqtt, true, true),
-            // (AuthenticationType.SelfSigned, Protocol.Amqp, true, false) // TODO: Failing in recent builds, uncomment when fixed
-            // (AuthenticationType.SelfSigned, Protocol.Amqp, true, true) // TODO: Failing in recent builds, uncomment when fixed
-        };
-
-        [TestCaseSource(nameof(TransparentGatewayArgs))]
-        public async Task TransparentGateway((AuthenticationType, Protocol, bool, bool) args)
-        {
-            (AuthenticationType auth, Protocol protocol, bool inScope, bool useSecondaryCertificate) = args;
+            var auth = testAuth.ToAuthenticationType();
+            if (protocol == Protocol.Amqp &&
+                (auth == AuthenticationType.CertificateAuthority || auth == AuthenticationType.SelfSigned))
+            {
+                Assert.Ignore("x509 cert + AMQP tests disabled until bug is resolved");
+            }
 
             CancellationToken token = this.cts.Token;
 
-            string name = auth == AuthenticationType.Sas && inScope ? $", inScope" : "";
-            name += auth == AuthenticationType.SelfSigned && useSecondaryCertificate ? $", useSecondaryCertificate" : "";
-            name = $"transparent gateway ({auth.ToString()}, {protocol.ToString()}{name})";
+            string name = $"transparent gateway ({testAuth.ToString()}, {protocol.ToString()})";
             Log.Information("Running test '{Name}'", name);
 
             await Profiler.Run(
                 async () =>
                 {
-                    string suffix = inScope ? "scoped-leaf" : "leaf";
-                    string leafDeviceId = $"{Context.Current.DeviceId}-{protocol.ToString()}-{auth.ToString()}-{suffix}";
-                    Option<string> parentId = inScope ? Option.Some(Context.Current.DeviceId) : Option.None<string>();
+                    string leafDeviceId = $"{Context.Current.DeviceId}-{protocol.ToString()}-{testAuth.ToString()}-leaf";
+                    Option<string> parentId = testAuth == TestAuthenticationType.SasOutOfScope
+                        ? Option.None<string>()
+                        : Option.Some(Context.Current.DeviceId);
 
                     var leaf = await LeafDevice.CreateAsync(
                         leafDeviceId,
                         protocol,
                         auth,
                         parentId,
-                        useSecondaryCertificate,
+                        testAuth.UseSecondaryCertificate(),
                         this.edgeCa,
                         this.iotHub,
                         token);
