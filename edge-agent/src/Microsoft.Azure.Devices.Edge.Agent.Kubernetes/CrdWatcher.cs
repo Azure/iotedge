@@ -21,10 +21,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     public class CrdWatcher<TConfig>
     {
-        private const string SocketDir = "/var/run/iotedge";
-        private const string ConfigVolumeName = "config-volume";
-        private const string SocketVolumeName = "workload";
-        private const string EdgeHubHostname = "edgehub";
+        const string SocketDir = "/var/run/iotedge";
+        const string ConfigVolumeName = "config-volume";
+        const string SocketVolumeName = "workload";
+        const string EdgeHubHostname = "edgehub";
 
         readonly IKubernetes client;
         Option<Watcher<object>> operatorWatch;
@@ -498,7 +498,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             proxyMountList.Add(new V1VolumeMount(this.proxyConfigPath, ConfigVolumeName));
 
             if ((moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Binds == null) && (moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Mounts == null))
+            {
                 return Option.Some((volumeList, proxyMountList, volumeMountList));
+            }
 
             if (moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Binds != null)
             {
@@ -663,16 +665,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         string[] portProtocol = portBinding.Key.Split('/');
                         if (portProtocol.Length == 2)
                         {
-                            int port;
-                            string protocol;
-                            if (int.TryParse(portProtocol[0], out port) && this.ValidateProtocol(portProtocol[1], out protocol))
+                            if (int.TryParse(portProtocol[0], out int port) && this.ValidateProtocol(portProtocol[1], out string protocol))
                             {
                                 // Entries in Docker portMap wants to expose a port on the host (hostPort) and map it to the container's port (port)
                                 // We interpret that as the pod wants the cluster to expose a port on a public IP (hostPort), and target it to the container's port (port)
                                 foreach (DockerModels.PortBinding hostBinding in portBinding.Value)
                                 {
-                                    int hostPort;
-                                    if (int.TryParse(hostBinding.HostPort, out hostPort))
+                                    if (int.TryParse(hostBinding.HostPort, out int hostPort))
                                     {
                                         portList.Add(new V1ServicePort(hostPort, name: $"{port}-{protocol.ToLower()}", protocol: protocol, targetPort: port));
                                         onlyExposedPorts = false;
