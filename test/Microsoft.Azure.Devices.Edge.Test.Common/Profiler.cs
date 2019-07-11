@@ -9,6 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class Profiler
     {
+        readonly Stopwatch stopwatch = Stopwatch.StartNew();
+
         public static Task Run(Func<Task> func, string message, params object[] properties) => Run(
             async () =>
             {
@@ -20,15 +22,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static async Task<T> Run<T>(Func<Task<T>> func, string message, params object[] properties)
         {
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
-
+            Profiler profiler = Start();
             T t = await func();
-
-            stopwatch.Stop();
-            var args = new object[] { $"{((double)stopwatch.ElapsedMilliseconds) / 1000,9:+0.000s}" };
-            Log.Information($"[{{Elapsed}}] {message}", args.Concat(properties).ToArray());
+            profiler.Stop(message, properties);
             return t;
+        }
+
+        public static Profiler Start() => new Profiler();
+
+        public void Stop(string message, params object[] properties)
+        {
+            if (!this.stopwatch.IsRunning)
+            {
+                throw new InvalidOperationException("Method 'Stop' called more than once on this instance of Profiler");
+            }
+
+            this.stopwatch.Stop();
+            var args = new object[] { $"{((double)this.stopwatch.ElapsedMilliseconds) / 1000, 9:+0.000s}" };
+            Log.Information($"[{{Elapsed}}] {message}", args.Concat(properties).ToArray());
         }
     }
 }

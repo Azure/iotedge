@@ -8,9 +8,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using NUnit.Framework;
     using NUnit.Framework.Interfaces;
+    using Serilog;
 
-    public class ModuleBase
+    public class TestBase
     {
+        Profiler profiler;
         DateTime testStartTime;
 
         protected CancellationTokenSource cts;
@@ -20,11 +22,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         {
             this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
             this.testStartTime = DateTime.Now;
+            this.profiler = Profiler.Start();
+            Log.Information("Running test '{Name}'", TestContext.CurrentContext.Test.Name);
         }
 
         [TearDown]
         public async Task AfterEachAsync()
         {
+            this.profiler.Stop("Completed test '{Name}'", TestContext.CurrentContext.Test.Name);
             await Profiler.Run(
                 async () =>
                 {

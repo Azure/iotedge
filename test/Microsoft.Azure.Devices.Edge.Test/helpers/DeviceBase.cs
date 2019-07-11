@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -10,14 +9,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
-    using NUnit.Framework.Interfaces;
 
-    public class DeviceBase
+    public class DeviceBase : TestBase
     {
         IEdgeDaemon daemon;
-        DateTime testStartTime;
 
-        protected CancellationTokenSource cts;
         protected EdgeCertificateAuthority edgeCa;
         protected IotHub iotHub;
 
@@ -31,7 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     string hubImage = Context.Current.EdgeHubImage.Expect(() => new ArgumentException());
                     (string caCertPath, string caKeyPath, string caPassword) =
                         Context.Current.RootCaKeys.Expect(() => new ArgumentException());
-                    bool optimizeForPerformance = Context.Current.OptimizeForPerformance;
                     Option<Uri> proxy = Context.Current.Proxy;
 
                     using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
@@ -74,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             builder.AddRegistryCredentials(address, username, password);
                         }
                         builder.AddEdgeAgent(agentImage).WithProxy(proxy);
-                        builder.AddEdgeHub(hubImage, optimizeForPerformance).WithProxy(proxy);
+                        builder.AddEdgeHub(hubImage, Context.Current.OptimizeForPerformance).WithProxy(proxy);
                         await builder.Build().DeployAsync(this.iotHub, token);
 
                         var hub = new EdgeModule("edgeHub", device.Id, this.iotHub);
@@ -103,37 +98,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     }
                 },
                 "Completed custom certificate teardown");
-        }
-
-        [SetUp]
-        public void BeforeEach()
-        {
-            this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
-            this.testStartTime = DateTime.Now;
-        }
-
-        [TearDown]
-        public async Task AfterEachAsync()
-        {
-            await Profiler.Run(
-                async () =>
-                {
-                    this.cts.Dispose();
-
-                    if (TestContext.CurrentContext.Result.Outcome != ResultState.Ignored)
-                    {
-                        using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
-                        {
-                            string prefix = $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
-                            IEnumerable<string> paths = await EdgeLogs.CollectAsync(this.testStartTime, prefix, cts.Token);
-                            foreach (string path in paths)
-                            {
-                                TestContext.AddTestAttachment(path);
-                            }
-                        }
-                    }
-                },
-                "Completed test teardown");
         }
     }
 }
