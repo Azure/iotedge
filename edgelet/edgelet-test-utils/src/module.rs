@@ -264,13 +264,18 @@ where
     S::Config: Clone + Send + 'static,
 {
     type Config = S::Config;
+    type Crypto = ();
     type Settings = S;
     type ProvisioningResult = TestProvisioningResult;
     type ModuleRuntime = Self;
     type Error = E;
     type Future = FutureResult<Self, Self::Error>;
 
-    fn make_runtime(settings: Self::Settings, _: Self::ProvisioningResult) -> Self::Future {
+    fn make_runtime(
+        settings: Self::Settings,
+        _: Self::ProvisioningResult,
+        _: Self::Crypto,
+    ) -> Self::Future {
         future::ok(TestRuntime {
             module: None,
             registry: TestRegistry::new(None),

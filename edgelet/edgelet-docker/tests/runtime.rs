@@ -33,6 +33,7 @@ use edgelet_core::{
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
 use edgelet_docker::{Error, ErrorKind};
+use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_test_utils::web::{
     make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
 };
@@ -98,6 +99,10 @@ fn provisioning_result() -> ProvisioningResult {
         ReprovisioningStatus::DeviceDataNotUpdated,
         None,
     )
+}
+
+fn crypto() -> Crypto {
+    Crypto::new(HsmLock::new()).unwrap()
 }
 
 fn make_get_networks_handler(
@@ -248,7 +253,7 @@ fn image_pull_with_invalid_image_name_fails() {
     })));
 
     let task =
-        DockerModuleRuntime::make_runtime(settings, provisioning_result()).and_then(|runtime| {
+        DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto()).and_then(|runtime| {
             let auth = AuthConfig::new()
                 .with_username("u1".to_string())
                 .with_password("bleh".to_string())

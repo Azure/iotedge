@@ -4,8 +4,9 @@ use std::collections::BTreeMap;
 
 use base64;
 use docker::models::{AuthConfig, HostConfig};
-use edgelet_core::ModuleSpec;
+use edgelet_core::{Certificate, ModuleSpec};
 use edgelet_docker::DockerConfig;
+use failure::ResultExt;
 use k8s_openapi::api::apps::v1 as apps;
 use k8s_openapi::api::core::v1 as api_core;
 use k8s_openapi::api::rbac::v1 as rbac;
@@ -492,6 +493,44 @@ pub fn spec_to_role_binding(
     };
 
     Ok((role_binding_name, role_binding))
+}
+
+pub fn prepare_trust_bundle(
+    settings: &Settings,
+    cert: impl Certificate,
+) -> Result<api_core::ConfigMap> {
+    let device_label_value =
+        sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
+    let hubname_label = sanitize_dns_value(
+        settings
+            .iot_hub_hostname()
+            .ok_or(ErrorKind::MissingHubName)?,
+    )?;
+
+    // labels
+    let mut labels = BTreeMap::new();
+    labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
+    labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
+
+    let cert = cert
+        .pem()
+        .map(|cert_buffer| String::from_utf8_lossy(cert_buffer.as_ref()).to_string())
+        .context(ErrorKind::IdentityCertificate)?;
+
+    let mut data = BTreeMap::new();
+    data.insert(PROXY_CONFIG_TRUST_BUNDLE_FILENAME.to_string(), cert);
+
+    let config_map = api_core::ConfigMap {
+        metadata: Some(api_meta::ObjectMeta {
+            name: Some(PROXY_CONFIG_TRUST_BUNDLE_NAME.to_string()),
+            namespace: Some(settings.namespace().to_string()),
+            labels: Some(labels),
+            ..api_meta::ObjectMeta::default()
+        }),
+        data: Some(data),
+        ..api_core::ConfigMap::default()
+    };
+    Ok(config_map)
 }
 
 #[cfg(test)]

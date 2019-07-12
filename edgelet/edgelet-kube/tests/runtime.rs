@@ -387,6 +387,7 @@ struct TestKubeModuleRuntime(KubeModuleRuntime<TestTokenSource, HttpClient<HttpC
 
 impl MakeModuleRuntime for TestKubeModuleRuntime {
     type Config = DockerConfig;
+    type Crypto = ();
     type Settings = TestKubeSettings;
     type ProvisioningResult = ProvisioningResult;
     type ModuleRuntime = KubeModuleRuntime<TestTokenSource, HttpClient<HttpConnector, Body>>;
@@ -396,6 +397,7 @@ impl MakeModuleRuntime for TestKubeModuleRuntime {
     fn make_runtime(
         settings: Self::Settings,
         provisioning_result: Self::ProvisioningResult,
+        _: Self::Crypto,
     ) -> Self::Future {
         let settings = settings
             .with_device_id(provisioning_result.device_id())

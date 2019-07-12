@@ -14,17 +14,18 @@ use hyper::{Body, Chunk as HyperChunk, Request};
 use hyper_tls::HttpsConnector;
 
 use edgelet_core::{
-    AuthId, Authenticator, LogOptions, MakeModuleRuntime, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeState, ModuleSpec, ProvisioningResult as CoreProvisioningResult, RuntimeOperation,
-    SystemInfo,
+    AuthId, Authenticator, GetTrustBundle, LogOptions, MakeModuleRuntime, ModuleRegistry,
+    ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningResult as CoreProvisioningResult,
+    RuntimeOperation, SystemInfo,
 };
 use edgelet_docker::DockerConfig;
+use edgelet_hsm::Crypto;
 use kube_client::{
     get_config, Client as KubeClient, Error as KubeClientError, HttpClient, TokenSource, ValueToken,
 };
 use provisioning::ProvisioningResult;
 
-use crate::convert::{auth_to_image_pull_secret, pod_to_module};
+use crate::convert::{auth_to_image_pull_secret, pod_to_module, prepare_trust_bundle};
 use crate::error::{Error, ErrorKind};
 use crate::module::{authenticate, create_module, KubeModule};
 use crate::settings::Settings;
@@ -153,6 +154,7 @@ impl MakeModuleRuntime
     for KubeModuleRuntime<ValueToken, HttpClient<HttpsConnector<HttpConnector>, Body>>
 {
     type Config = DockerConfig;
+    type Crypto = Crypto;
     type Settings = Settings;
     type ProvisioningResult = ProvisioningResult;
     type ModuleRuntime = Self;
@@ -162,14 +164,38 @@ impl MakeModuleRuntime
     fn make_runtime(
         settings: Self::Settings,
         provisioning_result: Self::ProvisioningResult,
+        crypto: Self::Crypto,
     ) -> Self::Future {
         let settings = settings
             .with_device_id(provisioning_result.device_id())
             .with_iot_hub_hostname(provisioning_result.hub_name());
+
         let fut = get_config()
             .map(|config| KubeModuleRuntime::new(KubeClient::new(config), settings))
             .map_err(Error::from)
-            .into_future();
+            .and_then(move |runtime| {
+                crypto
+                    .get_trust_bundle()
+                    .map_err(|err| Error::from(err.context(ErrorKind::IdentityCertificate)))
+                    .map(|cert| {
+                        prepare_trust_bundle(runtime.settings(), cert)
+                            .map_err(Error::from)
+                            .map(|config_map| {
+                                runtime
+                                    .client()
+                                    .lock()
+                                    .expect("Unexpected lock error")
+                                    .borrow_mut()
+                                    .create_config_map(&runtime.settings().namespace(), &config_map)
+                                    .map_err(Error::from)
+                                    .map(|_| runtime)
+                            })
+                            .into_future()
+                            .flatten()
+                    })
+            })
+            .into_future()
+            .flatten();
 
         Box::new(fut)
     }

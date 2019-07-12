@@ -24,6 +24,7 @@ use edgelet_core::{
     ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, RegistryOperation,
     RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
 };
+use edgelet_hsm::Crypto;
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 use provisioning::ProvisioningResult;
@@ -176,13 +177,14 @@ where
 
 impl MakeModuleRuntime for DockerModuleRuntime {
     type Config = DockerConfig;
+    type Crypto = Crypto;
     type Settings = Settings;
     type ProvisioningResult = ProvisioningResult;
     type ModuleRuntime = Self;
     type Error = Error;
     type Future = Box<dyn Future<Item = Self, Error = Self::Error> + Send>;
 
-    fn make_runtime(settings: Settings, _: ProvisioningResult) -> Self::Future {
+    fn make_runtime(settings: Settings, _: ProvisioningResult, _: Self::Crypto) -> Self::Future {
         info!("Initializing module runtime...");
 
         // Clippy incorrectly flags the use of `.map(..).unwrap_or_else(..)` code as being replaceable
@@ -897,7 +899,7 @@ mod tests {
 
     use std::path::Path;
 
-    use ::config::{Config, File, FileFormat};
+    use config::{Config, File, FileFormat};
     use futures::future::FutureResult;
     use futures::stream::Empty;
     use json_patch::merge;
@@ -907,6 +909,7 @@ mod tests {
         Certificates, Connect, Listen, ModuleRegistry, ModuleTop, Provisioning, RuntimeSettings,
         WatchdogSettings,
     };
+    use edgelet_hsm::HsmLock;
     use provisioning::ReprovisioningStatus;
 
     fn provisioning_result() -> ProvisioningResult {
@@ -917,6 +920,10 @@ mod tests {
             ReprovisioningStatus::DeviceDataNotUpdated,
             None,
         )
+    }
+
+    fn crypto() -> Crypto {
+        Crypto::new(HsmLock::new()).unwrap()
     }
 
     fn make_settings(merge_json: Option<JsonValue>) -> Settings {
@@ -970,7 +977,7 @@ mod tests {
                 "uri": "foo:///this/is/not/valid"
             }
         })));
-        let _runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result())
+        let _runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
             .wait()
             .unwrap();
     }
@@ -984,7 +991,7 @@ mod tests {
                 "uri": "unix:///this/file/does/not/exist"
             }
         })));
-        let _runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result())
+        let _runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
             .wait()
             .unwrap();
     }
@@ -1297,6 +1304,7 @@ mod tests {
 
     impl MakeModuleRuntime for TestModuleList {
         type Config = TestConfig;
+        type Crypto = ();
         type ProvisioningResult = ProvisioningResult;
         type ModuleRuntime = Self;
         type Settings = TestSettings;
@@ -1306,6 +1314,7 @@ mod tests {
         fn make_runtime(
             _settings: Self::Settings,
             _provisioning_result: Self::ProvisioningResult,
+            _crypto: Self::Crypto,
         ) -> Self::Future {
             unimplemented!()
         }

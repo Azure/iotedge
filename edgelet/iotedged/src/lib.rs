@@ -3,10 +3,10 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
-    clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
-    clippy::module_name_repetitions,
-    clippy::shadow_unrelated,
-    clippy::use_self,
+clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
+clippy::module_name_repetitions,
+clippy::shadow_unrelated,
+clippy::use_self,
 )]
 
 pub mod app;
@@ -172,7 +172,7 @@ where
 
 impl<M> Main<M>
 where
-    M: MakeModuleRuntime<ProvisioningResult = ProvisioningResult> + Send + 'static,
+    M: MakeModuleRuntime<ProvisioningResult = ProvisioningResult, Crypto = Crypto> + Send + 'static,
     M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
     <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
         Clone + DeserializeOwned + Serialize,
@@ -248,6 +248,7 @@ where
         info!("Initializing hsm...");
         let crypto = Crypto::new(hsm_lock.clone())
             .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+
         info!("Finished initializing hsm.");
 
         let cache_subdir_path = Path::new(&settings.homedir()).join(EDGE_SETTINGS_SUBDIR);
@@ -267,6 +268,7 @@ where
                     settings.clone(),
                     &mut tokio_runtime,
                     $provisioning_result.clone(),
+                    crypto.clone(),
                 )?;
 
                 if $provisioning_result.reconfigure() != ReprovisioningStatus::DeviceDataNotUpdated {
@@ -806,6 +808,7 @@ fn init_runtime<M>(
     settings: M::Settings,
     tokio_runtime: &mut tokio::runtime::Runtime,
     provisioning_result: M::ProvisioningResult,
+    crypto: M::Crypto,
 ) -> Result<M::ModuleRuntime, Error>
 where
     M: MakeModuleRuntime + Send + 'static,
@@ -814,7 +817,7 @@ where
 {
     info!("Initializing the module runtime...");
     let runtime = tokio_runtime
-        .block_on(M::make_runtime(settings, provisioning_result))
+        .block_on(M::make_runtime(settings, provisioning_result, crypto))
         .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?;
     info!("Finished initializing the module runtime.");
 
