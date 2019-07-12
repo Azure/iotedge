@@ -39,8 +39,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.planners
             Assert.Throws<ArgumentException>(() => new KubernetesPlanner<CombinedDockerConfig>("", Hostname,  DeviceId, DefaultClient, DefaultCommandFactory, DefaultConfigProvider));
             Assert.Throws<ArgumentException>(() => new KubernetesPlanner<CombinedDockerConfig>(Ns, null,  DeviceId, DefaultClient, DefaultCommandFactory, DefaultConfigProvider));
             Assert.Throws<ArgumentException>(() => new KubernetesPlanner<CombinedDockerConfig>(Ns, "  ",  DeviceId, DefaultClient, DefaultCommandFactory, DefaultConfigProvider));
-            Assert.Throws<ArgumentException>(() => new KubernetesPlanner<CombinedDockerConfig>(Ns, Hostname,  DeviceId, DefaultClient, DefaultCommandFactory, DefaultConfigProvider));
-            Assert.Throws<ArgumentException>(() => new KubernetesPlanner<CombinedDockerConfig>(Ns, Hostname, DeviceId, DefaultClient, DefaultCommandFactory, DefaultConfigProvider));
             Assert.Throws<ArgumentException>(() => new KubernetesPlanner<CombinedDockerConfig>(Ns, Hostname,  null, DefaultClient, DefaultCommandFactory, DefaultConfigProvider));
             Assert.Throws<ArgumentException>(() => new KubernetesPlanner<CombinedDockerConfig>(Ns, Hostname,  "", DefaultClient, DefaultCommandFactory, DefaultConfigProvider));
             Assert.Throws<ArgumentNullException>(() => new KubernetesPlanner<CombinedDockerConfig>(Ns, Hostname,  DeviceId, null, DefaultCommandFactory, DefaultConfigProvider));

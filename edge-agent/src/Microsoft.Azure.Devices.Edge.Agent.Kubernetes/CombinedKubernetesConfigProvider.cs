@@ -4,6 +4,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
+    using System.Runtime.InteropServices;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
@@ -91,10 +93,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         {
             HostConfig hostConfig = createOptions.HostConfig ?? new HostConfig();
             IList<string> binds = hostConfig.Binds ?? new List<string>();
-            binds.Add($"{uri.AbsolutePath}:{uri.AbsolutePath}");
+            string path = BindPath(uri);
+            binds.Add($"{path}:{path}");
 
             hostConfig.Binds = binds;
             createOptions.HostConfig = hostConfig;
+        }
+        static string BindPath(Uri uri)
+        {
+            // On Windows we need to bind to the parent folder. We can't bind
+            // directly to the socket file.
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? Path.GetDirectoryName(uri.LocalPath)
+                : uri.AbsolutePath;
         }
     }
 }

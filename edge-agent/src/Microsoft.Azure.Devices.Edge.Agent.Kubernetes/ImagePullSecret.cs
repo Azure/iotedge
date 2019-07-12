@@ -7,11 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using System.Text;
     using global::Docker.DotNet.Models;
     using Newtonsoft.Json;
-    using Org.BouncyCastle.Asn1;
-    using Org.BouncyCastle.Bcpg;
-    using Org.BouncyCastle.Utilities.Encoders;
 
-    class ImagePullSecret
+    public class ImagePullSecret
     {
         class AuthEntry
         {
@@ -30,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 this.Auth = Convert.ToBase64String(auth);
             }
         }
+
         class Auth
         {
             [JsonProperty(Required = Required.Always, PropertyName = "auths")]
