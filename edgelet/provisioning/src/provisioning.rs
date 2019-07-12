@@ -39,11 +39,11 @@ pub enum ReprovisioningStatus {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SymmetricKeyCredential {
     #[serde(skip_serializing_if = "Option::is_none")]
-    key: Option<String>,
+    key: Option<Vec<u8>>,
 }
 
 impl SymmetricKeyCredential {
-    pub fn key(&self) -> Option<&str> {
+    pub fn key(&self) -> Option<&[u8]> {
         self.key.as_ref().map(AsRef::as_ref)
     }
 }
@@ -244,7 +244,7 @@ where
 
     fn provision(
         self,
-        mut _key_activator: Self::Hsm,
+        mut key_activator: Self::Hsm,
     ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
         let result = self
             .client
@@ -268,15 +268,21 @@ where
                                         Err(Error::from(ErrorKind::Provision))
                                     },
                                     |key| {
+                                        let decoded_key = base64::decode(&key).map_err(|_| {
+                                            Error::from(ErrorKind::Provision)
+                                        })?;
+
+                                        key_activator
+                                            .activate_identity_key(KeyIdentity::Device, "primary".to_string(), &decoded_key)
+                                            .map_err(|err| Error::from(err.context(ErrorKind::Provision)))?;
                                         Ok(Credentials {
                                             auth_type: AuthType::SymmetricKey(
                                                 SymmetricKeyCredential {
-                                                    key: Some(key.to_string()),
+                                                    key: Some(decoded_key),
                                                 }),
                                             source: CredentialSource::Payload,
                                         })
                                     })
-
                             },
                             "hsm" => Ok(Credentials {
                                 auth_type: AuthType::SymmetricKey(
