@@ -29,7 +29,7 @@ jobs:
         displayName: Setup libiothsm
         inputs:
           workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
-          cmakeArgs: '-DBUILD_SHARED=ON -Drun_unittests=ON -Duse_emulator=OFF -DCMAKE_BUILD_TYPE=Release -DCPACK_PACKAGE_VERSION=$(VERSION) -DCPACK_DEBIAN_PACKAGE_RELEASE=$(REVISION)  ..'
+          cmakeArgs: '-DBUILD_SHARED=ON -Drun_unittests=off -Duse_emulator=OFF -DCMAKE_BUILD_TYPE=Release -DCPACK_PACKAGE_VERSION=$(VERSION) -DCPACK_DEBIAN_PACKAGE_RELEASE=$(REVISION)  ..'
       - script: make package 
         displayName: 'Make iothsm package'
         workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
