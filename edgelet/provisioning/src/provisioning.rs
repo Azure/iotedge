@@ -1084,7 +1084,7 @@ mod tests {
     #[test]
     fn external_get_provisioning_info_symmetric_key_payload_success() {
         let mut credentials = Credentials::new("symmetric-key".to_string(), "payload".to_string());
-        credentials.set_key("test-key".to_string());
+        credentials.set_key("cGFzczEyMzQ=".to_string());
         let provisioning_info = DeviceProvisioningInfo::new(
             "TestHub".to_string(),
             "TestDevice".to_string(),
@@ -1106,7 +1106,7 @@ mod tests {
                     if let Some(credentials) = result.credentials() {
                         if let AuthType::SymmetricKey(symmetric_key) = credentials.auth_type() {
                             if let Some(key) = &symmetric_key.key {
-                                assert_eq!(key, "test-key");
+                                assert_eq!(base64::encode(key), "cGFzczEyMzQ=");
                             } else {
                                 panic!("A key was expected in the response.")
                             }
