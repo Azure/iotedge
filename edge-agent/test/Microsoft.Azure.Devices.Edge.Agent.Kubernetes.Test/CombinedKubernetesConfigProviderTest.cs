@@ -201,6 +201,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Null(config.CreateOptions.NetworkingConfig.EndpointsConfig["host"].Aliases);
             Assert.Equal("host", config.CreateOptions.HostConfig.NetworkMode);
         }
-
     }
 }

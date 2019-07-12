@@ -17,8 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     {
         readonly IConfigSource configSource;
 
-        public CombinedKubernetesConfigProvider(IEnumerable<AuthConfig> authConfigs,
-            IConfigSource configSource)
+        public CombinedKubernetesConfigProvider(IEnumerable<AuthConfig> authConfigs, IConfigSource configSource)
             : base(authConfigs)
         {
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
@@ -99,6 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             hostConfig.Binds = binds;
             createOptions.HostConfig = hostConfig;
         }
+
         static string BindPath(Uri uri)
         {
             // On Windows we need to bind to the parent folder. We can't bind

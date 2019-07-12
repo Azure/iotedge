@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Moq;
     using Xunit;
 
-
     public class KubernetesCommandFactoryTest
     {
         [Fact]
@@ -25,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             Assert.Equal(NullCommand.Instance, await kcf.UpdateEdgeAgentAsync(mockModuleIdentity, mockRuntime));
             Assert.Equal(NullCommand.Instance, await kcf.CreateAsync(mockModuleIdentity, mockRuntime));
-            Assert.Equal(NullCommand.Instance, await kcf.UpdateAsync(mockModule, mockModuleIdentity,mockRuntime));
+            Assert.Equal(NullCommand.Instance, await kcf.UpdateAsync(mockModule, mockModuleIdentity, mockRuntime));
             Assert.Equal(NullCommand.Instance, await kcf.RemoveAsync(mockModule));
             Assert.Equal(NullCommand.Instance, await kcf.StartAsync(mockModule));
             Assert.Equal(NullCommand.Instance, await kcf.StopAsync(mockModule));

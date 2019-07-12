@@ -6,14 +6,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     [Serializable]
     public class InvalidModuleException : Exception
     {
-
-        public InvalidModuleException(string message) : base(message)
+        public InvalidModuleException(string message)
+            : base(message)
         {
-
         }
-        public InvalidModuleException(string message, Exception inner) : base(message, inner)
-        {
 
+        public InvalidModuleException(string message, Exception inner)
+            : base(message, inner)
+        {
         }
     }
 }

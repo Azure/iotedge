@@ -2,16 +2,16 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
 {
+    using System.Collections.Generic;
+    using System.Collections.Immutable;
+    using System.Linq;
+    using System.Threading.Tasks;
     using k8s;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using System.Collections.Generic;
-    using System.Collections.Immutable;
-    using System.Linq;
-    using System.Threading.Tasks;
 
     public class KubernetesPlanner<T> : IPlanner
     {
@@ -28,8 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
             string deviceId,
             IKubernetes client,
             ICommandFactory commandFactory,
-            ICombinedConfigProvider<T> combinedConfigProvider
-        )
+            ICombinedConfigProvider<T> combinedConfigProvider)
         {
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.iotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
@@ -49,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
             Events.LogCurrent(current);
             Events.LogIdentities(moduleIdentities);
 
-            //Check that module names sanitize and remain unique.
+            // Check that module names sanitize and remain unique.
             var convertedNames = desired.Modules.Keys.Select(KubeUtils.SanitizeK8sValue).Distinct();
             if (desired.Modules.Count != convertedNames.Count())
             {
@@ -90,13 +89,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
             return plan;
         }
 
-
         public Task<Plan> CreateShutdownPlanAsync(ModuleSet current) => Task.FromResult(Plan.Empty);
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesPlanner<T>>();
             const int IdStart = KubernetesEventIds.KubernetesPlanner;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesPlanner<T>>();
 
             enum EventIds
             {
@@ -125,7 +123,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
             {
                 Log.LogDebug((int)EventIds.Identities, $"List of module identities is - {string.Join(", ", moduleIdentities.Keys)}");
             }
-
         }
     }
 }

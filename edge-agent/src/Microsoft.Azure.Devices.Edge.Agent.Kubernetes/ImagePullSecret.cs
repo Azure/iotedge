@@ -1,4 +1,4 @@
-
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
@@ -38,12 +38,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 this.Auths = new Dictionary<string, AuthEntry>();
             }
 
-            public Auth(string registry, AuthEntry entry) :
-                this()
+            public Auth(string registry, AuthEntry entry)
+                : this()
             {
                 this.Auths.Add(registry, entry);
             }
         }
+
         public string Name { get; }
 
         readonly AuthConfig dockerAuth;
@@ -60,11 +61,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             //     }
             //   }
             // }
-            var auths = new Auth(this.dockerAuth.ServerAddress,
-                              new AuthEntry(this.dockerAuth.Username, this.dockerAuth.Password));
+            var auths = new Auth(
+                this.dockerAuth.ServerAddress,
+                new AuthEntry(this.dockerAuth.Username, this.dockerAuth.Password));
             string authString = JsonConvert.SerializeObject(auths);
             return authString;
         }
+
         public ImagePullSecret(AuthConfig dockerAuth)
         {
             this.dockerAuth = dockerAuth;

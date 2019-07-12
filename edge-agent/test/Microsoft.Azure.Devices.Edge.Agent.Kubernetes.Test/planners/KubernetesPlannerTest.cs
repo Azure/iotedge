@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.planners
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
 {
     using System;
     using System.Collections.Generic;
@@ -34,13 +34,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.planners
         [Unit]
         public void ContructorThrowsOnNull()
         {
-
-            Assert.Throws<ArgumentException>(() => new KubernetesPlanner<CombinedDockerConfig>(null, Hostname,  DeviceId, DefaultClient ,DefaultCommandFactory, DefaultConfigProvider));
-            Assert.Throws<ArgumentException>(() => new KubernetesPlanner<CombinedDockerConfig>("", Hostname,  DeviceId, DefaultClient, DefaultCommandFactory, DefaultConfigProvider));
+            Assert.Throws<ArgumentException>(() => new KubernetesPlanner<CombinedDockerConfig>(null, Hostname,  DeviceId, DefaultClient, DefaultCommandFactory, DefaultConfigProvider));
+            Assert.Throws<ArgumentException>(() => new KubernetesPlanner<CombinedDockerConfig>(string.Empty, Hostname,  DeviceId, DefaultClient, DefaultCommandFactory, DefaultConfigProvider));
             Assert.Throws<ArgumentException>(() => new KubernetesPlanner<CombinedDockerConfig>(Ns, null,  DeviceId, DefaultClient, DefaultCommandFactory, DefaultConfigProvider));
             Assert.Throws<ArgumentException>(() => new KubernetesPlanner<CombinedDockerConfig>(Ns, "  ",  DeviceId, DefaultClient, DefaultCommandFactory, DefaultConfigProvider));
             Assert.Throws<ArgumentException>(() => new KubernetesPlanner<CombinedDockerConfig>(Ns, Hostname,  null, DefaultClient, DefaultCommandFactory, DefaultConfigProvider));
-            Assert.Throws<ArgumentException>(() => new KubernetesPlanner<CombinedDockerConfig>(Ns, Hostname,  "", DefaultClient, DefaultCommandFactory, DefaultConfigProvider));
+            Assert.Throws<ArgumentException>(() => new KubernetesPlanner<CombinedDockerConfig>(Ns, Hostname,  string.Empty, DefaultClient, DefaultCommandFactory, DefaultConfigProvider));
             Assert.Throws<ArgumentNullException>(() => new KubernetesPlanner<CombinedDockerConfig>(Ns, Hostname,  DeviceId, null, DefaultCommandFactory, DefaultConfigProvider));
             Assert.Throws<ArgumentNullException>(() => new KubernetesPlanner<CombinedDockerConfig>(Ns, Hostname,  DeviceId, DefaultClient, null, DefaultConfigProvider));
             Assert.Throws<ArgumentNullException>(() => new KubernetesPlanner<CombinedDockerConfig>(Ns, Hostname,  DeviceId, DefaultClient, DefaultCommandFactory, null));
@@ -50,20 +49,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.planners
         [Unit]
         public async void KubernetesPlannerNoModulesNoPlan()
         {
-
             var planner = new KubernetesPlanner<CombinedDockerConfig>(Ns, Hostname,  DeviceId, DefaultClient, DefaultCommandFactory, DefaultConfigProvider);
-            //var token = new CancellationToken();
-
             Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, ModuleSet.Empty, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
-            Assert.Equal(Plan.Empty,addPlan);
+            Assert.Equal(Plan.Empty, addPlan);
         }
 
         [Fact]
         [Unit]
         public async void KubernetesPlannerPlanFailsWithNonDistinctModules()
         {
-            IModule m1 = new DockerModule("module1","v1",ModuleStatus.Running,RestartPolicy.Always,Config1,ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            IModule m2 = new DockerModule("Module1","v1",ModuleStatus.Running,RestartPolicy.Always,Config1,ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            IModule m2 = new DockerModule("Module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             ModuleSet addRunning = ModuleSet.Create(m1, m2);
 
             var planner = new KubernetesPlanner<CombinedDockerConfig>(Ns, Hostname,  DeviceId, DefaultClient, DefaultCommandFactory, DefaultConfigProvider);
@@ -75,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.planners
         [Unit]
         public async void KubernetesPlannerPlanFailsWithNonDockerModules()
         {
-            IModule m1 = new NonDockerModule("module1", "v1", "unknown", ModuleStatus.Running, RestartPolicy.Always, ImagePullPolicy.OnCreate,DefaultConfigurationInfo,EnvVars, string.Empty);
+            IModule m1 = new NonDockerModule("module1", "v1", "unknown", ModuleStatus.Running, RestartPolicy.Always, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars, string.Empty);
             ModuleSet addRunning = ModuleSet.Create(m1);
 
             var planner = new KubernetesPlanner<CombinedDockerConfig>(Ns, Hostname,  DeviceId, DefaultClient, DefaultCommandFactory, DefaultConfigProvider);
@@ -93,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.planners
 
             var planner = new KubernetesPlanner<CombinedDockerConfig>(Ns, Hostname,  DeviceId, DefaultClient, DefaultCommandFactory, DefaultConfigProvider);
             var plan = await planner.PlanAsync(desired, current, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
-            Assert.Equal(Plan.Empty,plan);
+            Assert.Equal(Plan.Empty, plan);
         }
 
         [Fact]

@@ -2,6 +2,12 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
     using k8s;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -12,12 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
     using Newtonsoft.Json;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading;
-    using System.Threading.Tasks;
+
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     public class KubernetesCrdCommand<T> : ICommand
@@ -41,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
             this.modules = Preconditions.CheckNotNull(modules, nameof(modules));
             this.runtimeInfo = Preconditions.CheckNotNull(runtimeInfo, nameof(runtimeInfo));
             this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
-            this.id = new Lazy<string>(() => this.modules.Aggregate("", (prev, module) => module.Name + prev));
+            this.id = new Lazy<string>(() => this.modules.Aggregate(string.Empty, (prev, module) => module.Name + prev));
             var deserializerTypesMap = new Dictionary<Type, IDictionary<string, Type>>
             {
                 [typeof(IModule)] = new Dictionary<string, Type>
@@ -85,6 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                             {
                                 return s;
                             }
+
                             return await this.client.ReplaceNamespacedSecretAsync(
                                 newSecret,
                                 imagePullSecret.Key,
@@ -102,7 +104,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                     Events.SecretCreateUpdateFailed(imagePullSecret.Key, ex);
                 }
             }
-
         }
 
         public async Task ExecuteAsync(CancellationToken token)
@@ -136,7 +137,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                     {
                         throw new InvalidModuleException("Cannot convert combined config into KubernetesModule.");
                     }
-
                 }
             }
 
@@ -185,7 +185,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                         Constants.K8sCrdPlural,
                         resourceName,
                         cancellationToken: token);
-
                 },
                 async () =>
                 {
@@ -215,8 +214,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesCrdCommand<T>>();
             const int IdStart = KubernetesEventIds.KubernetesCommand;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesCrdCommand<T>>();
 
             enum EventIds
             {
@@ -229,7 +228,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
 
             public static void CreateDeployment(string customObjectString)
             {
-                Log.LogDebug((int)EventIds.CreateDeployment,
+                Log.LogDebug(
+                    (int)EventIds.CreateDeployment,
                     "===================CREATE========================\n" +
                     customObjectString +
                     "\n=================================================");
@@ -252,12 +252,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
 
             public static void ReplaceDeployment(string customObjectString)
             {
-                Log.LogDebug((int)EventIds.ReplaceDeployment,
+                Log.LogDebug(
+                    (int)EventIds.ReplaceDeployment,
                     "====================REPLACE======================\n" +
                     customObjectString +
                     "\n=================================================");
             }
         }
-
     }
 }

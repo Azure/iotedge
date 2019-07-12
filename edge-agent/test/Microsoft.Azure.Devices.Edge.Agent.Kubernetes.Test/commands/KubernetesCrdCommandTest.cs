@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.commands
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
 {
     using System;
     using System.Collections.Generic;
@@ -85,12 +85,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.commands
             bool postCrdCalled = false;
 
             using (var server = new MockKubeApiServer(
-                resp: string.Empty, 
+                resp: string.Empty,
                 shouldNext: httpContext =>
                 {
                     string pathStr = httpContext.Request.Path.Value;
                     string method = httpContext.Request.Method;
-                    if (string.Equals(method, "GET",StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase))
                     {
                         httpContext.Response.StatusCode = 404;
                         if (pathStr.Contains($"api/v1/namespaces/{Ns}/secrets"))
@@ -115,6 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.commands
                             postCrdCalled = true;
                         }
                     }
+
                     return Task.FromResult(false);
                 }))
             {
@@ -125,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.commands
                     });
                 var cmd = new KubernetesCrdCommand<CombinedDockerConfig>(Ns, Hostname, DeviceId, client, modules, runtimeOption, configProvider.Object);
                 await cmd.ExecuteAsync(token);
-                Assert.True(getSecretCalled,nameof(getSecretCalled));
+                Assert.True(getSecretCalled, nameof(getSecretCalled));
                 Assert.True(postSecretCalled, nameof(postSecretCalled));
                 Assert.True(getCrdCalled, nameof(getCrdCalled));
                 Assert.True(postCrdCalled, nameof(postCrdCalled));
@@ -173,7 +174,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.commands
                         {
                             getCrdCalled = true;
                             await httpContext.Response.Body.WriteAsync(JsonConvert.SerializeObject(existingDeployment).ToBody(), token);
-
                         }
                     }
                     else if (string.Equals(method, "PUT", StringComparison.OrdinalIgnoreCase))
@@ -188,6 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.commands
                             putCrdCalled = true;
                         }
                     }
+
                     return false;
                 }))
             {
@@ -283,6 +284,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.commands
                             putCrdCalled = true;
                         }
                     }
+
                     return Task.FromResult(false);
                 }))
             {

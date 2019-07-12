@@ -13,9 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public class KubernetesCommandFactory : ICommandFactory
         {
-
             public KubernetesCommandFactory()
-            { 
+            {
             }
 
             public Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo) => Task.FromResult(NullCommand.Instance as ICommand);
