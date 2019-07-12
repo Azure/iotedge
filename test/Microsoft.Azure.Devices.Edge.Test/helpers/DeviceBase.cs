@@ -70,7 +70,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         }
 
                         builder.AddEdgeAgent(agentImage).WithProxy(proxy);
-                        builder.AddEdgeHub(hubImage, Context.Current.OptimizeForPerformance).WithProxy(proxy);
+                        builder.AddEdgeHub(hubImage, Context.Current.OptimizeForPerformance)
+                            .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
+                            .WithProxy(proxy);
                         await builder.Build().DeployAsync(this.iotHub, token);
 
                         var hub = new EdgeModule("edgeHub", device.Id, this.iotHub);

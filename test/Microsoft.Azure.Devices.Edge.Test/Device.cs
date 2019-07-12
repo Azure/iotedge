@@ -24,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             {
                 Assert.Ignore("x509 cert + AMQP tests disabled until bug is resolved");
             }
+
             CancellationToken token = this.cts.Token;
 
             string leafDeviceId = $"{Context.Current.DeviceId}-{protocol.ToString()}-{testAuth.ToString()}-leaf";

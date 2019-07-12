@@ -39,7 +39,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             builder.AddEdgeAgent(agentImage).WithProxy(proxy);
-            builder.AddEdgeHub(hubImage, Context.Current.OptimizeForPerformance).WithProxy(proxy);
+            builder.AddEdgeHub(hubImage, Context.Current.OptimizeForPerformance)
+                .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
+                .WithProxy(proxy);
             builder.AddModule("tempSensor", sensorImage);
             await builder.Build().DeployAsync(iotHub, token);
 
@@ -120,7 +122,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             builder.AddEdgeAgent(agentImage).WithProxy(proxy);
-            builder.AddEdgeHub(hubImage, Context.Current.OptimizeForPerformance).WithProxy(proxy);
+            builder.AddEdgeHub(hubImage, Context.Current.OptimizeForPerformance)
+                .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
+                .WithProxy(proxy);
             builder.AddModule(methodSender, senderImage)
                 .WithEnvironment(
                     new[]
