@@ -25,7 +25,7 @@ use hsm::TpmKey as HsmTpmKey;
 use log::{debug, Level};
 use sha2::{Digest, Sha256};
 
-use crate::error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind, ExternalProvisioningErrorReason};
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum ReprovisioningStatus {
@@ -249,7 +249,7 @@ where
         let result = self
             .client
             .get_device_provisioning_information()
-            .map_err(|err| Error::from(err.context(ErrorKind::Provision)))
+            .map_err(|err| Error::from(err.context(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::ProvisioningFailure))))
             .and_then(move |device_provisioning_info| {
                 info!(
                     "External device registration information: Device \"{}\" in hub \"{}\"",
@@ -265,16 +265,16 @@ where
                                     || {
                                         info!(
                                             "A key is expected in the response with the 'symmetric-key' authentication type and the 'source' set to 'payload'.");
-                                        Err(Error::from(ErrorKind::Provision))
+                                        Err(Error::from(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::SymmetricKeyNotSpecified)))
                                     },
                                     |key| {
                                         let decoded_key = base64::decode(&key).map_err(|_| {
-                                            Error::from(ErrorKind::Provision)
+                                            Error::from(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::InvalidSymmetricKey))
                                         })?;
 
                                         key_activator
                                             .activate_identity_key(KeyIdentity::Device, "primary".to_string(), &decoded_key)
-                                            .map_err(|err| Error::from(err.context(ErrorKind::Provision)))?;
+                                            .map_err(|err| Error::from(err.context(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::KeyActivation))))?;
                                         Ok(Credentials {
                                             auth_type: AuthType::SymmetricKey(
                                                 SymmetricKeyCredential {
@@ -296,13 +296,13 @@ where
                                     "Unexpected value of credential source \"{}\" received from external environment.",
                                     credentials_info.source()
                                 );
-                                Err(Error::from(ErrorKind::Provision))
+                                Err(Error::from(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::InvalidCredentialSource)))
                             }
                         }
                     }
                     else {
                         info!("External Provisioning is currently only supported for the 'symmetric-key' authentication type.");
-                        Err(Error::from(ErrorKind::Provision))
+                        Err(Error::from(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::InvalidAuthenticationType)))
                         // TODO: implement
                     }?;
 
@@ -1189,8 +1189,8 @@ mod tests {
             .then(|result| match result {
                 Ok(_) => panic!("Expected a failure."),
                 Err(err) => match err.kind() {
-                    ErrorKind::Provision => Ok::<_, Error>(()),
-                    _ => panic!("Expected `Provision` but got {:?}", err),
+                    ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::InvalidCredentialSource) => Ok::<_, Error>(()),
+                    _ => panic!("Expected error `ExternalProvisioning` with reason 'InvalidCredentialSource' but got {:?}", err),
                 },
             });
         tokio::runtime::current_thread::Runtime::new()
@@ -1218,8 +1218,8 @@ mod tests {
             .then(|result| match result {
                 Ok(_) => panic!("Expected a failure."),
                 Err(err) => match err.kind() {
-                    ErrorKind::Provision => Ok::<_, Error>(()),
-                    _ => panic!("Expected `Provision` but got {:?}", err),
+                    ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::InvalidAuthenticationType) => Ok::<_, Error>(()),
+                    _ => panic!("Expected error `ExternalProvisioning` with reason 'InvalidAuthenticationType' but got {:?}", err),
                 },
             });
         tokio::runtime::current_thread::Runtime::new()
@@ -1247,8 +1247,8 @@ mod tests {
             .then(|result| match result {
                 Ok(_) => panic!("Expected a failure."),
                 Err(err) => match err.kind() {
-                    ErrorKind::Provision => Ok::<_, Error>(()),
-                    _ => panic!("Expected `Provision` but got {:?}", err),
+                    ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::ProvisioningFailure) => Ok::<_, Error>(()),
+                    _ => panic!("Expected error `ExternalProvisioning` with reason 'ProvisioningFailure' but got {:?}", err),
                 },
             });
         tokio::runtime::current_thread::Runtime::new()

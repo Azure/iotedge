@@ -74,6 +74,7 @@ use provisioning::provisioning::{
     ExternalProvisioning, ManualProvisioning, Provision, ProvisioningResult, ReprovisioningStatus,
 };
 
+use crate::error::ExternalProvisioningErrorReason;
 use crate::workload::WorkloadData;
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
@@ -336,7 +337,9 @@ where
                 info!("Starting provisioning edge device via external provisioning mode...");
                 let external_provisioning_client =
                     ExternalProvisioningClient::new(external.endpoint()).context(
-                        ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient),
+                        ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::ClientInitialization,
+                        )),
                     )?;
                 let external_provisioning = ExternalProvisioning::new(external_provisioning_client);
 
@@ -344,7 +347,9 @@ where
                     .provision(MemoryKeyStore::new())
                     .map_err(|err| {
                         Error::from(err.context(ErrorKind::Initialize(
-                            InitializeErrorReason::ExternalProvisioningClient,
+                            InitializeErrorReason::ExternalProvisioningClient(
+                                ExternalProvisioningErrorReason::Provisioning,
+                            ),
                         )))
                     });
 
@@ -356,7 +361,9 @@ where
                     info!("Credentials are expected to be populated for external provisioning.");
 
                     return Err(Error::from(ErrorKind::Initialize(
-                        InitializeErrorReason::ExternalProvisioningClient,
+                        InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::InvalidCredentials,
+                        ),
                     )));
                 };
 
@@ -374,7 +381,9 @@ where
                     AuthType::X509(_) => {
                         info!("Unexpected auth type. Only symmetric keys are expected");
                         return Err(Error::from(ErrorKind::Initialize(
-                            InitializeErrorReason::ExternalProvisioningClient,
+                            InitializeErrorReason::ExternalProvisioningClient(
+                                ExternalProvisioningErrorReason::InvalidAuthenticationType,
+                            ),
                         )));
                     }
                 };
@@ -869,18 +878,24 @@ fn external_provision_tpm(
     hsm_lock: Arc<HsmLock>,
 ) -> Result<(DerivedKeyStore<TpmKey>, TpmKey), Error> {
     let tpm = Tpm::new().context(ErrorKind::Initialize(
-        InitializeErrorReason::ExternalProvisioningClient,
+        InitializeErrorReason::ExternalProvisioningClient(
+            ExternalProvisioningErrorReason::HsmInitialization,
+        ),
     ))?;
 
     let tpm_hsm = TpmKeyStore::from_hsm(tpm, hsm_lock).context(ErrorKind::Initialize(
-        InitializeErrorReason::ExternalProvisioningClient,
+        InitializeErrorReason::ExternalProvisioningClient(
+            ExternalProvisioningErrorReason::HsmInitialization,
+        ),
     ))?;
 
     tpm_hsm
         .get(&KeyIdentity::Device, "primary")
         .map_err(|err| {
             Error::from(err.context(ErrorKind::Initialize(
-                InitializeErrorReason::ExternalProvisioningClient,
+                InitializeErrorReason::ExternalProvisioningClient(
+                    ExternalProvisioningErrorReason::HsmKeyRetrieval,
+                ),
             )))
         })
         .and_then(|k| {
