@@ -35,6 +35,6 @@ run_command()
 }
 
 mkdir -p $BUILD_DIR
-run_command "cd /target/hsm/build && cmake DCMAKE_SYSTEM_NAME=Linux -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=amd64 -DCPACK_PACKAGE_VERSION=\"$VERSION\" -DBUILD_SHARED=On -Drun_unittests=On -Duse_emulator=Off -DCMAKE_BUILD_TYPE=Release -Duse_default_uuid=On -Duse_http=Off /project/hsm-sys/azure-iot-hsm-c/"
+run_command "cd /target/hsm/build && cmake DCMAKE_SYSTEM_NAME=Linux -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=amd64 -DCPACK_PACKAGE_VERSION=\"$VERSION\" -DBUILD_SHARED=On -Drun_unittests=off -Duse_emulator=Off -DCMAKE_BUILD_TYPE=Release -Duse_default_uuid=On -Duse_http=Off /project/hsm-sys/azure-iot-hsm-c/"
 
 run_command "cd /target/hsm/build && make package"
