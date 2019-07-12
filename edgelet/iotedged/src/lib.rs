@@ -363,7 +363,7 @@ where
                 match credentials.auth_type() {
                     AuthType::SymmetricKey(symmetric_key) => {
                         if let Some(key) = symmetric_key.key() {
-                            let (derived_key_store, memory_key) = external_provision_payload(key);
+                            let (derived_key_store, memory_key) = external_provision_payload(key)?;
                             start_edgelet!(derived_key_store, prov_result, memory_key);
                         } else {
                             let (derived_key_store, tpm_key) =
@@ -856,13 +856,17 @@ fn manual_provision(
     tokio_runtime.block_on(provision)
 }
 
-fn external_provision_payload(key: &str) -> (DerivedKeyStore<MemoryKey>, MemoryKey) {
-    let memory_key = MemoryKey::new(key);
+fn external_provision_payload(key: &str) -> Result<(DerivedKeyStore<MemoryKey>, MemoryKey), Error> {
+    let memory_key = MemoryKey::new(base64::decode(&key).map_err(|_| {
+        Error::from(ErrorKind::Initialize(
+            InitializeErrorReason::ExternalProvisioningClient,
+        ))
+    })?);
     let mut memory_hsm = MemoryKeyStore::new();
     memory_hsm.insert(&KeyIdentity::Device, "primary", memory_key.clone());
 
     let derived_key_store = DerivedKeyStore::new(memory_key.clone());
-    (derived_key_store, memory_key)
+    Ok((derived_key_store, memory_key))
 }
 
 fn external_provision_tpm(

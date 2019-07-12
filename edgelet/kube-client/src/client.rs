@@ -125,29 +125,6 @@ where
         .flatten()
     }
 
-    pub fn create_deployment(
-        &mut self,
-        namespace: &str,
-        deployment: &apps::Deployment,
-    ) -> impl Future<Item = apps::Deployment, Error = Error> {
-        apps::Deployment::create_namespaced_deployment(
-            namespace,
-            &deployment,
-            apps::CreateNamespacedDeploymentOptional::default(),
-        )
-        .map_err(Error::from)
-        .map(|req| {
-            self.request(req).and_then(|response| match response {
-                apps::CreateNamespacedDeploymentResponse::Accepted(deployment)
-                | apps::CreateNamespacedDeploymentResponse::Created(deployment)
-                | apps::CreateNamespacedDeploymentResponse::Ok(deployment) => Ok(deployment),
-                _ => Err(Error::from(ErrorKind::Response)),
-            })
-        })
-        .into_future()
-        .flatten()
-    }
-
     pub fn replace_deployment(
         &mut self,
         namespace: &str,
@@ -170,56 +147,6 @@ where
         })
         .into_future()
         .flatten()
-    }
-
-    pub fn delete_deployment(
-        &mut self,
-        namespace: &str,
-        name: &str,
-        options: Option<&api_meta::DeleteOptions>,
-    ) -> impl Future<Item = (()), Error = Error> {
-        let params = apps::DeleteNamespacedDeploymentOptional {
-            grace_period_seconds: options.and_then(|o| o.grace_period_seconds),
-            propagation_policy: options
-                .and_then(|o| o.propagation_policy.as_ref().map(AsRef::as_ref)),
-            ..apps::DeleteNamespacedDeploymentOptional::default()
-        };
-        apps::Deployment::delete_namespaced_deployment(name, namespace, params)
-            .map_err(Error::from)
-            .map(|req| {
-                self.request(req).and_then(|response| match response {
-                    apps::DeleteNamespacedDeploymentResponse::OkStatus(_)
-                    | apps::DeleteNamespacedDeploymentResponse::OkValue(_) => Ok(()),
-                    _ => Err(Error::from(ErrorKind::Response)),
-                })
-            })
-            .into_future()
-            .flatten()
-    }
-
-    pub fn list_deployments(
-        &mut self,
-        namespace: &str,
-        name: Option<&str>,
-        label_selector: Option<&str>,
-    ) -> impl Future<Item = apps::DeploymentList, Error = Error> {
-        let field_selector =
-            name.map(|deployment_name| format!("metadata.name={}", deployment_name));
-        let params = apps::ListNamespacedDeploymentOptional {
-            field_selector: field_selector.as_ref().map(String::as_ref),
-            label_selector,
-            ..apps::ListNamespacedDeploymentOptional::default()
-        };
-        apps::Deployment::list_namespaced_deployment(namespace, params)
-            .map_err(Error::from)
-            .map(|req| {
-                self.request(req).and_then(|response| match response {
-                    apps::ListNamespacedDeploymentResponse::Ok(deployments) => Ok(deployments),
-                    _ => Err(Error::from(ErrorKind::Response)),
-                })
-            })
-            .into_future()
-            .flatten()
     }
 
     pub fn list_pods(
@@ -364,59 +291,6 @@ where
         .flatten()
     }
 
-    pub fn list_service_accounts(
-        &mut self,
-        namespace: &str,
-        name: Option<&str>,
-        label_selector: Option<&str>,
-    ) -> impl Future<Item = api_core::ServiceAccountList, Error = Error> {
-        let field_selector =
-            name.map(|service_account_name| format!("metadata.name={}", service_account_name));
-        let params = api_core::ListNamespacedServiceAccountOptional {
-            field_selector: field_selector.as_ref().map(String::as_ref),
-            label_selector,
-            ..api_core::ListNamespacedServiceAccountOptional::default()
-        };
-
-        api_core::ServiceAccount::list_namespaced_service_account(namespace, params)
-            .map_err(Error::from)
-            .map(|req| {
-                self.request(req).and_then(|response| match response {
-                    api_core::ListNamespacedServiceAccountResponse::Ok(service_account_list) => {
-                        Ok(service_account_list)
-                    }
-                    _ => Err(Error::from(ErrorKind::Response)),
-                })
-            })
-            .into_future()
-            .flatten()
-    }
-
-    pub fn create_service_account(
-        &mut self,
-        namespace: &str,
-        service_account: &api_core::ServiceAccount,
-    ) -> impl Future<Item = api_core::ServiceAccount, Error = Error> {
-        api_core::ServiceAccount::create_namespaced_service_account(
-            namespace,
-            &service_account,
-            api_core::CreateNamespacedServiceAccountOptional::default(),
-        )
-        .map_err(Error::from)
-        .map(|req| {
-            self.request(req).and_then(|response| match response {
-                api_core::CreateNamespacedServiceAccountResponse::Accepted(service_account)
-                | api_core::CreateNamespacedServiceAccountResponse::Created(service_account)
-                | api_core::CreateNamespacedServiceAccountResponse::Ok(service_account) => {
-                    Ok(service_account)
-                }
-                _ => Err(Error::from(ErrorKind::Response)),
-            })
-        })
-        .into_future()
-        .flatten()
-    }
-
     pub fn replace_service_account(
         &mut self,
         namespace: &str,
@@ -443,71 +317,23 @@ where
         .flatten()
     }
 
-    pub fn list_role_binding(
-        &mut self,
-        _namespace: &str,
-        name: Option<&str>,
-        label_selector: Option<&str>,
-    ) -> impl Future<Item = rbac::ClusterRoleBindingList, Error = Error> {
-        let field_selector = name.map(|role_binding| format!("metadata.name={}", role_binding));
-        let params = rbac::ListClusterRoleBindingOptional {
-            field_selector: field_selector.as_ref().map(String::as_ref),
-            label_selector,
-            ..rbac::ListClusterRoleBindingOptional::default()
-        };
-
-        rbac::ClusterRoleBinding::list_cluster_role_binding(params)
-            .map_err(Error::from)
-            .map(|req| {
-                self.request(req).and_then(|response| match response {
-                    rbac::ListClusterRoleBindingResponse::Ok(role_binding_list) => {
-                        Ok(role_binding_list)
-                    }
-                    _ => Err(Error::from(ErrorKind::Response)),
-                })
-            })
-            .into_future()
-            .flatten()
-    }
-
-    pub fn create_role_binding(
-        &mut self,
-        _namespace: &str,
-        role_binding: &rbac::ClusterRoleBinding,
-    ) -> impl Future<Item = rbac::ClusterRoleBinding, Error = Error> {
-        rbac::ClusterRoleBinding::create_cluster_role_binding(
-            role_binding,
-            rbac::CreateClusterRoleBindingOptional::default(),
-        )
-        .map_err(Error::from)
-        .map(|req| {
-            self.request(req).and_then(|response| match response {
-                rbac::CreateClusterRoleBindingResponse::Accepted(role_binding)
-                | rbac::CreateClusterRoleBindingResponse::Created(role_binding)
-                | rbac::CreateClusterRoleBindingResponse::Ok(role_binding) => Ok(role_binding),
-                _ => Err(Error::from(ErrorKind::Response)),
-            })
-        })
-        .into_future()
-        .flatten()
-    }
-
     pub fn replace_role_binding(
         &mut self,
-        _namespace: &str,
+        namespace: &str,
         name: &str,
-        role_binding: &rbac::ClusterRoleBinding,
-    ) -> impl Future<Item = rbac::ClusterRoleBinding, Error = Error> {
-        rbac::ClusterRoleBinding::replace_cluster_role_binding(
+        role_binding: &rbac::RoleBinding,
+    ) -> impl Future<Item = rbac::RoleBinding, Error = Error> {
+        rbac::RoleBinding::replace_namespaced_role_binding(
             name,
+            namespace,
             role_binding,
-            rbac::ReplaceClusterRoleBindingOptional::default(),
+            rbac::ReplaceNamespacedRoleBindingOptional::default(),
         )
         .map_err(Error::from)
         .map(|req| {
             self.request(req).and_then(|response| match response {
-                rbac::ReplaceClusterRoleBindingResponse::Created(role_binding)
-                | rbac::ReplaceClusterRoleBindingResponse::Ok(role_binding) => Ok(role_binding),
+                rbac::ReplaceNamespacedRoleBindingResponse::Created(role_binding)
+                | rbac::ReplaceNamespacedRoleBindingResponse::Ok(role_binding) => Ok(role_binding),
                 _ => Err(Error::from(ErrorKind::Response)),
             })
         })
@@ -589,7 +415,6 @@ mod tests {
     use hyper::service::service_fn;
     use hyper::{Body, Error as HyperError, Request, Response, StatusCode};
     use k8s_openapi::api::apps::v1 as apps;
-    use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
     use native_tls::TlsConnector;
     use serde_json;
     use tokio::runtime::Runtime;
@@ -607,47 +432,7 @@ mod tests {
         }
     }
 
-    const STATUS_SUCCESS: &str = r###"{"kind":"Status", "status":"Success"}"###;
     const DEPLOYMENT_JSON: &str = r##"{"apiVersion":"apps/v1","kind":"Deployment"}"##;
-
-    #[test]
-    fn create_deployment_success() {
-        const NAMESPACE: &str = "custom-namespace";
-        let service1 = service_fn(
-            move |req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                let p = req.uri().path();
-                assert!(p.contains(NAMESPACE));
-                let q = req.uri().query().unwrap();
-                assert!(q.is_empty());
-                req.into_body()
-                    .map_err(|_| ())
-                    .fold(BytesMut::new(), |mut buf, chunk| {
-                        buf.extend_from_slice(chunk.as_ref());
-                        future::ok::<_, ()>(buf)
-                    })
-                    .map_err(|_| ())
-                    .and_then(move |buf| {
-                        assert_eq!(::std::str::from_utf8(&buf).unwrap(), DEPLOYMENT_JSON);
-                        future::ok(())
-                    })
-                    .wait()
-                    .expect("Unexpected result");
-                let mut res = Response::new(Body::from(DEPLOYMENT_JSON));
-                *res.status_mut() = StatusCode::CREATED;
-                Ok(res)
-            },
-        );
-
-        let mut client = make_test_client(service1);
-
-        let deployment: apps::Deployment = serde_json::from_str(DEPLOYMENT_JSON).unwrap();
-        let fut = client.create_deployment(NAMESPACE, &deployment);
-
-        Runtime::new()
-            .unwrap()
-            .block_on(fut)
-            .expect("Expected future to be OK");
-    }
 
     #[test]
     fn replace_deployment_success() {
@@ -683,104 +468,6 @@ mod tests {
 
         let deployment: apps::Deployment = serde_json::from_str(DEPLOYMENT_JSON).unwrap();
         let fut = client.replace_deployment(NAME, NAMESPACE, &deployment);
-
-        Runtime::new()
-            .unwrap()
-            .block_on(fut)
-            .expect("Expected future to be OK");
-    }
-
-    #[test]
-    fn delete_deployment_success() {
-        const NAMESPACE: &str = "custom-namespace";
-        const NAME: &str = "deployment1";
-        let service1 = service_fn(|req: Request<Body>| -> Result<Response<Body>, HyperError> {
-            let p = req.uri().path();
-            assert!(p.contains(NAMESPACE) && p.contains(NAME));
-            let q = req.uri().query().unwrap();
-            assert!(q.is_empty());
-            Ok(Response::new(Body::from(STATUS_SUCCESS)))
-        });
-
-        let mut client = make_test_client(service1);
-
-        let fut = client.delete_deployment(NAMESPACE, NAME, None);
-
-        Runtime::new()
-            .unwrap()
-            .block_on(fut)
-            .expect("Expected future to be OK");
-    }
-
-    #[test]
-    fn delete_deployment_with_options() {
-        const NAMESPACE: &str = "custom-namespace";
-        const NAME: &str = "deployment1";
-        const DELETE_OPTIONS: &str = r###"
-    {
-        "gracePeriodSeconds": 60,
-        "kind": "DeleteOptions",
-        "propagationPolicy": "Foreground"
-    }
-    "###;
-
-        let service2 = service_fn(|req: Request<Body>| -> Result<Response<Body>, HyperError> {
-            let p = req.uri().path();
-            assert!(p.contains(NAMESPACE) && p.contains(NAME));
-            let q = req.uri().query().unwrap();
-            assert!(
-                q.contains("gracePeriodSeconds=60")
-                    && q.contains("propagationPolicy=Foreground")
-                    && !q.contains("orphanedDependents")
-            );
-            Ok(Response::new(Body::from(DEPLOYMENT_JSON)))
-        });
-
-        let mut client = make_test_client(service2);
-
-        let options: api_meta::DeleteOptions = serde_json::from_str(DELETE_OPTIONS).unwrap();
-        let fut = client.delete_deployment(NAMESPACE, NAME, Some(&options));
-
-        Runtime::new()
-            .unwrap()
-            .block_on(fut)
-            .expect("Expected future to be OK");
-    }
-
-    const LIST_DEPLOYMENT_RESPONSE: &str = r###"{
-        "kind" : "DeploymentList",
-        "items" : [
-            {
-                "kind" : "Deployment"
-            }
-        ]
-        }"###;
-    #[test]
-    fn list_deployments_with_name_success() {
-        const NAMESPACE: &str = "custom-namespace";
-        const NAME: &str = "deployment1";
-        const FIELD_SELECTOR: &str = "metadata.name=deployment1";
-        const LABEL_SELECTOR: &str = "x=y";
-        let service = service_fn(|req: Request<Body>| -> Result<Response<Body>, HyperError> {
-            let p = req.uri().path();
-            let q = req.uri().query().unwrap();
-            assert!(p.contains(NAMESPACE));
-            assert!(
-                q.contains(&utf8_percent_encode(LABEL_SELECTOR, USERINFO_ENCODE_SET).to_string())
-            );
-            assert!(
-                q.contains(&utf8_percent_encode(FIELD_SELECTOR, USERINFO_ENCODE_SET).to_string())
-            );
-
-            Ok(Response::new(Body::from(LIST_DEPLOYMENT_RESPONSE)))
-        });
-        let mut client = make_test_client(service);
-
-        let fut = client
-            .list_deployments(NAMESPACE, Some(NAME), Some(LABEL_SELECTOR))
-            .map(|deployments| {
-                assert_eq!(1, deployments.items.len());
-            });
 
         Runtime::new()
             .unwrap()
@@ -849,102 +536,6 @@ mod tests {
             .unwrap()
             .block_on(fut)
             .expect("Expected future to be OK");
-    }
-
-    #[test]
-    fn create_deployment_error_response() {
-        const NAMESPACE: &str = "custom-namespace";
-        let service1 = service_fn(
-            move |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                let mut res = Response::new(Body::from(DEPLOYMENT_JSON));
-                *res.status_mut() = StatusCode::CONFLICT;
-                Ok(res)
-            },
-        );
-
-        let mut client = make_test_client(service1);
-
-        let deployment: apps::Deployment = serde_json::from_str(DEPLOYMENT_JSON).unwrap();
-        let fut = client.create_deployment(NAMESPACE, &deployment);
-        let _ = Runtime::new()
-            .unwrap()
-            .block_on(fut)
-            .map_err(|e| {
-                assert!(e.to_string().contains("HTTP response error"));
-            })
-            .map(|r| {
-                panic!("expected an error result {:?}", r);
-            });
-    }
-
-    #[test]
-    fn create_deployment_service_error() {
-        const NAMESPACE: &str = "custom-namespace";
-        let service1 = service_fn(move |_req: Request<Body>| -> Result<Response<Body>, _> {
-            Err("Serious error here")
-        });
-
-        let mut client = make_test_client(service1);
-
-        let deployment: apps::Deployment = serde_json::from_str(DEPLOYMENT_JSON).unwrap();
-        let fut = client.create_deployment(NAMESPACE, &deployment);
-        let _ = Runtime::new()
-            .unwrap()
-            .block_on(fut)
-            .map_err(|e| {
-                assert!(e.to_string().contains("HTTP test error"));
-            })
-            .map(|r| {
-                panic!("expected an error result {:?}", r);
-            });
-    }
-
-    #[test]
-    fn delete_deployment_error_response() {
-        const NAMESPACE: &str = "custom-namespace";
-        const NAME: &str = "deployment2";
-        let service1 = service_fn(
-            move |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                let mut res = Response::new(Body::empty());
-                *res.status_mut() = StatusCode::NOT_FOUND;
-                Ok(res)
-            },
-        );
-
-        let mut client = make_test_client(service1);
-
-        let fut = client.delete_deployment(NAMESPACE, NAME, None);
-        let _ = Runtime::new()
-            .unwrap()
-            .block_on(fut)
-            .map_err(|e| {
-                assert!(e.to_string().contains("HTTP response error"));
-            })
-            .map(|r| {
-                panic!("expected an error result {:?}", r);
-            });
-    }
-
-    #[test]
-    fn delete_deployment_service_error() {
-        const NAMESPACE: &str = "custom-namespace";
-        const NAME: &str = "deployment2";
-        let service1 = service_fn(move |_req: Request<Body>| -> Result<Response<Body>, _> {
-            Err("A Very serious error")
-        });
-
-        let mut client = make_test_client(service1);
-
-        let fut = client.delete_deployment(NAMESPACE, NAME, None);
-        let _ = Runtime::new()
-            .unwrap()
-            .block_on(fut)
-            .map_err(|e| {
-                assert!(e.to_string().contains("HTTP test error"));
-            })
-            .map(|r| {
-                panic!("expected an error result {:?}", r);
-            });
     }
 
     #[test]
