@@ -43,13 +43,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
             builder.AddModule("tempSensor", sensorImage);
             await builder.Build().DeployAsync(iotHub, token);
 
+            DateTime seekTime = DateTime.Now;
+
             var hub = new EdgeModule("edgeHub", device.Id, iotHub);
             var sensor = new EdgeModule("tempSensor", device.Id, iotHub);
             await EdgeModule.WaitForStatusAsync(
                 new[] { hub, sensor },
                 EdgeModuleStatus.Running,
                 token);
-            await sensor.WaitForEventsReceivedAsync(token);
+            await sensor.WaitForEventsReceivedAsync(seekTime, token);
 
             var sensorTwin = new ModuleTwin(sensor.Id, device.Id, iotHub);
             await sensorTwin.UpdateDesiredPropertiesAsync(
@@ -130,6 +132,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 .WithEnvironment(new[] { ("ClientTransportType", clientTransport) });
             await builder.Build().DeployAsync(iotHub, token);
 
+            DateTime seekTime = DateTime.Now;
+
             var hub = new EdgeModule("edgeHub", device.Id, iotHub);
             var sender = new EdgeModule(methodSender, device.Id, iotHub);
             var receiver = new EdgeModule(methodReceiver, device.Id, iotHub);
@@ -137,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 new[] { hub, sender, receiver },
                 EdgeModuleStatus.Running,
                 token);
-            await sender.WaitForEventsReceivedAsync(token);
+            await sender.WaitForEventsReceivedAsync(seekTime, token);
         }
     }
 }

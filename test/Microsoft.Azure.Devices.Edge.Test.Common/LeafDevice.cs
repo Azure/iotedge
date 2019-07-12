@@ -196,11 +196,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return this.client.SendEventAsync(message, token);
         }
 
-        public Task WaitForEventsReceivedAsync(CancellationToken token)
+        public Task WaitForEventsReceivedAsync(DateTime seekTime, CancellationToken token)
         {
             return Profiler.Run(
                 () => this.iotHub.ReceiveEventsAsync(
                     this.device.Id,
+                    seekTime,
                     data =>
                     {
                         data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);

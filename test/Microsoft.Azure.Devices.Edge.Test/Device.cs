@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
+    using System;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -23,7 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             {
                 Assert.Ignore("x509 cert + AMQP tests disabled until bug is resolved");
             }
-
             CancellationToken token = this.cts.Token;
 
             string leafDeviceId = $"{Context.Current.DeviceId}-{protocol.ToString()}-{testAuth.ToString()}-leaf";
@@ -43,8 +43,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             try
             {
+                DateTime seekTime = DateTime.Now;
                 await leaf.SendEventAsync(token);
-                await leaf.WaitForEventsReceivedAsync(token);
+                await leaf.WaitForEventsReceivedAsync(seekTime, token);
                 await leaf.InvokeDirectMethodAsync(token);
             }
 

@@ -177,13 +177,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public async Task ReceiveEventsAsync(
             string deviceId,
+            DateTime seekTime,
             Func<EventData, bool> onEventReceived,
             CancellationToken token)
         {
             EventHubClient client = this.EventHubClient;
             int count = (await client.GetRuntimeInformationAsync()).PartitionCount;
             string partition = EventHubPartitionKeyResolver.ResolveToPartition(deviceId, count);
-            PartitionReceiver receiver = client.CreateReceiver("$Default", partition, EventPosition.FromEnd());
+            seekTime = seekTime.ToUniversalTime().Subtract(TimeSpan.FromMinutes(2)); // substract 2 minutes to account for client/server drift
+            EventPosition position = EventPosition.FromEnqueuedTime(seekTime);
+            PartitionReceiver receiver = client.CreateReceiver("$Default", partition, position);
 
             var result = new TaskCompletionSource<bool>();
             using (token.Register(() => result.TrySetCanceled()))
