@@ -14,22 +14,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     using Nito.AsyncEx;
     using DiffState = System.ValueTuple<
         // added modules
-        System.Collections.Generic.IList<IModule>,
+        System.Collections.Generic.IList<Microsoft.Azure.Devices.Edge.Agent.Core.IModule>,
 
         // updated modules because of deployment
-        System.Collections.Generic.IList<IModule>,
+        System.Collections.Generic.IList<Microsoft.Azure.Devices.Edge.Agent.Core.IModule>,
 
         // modules whose desired status changed because of deployment
-        System.Collections.Generic.IList<IModule>,
+        System.Collections.Generic.IList<Microsoft.Azure.Devices.Edge.Agent.Core.IModule>,
 
         // update modules because runtime state changed
-        System.Collections.Generic.IList<IRuntimeModule>,
+        System.Collections.Generic.IList<Microsoft.Azure.Devices.Edge.Agent.Core.IRuntimeModule>,
 
         // removed modules
-        System.Collections.Generic.IList<IRuntimeModule>,
+        System.Collections.Generic.IList<Microsoft.Azure.Devices.Edge.Agent.Core.IRuntimeModule>,
 
         // modules that are running great
-        System.Collections.Generic.IList<IRuntimeModule>
+        System.Collections.Generic.IList<Microsoft.Azure.Devices.Edge.Agent.Core.IRuntimeModule>
     >;
 
     public class HealthRestartPlanner : IPlanner

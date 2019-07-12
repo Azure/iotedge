@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
-    using DeviceTransportType = TransportType;
+    using DeviceTransportType = Microsoft.Azure.Devices.TransportType;
     using EventHubTransportType = Microsoft.Azure.EventHubs.TransportType;
 
     public class IotHub
