@@ -218,17 +218,16 @@
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
           },
-          // No windows version of influxdb (Windows Enterprise/Server x64, Windows IoT Core x64 and Windows IoT Core arm32)
-          // "influxdb": {
-          //   "version": "1.0",
-          //   "type": "docker",
-          //   "status": "running",
-          //   "restartPolicy": "on-unhealthy",
-          //   "settings": {
-          //     "image": "influxdb:1.7.5",
-          //     "createOptions": "{\"ExposedPorts\":{\"8086/tcp\":{}},\"HostConfig\":{\"PortBindings\":{\"8086/tcp\":[{\"HostPort\":\"8086\"}]}}}"
-          //   }
-          // },
+          "influxdb": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "on-unhealthy",
+            "settings": {
+              "image": "<Container_Registry>/influxdb:1.7.7-windows-<Architecture>",
+              "createOptions": "{\"ExposedPorts\":{\"8086/tcp\":{}},\"HostConfig\":{\"PortBindings\":{\"8086/tcp\":[{\"HostPort\":\"8086\"}]}}}"
+            }
+          },
           "DirectMethodCloudSender": {
             "version": "1.0",
             "type": "docker",
