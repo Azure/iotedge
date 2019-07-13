@@ -207,7 +207,7 @@ pub enum OutputFormat {
 ///
 /// Check functions return `Result<CheckResult, failure::Error>` where `Err` represents the check failed.
 #[derive(Debug)]
-pub enum CheckResult {
+enum CheckResult {
     /// Check succeeded.
     Ok,
 
@@ -1525,7 +1525,7 @@ fn connection_to_dps_endpoint(check: &mut Check) -> Result<CheckResult, failure:
     Ok(CheckResult::Ok)
 }
 
-pub fn connection_to_iot_hub_host(
+fn connection_to_iot_hub_host(
     check: &mut Check,
     upstream_protocol_port: UpstreamProtocolPort,
 ) -> Result<CheckResult, failure::Error> {

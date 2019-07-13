@@ -21,7 +21,7 @@ mod restart;
 mod unknown;
 mod version;
 
-pub use crate::check::{connection_to_iot_hub_host, Check, CheckResult, OutputFormat};
+pub use crate::check::{Check, OutputFormat};
 pub use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
 pub use crate::list::List;
 pub use crate::logs::Logs;
