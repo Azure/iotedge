@@ -12,7 +12,7 @@ use k8s_openapi::api::rbac::v1 as rbac;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 use k8s_openapi::ByteString;
 use log::warn;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use serde_json;
 
 use crate::constants::*;

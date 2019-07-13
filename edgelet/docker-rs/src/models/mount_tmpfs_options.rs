@@ -9,7 +9,7 @@
  */
 
 /// MountTmpfsOptions : Optional configuration for the `tmpfs` type.
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

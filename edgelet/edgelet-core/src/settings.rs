@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use failure::Fail;
 use regex::Regex;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use url::Url;
 use url_serde;
 
@@ -178,7 +178,7 @@ impl<'de> serde::Deserialize<'de> for Dps {
     where
         D: serde::Deserializer<'de>,
     {
-        #[derive(Debug, serde_derive::Deserialize)]
+        #[derive(Debug, Deserialize)]
         struct Inner {
             #[serde(with = "url_serde")]
             global_endpoint: Url,

@@ -9,7 +9,7 @@
  */
 
 /// ManagerStatus : ManagerStatus represents the status of a manager.  It provides the current status of a node's manager component, if the node is a manager.
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

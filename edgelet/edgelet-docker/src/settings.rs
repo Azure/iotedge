@@ -10,7 +10,7 @@ use edgelet_core::{
 };
 use edgelet_utils::YamlFileSource;
 use failure::{Context, Fail, ResultExt};
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::config::DockerConfig;

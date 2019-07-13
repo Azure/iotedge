@@ -9,7 +9,7 @@ use edgelet_core::{
 };
 use edgelet_docker::{DockerConfig, DEFAULTS};
 use edgelet_utils::YamlFileSource;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
 

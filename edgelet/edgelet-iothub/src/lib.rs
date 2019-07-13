@@ -15,7 +15,7 @@ use failure::{Fail, ResultExt};
 use futures::future::{self, Either};
 use futures::Future;
 use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
-use serde_derive::Serialize;
+use serde::Serialize;
 use url::form_urlencoded::Serializer as UrlSerializer;
 
 use edgelet_core::crypto::{KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};

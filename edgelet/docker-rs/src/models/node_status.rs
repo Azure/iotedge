@@ -9,7 +9,7 @@
  */
 
 /// NodeStatus : NodeStatus represents the status of a node.  It provides the current status of the node, as seen by the manager.
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

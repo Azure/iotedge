@@ -9,7 +9,7 @@
  */
 
 /// PluginConfigInterface : The interface between Docker and the plugin
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use crate::DEFAULT_NETWORKID;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Network {

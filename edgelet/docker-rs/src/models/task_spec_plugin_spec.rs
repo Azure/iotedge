@@ -9,7 +9,7 @@
  */
 
 /// TaskSpecPluginSpec : Invalid when specified with `ContainerSpec`. *(Experimental release only.)*
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

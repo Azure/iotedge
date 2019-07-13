@@ -9,7 +9,7 @@
  */
 
 /// SwarmSpec : User modifiable swarm configuration.
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

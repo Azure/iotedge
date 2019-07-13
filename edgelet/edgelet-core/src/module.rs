@@ -11,7 +11,7 @@ use std::time::Duration;
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use serde_json;
 
 use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};

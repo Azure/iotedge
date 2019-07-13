@@ -9,7 +9,7 @@
  */
 
 /// ResourceObject : An object describing the resources which can be advertised by a node and requested by a task
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

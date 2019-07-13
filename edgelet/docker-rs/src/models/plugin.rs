@@ -9,7 +9,7 @@
  */
 
 /// Plugin : A plugin for the Engine API
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

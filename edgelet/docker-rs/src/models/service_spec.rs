@@ -9,7 +9,7 @@
  */
 
 /// ServiceSpec : User modifiable configuration for a service.
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

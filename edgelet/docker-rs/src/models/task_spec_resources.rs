@@ -9,7 +9,7 @@
  */
 
 /// TaskSpecResources : Resource requirements which apply to each individual container created as part of the service.
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

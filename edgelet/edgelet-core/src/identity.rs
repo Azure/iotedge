@@ -4,7 +4,7 @@ use std::fmt;
 
 use failure::Fail;
 use futures::Future;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum AuthType {

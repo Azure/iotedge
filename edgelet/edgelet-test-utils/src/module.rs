@@ -11,7 +11,7 @@ use futures::prelude::*;
 use futures::stream;
 use futures::IntoFuture;
 use hyper::{Body, Request};
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
 pub struct TestRegistry<E, C> {

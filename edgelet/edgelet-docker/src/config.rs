@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use failure::ResultExt;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 use docker::models::{AuthConfig, ContainerCreateBody};
 use edgelet_utils::{ensure_not_empty_with_context, serde_clone};

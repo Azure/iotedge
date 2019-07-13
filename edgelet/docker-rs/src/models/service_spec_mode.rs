@@ -9,7 +9,7 @@
  */
 
 /// ServiceSpecMode : Scheduling mode for the service.
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
 

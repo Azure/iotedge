@@ -5,7 +5,7 @@ use std::{cmp, fmt, io};
 use futures::prelude::*;
 use hyper::service::Service;
 use hyper::{Body, Error as HyperError, Request};
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 #[cfg(unix)]
 use tokio_uds::UnixStream;
 #[cfg(windows)]
