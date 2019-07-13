@@ -4,22 +4,21 @@
 extern crate serde_derive;
 
 mod error;
-mod modules;
 mod settings;
 mod state;
 
 #[cfg(windows)]
 use std::env;
+use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use actix_web::error::ErrorInternalServerError;
 use actix_web::Error as ActixError;
 use actix_web::*;
-use edgelet_config::Provisioning;
-use edgelet_config::Settings as EdgeSettings;
-use edgelet_core::{Module as EdgeModule, ModuleRuntime};
-use edgelet_docker::DockerConfig;
+use edgelet_core::RuntimeSettings;
+use edgelet_core::{Module as EdgeModule, ModuleRuntime, Provisioning};
+use edgelet_docker::Settings as DockerSettings;
 use edgelet_http_mgmt::*;
 use futures::future::{ok, Either, IntoFuture};
 use futures::Async;
@@ -31,7 +30,7 @@ pub use error::Error;
 use settings::Settings;
 
 pub struct Context {
-    pub edge_config: Result<EdgeSettings<DockerConfig>, Error>,
+    pub edge_config: Result<DockerSettings, Error>,
     pub settings: Settings,
 }
 
@@ -50,7 +49,6 @@ impl Context {
 #[derive(Debug)]
 pub struct Module {
     name: String,
-    // id: String,
     status: String,
 }
 
@@ -58,7 +56,6 @@ impl Module {
     pub fn new(name: String, status: String) -> Self {
         Module {
             name,
-            // id,
             status,
         }
     }
@@ -84,11 +81,15 @@ impl Main {
         println!("Server listening at http://{}", address);
 
         let context = web::Data::new(self.context.clone());
+        let device = web::Data::new(set_up(context.clone()));
+
         HttpServer::new(move || {
             App::new()
                 .register_data(context.clone())
+                .register_data(device.clone())
                 .service(web::resource("/api/modules/").to_async(get_modules))
                 .service(web::resource("/api/provisioning-state/").to(get_state))
+                .service(web::resource("/api/connectivity/").to(get_connectivity))
         })
         .bind(address)?
         .run()?;
@@ -102,41 +103,56 @@ pub struct AuthRequest {
     version: String,
 }
 
-fn get_state(
-    _req: HttpRequest,
-    context: web::Data<Arc<Context>>,
-    _info: web::Query<AuthRequest>,
-) -> HttpResponse {
-    // println!("Query string version: {}", info.version);
+fn set_up(context: web::Data<Arc<Context>>) -> Option<state::Device> {
     if let Ok(_) = state::get_file() {
         // if file exists and can be located
-        context
+        context.get_ref()
             .edge_config
             .as_ref()
             .map(|config| {
-                let mut new_device;
                 if let Provisioning::Manual(val) = config.provisioning() {
                     let dev_conn_str = val.device_connection_string();
-                    if dev_conn_str == edgelet_config::DEFAULT_CONNECTION_STRING {
-                        new_device = state::Device::new(state::State::NotProvisioned, String::new())
+                    if dev_conn_str == edgelet_core::DEFAULT_CONNECTION_STRING {
+                        Some(state::Device::new(
+                            state::State::NotProvisioned,
+                            String::new(),
+                        ))
                     } else {
-                        new_device =
-                            state::Device::new(state::State::Manual, dev_conn_str.to_string());
+                        Some(state::Device::new(
+                            state::State::Manual,
+                            dev_conn_str.to_string(),
+                        ))
                     }
                 } else {
                     // handle non-manual (dps/external) here
-                    new_device = state::Device::new(state::State::Manual, String::new());
+                    Some(state::Device::new(state::State::Manual, String::new()))
                 }
-                state::return_response(&new_device)
             })
-            .unwrap_or_else(|_| {
-                HttpResponse::UnprocessableEntity()
-                    .body("Device connection string unable to be processed")
+            .unwrap_or_else(|e| {
+                println!("Err: {:?}", e);
+                None
             })
     } else {
         // if file doesn't exist or can't be located
-        let new_device = state::Device::new(state::State::NotInstalled, String::new());
-        state::return_response(&new_device)
+        Some(state::Device::new(
+            state::State::NotInstalled,
+            String::new(),
+        ))
+    }
+}
+
+fn get_state(
+    _req: HttpRequest,
+    device: web::Data<Option<state::Device>>,
+    // _info: web::Query<AuthRequest>,
+) -> HttpResponse {
+    // println!("Query string version: {}", info.version);
+
+    if let Some(dev) = device.get_ref() {
+        println!("Dev: {:?}", dev);
+        state::return_response(&dev)
+    } else {
+        HttpResponse::UnprocessableEntity().body("Device connection string unable to be processed.")
     }
 }
 
@@ -189,6 +205,47 @@ pub fn get_modules(
     Box::new(response)
 }
 
+fn get_connectivity(_req: HttpRequest, device: web::Data<Option<state::Device>>) -> HttpResponse {
+    if let Some(dev) = device.get_ref() {
+        if let Some(iothub) = dev.hub_name() {
+            let iothub_hostname = &format!("{}.azure-devices.net", iothub);
+
+            let r = resolve_and_tls_handshake(&(&**iothub_hostname, 443), iothub_hostname);
+            match r {
+                Ok(_) => HttpResponse::Ok().body("Connected with IoT Hub!"),
+                Err(_) => HttpResponse::UnprocessableEntity().body("Failed to establish connection with IoT Hub."),
+            }
+        } else {
+            HttpResponse::UnprocessableEntity().body("IoT Hub name could not be processed")
+        }
+    } else {
+        HttpResponse::UnprocessableEntity().body("IoT Hub name could not be processed")
+    }
+}
+
+fn resolve_and_tls_handshake(
+    to_socket_addrs: &impl std::net::ToSocketAddrs,
+    tls_hostname: &str,
+) -> Result<(), ActixError> {
+    let host_addr = to_socket_addrs
+        .to_socket_addrs()
+        .map_err(ErrorInternalServerError)?
+        .next()
+        .ok_or_else(|| "")
+        .map_err(ErrorInternalServerError)?;
+
+    let stream = TcpStream::connect_timeout(&host_addr, std::time::Duration::from_secs(10))
+        .map_err(ErrorInternalServerError)?;
+
+    let tls_connector = native_tls::TlsConnector::new().map_err(ErrorInternalServerError)?;
+
+    let _ = tls_connector
+        .connect(tls_hostname, stream)
+        .map_err(ErrorInternalServerError)?;
+
+    Ok(())
+}
+
 fn get_default_config_path() -> PathBuf {
     #[cfg(not(windows))]
     {
@@ -207,9 +264,9 @@ fn get_default_config_path() -> PathBuf {
     }
 }
 
-fn get_config(config_path: Option<&str>) -> Result<EdgeSettings<DockerConfig>, Error> {
+fn get_config(config_path: Option<&str>) -> Result<DockerSettings, Error> {
     let config_path = config_path
         .map(|p| Path::new(p).to_owned())
         .unwrap_or_else(get_default_config_path);
-    Ok(EdgeSettings::<DockerConfig>::new(Some(&config_path))?)
+    Ok(DockerSettings::new(Some(&config_path))?)
 }

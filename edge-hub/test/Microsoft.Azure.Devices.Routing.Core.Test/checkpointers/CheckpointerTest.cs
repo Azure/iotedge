@@ -7,10 +7,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
     using System.Linq.Expressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Moq;
     using Xunit;
 
