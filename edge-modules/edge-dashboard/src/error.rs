@@ -2,7 +2,7 @@
 
 use std::io::Error as IoError;
 
-use edgelet_config::LoadSettingsError;
+use edgelet_docker::LoadSettingsError; // modify
 use failure::Fail;
 
 #[derive(Fail, Debug)]

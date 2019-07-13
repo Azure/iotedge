@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 use std::collections::HashMap;
 use std::fs;
 use std::io::Result;
@@ -9,7 +11,7 @@ use serde::{Deserialize, Serialize};
     - DPS handling
 */
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum State {
     Manual,
     NotProvisioned,
@@ -17,7 +19,7 @@ pub enum State {
     // TODO: DPS
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Device {
     state: State,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -36,6 +38,18 @@ impl Device {
             hub_name: get_val(&map, "HostName"),
             device_id: get_val(&map, "DeviceId"),
         }
+    }
+
+    pub fn _state(&self) -> &State {
+        &self.state
+    }
+
+    pub fn hub_name(&self) -> &Option<String> {
+        &self.hub_name
+    }
+
+    pub fn _device_id(&self) -> &Option<String> {
+        &self.device_id
     }
 }
 
