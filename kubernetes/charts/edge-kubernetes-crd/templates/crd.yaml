@@ -11,5 +11,6 @@ spec:
     singular: edgedeployment
   scope: Namespaced
   subresources:
+    # status enables the status subresource.
     status: {}
   version: v1
