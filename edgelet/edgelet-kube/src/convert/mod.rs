@@ -8,8 +8,8 @@ mod to_k8s;
 
 pub use self::to_docker::pod_to_module;
 pub use self::to_k8s::{
-    auth_to_image_pull_secret, prepare_trust_bundle, spec_to_deployment, spec_to_role_binding,
-    spec_to_service_account,
+    auth_to_image_pull_secret, spec_to_deployment, spec_to_role_binding, spec_to_service_account,
+    trust_bundle_to_config_map,
 };
 
 pub fn sanitize_dns_value(name: &str) -> Result<String> {

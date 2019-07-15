@@ -25,7 +25,7 @@ use kube_client::{
 };
 use provisioning::ProvisioningResult;
 
-use crate::convert::{auth_to_image_pull_secret, pod_to_module, prepare_trust_bundle};
+use crate::convert::{auth_to_image_pull_secret, pod_to_module, trust_bundle_to_config_map};
 use crate::error::{Error, ErrorKind};
 use crate::module::{authenticate, create_module, KubeModule};
 use crate::settings::Settings;
@@ -178,7 +178,7 @@ impl MakeModuleRuntime
                     .get_trust_bundle()
                     .map_err(|err| Error::from(err.context(ErrorKind::IdentityCertificate)))
                     .map(|cert| {
-                        prepare_trust_bundle(runtime.settings(), &cert)
+                        trust_bundle_to_config_map(runtime.settings(), &cert)
                             .map_err(Error::from)
                             .map(|config_map| {
                                 runtime
