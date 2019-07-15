@@ -497,7 +497,7 @@ pub fn spec_to_role_binding(
 
 pub fn prepare_trust_bundle(
     settings: &Settings,
-    cert: impl Certificate,
+    cert: &impl Certificate,
 ) -> Result<api_core::ConfigMap> {
     let device_label_value =
         sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;

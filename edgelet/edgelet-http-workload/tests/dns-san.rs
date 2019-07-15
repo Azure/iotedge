@@ -165,15 +165,18 @@ fn generate_server_cert(
 fn create_workload_service(module_id: &str) -> (WorkloadService, Crypto) {
     let key_store = MemoryKeyStore::new();
     let crypto = init_crypto();
-    let runtime =
-        TestRuntime::<Error, _>::make_runtime(TestSettings::new(), TestProvisioningResult::new(), crypto)
-            .wait()
-            .unwrap()
-            .with_module(Ok(TestModule::new(
-                module_id.to_string(),
-                TestConfig::new("img1".to_string()),
-                Ok(ModuleRuntimeState::default().with_status(ModuleStatus::Running)),
-            )));
+    let runtime = TestRuntime::<Error, _>::make_runtime(
+        TestSettings::new(),
+        TestProvisioningResult::new(),
+        (),
+    )
+    .wait()
+    .unwrap()
+    .with_module(Ok(TestModule::new(
+        module_id.to_string(),
+        TestConfig::new("img1".to_string()),
+        Ok(ModuleRuntimeState::default().with_status(ModuleStatus::Running)),
+    )));
     let config = Config {
         hub_name: "hub1".to_string(),
         device_id: "d1".to_string(),

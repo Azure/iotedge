@@ -427,7 +427,7 @@ fn create_runtime(
         None,
     );
     let settings = TestKubeSettings::new(make_settings(None), url.parse().unwrap());
-    let runtime = TestKubeModuleRuntime::make_runtime(settings.clone(), provisioning_result)
+    let runtime = TestKubeModuleRuntime::make_runtime(settings.clone(), provisioning_result, ())
         .wait()
         .unwrap();
 

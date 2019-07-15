@@ -178,7 +178,7 @@ impl MakeModuleRuntime
                     .get_trust_bundle()
                     .map_err(|err| Error::from(err.context(ErrorKind::IdentityCertificate)))
                     .map(|cert| {
-                        prepare_trust_bundle(runtime.settings(), cert)
+                        prepare_trust_bundle(runtime.settings(), &cert)
                             .map_err(Error::from)
                             .map(|config_map| {
                                 runtime
