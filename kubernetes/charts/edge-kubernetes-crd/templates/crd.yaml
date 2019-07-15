@@ -10,4 +10,6 @@ spec:
     plural: edgedeployments
     singular: edgedeployment
   scope: Namespaced
+  subresources:
+    status: {}
   version: v1
