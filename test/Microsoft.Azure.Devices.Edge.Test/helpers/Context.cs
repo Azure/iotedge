@@ -74,9 +74,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 return Option.None<(string, string, string)>();
             }
 
+            string GenerateDefaultDeviceId() =>
+                $"e2e-{string.Concat(Dns.GetHostName().Take(16))}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}"; // at most 38 chars
+
             this.CaCertScriptPath = Get("caCertScriptPath");
             this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
-            this.DeviceId = GetOrDefault("deviceId", $"end-to-end-{Dns.GetHostName()}-{DateTime.Now:yyyy'-'MM'-'dd'T'HH'-'mm'-'ss'-'fff}");
+            this.DeviceId = GetOrDefault("deviceId", GenerateDefaultDeviceId());
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
             this.EdgeHubImage = Option.Maybe(Get("edgeHubImage"));
             this.EventHubEndpoint = Get("EVENT_HUB_ENDPOINT");

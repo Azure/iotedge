@@ -82,7 +82,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     }
                     else if (auth == AuthenticationType.CertificateAuthority)
                     {
-                        // TODO: Cert gen fails in openssl.exe if leaf deviceId > 64 chars
                         LeafCertificates certFiles = await edgeCa.GenerateLeafCertificatesAsync(leafDeviceId, token);
 
                         Device leaf = await iotHub.CreateLeafDeviceIdentityAsync(
