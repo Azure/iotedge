@@ -18,9 +18,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             this.registries = new List<(string, string, string)>();
         }
 
-        public void AddRegistryCredentials(string address, string username, string password)
-        {
+        public void AddRegistryCredentials(string address, string username, string password) =>
             this.registries.Add((address, username, password));
+
+        public void AddRegistryCredentials(IEnumerable<(string address, string username, string password)> credentials)
+        {
+            foreach ((string address, string username, string password) in credentials)
+            {
+                this.AddRegistryCredentials(address, username, password);
+            }
+
         }
 
         public IModuleConfigBuilder AddEdgeAgent(string image = null)

@@ -33,11 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token)).Expect(() => new Exception("Device should have already been created in setup fixture"));
 
             var builder = new EdgeConfigBuilder(device.Id);
-            foreach ((string address, string username, string password) in Context.Current.Registries)
-            {
-                builder.AddRegistryCredentials(address, username, password);
-            }
-
+            builder.AddRegistryCredentials(Context.Current.Registries);
             builder.AddEdgeAgent(agentImage).WithProxy(proxy);
             builder.AddEdgeHub(hubImage, Context.Current.OptimizeForPerformance)
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
@@ -116,11 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string clientTransport = protocol.ToTransportType().ToString();
 
             var builder = new EdgeConfigBuilder(device.Id);
-            foreach ((string address, string username, string password) in Context.Current.Registries)
-            {
-                builder.AddRegistryCredentials(address, username, password);
-            }
-
+            builder.AddRegistryCredentials(Context.Current.Registries);
             builder.AddEdgeAgent(agentImage).WithProxy(proxy);
             builder.AddEdgeHub(hubImage, Context.Current.OptimizeForPerformance)
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
