@@ -76,47 +76,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task<Device> GetDeviceIdentityAsync(string deviceId, CancellationToken token) =>
             this.RegistryManager.GetDeviceAsync(deviceId, token);
 
+        public async Task<Device> CreateDeviceIdentityAsync(Device device, CancellationToken token)
+        {
+            return await this.RegistryManager.AddDeviceAsync(device, token);
+        }
+
         public Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, CancellationToken token)
         {
             Device edge = new Device(deviceId)
             {
-                Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
-                Capabilities = new DeviceCapabilities() { IotEdge = true }
-            };
-            return this.RegistryManager.AddDeviceAsync(edge, token);
-        }
-
-        public async Task<Device> CreateLeafDeviceIdentityAsync(
-            string deviceId,
-            Option<string> parentId,
-            AuthenticationType auth,
-            Option<X509Thumbprint> thumbprint,
-            CancellationToken token)
-        {
-            var mechanism = new AuthenticationMechanism { Type = auth };
-            if (auth == AuthenticationType.SelfSigned)
-            {
-                mechanism.X509Thumbprint = thumbprint.Expect(() => new ArgumentException());
-            }
-
-            Device leaf = new Device(deviceId)
-            {
-                Authentication = mechanism
-            };
-
-            await parentId.ForEachAsync(
-                async p =>
+                Authentication = new AuthenticationMechanism()
                 {
-                    Device edge = await this.GetDeviceIdentityAsync(p, token);
-                    if (edge == null)
-                    {
-                        throw new ArgumentException($"Device '{p}' not found in '{this.Hostname}'");
-                    }
+                    Type = AuthenticationType.Sas
+                },
+                Capabilities = new DeviceCapabilities()
+                {
+                    IotEdge = true
+                }
+            };
 
-                    leaf.Scope = edge.Scope;
-                });
-
-            return await this.RegistryManager.AddDeviceAsync(leaf, token);
+            return CreateDeviceIdentityAsync(edge, token);
         }
 
         public Task DeleteDeviceIdentityAsync(Device device, CancellationToken token) =>
