@@ -290,8 +290,8 @@ fn run() -> Result<(), Error> {
                         _ => unreachable!(),
                     })
                     .expect("arg has a default value"),
-                args.occurrences_of("verbose") > 0,
-                args.occurrences_of("warnings-as-errors") > 0,
+                args.is_present("verbose"),
+                args.is_present("warnings-as-errors"),
             )
             .and_then(|mut check| check.execute()),
         ),
