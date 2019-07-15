@@ -117,9 +117,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     }
                     else if (auth == AuthenticationType.SelfSigned)
                     {
-                        // TODO: Cert gen fails in openssl.exe if leaf deviceId > 64 chars
-                        LeafCertificates primary = await edgeCa.GenerateLeafCertificatesAsync($"{leafDeviceId}-pri", token);
-                        LeafCertificates secondary = await edgeCa.GenerateLeafCertificatesAsync($"{leafDeviceId}-sec", token);
+                        LeafCertificates primary = await edgeCa.GenerateLeafCertificatesAsync($"{leafDeviceId}-1", token);
+                        LeafCertificates secondary = await edgeCa.GenerateLeafCertificatesAsync($"{leafDeviceId}-2", token);
                         LeafCertificates certFiles = useSecondaryCertificate ? secondary : primary;
 
                         var paths = new List<string>

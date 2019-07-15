@@ -75,11 +75,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             }
 
             string GenerateDefaultDeviceId() =>
-                $"e2e-{string.Concat(Dns.GetHostName().Take(16))}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}"; // at most 38 chars
+                $"e2e-{string.Concat(Dns.GetHostName().Take(15))}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}";
+
+            const int DeviceIdMaxLength = 37;
+            string CheckDeviceIdLength(string deviceId)
+            {
+                if (deviceId.Length > DeviceIdMaxLength)
+                {
+                    string message =
+                        $"The device ID is more than {DeviceIdMaxLength} characters in length, and " +
+                        "may cause problems in tests that generate certificates with a CN based on " +
+                        "the device ID.";
+                    throw new ArgumentException(message);
+                }
+
+                return deviceId;
+            }
 
             this.CaCertScriptPath = Get("caCertScriptPath");
             this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
-            this.DeviceId = GetOrDefault("deviceId", GenerateDefaultDeviceId());
+            this.DeviceId = CheckDeviceIdLength(GetOrDefault("deviceId", GenerateDefaultDeviceId()));
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
             this.EdgeHubImage = Option.Maybe(Get("edgeHubImage"));
             this.EventHubEndpoint = Get("EVENT_HUB_ENDPOINT");
