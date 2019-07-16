@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::BTreeMap;
+use std::str;
 
 use base64;
 use docker::models::{AuthConfig, HostConfig};
@@ -517,13 +518,14 @@ pub fn trust_bundle_to_config_map(
     labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
     labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
 
-    let cert = cert
-        .pem()
-        .map(|cert_buffer| String::from_utf8_lossy(cert_buffer.as_ref()).to_string())
-        .context(ErrorKind::IdentityCertificate)?;
+    let cert = cert.pem().context(ErrorKind::IdentityCertificate)?;
+    let cert = str::from_utf8(cert.as_ref()).context(ErrorKind::IdentityCertificate)?;
 
     let mut data = BTreeMap::new();
-    data.insert(PROXY_CONFIG_TRUST_BUNDLE_FILENAME.to_string(), cert);
+    data.insert(
+        PROXY_CONFIG_TRUST_BUNDLE_FILENAME.to_string(),
+        cert.to_string(),
+    );
 
     let config_map = api_core::ConfigMap {
         metadata: Some(api_meta::ObjectMeta {
@@ -560,6 +562,7 @@ mod tests {
         spec_to_service_account, trust_bundle_to_config_map,
     };
     use crate::tests::make_settings;
+    use crate::ErrorKind;
 
     fn create_module_spec() -> ModuleSpec<DockerConfig> {
         let create_body = ContainerCreateBody::new()
@@ -802,7 +805,17 @@ mod tests {
             &TestCert::default().with_fail_pem(true),
         );
 
-        assert!(config_map.is_err());
+        assert_eq!(config_map.unwrap_err().kind(), &ErrorKind::IdentityCertificate)
+    }
+
+    #[test]
+    fn trust_bundle_to_config_map_fails_when_cert_is_invalid() {
+        let config_map = trust_bundle_to_config_map(
+            &make_settings(None),
+            &TestCert::default().with_cert(vec![0, 159, 146, 150]),
+        );
+
+        assert_eq!(config_map.unwrap_err().kind(), &ErrorKind::IdentityCertificate)
     }
 
     #[test]

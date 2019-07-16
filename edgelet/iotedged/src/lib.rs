@@ -3,10 +3,10 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
-clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
-clippy::module_name_repetitions,
-clippy::shadow_unrelated,
-clippy::use_self,
+    clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
+    clippy::module_name_repetitions,
+    clippy::shadow_unrelated,
+    clippy::use_self,
 )]
 
 pub mod app;

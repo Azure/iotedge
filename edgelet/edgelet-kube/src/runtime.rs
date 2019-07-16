@@ -183,13 +183,12 @@ impl MakeModuleRuntime
 
 impl<T, S> KubeModuleRuntime<T, S>
 where
-    T: TokenSource + Send + 'static,
-    S: Service + Send + 'static,
+    T: TokenSource,
+    S: Service + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
     S::Error: Into<KubeClientError>,
-    S::Future: Send,
 {
     fn init_trust_bundle(
         &self,
@@ -198,20 +197,17 @@ where
         crypto
             .get_trust_bundle()
             .map_err(|err| Error::from(err.context(ErrorKind::IdentityCertificate)))
-            .map(|cert| {
-                trust_bundle_to_config_map(self.settings(), &cert)
+            .and_then(|cert| {
+                trust_bundle_to_config_map(self.settings(), &cert).map_err(Error::from)
+            })
+            .map(|config_map| {
+                self.client()
+                    .lock()
+                    .expect("Unexpected lock error")
+                    .borrow_mut()
+                    .create_config_map(&self.settings().namespace(), &config_map)
                     .map_err(Error::from)
-                    .map(|config_map| {
-                        self.client()
-                            .lock()
-                            .expect("Unexpected lock error")
-                            .borrow_mut()
-                            .create_config_map(&self.settings().namespace(), &config_map)
-                            .map_err(Error::from)
-                            .map(|_| ())
-                    })
-                    .into_future()
-                    .flatten()
+                    .map(|_| ())
             })
             .into_future()
             .flatten()
