@@ -1,0 +1,77 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: iotedged
+  namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+  labels:
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+    helm.sh/chart: "{{.Chart.Name}}-{{.Chart.Version}}"
+...
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: iotedged
+  namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: iotedged
+subjects:
+  - kind: ServiceAccount
+    name: iotedged
+    namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+...
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: iotedged
+  namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["list", "watch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["list", "create", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["list", "create", "delete", "update"]
+  - apiGroups: [""]
+    resources: ["secrets", "serviceaccounts"]
+    verbs: ["list", "get", "create", "update"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["rolebindings"]
+    verbs: ["list", "create", "delete", "update"]
+  - apiGroups: ["authentication.k8s.io"]
+    resources: ["tokenreviews"]
+    verbs: ["create"]
+...
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: edgeagent
+  namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["list", "watch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["list", "create", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["list", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["secrets", "serviceaccounts"]
+    verbs: ["list", "get", "create", "update", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["list", "create"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["list", "get", "create", "update"]
