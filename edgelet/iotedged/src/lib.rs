@@ -1619,6 +1619,7 @@ mod tests {
 
     use chrono::{Duration, Utc};
     use rand::RngCore;
+    use serde_json::json;
     use tempdir::TempDir;
 
     use edgelet_core::ModuleRuntimeState;
@@ -2259,20 +2260,17 @@ mod tests {
             .write_all(b"i pity the fool")
             .expect("Test cert private key file could not be written");
 
-        let settings_yaml = format!(
-            "
-provisioning:
-  source: 'dps'
-  global_endpoint: 'scheme://jibba-jabba.net'
-  scope_id: 'i got no time for the jibba-jabba'
-  attestation:
-    method: 'x509'
-    identity_cert: '{}'
-    identity_pk: '{}'
-",
-            cert_path.to_str().unwrap(),
-            key_path.to_str().unwrap()
-        );
+        let settings_yaml = json!({
+            "provisioning": {
+                "source": "dps",
+                "global_endpoint": "scheme://jibba-jabba.net",
+                "scope_id": "i got no time for the jibba-jabba",
+                "attestation": {
+                    "method": "x509",
+                    "identity_cert": cert_path.to_str().unwrap(),
+                    "identity_pk": key_path.to_str().unwrap(),
+                },
+            }}).to_string();
         File::create(&settings_path)
             .expect("Test settings file could not be created")
             .write_all(settings_yaml.as_bytes())
