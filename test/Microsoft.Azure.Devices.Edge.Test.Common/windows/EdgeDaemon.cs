@@ -198,12 +198,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
         async Task<string> DownloadInstallerAsync(CancellationToken token)
         {
-            const string address = "aka.ms/iotedge-win";
+            const string Address = "aka.ms/iotedge-win";
             string tempDir = Path.GetTempPath();
             string[] commands = new[]
             {
                 "$ProgressPreference='SilentlyContinue'",   // don't render PowerShell's progress bar in non-interactive shell
-                $"Invoke-WebRequest -UseBasicParsing -OutFile '{Path.Combine(tempDir, "IotEdgeSecurityDaemon.ps1")}' '{address}'"
+                $"Invoke-WebRequest -UseBasicParsing -OutFile '{Path.Combine(tempDir, "IotEdgeSecurityDaemon.ps1")}' '{Address}'"
             };
 
             await Profiler.Run(
@@ -215,7 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                         token);
                 },
                 "Downloaded Edge daemon Windows installer from '{Address}'",
-                address);
+                Address);
 
             this.scriptDir = Option.Some(tempDir);
             return tempDir;
