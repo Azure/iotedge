@@ -398,8 +398,8 @@ mod tests {
     use native_tls::TlsConnector;
     use url::Url;
 
-    use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind, GetTrustBundle};
     use edgelet_test_utils::cert::TestCert;
+    use edgelet_test_utils::crypto::TestHsm;
     use kube_client::{Client as KubeClient, Config as KubeConfig, Error, TokenSource};
 
     use crate::tests::make_settings;
@@ -488,36 +488,6 @@ mod tests {
             TestTokenSource,
             TlsConnector::new().unwrap(),
         )
-    }
-
-    #[derive(Clone, Default, Debug)]
-    struct TestHsm {
-        fail_call: bool,
-        cert: TestCert,
-    }
-
-    impl TestHsm {
-        fn with_fail_call(mut self, fail_call: bool) -> Self {
-            self.fail_call = fail_call;
-            self
-        }
-
-        fn with_cert(mut self, cert: TestCert) -> Self {
-            self.cert = cert;
-            self
-        }
-    }
-
-    impl GetTrustBundle for TestHsm {
-        type Certificate = TestCert;
-
-        fn get_trust_bundle(&self) -> Result<Self::Certificate, CoreError> {
-            if self.fail_call {
-                Err(CoreError::from(CoreErrorKind::KeyStore))
-            } else {
-                Ok(self.cert.clone())
-            }
-        }
     }
 
     #[derive(Clone)]

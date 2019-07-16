@@ -33,6 +33,7 @@ use edgelet_core::{
 };
 use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_http_workload::WorkloadService;
+use edgelet_test_utils::crypto::TestHsm;
 use edgelet_test_utils::get_unused_tcp_port;
 use edgelet_test_utils::module::{
     TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
@@ -168,7 +169,7 @@ fn create_workload_service(module_id: &str) -> (WorkloadService, Crypto) {
     let runtime = TestRuntime::<Error, _>::make_runtime(
         TestSettings::new(),
         TestProvisioningResult::new(),
-        (),
+        TestHsm::default(),
     )
     .wait()
     .unwrap()

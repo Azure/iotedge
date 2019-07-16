@@ -910,6 +910,7 @@ mod tests {
         WatchdogSettings,
     };
     use edgelet_hsm::HsmLock;
+    use edgelet_test_utils::crypto::TestHsm;
     use provisioning::ReprovisioningStatus;
 
     fn provisioning_result() -> ProvisioningResult {
@@ -1304,7 +1305,7 @@ mod tests {
 
     impl MakeModuleRuntime for TestModuleList {
         type Config = TestConfig;
-        type Crypto = ();
+        type Crypto = TestHsm;
         type ProvisioningResult = ProvisioningResult;
         type ModuleRuntime = Self;
         type Settings = TestSettings;

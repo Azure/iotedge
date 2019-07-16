@@ -26,6 +26,7 @@ use edgelet_core::{
 };
 use edgelet_docker::DockerConfig;
 use edgelet_kube::{ErrorKind, KubeModuleRuntime, Settings};
+use edgelet_test_utils::crypto::TestHsm;
 use edgelet_test_utils::web::{
     make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
 };
@@ -387,7 +388,7 @@ struct TestKubeModuleRuntime(KubeModuleRuntime<TestTokenSource, HttpClient<HttpC
 
 impl MakeModuleRuntime for TestKubeModuleRuntime {
     type Config = DockerConfig;
-    type Crypto = ();
+    type Crypto = TestHsm;
     type Settings = TestKubeSettings;
     type ProvisioningResult = ProvisioningResult;
     type ModuleRuntime = KubeModuleRuntime<TestTokenSource, HttpClient<HttpConnector, Body>>;
@@ -427,9 +428,13 @@ fn create_runtime(
         None,
     );
     let settings = TestKubeSettings::new(make_settings(None), url.parse().unwrap());
-    let runtime = TestKubeModuleRuntime::make_runtime(settings.clone(), provisioning_result, ())
-        .wait()
-        .unwrap();
+    let runtime = TestKubeModuleRuntime::make_runtime(
+        settings.clone(),
+        provisioning_result,
+        TestHsm::default(),
+    )
+    .wait()
+    .unwrap();
 
     (settings, runtime)
 }
