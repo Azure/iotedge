@@ -153,9 +153,18 @@ const EDGE_HYBRID_IDENTITY_SUBDIR: &str = "hybrid_id";
 const EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME: &str = "iotedge_hybrid_key";
 /// This is the name of the hybrid X509-SAS initialization vector
 const EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME: &str = "iotedge_hybrid_iv";
+
 /// Size in bytes of the master identity key
+/// The length has been chosen to be compliant with the underlying
+/// default implementation of the HSM lib encryption algorithm. In the future
+/// should this need to change, both IDENTITY_MASTER_KEY_LEN_BYTES and
+/// IOTEDGED_CRYPTO_IV_LEN_BYTES lengths must be considered and modified appropriately.
 const IDENTITY_MASTER_KEY_LEN_BYTES: usize = 32;
 /// Size in bytes of the initialization vector
+/// The length has been chosen to be compliant with the underlying
+/// default implementation of the HSM lib encryption algorithm. In the future
+/// should this need to change, both IDENTITY_MASTER_KEY_LEN_BYTES and
+/// IOTEDGED_CRYPTO_IV_LEN_BYTES lengths must be considered and modified appropriately.
 const IOTEDGED_CRYPTO_IV_LEN_BYTES: usize = 16;
 /// Identity to be used for various crypto operations
 const IOTEDGED_CRYPTO_ID: &str = "$iotedge";
@@ -2261,16 +2270,17 @@ mod tests {
             .expect("Test cert private key file could not be written");
 
         let settings_yaml = json!({
-            "provisioning": {
-                "source": "dps",
-                "global_endpoint": "scheme://jibba-jabba.net",
-                "scope_id": "i got no time for the jibba-jabba",
-                "attestation": {
-                    "method": "x509",
-                    "identity_cert": cert_path.to_str().unwrap(),
-                    "identity_pk": key_path.to_str().unwrap(),
-                },
-            }}).to_string();
+        "provisioning": {
+            "source": "dps",
+            "global_endpoint": "scheme://jibba-jabba.net",
+            "scope_id": "i got no time for the jibba-jabba",
+            "attestation": {
+                "method": "x509",
+                "identity_cert": cert_path.to_str().unwrap(),
+                "identity_pk": key_path.to_str().unwrap(),
+            },
+        }})
+        .to_string();
         File::create(&settings_path)
             .expect("Test settings file could not be created")
             .write_all(settings_yaml.as_bytes())
