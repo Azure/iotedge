@@ -805,7 +805,10 @@ mod tests {
             &TestCert::default().with_fail_pem(true),
         );
 
-        assert_eq!(config_map.unwrap_err().kind(), &ErrorKind::IdentityCertificate)
+        assert_eq!(
+            config_map.unwrap_err().kind(),
+            &ErrorKind::IdentityCertificate
+        )
     }
 
     #[test]
@@ -815,7 +818,10 @@ mod tests {
             &TestCert::default().with_cert(vec![0, 159, 146, 150]),
         );
 
-        assert_eq!(config_map.unwrap_err().kind(), &ErrorKind::IdentityCertificate)
+        assert_eq!(
+            config_map.unwrap_err().kind(),
+            &ErrorKind::IdentityCertificate
+        )
     }
 
     #[test]
