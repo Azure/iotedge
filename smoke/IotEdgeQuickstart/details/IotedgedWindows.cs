@@ -172,8 +172,6 @@ namespace IotEdgeQuickstart.Details
                         return dpsArgs;
                     }).GetOrElse(string.Empty);
 
-                Console.WriteLine($">>>>>>>>>>>>>>> '{args}'...");
-
                 string commandForDebug = args;
 
                 foreach (RegistryCredentials c in this.credentials)

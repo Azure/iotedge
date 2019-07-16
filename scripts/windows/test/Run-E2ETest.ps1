@@ -800,14 +800,15 @@ Function RunDpsProvisioningTest
         [DpsProvisioningType] $provisioningType
     )
 
+    PrintHighlightedMessage "Run DPS provisioning test $provisioningType"
     TestSetup
 
     $testStartAt = Get-Date
-    $registationId = "e2e-${ReleaseLabel}-Win-${Architecture}-DPS-$provisioningType"
-    PrintHighlightedMessage "Run DPS provisioning test $provisioningType for registration id ""$registationId"" started at $testStartAt"
+    $registrationId = "e2e-${ReleaseLabel}-Win-${Architecture}-DPS-$provisioningType"
+    PrintHighlightedMessage "Run DPS provisioning test $provisioningType for registration id ""$registrationId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
-            -d `"$registationId`" ``
+            -d `"$registrationId`" ``
             -c `"$IoTHubConnectionString`" ``
             -e `"$EventHubConnectionString`" ``
             -n `"$env:computername`" ``
@@ -823,32 +824,27 @@ Function RunDpsProvisioningTest
         ([DpsProvisioningType]::SymmetricKey)
         {
             $testCommand = "$testCommand ``
-                --dps-registration-id `"$registationId`" ``
+                --dps-registration-id `"$registrationId`" ``
                 --dps-master-symmetric-key `"$DpsMasterSymmetricKey`""
         }
 
         ([DpsProvisioningType]::Tpm)
         {
             $testCommand = "$testCommand ``
-                --dps-registration-id `"$registationId`""
+                --dps-registration-id `"$registrationId`""
         }
 
         ([DpsProvisioningType]::X509)
         {
-            # setup certificate generation tools to create the Edge device and leaf device certificates
-            PrepareCertificateTools
+            # for windows X.509 mutual auth clients to work, the expectation is that the root
+            # and any intermediate certificates (public certs only) be installed in the certificate store
+            $installCACommand = "Import-Certificate -CertStoreLocation 'cert:\LocalMachine\Root' -FilePath $EdgeCertGenScriptDir\certs\azure-iot-test-only.root.ca.cert.pem"
+            Invoke-Expression $installCACommand | Out-Host
+            $installCACommand = "Import-Certificate -CertStoreLocation 'cert:\LocalMachine\Root' -FilePath $EdgeCertGenScriptDir\certs\azure-iot-test-only.intermediate.cert.pem"
+            Invoke-Expression $installCACommand | Out-Host
 
-            # dot source the certificate generation script
-            . "$EdgeCertGenScript"
-
-            # install the provided root CA to seed the certificate chain
-            Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
-
-            # generate the edge identity certificate
-            New-CACertsDevice $registationId
-
-            $identityPkPath = "$EdgeCertGenScriptDir\private\iot-device-${registationId}.key.pem"
-            $identityCertPath = "$EdgeCertGenScriptDir\certs\iot-device-${registationId}-full-chain.cert.pem"
+            $identityPkPath = "$EdgeCertGenScriptDir\private\iot-device-${registrationId}.key.pem"
+            $identityCertPath = "$EdgeCertGenScriptDir\certs\iot-device-${registrationId}-full-chain.cert.pem"
 
             $testCommand = "$testCommand ``
                 --device_identity_pk `"$identityPkPath`" ``
@@ -1279,6 +1275,18 @@ Function RunTransparentGatewayTest
 Function RunTest
 {
     $testExitCode = 0
+
+    # setup certificate generation tools to create the Edge device and leaf device certificates
+    PrepareCertificateTools
+
+    # dot source the certificate generation script
+    . "$EdgeCertGenScript"
+
+    # install the provided root CA to seed the certificate chain
+    If ($EdgeE2ERootCACertRSAFile -and $EdgeE2ERootCAKeyRSAFile)
+    {
+        Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
+    }
 
     Switch ($TestName)
     {
