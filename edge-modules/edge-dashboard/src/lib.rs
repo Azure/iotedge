@@ -4,6 +4,7 @@
 extern crate serde_derive;
 
 mod error;
+mod health;
 mod settings;
 mod state;
 
@@ -54,10 +55,15 @@ pub struct Module {
 
 impl Module {
     pub fn new(name: String, status: String) -> Self {
-        Module {
-            name,
-            status,
-        }
+        Module { name, status }
+    }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn status(&self) -> &String {
+        &self.status
     }
 }
 
@@ -90,6 +96,7 @@ impl Main {
                 .service(web::resource("/api/modules/").to_async(get_modules))
                 .service(web::resource("/api/provisioning-state/").to(get_state))
                 .service(web::resource("/api/connectivity/").to(get_connectivity))
+                .service(web::resource("/api/health/").to_async(get_health))
         })
         .bind(address)?
         .run()?;
@@ -106,7 +113,8 @@ pub struct AuthRequest {
 fn set_up(context: web::Data<Arc<Context>>) -> Option<state::Device> {
     if let Ok(_) = state::get_file() {
         // if file exists and can be located
-        context.get_ref()
+        context
+            .get_ref()
             .edge_config
             .as_ref()
             .map(|config| {
@@ -170,7 +178,8 @@ pub fn get_modules(
             Either::A(
                 Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
                     .map_err(ErrorInternalServerError)
-                    .and_then(|url| ModuleClient::new(&url).map_err(ErrorInternalServerError))
+                    .and_then(|url| ModuleClient::new(&url)
+                    .map_err(ErrorInternalServerError)) // can't connect to the endpoint
                     .map(|mod_client| {
                         mod_client
                             .list()
@@ -213,7 +222,8 @@ fn get_connectivity(_req: HttpRequest, device: web::Data<Option<state::Device>>)
             let r = resolve_and_tls_handshake(&(&**iothub_hostname, 443), iothub_hostname);
             match r {
                 Ok(_) => HttpResponse::Ok().body("Connected with IoT Hub!"),
-                Err(_) => HttpResponse::UnprocessableEntity().body("Failed to establish connection with IoT Hub."),
+                Err(_) => HttpResponse::UnprocessableEntity()
+                    .body("Failed to establish connection with IoT Hub."),
             }
         } else {
             HttpResponse::UnprocessableEntity().body("IoT Hub name could not be processed")
@@ -221,6 +231,81 @@ fn get_connectivity(_req: HttpRequest, device: web::Data<Option<state::Device>>)
     } else {
         HttpResponse::UnprocessableEntity().body("IoT Hub name could not be processed")
     }
+}
+
+fn get_health(
+    _req: HttpRequest,
+    context: web::Data<Arc<Context>>,
+    // info: web::Query<AuthRequest>,
+) -> Box<dyn Future<Item = HttpResponse, Error = ActixError>> {
+    let api_ver = "2018-06-28";
+
+    let response = context
+        .edge_config
+        .as_ref()
+        .map(|config| {
+            let mgmt_uri = config.connect().management_uri();
+            // let api_ver = &info.version;
+            // println!("API Version: {}", api_ver);
+            Either::A(
+                Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
+                    .map_err(ErrorInternalServerError)
+                    .and_then(|url| ModuleClient::new(&url)
+                    .map_err(ErrorInternalServerError)) // can't connect to the endpoint
+                    .map(|mod_client| {
+                        mod_client
+                            .list()
+                            .map(|data| {
+                                let x: Vec<Module> = data
+                                    .iter()
+                                    .map(|c| {
+                                        let mut status = "".to_string();
+                                        if let Ok(Async::Ready(t)) = c.runtime_state().poll() {
+                                            status =
+                                                (*(t.status().clone()).to_string()).to_string();
+                                        }
+                                        Module::new(c.name().to_string(), status)
+                                    })
+                                    .collect();
+                                let mut device_status = health::Status::new();
+                                let mut flag = true;
+                                for module in x.iter() {
+                                    if module.name() == "edgeAgent" {
+                                        if module.status() == "success" {
+                                            device_status.set_edge_agent();
+                                        } else {
+                                            flag = false;
+                                        }
+                                    } else if module.name() == "edgeHub" {
+                                        if module.status() == "success" {
+                                            device_status.set_edge_hub();
+                                        } else {
+                                            flag = false;
+                                        }
+                                    } else {
+                                        if module.status() != "success" {
+                                            flag = false;
+                                        }
+                                    }
+                                }
+                                device_status.set_other_modules(flag);
+                                let health = device_status.return_health();
+                                HttpResponse::Ok().body(format!("Device health: {:?}\nDevice details: {:?}", health, device_status))
+                            })
+                            .map_err(ErrorInternalServerError)
+                    })
+                    .into_future()
+                    .flatten(),
+            )
+        })
+        .unwrap_or_else(|err| {
+            Either::B(ok(HttpResponse::ServiceUnavailable()
+                .content_type("text/plain")
+                .body(format!("{:?}", err))))
+        });
+
+    Box::new(response)
+
 }
 
 fn resolve_and_tls_handshake(
