@@ -254,10 +254,10 @@ where
         info!("Initializing hsm...");
         let crypto = Crypto::new(hsm_lock.clone())
             .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
-            // ensure a master encryption key is initialized
-            crypto.create_key().context(ErrorKind::Initialize(
-                InitializeErrorReason::CreateMasterEncryptionKey,
-            ))?;
+        // ensure a master encryption key is initialized
+        crypto.create_key().context(ErrorKind::Initialize(
+            InitializeErrorReason::CreateMasterEncryptionKey,
+        ))?;
         info!("Finished initializing hsm.");
 
         let (hyper_client, device_cert_identity_data) =
@@ -339,20 +339,27 @@ where
         }
 
         info!("Provisioning edge device...");
-        let hybrid_id_subdir_path = Path::new(&settings.homedir()).join(EDGE_HYBRID_IDENTITY_SUBDIR);
+        let hybrid_id_subdir_path =
+            Path::new(&settings.homedir()).join(EDGE_HYBRID_IDENTITY_SUBDIR);
         let (force_module_reprovision, hybrid_identity_key) = prepare_master_hybrid_identity_key(
             &settings,
             &crypto,
             &hybrid_id_subdir_path,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
-            EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME)?;
+            EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+        )?;
 
         match settings.provisioning() {
             Provisioning::Manual(manual) => {
                 info!("Starting provisioning edge device via manual mode...");
                 let (key_store, provisioning_result, root_key) =
                     manual_provision(&manual, &mut tokio_runtime)?;
-                start_edgelet!(key_store, provisioning_result, root_key, force_module_reprovision);
+                start_edgelet!(
+                    key_store,
+                    provisioning_result,
+                    root_key,
+                    force_module_reprovision
+                );
             }
             Provisioning::External(external) => {
                 info!("Starting provisioning edge device via external provisioning mode...");
@@ -386,11 +393,21 @@ where
                     AuthType::SymmetricKey(symmetric_key) => {
                         if let Some(key) = symmetric_key.key() {
                             let (derived_key_store, memory_key) = external_provision_payload(key)?;
-                            start_edgelet!(derived_key_store, prov_result, memory_key, force_module_reprovision);
+                            start_edgelet!(
+                                derived_key_store,
+                                prov_result,
+                                memory_key,
+                                force_module_reprovision
+                            );
                         } else {
                             let (derived_key_store, tpm_key) =
                                 external_provision_tpm(hsm_lock.clone())?;
-                            start_edgelet!(derived_key_store, prov_result, tpm_key, force_module_reprovision);
+                            start_edgelet!(
+                                derived_key_store,
+                                prov_result,
+                                tpm_key,
+                                force_module_reprovision
+                            );
                         }
                     }
                     AuthType::X509(_) => {
@@ -415,7 +432,12 @@ where
                             tpm,
                             hsm_lock.clone(),
                         )?;
-                        start_edgelet!(key_store, provisioning_result, root_key, force_module_reprovision);
+                        start_edgelet!(
+                            key_store,
+                            provisioning_result,
+                            root_key,
+                            force_module_reprovision
+                        );
                     }
                     AttestationMethod::SymmetricKey(ref symmetric_key_info) => {
                         info!("Starting provisioning edge device via symmetric key...");
@@ -427,7 +449,12 @@ where
                                 &mut tokio_runtime,
                                 symmetric_key_info,
                             )?;
-                        start_edgelet!(key_store, provisioning_result, root_key, force_module_reprovision);
+                        start_edgelet!(
+                            key_store,
+                            provisioning_result,
+                            root_key,
+                            force_module_reprovision
+                        );
                     }
                     AttestationMethod::X509(ref x509_info) => {
                         info!("Starting provisioning edge device via X509 provisioning...");
@@ -446,17 +473,21 @@ where
                             ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient)
                         })?;
 
-                        let (key_store, provisioning_result, root_key) =
-                            dps_x509_provision(
-                                reg_id,
-                                &dps,
-                                hyper_client.clone(),
-                                dps_path,
-                                &mut tokio_runtime,
-                                &key_bytes,
-                                id_data.thumbprint,
-                            )?;
-                        start_edgelet!(key_store, provisioning_result, root_key, force_module_reprovision);
+                        let (key_store, provisioning_result, root_key) = dps_x509_provision(
+                            reg_id,
+                            &dps,
+                            hyper_client.clone(),
+                            dps_path,
+                            &mut tokio_runtime,
+                            &key_bytes,
+                            id_data.thumbprint,
+                        )?;
+                        start_edgelet!(
+                            key_store,
+                            provisioning_result,
+                            root_key,
+                            force_module_reprovision
+                        );
                     }
                 }
             }
@@ -681,12 +712,8 @@ where
     C: CreateCertificate + Decrypt + Encrypt + MakeRandom,
 {
     if get_provisioning_auth_method(settings) == ProvisioningAuthMethod::X509 {
-        let (new_key_created, hybrid_id_key) = get_or_create_hybrid_identity_key(
-            crypto,
-            subdir,
-            hybrid_id_filename,
-            iv_filename,
-        )?;
+        let (new_key_created, hybrid_id_key) =
+            get_or_create_hybrid_identity_key(crypto, subdir, hybrid_id_filename, iv_filename)?;
         Ok((new_key_created, Some(hybrid_id_key)))
     } else {
         // cleanup any stale keys from a prior run in case provisioning mode was changed
@@ -717,38 +744,42 @@ where
     {
         // check if the identity key & iv files exist and are valid
         let key_path = subdir.join(hybrid_id_filename);
-        let enc_identity_key = fs::read(key_path)
-                .context(ErrorKind::Initialize(
+        let enc_identity_key = fs::read(key_path).context(ErrorKind::Initialize(
             InitializeErrorReason::HybridAuthKeyLoad,
         ))?;
         let iv_path = subdir.join(iv_filename);
-        let iv = fs::read(iv_path)
-        .context(ErrorKind::Initialize(
+        let iv = fs::read(iv_path).context(ErrorKind::Initialize(
             InitializeErrorReason::HybridAuthKeyLoad,
         ))?;
         if iv.len() == IOTEDGED_CRYPTO_IV_LEN_BYTES {
-            let identity_key = crypto.decrypt(
-                IOTEDGED_CRYPTO_ID.as_bytes(),
-                enc_identity_key.as_ref(),
-                &iv,
-            )
-                    .context(ErrorKind::Initialize(
-            InitializeErrorReason::HybridAuthKeyInvalid,
-        ))?;
+            let identity_key = crypto
+                .decrypt(
+                    IOTEDGED_CRYPTO_ID.as_bytes(),
+                    enc_identity_key.as_ref(),
+                    &iv,
+                )
+                .context(ErrorKind::Initialize(
+                    InitializeErrorReason::HybridAuthKeyInvalid,
+                ))?;
             if identity_key.as_ref().len() == IDENTITY_MASTER_KEY_LEN_BYTES {
                 Ok(identity_key.as_ref().to_vec())
             } else {
-                Err(Error::from(ErrorKind::Initialize(InitializeErrorReason::HybridAuthKeyInvalid)))
+                Err(Error::from(ErrorKind::Initialize(
+                    InitializeErrorReason::HybridAuthKeyInvalid,
+                )))
             }
         } else {
-            Err(Error::from(ErrorKind::Initialize(InitializeErrorReason::HybridAuthKeyInvalid)))
+            Err(Error::from(ErrorKind::Initialize(
+                InitializeErrorReason::HybridAuthKeyInvalid,
+            )))
         }
     }
 
     match get_hybrid_identity_key_inner(crypto, subdir, hybrid_id_filename, iv_filename) {
         Ok(hybrid_key) => Ok((false, hybrid_key)),
         Err(_) => {
-            let key_bytes = create_hybrid_identity_key(crypto, subdir, hybrid_id_filename, iv_filename)?;
+            let key_bytes =
+                create_hybrid_identity_key(crypto, subdir, hybrid_id_filename, iv_filename)?;
             Ok((true, key_bytes))
         }
     }
@@ -794,24 +825,21 @@ where
         ))?;
 
     let path = subdir.join(hybrid_id_filename);
-    let mut file = File::create(path)
-        .context(ErrorKind::Initialize(
-            InitializeErrorReason::HybridAuthKeyCreate,
-        ))?;
+    let mut file = File::create(path).context(ErrorKind::Initialize(
+        InitializeErrorReason::HybridAuthKeyCreate,
+    ))?;
     file.write_all(enc_identity_key.as_bytes())
         .context(ErrorKind::Initialize(
             InitializeErrorReason::HybridAuthKeyCreate,
         ))?;
 
     let path = subdir.join(iv_filename);
-    let mut file = File::create(path)
-        .context(ErrorKind::Initialize(
-            InitializeErrorReason::HybridAuthKeyCreate,
-        ))?;
-    file.write_all(&iv)
-        .context(ErrorKind::Initialize(
-            InitializeErrorReason::HybridAuthKeyCreate,
-        ))?;
+    let mut file = File::create(path).context(ErrorKind::Initialize(
+        InitializeErrorReason::HybridAuthKeyCreate,
+    ))?;
+    file.write_all(&iv).context(ErrorKind::Initialize(
+        InitializeErrorReason::HybridAuthKeyCreate,
+    ))?;
 
     Ok(key_bytes.to_vec())
 }
@@ -915,14 +943,7 @@ where
         };
     }
     if reconfig_reqd {
-        reconfigure::<M, _>(
-            subdir,
-            filename,
-            settings,
-            runtime,
-            crypto,
-            tokio_runtime,
-        )?;
+        reconfigure::<M, _>(subdir, filename, settings, runtime, crypto, tokio_runtime)?;
     }
     Ok(())
 }
@@ -1888,8 +1909,14 @@ mod tests {
         assert_eq!(expected_base64, written);
 
         // non x.509 auth modes shouldn't have these files created
-        assert!(!tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME).exists());
-        assert!(!tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).exists());
+        assert!(!tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME)
+            .exists());
+        assert!(!tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME)
+            .exists());
     }
 
     #[test]
@@ -1937,8 +1964,14 @@ mod tests {
         assert_eq!(expected_base64, written);
 
         // non x.509 auth modes shouldn't have these files created
-        assert!(!tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME).exists());
-        assert!(!tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).exists());
+        assert!(!tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME)
+            .exists());
+        assert!(!tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME)
+            .exists());
     }
 
     #[test]
@@ -1986,8 +2019,14 @@ mod tests {
         assert_eq!(expected_base64, written);
 
         // non x.509 auth modes shouldn't have these files created
-        assert!(!tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME).exists());
-        assert!(!tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).exists());
+        assert!(!tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME)
+            .exists());
+        assert!(!tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME)
+            .exists());
     }
 
     #[test]
@@ -2180,22 +2219,35 @@ mod tests {
     #[test]
     fn get_provisioning_auth_method_returns_sas_key_for_manual_connection_string() {
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
-        assert_eq!(ProvisioningAuthMethod::SharedAccessKey, get_provisioning_auth_method(&settings));
+        assert_eq!(
+            ProvisioningAuthMethod::SharedAccessKey,
+            get_provisioning_auth_method(&settings)
+        );
     }
 
     #[test]
     fn get_provisioning_auth_method_returns_saskey_for_dps_tpm_provisioning() {
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
-        assert_eq!(ProvisioningAuthMethod::SharedAccessKey, get_provisioning_auth_method(&settings));
+        assert_eq!(
+            ProvisioningAuthMethod::SharedAccessKey,
+            get_provisioning_auth_method(&settings)
+        );
     }
 
     #[test]
     fn get_provisioning_auth_method_returns_saskey_for_dps_symm_key_provisioning() {
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_SYMM_KEY))).unwrap();
-        assert_eq!(ProvisioningAuthMethod::SharedAccessKey, get_provisioning_auth_method(&settings));
+        assert_eq!(
+            ProvisioningAuthMethod::SharedAccessKey,
+            get_provisioning_auth_method(&settings)
+        );
     }
 
-    fn prepare_test_dps_x509_settings_yaml(settings_path: &Path, cert_path: &Path, key_path: &Path) -> String {
+    fn prepare_test_dps_x509_settings_yaml(
+        settings_path: &Path,
+        cert_path: &Path,
+        key_path: &Path,
+    ) -> String {
         File::create(&cert_path)
             .expect("Test cert file could not be created")
             .write_all(b"CN=Mr. T")
@@ -2206,7 +2258,8 @@ mod tests {
             .write_all(b"i pity the fool")
             .expect("Test cert private key file could not be written");
 
-        let settings_yaml = format!("
+        let settings_yaml = format!(
+            "
 provisioning:
   source: 'dps'
   global_endpoint: 'scheme://jibba-jabba.net'
@@ -2236,7 +2289,10 @@ provisioning:
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
         let settings = Settings::new(Some(&settings_path)).unwrap();
-        assert_eq!(ProvisioningAuthMethod::X509, get_provisioning_auth_method(&settings));
+        assert_eq!(
+            ProvisioningAuthMethod::X509,
+            get_provisioning_auth_method(&settings)
+        );
     }
 
     #[test]
@@ -2256,10 +2312,10 @@ provisioning:
             .write_all(base64_to_write.as_bytes())
             .unwrap();
 
-         // check if there is no diff
+        // check if there is no diff
         assert_eq!(diff_with_cached(&settings, &path), false);
 
-         // now modify only the cert file and test if there is a diff
+        // now modify only the cert file and test if there is a diff
         File::create(&cert_path)
             .unwrap()
             .write_all(b"CN=B.A. Baracus")
@@ -2283,15 +2339,41 @@ provisioning:
             fail_decrypt: false,
             fail_encrypt: false,
         };
-        let (force_module_reprovision, hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+        let (force_module_reprovision, hybrid_identity_key) = prepare_master_hybrid_identity_key(
+            &settings,
+            &crypto,
+            tmp_dir.path(),
+            EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
+            EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+        )
+        .unwrap();
 
         // validate that module reprovision is required since this is the first time it was checked
         assert!(force_module_reprovision);
-        assert_eq!(hybrid_identity_key.unwrap().len(), IDENTITY_MASTER_KEY_LEN_BYTES);
+        assert_eq!(
+            hybrid_identity_key.unwrap().len(),
+            IDENTITY_MASTER_KEY_LEN_BYTES
+        );
 
         // hybrid key and iv should be created and non empty since the auth mode is X.509
-        assert!(tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME).metadata().unwrap().len() > 0);
-        assert!(tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).metadata().unwrap().len() == IOTEDGED_CRYPTO_IV_LEN_BYTES as u64);
+        assert!(
+            tmp_dir
+                .path()
+                .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME)
+                .metadata()
+                .unwrap()
+                .len()
+                > 0
+        );
+        assert!(
+            tmp_dir
+                .path()
+                .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME)
+                .metadata()
+                .unwrap()
+                .len()
+                == IOTEDGED_CRYPTO_IV_LEN_BYTES as u64
+        );
     }
 
     #[test]
@@ -2310,14 +2392,27 @@ provisioning:
             fail_decrypt: false,
             fail_encrypt: false,
         };
-        let (force_module_reprovision, expected_hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+        let (force_module_reprovision, expected_hybrid_identity_key) =
+            prepare_master_hybrid_identity_key(
+                &settings,
+                &crypto,
+                tmp_dir.path(),
+                EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
+                EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+            )
+            .unwrap();
 
         // validate that module reprovision is required since this is the first time it was checked
         assert!(force_module_reprovision);
-        assert_eq!(expected_hybrid_identity_key.clone().unwrap().len(), IDENTITY_MASTER_KEY_LEN_BYTES);
+        assert_eq!(
+            expected_hybrid_identity_key.clone().unwrap().len(),
+            IDENTITY_MASTER_KEY_LEN_BYTES
+        );
 
         // hybrid key and iv should be created and non empty since the auth mode is X.509
-        let key_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME);
+        let key_path = tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME);
         assert!(key_path.metadata().unwrap().len() > 0);
         let mut expected_hybrid_key_file_contents = Vec::new();
         File::open(&key_path)
@@ -2325,7 +2420,9 @@ provisioning:
             .read_to_end(&mut expected_hybrid_key_file_contents)
             .unwrap();
 
-        let iv_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME);
+        let iv_path = tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME);
         assert!(iv_path.metadata().unwrap().len() == IOTEDGED_CRYPTO_IV_LEN_BYTES as u64);
         let mut expected_iv_file_contents = Vec::new();
         File::open(&iv_path)
@@ -2333,13 +2430,23 @@ provisioning:
             .read_to_end(&mut expected_iv_file_contents)
             .unwrap();
 
-        let (force_module_reprovision, hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+        let (force_module_reprovision, hybrid_identity_key) = prepare_master_hybrid_identity_key(
+            &settings,
+            &crypto,
+            tmp_dir.path(),
+            EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
+            EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+        )
+        .unwrap();
 
         // validate that no module reprovision is required since nothing changed
         assert!(!force_module_reprovision);
 
         // validate that the iv and hybrid keys were not changed on disk
-        assert_eq!(expected_hybrid_identity_key.unwrap(), hybrid_identity_key.unwrap());
+        assert_eq!(
+            expected_hybrid_identity_key.unwrap(),
+            hybrid_identity_key.unwrap()
+        );
 
         let mut file_contents = Vec::new();
         File::open(&key_path)
@@ -2360,14 +2467,18 @@ provisioning:
         let tmp_dir = TempDir::new("blah").unwrap();
 
         let stale_hybrid_key = vec![2; IDENTITY_MASTER_KEY_LEN_BYTES];
-        let id_key_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME);
+        let id_key_path = tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME);
         File::create(&id_key_path)
             .expect("Stale hybrid key file could not be created")
             .write_all(&stale_hybrid_key)
             .expect("Stale hybrid key file could not be written");
 
         let stale_iv = vec![1; IOTEDGED_CRYPTO_IV_LEN_BYTES];
-        let iv_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME);
+        let iv_path = tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME);
         File::create(&iv_path)
             .expect("Stale iv file could not be created")
             .write_all(&stale_iv)
@@ -2387,11 +2498,21 @@ provisioning:
             fail_encrypt: false,
         };
 
-        let (force_module_reprovision, hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+        let (force_module_reprovision, hybrid_identity_key) = prepare_master_hybrid_identity_key(
+            &settings,
+            &crypto,
+            tmp_dir.path(),
+            EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
+            EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+        )
+        .unwrap();
 
         // validate that module reprovision is required since decrypt failed
         assert!(force_module_reprovision);
-        assert_eq!(hybrid_identity_key.clone().unwrap().len(), IDENTITY_MASTER_KEY_LEN_BYTES);
+        assert_eq!(
+            hybrid_identity_key.clone().unwrap().len(),
+            IDENTITY_MASTER_KEY_LEN_BYTES
+        );
 
         // hybrid key and iv should be created and non empty since the auth mode is X.509
         assert!(id_key_path.metadata().unwrap().len() > 0);
@@ -2431,7 +2552,14 @@ provisioning:
         };
 
         // validate that hyrbid id key create fails
-        prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap_err();
+        prepare_master_hybrid_identity_key(
+            &settings,
+            &crypto,
+            tmp_dir.path(),
+            EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
+            EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+        )
+        .unwrap_err();
     }
 
     #[test]
@@ -2451,15 +2579,30 @@ provisioning:
             fail_encrypt: false,
         };
 
-        let (force_module_reprovision, first_hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+        let (force_module_reprovision, first_hybrid_identity_key) =
+            prepare_master_hybrid_identity_key(
+                &settings,
+                &crypto,
+                tmp_dir.path(),
+                EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
+                EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+            )
+            .unwrap();
 
         // validate that module reprovision is required since this is the first time it was checked
         assert!(force_module_reprovision);
-        assert_eq!(first_hybrid_identity_key.clone().unwrap().len(), IDENTITY_MASTER_KEY_LEN_BYTES);
+        assert_eq!(
+            first_hybrid_identity_key.clone().unwrap().len(),
+            IDENTITY_MASTER_KEY_LEN_BYTES
+        );
 
         // hybrid key and iv should be created and non empty since the auth mode is X.509
-        let key_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME);
-        let iv_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME);
+        let key_path = tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME);
+        let iv_path = tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME);
         assert!(key_path.metadata().unwrap().len() > 0);
         assert!(iv_path.metadata().unwrap().len() == IOTEDGED_CRYPTO_IV_LEN_BYTES as u64);
 
@@ -2484,14 +2627,28 @@ provisioning:
             .write_all(&corrupt_iv)
             .expect("Corrupt iv file could not be written");
 
-        let (force_module_reprovision, second_hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+        let (force_module_reprovision, second_hybrid_identity_key) =
+            prepare_master_hybrid_identity_key(
+                &settings,
+                &crypto,
+                tmp_dir.path(),
+                EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
+                EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+            )
+            .unwrap();
 
         // validate that module reprovision is required since iv was corrupted
         assert!(force_module_reprovision);
-        assert_eq!(second_hybrid_identity_key.clone().unwrap().len(), IDENTITY_MASTER_KEY_LEN_BYTES);
+        assert_eq!(
+            second_hybrid_identity_key.clone().unwrap().len(),
+            IDENTITY_MASTER_KEY_LEN_BYTES
+        );
 
         // validate that a new hybrid id key was created
-        assert_ne!(first_hybrid_identity_key.clone().unwrap(), second_hybrid_identity_key.unwrap());
+        assert_ne!(
+            first_hybrid_identity_key.clone().unwrap(),
+            second_hybrid_identity_key.unwrap()
+        );
 
         // validate that a new hybrid id key was generated and changed on disk
         assert!(key_path.metadata().unwrap().len() > 0);
@@ -2530,15 +2687,30 @@ provisioning:
             fail_encrypt: false,
         };
 
-        let (force_module_reprovision, first_hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+        let (force_module_reprovision, first_hybrid_identity_key) =
+            prepare_master_hybrid_identity_key(
+                &settings,
+                &crypto,
+                tmp_dir.path(),
+                EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
+                EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+            )
+            .unwrap();
 
         // validate that module reprovision is required since this is the first time it was checked
         assert!(force_module_reprovision);
-        assert_eq!(first_hybrid_identity_key.clone().unwrap().len(), IDENTITY_MASTER_KEY_LEN_BYTES);
+        assert_eq!(
+            first_hybrid_identity_key.clone().unwrap().len(),
+            IDENTITY_MASTER_KEY_LEN_BYTES
+        );
 
         // hybrid key and iv should be created and non empty since the auth mode is X.509
-        let key_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME);
-        let iv_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME);
+        let key_path = tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME);
+        let iv_path = tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME);
         assert!(key_path.metadata().unwrap().len() > 0);
         assert!(iv_path.metadata().unwrap().len() == IOTEDGED_CRYPTO_IV_LEN_BYTES as u64);
 
@@ -2563,14 +2735,28 @@ provisioning:
             .write_all(&corrupt_key)
             .expect("Corrupt key file could not be written");
 
-        let (force_module_reprovision, second_hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+        let (force_module_reprovision, second_hybrid_identity_key) =
+            prepare_master_hybrid_identity_key(
+                &settings,
+                &crypto,
+                tmp_dir.path(),
+                EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
+                EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+            )
+            .unwrap();
 
         // validate that module reprovision is required since hybrid key was corrupted
         assert!(force_module_reprovision);
-        assert_eq!(second_hybrid_identity_key.clone().unwrap().len(), IDENTITY_MASTER_KEY_LEN_BYTES);
+        assert_eq!(
+            second_hybrid_identity_key.clone().unwrap().len(),
+            IDENTITY_MASTER_KEY_LEN_BYTES
+        );
 
         // validate that a new hybrid id key was created
-        assert_ne!(first_hybrid_identity_key.clone().unwrap(), second_hybrid_identity_key.unwrap());
+        assert_ne!(
+            first_hybrid_identity_key.clone().unwrap(),
+            second_hybrid_identity_key.unwrap()
+        );
 
         // validate that a new hybrid id key was generated and changed on disk
         assert!(key_path.metadata().unwrap().len() > 0);
@@ -2596,13 +2782,17 @@ provisioning:
     fn master_hybrid_id_key_deletes_stale_hybrid_key_and_iv_when_provisioning_to_non_x509_auth() {
         let tmp_dir = TempDir::new("blah").unwrap();
 
-        let hybrid_key_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME);
+        let hybrid_key_path = tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME);
         File::create(&hybrid_key_path)
             .expect("Stale hybrid key file could not be created")
             .write_all(b"jabba")
             .expect("Stale hybrid key file could not be written");
 
-        let iv_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME);
+        let iv_path = tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME);
         File::create(&iv_path)
             .expect("Stale iv file could not be created")
             .write_all(b"jibba")
@@ -2618,7 +2808,14 @@ provisioning:
             fail_encrypt: false,
         };
 
-        let (force_module_reprovision, hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+        let (force_module_reprovision, hybrid_identity_key) = prepare_master_hybrid_identity_key(
+            &settings,
+            &crypto,
+            tmp_dir.path(),
+            EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
+            EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+        )
+        .unwrap();
 
         // validate that module reprovision is not required this was not using x509
         assert!(!force_module_reprovision);
@@ -2627,7 +2824,13 @@ provisioning:
 
         // no hybrid key and iv should be created and any stale files deleted
         // since the auth mode is not X.509
-        assert!(!tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME).exists());
-        assert!(!tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).exists());
+        assert!(!tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME)
+            .exists());
+        assert!(!tmp_dir
+            .path()
+            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME)
+            .exists());
     }
 }

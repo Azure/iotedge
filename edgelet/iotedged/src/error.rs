@@ -232,13 +232,21 @@ impl fmt::Display for InitializeErrorReason {
 
             InitializeErrorReason::HttpClient => write!(f, "Could not initialize HTTP client"),
 
-            InitializeErrorReason::HybridAuthDirCreate => write!(f, "Could not create the hybrid identity key directory"),
+            InitializeErrorReason::HybridAuthDirCreate => {
+                write!(f, "Could not create the hybrid identity key directory")
+            }
 
-            InitializeErrorReason::HybridAuthKeyCreate => write!(f, "Could not create the hybrid identity key"),
+            InitializeErrorReason::HybridAuthKeyCreate => {
+                write!(f, "Could not create the hybrid identity key")
+            }
 
-            InitializeErrorReason::HybridAuthKeyLoad => write!(f, "Could not load the hybrid identity key"),
+            InitializeErrorReason::HybridAuthKeyLoad => {
+                write!(f, "Could not load the hybrid identity key")
+            }
 
-            InitializeErrorReason::HybridAuthKeyInvalid => write!(f, "The loaded the hybrid identity key was invalid"),
+            InitializeErrorReason::HybridAuthKeyInvalid => {
+                write!(f, "The loaded the hybrid identity key was invalid")
+            }
 
             InitializeErrorReason::InvalidDeviceCertCredentials => {
                 write!(f, "Invalid identity certificate")
