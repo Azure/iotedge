@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.WindowsAzure.Storage.Blob;
     using Moq;
     using Xunit;
     using Match = System.Text.RegularExpressions.Match;
@@ -20,11 +19,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
     [Unit]
     public class AzureBlobLogsUploaderTest
     {
-        const string BlobNameRegexPattern = @"(?<iothub>.*)/(?<deviceid>.*)/(?<id>.*)-(?<timestamp>\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}).(?<extension>\w{2})";
+        const string BlobNameRegexPattern = @"(?<iothub>.*)/(?<deviceid>.*)/(?<id>.*)-(?<timestamp>\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}).(?<extension>.{3,7})";
 
         [Theory]
-        [InlineData(LogsContentEncoding.Gzip, LogsContentType.Json, "gz")]
-        [InlineData(LogsContentEncoding.Gzip, LogsContentType.Text, "gz")]
+        [InlineData(LogsContentEncoding.Gzip, LogsContentType.Json, "json.gz")]
+        [InlineData(LogsContentEncoding.Gzip, LogsContentType.Text, "log.gz")]
         [InlineData(LogsContentEncoding.None, LogsContentType.Json, "json")]
         [InlineData(LogsContentEncoding.None, LogsContentType.Text, "log")]
         public void GetExtensionTest(LogsContentEncoding contentEncoding, LogsContentType contentType, string expectedExtension)
@@ -39,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
             string iotHub = "foo.azure-devices.net";
             string deviceId = "abcd";
             string id = "pqr";
-            string extension = "gz";
+            string extension = "json.gz";
 
             var regex = new Regex(BlobNameRegexPattern);
 

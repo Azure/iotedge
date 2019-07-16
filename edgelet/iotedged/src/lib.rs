@@ -24,8 +24,8 @@ pub mod windows;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
-use std::fs::{DirBuilder, File};
-use std::io::Write;
+use std::fs::{DirBuilder, File, OpenOptions};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -35,18 +35,13 @@ use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future};
 use hyper::server::conn::Http;
 use hyper::{Body, Request, Uri};
-use log::{debug, info};
+use log::{debug, info, Level};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use url::Url;
 
-use docker::models::HostConfig;
 use dps::DPS_API_VERSION;
-use edgelet_config::{
-    AttestationMethod, Dps, Manual, Provisioning, Settings, SymmetricKeyAttestationInfo,
-    TpmAttestationInfo, DEFAULT_CONNECTION_STRING,
-};
 use edgelet_core::crypto::{
     Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetDeviceIdentityCertificate,
     GetIssuerAlias, GetTrustBundle, KeyIdentity, KeyStore, MakeRandom, MasterEncryptionKey,
@@ -54,10 +49,12 @@ use edgelet_core::crypto::{
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
-    Authenticator, Certificate, CertificateIssuer, CertificateProperties, CertificateType, Module,
-    ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, UrlExt, WorkloadConfig, UNIX_SCHEME,
+    AttestationMethod, Authenticator, Certificate, CertificateIssuer, CertificateProperties,
+    CertificateType, Dps, MakeModuleRuntime, Manual, Module, ModuleRuntime,
+    ModuleRuntimeErrorReason, ModuleSpec, Provisioning,
+    ProvisioningResult as CoreProvisioningResult, RuntimeSettings, SymmetricKeyAttestationInfo,
+    TpmAttestationInfo, WorkloadConfig, DEFAULT_CONNECTION_STRING,
 };
-use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::{Crypto, HsmLock, X509};
 use edgelet_http::certificate_manager::CertificateManager;
@@ -68,6 +65,7 @@ use edgelet_http_external_provisioning::ExternalProvisioningClient;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
+use edgelet_utils::log_failure;
 pub use error::{Error, ErrorKind, InitializeErrorReason};
 use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
@@ -136,9 +134,6 @@ const TRUSTED_CA_CERTS_KEY: &str = "IOTEDGE_TRUSTED_CA_CERTS";
 /// provisioning mode.
 const EXTERNAL_PROVISIONING_ENDPOINT_KEY: &str = "IOTEDGE_EXTERNAL_PROVISIONING_ENDPOINT";
 
-/// This is the key for the docker network Id.
-const EDGE_NETWORKID_KEY: &str = "NetworkId";
-
 /// This is the key for the largest API version that this edgelet supports
 const API_VERSION_KEY: &str = "IOTEDGE_APIVERSION";
 
@@ -149,6 +144,10 @@ const EDGE_PROVISIONING_BACKUP_FILENAME: &str = "provisioning_backup.json";
 
 /// This is the name of the settings backup file
 const EDGE_SETTINGS_STATE_FILENAME: &str = "settings_state";
+
+/// This is the name of the hybrid id subdirectory that will
+/// contain the hybrid key and other related files
+const EDGE_HYBRID_IDENTITY_SUBDIR: &str = "hybrid_id";
 
 /// This is the name of the hybrid X509-SAS key file
 const EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME: &str = "iotedge_hybrid_key";
@@ -188,11 +187,14 @@ enum StartApiReturnStatus {
     Shutdown,
 }
 
-pub struct Main {
-    settings: Settings<DockerConfig>,
+pub struct Main<M>
+where
+    M: MakeModuleRuntime,
+{
+    settings: M::Settings,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 enum ProvisioningAuthMethod {
     X509,
     SharedAccessKey,
@@ -203,8 +205,18 @@ struct IdentityCertificateData {
     thumbprint: String,
 }
 
-impl Main {
-    pub fn new(settings: Settings<DockerConfig>) -> Self {
+impl<M> Main<M>
+where
+    M: MakeModuleRuntime<ProvisioningResult = ProvisioningResult> + Send + 'static,
+    M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
+        Clone + DeserializeOwned + Serialize,
+    M::Settings: 'static + Clone + Serialize,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
+    <M::ModuleRuntime as Authenticator>::Error: Fail + Sync,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+{
+    pub fn new(settings: M::Settings) -> Self {
         Main { settings }
     }
 
@@ -216,7 +228,6 @@ impl Main {
         G: Fn() -> F,
     {
         let Main { settings } = self;
-
         let hsm_lock = HsmLock::new();
 
         let mut tokio_runtime = tokio::runtime::Runtime::new()
@@ -238,42 +249,66 @@ impl Main {
             );
         }
 
-        info!(
-            "Using runtime network id {}",
-            settings.moby_runtime().network()
-        );
-        let runtime = DockerModuleRuntime::new(settings.moby_runtime().uri())
-            .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?
-            .with_network_id(settings.moby_runtime().network().to_string());
-
-        init_docker_runtime(&runtime, &mut tokio_runtime)?;
-
         set_iot_edge_env_vars(&settings);
 
         info!("Initializing hsm...");
         let crypto = Crypto::new(hsm_lock.clone())
             .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+            // ensure a master encryption key is initialized
+            crypto.create_key().context(ErrorKind::Initialize(
+                InitializeErrorReason::CreateMasterEncryptionKey,
+            ))?;
         info!("Finished initializing hsm.");
 
         let (hyper_client, device_cert_identity_data) =
             prepare_httpclient_and_identity_data(hsm_lock.clone(), &settings)?;
 
-        // Detect if the settings were changed and if the device needs to be reconfigured
         let cache_subdir_path = Path::new(&settings.homedir()).join(EDGE_SETTINGS_SUBDIR);
-        let hybrid_identity_key = check_settings_state(
-            &cache_subdir_path.clone(),
-            EDGE_SETTINGS_STATE_FILENAME,
-            &settings,
-            &runtime,
-            &crypto,
-            &mut tokio_runtime,
-            EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
-            EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
-        )?;
+        // make sure the cache directory exists
+        DirBuilder::new()
+            .recursive(true)
+            .create(&cache_subdir_path)
+            .context(ErrorKind::Initialize(
+                InitializeErrorReason::CreateCacheDirectory,
+            ))?;
 
         macro_rules! start_edgelet {
-            ($key_store:ident, $provisioning_result:ident, $root_key:ident, $runtime:ident) => {{
+            ($key_store:ident, $provisioning_result:ident, $root_key:ident, $force_reprovision:ident) => {{
                 info!("Finished provisioning edge device.");
+
+                let runtime = init_runtime::<M>(
+                    settings.clone(),
+                    &mut tokio_runtime,
+                    $provisioning_result.clone(),
+                )?;
+
+                if $force_reprovision ||
+                    ($provisioning_result.reconfigure() != ReprovisioningStatus::DeviceDataNotUpdated) {
+                    // If this device was re-provisioned and the device key was updated it causes
+                    // module keys to be obsoleted in IoTHub from the previous provisioning. We therefore
+                    // delete all containers after each DPS provisioning run so that IoTHub can be updated
+                    // with new module keys when the deployment is executed by EdgeAgent.
+                    info!(
+                        "Reprovisioning status {:?} will trigger reconfiguration of modules.",
+                        $provisioning_result.reconfigure()
+                    );
+
+                    tokio_runtime
+                        .block_on(runtime.remove_all())
+                        .context(ErrorKind::Initialize(
+                            InitializeErrorReason::RemoveExistingModules,
+                        ))?;
+                }
+
+                // Detect if the settings were changed and if the device needs to be reconfigured
+                check_settings_state::<M, _>(
+                                    &cache_subdir_path,
+                                    EDGE_SETTINGS_STATE_FILENAME,
+                                    &settings,
+                                    &runtime,
+                                    &crypto,
+                                    &mut tokio_runtime,
+                )?;
 
                 let cfg = WorkloadData::new(
                     $provisioning_result.hub_name().to_string(),
@@ -284,10 +319,10 @@ impl Main {
                 // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
                 // is received. If the TLS cert needs a restart, we will loop again.
                 loop {
-                    let code = start_api(
+                    let code = start_api::<_, _, _, _, _, M>(
                         &settings,
                         hyper_client.clone(),
-                        &$runtime,
+                        &runtime,
                         &$key_store,
                         cfg.clone(),
                         $root_key.clone(),
@@ -304,12 +339,20 @@ impl Main {
         }
 
         info!("Provisioning edge device...");
+        let hybrid_id_subdir_path = Path::new(&settings.homedir()).join(EDGE_HYBRID_IDENTITY_SUBDIR);
+        let (force_module_reprovision, hybrid_identity_key) = prepare_master_hybrid_identity_key(
+            &settings,
+            &crypto,
+            &hybrid_id_subdir_path,
+            EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
+            EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME)?;
+
         match settings.provisioning() {
             Provisioning::Manual(manual) => {
                 info!("Starting provisioning edge device via manual mode...");
                 let (key_store, provisioning_result, root_key) =
                     manual_provision(&manual, &mut tokio_runtime)?;
-                start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                start_edgelet!(key_store, provisioning_result, root_key, force_module_reprovision);
             }
             Provisioning::External(external) => {
                 info!("Starting provisioning edge device via external provisioning mode...");
@@ -342,12 +385,12 @@ impl Main {
                 match credentials.auth_type() {
                     AuthType::SymmetricKey(symmetric_key) => {
                         if let Some(key) = symmetric_key.key() {
-                            let (derived_key_store, memory_key) = external_provision_payload(key);
-                            start_edgelet!(derived_key_store, prov_result, memory_key, runtime);
+                            let (derived_key_store, memory_key) = external_provision_payload(key)?;
+                            start_edgelet!(derived_key_store, prov_result, memory_key, force_module_reprovision);
                         } else {
                             let (derived_key_store, tpm_key) =
                                 external_provision_tpm(hsm_lock.clone())?;
-                            start_edgelet!(derived_key_store, prov_result, tpm_key, runtime);
+                            start_edgelet!(derived_key_store, prov_result, tpm_key, force_module_reprovision);
                         }
                     }
                     AuthType::X509(_) => {
@@ -364,30 +407,27 @@ impl Main {
                 match dps.attestation() {
                     AttestationMethod::Tpm(ref tpm) => {
                         info!("Starting provisioning edge device via TPM...");
-                        let (key_store, provisioning_result, root_key, runtime) =
-                            dps_tpm_provision(
-                                &dps,
-                                hyper_client.clone(),
-                                dps_path,
-                                runtime,
-                                &mut tokio_runtime,
-                                tpm,
-                                hsm_lock.clone(),
-                            )?;
-                        start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                        let (key_store, provisioning_result, root_key) = dps_tpm_provision(
+                            &dps,
+                            hyper_client.clone(),
+                            dps_path,
+                            &mut tokio_runtime,
+                            tpm,
+                            hsm_lock.clone(),
+                        )?;
+                        start_edgelet!(key_store, provisioning_result, root_key, force_module_reprovision);
                     }
                     AttestationMethod::SymmetricKey(ref symmetric_key_info) => {
                         info!("Starting provisioning edge device via symmetric key...");
-                        let (key_store, provisioning_result, root_key, runtime) =
+                        let (key_store, provisioning_result, root_key) =
                             dps_symmetric_key_provision(
                                 &dps,
                                 hyper_client.clone(),
                                 dps_path,
-                                runtime,
                                 &mut tokio_runtime,
                                 symmetric_key_info,
                             )?;
-                        start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                        start_edgelet!(key_store, provisioning_result, root_key, force_module_reprovision);
                     }
                     AttestationMethod::X509(ref x509_info) => {
                         info!("Starting provisioning edge device via X509 provisioning...");
@@ -406,18 +446,17 @@ impl Main {
                             ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient)
                         })?;
 
-                        let (key_store, provisioning_result, root_key, runtime) =
+                        let (key_store, provisioning_result, root_key) =
                             dps_x509_provision(
                                 reg_id,
                                 &dps,
                                 hyper_client.clone(),
                                 dps_path,
-                                runtime,
                                 &mut tokio_runtime,
                                 &key_bytes,
                                 id_data.thumbprint,
                             )?;
-                        start_edgelet!(key_store, provisioning_result, root_key, runtime);
+                        start_edgelet!(key_store, provisioning_result, root_key, force_module_reprovision);
                     }
                 }
             }
@@ -428,7 +467,10 @@ impl Main {
     }
 }
 
-fn set_iot_edge_env_vars(settings: &Settings<DockerConfig>) {
+fn set_iot_edge_env_vars<S>(settings: &S)
+where
+    S: RuntimeSettings,
+{
     info!(
         "Configuring {} as the home directory.",
         settings.homedir().display()
@@ -483,11 +525,14 @@ fn set_iot_edge_env_vars(settings: &Settings<DockerConfig>) {
     info!("Finished configuring provisioning environment variables and certificates.");
 }
 
-fn prepare_httpclient_and_identity_data(
+fn prepare_httpclient_and_identity_data<S>(
     hsm_lock: Arc<HsmLock>,
-    settings: &Settings<DockerConfig>,
-) -> Result<(MaybeProxyClient, Option<IdentityCertificateData>), Error> {
-    if get_provisioning_auth_method(&settings) == ProvisioningAuthMethod::X509 {
+    settings: &S,
+) -> Result<(MaybeProxyClient, Option<IdentityCertificateData>), Error>
+where
+    S: RuntimeSettings,
+{
+    if get_provisioning_auth_method(settings) == ProvisioningAuthMethod::X509 {
         info!("Initializing hsm X509 interface...");
         let x509 =
             X509::new(hsm_lock).context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
@@ -624,137 +669,288 @@ where
     Ok(())
 }
 
-fn check_x509_reprovisioning<C>(
-    subdir_path: &PathBuf,
-    settings: &Settings<DockerConfig>,
+fn prepare_master_hybrid_identity_key<S, C>(
+    settings: &S,
     crypto: &C,
+    subdir: &Path,
     hybrid_id_filename: &str,
     iv_filename: &str,
-) -> (bool, Option<Vec<u8>>)
+) -> Result<(bool, Option<Vec<u8>>), Error>
 where
-    C: CreateCertificate + Decrypt,
+    S: RuntimeSettings,
+    C: CreateCertificate + Decrypt + Encrypt + MakeRandom,
 {
-    fn check_x509_reprovisioning_inner<C>(
-        subdir_path: &PathBuf,
+    if get_provisioning_auth_method(settings) == ProvisioningAuthMethod::X509 {
+        let (new_key_created, hybrid_id_key) = get_or_create_hybrid_identity_key(
+            crypto,
+            subdir,
+            hybrid_id_filename,
+            iv_filename,
+        )?;
+        Ok((new_key_created, Some(hybrid_id_key)))
+    } else {
+        // cleanup any stale keys from a prior run in case provisioning mode was changed
+        // ignore errors from this operation because we could also be recovering from a previous bad
+        // configuration and shouldn't stall the current configuration because of that
+        let _u = fs::remove_dir_all(subdir);
+        Ok((false, None))
+    }
+}
+
+fn get_or_create_hybrid_identity_key<C>(
+    crypto: &C,
+    subdir: &Path,
+    hybrid_id_filename: &str,
+    iv_filename: &str,
+) -> Result<(bool, Vec<u8>), Error>
+where
+    C: CreateCertificate + Decrypt + Encrypt + MakeRandom,
+{
+    fn get_hybrid_identity_key_inner<C>(
         crypto: &C,
+        subdir: &Path,
         hybrid_id_filename: &str,
         iv_filename: &str,
-    ) -> Result<(bool, Option<Vec<u8>>), HybridAuthError>
+    ) -> Result<Vec<u8>, Error>
     where
-        C: CreateCertificate + Decrypt,
+        C: Decrypt,
     {
         // check if the identity key & iv files exist and are valid
-        let key_path = subdir_path.join(hybrid_id_filename);
-        let enc_identity_key = fs::read(key_path.as_path())?;
-        let iv_path = subdir_path.join(iv_filename);
-        let iv = fs::read(iv_path.as_path())?;
+        let key_path = subdir.join(hybrid_id_filename);
+        let enc_identity_key = fs::read(key_path)
+                .context(ErrorKind::Initialize(
+            InitializeErrorReason::HybridAuthKeyLoad,
+        ))?;
+        let iv_path = subdir.join(iv_filename);
+        let iv = fs::read(iv_path)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::HybridAuthKeyLoad,
+        ))?;
         if iv.len() == IOTEDGED_CRYPTO_IV_LEN_BYTES {
             let identity_key = crypto.decrypt(
                 IOTEDGED_CRYPTO_ID.as_bytes(),
                 enc_identity_key.as_ref(),
                 &iv,
-            )?;
+            )
+                    .context(ErrorKind::Initialize(
+            InitializeErrorReason::HybridAuthKeyInvalid,
+        ))?;
             if identity_key.as_ref().len() == IDENTITY_MASTER_KEY_LEN_BYTES {
-                Ok((false, Some(identity_key.as_ref().to_vec())))
+                Ok(identity_key.as_ref().to_vec())
             } else {
-                Ok((true, None))
+                Err(Error::from(ErrorKind::Initialize(InitializeErrorReason::HybridAuthKeyInvalid)))
             }
         } else {
-            Ok((true, None))
+            Err(Error::from(ErrorKind::Initialize(InitializeErrorReason::HybridAuthKeyInvalid)))
         }
     }
 
-    if get_provisioning_auth_method(settings) == ProvisioningAuthMethod::X509 {
-        check_x509_reprovisioning_inner(subdir_path, crypto, hybrid_id_filename, iv_filename)
-            .unwrap_or((true, None))
-    } else {
-        (false, None)
+    match get_hybrid_identity_key_inner(crypto, subdir, hybrid_id_filename, iv_filename) {
+        Ok(hybrid_key) => Ok((false, hybrid_key)),
+        Err(_) => {
+            let key_bytes = create_hybrid_identity_key(crypto, subdir, hybrid_id_filename, iv_filename)?;
+            Ok((true, key_bytes))
+        }
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn check_settings_state<M, C>(
-    subdir_path: &PathBuf,
-    settings_state_filename: &str,
-    settings: &Settings<DockerConfig>,
-    runtime: &M,
+fn create_hybrid_identity_key<C>(
     crypto: &C,
-    tokio_runtime: &mut tokio::runtime::Runtime,
+    subdir: &Path,
     hybrid_id_filename: &str,
     iv_filename: &str,
-) -> Result<Option<Vec<u8>>, Error>
+) -> Result<Vec<u8>, Error>
 where
-    M: ModuleRuntime,
-    <M as ModuleRuntime>::RemoveAllFuture: 'static,
-    C: CreateCertificate + Decrypt + Encrypt + GetIssuerAlias + MasterEncryptionKey + MakeRandom,
+    C: Decrypt + Encrypt + MakeRandom,
 {
-    info!("Detecting if configuration file has changed...");
-    let (mut reconfig_reqd, mut hybrid_id_key) = check_x509_reprovisioning(
-        subdir_path,
-        settings,
-        crypto,
-        hybrid_id_filename,
-        iv_filename,
-    );
-    if !reconfig_reqd {
-        let path = subdir_path.join(settings_state_filename);
-        let diff = settings.diff_with_cached(&path);
-        if diff {
-            info!("Change to configuration file detected.");
-            reconfig_reqd = true;
+    // Ignore errors from this operation because we could be recovering from a previous bad
+    // configuration and shouldn't stall the current configuration because of that
+    let _u = fs::remove_dir_all(subdir);
+    DirBuilder::new()
+        .recursive(true)
+        .create(subdir)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::HybridAuthDirCreate,
+        ))?;
+
+    let mut key_bytes: [u8; IDENTITY_MASTER_KEY_LEN_BYTES] = [0; IDENTITY_MASTER_KEY_LEN_BYTES];
+    crypto
+        .get_random_bytes(&mut key_bytes)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::HybridAuthKeyCreate,
+        ))?;
+
+    let mut iv: [u8; IOTEDGED_CRYPTO_IV_LEN_BYTES] = [0; IOTEDGED_CRYPTO_IV_LEN_BYTES];
+    crypto
+        .get_random_bytes(&mut iv)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::HybridAuthKeyCreate,
+        ))?;
+
+    let enc_identity_key = crypto
+        .encrypt(IOTEDGED_CRYPTO_ID.as_bytes(), &key_bytes, &iv)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::HybridAuthKeyCreate,
+        ))?;
+
+    let path = subdir.join(hybrid_id_filename);
+    let mut file = File::create(path)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::HybridAuthKeyCreate,
+        ))?;
+    file.write_all(enc_identity_key.as_bytes())
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::HybridAuthKeyCreate,
+        ))?;
+
+    let path = subdir.join(iv_filename);
+    let mut file = File::create(path)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::HybridAuthKeyCreate,
+        ))?;
+    file.write_all(&iv)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::HybridAuthKeyCreate,
+        ))?;
+
+    Ok(key_bytes.to_vec())
+}
+
+fn compute_settings_digest<S>(settings: &S) -> Result<String, DiffError>
+where
+    S: RuntimeSettings + Serialize,
+{
+    let mut s = serde_json::to_string(settings)?;
+
+    if let Provisioning::Dps(dps) = settings.provisioning() {
+        if let AttestationMethod::X509(x509_info) = dps.attestation() {
+            let mut file = OpenOptions::new()
+                .read(true)
+                .open(x509_info.identity_cert())?;
+            let mut cert = String::new();
+            file.read_to_string(&mut cert)?;
+            s.push_str(&cert);
+        }
+    }
+    Ok(base64::encode(&Sha256::digest_str(&s)))
+}
+
+fn diff_with_cached<S>(settings: &S, path: &Path) -> bool
+where
+    S: RuntimeSettings + Serialize,
+{
+    fn diff_with_cached_inner<S>(cached_settings: &S, path: &Path) -> Result<bool, DiffError>
+    where
+        S: RuntimeSettings + Serialize,
+    {
+        let mut file = OpenOptions::new().read(true).open(path)?;
+        let mut buffer = String::new();
+        file.read_to_string(&mut buffer)?;
+        let encoded = compute_settings_digest(cached_settings)?;
+        if encoded == buffer {
+            debug!("Config state matches supplied config.");
+            Ok(false)
         } else {
-            info!("No change to configuration file detected.");
-            #[allow(clippy::single_match_else)]
-            match prepare_workload_ca(crypto) {
-                Ok(()) => info!("Obtaining workload CA succeeded."),
-                Err(_) => {
-                    reconfig_reqd = true;
-                    info!("Obtaining workload CA failed. Triggering reconfiguration");
-                }
-            };
+            Ok(true)
         }
     }
 
+    match diff_with_cached_inner(settings, path) {
+        Ok(result) => result,
+
+        Err(err) => {
+            log_failure(Level::Debug, &err);
+            debug!("Error reading config backup.");
+            true
+        }
+    }
+}
+
+#[derive(Debug, Fail)]
+#[fail(display = "Could not load settings")]
+pub struct DiffError(#[cause] Context<Box<dyn std::fmt::Display + Send + Sync>>);
+
+impl From<std::io::Error> for DiffError {
+    fn from(err: std::io::Error) -> Self {
+        DiffError(Context::new(Box::new(err)))
+    }
+}
+
+impl From<serde_json::Error> for DiffError {
+    fn from(err: serde_json::Error) -> Self {
+        DiffError(Context::new(Box::new(err)))
+    }
+}
+
+fn check_settings_state<M, C>(
+    subdir: &Path,
+    filename: &str,
+    settings: &M::Settings,
+    runtime: &M::ModuleRuntime,
+    crypto: &C,
+    tokio_runtime: &mut tokio::runtime::Runtime,
+) -> Result<(), Error>
+where
+    M: MakeModuleRuntime + 'static,
+    M::Settings: Serialize,
+    C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
+{
+    info!("Detecting if configuration file has changed...");
+    let path = subdir.join(filename);
+    let mut reconfig_reqd = false;
+    let diff = diff_with_cached(settings, &path);
+    if diff {
+        info!("Change to configuration file detected.");
+        reconfig_reqd = true;
+    } else {
+        info!("No change to configuration file detected.");
+
+        #[allow(clippy::single_match_else)]
+        match prepare_workload_ca(crypto) {
+            Ok(()) => info!("Obtaining workload CA succeeded."),
+            Err(_) => {
+                reconfig_reqd = true;
+                info!("Obtaining workload CA failed. Triggering reconfiguration");
+            }
+        };
+    }
     if reconfig_reqd {
-        hybrid_id_key = reconfigure(
-            &subdir_path,
-            settings_state_filename,
+        reconfigure::<M, _>(
+            subdir,
+            filename,
             settings,
             runtime,
             crypto,
             tokio_runtime,
-            hybrid_id_filename,
-            iv_filename,
         )?;
     }
-    Ok(hybrid_id_key)
+    Ok(())
 }
 
-fn get_provisioning_auth_method(settings: &Settings<DockerConfig>) -> ProvisioningAuthMethod {
-    let mut method = ProvisioningAuthMethod::SharedAccessKey;
+fn get_provisioning_auth_method<S>(settings: &S) -> ProvisioningAuthMethod
+where
+    S: RuntimeSettings,
+{
     if let Provisioning::Dps(dps) = settings.provisioning() {
         if let AttestationMethod::X509(_) = dps.attestation() {
-            method = ProvisioningAuthMethod::X509;
+            return ProvisioningAuthMethod::X509;
         }
     }
-    method
+    ProvisioningAuthMethod::SharedAccessKey
 }
 
-#[allow(clippy::too_many_arguments)]
 fn reconfigure<M, C>(
-    subdir: &PathBuf,
-    settings_state_filename: &str,
-    settings: &Settings<DockerConfig>,
-    runtime: &M,
+    subdir: &Path,
+    filename: &str,
+    settings: &M::Settings,
+    runtime: &M::ModuleRuntime,
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
-    hybrid_id_filename: &str,
-    iv_filename: &str,
-) -> Result<(Option<Vec<u8>>), Error>
+) -> Result<(), Error>
 where
-    M: ModuleRuntime,
-    <M as ModuleRuntime>::RemoveAllFuture: 'static,
-    C: CreateCertificate + Decrypt + Encrypt + GetIssuerAlias + MasterEncryptionKey + MakeRandom,
+    M: MakeModuleRuntime + 'static,
+    M::Settings: Serialize,
+    C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
     // Remove all edge containers and destroy the cache (settings and dps backup)
     info!("Removing all modules...");
@@ -769,7 +965,7 @@ where
     // configuration and shouldn't stall the current configuration because of that
     let _u = fs::remove_dir_all(subdir);
 
-    let path = subdir.join(settings_state_filename);
+    let path = subdir.join(filename);
 
     DirBuilder::new()
         .recursive(true)
@@ -778,60 +974,24 @@ where
             InitializeErrorReason::CreateSettingsDirectory,
         ))?;
 
-    // Generate a new master encryption key and save the new settings
-    crypto.create_key().context(ErrorKind::Initialize(
-        InitializeErrorReason::CreateMasterEncryptionKey,
-    ))?;
     // regenerate the workload CA certificate
     destroy_workload_ca(crypto)?;
     prepare_workload_ca(crypto)?;
     let mut file =
         File::create(path).context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
-    let digest = settings
-        .compute_settings_digest()
+    let digest = compute_settings_digest(settings)
         .context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
     file.write_all(digest.as_bytes())
         .context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
 
-    let mut identity_master_key: Option<Vec<u8>> = None;
-    if get_provisioning_auth_method(settings) == ProvisioningAuthMethod::X509 {
-        let mut key_bytes: [u8; IDENTITY_MASTER_KEY_LEN_BYTES] = [0; IDENTITY_MASTER_KEY_LEN_BYTES];
-        crypto
-            .get_random_bytes(&mut key_bytes)
-            .context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
-
-        let mut iv: [u8; IOTEDGED_CRYPTO_IV_LEN_BYTES] = [0; IOTEDGED_CRYPTO_IV_LEN_BYTES];
-        crypto
-            .get_random_bytes(&mut iv)
-            .context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
-
-        let enc_identity_key = crypto
-            .encrypt(IOTEDGED_CRYPTO_ID.as_bytes(), &key_bytes, &iv)
-            .context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
-
-        let path = subdir.clone().join(hybrid_id_filename);
-        let mut file = File::create(path)
-            .context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
-        file.write_all(enc_identity_key.as_bytes())
-            .context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
-
-        let path = subdir.join(iv_filename);
-        let mut file = File::create(path)
-            .context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
-        file.write_all(&iv)
-            .context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
-
-        identity_master_key = Some(key_bytes.to_vec())
-    }
-
-    Ok(identity_master_key)
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
-fn start_api<HC, K, F, C, W>(
-    settings: &Settings<DockerConfig>,
+fn start_api<HC, K, F, C, W, M>(
+    settings: &M::Settings,
     hyper_client: HC,
-    runtime: &DockerModuleRuntime,
+    runtime: &M::ModuleRuntime,
     key_store: &DerivedKeyStore<K>,
     workload_config: W,
     root_key: K,
@@ -853,6 +1013,14 @@ where
         + Sync
         + 'static,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
+    M::ModuleRuntime: Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
+    M: MakeModuleRuntime + 'static,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
+        Clone + DeserializeOwned + Serialize,
+    M::Settings: 'static,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
+    <M::ModuleRuntime as Authenticator>::Error: Fail + Sync,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     let hub_name = workload_config.iot_hub_name().to_string();
     let device_id = workload_config.device_id().to_string();
@@ -903,10 +1071,11 @@ where
 
     let cert_manager = Arc::new(cert_manager);
 
-    let mgmt = start_management(&settings, runtime, &id_man, mgmt_rx, cert_manager.clone());
+    let mgmt =
+        start_management::<_, _, _, M>(settings, runtime, &id_man, mgmt_rx, cert_manager.clone());
 
-    let workload = start_workload(
-        &settings,
+    let workload = start_workload::<_, _, _, _, M>(
+        settings,
         key_store,
         runtime,
         work_rx,
@@ -916,7 +1085,14 @@ where
     );
 
     let (runt_tx, runt_rx) = oneshot::channel();
-    let edge_rt = start_runtime(&runtime, &id_man, &hub_name, &device_id, &settings, runt_rx)?;
+    let edge_rt = start_runtime::<_, _, M>(
+        runtime.clone(),
+        &id_man,
+        &hub_name,
+        &device_id,
+        &settings,
+        runt_rx,
+    )?;
 
     // Wait for the watchdog to finish, and then send signal to the workload and management services.
     // This way the edgeAgent can finish shutting down all modules.
@@ -956,16 +1132,23 @@ where
     Ok(restart_code)
 }
 
-fn init_docker_runtime(
-    runtime: &DockerModuleRuntime,
+fn init_runtime<M>(
+    settings: M::Settings,
     tokio_runtime: &mut tokio::runtime::Runtime,
-) -> Result<(), Error> {
+    provisioning_result: M::ProvisioningResult,
+) -> Result<M::ModuleRuntime, Error>
+where
+    M: MakeModuleRuntime + Send + 'static,
+    M::ModuleRuntime: Send,
+    M::Future: 'static,
+{
     info!("Initializing the module runtime...");
-    tokio_runtime
-        .block_on(runtime.init())
+    let runtime = tokio_runtime
+        .block_on(M::make_runtime(settings, provisioning_result))
         .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?;
     info!("Finished initializing the module runtime.");
-    Ok(())
+
+    Ok(runtime)
 }
 
 fn manual_provision(
@@ -1004,19 +1187,17 @@ fn manual_provision(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn dps_x509_provision<HC, M>(
+fn dps_x509_provision<HC>(
     reg_id: String,
     provisioning: &Dps,
     hyper_client: HC,
     backup_path: PathBuf,
-    runtime: M,
     tokio_runtime: &mut tokio::runtime::Runtime,
     hybrid_identity_key: &[u8],
     cert_thumbprint: String,
-) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey, M), Error>
+) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error>
 where
     HC: 'static + ClientImpl,
-    M: ModuleRuntime + Send + 'static,
 {
     let mut memory_hsm = MemoryKeyStore::new();
 
@@ -1050,36 +1231,18 @@ where
         })
         .and_then(move |prov_result| {
             info!("Successful DPS provisioning.");
-            if prov_result.reconfigure() == ReprovisioningStatus::DeviceDataNotUpdated {
-                Either::B(future::ok((prov_result, runtime)))
-            } else {
-                info!(
-                    "Reprovisioning status {:?} will trigger reconfiguration of modules.",
-                    prov_result.reconfigure()
-                );
-
-                let remove = runtime.remove_all().then(|result| {
-                    result.context(ErrorKind::Initialize(
-                        InitializeErrorReason::DpsProvisioningClient,
-                    ))?;
-                    Ok((prov_result, runtime))
-                });
-                Either::A(remove)
-            }
-        })
-        .and_then(move |(prov_result, runtime)| {
-            let (derived_key_store, hybrid_derived_key) = prepare_hybrid_key(
+            let (derived_key_store, hybrid_derived_key) = prepare_derived_hybrid_key(
                 &memory_hsm,
                 &cert_thumbprint,
                 prov_result.hub_name(),
                 prov_result.device_id(),
             )?;
-            Ok((derived_key_store, prov_result, hybrid_derived_key, runtime))
+            Ok((derived_key_store, prov_result, hybrid_derived_key))
         });
     tokio_runtime.block_on(provision)
 }
 
-fn prepare_hybrid_key(
+fn prepare_derived_hybrid_key(
     key_store: &MemoryKeyStore,
     cert_thumbprint: &str,
     hub_name: &str,
@@ -1090,7 +1253,7 @@ fn prepare_hybrid_key(
         .context(ErrorKind::Initialize(
             InitializeErrorReason::DpsProvisioningClient,
         ))?;
-    let sign_data = format!("{}{}{}", hub_name, device_id, cert_thumbprint);
+    let sign_data = format!("{}/devices/{}/{}", hub_name, device_id, cert_thumbprint);
     let digest = k
         .sign(SignatureAlgorithm::HMACSHA256, sign_data.as_bytes())
         .context(ErrorKind::Initialize(
@@ -1101,13 +1264,17 @@ fn prepare_hybrid_key(
     Ok((derived_key_store, hybrid_derived_key))
 }
 
-fn external_provision_payload(key: &str) -> (DerivedKeyStore<MemoryKey>, MemoryKey) {
-    let memory_key = MemoryKey::new(key);
+fn external_provision_payload(key: &str) -> Result<(DerivedKeyStore<MemoryKey>, MemoryKey), Error> {
+    let memory_key = MemoryKey::new(base64::decode(&key).map_err(|_| {
+        Error::from(ErrorKind::Initialize(
+            InitializeErrorReason::ExternalProvisioningClient,
+        ))
+    })?);
     let mut memory_hsm = MemoryKeyStore::new();
     memory_hsm.insert(&KeyIdentity::Device, "primary", memory_key.clone());
 
     let derived_key_store = DerivedKeyStore::new(memory_key.clone());
-    (derived_key_store, memory_key)
+    Ok((derived_key_store, memory_key))
 }
 
 fn external_provision_tpm(
@@ -1134,17 +1301,15 @@ fn external_provision_tpm(
         })
 }
 
-fn dps_symmetric_key_provision<HC, M>(
+fn dps_symmetric_key_provision<HC>(
     provisioning: &Dps,
     hyper_client: HC,
     backup_path: PathBuf,
-    runtime: M,
     tokio_runtime: &mut tokio::runtime::Runtime,
     key: &SymmetricKeyAttestationInfo,
-) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey, M), Error>
+) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error>
 where
     HC: 'static + ClientImpl,
-    M: ModuleRuntime + Send + 'static,
 {
     let mut memory_hsm = MemoryKeyStore::new();
     let key_bytes =
@@ -1176,49 +1341,26 @@ where
             })
             .and_then(move |prov_result| {
                 info!("Successful DPS provisioning.");
-                if prov_result.reconfigure() == ReprovisioningStatus::DeviceDataNotUpdated {
-                    Either::B(future::ok((prov_result, runtime)))
-                } else {
-                    // If there was a DPS reprovision and device key was updated results in obsolete
-                    // module keys in IoTHub from the previous provisioning. We delete all containers
-                    // after each DPS provisioning run so that IoTHub can be updated with new module
-                    // keys when the deployment is executed by EdgeAgent.
-                    info!(
-                        "Reprovisioning status {:?} will trigger reconfiguration of modules.",
-                        prov_result.reconfigure()
-                    );
-
-                    let remove = runtime.remove_all().then(|result| {
-                        result.context(ErrorKind::Initialize(
-                            InitializeErrorReason::DpsProvisioningClient,
-                        ))?;
-                        Ok((prov_result, runtime))
-                    });
-                    Either::A(remove)
-                }
-            })
-            .and_then(move |(prov_result, runtime)| {
                 let k = memory_hsm.get(&KeyIdentity::Device, "primary").context(
                     ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient),
                 )?;
                 let derived_key_store = DerivedKeyStore::new(k.clone());
-                Ok((derived_key_store, prov_result, k, runtime))
+                Ok((derived_key_store, prov_result, k))
             });
+
     tokio_runtime.block_on(provision)
 }
 
-fn dps_tpm_provision<HC, M>(
+fn dps_tpm_provision<HC>(
     provisioning: &Dps,
     hyper_client: HC,
     backup_path: PathBuf,
-    runtime: M,
     tokio_runtime: &mut tokio::runtime::Runtime,
     tpm_attestation_info: &TpmAttestationInfo,
     hsm_lock: Arc<HsmLock>,
-) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey, M), Error>
+) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey), Error>
 where
     HC: 'static + ClientImpl,
-    M: ModuleRuntime + Send + 'static,
 {
     let tpm = Tpm::new().context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
@@ -1252,52 +1394,40 @@ where
                 InitializeErrorReason::DpsProvisioningClient,
             )))
         })
-        .and_then(|prov_result| {
-            if prov_result.reconfigure() == ReprovisioningStatus::DeviceDataNotUpdated {
-                Either::B(future::ok((prov_result, runtime)))
-            } else {
-                info!("Successful DPS provisioning. This will trigger reconfiguration of modules.");
-                // Each time DPS reprovisions, it gets back a new device key. This results in obsolete
-                // module keys in IoTHub from the previous provisioning. We delete all containers
-                // after each DPS provisioning run so that IoTHub can be updated with new module
-                // keys when the deployment is executed by EdgeAgent.
-                let remove = runtime.remove_all().then(|result| {
-                    result.context(ErrorKind::Initialize(
-                        InitializeErrorReason::DpsProvisioningClient,
-                    ))?;
-                    Ok((prov_result, runtime))
-                });
-                Either::A(remove)
-            }
-        })
-        .and_then(move |(prov_result, runtime)| {
+        .and_then(move |prov_result| {
             let k = tpm_hsm
                 .get(&KeyIdentity::Device, "primary")
                 .context(ErrorKind::Initialize(
                     InitializeErrorReason::DpsProvisioningClient,
                 ))?;
             let derived_key_store = DerivedKeyStore::new(k.clone());
-            Ok((derived_key_store, prov_result, k, runtime))
+            Ok((derived_key_store, prov_result, k))
         });
 
     tokio_runtime.block_on(provision)
 }
 
-fn start_runtime<K, HC>(
-    runtime: &DockerModuleRuntime,
+fn start_runtime<K, HC, M>(
+    runtime: M::ModuleRuntime,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     hostname: &str,
     device_id: &str,
-    settings: &Settings<DockerConfig>,
+    settings: &M::Settings,
     shutdown: Receiver<()>,
 ) -> Result<impl Future<Item = (), Error = Error>, Error>
 where
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl,
+    M: MakeModuleRuntime,
+    M::ModuleRuntime: Clone + 'static,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
+        Clone + DeserializeOwned + Serialize,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     let spec = settings.agent().clone();
     let env = build_env(spec.env(), hostname, device_id, settings);
-    let mut spec = ModuleSpec::<DockerConfig>::new(
+    let spec = ModuleSpec::<<M::ModuleRuntime as ModuleRuntime>::Config>::new(
         EDGE_RUNTIME_MODULE_NAME.to_string(),
         spec.type_().to_string(),
         spec.config().clone(),
@@ -1306,17 +1436,8 @@ where
     )
     .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
 
-    // volume mount management and workload URIs
-    vol_mount_uri(
-        spec.config_mut(),
-        &[
-            settings.connect().management_uri(),
-            settings.connect().workload_uri(),
-        ],
-    )?;
-
     let watchdog = Watchdog::new(
-        runtime.clone(),
+        runtime,
         id_man.clone(),
         settings.watchdog().max_retries().clone(),
     );
@@ -1327,56 +1448,16 @@ where
     Ok(runtime_future)
 }
 
-fn vol_mount_uri(config: &mut DockerConfig, uris: &[&Url]) -> Result<(), Error> {
-    let create_options = config
-        .clone_create_options()
-        .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
-    let host_config = create_options
-        .host_config()
-        .cloned()
-        .unwrap_or_else(HostConfig::new);
-    let mut binds = host_config.binds().map_or_else(Vec::new, ToOwned::to_owned);
-
-    // if the url is a domain socket URL then vol mount it into the container
-    for uri in uris {
-        if uri.scheme() == UNIX_SCHEME {
-            let path = uri.to_uds_file_path().context(ErrorKind::Initialize(
-                InitializeErrorReason::InvalidSocketUri,
-            ))?;
-            // On Windows we mount the parent folder because we can't mount the
-            // socket files directly
-            #[cfg(windows)]
-            let path = path
-                .parent()
-                .ok_or_else(|| ErrorKind::Initialize(InitializeErrorReason::InvalidSocketUri))?;
-            let path = path
-                .to_str()
-                .ok_or_else(|| ErrorKind::Initialize(InitializeErrorReason::InvalidSocketUri))?
-                .to_string();
-            let bind = format!("{}:{}", &path, &path);
-            if !binds.contains(&bind) {
-                binds.push(bind);
-            }
-        }
-    }
-
-    if !binds.is_empty() {
-        let host_config = host_config.with_binds(binds);
-        let create_options = create_options.with_host_config(host_config);
-
-        config.set_create_options(create_options);
-    }
-
-    Ok(())
-}
-
 // Add the environment variables needed by the EdgeAgent.
-fn build_env(
+fn build_env<S>(
     spec_env: &HashMap<String, String>,
     hostname: &str,
     device_id: &str,
-    settings: &Settings<DockerConfig>,
-) -> HashMap<String, String> {
+    settings: &S,
+) -> HashMap<String, String>
+where
+    S: RuntimeSettings,
+{
     let mut env = HashMap::new();
     env.insert(HOSTNAME_KEY.to_string(), hostname.to_string());
     env.insert(
@@ -1398,10 +1479,6 @@ fn build_env(
         EDGE_RUNTIME_MODE_KEY.to_string(),
         EDGE_RUNTIME_MODE.to_string(),
     );
-    env.insert(
-        EDGE_NETWORKID_KEY.to_string(),
-        settings.moby_runtime().network().to_string(),
-    );
     for (key, val) in spec_env.iter() {
         env.insert(key.clone(), val.clone());
     }
@@ -1410,8 +1487,8 @@ fn build_env(
 }
 
 fn start_management<C, K, HC, M>(
-    settings: &Settings<DockerConfig>,
-    runtime: &M,
+    settings: &M::Settings,
+    runtime: &M::ModuleRuntime,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
     cert_manager: Arc<CertificateManager<C>>,
@@ -1420,11 +1497,12 @@ where
     C: CreateCertificate + Clone,
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl + Send + Sync,
-    M: ModuleRuntime + Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
-    <M::AuthenticateFuture as Future>::Error: Fail,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-    <M::Module as Module>::Config: DeserializeOwned + Serialize,
-    M::Logs: Into<Body>,
+    M: MakeModuleRuntime,
+    M::ModuleRuntime: Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
+    <<M::ModuleRuntime as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config: DeserializeOwned + Serialize,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
 {
     info!("Starting management API...");
 
@@ -1454,9 +1532,9 @@ where
 }
 
 fn start_workload<K, C, CE, W, M>(
-    settings: &Settings<DockerConfig>,
+    settings: &M::Settings,
     key_store: &K,
-    runtime: &M,
+    runtime: &M::ModuleRuntime,
     shutdown: Receiver<()>,
     crypto: &C,
     cert_manager: Arc<CertificateManager<CE>>,
@@ -1475,11 +1553,14 @@ where
         + 'static,
     CE: CreateCertificate + Clone,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
-    M: ModuleRuntime + Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
-    <M::AuthenticateFuture as Future>::Error: Fail,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-    <M::Module as Module>::Config: DeserializeOwned + Serialize,
-    M::Logs: Into<Body>,
+    M: MakeModuleRuntime + 'static,
+    M::Settings: 'static,
+    M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
+    <<M::ModuleRuntime as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
+        Clone + DeserializeOwned + Serialize,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
 {
     info!("Starting workload API...");
 
@@ -1508,22 +1589,6 @@ where
         .flatten()
 }
 
-#[derive(Debug, Fail)]
-#[fail(display = "Error loading hybrid auth key")]
-struct HybridAuthError(#[cause] Context<Box<dyn std::fmt::Display + Send + Sync>>);
-
-impl From<std::io::Error> for HybridAuthError {
-    fn from(err: std::io::Error) -> Self {
-        HybridAuthError(Context::new(Box::new(err)))
-    }
-}
-
-impl From<edgelet_core::Error> for HybridAuthError {
-    fn from(err: edgelet_core::Error) -> Self {
-        HybridAuthError(Context::new(Box::new(err)))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::fmt;
@@ -1536,20 +1601,40 @@ mod tests {
 
     use edgelet_core::ModuleRuntimeState;
     use edgelet_core::{KeyBytes, PrivateKey};
+    use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
     use edgelet_test_utils::cert::TestCert;
     use edgelet_test_utils::module::*;
 
     use super::*;
+    use docker::models::ContainerCreateBody;
 
     #[cfg(unix)]
-    static SETTINGS: &str = "../edgelet-config/test/linux/sample_settings.yaml";
+    static GOOD_SETTINGS: &str = "../edgelet-docker/test/linux/sample_settings.yaml";
     #[cfg(unix)]
-    static SETTINGS1: &str = "../edgelet-config/test/linux/sample_settings1.yaml";
+    static GOOD_SETTINGS1: &str = "test/linux/sample_settings1.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS2: &str = "test/linux/sample_settings2.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_DPS_TPM1: &str = "test/linux/sample_settings.dps.tpm.1.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_DPS_SYMM_KEY: &str = "test/linux/sample_settings.dps.symm.key.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_DPS_DEFAULT: &str =
+        "../edgelet-docker/test/linux/sample_settings.dps.default.yaml";
 
     #[cfg(windows)]
-    static SETTINGS: &str = "../edgelet-config/test/windows/sample_settings.yaml";
+    static GOOD_SETTINGS: &str = "../edgelet-docker/test/windows/sample_settings.yaml";
     #[cfg(windows)]
-    static SETTINGS1: &str = "../edgelet-config/test/windows/sample_settings1.yaml";
+    static GOOD_SETTINGS1: &str = "test/windows/sample_settings1.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS2: &str = "test/windows/sample_settings2.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_DPS_TPM1: &str = "test/windows/sample_settings.dps.tpm.1.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_DPS_SYMM_KEY: &str = "test/windows/sample_settings.dps.symm.key.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_DPS_DEFAULT: &str =
+        "../edgelet-docker/test/windows/sample_settings.dps.default.yaml";
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub struct Error;
@@ -1673,8 +1758,8 @@ mod tests {
 
     #[test]
     fn default_settings_raise_unconfigured_error() {
-        let settings = Settings::<DockerConfig>::new(None).unwrap();
-        let main = Main::new(settings);
+        let settings = Settings::new(None).unwrap();
+        let main = Main::<DockerModuleRuntime>::new(settings);
         let result = main.run_until(signal::shutdown);
         match result.unwrap_err().kind() {
             ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
@@ -1685,12 +1770,20 @@ mod tests {
     #[test]
     fn settings_with_invalid_issuer_ca_fails() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
-        let config = TestConfig::new("microsoft/test-image".to_string());
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let config = DockerConfig::new(
+            "microsoft/test-image".to_string(),
+            ContainerCreateBody::new(),
+            None,
+        )
+        .unwrap();
         let state = ModuleRuntimeState::default();
-        let module: TestModule<Error> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
+        let module: TestModule<Error, _> =
+            TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
+            .wait()
+            .unwrap()
+            .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
             fail_device_ca_alias: true,
@@ -1698,15 +1791,13 @@ mod tests {
             fail_encrypt: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        let result = check_settings_state(
-            &tmp_dir.path().to_path_buf(),
+        let result = check_settings_state::<TestRuntime<_, Settings>, _>(
+            tmp_dir.path(),
             "settings_state",
             &settings,
             &runtime,
             &crypto,
             &mut tokio_runtime,
-            "iotedge_hybrid_key",
-            "iotedge_hybrid_iv",
         );
         match result.unwrap_err().kind() {
             ErrorKind::Initialize(InitializeErrorReason::PrepareWorkloadCa) => (),
@@ -1717,12 +1808,20 @@ mod tests {
     #[test]
     fn settings_with_expired_issuer_ca_fails() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
-        let config = TestConfig::new("microsoft/test-image".to_string());
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let config = DockerConfig::new(
+            "microsoft/test-image".to_string(),
+            ContainerCreateBody::new(),
+            None,
+        )
+        .unwrap();
         let state = ModuleRuntimeState::default();
-        let module: TestModule<Error> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
+        let module: TestModule<Error, _> =
+            TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
+            .wait()
+            .unwrap()
+            .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: true,
             fail_device_ca_alias: false,
@@ -1730,15 +1829,13 @@ mod tests {
             fail_encrypt: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        let result = check_settings_state(
-            &tmp_dir.path().to_path_buf(),
+        let result = check_settings_state::<TestRuntime<_, Settings>, _>(
+            tmp_dir.path(),
             "settings_state",
             &settings,
             &runtime,
             &crypto,
             &mut tokio_runtime,
-            "iotedge_hybrid_key",
-            "iotedge_hybrid_iv",
         );
         match result.unwrap_err().kind() {
             ErrorKind::Initialize(InitializeErrorReason::IssuerCAExpiration) => (),
@@ -1747,14 +1844,22 @@ mod tests {
     }
 
     #[test]
-    fn settings_non_x509_auth_first_time_creates_backup() {
+    fn settings_manual_connection_string_auth_first_time_creates_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
-        let config = TestConfig::new("microsoft/test-image".to_string());
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let config = DockerConfig::new(
+            "microsoft/test-image".to_string(),
+            ContainerCreateBody::new(),
+            None,
+        )
+        .unwrap();
         let state = ModuleRuntimeState::default();
-        let module: TestModule<Error> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
+        let module: TestModule<Error, _> =
+            TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
+            .wait()
+            .unwrap()
+            .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
             fail_device_ca_alias: false,
@@ -1762,73 +1867,48 @@ mod tests {
             fail_encrypt: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        let result = check_settings_state(
-            &tmp_dir.path().to_path_buf(),
+        check_settings_state::<TestRuntime<_, Settings>, _>(
+            tmp_dir.path(),
             "settings_state",
             &settings,
             &runtime,
             &crypto,
             &mut tokio_runtime,
-            "iotedge_hybrid_key",
-            "iotedge_hybrid_iv",
         )
         .unwrap();
-
-        assert!(result.is_none());
-        let expected_base64 = settings.compute_settings_digest().unwrap();
+        let expected = serde_json::to_string(&settings).unwrap();
+        let expected_sha = Sha256::digest_str(&expected);
+        let expected_base64 = base64::encode(&expected_sha);
         let mut written = String::new();
         File::open(tmp_dir.path().join("settings_state"))
             .unwrap()
             .read_to_string(&mut written)
             .unwrap();
+
         assert_eq!(expected_base64, written);
 
-        // no hybrid key and iv should be created since the auth mode is not X.509
-        let f = File::open(tmp_dir.path().join("iotedge_hybrid_key"));
-        assert!(f.is_err());
-        let f = File::open(tmp_dir.path().join("iotedge_hybrid_iv"));
-        assert!(f.is_err());
+        // non x.509 auth modes shouldn't have these files created
+        assert!(!tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME).exists());
+        assert!(!tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).exists());
     }
 
     #[test]
-    fn settings_with_dps_x509_first_time_creates_backup() {
+    fn settings_dps_symm_key_auth_first_time_creates_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let tmp_certs_dir = TempDir::new("certs").unwrap();
-        let cert_path = tmp_certs_dir.path().join("test_cert");
-        let key_path = tmp_certs_dir.path().join("test_key");
-        File::create(&cert_path)
-            .expect("Test cert file could not be created")
-            .write_all(b"CN=Mr. T")
-            .expect("Test cert file could not be written");
-        File::create(&key_path)
-            .expect("Test cert private key file could not be created")
-            .write_all(b"i pity the fool")
-            .expect("Test cert private key file could not be written");
-        let settings_path = tmp_dir.path().join("test_settings.yaml");
-        let settings_yaml = format!(
-            "
-provisioning:
-  source: \"dps\"
-  global_endpoint: \"scheme://jibba-jabba.net\"
-  scope_id: \"i got no time for the jibba-jabba\"
-  attestation:
-    method: \"x509\"
-    identity_pk: {}
-    identity_cert: {}",
-            key_path.to_str().unwrap(),
-            cert_path.to_str().unwrap()
-        );
-        File::create(&settings_path)
-            .expect("Settings file could not be created")
-            .write_all(settings_yaml.as_bytes())
-            .expect("Settings file could not be written");
-        let settings =
-            Settings::<DockerConfig>::new(Some(&settings_path)).expect("Invalid settings file");
-        let config = TestConfig::new("microsoft/test-image".to_string());
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_SYMM_KEY))).unwrap();
+        let config = DockerConfig::new(
+            "microsoft/test-image".to_string(),
+            ContainerCreateBody::new(),
+            None,
+        )
+        .unwrap();
         let state = ModuleRuntimeState::default();
-        let module: TestModule<Error> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
+        let module: TestModule<Error, _> =
+            TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
+            .wait()
+            .unwrap()
+            .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
             fail_device_ca_alias: false,
@@ -1836,100 +1916,48 @@ provisioning:
             fail_encrypt: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-
-        let result = check_settings_state(
-            &tmp_dir.path().to_path_buf(),
+        check_settings_state::<TestRuntime<_, Settings>, _>(
+            tmp_dir.path(),
             "settings_state",
             &settings,
             &runtime,
             &crypto,
             &mut tokio_runtime,
-            "iotedge_hybrid_key",
-            "iotedge_hybrid_iv",
         )
         .unwrap();
-
-        let hybrid_key = result.unwrap();
-        assert!(hybrid_key.len() == IDENTITY_MASTER_KEY_LEN_BYTES);
-
-        let expected_base64 = settings.compute_settings_digest().unwrap();
+        let expected = serde_json::to_string(&settings).unwrap();
+        let expected_sha = Sha256::digest_str(&expected);
+        let expected_base64 = base64::encode(&expected_sha);
         let mut written = String::new();
         File::open(tmp_dir.path().join("settings_state"))
             .unwrap()
             .read_to_string(&mut written)
             .unwrap();
+
         assert_eq!(expected_base64, written);
 
-        // hybrid key and iv should be created since the auth mode is not X.509
-        let mut written = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_key"))
-            .unwrap()
-            .read_to_end(&mut written)
-            .unwrap();
-        assert_eq!(written.len(), IDENTITY_MASTER_KEY_LEN_BYTES);
-
-        let mut written = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_iv"))
-            .unwrap()
-            .read_to_end(&mut written)
-            .unwrap();
-        assert!(written.len() == IOTEDGED_CRYPTO_IV_LEN_BYTES);
+        // non x.509 auth modes shouldn't have these files created
+        assert!(!tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME).exists());
+        assert!(!tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).exists());
     }
 
     #[test]
-    fn settings_with_dps_x509_with_new_config_creates_new_backup_and_iv_and_key() {
+    fn settings_dps_tpm_auth_first_time_creates_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
-
-        let stale_iv = vec![1; IOTEDGED_CRYPTO_IV_LEN_BYTES];
-        let iv_path = tmp_dir.path().join("iotedge_hybrid_iv");
-        File::create(&iv_path)
-            .expect("Stale iv file could not be created")
-            .write_all(&stale_iv)
-            .expect("Stale iv file could not be written");
-
-        let stale_hybrid_key = vec![2; IDENTITY_MASTER_KEY_LEN_BYTES];
-        let hybrid_key_path = tmp_dir.path().join("iotedge_hybrid_key");
-        File::create(&hybrid_key_path)
-            .expect("Stale hybrid key file could not be created")
-            .write_all(&stale_hybrid_key)
-            .expect("Stale hybrid key file could not be written");
-
-        let tmp_certs_dir = TempDir::new("certs").unwrap();
-        let cert_path = tmp_certs_dir.path().join("test_cert");
-        let key_path = tmp_certs_dir.path().join("test_key");
-        File::create(&cert_path)
-            .expect("Test cert file could not be created")
-            .write_all(b"CN=Mr. T")
-            .expect("Test cert file could not be written");
-        File::create(&key_path)
-            .expect("Test cert private key file could not be created")
-            .write_all(b"i pity the fool")
-            .expect("Test cert private key file could not be written");
-        let settings_path = tmp_dir.path().join("test_settings.yaml");
-        let settings_yaml = format!(
-            "
-provisioning:
-  source: \"dps\"
-  global_endpoint: \"scheme://jibba-jabba.net\"
-  scope_id: \"i got no time for the jibba-jabba\"
-  attestation:
-    method: \"x509\"
-    identity_pk: {}
-    identity_cert: {}",
-            key_path.to_str().unwrap(),
-            cert_path.to_str().unwrap()
-        );
-        File::create(&settings_path)
-            .expect("Settings file could not be created")
-            .write_all(settings_yaml.as_bytes())
-            .expect("Settings file could not be written");
-        let settings =
-            Settings::<DockerConfig>::new(Some(&settings_path)).expect("Invalid settings file");
-        let config = TestConfig::new("microsoft/test-image".to_string());
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
+        let config = DockerConfig::new(
+            "microsoft/test-image".to_string(),
+            ContainerCreateBody::new(),
+            None,
+        )
+        .unwrap();
         let state = ModuleRuntimeState::default();
-        let module: TestModule<Error> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
+        let module: TestModule<Error, _> =
+            TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
+            .wait()
+            .unwrap()
+            .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
             fail_device_ca_alias: false,
@@ -1937,572 +1965,48 @@ provisioning:
             fail_encrypt: false,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-
-        let result = check_settings_state(
-            &tmp_dir.path().to_path_buf(),
+        check_settings_state::<TestRuntime<_, Settings>, _>(
+            tmp_dir.path(),
             "settings_state",
             &settings,
             &runtime,
             &crypto,
             &mut tokio_runtime,
-            "iotedge_hybrid_key",
-            "iotedge_hybrid_iv",
         )
         .unwrap();
-
-        // validate new hybrid key was created and different from the stale key
-        let hybrid_key = result.unwrap();
-        assert!(hybrid_key.len() == IDENTITY_MASTER_KEY_LEN_BYTES);
-        assert_ne!(stale_hybrid_key, hybrid_key);
-
-        let expected_base64 = settings.compute_settings_digest().unwrap();
+        let expected = serde_json::to_string(&settings).unwrap();
+        let expected_sha = Sha256::digest_str(&expected);
+        let expected_base64 = base64::encode(&expected_sha);
         let mut written = String::new();
         File::open(tmp_dir.path().join("settings_state"))
             .unwrap()
             .read_to_string(&mut written)
             .unwrap();
+
         assert_eq!(expected_base64, written);
 
-        // hybrid key and iv files should be created since the auth mode is not X.509
-        let mut written = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_key"))
-            .unwrap()
-            .read_to_end(&mut written)
-            .unwrap();
-        assert_eq!(hybrid_key, written.as_bytes());
-
-        let mut written = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_iv"))
-            .unwrap()
-            .read_to_end(&mut written)
-            .unwrap();
-        assert!(written.len() == IOTEDGED_CRYPTO_IV_LEN_BYTES);
-
-        // validate new iv was created and different from the stale iv
-        assert_ne!(stale_iv, written);
+        // non x.509 auth modes shouldn't have these files created
+        assert!(!tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME).exists());
+        assert!(!tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).exists());
     }
 
     #[test]
-    fn settings_with_dps_x509_subsequent_checks_does_not_reconfigure() {
+    fn settings_change_creates_new_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let tmp_certs_dir = TempDir::new("certs").unwrap();
-        let cert_path = tmp_certs_dir.path().join("test_cert");
-        let key_path = tmp_certs_dir.path().join("test_key");
-        File::create(&cert_path)
-            .expect("Test cert file could not be created")
-            .write_all(b"CN=Mr. T")
-            .expect("Test cert file could not be written");
-        File::create(&key_path)
-            .expect("Test cert private key file could not be created")
-            .write_all(b"i pity the fool")
-            .expect("Test cert private key file could not be written");
-        let settings_path = tmp_dir.path().join("test_settings.yaml");
-        let settings_yaml = format!(
-            "
-provisioning:
-  source: \"dps\"
-  global_endpoint: \"scheme://jibba-jabba.net\"
-  scope_id: \"i got no time for the jibba-jabba\"
-  attestation:
-    method: \"x509\"
-    identity_pk: {}
-    identity_cert: {}",
-            key_path.to_str().unwrap(),
-            cert_path.to_str().unwrap()
-        );
-        File::create(&settings_path)
-            .expect("Settings file could not be created")
-            .write_all(settings_yaml.as_bytes())
-            .expect("Settings file could not be written");
-        let settings =
-            Settings::<DockerConfig>::new(Some(&settings_path)).expect("Invalid settings file");
-        let config = TestConfig::new("microsoft/test-image".to_string());
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let config = DockerConfig::new(
+            "microsoft/test-image".to_string(),
+            ContainerCreateBody::new(),
+            None,
+        )
+        .unwrap();
         let state = ModuleRuntimeState::default();
-        let module: TestModule<Error> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
-        let crypto = TestCrypto {
-            use_expired_ca: false,
-            fail_device_ca_alias: false,
-            fail_decrypt: false,
-            fail_encrypt: false,
-        };
-        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-
-        let result = check_settings_state(
-            &tmp_dir.path().to_path_buf(),
-            "settings_state",
-            &settings,
-            &runtime,
-            &crypto,
-            &mut tokio_runtime,
-            "iotedge_hybrid_key",
-            "iotedge_hybrid_iv",
-        )
-        .unwrap();
-
-        let hybrid_key = result.unwrap();
-        assert!(hybrid_key.len() == IDENTITY_MASTER_KEY_LEN_BYTES);
-
-        let mut expected_hybrid_key_file_contents = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_key"))
+        let module: TestModule<Error, _> =
+            TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
+            .wait()
             .unwrap()
-            .read_to_end(&mut expected_hybrid_key_file_contents)
-            .unwrap();
-
-        let mut expected_iv_file_contents = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_iv"))
-            .unwrap()
-            .read_to_end(&mut expected_iv_file_contents)
-            .unwrap();
-
-        let expected_base64 = settings.compute_settings_digest().unwrap();
-
-        let result = check_settings_state(
-            &tmp_dir.path().to_path_buf(),
-            "settings_state",
-            &settings,
-            &runtime,
-            &crypto,
-            &mut tokio_runtime,
-            "iotedge_hybrid_key",
-            "iotedge_hybrid_iv",
-        )
-        .unwrap();
-
-        // validate that the hybrid key was not changed
-        let hybrid_key1 = result.unwrap();
-        assert_eq!(hybrid_key, hybrid_key1);
-
-        // validate that the settings digest was not changed
-        let mut written = String::new();
-        File::open(tmp_dir.path().join("settings_state"))
-            .unwrap()
-            .read_to_string(&mut written)
-            .unwrap();
-        assert_eq!(expected_base64, written);
-
-        // validate that the iv and hybrid keys were not changed
-        let mut written = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_key"))
-            .unwrap()
-            .read_to_end(&mut written)
-            .unwrap();
-        assert_eq!(expected_hybrid_key_file_contents, written);
-
-        let mut written = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_iv"))
-            .unwrap()
-            .read_to_end(&mut written)
-            .unwrap();
-        assert_eq!(expected_iv_file_contents, written);
-    }
-
-    #[test]
-    fn settings_with_dps_x509_decrypt_fails_creates_new_backup_and_iv_and_key() {
-        let tmp_dir = TempDir::new("blah").unwrap();
-
-        let stale_iv = vec![1; IOTEDGED_CRYPTO_IV_LEN_BYTES];
-        let iv_path = tmp_dir.path().join("iotedge_hybrid_iv");
-        File::create(&iv_path)
-            .expect("Stale iv file could not be created")
-            .write_all(&stale_iv)
-            .expect("Stale iv file could not be written");
-
-        let stale_hybrid_key = vec![2; IDENTITY_MASTER_KEY_LEN_BYTES];
-        let hybrid_key_path = tmp_dir.path().join("iotedge_hybrid_key");
-        File::create(&hybrid_key_path)
-            .expect("Stale hybrid key file could not be created")
-            .write_all(&stale_hybrid_key)
-            .expect("Stale hybrid key file could not be written");
-
-        let tmp_certs_dir = TempDir::new("certs").unwrap();
-        let cert_path = tmp_certs_dir.path().join("test_cert");
-        let key_path = tmp_certs_dir.path().join("test_key");
-        File::create(&cert_path)
-            .expect("Test cert file could not be created")
-            .write_all(b"CN=Mr. T")
-            .expect("Test cert file could not be written");
-        File::create(&key_path)
-            .expect("Test cert private key file could not be created")
-            .write_all(b"i pity the fool")
-            .expect("Test cert private key file could not be written");
-
-        let settings_path = tmp_dir.path().join("test_settings.yaml");
-        let settings_yaml = format!(
-            "
-provisioning:
-  source: \"dps\"
-  global_endpoint: \"scheme://jibba-jabba.net\"
-  scope_id: \"i got no time for the jibba-jabba\"
-  attestation:
-    method: \"x509\"
-    identity_pk: {}
-    identity_cert: {}",
-            key_path.to_str().unwrap(),
-            cert_path.to_str().unwrap()
-        );
-        File::create(&settings_path)
-            .expect("Settings file could not be created")
-            .write_all(settings_yaml.as_bytes())
-            .expect("Settings file could not be written");
-        let settings =
-            Settings::<DockerConfig>::new(Some(&settings_path)).expect("Invalid settings file");
-        let config = TestConfig::new("microsoft/test-image".to_string());
-        let state = ModuleRuntimeState::default();
-        let module: TestModule<Error> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
-        let crypto = TestCrypto {
-            use_expired_ca: false,
-            fail_device_ca_alias: false,
-            fail_decrypt: true,
-            fail_encrypt: false,
-        };
-        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        let result = check_settings_state(
-            &tmp_dir.path().to_path_buf(),
-            "settings_state",
-            &settings,
-            &runtime,
-            &crypto,
-            &mut tokio_runtime,
-            "iotedge_hybrid_key",
-            "iotedge_hybrid_iv",
-        )
-        .unwrap();
-
-        // validate new hybrid key was created and different from the stale key
-        let hybrid_key = result.unwrap();
-        assert!(hybrid_key.len() == IDENTITY_MASTER_KEY_LEN_BYTES);
-        assert_ne!(stale_hybrid_key, hybrid_key);
-
-        let expected_base64 = settings.compute_settings_digest().unwrap();
-        let mut written = String::new();
-        File::open(tmp_dir.path().join("settings_state"))
-            .unwrap()
-            .read_to_string(&mut written)
-            .unwrap();
-        assert_eq!(expected_base64, written);
-
-        // hybrid key and iv should be created since the auth mode is not X.509
-        let mut written = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_key"))
-            .unwrap()
-            .read_to_end(&mut written)
-            .unwrap();
-        assert_eq!(hybrid_key, written.as_bytes());
-
-        let mut written = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_iv"))
-            .unwrap()
-            .read_to_end(&mut written)
-            .unwrap();
-        assert!(written.len() == IOTEDGED_CRYPTO_IV_LEN_BYTES);
-
-        // validate new iv was created and different from the stale iv
-        assert_ne!(stale_iv, written);
-    }
-
-    #[test]
-    fn settings_with_dps_x509_corrupted_iv_creates_new_backup_and_iv_and_key() {
-        let tmp_dir = TempDir::new("blah").unwrap();
-        let tmp_certs_dir = TempDir::new("certs").unwrap();
-        let cert_path = tmp_certs_dir.path().join("test_cert");
-        let key_path = tmp_certs_dir.path().join("test_key");
-        File::create(&cert_path)
-            .expect("Test cert file could not be created")
-            .write_all(b"CN=Mr. T")
-            .expect("Test cert file could not be written");
-        File::create(&key_path)
-            .expect("Test cert private key file could not be created")
-            .write_all(b"i pity the fool")
-            .expect("Test cert private key file could not be written");
-
-        let settings_path = tmp_dir.path().join("test_settings.yaml");
-        let settings_yaml = format!(
-            "
-provisioning:
-  source: \"dps\"
-  global_endpoint: \"scheme://jibba-jabba.net\"
-  scope_id: \"i got no time for the jibba-jabba\"
-  attestation:
-    method: \"x509\"
-    identity_pk: {}
-    identity_cert: {}",
-            key_path.to_str().unwrap(),
-            cert_path.to_str().unwrap()
-        );
-        File::create(&settings_path)
-            .expect("Settings file could not be created")
-            .write_all(settings_yaml.as_bytes())
-            .expect("Settings file could not be written");
-        let settings =
-            Settings::<DockerConfig>::new(Some(&settings_path)).expect("Invalid settings file");
-        let config = TestConfig::new("microsoft/test-image".to_string());
-        let state = ModuleRuntimeState::default();
-        let module: TestModule<Error> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
-        let crypto = TestCrypto {
-            use_expired_ca: false,
-            fail_device_ca_alias: false,
-            fail_decrypt: false,
-            fail_encrypt: false,
-        };
-        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        let result = check_settings_state(
-            &tmp_dir.path().to_path_buf(),
-            "settings_state",
-            &settings,
-            &runtime,
-            &crypto,
-            &mut tokio_runtime,
-            "iotedge_hybrid_key",
-            "iotedge_hybrid_iv",
-        )
-        .unwrap();
-
-        // validate new hybrid key was created
-        let hybrid_key = result.unwrap();
-        assert!(hybrid_key.len() == IDENTITY_MASTER_KEY_LEN_BYTES);
-        let expected_base64 = settings.compute_settings_digest().unwrap();
-
-        // save off prior iv
-        let mut prior_iv = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_iv"))
-            .unwrap()
-            .read_to_end(&mut prior_iv)
-            .unwrap();
-        assert!(prior_iv.len() == IOTEDGED_CRYPTO_IV_LEN_BYTES);
-
-        // make iv length different from expected to corrupt file
-        let corrupt_iv = vec![1; IOTEDGED_CRYPTO_IV_LEN_BYTES + 1];
-        let iv_path = tmp_dir.path().join("iotedge_hybrid_iv");
-        File::create(&iv_path)
-            .expect("Corrupt iv file could not be created")
-            .write_all(&corrupt_iv)
-            .expect("Corrupt iv file could not be written");
-
-        // this reconfigures the provisioning info
-        let result = check_settings_state(
-            &tmp_dir.path().to_path_buf(),
-            "settings_state",
-            &settings,
-            &runtime,
-            &crypto,
-            &mut tokio_runtime,
-            "iotedge_hybrid_key",
-            "iotedge_hybrid_iv",
-        )
-        .unwrap();
-
-        // validate new hybrid key was created
-        let hybrid_key1 = result.unwrap();
-        assert!(hybrid_key1.len() == IDENTITY_MASTER_KEY_LEN_BYTES);
-        assert_ne!(hybrid_key, hybrid_key1);
-
-        // validate most recent digest has not changed
-        let mut written = String::new();
-        File::open(tmp_dir.path().join("settings_state"))
-            .unwrap()
-            .read_to_string(&mut written)
-            .unwrap();
-        assert_eq!(expected_base64, written);
-
-        // validate new hybrid key was written correctly
-        let mut written = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_key"))
-            .unwrap()
-            .read_to_end(&mut written)
-            .unwrap();
-        assert_eq!(hybrid_key1, written.as_bytes());
-
-        // validate new iv key created and different from prior and corrupt iv
-        let mut written = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_iv"))
-            .unwrap()
-            .read_to_end(&mut written)
-            .unwrap();
-        assert!(written.len() == IOTEDGED_CRYPTO_IV_LEN_BYTES);
-        assert_ne!(prior_iv, written);
-        assert_ne!(corrupt_iv, written);
-    }
-
-    #[test]
-    fn settings_with_dps_x509_corrupted_hybrid_key_creates_new_backup_and_iv_and_key() {
-        let tmp_dir = TempDir::new("blah").unwrap();
-        let tmp_certs_dir = TempDir::new("certs").unwrap();
-        let cert_path = tmp_certs_dir.path().join("test_cert");
-        let key_path = tmp_certs_dir.path().join("test_key");
-        File::create(&cert_path)
-            .expect("Test cert file could not be created")
-            .write_all(b"CN=Mr. T")
-            .expect("Test cert file could not be written");
-        File::create(&key_path)
-            .expect("Test cert private key file could not be created")
-            .write_all(b"i pity the fool")
-            .expect("Test cert private key file could not be written");
-
-        let settings_path = tmp_dir.path().join("test_settings.yaml");
-        let settings_yaml = format!(
-            "
-provisioning:
-  source: \"dps\"
-  global_endpoint: \"scheme://jibba-jabba.net\"
-  scope_id: \"i got no time for the jibba-jabba\"
-  attestation:
-    method: \"x509\"
-    identity_pk: {}
-    identity_cert: {}",
-            key_path.to_str().unwrap(),
-            cert_path.to_str().unwrap()
-        );
-        File::create(&settings_path)
-            .expect("Settings file could not be created")
-            .write_all(settings_yaml.as_bytes())
-            .expect("Settings file could not be written");
-        let settings =
-            Settings::<DockerConfig>::new(Some(&settings_path)).expect("Invalid settings file");
-        let config = TestConfig::new("microsoft/test-image".to_string());
-        let state = ModuleRuntimeState::default();
-        let module: TestModule<Error> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
-        let crypto = TestCrypto {
-            use_expired_ca: false,
-            fail_device_ca_alias: false,
-            fail_decrypt: false,
-            fail_encrypt: false,
-        };
-        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        let result = check_settings_state(
-            &tmp_dir.path().to_path_buf(),
-            "settings_state",
-            &settings,
-            &runtime,
-            &crypto,
-            &mut tokio_runtime,
-            "iotedge_hybrid_key",
-            "iotedge_hybrid_iv",
-        )
-        .unwrap();
-
-        // validate new hybrid key was created
-        let hybrid_key = result.unwrap();
-        assert!(hybrid_key.len() == IDENTITY_MASTER_KEY_LEN_BYTES);
-        let expected_base64 = settings.compute_settings_digest().unwrap();
-
-        // save off prior iv
-        let mut prior_iv = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_iv"))
-            .unwrap()
-            .read_to_end(&mut prior_iv)
-            .unwrap();
-        assert!(prior_iv.len() == IOTEDGED_CRYPTO_IV_LEN_BYTES);
-
-        // save off prior key
-        let mut prior_key = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_key"))
-            .unwrap()
-            .read_to_end(&mut prior_key)
-            .unwrap();
-        // since encrypt decrypt are pass thrus we should expect the same key on disk
-        assert_eq!(hybrid_key, prior_key);
-
-        // make hyrbid key length different from expected to corrupt file
-        let corrupt_key = vec![1; IDENTITY_MASTER_KEY_LEN_BYTES + 1];
-        let key_path = tmp_dir.path().join("iotedge_hybrid_key");
-        File::create(&key_path)
-            .expect("Corrupt key file could not be created")
-            .write_all(&corrupt_key)
-            .expect("Corrupt key file could not be written");
-
-        // this reconfigures the provisioning info
-        let result = check_settings_state(
-            &tmp_dir.path().to_path_buf(),
-            "settings_state",
-            &settings,
-            &runtime,
-            &crypto,
-            &mut tokio_runtime,
-            "iotedge_hybrid_key",
-            "iotedge_hybrid_iv",
-        )
-        .unwrap();
-
-        // validate new hybrid key was created
-        let hybrid_key1 = result.unwrap();
-        assert!(hybrid_key1.len() == IDENTITY_MASTER_KEY_LEN_BYTES);
-        assert_ne!(hybrid_key, hybrid_key1);
-
-        // validate most recent digest has not changed
-        let mut written = String::new();
-        File::open(tmp_dir.path().join("settings_state"))
-            .unwrap()
-            .read_to_string(&mut written)
-            .unwrap();
-        assert_eq!(expected_base64, written);
-
-        // validate new hybrid key was written correctly
-        let mut written = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_key"))
-            .unwrap()
-            .read_to_end(&mut written)
-            .unwrap();
-        assert_eq!(hybrid_key1, written.as_bytes());
-        assert_ne!(prior_key, written);
-        assert_ne!(corrupt_key, written);
-
-        // validate new iv key created and different from prior and corrupt iv
-        let mut written = Vec::new();
-        File::open(tmp_dir.path().join("iotedge_hybrid_iv"))
-            .unwrap()
-            .read_to_end(&mut written)
-            .unwrap();
-        assert!(written.len() == IOTEDGED_CRYPTO_IV_LEN_BYTES);
-        assert_ne!(prior_iv, written);
-    }
-
-    #[test]
-    fn settings_with_dps_x509_fails_if_encrypt_fails() {
-        let tmp_dir = TempDir::new("blah").unwrap();
-        let tmp_certs_dir = TempDir::new("certs").unwrap();
-        let cert_path = tmp_certs_dir.path().join("test_cert");
-        let key_path = tmp_certs_dir.path().join("test_key");
-        File::create(&cert_path)
-            .expect("Test cert file could not be created")
-            .write_all(b"CN=Mr. T")
-            .expect("Test cert file could not be written");
-        File::create(&key_path)
-            .expect("Test cert private key file could not be created")
-            .write_all(b"i pity the fool")
-            .expect("Test cert private key file could not be written");
-        let settings_path = tmp_dir.path().join("test_settings.yaml");
-        let settings_yaml = format!(
-            "
-provisioning:
-  source: \"dps\"
-  global_endpoint: \"scheme://jibba-jabba.net\"
-  scope_id: \"i got no time for the jibba-jabba\"
-  attestation:
-    method: \"x509\"
-    identity_pk: {}
-    identity_cert: {}",
-            key_path.to_str().unwrap(),
-            cert_path.to_str().unwrap()
-        );
-        File::create(&settings_path)
-            .expect("Settings file could not be created")
-            .write_all(settings_yaml.as_bytes())
-            .expect("Settings file could not be written");
-        let settings =
-            Settings::<DockerConfig>::new(Some(&settings_path)).expect("Invalid settings file");
-        let config = TestConfig::new("microsoft/test-image".to_string());
-        let state = ModuleRuntimeState::default();
-        let module: TestModule<Error> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
+            .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
             fail_device_ca_alias: false,
@@ -2510,46 +2014,13 @@ provisioning:
             fail_encrypt: true,
         };
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-
-        // this should fail as call to encrypt fails
-        check_settings_state(
-            &tmp_dir.path().to_path_buf(),
+        check_settings_state::<TestRuntime<_, Settings>, _>(
+            tmp_dir.path(),
             "settings_state",
             &settings,
             &runtime,
             &crypto,
             &mut tokio_runtime,
-            "iotedge_hybrid_key",
-            "iotedge_hybrid_iv",
-        )
-        .unwrap_err();
-    }
-
-    #[test]
-    fn settings_non_x509_auth_change_creates_new_backup() {
-        let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
-        let config = TestConfig::new("microsoft/test-image".to_string());
-        let state = ModuleRuntimeState::default();
-        let module: TestModule<Error> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
-        let crypto = TestCrypto {
-            use_expired_ca: false,
-            fail_device_ca_alias: false,
-            fail_decrypt: false,
-            fail_encrypt: false,
-        };
-        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        check_settings_state(
-            &tmp_dir.path().to_path_buf(),
-            "settings_state",
-            &settings,
-            &runtime,
-            &crypto,
-            &mut tokio_runtime,
-            "iotedge_hybrid_key",
-            "iotedge_hybrid_iv",
         )
         .unwrap();
         let mut written = String::new();
@@ -2558,84 +2029,28 @@ provisioning:
             .read_to_string(&mut written)
             .unwrap();
 
-        let settings1 = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS1))).unwrap();
+        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        check_settings_state(
-            &tmp_dir.path().to_path_buf(),
+        check_settings_state::<TestRuntime<_, Settings>, _>(
+            tmp_dir.path(),
             "settings_state",
             &settings1,
             &runtime,
             &crypto,
             &mut tokio_runtime,
-            "iotedge_hybrid_key",
-            "iotedge_hybrid_iv",
         )
         .unwrap();
-        let expected = settings1.compute_settings_digest().unwrap();
+        let expected = serde_json::to_string(&settings1).unwrap();
+        let expected_sha = Sha256::digest_str(&expected);
+        let expected_base64 = base64::encode(&expected_sha);
         let mut written1 = String::new();
         File::open(tmp_dir.path().join("settings_state"))
             .unwrap()
             .read_to_string(&mut written1)
             .unwrap();
 
-        assert_eq!(expected, written1);
+        assert_eq!(expected_base64, written1);
         assert_ne!(written1, written);
-
-        // no hybrid key and iv should be created since the auth mode is not X.509
-        let f = File::open(tmp_dir.path().join("iotedge_hybrid_key"));
-        assert!(f.is_err());
-        let f = File::open(tmp_dir.path().join("iotedge_hybrid_iv"));
-        assert!(f.is_err());
-    }
-
-    #[test]
-    fn settings_non_x509_auth_deletes_stale_hybrid_key_and_iv() {
-        let tmp_dir = TempDir::new("blah").unwrap();
-        let iv_path = tmp_dir.path().join("iotedge_hybrid_iv");
-        let hybrid_key_path = tmp_dir.path().join("iotedge_hybrid_key");
-        File::create(&iv_path)
-            .expect("Stale iv file could not be created")
-            .write_all(b"jibba")
-            .expect("Stale iv file could not be written");
-        File::create(&hybrid_key_path)
-            .expect("Stale hybrid key file could not be created")
-            .write_all(b"jabba")
-            .expect("Stale hybrid key file could not be written");
-        let settings = Settings::<DockerConfig>::new(Some(Path::new(SETTINGS))).unwrap();
-        let config = TestConfig::new("microsoft/test-image".to_string());
-        let state = ModuleRuntimeState::default();
-        let module: TestModule<Error> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
-        let crypto = TestCrypto {
-            use_expired_ca: false,
-            fail_device_ca_alias: false,
-            fail_decrypt: false,
-            fail_encrypt: false,
-        };
-        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        check_settings_state(
-            &tmp_dir.path().to_path_buf(),
-            "settings_state",
-            &settings,
-            &runtime,
-            &crypto,
-            &mut tokio_runtime,
-            "iotedge_hybrid_key",
-            "iotedge_hybrid_iv",
-        )
-        .unwrap();
-        let mut written = String::new();
-        File::open(tmp_dir.path().join("settings_state"))
-            .unwrap()
-            .read_to_string(&mut written)
-            .unwrap();
-        // no hybrid key and iv should be created and any stale files deleted
-        // since the auth mode is not X.509
-        let f = File::open(tmp_dir.path().join("iotedge_hybrid_key"));
-        assert!(f.is_err());
-        let f = File::open(tmp_dir.path().join("iotedge_hybrid_iv"));
-        assert!(f.is_err());
     }
 
     #[test]
@@ -2675,5 +2090,544 @@ provisioning:
                 .to_string(),
             proxy_val
         );
+    }
+
+    #[test]
+    fn diff_with_same_cached_returns_false() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let path = tmp_dir.path().join("cache");
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings_to_write = serde_json::to_string(&settings).unwrap();
+        let sha_to_write = Sha256::digest_str(&settings_to_write);
+        let base64_to_write = base64::encode(&sha_to_write);
+        File::create(&path)
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+        assert!(!diff_with_cached(&settings, &path));
+    }
+
+    #[test]
+    fn diff_with_tpm_default_and_explicit_returns_false() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let path = tmp_dir.path().join("cache");
+        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_DEFAULT))).unwrap();
+        let settings_to_write = serde_json::to_string(&settings1).unwrap();
+        let sha_to_write = Sha256::digest_str(&settings_to_write);
+        let base64_to_write = base64::encode(&sha_to_write);
+        File::create(&path)
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
+        assert!(!diff_with_cached(&settings, &path));
+    }
+
+    #[test]
+    fn diff_with_tpm_explicit_and_default_returns_false() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let path = tmp_dir.path().join("cache");
+        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
+        let settings_to_write = serde_json::to_string(&settings1).unwrap();
+        let sha_to_write = Sha256::digest_str(&settings_to_write);
+        let base64_to_write = base64::encode(&sha_to_write);
+        File::create(&path)
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_DEFAULT))).unwrap();
+        assert!(!diff_with_cached(&settings, &path));
+    }
+
+    #[test]
+    fn diff_with_same_cached_env_var_unordered_returns_false() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let path = tmp_dir.path().join("cache");
+        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS2))).unwrap();
+        let settings_to_write = serde_json::to_string(&settings1).unwrap();
+        let sha_to_write = Sha256::digest_str(&settings_to_write);
+        let base64_to_write = base64::encode(&sha_to_write);
+        File::create(&path)
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        assert!(!diff_with_cached(&settings, &path));
+    }
+
+    #[test]
+    fn diff_with_different_cached_returns_true() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let path = tmp_dir.path().join("cache");
+        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
+        let settings_to_write = serde_json::to_string(&settings1).unwrap();
+        let sha_to_write = Sha256::digest_str(&settings_to_write);
+        let base64_to_write = base64::encode(&sha_to_write);
+        File::create(&path)
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        assert!(diff_with_cached(&settings, &path));
+    }
+
+    #[test]
+    fn diff_with_no_file_returns_true() {
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        assert!(diff_with_cached(&settings, Path::new("i dont exist")));
+    }
+
+    #[test]
+    fn get_provisioning_auth_method_returns_sas_key_for_manual_connection_string() {
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
+        assert_eq!(ProvisioningAuthMethod::SharedAccessKey, get_provisioning_auth_method(&settings));
+    }
+
+    #[test]
+    fn get_provisioning_auth_method_returns_saskey_for_dps_tpm_provisioning() {
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
+        assert_eq!(ProvisioningAuthMethod::SharedAccessKey, get_provisioning_auth_method(&settings));
+    }
+
+    #[test]
+    fn get_provisioning_auth_method_returns_saskey_for_dps_symm_key_provisioning() {
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_SYMM_KEY))).unwrap();
+        assert_eq!(ProvisioningAuthMethod::SharedAccessKey, get_provisioning_auth_method(&settings));
+    }
+
+    fn prepare_test_dps_x509_settings_yaml(settings_path: &Path, cert_path: &Path, key_path: &Path) -> String {
+        File::create(&cert_path)
+            .expect("Test cert file could not be created")
+            .write_all(b"CN=Mr. T")
+            .expect("Test cert file could not be written");
+
+        File::create(&key_path)
+            .expect("Test cert private key file could not be created")
+            .write_all(b"i pity the fool")
+            .expect("Test cert private key file could not be written");
+
+        let settings_yaml = format!("
+provisioning:
+  source: 'dps'
+  global_endpoint: 'scheme://jibba-jabba.net'
+  scope_id: 'i got no time for the jibba-jabba'
+  attestation:
+    method: 'x509'
+    identity_cert: '{}'
+    identity_pk: '{}'
+",
+            cert_path.to_str().unwrap(),
+            key_path.to_str().unwrap()
+        );
+        File::create(&settings_path)
+            .expect("Test settings file could not be created")
+            .write_all(settings_yaml.as_bytes())
+            .expect("Test settings file could not be written");
+
+        settings_yaml
+    }
+
+    #[test]
+    fn get_provisioning_auth_method_returns_x509_for_dps_x509_provisioning() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let cert_path = tmp_dir.path().join("test_cert");
+        let key_path = tmp_dir.path().join("test_key");
+        let settings_path = tmp_dir.path().join("test_settings.yaml");
+
+        prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
+        let settings = Settings::new(Some(&settings_path)).unwrap();
+        assert_eq!(ProvisioningAuthMethod::X509, get_provisioning_auth_method(&settings));
+    }
+
+    #[test]
+    fn dps_x509_auth_diff_also_checks_cert_file() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let cert_path = tmp_dir.path().join("test_cert");
+        let key_path = tmp_dir.path().join("test_key");
+        let settings_path = tmp_dir.path().join("test_settings.yaml");
+
+        prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
+        let settings = Settings::new(Some(&settings_path)).unwrap();
+
+        let path = tmp_dir.path().join("cache");
+        let base64_to_write = compute_settings_digest(&settings).unwrap();
+        File::create(&path)
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+
+         // check if there is no diff
+        assert_eq!(diff_with_cached(&settings, &path), false);
+
+         // now modify only the cert file and test if there is a diff
+        File::create(&cert_path)
+            .unwrap()
+            .write_all(b"CN=B.A. Baracus")
+            .unwrap();
+        assert_eq!(diff_with_cached(&settings, &path), true);
+    }
+
+    #[test]
+    fn master_hybrid_id_key_create_first_time_creates_new_key_and_forces_reprovision() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let cert_path = tmp_dir.path().join("test_cert");
+        let key_path = tmp_dir.path().join("test_key");
+        let settings_path = tmp_dir.path().join("test_settings.yaml");
+
+        prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
+        let settings = Settings::new(Some(&settings_path)).unwrap();
+
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+            fail_decrypt: false,
+            fail_encrypt: false,
+        };
+        let (force_module_reprovision, hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+
+        // validate that module reprovision is required since this is the first time it was checked
+        assert!(force_module_reprovision);
+        assert_eq!(hybrid_identity_key.unwrap().len(), IDENTITY_MASTER_KEY_LEN_BYTES);
+
+        // hybrid key and iv should be created and non empty since the auth mode is X.509
+        assert!(tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME).metadata().unwrap().len() > 0);
+        assert!(tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).metadata().unwrap().len() == IOTEDGED_CRYPTO_IV_LEN_BYTES as u64);
+    }
+
+    #[test]
+    fn master_hybrid_id_key_subsequent_checks_does_not_create_new_key_and_no_reprovision() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let cert_path = tmp_dir.path().join("test_cert");
+        let key_path = tmp_dir.path().join("test_key");
+        let settings_path = tmp_dir.path().join("test_settings.yaml");
+
+        prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
+        let settings = Settings::new(Some(&settings_path)).unwrap();
+
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+            fail_decrypt: false,
+            fail_encrypt: false,
+        };
+        let (force_module_reprovision, expected_hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+
+        // validate that module reprovision is required since this is the first time it was checked
+        assert!(force_module_reprovision);
+        assert_eq!(expected_hybrid_identity_key.clone().unwrap().len(), IDENTITY_MASTER_KEY_LEN_BYTES);
+
+        // hybrid key and iv should be created and non empty since the auth mode is X.509
+        let key_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME);
+        assert!(key_path.metadata().unwrap().len() > 0);
+        let mut expected_hybrid_key_file_contents = Vec::new();
+        File::open(&key_path)
+            .unwrap()
+            .read_to_end(&mut expected_hybrid_key_file_contents)
+            .unwrap();
+
+        let iv_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME);
+        assert!(iv_path.metadata().unwrap().len() == IOTEDGED_CRYPTO_IV_LEN_BYTES as u64);
+        let mut expected_iv_file_contents = Vec::new();
+        File::open(&iv_path)
+            .unwrap()
+            .read_to_end(&mut expected_iv_file_contents)
+            .unwrap();
+
+        let (force_module_reprovision, hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+
+        // validate that no module reprovision is required since nothing changed
+        assert!(!force_module_reprovision);
+
+        // validate that the iv and hybrid keys were not changed on disk
+        assert_eq!(expected_hybrid_identity_key.unwrap(), hybrid_identity_key.unwrap());
+
+        let mut file_contents = Vec::new();
+        File::open(&key_path)
+            .unwrap()
+            .read_to_end(&mut file_contents)
+            .unwrap();
+        assert_eq!(expected_hybrid_key_file_contents, file_contents);
+        let mut file_contents = Vec::new();
+        File::open(&iv_path)
+            .unwrap()
+            .read_to_end(&mut file_contents)
+            .unwrap();
+        assert_eq!(expected_iv_file_contents, file_contents);
+    }
+
+    #[test]
+    fn master_hybrid_id_key_creates_new_backup_and_iv_and_key_when_decrypt_fails() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+
+        let stale_hybrid_key = vec![2; IDENTITY_MASTER_KEY_LEN_BYTES];
+        let id_key_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME);
+        File::create(&id_key_path)
+            .expect("Stale hybrid key file could not be created")
+            .write_all(&stale_hybrid_key)
+            .expect("Stale hybrid key file could not be written");
+
+        let stale_iv = vec![1; IOTEDGED_CRYPTO_IV_LEN_BYTES];
+        let iv_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME);
+        File::create(&iv_path)
+            .expect("Stale iv file could not be created")
+            .write_all(&stale_iv)
+            .expect("Stale iv file could not be written");
+
+        let cert_path = tmp_dir.path().join("test_cert");
+        let cert_key_path = tmp_dir.path().join("test_key");
+        let settings_path = tmp_dir.path().join("test_settings.yaml");
+
+        prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &cert_key_path);
+        let settings = Settings::new(Some(&settings_path)).unwrap();
+
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+            fail_decrypt: true,
+            fail_encrypt: false,
+        };
+
+        let (force_module_reprovision, hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+
+        // validate that module reprovision is required since decrypt failed
+        assert!(force_module_reprovision);
+        assert_eq!(hybrid_identity_key.clone().unwrap().len(), IDENTITY_MASTER_KEY_LEN_BYTES);
+
+        // hybrid key and iv should be created and non empty since the auth mode is X.509
+        assert!(id_key_path.metadata().unwrap().len() > 0);
+        let mut hybrid_key_file_contents = Vec::new();
+        File::open(&id_key_path)
+            .unwrap()
+            .read_to_end(&mut hybrid_key_file_contents)
+            .unwrap();
+
+        assert!(iv_path.metadata().unwrap().len() == IOTEDGED_CRYPTO_IV_LEN_BYTES as u64);
+        let mut iv_file_contents = Vec::new();
+        File::open(&iv_path)
+            .unwrap()
+            .read_to_end(&mut iv_file_contents)
+            .unwrap();
+
+        // validate that the iv and hybrid keys were changed on disk
+        assert_ne!(stale_hybrid_key, hybrid_key_file_contents);
+        assert_ne!(stale_hybrid_key, iv_file_contents);
+    }
+
+    #[test]
+    fn master_hybrid_id_key_fails_when_encrypt_fails() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let cert_path = tmp_dir.path().join("test_cert");
+        let key_path = tmp_dir.path().join("test_key");
+        let settings_path = tmp_dir.path().join("test_settings.yaml");
+
+        prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
+        let settings = Settings::new(Some(&settings_path)).unwrap();
+
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+            fail_decrypt: false,
+            fail_encrypt: true,
+        };
+
+        // validate that hyrbid id key create fails
+        prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap_err();
+    }
+
+    #[test]
+    fn master_hybrid_id_key_creates_new_backup_and_iv_when_iv_is_corrupted() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let cert_path = tmp_dir.path().join("test_cert");
+        let key_path = tmp_dir.path().join("test_key");
+        let settings_path = tmp_dir.path().join("test_settings.yaml");
+
+        prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
+        let settings = Settings::new(Some(&settings_path)).unwrap();
+
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+            fail_decrypt: false,
+            fail_encrypt: false,
+        };
+
+        let (force_module_reprovision, first_hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+
+        // validate that module reprovision is required since this is the first time it was checked
+        assert!(force_module_reprovision);
+        assert_eq!(first_hybrid_identity_key.clone().unwrap().len(), IDENTITY_MASTER_KEY_LEN_BYTES);
+
+        // hybrid key and iv should be created and non empty since the auth mode is X.509
+        let key_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME);
+        let iv_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME);
+        assert!(key_path.metadata().unwrap().len() > 0);
+        assert!(iv_path.metadata().unwrap().len() == IOTEDGED_CRYPTO_IV_LEN_BYTES as u64);
+
+        // save off the first hybrid key file
+        let mut first_key_file_contents = Vec::new();
+        File::open(&key_path)
+            .unwrap()
+            .read_to_end(&mut first_key_file_contents)
+            .unwrap();
+
+        // save off the first iv file
+        let mut first_iv_file_contents = Vec::new();
+        File::open(&iv_path)
+            .unwrap()
+            .read_to_end(&mut first_iv_file_contents)
+            .unwrap();
+
+        // now corrupt the iv file by updating it with a non compliant byte length
+        let corrupt_iv = vec![1; IOTEDGED_CRYPTO_IV_LEN_BYTES + 1];
+        File::create(&iv_path)
+            .expect("Corrupt iv file could not be created")
+            .write_all(&corrupt_iv)
+            .expect("Corrupt iv file could not be written");
+
+        let (force_module_reprovision, second_hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+
+        // validate that module reprovision is required since iv was corrupted
+        assert!(force_module_reprovision);
+        assert_eq!(second_hybrid_identity_key.clone().unwrap().len(), IDENTITY_MASTER_KEY_LEN_BYTES);
+
+        // validate that a new hybrid id key was created
+        assert_ne!(first_hybrid_identity_key.clone().unwrap(), second_hybrid_identity_key.unwrap());
+
+        // validate that a new hybrid id key was generated and changed on disk
+        assert!(key_path.metadata().unwrap().len() > 0);
+        let mut second_hybrid_key_file_contents = Vec::new();
+        File::open(&key_path)
+            .unwrap()
+            .read_to_end(&mut second_hybrid_key_file_contents)
+            .unwrap();
+        assert_ne!(first_key_file_contents, second_hybrid_key_file_contents);
+
+        // validate that a new iv was created and changed on disk
+        assert!(iv_path.metadata().unwrap().len() == IOTEDGED_CRYPTO_IV_LEN_BYTES as u64);
+        let mut second_iv_file_contents = Vec::new();
+        File::open(&iv_path)
+            .unwrap()
+            .read_to_end(&mut second_iv_file_contents)
+            .unwrap();
+        assert_ne!(first_iv_file_contents, second_iv_file_contents);
+        assert_ne!(corrupt_iv, second_iv_file_contents);
+    }
+
+    #[test]
+    fn master_hybrid_id_key_creates_new_backup_and_iv_when_hybrid_key_is_corrupted() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let cert_path = tmp_dir.path().join("test_cert");
+        let key_path = tmp_dir.path().join("test_key");
+        let settings_path = tmp_dir.path().join("test_settings.yaml");
+
+        prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
+        let settings = Settings::new(Some(&settings_path)).unwrap();
+
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+            fail_decrypt: false,
+            fail_encrypt: false,
+        };
+
+        let (force_module_reprovision, first_hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+
+        // validate that module reprovision is required since this is the first time it was checked
+        assert!(force_module_reprovision);
+        assert_eq!(first_hybrid_identity_key.clone().unwrap().len(), IDENTITY_MASTER_KEY_LEN_BYTES);
+
+        // hybrid key and iv should be created and non empty since the auth mode is X.509
+        let key_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME);
+        let iv_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME);
+        assert!(key_path.metadata().unwrap().len() > 0);
+        assert!(iv_path.metadata().unwrap().len() == IOTEDGED_CRYPTO_IV_LEN_BYTES as u64);
+
+        // save off the first hybrid key file
+        let mut first_key_file_contents = Vec::new();
+        File::open(&key_path)
+            .unwrap()
+            .read_to_end(&mut first_key_file_contents)
+            .unwrap();
+
+        // save off the first iv file
+        let mut first_iv_file_contents = Vec::new();
+        File::open(&iv_path)
+            .unwrap()
+            .read_to_end(&mut first_iv_file_contents)
+            .unwrap();
+
+        // now corrupt the key file by updating it with a non compliant byte length
+        let corrupt_key = vec![1; IDENTITY_MASTER_KEY_LEN_BYTES + 1];
+        File::create(&key_path)
+            .expect("Corrupt key file could not be created")
+            .write_all(&corrupt_key)
+            .expect("Corrupt key file could not be written");
+
+        let (force_module_reprovision, second_hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+
+        // validate that module reprovision is required since hybrid key was corrupted
+        assert!(force_module_reprovision);
+        assert_eq!(second_hybrid_identity_key.clone().unwrap().len(), IDENTITY_MASTER_KEY_LEN_BYTES);
+
+        // validate that a new hybrid id key was created
+        assert_ne!(first_hybrid_identity_key.clone().unwrap(), second_hybrid_identity_key.unwrap());
+
+        // validate that a new hybrid id key was generated and changed on disk
+        assert!(key_path.metadata().unwrap().len() > 0);
+        let mut second_hybrid_key_file_contents = Vec::new();
+        File::open(&key_path)
+            .unwrap()
+            .read_to_end(&mut second_hybrid_key_file_contents)
+            .unwrap();
+        assert_ne!(first_key_file_contents, second_hybrid_key_file_contents);
+        assert_ne!(corrupt_key, second_hybrid_key_file_contents);
+
+        // validate that a new iv was created and changed on disk
+        assert!(iv_path.metadata().unwrap().len() == IOTEDGED_CRYPTO_IV_LEN_BYTES as u64);
+        let mut second_iv_file_contents = Vec::new();
+        File::open(&iv_path)
+            .unwrap()
+            .read_to_end(&mut second_iv_file_contents)
+            .unwrap();
+        assert_ne!(first_iv_file_contents, second_iv_file_contents);
+    }
+
+    #[test]
+    fn master_hybrid_id_key_deletes_stale_hybrid_key_and_iv_when_provisioning_to_non_x509_auth() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+
+        let hybrid_key_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME);
+        File::create(&hybrid_key_path)
+            .expect("Stale hybrid key file could not be created")
+            .write_all(b"jabba")
+            .expect("Stale hybrid key file could not be written");
+
+        let iv_path = tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME);
+        File::create(&iv_path)
+            .expect("Stale iv file could not be created")
+            .write_all(b"jibba")
+            .expect("Stale iv file could not be written");
+
+        // prepare a non x509 provisioning configuration
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+            fail_decrypt: false,
+            fail_encrypt: false,
+        };
+
+        let (force_module_reprovision, hybrid_identity_key) = prepare_master_hybrid_identity_key(&settings, &crypto, tmp_dir.path(), EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).unwrap();
+
+        // validate that module reprovision is not required this was not using x509
+        assert!(!force_module_reprovision);
+        // validate that no key was created
+        assert!(hybrid_identity_key.is_none());
+
+        // no hybrid key and iv should be created and any stale files deleted
+        // since the auth mode is not X.509
+        assert!(!tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME).exists());
+        assert!(!tmp_dir.path().join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME).exists());
     }
 }

@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
     /// Checkpointer DAO (data access object) which ignores sets. The initial value
