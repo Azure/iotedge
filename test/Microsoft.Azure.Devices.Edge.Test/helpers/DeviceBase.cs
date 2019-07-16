@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
-    using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
 
@@ -28,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     (string caCertPath, string caKeyPath, string caPassword) =
                         Context.Current.RootCaKeys.Expect(() => new ArgumentException());
                     Option<Uri> proxy = Context.Current.Proxy;
+                    string deviceId = Context.Current.DeviceId;
 
                     using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
                     {
@@ -38,11 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             Context.Current.EventHubEndpoint,
                             proxy);
 
-                        EdgeDevice device = (await EdgeDevice.GetIdentityAsync(
-                            Context.Current.DeviceId,
-                            this.iotHub,
-                            token)).Expect(() => new Exception("Device should have already been created in setup fixture"));
-
                         // TODO: RootCertificateAuthority only exists to create the EdgeCertificateAuthority; the functionality of the former can be folded into the latter
                         var rootCa = await RootCertificateAuthority.CreateAsync(
                             caCertPath,
@@ -51,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             Context.Current.CaCertScriptPath,
                             token);
 
-                        this.edgeCa = await rootCa.CreateEdgeCertificateAuthorityAsync(Context.Current.DeviceId, token);
+                        this.edgeCa = await rootCa.CreateEdgeCertificateAuthorityAsync(deviceId, token);
 
                         this.daemon = Platform.CreateEdgeDaemon(Context.Current.InstallerPath);
                         await this.daemon.ConfigureAsync(
@@ -63,16 +58,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             },
                             token);
 
-                        var builder = new EdgeConfigBuilder(device.Id);
-                        builder.AddRegistryCredentials(Context.Current.Registries);
-                        builder.AddEdgeAgent(agentImage).WithProxy(proxy);
-                        builder.AddEdgeHub(hubImage, Context.Current.OptimizeForPerformance)
-                            .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
-                            .WithProxy(proxy);
-                        await builder.Build().DeployAsync(this.iotHub, token);
+                        var runtime = new Runtime(
+                            deviceId,
+                            agentImage,
+                            hubImage,
+                            proxy,
+                            Context.Current.Registries,
+                            Context.Current.OptimizeForPerformance,
+                            iotHub);
 
-                        var hub = new EdgeModule("edgeHub", device.Id);
-                        await hub.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+                        await runtime.DeployConfigurationAsync(_ => { }, token);
+                        await runtime.WaitForModulesRunningAsync(new EdgeModule[0], token);
                     }
                 },
                 "Completed custom certificate setup");
