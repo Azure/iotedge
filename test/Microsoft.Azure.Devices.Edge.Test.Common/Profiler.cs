@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             T t = await func();
 
             stopwatch.Stop();
-            var args = new object[] { $"{((double)stopwatch.ElapsedMilliseconds) / 1000, 9:+0.000s}" };
+            var args = new object[] { $"{((double)stopwatch.ElapsedMilliseconds) / 1000,9:+0.000s}" };
             Log.Information($"[{{Elapsed}}] {message}", args.Concat(properties).ToArray());
             return t;
         }
