@@ -42,11 +42,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 throw new InvalidOperationException($"Module {payload.Id} not found in the current environment");
             }
 
-            if (!(module is IRuntimeModule runtimeModule) || runtimeModule.RuntimeStatus != ModuleStatus.Running)
-            {
-                throw new InvalidOperationException($"Module {payload.Id} cannot be restarted since it is not running");
-            }
-
             Events.RestartingModule(payload.Id);
             ICommand restartCommand = await this.commandFactory.RestartAsync(module);
             await restartCommand.ExecuteAsync(cancellationToken);

@@ -190,11 +190,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             string payload = "{\"schemaVersion\": \"1.0\",\"id\": \"mod1\"}";
 
             // Act
-            await Assert.ThrowsAsync<InvalidOperationException>(() => restartRequestHandler.HandleRequest(Option.Some(payload), cts.Token));
+            Option<string> response = await restartRequestHandler.HandleRequest(Option.Some(payload), cts.Token);
 
             // Assert
-            restartCommand.Verify(r => r.ExecuteAsync(cts.Token), Times.Never);
-            commandFactory.Verify(c => c.RestartAsync(mod1), Times.Never);
+            Assert.False(response.HasValue);
+            restartCommand.Verify(r => r.ExecuteAsync(cts.Token), Times.Once);
+            commandFactory.Verify(c => c.RestartAsync(mod1), Times.Once);
+            Mock.Get(configSource).VerifyAll();
+            Mock.Get(environmentProvider).VerifyAll();
+            Mock.Get(environment).VerifyAll();
         }
 
         [Theory]
