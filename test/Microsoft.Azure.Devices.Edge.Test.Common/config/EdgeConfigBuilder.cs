@@ -27,7 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             {
                 this.AddRegistryCredentials(address, username, password);
             }
-
         }
 
         public IModuleConfigBuilder AddEdgeAgent(string image = null)

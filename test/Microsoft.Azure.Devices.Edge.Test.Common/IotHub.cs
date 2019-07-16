@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 }
             };
 
-            return CreateDeviceIdentityAsync(edge, token);
+            return this.CreateDeviceIdentityAsync(edge, token);
         }
 
         public Task DeleteDeviceIdentityAsync(Device device, CancellationToken token) =>

@@ -120,7 +120,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             leaf = await iotHub.CreateDeviceIdentityAsync(leaf, token);
 
-            return await DeleteIdentityIfFailedAsync(leaf, iotHub, token,
+            return await DeleteIdentityIfFailedAsync(
+                leaf,
+                iotHub,
+                token,
                 () =>
                 {
                     string connectionString =
@@ -159,7 +162,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             leaf = await iotHub.CreateDeviceIdentityAsync(leaf, token);
 
-            return await DeleteIdentityIfFailedAsync(leaf, iotHub, token,
+            return await DeleteIdentityIfFailedAsync(
+                leaf,
+                iotHub,
+                token,
                 async () =>
                 {
                     LeafCertificates certFiles = await edgeCa.GenerateLeafCertificatesAsync(leafDeviceId, token);
@@ -231,7 +237,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             leaf = await iotHub.CreateDeviceIdentityAsync(leaf, token);
 
-            return await DeleteIdentityIfFailedAsync(leaf, iotHub, token,
+            return await DeleteIdentityIfFailedAsync(
+                leaf,
+                iotHub,
+                token,
                 () =>
                 {
                     LeafCertificates certFiles = useSecondaryCertificate ? secondary : primary;
