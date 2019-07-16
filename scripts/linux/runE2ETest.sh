@@ -19,8 +19,13 @@ function clean_up() {
     rm -rf /var/run/iotedge/
     rm -rf /etc/iotedge/config.yaml
 
-    echo 'Do docker system prune'
-    docker system prune -af || true
+    if [ "$CLEAN_ALL" = '1' ]; then
+        echo 'Prune docker system'
+        docker system prune -af --volumes || true
+    else
+        echo 'Remove docker containers'
+        docker rm -f $(docker ps -aq) || true
+    fi
 }
 
 function create_iotedge_service_config {
@@ -345,6 +350,7 @@ function process_args() {
                 '-amqpSettingsEnabled' ) saveNextArg=21;;
                 '-mqttSettingsEnabled' ) saveNextArg=22;;
                 '-longHaulProtocolHead' ) saveNextArg=23;;
+                '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
         fi

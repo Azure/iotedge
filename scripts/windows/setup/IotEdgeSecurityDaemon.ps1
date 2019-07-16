@@ -1640,7 +1640,7 @@ function Set-ProvisioningMode {
         }
         else {
             $attestationMethod = Get-DpsProvisioningSettings
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*attestation:\s*#?\s*method:\s*"' + $attestationMethod + '"\s*#?\s*registration_id:\s*".*"\s*#?\s*device_id:\s*".*"'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*attestation:\s*#?\s*method:\s*"' + $attestationMethod + '"\s*#?\s*registration_id:\s*".*"'
 
             if ($attestationMethod -eq 'symmetric_key') {
                 $selectionRegex += '\s*#?\s*symmetric_key:\s".*"'
