@@ -419,7 +419,7 @@ mod tests {
     use crate::config::{Config, TokenSource};
     use hyper::service::service_fn;
     use hyper::{Body, Error as HyperError, Request, Response, StatusCode};
-    use k8s_openapi::api::api_apps::v1 as apps;
+    use k8s_openapi::api::apps::v1 as api_apps;
     use native_tls::TlsConnector;
     use serde_json;
     use tokio::runtime::Runtime;

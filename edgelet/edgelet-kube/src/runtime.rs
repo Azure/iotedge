@@ -402,7 +402,7 @@ mod tests {
     use native_tls::TlsConnector;
     use url::Url;
 
-    use edgelet_core::{GetTrustBundle, Error as CoreError, ErrorKind as CoreErrorKind};
+    use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind, GetTrustBundle};
     use edgelet_test_utils::cert::TestCert;
     use kube_client::{Client as KubeClient, Config as KubeConfig, Error, TokenSource};
 
