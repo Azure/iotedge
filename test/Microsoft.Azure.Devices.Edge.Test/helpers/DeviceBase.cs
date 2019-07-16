@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             .WithProxy(proxy);
                         await builder.Build().DeployAsync(this.iotHub, token);
 
-                        var hub = new EdgeModule("edgeHub", device.Id, this.iotHub);
+                        var hub = new EdgeModule("edgeHub", device.Id);
                         await hub.WaitForStatusAsync(EdgeModuleStatus.Running, token);
                     }
                 },

@@ -17,12 +17,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     public class EdgeModule
     {
         protected string deviceId;
-        protected IotHub iotHub;
 
-        public EdgeModule(string id, string deviceId, IotHub iotHub)
+        public EdgeModule(string id, string deviceId)
         {
             this.deviceId = deviceId;
-            this.iotHub = iotHub;
             this.Id = id;
         }
 
@@ -92,10 +90,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return WaitForStatusAsync(new[] { this }, desired, token);
         }
 
-        public Task WaitForEventsReceivedAsync(DateTime seekTime, CancellationToken token)
+        public Task WaitForEventsReceivedAsync(DateTime seekTime, IotHub iotHub, CancellationToken token)
         {
             return Profiler.Run(
-                () => this.iotHub.ReceiveEventsAsync(
+                () => iotHub.ReceiveEventsAsync(
                     this.deviceId,
                     seekTime,
                     data =>
@@ -109,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     token),
                 "Received events from device '{Device}' on Event Hub '{EventHub}'",
                 this.deviceId,
-                this.iotHub.EntityPath);
+                iotHub.EntityPath);
         }
     }
 }

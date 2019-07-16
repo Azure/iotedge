@@ -6,9 +6,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class EdgeAgent : EdgeModule
     {
+        IotHub iotHub;
+
         public EdgeAgent(string deviceId, IotHub iotHub)
-            : base("edgeAgent", deviceId, iotHub)
+            : base("edgeAgent", deviceId)
         {
+            this.iotHub = iotHub;
         }
 
         public Task PingAsync(CancellationToken token) =>
