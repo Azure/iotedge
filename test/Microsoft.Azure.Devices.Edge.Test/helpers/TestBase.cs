@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected CancellationTokenSource cts;
 
         [SetUp]
-        void BeforeEach()
+        protected void BeforeEach()
         {
             this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
             this.testStartTime = DateTime.Now;
@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         }
 
         [TearDown]
-        async Task AfterEachAsync()
+        protected async Task AfterEachAsync()
         {
             this.profiler.Stop("Completed test '{Name}'", TestContext.CurrentContext.Test.Name);
             await Profiler.Run(

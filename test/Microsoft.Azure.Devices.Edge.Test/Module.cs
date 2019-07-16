@@ -31,7 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await sensor.WaitForEventsReceivedAsync(seekTime, this.iotHub, token);
 
             var sensorTwin = new ModuleTwin(sensor.Id, this.deviceId, this.iotHub);
-
             await sensorTwin.UpdateDesiredPropertiesAsync(
                 new
                 {
@@ -45,7 +44,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     }
                 },
                 token);
-
             await sensorTwin.WaitForReportedPropertyUpdatesAsync(
                 new
                 {

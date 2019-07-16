@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected IotHub iotHub;
 
         [SetUp]
-        async Task BeforeEachAsync()
+        protected async Task BeforeEachAsync()
         {
             this.iotHub = new IotHub(
                 Context.Current.ConnectionString,
