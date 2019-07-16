@@ -4,7 +4,7 @@
 pub enum Health {
     Healthy,
     Degraded,
-    Poor
+    Poor,
 }
 
 #[derive(Debug)]
@@ -25,7 +25,12 @@ impl Status {
         }
     }
 
-    pub fn _set_status(iotedged: bool, edge_agent: bool, edge_hub: bool, other_modules: bool) -> Self {
+    pub fn _set_status(
+        iotedged: bool,
+        edge_agent: bool,
+        edge_hub: bool,
+        other_modules: bool,
+    ) -> Self {
         Status {
             iotedged,
             edge_agent,

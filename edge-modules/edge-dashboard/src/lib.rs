@@ -93,6 +93,9 @@ impl Main {
             App::new()
                 .register_data(context.clone())
                 .register_data(device.clone())
+                .service(
+                    web::resource("/api/modules/{id}/restart").route(web::put().to(restart_module)),
+                )
                 .service(web::resource("/api/modules/").to_async(get_modules))
                 .service(web::resource("/api/provisioning-state/").to(get_state))
                 .service(web::resource("/api/connectivity/").to(get_connectivity))
@@ -107,7 +110,7 @@ impl Main {
 
 #[derive(Deserialize)]
 pub struct AuthRequest {
-    version: String,
+    api_version: String,
 }
 
 fn set_up(context: web::Data<Arc<Context>>) -> Option<state::Device> {
@@ -164,54 +167,12 @@ fn get_state(
     }
 }
 
-pub fn get_modules(
+fn get_modules(
     context: web::Data<Arc<Context>>,
     info: web::Query<AuthRequest>,
 ) -> Box<dyn Future<Item = HttpResponse, Error = ActixError>> {
-    let response = context
-        .edge_config
-        .as_ref()
-        .map(|config| {
-            let mgmt_uri = config.connect().management_uri();
-            let api_ver = &info.version;
-            // println!("API Version: {}", api_ver);
-            Either::A(
-                Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
-                    .map_err(ErrorInternalServerError)
-                    .and_then(|url| ModuleClient::new(&url)
-                    .map_err(ErrorInternalServerError)) // can't connect to the endpoint
-                    .map(|mod_client| {
-                        mod_client
-                            .list()
-                            .map(|data| {
-                                let x: Vec<Module> = data
-                                    .iter()
-                                    .map(|c| {
-                                        let mut status = "".to_string();
-                                        if let Ok(Async::Ready(t)) = c.runtime_state().poll() {
-                                            status =
-                                                (*(t.status().clone()).to_string()).to_string();
-                                        }
-                                        Module::new(c.name().to_string(), status)
-                                    })
-                                    .collect();
-                                HttpResponse::Ok()
-                                    .content_type("text/html")
-                                    .body(format!("{:?}", x))
-                            })
-                            .map_err(ErrorInternalServerError)
-                    })
-                    .into_future()
-                    .flatten(),
-            )
-        })
-        .unwrap_or_else(|err| {
-            Either::B(ok(HttpResponse::ServiceUnavailable()
-                .content_type("text/plain")
-                .body(format!("{:?}", err))))
-        });
-
-    Box::new(response)
+    let api_ver = &info.api_version;
+    return_modules(context, api_ver, module_response)
 }
 
 fn get_connectivity(_req: HttpRequest, device: web::Data<Option<state::Device>>) -> HttpResponse {
@@ -236,29 +197,72 @@ fn get_connectivity(_req: HttpRequest, device: web::Data<Option<state::Device>>)
 fn get_health(
     _req: HttpRequest,
     context: web::Data<Arc<Context>>,
-    // info: web::Query<AuthRequest>,
+    info: web::Query<AuthRequest>,
 ) -> Box<dyn Future<Item = HttpResponse, Error = ActixError>> {
-    let api_ver = "2018-06-28";
+    let api_ver = &info.api_version;
+    return_modules(context, api_ver, health_response)
+}
 
-    let response = context
+fn restart_module(
+    req: HttpRequest,
+    context: web::Data<Arc<Context>>,
+    info: web::Query<AuthRequest>,
+) -> HttpResponse {
+    let api_ver = &info.api_version;
+
+    let r = context
         .edge_config
         .as_ref()
         .map(|config| {
             let mgmt_uri = config.connect().management_uri();
-            // let api_ver = &info.version;
+            req.match_info().get("id").and_then(|module_id| {
+                Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
+                    .map_err(ErrorInternalServerError)
+                    .and_then(|url| ModuleClient::new(&url).map_err(ErrorInternalServerError)) // can't connect to the endpoint
+                    .ok()
+                    .map(|mod_client| {
+                        mod_client.restart(module_id);
+                        HttpResponse::Ok()
+                            .body(format!("Module {} was successfully restarted.", module_id))
+                    })
+            })
+        })
+        .unwrap_or_else(|_e| {
+            Some(
+                HttpResponse::ServiceUnavailable()
+                    .body(format!("Unable to configure docker settings.")),
+            )
+        });
+
+    if let Some(resp) = r {
+        resp
+    } else {
+        HttpResponse::Ok().body("Failed to restart module.")
+    }
+}
+
+fn return_modules(
+    context: web::Data<Arc<Context>>,
+    api_ver: &str,
+    f: fn(Vec<Module>) -> HttpResponse,
+) -> Box<dyn Future<Item = HttpResponse, Error = ActixError>> {
+    let response = context
+        .edge_config
+        .as_ref()
+        .map(move |config| {
+            let mgmt_uri = config.connect().management_uri();
             // println!("API Version: {}", api_ver);
             Either::A(
                 Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
                     .map_err(ErrorInternalServerError)
-                    .and_then(|url| ModuleClient::new(&url)
-                    .map_err(ErrorInternalServerError)) // can't connect to the endpoint
-                    .map(|mod_client| {
+                    .and_then(|url| ModuleClient::new(&url).map_err(ErrorInternalServerError)) // can't connect to the endpoint
+                    .map(move |mod_client| {
                         mod_client
                             .list()
-                            .map(|data| {
+                            .map(move |data| {
                                 let x: Vec<Module> = data
                                     .iter()
-                                    .map(|c| {
+                                    .map(move |c| {
                                         let mut status = "".to_string();
                                         if let Ok(Async::Ready(t)) = c.runtime_state().poll() {
                                             status =
@@ -267,30 +271,7 @@ fn get_health(
                                         Module::new(c.name().to_string(), status)
                                     })
                                     .collect();
-                                let mut device_status = health::Status::new();
-                                let mut flag = true;
-                                for module in x.iter() {
-                                    if module.name() == "edgeAgent" {
-                                        if module.status() == "success" {
-                                            device_status.set_edge_agent();
-                                        } else {
-                                            flag = false;
-                                        }
-                                    } else if module.name() == "edgeHub" {
-                                        if module.status() == "success" {
-                                            device_status.set_edge_hub();
-                                        } else {
-                                            flag = false;
-                                        }
-                                    } else {
-                                        if module.status() != "success" {
-                                            flag = false;
-                                        }
-                                    }
-                                }
-                                device_status.set_other_modules(flag);
-                                let health = device_status.return_health();
-                                HttpResponse::Ok().body(format!("Device health: {:?}\nDevice details: {:?}", health, device_status))
+                                f(x) // changes depending on method
                             })
                             .map_err(ErrorInternalServerError)
                     })
@@ -305,7 +286,40 @@ fn get_health(
         });
 
     Box::new(response)
+}
 
+fn module_response(mods: Vec<Module>) -> HttpResponse {
+    HttpResponse::Ok().body(format!("{:?}", mods))
+}
+
+fn health_response(mods: Vec<Module>) -> HttpResponse {
+    let mut device_status = health::Status::new();
+    let mut flag = true;
+    for module in mods.iter() {
+        if module.name() == "edgeAgent" {
+            if module.status() == "success" {
+                device_status.set_edge_agent();
+            } else {
+                flag = false;
+            }
+        } else if module.name() == "edgeHub" {
+            if module.status() == "success" {
+                device_status.set_edge_hub();
+            } else {
+                flag = false;
+            }
+        } else {
+            if module.status() != "success" {
+                flag = false;
+            }
+        }
+    }
+    device_status.set_other_modules(flag);
+    let health = device_status.return_health();
+    HttpResponse::Ok().body(format!(
+        "Device health: {:?}\nDevice details: {:?}",
+        health, device_status
+    ))
 }
 
 fn resolve_and_tls_handshake(
