@@ -75,22 +75,23 @@ where
     Body: From<<S as Service>::ResBody>,
     S::Error: Into<Error>,
 {
-    pub fn create_config_map(
+    pub fn replace_config_map(
         &mut self,
         namespace: &str,
+        name: &str,
         config_map: &api_core::ConfigMap,
     ) -> impl Future<Item = api_core::ConfigMap, Error = Error> {
-        api_core::ConfigMap::create_namespaced_config_map(
+        api_core::ConfigMap::replace_namespaced_config_map(
+            name,
             namespace,
             config_map,
-            api_core::CreateNamespacedConfigMapOptional::default(),
+            api_core::ReplaceNamespacedConfigMapOptional::default(),
         )
         .map_err(Error::from)
         .map(|req| {
             self.request(req).and_then(|response| match response {
-                api_core::CreateNamespacedConfigMapResponse::Ok(config_map)
-                | api_core::CreateNamespacedConfigMapResponse::Created(config_map)
-                | api_core::CreateNamespacedConfigMapResponse::Accepted(config_map) => {
+                api_core::ReplaceNamespacedConfigMapResponse::Ok(config_map)
+                | api_core::ReplaceNamespacedConfigMapResponse::Created(config_map) => {
                     Ok(config_map)
                 }
                 err => {

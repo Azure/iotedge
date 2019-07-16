@@ -504,7 +504,7 @@ pub fn spec_to_role_binding(
 pub fn trust_bundle_to_config_map(
     settings: &Settings,
     cert: &impl Certificate,
-) -> Result<api_core::ConfigMap> {
+) -> Result<(String, api_core::ConfigMap)> {
     let device_label_value =
         sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
     let hubname_label = sanitize_dns_value(
@@ -526,10 +526,11 @@ pub fn trust_bundle_to_config_map(
         PROXY_CONFIG_TRUST_BUNDLE_FILENAME.to_string(),
         cert.to_string(),
     );
+    let config_map_name = PROXY_CONFIG_TRUST_BUNDLE_NAME.to_string();
 
     let config_map = api_core::ConfigMap {
         metadata: Some(api_meta::ObjectMeta {
-            name: Some(PROXY_CONFIG_TRUST_BUNDLE_NAME.to_string()),
+            name: Some(config_map_name.clone()),
             namespace: Some(settings.namespace().to_string()),
             labels: Some(labels),
             ..api_meta::ObjectMeta::default()
@@ -537,7 +538,7 @@ pub fn trust_bundle_to_config_map(
         data: Some(data),
         ..api_core::ConfigMap::default()
     };
-    Ok(config_map)
+    Ok((config_map_name, config_map))
 }
 
 #[cfg(test)]
@@ -826,11 +827,13 @@ mod tests {
 
     #[test]
     fn trust_bundle_to_config_map_with_cert() {
-        let config_map = trust_bundle_to_config_map(
+        let (name, config_map) = trust_bundle_to_config_map(
             &make_settings(None),
             &TestCert::default().with_cert(b"secret_cert".to_vec()),
         )
         .unwrap();
+
+        assert_eq!(name, PROXY_CONFIG_TRUST_BUNDLE_NAME);
 
         assert!(config_map.metadata.is_some());
         if let Some(metadata) = config_map.metadata {

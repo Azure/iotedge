@@ -198,12 +198,12 @@ where
             .and_then(|cert| {
                 trust_bundle_to_config_map(self.settings(), &cert).map_err(Error::from)
             })
-            .map(|config_map| {
+            .map(|(name, config_map)| {
                 self.client()
                     .lock()
                     .expect("Unexpected lock error")
                     .borrow_mut()
-                    .create_config_map(&self.settings().namespace(), &config_map)
+                    .replace_config_map(&self.settings().namespace(), &name, &config_map)
                     .map_err(Error::from)
                     .map(|_| ())
             })
