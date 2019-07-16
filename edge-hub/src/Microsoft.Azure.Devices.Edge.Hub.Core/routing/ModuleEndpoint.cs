@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using static System.FormattableString;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
-    using ISinkResult = Microsoft.Azure.Devices.Routing.Core.ISinkResult<Devices.Routing.Core.IMessage>;
+    using ISinkResult = Microsoft.Azure.Devices.Routing.Core.ISinkResult<Microsoft.Azure.Devices.Routing.Core.IMessage>;
     using Option = Microsoft.Azure.Devices.Edge.Util.Option;
 
     public class ModuleEndpoint : Endpoint
