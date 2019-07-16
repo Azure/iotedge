@@ -1186,7 +1186,7 @@ mod tests {
         let memory_hsm = MemoryKeyStore::new();
         let task = provisioning.provision(memory_hsm.clone()).then(|result| {
             assert_eq!(
-                result.err().unwrap().kind(),
+                result.unwrap_err().kind(),
                 &ErrorKind::ExternalProvisioning(
                     ExternalProvisioningErrorReason::InvalidCredentialSource
                 )
@@ -1215,7 +1215,7 @@ mod tests {
         let memory_hsm = MemoryKeyStore::new();
         let task = provisioning.provision(memory_hsm.clone()).then(|result| {
             assert_eq!(
-                result.err().unwrap().kind(),
+                result.unwrap_err().kind(),
                 &ErrorKind::ExternalProvisioning(
                     ExternalProvisioningErrorReason::InvalidAuthenticationType
                 )
@@ -1244,7 +1244,7 @@ mod tests {
         let memory_hsm = MemoryKeyStore::new();
         let task = provisioning.provision(memory_hsm.clone()).then(|result| {
             assert_eq!(
-                result.err().unwrap().kind(),
+                result.unwrap_err().kind(),
                 &ErrorKind::ExternalProvisioning(
                     ExternalProvisioningErrorReason::ProvisioningFailure
                 )
