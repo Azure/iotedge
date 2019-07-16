@@ -85,7 +85,7 @@ impl WorkloadConfig for Config {
 }
 
 fn init_crypto() -> Crypto {
-    let crypto = crypto();
+    let crypto = Crypto::new(HsmLock::new()).unwrap();
 
     // create the default issuing CA cert
     let edgelet_ca_props = CertificateProperties::new(
@@ -99,10 +99,6 @@ fn init_crypto() -> Crypto {
     assert!(!workload_ca_cert.pem().unwrap().as_bytes().is_empty());
 
     crypto
-}
-
-fn crypto() -> Crypto {
-    Crypto::new(HsmLock::new()).unwrap()
 }
 
 fn request<T>(service: &mut WorkloadService, req: Request<Body>) -> T

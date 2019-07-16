@@ -20,11 +20,10 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
-    AuthId, Authenticator, Ipam as CoreIpam, LogOptions, MakeModuleRuntime, MobyNetwork, Module,
-    ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, RegistryOperation,
-    RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
+    AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
+    MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
+    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
 };
-use edgelet_hsm::Crypto;
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 use provisioning::ProvisioningResult;
@@ -177,14 +176,17 @@ where
 
 impl MakeModuleRuntime for DockerModuleRuntime {
     type Config = DockerConfig;
-    type Crypto = Crypto;
     type Settings = Settings;
     type ProvisioningResult = ProvisioningResult;
     type ModuleRuntime = Self;
     type Error = Error;
     type Future = Box<dyn Future<Item = Self, Error = Self::Error> + Send>;
 
-    fn make_runtime(settings: Settings, _: ProvisioningResult, _: Self::Crypto) -> Self::Future {
+    fn make_runtime(
+        settings: Settings,
+        _: ProvisioningResult,
+        _: impl GetTrustBundle,
+    ) -> Self::Future {
         info!("Initializing module runtime...");
 
         // Clippy incorrectly flags the use of `.map(..).unwrap_or_else(..)` code as being replaceable
@@ -909,7 +911,6 @@ mod tests {
         Certificates, Connect, Listen, ModuleRegistry, ModuleTop, Provisioning, RuntimeSettings,
         WatchdogSettings,
     };
-    use edgelet_hsm::HsmLock;
     use edgelet_test_utils::crypto::TestHsm;
     use provisioning::ReprovisioningStatus;
 
@@ -923,8 +924,8 @@ mod tests {
         )
     }
 
-    fn crypto() -> Crypto {
-        Crypto::new(HsmLock::new()).unwrap()
+    fn crypto() -> impl GetTrustBundle {
+        TestHsm::default()
     }
 
     fn make_settings(merge_json: Option<JsonValue>) -> Settings {
@@ -1305,7 +1306,6 @@ mod tests {
 
     impl MakeModuleRuntime for TestModuleList {
         type Config = TestConfig;
-        type Crypto = TestHsm;
         type ProvisioningResult = ProvisioningResult;
         type ModuleRuntime = Self;
         type Settings = TestSettings;
@@ -1315,7 +1315,7 @@ mod tests {
         fn make_runtime(
             _settings: Self::Settings,
             _provisioning_result: Self::ProvisioningResult,
-            _crypto: Self::Crypto,
+            _crypto: impl GetTrustBundle,
         ) -> Self::Future {
             unimplemented!()
         }

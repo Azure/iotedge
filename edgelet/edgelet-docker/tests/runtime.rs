@@ -28,12 +28,12 @@ use docker::models::{
 };
 
 use edgelet_core::{
-    ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime,
-    ModuleSpec, RegistryOperation, RuntimeOperation,
+    GetTrustBundle, ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module,
+    ModuleRegistry, ModuleRuntime, ModuleSpec, RegistryOperation, RuntimeOperation,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
 use edgelet_docker::{Error, ErrorKind};
-use edgelet_hsm::{Crypto, HsmLock};
+use edgelet_test_utils::crypto::TestHsm;
 use edgelet_test_utils::web::{
     make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
 };
@@ -101,8 +101,8 @@ fn provisioning_result() -> ProvisioningResult {
     )
 }
 
-fn crypto() -> Crypto {
-    Crypto::new(HsmLock::new()).unwrap()
+fn crypto() -> impl GetTrustBundle {
+    TestHsm::default()
 }
 
 fn make_get_networks_handler(

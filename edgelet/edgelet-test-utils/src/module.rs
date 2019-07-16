@@ -13,8 +13,6 @@ use futures::IntoFuture;
 use hyper::{Body, Request};
 use serde_derive::{Deserialize, Serialize};
 
-use crate::crypto::TestHsm;
-
 #[derive(Clone, Debug)]
 pub struct TestRegistry<E, C> {
     err: Option<E>,
@@ -266,7 +264,6 @@ where
     S::Config: Clone + Send + 'static,
 {
     type Config = S::Config;
-    type Crypto = TestHsm;
     type Settings = S;
     type ProvisioningResult = TestProvisioningResult;
     type ModuleRuntime = Self;
@@ -276,7 +273,7 @@ where
     fn make_runtime(
         settings: Self::Settings,
         _: Self::ProvisioningResult,
-        _: Self::Crypto,
+        _: impl GetTrustBundle,
     ) -> Self::Future {
         future::ok(TestRuntime {
             module: None,

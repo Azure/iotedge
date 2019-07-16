@@ -20,9 +20,9 @@ use url::Url;
 
 use docker::models::{AuthConfig, ContainerCreateBody, HostConfig, Mount};
 use edgelet_core::{
-    AuthId, Authenticator, Certificates, Connect, ImagePullPolicy, Listen, MakeModuleRuntime,
-    ModuleRuntime, ModuleSpec, Provisioning, ProvisioningResult as CoreProvisioningResult,
-    RuntimeSettings, WatchdogSettings,
+    AuthId, Authenticator, Certificates, Connect, GetTrustBundle, ImagePullPolicy, Listen,
+    MakeModuleRuntime, ModuleRuntime, ModuleSpec, Provisioning,
+    ProvisioningResult as CoreProvisioningResult, RuntimeSettings, WatchdogSettings,
 };
 use edgelet_docker::DockerConfig;
 use edgelet_kube::{ErrorKind, KubeModuleRuntime, Settings};
@@ -388,7 +388,6 @@ struct TestKubeModuleRuntime(KubeModuleRuntime<TestTokenSource, HttpClient<HttpC
 
 impl MakeModuleRuntime for TestKubeModuleRuntime {
     type Config = DockerConfig;
-    type Crypto = TestHsm;
     type Settings = TestKubeSettings;
     type ProvisioningResult = ProvisioningResult;
     type ModuleRuntime = KubeModuleRuntime<TestTokenSource, HttpClient<HttpConnector, Body>>;
@@ -398,7 +397,7 @@ impl MakeModuleRuntime for TestKubeModuleRuntime {
     fn make_runtime(
         settings: Self::Settings,
         provisioning_result: Self::ProvisioningResult,
-        _: Self::Crypto,
+        _: impl GetTrustBundle,
     ) -> Self::Future {
         let settings = settings
             .with_device_id(provisioning_result.device_id())

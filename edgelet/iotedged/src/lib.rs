@@ -172,7 +172,7 @@ where
 
 impl<M> Main<M>
 where
-    M: MakeModuleRuntime<ProvisioningResult = ProvisioningResult, Crypto = Crypto> + Send + 'static,
+    M: MakeModuleRuntime<ProvisioningResult = ProvisioningResult> + Send + 'static,
     M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
     <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
         Clone + DeserializeOwned + Serialize,
@@ -808,7 +808,7 @@ fn init_runtime<M>(
     settings: M::Settings,
     tokio_runtime: &mut tokio::runtime::Runtime,
     provisioning_result: M::ProvisioningResult,
-    crypto: M::Crypto,
+    crypto: Crypto,
 ) -> Result<M::ModuleRuntime, Error>
 where
     M: MakeModuleRuntime + Send + 'static,

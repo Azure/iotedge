@@ -409,7 +409,6 @@ pub trait ProvisioningResult {
 
 pub trait MakeModuleRuntime {
     type Config: Clone + Send;
-    type Crypto: GetTrustBundle;
     type Settings: RuntimeSettings<Config = Self::Config>;
     type ProvisioningResult: ProvisioningResult;
     type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
@@ -419,7 +418,7 @@ pub trait MakeModuleRuntime {
     fn make_runtime(
         settings: Self::Settings,
         provisioning_result: Self::ProvisioningResult,
-        crypto: Self::Crypto,
+        crypto: impl GetTrustBundle + 'static,
     ) -> Self::Future;
 }
 
