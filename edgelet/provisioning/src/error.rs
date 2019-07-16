@@ -10,7 +10,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Clone, Copy, Debug, Fail)]
+#[derive(Clone, Copy, Debug, Fail, PartialEq)]
 pub enum ErrorKind {
     #[fail(display = "Could not backup provisioning result")]
     CouldNotBackup,
