@@ -13,9 +13,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
     public class EdgeDaemon : IEdgeDaemon
     {
-        readonly string scriptDir;
+        Option<string> scriptDir;
 
-        public EdgeDaemon(string scriptDir)
+        public EdgeDaemon(Option<string> scriptDir)
         {
             this.scriptDir = scriptDir;
         }
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             await this.ConfigureAsync(proxy, token);
         }
 
-        Task InstallInternalAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
+        async Task InstallInternalAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
             var properties = new object[] { };
             string message = "Installed edge daemon";
@@ -60,14 +60,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             proxy.ForEach(
                 p => installCommand += $" -InvokeWebRequestParameters @{{ '-Proxy' = '{p}' }}");
 
+            string scriptDir = await this.scriptDir.Match(
+                d => Task.FromResult(d),
+                () => this.DownloadInstallerAsync(token));
+
             var commands = new[]
             {
                 "$ProgressPreference='SilentlyContinue'",
-                $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1",
+                $". {scriptDir}\\IotEdgeSecurityDaemon.ps1",
                 installCommand
             };
 
-            return Profiler.Run(
+            await Profiler.Run(
                 async () =>
                 {
                     string[] output =
@@ -130,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             if (sc.Status != ServiceControllerStatus.Running)
             {
                 sc.Start();
-                await this.WaitForStatusAsync(sc, ServiceControllerStatus.Running, token);
+                await WaitForStatusAsync(sc, ServiceControllerStatus.Running, token);
             }
         }
 
@@ -147,20 +151,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             if (sc.Status != ServiceControllerStatus.Stopped)
             {
                 sc.Stop();
-                await this.WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
+                await WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
             }
         }
 
-        public Task UninstallAsync(CancellationToken token)
+        public async Task UninstallAsync(CancellationToken token)
         {
+            string scriptDir = await this.scriptDir.Match(
+                d => Task.FromResult(d),
+                () => this.DownloadInstallerAsync(token));
+
             var commands = new[]
             {
                 "$ProgressPreference='SilentlyContinue'",
-                $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1",
+                $". {scriptDir}\\IotEdgeSecurityDaemon.ps1",
                 "Uninstall-IoTEdge -Force"
             };
 
-            return Profiler.Run(
+            await Profiler.Run(
                 async () =>
                 {
                     string[] output =
@@ -174,18 +182,43 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
         {
             var sc = new ServiceController("iotedge");
             return Profiler.Run(
-                () => this.WaitForStatusAsync(sc, (ServiceControllerStatus)desired, token),
+                () => WaitForStatusAsync(sc, (ServiceControllerStatus)desired, token),
                 "Edge daemon entered the '{Desired}' state",
                 desired.ToString().ToLower());
         }
 
-        async Task WaitForStatusAsync(ServiceController sc, ServiceControllerStatus desired, CancellationToken token)
+        static async Task WaitForStatusAsync(ServiceController sc, ServiceControllerStatus desired, CancellationToken token)
         {
             while (sc.Status != desired)
             {
                 await Task.Delay(250, token).ConfigureAwait(false);
                 sc.Refresh();
             }
+        }
+
+        async Task<string> DownloadInstallerAsync(CancellationToken token)
+        {
+            const string address = "aka.ms/iotedge-win";
+            string tempDir = Path.GetTempPath();
+            string[] commands = new[]
+            {
+                "$ProgressPreference='SilentlyContinue'",   // don't render PowerShell's progress bar in non-interactive shell
+                $"Invoke-WebRequest -UseBasicParsing -OutFile '{Path.Combine(tempDir, "IotEdgeSecurityDaemon.ps1")}' '{address}'"
+            };
+
+            await Profiler.Run(
+                async () =>
+                {
+                    await Process.RunAsync(
+                        "powershell",
+                        string.Join(';', commands),
+                        token);
+                },
+                "Downloaded Edge daemon Windows installer from '{Address}'",
+                address);
+
+            this.scriptDir = Option.Some(tempDir);
+            return tempDir;
         }
     }
 }
