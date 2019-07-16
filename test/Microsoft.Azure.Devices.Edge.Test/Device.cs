@@ -47,27 +47,18 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 this.iotHub,
                 token);
 
-            try
-            {
-                DateTime seekTime = DateTime.Now;
-                await leaf.SendEventAsync(token);
-                await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                await leaf.InvokeDirectMethodAsync(token);
-            }
-
-            // According to C# reference docs for 'try-finally', the finally
-            // block may or may not run for unhandled exceptions. The
-            // workaround is to catch the exception here and rethrow,
-            // guaranteeing that the finally block will run.
-            // ReSharper disable once RedundantCatchClause
-            catch
-            {
-                throw;
-            }
-            finally
-            {
-                await leaf.DeleteIdentityAsync(token);
-            }
+            await TryFinally.DoAsync(
+                async () =>
+                {
+                    DateTime seekTime = DateTime.Now;
+                    await leaf.SendEventAsync(token);
+                    await leaf.WaitForEventsReceivedAsync(seekTime, token);
+                    await leaf.InvokeDirectMethodAsync(token);
+                },
+                async () =>
+                {
+                    await leaf.DeleteIdentityAsync(token);
+                });
         }
     }
 }
