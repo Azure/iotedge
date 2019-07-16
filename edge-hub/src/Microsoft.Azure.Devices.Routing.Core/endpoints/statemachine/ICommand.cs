@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public enum CommandType
     {

@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json.Linq;
 
     public class StoringTwinManager : ITwinManager
     {
@@ -181,10 +182,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                     Events.UpdatingTwinOnDeviceConnect(id);
                     await this.StoreTwinInStore(id, cloudTwin);
 
-                    string diffPatch = JsonEx.Diff(storeTwin.Properties.Desired, cloudTwin.Properties.Desired);
-                    if (!string.IsNullOrWhiteSpace(diffPatch))
+                    JObject diffPatch = JsonEx.Diff(JToken.FromObject(storeTwin.Properties.Desired), JToken.FromObject(cloudTwin.Properties.Desired));
+                    if (diffPatch != null && diffPatch.HasValues)
                     {
-                        var patch = new TwinCollection(diffPatch);
+                        var patch = new TwinCollection(diffPatch.ToString());
                         IMessage patchMessage = this.twinCollectionConverter.ToMessage(patch);
                         await this.SendPatchToDevice(id, patchMessage);
                     }
