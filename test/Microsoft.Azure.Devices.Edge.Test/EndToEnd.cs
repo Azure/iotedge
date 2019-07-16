@@ -79,6 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                         builder.AddRegistryCredentials(address, username, password);
                     }
+
                     builder.AddEdgeAgent(agentImage).WithProxy(proxy);
                     builder.AddEdgeHub(hubImage, optimizeForPerformance).WithProxy(proxy);
                     builder.AddModule("tempSensor", sensorImage);
@@ -166,6 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                         builder.AddRegistryCredentials(address, username, password);
                     }
+
                     builder.AddEdgeAgent(agentImage).WithProxy(proxy);
                     builder.AddEdgeHub(hubImage, optimizeForPerformance).WithProxy(proxy);
                     builder.AddModule(methodSender, senderImage)
