@@ -12,13 +12,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class Runtime
     {
-        string agentImage;
-        string deviceId;
-        string hubImage;
-        IotHub iotHub;
-        bool optimizeForPerformance;
-        Option<Uri> proxy;
-        Registries registries;
+        readonly string agentImage;
+        readonly string deviceId;
+        readonly string hubImage;
+        readonly IotHub iotHub;
+        readonly bool optimizeForPerformance;
+        readonly Option<Uri> proxy;
+        readonly Registries registries;
 
         public Runtime(string deviceId, string agentImage, string hubImage, Option<Uri> proxy, Registries registries, bool optimizeForPerformance, IotHub iotHub)
         {
