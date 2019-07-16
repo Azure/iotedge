@@ -18,7 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             ? Windows.EdgeDaemon.CollectLogsAsync(testStartTime, filePrefix, token)
             : Linux.EdgeDaemon.CollectLogsAsync(testStartTime, filePrefix, token);
 
-        // TODO: download installer script from aka.ms if user doesn't pass installerPath in Windows
         public static IEdgeDaemon CreateEdgeDaemon(Option<string> installerPath) => IsWindows()
             ? new Windows.EdgeDaemon(installerPath)
             : new Linux.EdgeDaemon() as IEdgeDaemon;
