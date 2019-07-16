@@ -38,7 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             Context.Current.EventHubEndpoint,
                             proxy);
 
-                        // TODO: RootCertificateAuthority only exists to create the EdgeCertificateAuthority; the functionality of the former can be folded into the latter
                         var rootCa = await RootCertificateAuthority.CreateAsync(
                             caCertPath,
                             caKeyPath,
