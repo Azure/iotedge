@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 Context.Current.Proxy,
                 Context.Current.Registries,
                 Context.Current.OptimizeForPerformance,
-                iotHub);
+                this.iotHub);
         }
     }
 }

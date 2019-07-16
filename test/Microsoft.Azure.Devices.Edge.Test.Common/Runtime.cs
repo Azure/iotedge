@@ -62,6 +62,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             await EdgeModule.WaitForStatusAsync(allModules.ToArray(), EdgeModuleStatus.Running, token);
         }
-
     }
 }

@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             proxy,
                             Context.Current.Registries,
                             Context.Current.OptimizeForPerformance,
-                            iotHub);
+                            this.iotHub);
 
                         await runtime.DeployConfigurationAsync(_ => { }, token);
                         await runtime.WaitForModulesRunningAsync(new EdgeModule[0], token);
