@@ -125,7 +125,7 @@ mod tests {
     use lazy_static::lazy_static;
     use serde_json::json;
 
-    use edgelet_core::{ModuleRuntimeState, ModuleStatus};
+    use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
     use management::models::{Config, ErrorResponse};
@@ -134,7 +134,7 @@ mod tests {
     use crate::server::module::tests::Error;
 
     lazy_static! {
-        static ref RUNTIME: TestRuntime<Error> = {
+        static ref RUNTIME: TestRuntime<Error, TestSettings> = {
             let state = ModuleRuntimeState::default()
                 .with_status(ModuleStatus::Running)
                 .with_exit_code(Some(0))
@@ -144,7 +144,10 @@ mod tests {
                 .with_image_id(Some("image-id".to_string()));
             let config = TestConfig::new("microsoft/test-image".to_string());
             let module = TestModule::new("test-module".to_string(), config, Ok(state));
-            TestRuntime::new(Ok(module))
+            TestRuntime::make_runtime(TestSettings::new(), TestProvisioningResult::new())
+                .wait()
+                .unwrap()
+                .with_module(Ok(module))
         };
     }
 
@@ -217,7 +220,10 @@ mod tests {
 
     #[test]
     fn runtime_error() {
-        let runtime = TestRuntime::new(Err(Error::General));
+        let runtime = TestRuntime::make_runtime(TestSettings::new(), TestProvisioningResult::new())
+            .wait()
+            .unwrap()
+            .with_module(Err(Error::General));
         let handler = CreateModule::new(runtime);
         let config = Config::new(json!({"image":"microsoft/test-image"}));
         let spec = ModuleSpec::new("image-id".to_string(), "docker".to_string(), config);
@@ -247,7 +253,10 @@ mod tests {
 
     #[test]
     fn bad_settings() {
-        let runtime = TestRuntime::new(Err(Error::General));
+        let runtime = TestRuntime::make_runtime(TestSettings::new(), TestProvisioningResult::new())
+            .wait()
+            .unwrap()
+            .with_module(Err(Error::General));
         let handler = CreateModule::new(runtime);
         let config = Config::new(json!({}));
         let spec = ModuleSpec::new("image-id".to_string(), "docker".to_string(), config);

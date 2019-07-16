@@ -28,13 +28,15 @@ use tokio::prelude::*;
 use edgelet_core::crypto::MemoryKeyStore;
 use edgelet_core::{
     AuthId, Certificate, CertificateIssuer, CertificateProperties, CertificateType,
-    CreateCertificate, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleStatus, WorkloadConfig,
-    IOTEDGED_CA_ALIAS,
+    CreateCertificate, MakeModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState,
+    ModuleStatus, WorkloadConfig, IOTEDGED_CA_ALIAS,
 };
 use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_http_workload::WorkloadService;
 use edgelet_test_utils::get_unused_tcp_port;
-use edgelet_test_utils::module::{TestConfig, TestModule, TestRuntime};
+use edgelet_test_utils::module::{
+    TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
+};
 use workload::models::{CertificateResponse, ServerCertificateRequest, TrustBundleResponse};
 
 const MODULE_ID: &str = "m1";
@@ -160,11 +162,15 @@ fn generate_server_cert(
 fn create_workload_service(module_id: &str) -> (WorkloadService, Crypto) {
     let key_store = MemoryKeyStore::new();
     let crypto = init_crypto();
-    let runtime = TestRuntime::<Error>::new(Ok(TestModule::new(
-        module_id.to_string(),
-        TestConfig::new("img1".to_string()),
-        Ok(ModuleRuntimeState::default().with_status(ModuleStatus::Running)),
-    )));
+    let runtime =
+        TestRuntime::<Error, _>::make_runtime(TestSettings::new(), TestProvisioningResult::new())
+            .wait()
+            .unwrap()
+            .with_module(Ok(TestModule::new(
+                module_id.to_string(),
+                TestConfig::new("img1".to_string()),
+                Ok(ModuleRuntimeState::default().with_status(ModuleStatus::Running)),
+            )));
     let config = Config {
         hub_name: "hub1".to_string(),
         device_id: "d1".to_string(),

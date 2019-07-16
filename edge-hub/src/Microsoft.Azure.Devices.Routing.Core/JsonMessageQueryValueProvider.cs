@@ -5,8 +5,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Newtonsoft.Json.Linq;
 
     public class JsonMessageQueryValueProvider : IMessageQueryValueProvider

@@ -7,7 +7,6 @@ use failure::Fail;
 use futures::future::{self, Either, FutureResult};
 use futures::Future;
 use log::{info, warn, Level};
-use serde_derive::{Deserialize, Serialize};
 use tokio::prelude::*;
 use tokio::timer::Interval;
 
@@ -19,6 +18,7 @@ use crate::module::{
     ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec,
     ModuleStatus,
 };
+use crate::settings::RetryLimit;
 
 // Time to allow EdgeAgent to gracefully shutdown (including stopping all modules, and updating reported properties)
 const EDGE_RUNTIME_STOP_TIME: Duration = Duration::from_secs(60);
@@ -28,28 +28,6 @@ const MODULE_GENERATIONID: &str = "IOTEDGE_MODULEGENERATIONID";
 
 /// This is the frequency with which the watchdog checks for the status of the edge runtime module.
 const WATCHDOG_FREQUENCY_SECS: u64 = 60;
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum RetryLimit {
-    Infinite,
-    Num(u32),
-}
-
-impl RetryLimit {
-    pub fn compare(&self, right: u32) -> Ordering {
-        match self {
-            RetryLimit::Infinite => Ordering::Greater,
-            RetryLimit::Num(n) => n.cmp(&right),
-        }
-    }
-}
-
-impl Default for RetryLimit {
-    fn default() -> Self {
-        RetryLimit::Infinite
-    }
-}
 
 pub struct Watchdog<M, I> {
     runtime: M,

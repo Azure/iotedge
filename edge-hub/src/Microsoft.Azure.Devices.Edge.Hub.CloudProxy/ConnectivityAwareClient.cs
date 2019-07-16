@@ -113,8 +113,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         void InternalConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
             Events.ReceivedDeviceSdkCallback(this.identity, status, reason);
-            // @TODO: Ignore callback from Device SDK since it seems to be generating a lot of spurious Connected/NotConnected callbacks
-            /*
             if (status == ConnectionStatus.Connected)
             {
                 this.deviceConnectivityManager.CallSucceeded();
@@ -123,8 +121,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 this.deviceConnectivityManager.CallTimedOut();
             }
+
             this.connectionStatusChangedHandler?.Invoke(status, reason);
-            */
         }
 
         async Task<T> InvokeFunc<T>(Func<Task<T>> func, string operation, bool useForConnectivityCheck = true)
@@ -193,7 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void ReceivedDeviceSdkCallback(IIdentity identity, ConnectionStatus status, ConnectionStatusChangeReason reason)
             {
-                Log.LogDebug((int)EventIds.ReceivedCallback, $"Received connection status changed callback with connection status {status} and reason {reason} for {identity.Id}");
+                Log.LogInformation((int)EventIds.ReceivedCallback, $"Received connection status changed callback with connection status {status} and reason {reason} for {identity.Id}");
             }
 
             public static void OperationTimedOut(IIdentity identity, string operation)

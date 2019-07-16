@@ -19,9 +19,8 @@ use libc;
 use regex::Regex;
 use serde_json;
 
-use edgelet_config::{Provisioning, Settings};
-use edgelet_core::{self, UrlExt};
-use edgelet_docker::DockerConfig;
+use edgelet_core::{self, MobyNetwork, Provisioning, RuntimeSettings, UrlExt};
+use edgelet_docker::Settings;
 use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
 
@@ -70,6 +69,7 @@ static CHECKS: &[(
             ("host-local-time", "host time is close to real time", host_local_time),
             ("container-local-time", "container time is close to host time", container_local_time),
             ("container-engine-dns", "DNS server", container_engine_dns),
+            ("container-engine-ipv6", "IPv6 network configuration", container_engine_ipv6),
             ("certificates-quickstart", "production readiness: certificates", settings_certificates),
             (
                 "certificates-expiry",
@@ -191,7 +191,7 @@ pub struct Check {
     additional_info: AdditionalInfo,
 
     // These optional fields are populated by the checks
-    settings: Option<Settings<DockerConfig>>,
+    settings: Option<Settings>,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
     iothub_hostname: Option<String>,
@@ -245,26 +245,23 @@ impl Check {
         } else {
             let proxy = std::env::var("HTTPS_PROXY")
                 .ok()
-                .or_else(|| std::env::var("https_proxy").ok());
-            let proxy = if let Some(proxy) = proxy {
-                let proxy = proxy
-                    .parse::<hyper::Uri>()
-                    .context(ErrorKind::FetchLatestVersions(
-                        FetchLatestVersionsReason::CreateClient,
-                    ));
-                match proxy {
-                    Ok(proxy) => future::ok(Some(proxy)),
-                    Err(err) => future::err(Error::from(err)),
-                }
-            } else {
-                future::ok(None)
-            };
-
+                .or_else(|| std::env::var("https_proxy").ok())
+                .map(|proxy| proxy.parse::<hyper::Uri>())
+                .transpose()
+                .context(ErrorKind::FetchLatestVersions(
+                    FetchLatestVersionsReason::CreateClient,
+                ));
             let hyper_client = proxy.and_then(|proxy| {
-                Ok(MaybeProxyClient::new(proxy, None, None).context(
-                    ErrorKind::FetchLatestVersions(FetchLatestVersionsReason::CreateClient),
-                )?)
+                MaybeProxyClient::new(proxy, None, None).context(ErrorKind::FetchLatestVersions(
+                    FetchLatestVersionsReason::CreateClient,
+                ))
             });
+            let hyper_client = match hyper_client {
+                Ok(hyper_client) => hyper_client,
+                Err(err) => {
+                    return future::Either::A(future::err(err.into()));
+                }
+            };
 
             let request = hyper::Request::get("https://aka.ms/latest-iotedge-stable")
                 .body(hyper::Body::default())
@@ -272,15 +269,14 @@ impl Check {
 
             future::Either::B(
                 hyper_client
-                    .and_then(|hyper_client| {
-                        hyper_client.call(request).then(|response| {
-                            let response = response.context(ErrorKind::FetchLatestVersions(
-                                FetchLatestVersionsReason::GetResponse,
-                            ))?;
-                            Ok((response, hyper_client))
-                        })
+                    .call(request)
+                    .then(|response| -> Result<_, Error> {
+                        let response = response.context(ErrorKind::FetchLatestVersions(
+                            FetchLatestVersionsReason::GetResponse,
+                        ))?;
+                        Ok(response)
                     })
-                    .and_then(move |(response, hyper_client)| match response.status() {
+                    .and_then(move |response| match response.status() {
                         hyper::StatusCode::MOVED_PERMANENTLY => {
                             let uri = response
                                 .headers()
@@ -335,7 +331,7 @@ impl Check {
             )
         };
 
-        latest_versions.then(move |latest_versions| {
+        future::Either::B(latest_versions.then(move |latest_versions| {
             Ok(Check {
                 config_file,
                 container_engine_config_path,
@@ -355,7 +351,7 @@ impl Check {
                 docker_server_version: None,
                 iothub_hostname,
             })
-        })
+        }))
     }
 
     pub fn possible_ids() -> impl Iterator<Item = &'static str> {
@@ -366,35 +362,39 @@ impl Check {
     }
 
     pub fn print_list() -> Result<(), Error> {
-        // All our text is ASCII, so we can check for number of chars rather than using unicode-segmentation to count graphemes.
+        // All our text is ASCII, so we can measure text width in bytes rather than using unicode-segmentation to count graphemes.
         let widest_section_name_len = CHECKS
             .iter()
             .map(|(section_name, _)| section_name.len())
             .max()
             .expect("Have at least one section");
+        let section_name_column_width = widest_section_name_len + 1;
         let widest_check_id_len = CHECKS
             .iter()
             .flat_map(|(_, section_checks)| *section_checks)
             .map(|(check_id, _, _)| check_id.len())
             .max()
             .expect("Have at least one check");
+        let check_id_column_width = widest_check_id_len + 1;
 
         println!(
-            "CATEGORY{}ID{}DESCRIPTION",
-            " ".repeat(widest_section_name_len - "CATEGORY".len() + 1),
-            " ".repeat(widest_check_id_len - "ID".len() + 1),
+            "{:section_name_column_width$}{:check_id_column_width$}DESCRIPTION",
+            "CATEGORY",
+            "ID",
+            section_name_column_width = section_name_column_width,
+            check_id_column_width = check_id_column_width,
         );
         println!();
 
         for (section_name, section_checks) in CHECKS {
             for (check_id, check_name, _) in *section_checks {
                 println!(
-                    "{}{}{}{}{}",
+                    "{:section_name_column_width$}{:check_id_column_width$}{}",
                     section_name,
-                    " ".repeat(widest_section_name_len - section_name.len() + 1),
                     check_id,
-                    " ".repeat(widest_check_id_len - check_id.len() + 1),
                     check_name,
+                    section_name_column_width = section_name_column_width,
+                    check_id_column_width = check_id_column_width,
                 );
             }
 
@@ -787,6 +787,60 @@ fn container_engine(check: &mut Check) -> Result<CheckResult, failure::Error> {
     Ok(CheckResult::Ok)
 }
 
+fn container_engine_ipv6(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    const MESSAGE: &str =
+        "Container engine is not configured for IPv6 communication.\n\
+         Please see https://aka.ms/iotedge-docker-ipv6 for a guide on how to enable IPv6 support.";
+
+    #[derive(serde_derive::Deserialize)]
+    struct DaemonConfig {
+        ipv6: Option<bool>,
+    }
+
+    let is_edge_ipv6_configured = check.settings.as_ref().map_or(false, |settings| {
+        let moby_network = settings.moby_runtime().network();
+        if let MobyNetwork::Network(network) = moby_network {
+            network.ipv6().unwrap_or_default()
+        } else {
+            false
+        }
+    });
+
+    let daemon_config_file = File::open(&check.container_engine_config_path)
+        .with_context(|_| {
+            format!(
+                "Could not open container engine config file {}",
+                check.container_engine_config_path.display(),
+            )
+        })
+        .context(MESSAGE);
+    let daemon_config_file = match daemon_config_file {
+        Ok(daemon_config_file) => daemon_config_file,
+        Err(err) => {
+            if is_edge_ipv6_configured {
+                return Err(err.context(MESSAGE).into());
+            } else {
+                return Ok(CheckResult::Ignored);
+            }
+        }
+    };
+    let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)
+        .with_context(|_| {
+            format!(
+                "Could not parse container engine config file {}",
+                check.container_engine_config_path.display(),
+            )
+        })
+        .context(MESSAGE)?;
+
+    match (daemon_config.ipv6.unwrap_or_default(), is_edge_ipv6_configured) {
+        (true, _) if cfg!(windows) => Err(Context::new("IPv6 container network configuration is not supported for the Windows operating system.").into()),
+        (true, _) => Ok(CheckResult::Ok),
+        (false, true) => Err(Context::new(MESSAGE).into()),
+        (false, false) => Ok(CheckResult::Ignored),
+    }
+}
+
 fn host_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
     #[cfg(unix)]
     {
@@ -822,7 +876,7 @@ fn host_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
             (major_version, minor_version, build_number, _) => {
                 return Ok(CheckResult::Fatal(Context::new(format!(
                     "The host has an unsupported OS version {}.{}.{}. IoT Edge on Windows only supports OS version 10.0.17763.\n\
-                     Please see https://aka.ms/iotedge-platsup for details.",
+                    Please see https://aka.ms/iotedge-platsup for details.",
                     major_version, minor_version, build_number,
                 )).into()))
             }
@@ -1515,7 +1569,7 @@ fn connection_to_iot_hub_container(
         return Ok(CheckResult::Skipped);
     };
 
-    let network_name = settings.moby_runtime().network();
+    let network_name = settings.moby_runtime().network().name();
 
     let port = upstream_protocol_port.as_port().to_string();
 
@@ -1799,7 +1853,7 @@ mod tests {
 
         for filename in &["sample_settings.yaml", "sample_settings.tg.yaml"] {
             let config_file = format!(
-                "{}/../edgelet-config/test/{}/{}",
+                "{}/../edgelet-docker/test/{}/{}",
                 env!("CARGO_MANIFEST_DIR"),
                 if cfg!(windows) { "windows" } else { "linux" },
                 filename,
@@ -1870,7 +1924,7 @@ mod tests {
 
         let filename = "bad_sample_settings.yaml";
         let config_file = format!(
-            "{}/../edgelet-config/test/{}/{}",
+            "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
             filename,
@@ -1917,7 +1971,7 @@ mod tests {
 
         let filename = "sample_settings.dps.sym.yaml";
         let config_file = format!(
-            "{}/../edgelet-config/test/{}/{}",
+            "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
             filename,
@@ -1956,7 +2010,7 @@ mod tests {
 
         let filename = "sample_settings.dps.sym.yaml";
         let config_file = format!(
-            "{}/../edgelet-config/test/{}/{}",
+            "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
             filename,
@@ -1999,7 +2053,7 @@ mod tests {
 
         let filename = "sample_settings_notmoby.yaml";
         let config_file = format!(
-            "{}/../edgelet-config/test/{}/{}",
+            "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
             filename,
@@ -2052,7 +2106,7 @@ mod tests {
 
         let filename = "sample_settings.yaml";
         let config_file = format!(
-            "{}/../edgelet-config/test/{}/{}",
+            "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
             filename,
