@@ -21,6 +21,7 @@ pub use crate::uri::Uri;
 
 pub const NAMED_PIPE_SCHEME: &str = "npipe";
 
+#[derive(Clone)]
 pub struct PipeConnector;
 
 impl Connect for PipeConnector {
