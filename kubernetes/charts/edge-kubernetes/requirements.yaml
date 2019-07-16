@@ -1,0 +1,4 @@
+dependencies:
+  - name: edge-kubernetes-crd
+    version: 0.1.6
+    repository: "file://../edge-kubernetes-crd" #TODO change to real repository once uploaded
