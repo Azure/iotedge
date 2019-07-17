@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace IotEdgeQuickstart.Details
 {
     using Microsoft.Azure.Devices.Edge.Util;
@@ -13,14 +12,6 @@ namespace IotEdgeQuickstart.Details
 
     public class DPSAttestation
     {
-        public string EndPoint { get; }
-        public string ScopeId { get; }
-        public DPSAttestationType AttestationType { get; }
-        public Option<string> RegistrationId { get; }
-        public Option<string> SymmetricKey { get; }
-        public Option<string> DeviceIdentityCertificate { get; }
-        public Option<string> DeviceIdentityPrivateKey { get; }
-
         public DPSAttestation(string endPoint, string scopeId, string registrationId, string symmetricKey)
         {
             this.EndPoint = Preconditions.CheckNonWhiteSpace(endPoint, nameof(endPoint));
@@ -42,5 +33,19 @@ namespace IotEdgeQuickstart.Details
             this.DeviceIdentityPrivateKey = Option.Some(Preconditions.CheckNonWhiteSpace(privateKeyPath, nameof(privateKeyPath)));
             this.AttestationType = DPSAttestationType.X509;
         }
+
+        public string EndPoint { get; }
+
+        public string ScopeId { get; }
+
+        public DPSAttestationType AttestationType { get; }
+
+        public Option<string> RegistrationId { get; }
+
+        public Option<string> SymmetricKey { get; }
+
+        public Option<string> DeviceIdentityCertificate { get; }
+
+        public Option<string> DeviceIdentityPrivateKey { get; }
     }
 }

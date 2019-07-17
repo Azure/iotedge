@@ -57,6 +57,7 @@ namespace IotEdgeQuickstart.Details
                     break;
                 }
             }
+
             if (!keyNotFound)
             {
                 string leaf = segments.Last();

@@ -156,9 +156,7 @@ namespace IotEdgeQuickstart.Details
                 }
 
                 args += method.ManualConnectionString.Map(
-                    cs => {
-                        return $" -Manual -DeviceConnectionString '{cs}'";
-                    }).GetOrElse(string.Empty);
+                    cs => { return $" -Manual -DeviceConnectionString '{cs}'"; }).GetOrElse(string.Empty);
 
                 args += method.Dps.Map(
                     dps =>
@@ -276,6 +274,15 @@ namespace IotEdgeQuickstart.Details
 
         public Task Reset() => Task.CompletedTask;
 
+        static void WriteToConsole(string header, string[] result)
+        {
+            Console.WriteLine(header);
+            foreach (string r in result)
+            {
+                Console.WriteLine(r);
+            }
+        }
+
         void UpdateConfigYamlFile(string deviceCaCert, string deviceCaPk, string trustBundleCerts, LogLevel runtimeLogLevel)
         {
             string config = File.ReadAllText(this.configYamlFile);
@@ -318,15 +325,6 @@ namespace IotEdgeQuickstart.Details
 
             Console.WriteLine($"Explicitly set environment variable [IOTEDGE_HOST={result.Groups[1].Value}]");
             Environment.SetEnvironmentVariable("IOTEDGE_HOST", result.Groups[1].Value);
-        }
-
-        static void WriteToConsole(string header, string[] result)
-        {
-            Console.WriteLine(header);
-            foreach (string r in result)
-            {
-                Console.WriteLine(r);
-            }
         }
     }
 }

@@ -11,6 +11,7 @@ namespace IotEdgeQuickstart
     using McMaster.Extensions.CommandLineUtils;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+
     [Command(
         Name = "IotEdgeQuickstart",
         Description = "An app which automates the \"Quickstart\" tutorial (https://docs.microsoft.com/en-us/azure/iot-edge/quickstart-linux)",
@@ -241,6 +242,7 @@ Defaults:
                         {
                             throw new ArgumentException("Device identity private key is invalid");
                         }
+
                         dpsAttestation = Option.Some(new DPSAttestation(this.DPSEndpoint, this.DPSScopeId, Option.None<string>(), this.DeviceIdentityCert, this.DeviceIdentityPk));
                     }
                     else
@@ -249,7 +251,8 @@ Defaults:
                         {
                             throw new ArgumentException("Both device identity certificate and DPS symmetric key cannot be set");
                         }
-                        string deviceKey = ComputeDerivedSymmetricKey(Convert.FromBase64String(this.DPSMasterSymmetricKey), this.DPSRegistrationId);
+
+                        string deviceKey = this.ComputeDerivedSymmetricKey(Convert.FromBase64String(this.DPSMasterSymmetricKey), this.DPSRegistrationId);
                         dpsAttestation = Option.Some(new DPSAttestation(this.DPSEndpoint, this.DPSScopeId, this.DPSRegistrationId, deviceKey));
                     }
                 }

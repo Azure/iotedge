@@ -249,10 +249,7 @@ namespace IotEdgeQuickstart.Details
         {
             Console.WriteLine("Configuring bootstrapper.");
             DeviceProvisioningMethod method = this.dpsAttestation.Match(
-                dps =>
-                {
-                    return new DeviceProvisioningMethod(dps);
-                },
+                dps => { return new DeviceProvisioningMethod(dps); },
                 () =>
                 {
                     IotHubConnectionStringBuilder builder =

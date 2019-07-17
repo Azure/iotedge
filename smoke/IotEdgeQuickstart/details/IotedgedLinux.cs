@@ -181,38 +181,43 @@ namespace IotEdgeQuickstart.Details
             const string YamlPath = "/etc/iotedge/config.yaml";
             Task<string> text = File.ReadAllTextAsync(YamlPath);
             var doc = new YamlDocument(await text);
-                            
+
             method.ManualConnectionString.Match(
-                cs => {
+                cs =>
+                {
                     doc.ReplaceOrAdd("provisioning.device_connection_string", cs);
                     return string.Empty;
                 },
-                () => {
+                () =>
+                {
                     doc.Remove("provisioning.device_connection_string");
                     return string.Empty;
                 });
 
             method.Dps.ForEach(
-            dps => {
-                doc.ReplaceOrAdd("provisioning.source", "dps");
-                doc.ReplaceOrAdd("provisioning.global_endpoint", dps.EndPoint);
-                doc.ReplaceOrAdd("provisioning.scope_id", dps.ScopeId);
-                switch (dps.AttestationType) {
-                    case DPSAttestationType.SymmetricKey:
-                        doc.ReplaceOrAdd("provisioning.attestation.method", "symmetric_key");
-                        doc.ReplaceOrAdd("provisioning.attestation.symmetric_key", dps.SymmetricKey.Expect(() => new ArgumentException("Expected symmetric key")));
-                        break;
-                    case DPSAttestationType.X509:
-                        doc.ReplaceOrAdd("provisioning.attestation.method", "x509");
-                        doc.ReplaceOrAdd("provisioning.attestation.identity_cert", dps.DeviceIdentityCertificate.Expect(() => new ArgumentException("Expected path to identity certificate")));
-                        doc.ReplaceOrAdd("provisioning.attestation.identity_pk", dps.DeviceIdentityPrivateKey.Expect(() => new ArgumentException("Expected path to identity private key")));
-                        break;
-                    default:
-                        doc.ReplaceOrAdd("provisioning.attestation.method", "tpm");
-                        break;
-                }
-                dps.RegistrationId.ForEach(id => { doc.ReplaceOrAdd("provisioning.attestation.registration_id", id); });
-            });
+                dps =>
+                {
+                    doc.ReplaceOrAdd("provisioning.source", "dps");
+                    doc.ReplaceOrAdd("provisioning.global_endpoint", dps.EndPoint);
+                    doc.ReplaceOrAdd("provisioning.scope_id", dps.ScopeId);
+                    switch (dps.AttestationType)
+                    {
+                        case DPSAttestationType.SymmetricKey:
+                            doc.ReplaceOrAdd("provisioning.attestation.method", "symmetric_key");
+                            doc.ReplaceOrAdd("provisioning.attestation.symmetric_key", dps.SymmetricKey.Expect(() => new ArgumentException("Expected symmetric key")));
+                            break;
+                        case DPSAttestationType.X509:
+                            doc.ReplaceOrAdd("provisioning.attestation.method", "x509");
+                            doc.ReplaceOrAdd("provisioning.attestation.identity_cert", dps.DeviceIdentityCertificate.Expect(() => new ArgumentException("Expected path to identity certificate")));
+                            doc.ReplaceOrAdd("provisioning.attestation.identity_pk", dps.DeviceIdentityPrivateKey.Expect(() => new ArgumentException("Expected path to identity private key")));
+                            break;
+                        default:
+                            doc.ReplaceOrAdd("provisioning.attestation.method", "tpm");
+                            break;
+                    }
+
+                    dps.RegistrationId.ForEach(id => { doc.ReplaceOrAdd("provisioning.attestation.registration_id", id); });
+                });
 
             doc.ReplaceOrAdd("agent.config.image", image);
             doc.ReplaceOrAdd("hostname", hostname);
