@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
         }
 
-        public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
+        public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current, bool includeUnchangedIdentities = false)
         {
             Diff diff = desired.Diff(current);
             if (diff.IsEmpty)
@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
             try
             {
-                IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
+                IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff, includeUnchangedIdentities);
                 return moduleIdentities;
             }
             catch (Exception ex)
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             }
         }
 
-        async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff)
+        async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff, bool includeUnchangedIdentities)
         {
             IList<string> addedOrUpdatedModuleNames = diff.AddedOrUpdated.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m.Name)).ToList();
             IEnumerable<string> removedModuleNames = diff.Removed.Select(ModuleIdentityHelper.GetModuleIdentityName);
@@ -77,13 +77,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             IEnumerable<Task<Identity>> updateTasks = updateIdentities.Select(i => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId, i.ManagedBy));
             Identity[] upsertedIdentities = await Task.WhenAll(createTasks.Concat(updateTasks));
 
-            List<IModuleIdentity> moduleIdentities = upsertedIdentities.Select(m => this.GetModuleIdentity(m)).ToList();
-            // Add the module identity for Edge Agent in the returned dictionary
-            // because is was excluded from the update call.
-            if (identities.ContainsKey(Constants.EdgeAgentModuleIdentityName))
+            List<IModuleIdentity> moduleIdentities;
+
+            if (!includeUnchangedIdentities)
             {
-                moduleIdentities.Add(this.GetModuleIdentity(identities[Constants.EdgeAgentModuleIdentityName]));
+                moduleIdentities = upsertedIdentities.Select(m => this.GetModuleIdentity(m)).ToList();
+                // Add the module identity for Edge Agent in the returned dictionary
+                // because is was excluded from the update call.
+                if (identities.ContainsKey(Constants.EdgeAgentModuleIdentityName))
+                {
+                    moduleIdentities.Add(this.GetModuleIdentity(identities[Constants.EdgeAgentModuleIdentityName]));
+                }
             }
+            else
+            {
+                moduleIdentities = (await this.identityManager.GetIdentities()).Select(m => this.GetModuleIdentity(m)).ToList();
+            }
+
 
             return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
         }

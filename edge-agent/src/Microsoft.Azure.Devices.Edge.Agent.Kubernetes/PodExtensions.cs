@@ -2,6 +2,7 @@ using k8s.Models;
 using Microsoft.Azure.Devices.Edge.Agent.Core;
 using Microsoft.Azure.Devices.Edge.Util;
 using System;
+using System.Linq;
 using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
@@ -10,84 +11,128 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     {
         public static ModuleRuntimeInfo ConvertToRuntime(this V1Pod pod, string name)
         {
-            string moduleName = name;
-            pod.Metadata?.Annotations?.TryGetValue(Constants.K8sEdgeOriginalModuleId, out moduleName);
-
             Option<V1ContainerStatus> containerStatus = GetContainerByName(name, pod);
-            (ModuleStatus moduleStatus, string statusDescription) = ConvertPodStatusToModuleStatus(containerStatus);
-            (int exitCode, Option<DateTime> startTime, Option<DateTime> exitTime, string imageHash) = GetRuntimedata(containerStatus.OrDefault());
+            ReportedModuleStatus moduleStatus = ConvertPodStatusToModuleStatus(containerStatus);
+            RuntimeData runtimeData = GetRuntimedata(containerStatus.OrDefault());
 
-            var reportedConfig = new AgentDocker.DockerReportedConfig(string.Empty, string.Empty, imageHash);
+            string moduleName = string.Empty;
+            if (!(pod.Metadata?.Annotations?.TryGetValue(Constants.K8sEdgeOriginalModuleId, out moduleName) ?? false))
+            {
+                moduleName = name;
+            }
+
+            var reportedConfig = new AgentDocker.DockerReportedConfig(runtimeData.ImageName, string.Empty, string.Empty);
             return new ModuleRuntimeInfo<AgentDocker.DockerReportedConfig>(
                 ModuleIdentityHelper.GetModuleName(moduleName),
                 "docker",
-                moduleStatus,
-                statusDescription,
-                exitCode,
-                startTime,
-                exitTime,
+                moduleStatus.Status,
+                moduleStatus.Description,
+                runtimeData.ExitStatus,
+                runtimeData.StartTime,
+                runtimeData.EndTime,
                 reportedConfig);
         }
 
         private static Option<V1ContainerStatus> GetContainerByName(string name, V1Pod pod)
         {
             string containerName = KubeUtils.SanitizeDNSValue(name);
-            if (pod.Status?.ContainerStatuses != null)
-            {
-                foreach (var status in pod.Status.ContainerStatuses)
-                {
-                    if (string.Equals(status.Name, containerName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return Option.Some(status);
-                    }
-                }
-            }
-
-            return Option.None<V1ContainerStatus>();
+            return pod.Status?.ContainerStatuses
+                       .Where(status => string.Equals(status.Name, containerName, StringComparison.OrdinalIgnoreCase))
+                       .Select(status => Option.Some(status))
+                       .FirstOrDefault() ?? Option.None<V1ContainerStatus>();
         }
 
-        private static (ModuleStatus, string) ConvertPodStatusToModuleStatus(Option<V1ContainerStatus> podStatus)
+        private static ReportedModuleStatus ConvertPodStatusToModuleStatus(Option<V1ContainerStatus> podStatus)
         {
-            // TODO: Possibly refine this?
             return podStatus.Map(
                 pod =>
                 {
-                    if (pod.State.Running != null)
+                    if (pod.State != null)
                     {
-                        return (ModuleStatus.Running, $"Started at {pod.State.Running.StartedAt.GetValueOrDefault(DateTime.Now)}");
-                    }
-                    else if (pod.State.Terminated != null)
-                    {
-                        return (ModuleStatus.Failed, pod.State.Terminated.Message);
-                    }
-                    else if (pod.State.Waiting != null)
-                    {
-                        return (ModuleStatus.Failed, pod.State.Waiting.Message);
+                        if (pod.State.Running != null)
+                        {
+                            return new ReportedModuleStatus(ModuleStatus.Running, $"Started at {pod.State.Running.StartedAt.GetValueOrDefault(DateTime.Now)}");
+                        }
+
+                        if (pod.State.Terminated != null)
+                        {
+                            return new ReportedModuleStatus(ModuleStatus.Failed, pod.State.Terminated.Message);
+                        }
+
+                        if (pod.State.Waiting != null)
+                        {
+                            return new ReportedModuleStatus(ModuleStatus.Failed, pod.State.Waiting.Message);
+                        }
                     }
 
-                    return (ModuleStatus.Unknown, "Unknown");
-                }).GetOrElse(() => (ModuleStatus.Unknown, "Unknown"));
+                    return new ReportedModuleStatus(ModuleStatus.Unknown, "Unknown");
+                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Unknown, "Unknown"));
         }
 
-        private static (int, Option<DateTime>, Option<DateTime>, string image) GetRuntimedata(V1ContainerStatus status)
+        private static RuntimeData GetRuntimedata(V1ContainerStatus status)
         {
-            if (status?.LastState?.Running != null)
+            string imageName = "unknown:unknown";
+            if (status?.Image != null)
             {
-                if (status.LastState.Running.StartedAt.HasValue)
-                {
-                    return (0, Option.Some(status.LastState.Running.StartedAt.Value), Option.None<DateTime>(), status.Image);
-                }
-            }
-            else
-            {
-                if (status?.LastState?.Terminated?.StartedAt != null &&
-                    status.LastState.Terminated.FinishedAt.HasValue)
-                {
-                    return (0, Option.Some(status.LastState.Terminated.StartedAt.Value), Option.Some(status.LastState.Terminated.FinishedAt.Value), status.Image);
-                }
+                imageName = status.Image;
             }
 
-            return (0, Option.None<DateTime>(), Option.None<DateTime>(), String.Empty);
+            if (status?.State?.Running != null)
+            {
+                if (status.State.Running.StartedAt.HasValue)
+                {
+                    return new RuntimeData(0, Option.Some(status.State.Running.StartedAt.Value), Option.None<DateTime>(), imageName);
+                }
+            }
+            else if (status?.State?.Terminated != null)
+            {
+                return GetTerminatedRuntimedata(status.State.Terminated, imageName);
+            }
+            else if (status?.LastState?.Terminated != null)
+            {
+                return GetTerminatedRuntimedata(status.LastState.Terminated, imageName);
+            }
+
+            return new RuntimeData(0, Option.None<DateTime>(), Option.None<DateTime>(), imageName);
+        }
+
+        private static RuntimeData GetTerminatedRuntimedata(V1ContainerStateTerminated term, string imageName)
+        {
+            if (term.StartedAt.HasValue &&
+                term.FinishedAt.HasValue)
+            {
+                return new RuntimeData(term.ExitCode, Option.Some(term.StartedAt.Value), Option.Some(term.FinishedAt.Value), imageName);
+            }
+
+            return new RuntimeData(0, Option.None<DateTime>(), Option.None<DateTime>(), imageName);
+        }
+    }
+
+    class ReportedModuleStatus
+    {
+        public readonly ModuleStatus Status;
+        public readonly string Description;
+
+        public ReportedModuleStatus(ModuleStatus status, string description)
+        {
+            this.Status = status;
+            this.Description = description;
+        }
+    }
+
+    class RuntimeData
+    {
+        public readonly int ExitStatus;
+        public readonly Option<DateTime> StartTime;
+        public readonly Option<DateTime> EndTime;
+        public readonly string ImageName;
+
+        public RuntimeData(int exitStatus, Option<DateTime> startTime, Option<DateTime> endTime, string image)
+        {
+            this.ExitStatus = exitStatus;
+            this.StartTime = startTime;
+            this.EndTime = endTime;
+            this.ImageName = image;
         }
     }
 }

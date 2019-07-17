@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     public class KubernetesEventLogger<T>
     {
         private readonly ILogger Log = Logger.Factory.CreateLogger<T>();
-        private const int IdStart = AgentEventIds.KubernetesOperator;
+        private const int IdStart = KubernetesEventIds.KubernetesOperator;
 
         public KubernetesEventLogger()
         {

@@ -40,6 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string proxyConfigVolumeName;
         readonly string serviceAccountName;
         readonly string defaultMapServiceType;
+        readonly string workloadApiVersion;
+        readonly string k8sNamespace;
         readonly Uri workloadUri;
         readonly Uri managementUri;
         readonly IModuleIdentityLifecycleManager moduleIdentityLifecycleManager;
@@ -58,6 +60,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string resourceName,
             string deploymentSelector,
             string defaultMapServiceType,
+            string k8sNamespace,
+            string workloadApiVersion,
             Uri workloadUri,
             Uri managementUri,
             TypeSpecificSerDe<EdgeDeploymentDefinition<TConfig>> deploymentSerde,
@@ -74,6 +78,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.resourceName = resourceName;
             this.deploymentSelector = deploymentSelector;
             this.defaultMapServiceType = defaultMapServiceType;
+            this.k8sNamespace = k8sNamespace;
+            this.workloadApiVersion = workloadApiVersion;
             this.workloadUri = workloadUri;
             this.managementUri = managementUri;
             this.deploymentSerde = deploymentSerde;
@@ -135,22 +141,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         private async Task WatchDeploymentEventsAsync(WatchEventType type, object custom)
         {
-            using (await this.watchLock.LockAsync())
+            EdgeDeploymentDefinition<TConfig> customObject;
+            try
             {
-                EdgeDeploymentDefinition<TConfig> customObject;
-                try
-                {
-                    string customString = JsonConvert.SerializeObject(custom);
-                    customObject = this.deploymentSerde.Deserialize(customString);
-                }
-                catch (Exception e)
-                {
-                    this.logger.EdgeDeploymentDeserializeFail(e);
-                    return;
-                }
+                string customString = JsonConvert.SerializeObject(custom);
+                customObject = this.deploymentSerde.Deserialize(customString);
+            }
+            catch (Exception e)
+            {
+                this.logger.EdgeDeploymentDeserializeFail(e);
+                return;
+            }
 
-                // only operate on the device that matches this operator.
-                if (String.Equals(customObject.Metadata.Name, this.resourceName, StringComparison.OrdinalIgnoreCase))
+            // only operate on the device that matches this operator.
+            if (String.Equals(customObject.Metadata.Name, this.resourceName, StringComparison.OrdinalIgnoreCase))
+            {
+                using (await watchLock.LockAsync())
                 {
                     V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(KubeUtils.K8sNamespace, labelSelector: this.deploymentSelector);
                     V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(KubeUtils.K8sNamespace, labelSelector: this.deploymentSelector);
@@ -175,6 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                                         new V1DeleteOptions(propagationPolicy: "Foreground"),
                                         propagationPolicy: "Foreground"));
                                 await Task.WhenAll(removeDeploymentTasks);
+                                this.currentModules = ModuleSet.Empty;
                             }
                             break;
                         case WatchEventType.Error:
@@ -182,11 +189,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                             break;
                     }
                 }
-                else
-                {
-                    this.logger.DeploymentNameMismatch(customObject.Metadata.Name, this.resourceName);
-                }
             }
+            else
+            {
+                this.logger.DeploymentNameMismatch(customObject.Metadata.Name, this.resourceName);
+            }
+
         }
 
         private string DeploymentName(string moduleId) => KubeUtils.SanitizeK8sValue(moduleId);
@@ -202,7 +210,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // TODO: remove this filter.
             var agentDeploymentName = this.DeploymentName(CoreConstants.EdgeAgentModuleName);
             Dictionary<string, string> currentDeploymentsFromAnnotations = this.GetCurrentDeploymentConfig(currentDeployments)
-                .Where(pair => pair.Key != agentDeploymentName)
                 .ToDictionary(
                     pair => pair.Key,
                     pair => pair.Value);
@@ -244,10 +251,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     var deploymentSpec = new V1DeploymentSpec(replicas: 1, selector: selector, template: v1PodSpec);
 
                     desiredDeployments.Add(new V1Deployment(metadata: deploymentMeta, spec: deploymentSpec));
-
-                    // Make the client call for the deployment
-                    // V1Deployment deploymentResult = await this.client.CreateNamespacedDeploymentAsync(deployment, KubeUtils.K8sNamespace);
-                    // What does the result tell us?
                 }
                 else
                 {
@@ -262,8 +265,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             deploymentsRemoved.RemoveAll(
                 d =>
                 {
-                    return desiredDeployments.Exists(i => string.Equals(i.Metadata.Name, d.Metadata.Name)) ||
-                           d.Metadata.Name == this.DeploymentName(CoreConstants.EdgeAgentModuleName);
+                    return desiredDeployments.Exists(i => string.Equals(i.Metadata.Name, d.Metadata.Name));
                 });
 
             var newServices = new List<V1Service>();
@@ -390,8 +392,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             await Task.WhenAll(createDeploymentTasks);
 
             // Update the existing - should only do this when different.
-            //var updateServiceTasks = servicesUpdated.Select( s => this.client.ReplaceNamespacedServiceAsync(s, s.Metadata.Name, KubeUtils.K8sNamespace));
-            //await Task.WhenAll(updateServiceTasks);
             IEnumerable<Task<V1Deployment>> updateDeploymentTasks = deploymentsUpdated.Select(deployment => this.client.ReplaceNamespacedDeploymentAsync(deployment, deployment.Metadata.Name, KubeUtils.K8sNamespace));
             await Task.WhenAll(updateDeploymentTasks);
 
@@ -577,7 +577,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             envList.Add(new V1EnvVar(CoreConstants.EdgeletModuleGenerationIdVariableName, identity.Credentials.ModuleGenerationId));
             envList.Add(new V1EnvVar(CoreConstants.DeviceIdVariableName, this.deviceId)); // could also get this from module identity
             envList.Add(new V1EnvVar(CoreConstants.ModuleIdVariableName, identity.ModuleId));
-            envList.Add(new V1EnvVar(CoreConstants.EdgeletApiVersionVariableName, CoreConstants.EdgeletWorkloadApiVersion));
+            envList.Add(new V1EnvVar(CoreConstants.EdgeletApiVersionVariableName, this.workloadApiVersion));
 
             if (string.Equals(identity.ModuleId, CoreConstants.EdgeAgentModuleIdentityName))
             {
@@ -692,8 +692,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 var objectMeta = new V1ObjectMeta(annotations: serviceAnnotations.GetOrElse(() => null), labels: labels, name: KubeUtils.SanitizeDNSValue(moduleIdentity.ModuleId));
                 // How we manage this service is dependent on the port mappings user asks for.
                 // If the user tells us to only use ClusterIP ports, we will always set the type to ClusterIP.
-                // If all we had were exposed ports, we will assume ClusterIP.
-                // If we have mapped ports, we are going to use "LoadBalancer" service Type - to tell the ingress controller we want this port exposed.
+                // If all we had were exposed ports, we will assume ClusterIP. Otherwise, we use the given value as the default service type
                 //
                 // If the user wants to expose the ClusterIPs port externally, they should manually create a service to expose it.
                 // This gives the user more control as to how they want this to work.
@@ -753,24 +752,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 },
                 service =>
                 {
-                    if (service != null)
+                    if (service == null)
                     {
-                        if (service.Metadata?.Annotations != null)
-                        {
-                            if (service.Metadata.Annotations.TryGetValue(Constants.CreationString, out string creationString))
-                            {
-                                return creationString;
-                            }
-                        }
-
-                        this.logger.InvalidCreationString(service.Kind, service.Metadata?.Name);
-
-                        var serviceWithoutStatus = new V1Service(service.ApiVersion, service.Kind, service.Metadata, service.Spec);
-                        return JsonConvert.SerializeObject(serviceWithoutStatus);
+                        this.logger.InvalidCreationString("service", "null service");
+                        throw new NullReferenceException("null service in list");
+                    }
+                    if (service.Metadata?.Annotations != null
+                            && service.Metadata.Annotations.TryGetValue(Constants.CreationString, out string creationString))
+                    {
+                        return creationString;
                     }
 
-                    this.logger.InvalidCreationString("service", "null service");
-                    throw new NullReferenceException("null service in list");
+                    this.logger.InvalidCreationString(service.Kind, service.Metadata?.Name);
+
+                    var serviceWithoutStatus = new V1Service(service.ApiVersion, service.Kind, service.Metadata, service.Spec);
+                    return JsonConvert.SerializeObject(serviceWithoutStatus);
                 });
         }
 
@@ -789,23 +785,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 },
                 deployment =>
                 {
-                    if (deployment != null)
+                    if (deployment == null)
                     {
-                        if (deployment.Metadata?.Annotations != null)
-                        {
-                            if (deployment.Metadata.Annotations.TryGetValue(Constants.CreationString, out string creationString))
-                            {
-                                return creationString;
-                            }
-                        }
-
-                        this.logger.InvalidCreationString(deployment.Kind, deployment.Metadata?.Name);
-                        var deploymentWithoutStatus = new V1Deployment(deployment.ApiVersion, deployment.Kind, deployment.Metadata, deployment.Spec);
-                        return JsonConvert.SerializeObject(deploymentWithoutStatus);
+                        this.logger.InvalidCreationString("deployment", "null deployment");
+                        throw new NullReferenceException("null deployment in list");
+                    }
+                    if (deployment.Metadata?.Annotations != null
+                            && deployment.Metadata.Annotations.TryGetValue(Constants.CreationString, out string creationString))
+                    {
+                        return creationString;
                     }
 
-                    this.logger.InvalidCreationString("deployment", "null deployment");
-                    throw new NullReferenceException("null deployment in list");
+                    this.logger.InvalidCreationString(deployment.Kind, deployment.Metadata?.Name);
+                    var deploymentWithoutStatus = new V1Deployment(deployment.ApiVersion, deployment.Kind, deployment.Metadata, deployment.Spec);
+                    return JsonConvert.SerializeObject(deploymentWithoutStatus);
                 });
         }
     }

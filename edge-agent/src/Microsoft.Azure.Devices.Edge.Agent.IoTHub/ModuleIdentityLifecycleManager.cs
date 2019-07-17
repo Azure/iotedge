@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         // $edgeAgent and $edgeHub twin when it creates the Edge Device, so their twins
         // are always available for stamping with either a single deployment or at-scale
         // deployment.
-        public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
+        public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current, bool includeUnchangedIdentities = false)
         {
             Diff diff = desired.Diff(current);
             if (diff.IsEmpty)
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             try
             {
-                IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
+                IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff, includeUnchangedIdentities);
                 return moduleIdentities;
             }
             catch (Exception ex)
@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff)
+        async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff, bool includeUnchangedIdentities)
         {
             // System modules have different module names and identity names. We need to convert module names to module identity names
             // and vice versa, to make sure the right values are being used.
@@ -104,12 +104,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             List<Module> updatedModulesIndentity = (await this.UpdateServiceModulesIdentityAsync(removeIdentities, createIdentities, updateIdentities)).ToList();
             ImmutableDictionary<string, Module> updatedDict = updatedModulesIndentity.ToImmutableDictionary(p => p.Id);
 
-            IEnumerable<IModuleIdentity> moduleIdentities = updatedModulesIndentity.Concat(modules.Where(p => !updatedDict.ContainsKey(p.Id))).Select(
-                p =>
-                {
-                    string connectionString = this.GetModuleConnectionString(p);
-                    return new ModuleIdentity(this.iothubHostName, this.gatewayHostName, this.deviceId, p.Id, new ConnectionStringCredentials(connectionString));
-                });
+            IEnumerable<IModuleIdentity> moduleIdentities;
+
+            if (!includeUnchangedIdentities)
+            {
+                moduleIdentities = updatedModulesIndentity.Concat(modules.Where(p => !updatedDict.ContainsKey(p.Id))).Select(
+                    p =>
+                    {
+                        string connectionString = this.GetModuleConnectionString(p);
+                        return new ModuleIdentity(this.iothubHostName, this.gatewayHostName, this.deviceId, p.Id, new ConnectionStringCredentials(connectionString));
+                    });
+            }
+            else
+            {
+                var allModules = await this.serviceClient.GetModules();
+                moduleIdentities = allModules.Select(
+                    p =>
+                    {
+                        string connectionString = this.GetModuleConnectionString(p);
+                        return new ModuleIdentity(this.iothubHostName, this.gatewayHostName, this.deviceId, p.Id, new ConnectionStringCredentials(connectionString));
+                    });
+            }
+
             return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
         }
 

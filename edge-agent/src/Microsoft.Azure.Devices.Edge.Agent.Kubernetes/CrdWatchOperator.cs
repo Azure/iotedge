@@ -27,6 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
         readonly string serviceAccountName;
+        readonly string k8sNamespace;
+        readonly string workloadApiVersion;
         readonly Uri workloadUri;
         readonly Uri managementUri;
         readonly string defaultMapServiceType;
@@ -41,6 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string proxyConfigPath,
             string proxyConfigVolumeName,
             string serviceAccountName,
+            string k8sNamespace,
+            string workloadApiVersion,
             Uri workloadUri,
             Uri managementUri,
             PortMapServiceType defaultMapServiceType,
@@ -54,6 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.proxyConfigPath = Preconditions.CheckNonWhiteSpace(proxyConfigPath, nameof(proxyConfigPath));
             this.proxyConfigVolumeName = Preconditions.CheckNonWhiteSpace(proxyConfigVolumeName, nameof(proxyConfigVolumeName));
             this.serviceAccountName = Preconditions.CheckNonWhiteSpace(serviceAccountName, nameof(serviceAccountName));
+            this.k8sNamespace = Preconditions.CheckNonWhiteSpace(k8sNamespace, nameof(k8sNamespace));
+            this.workloadApiVersion = Preconditions.CheckNonWhiteSpace(workloadApiVersion, nameof(workloadApiVersion));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.defaultMapServiceType = Preconditions.CheckNotNull(defaultMapServiceType, nameof(defaultMapServiceType)).ToString();
@@ -104,6 +110,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 this.resourceName,
                 this.deploymentSelector,
                 this.defaultMapServiceType,
+                this.k8sNamespace,
+                this.workloadApiVersion,
                 this.workloadUri,
                 this.managementUri,
                 this.deploymentSerde,
