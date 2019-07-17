@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -109,10 +110,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.timer.Reset();
             try
             {
-                Twin twin = await this.client.GetTwinAsync();
-                Events.GetTwin(this);
-                IMessageConverter<Twin> converter = this.messageConverterProvider.Get<Twin>();
-                return converter.ToMessage(twin);
+                using (Metrics.TimeGetTwin(this.clientId))
+                {
+                    Twin twin = await this.client.GetTwinAsync();
+                    Events.GetTwin(this);
+                    Metrics.AddGetTwin(this.clientId);
+                    IMessageConverter<Twin> converter = this.messageConverterProvider.Get<Twin>();
+                    return converter.ToMessage(twin);
+                }
             }
             catch (Exception ex)
             {
@@ -130,8 +135,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.timer.Reset();
             try
             {
-                await this.client.SendEventAsync(message);
-                Events.SendMessage(this);
+                using (Metrics.TimeMessageSend(this.clientId))
+                {
+                    Metrics.MessageProcessingLatency(this.clientId, inputMessage);
+                    await this.client.SendEventAsync(message);
+                    Events.SendMessage(this);
+                    Metrics.AddSentMessages(this.clientId, 1);
+                }
             }
             catch (Exception ex)
             {
@@ -144,13 +154,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public async Task SendMessageBatchAsync(IEnumerable<IMessage> inputMessages)
         {
             IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
-            IEnumerable<Message> messages = Preconditions.CheckNotNull(inputMessages, nameof(inputMessages))
-                .Select(inputMessage => converter.FromMessage(inputMessage));
+            IList<Message> messages = Preconditions.CheckNotNull(inputMessages, nameof(inputMessages))
+                .Select(inputMessage =>
+                {
+                    Metrics.MessageProcessingLatency(this.clientId, inputMessage);
+                    return converter.FromMessage(inputMessage);
+                })
+                .ToList();
             this.timer.Reset();
             try
             {
-                await this.client.SendEventBatchAsync(messages);
-                Events.SendMessage(this);
+                using (Metrics.TimeMessageSend(this.clientId))
+                {
+                    await this.client.SendEventBatchAsync(messages);
+                    Events.SendMessage(this);
+                    Metrics.AddSentMessages(this.clientId, messages.Count);
+                }
             }
             catch (Exception ex)
             {
@@ -167,8 +186,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.timer.Reset();
             try
             {
-                await this.client.UpdateReportedPropertiesAsync(reported);
-                Events.UpdateReportedProperties(this);
+                using (Metrics.TimeReportedPropertiesUpdate(this.clientId))
+                {
+                    await this.client.UpdateReportedPropertiesAsync(reported);
+                    Metrics.AddUpdateReportedProperties(this.clientId);
+                    Events.UpdateReportedProperties(this);
+                }
             }
             catch (Exception e)
             {
@@ -301,7 +324,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 this.cloudProxy = Preconditions.CheckNotNull(cloudProxy, nameof(cloudProxy));
                 this.cloudListener = Preconditions.CheckNotNull(cloudListener, nameof(cloudListener));
                 IMessageConverter<TwinCollection> converter = cloudProxy.messageConverterProvider.Get<TwinCollection>();
-                this.desiredUpdateHandler = new DesiredPropertyUpdateHandler(cloudListener, converter, cloudProxy);
+                this.desiredUpdateHandler = new DesiredPropertyUpdateHandler(cloudListener, converter);
             }
 
             public void StartListening()
@@ -406,16 +429,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 readonly ICloudListener listener;
                 readonly IMessageConverter<TwinCollection> converter;
-                readonly CloudProxy cloudProxy;
 
                 public DesiredPropertyUpdateHandler(
                     ICloudListener listener,
-                    IMessageConverter<TwinCollection> converter,
-                    CloudProxy cloudProxy)
+                    IMessageConverter<TwinCollection> converter)
                 {
                     this.listener = listener;
                     this.converter = converter;
-                    this.cloudProxy = cloudProxy;
                 }
 
                 public Task OnDesiredPropertyUpdates(TwinCollection desiredProperties)
@@ -582,6 +602,69 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             internal static void CloudReceiverNull(string clientId, string operation)
             {
                 Log.LogWarning((int)EventIds.CloudReceiverNull, Invariant($"Cannot complete operation {operation} for device {clientId} because cloud receiver is null"));
+            }
+        }
+
+        static class Metrics
+        {
+            static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "message_send_duration_seconds",
+                "Time taken to send a message",
+                new List<string> { "from", "to" });
+
+            static readonly IMetricsCounter SentMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+                "messages_sent",
+                "Messages sent from edge hub",
+                new List<string> { "from", "to" });
+
+            static readonly IMetricsTimer GetTwinTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "gettwin_duration_seconds",
+                "Time taken to get twin",
+                new List<string> { "source", "id" });
+
+            static readonly IMetricsCounter GetTwinCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+                "gettwin",
+                "Get twin calls",
+                new List<string> { "source", "id" });
+
+            static readonly IMetricsTimer ReportedPropertiesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "reported_properties_update_duration_seconds",
+                "Time taken to update reported properties",
+                new List<string> { "target", "id" });
+
+            static readonly IMetricsCounter ReportedPropertiesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+                "reported_properties",
+                "Reported properties update calls",
+                new List<string> { "target", "id" });
+
+            static readonly IMetricsDuration MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateDuration(
+                "message_process_duration",
+                "Time taken to process message in EdgeHub",
+                new List<string> { "from", "to" });
+
+            public static IDisposable TimeMessageSend(string id) => MessagesTimer.GetTimer(new[] { id, "upstream" });
+
+            public static void AddSentMessages(string id, int count) => SentMessagesCounter.Increment(count, new[] { id, "upstream" });
+
+            public static IDisposable TimeGetTwin(string id) => GetTwinTimer.GetTimer(new[] { "upstream", id });
+
+            public static void AddGetTwin(string id) => GetTwinCounter.Increment(1, new[] { "upstream", id });
+
+            public static IDisposable TimeReportedPropertiesUpdate(string id) => ReportedPropertiesTimer.GetTimer(new[] { "upstream", id });
+
+            public static void AddUpdateReportedProperties(string id) => ReportedPropertiesCounter.Increment(1, new[] { "upstream", id });
+
+            public static void MessageProcessingLatency(string id, IMessage message)
+            {
+                if (message.SystemProperties != null
+                    && message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
+                    && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
+                {
+                    TimeSpan duration = DateTime.UtcNow - enqueuedTime.ToUniversalTime();
+                    MessagesProcessLatency.Set(
+                        duration.TotalSeconds,
+                        new[] { id, "upstream" });
+                }
             }
         }
     }
