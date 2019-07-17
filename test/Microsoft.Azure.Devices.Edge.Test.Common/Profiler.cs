@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
 
             this.stopwatch.Stop();
-            var args = new object[] { $"{((double)this.stopwatch.ElapsedMilliseconds) / 1000, 9:+0.000s}" };
+            var args = new object[] { $"{((double)this.stopwatch.ElapsedMilliseconds) / 1000,9:+0.000s}" };
             Log.Information($"[{{Elapsed}}] {message}", args.Concat(properties).ToArray());
         }
     }

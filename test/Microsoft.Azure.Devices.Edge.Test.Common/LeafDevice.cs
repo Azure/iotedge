@@ -61,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                 transport,
                                 edgeHostname,
                                 token);
+
                         case AuthenticationType.CertificateAuthority:
                             {
                                 string p = parentId.Expect(() => new ArgumentException());
@@ -73,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                     edgeHostname,
                                     token);
                             }
+
                         case AuthenticationType.SelfSigned:
                             {
                                 string p = parentId.Expect(() => new ArgumentException());
@@ -86,6 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                     edgeHostname,
                                     token);
                             }
+
                         default:
                             throw new InvalidEnumArgumentException();
                     }
