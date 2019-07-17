@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
@@ -39,11 +40,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<Task<IConfigSource>>()
                 .SingleInstance();
 
-            // Task<IReporter>
+            // IReporter
             // TODO: When using a file backed config source we need to figure out
             // how reporting will work.
-            builder.Register(c => Task.FromResult(NullReporter.Instance as IReporter))
-                .As<Task<IReporter>>()
+            builder.Register(c => NullReporter.Instance as IReporter)
+                .As<IReporter>()
+                .SingleInstance();
+
+            // Task<IStreamRequestListener>
+            builder.Register(c => Task.FromResult(new NullStreamRequestListener() as IStreamRequestListener))
+                .As<Task<IStreamRequestListener>>()
                 .SingleInstance();
 
             base.Load(builder);

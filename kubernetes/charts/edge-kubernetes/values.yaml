@@ -1,0 +1,93 @@
+# iotedged configuration
+iotedged:
+  image:
+    repository: azureiotedge/iotedged
+    tag: 0.1.0-alpha
+    pullPolicy: Always
+  service:
+    name: iotedged
+    type: ClusterIP
+  apiVersion: '2019-01-30'
+  # TCP ports on which iotedged should listen
+  ports:
+    management: 35000
+    workload: 35001
+  data:
+    targetPath: /var/lib/iotedge
+    # In order to benefit from HA, at a minimum the data location for iotedged
+    # should be backed by a persistent volume. Please setup a persistent volume
+    # and define a persistent volume claim and provide its reference below. If
+    # this is not provided then the iotedged pod will default to using an
+    # "emptyDir" volume which doesn't work for HA because its lifetime is linked
+    # to the pod's lifetime.
+    #
+    # persistentVolumeClaim:
+    #   name: <CLAIM NAME HERE>
+    #   storageClassName: <STORAGE CLASS NAME HERE>
+    #   size: 100Mi
+  ###############################################################################
+  # Certificate settings
+  ###############################################################################
+  #
+  # Configures the certificates required to operate the IoT Edge
+  # runtime as a gateway which enables external leaf devices to securely
+  # communicate with the Edge Hub. If not specified, the required certificates
+  # are auto generated for quick start scenarios which are not intended for
+  # production environments.
+  #
+  # certificates:
+  #   device_ca_cert: "<ADD PATH TO DEVICE CA CERTIFICATE HERE>"
+  #   device_ca_pk: "<ADD PATH TO DEVICE CA PRIVATE KEY HERE>"
+  #   trusted_ca_certs: "<ADD PATH TO TRUSTED CA CERTIFICATES HERE>"
+
+iotedgedProxy:
+  image:
+    repository: traefik
+    tag: v1.7-alpine
+    pullPolicy: Always
+
+# Edge Agent image configuration
+edgeAgent:
+  containerName: edgeagent
+  image:
+    repository: azureiotedge/azureiotedge-agent
+    tag: 0.1.0-alpha
+    pullPolicy: Always
+  hostname: "localhost"
+  env:
+    authScheme: 'sasToken'
+    # Set this to one of "LoadBalancer", "NodePort", or "ClusterIP" to tell the
+    # IoT Edge runtime how you want to expose mapped ports as Services.
+    portMappingServiceType: 'ClusterIP'
+    # Set this to false if you want to turn off verbose k8s call tracing
+    enableK8sServiceCallTracing: false
+    # Configure edge agent log verbosity
+    runtimeLogLevel: 'debug'
+
+    # Configure the default claim size to use (in megabytes) when creating PVCs.
+    # persistentVolumeClaimDefaultSizeInMb: ""
+
+    # Set this to the name of a persistent volume if you wish the volumes that
+    # back persistent storage in modules to use that PV. Note that you may
+    # sometimes to also need to set the "storageClassName" field below to an
+    # empty string in order for this to work. Since Helm does not provide a
+    # clean way of specifying an empty string (see: https://github.com/helm/helm/issues/2600)
+    # you'll need to set the value "-" in liue of an empty string. This literal
+    # will be interpreted to mean that the storage class needs to be set to an
+    # empty string.
+    # persistentVolumeName: ""
+
+    # Set this to the name of a storage class name if you wish the volumes that
+    # back persistent storage in modules to use dynamically provisioned PVCs.
+    # If you wish this to be an empty string then you'll need to use the string
+    # literal "-" in liue of an empty string.
+    # storageClassName: ""
+
+# Optional registry credentials for module images
+# registryCredentials:
+#   <SERVER ADDRESS>:
+#     username: '<USERNAME>'
+#     password: '<PASSWORD>'
+
+# Azure IoT Hub device connection string
+deviceConnectionString: '<ADD DEVICE CONNECTION STRING HERE>'
