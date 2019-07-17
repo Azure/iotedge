@@ -35,7 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             await command.ExecuteAsync(CancellationToken.None);
 
             // Assert
-            module.VerifyAll();
             containerOperations.VerifyAll();
             dockerClient.VerifyAll();
         }

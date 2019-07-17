@@ -76,6 +76,7 @@ use provisioning::provisioning::{
     ReprovisioningStatus,
 };
 
+use crate::error::ExternalProvisioningErrorReason;
 use crate::workload::WorkloadData;
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
@@ -374,7 +375,9 @@ where
                 info!("Starting provisioning edge device via external provisioning mode...");
                 let external_provisioning_client =
                     ExternalProvisioningClient::new(external.endpoint()).context(
-                        ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient),
+                        ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::ClientInitialization,
+                        )),
                     )?;
                 let external_provisioning = ExternalProvisioning::new(external_provisioning_client);
 
@@ -382,7 +385,9 @@ where
                     .provision(MemoryKeyStore::new())
                     .map_err(|err| {
                         Error::from(err.context(ErrorKind::Initialize(
-                            InitializeErrorReason::ExternalProvisioningClient,
+                            InitializeErrorReason::ExternalProvisioningClient(
+                                ExternalProvisioningErrorReason::Provisioning,
+                            ),
                         )))
                     });
 
@@ -394,20 +399,17 @@ where
                     info!("Credentials are expected to be populated for external provisioning.");
 
                     return Err(Error::from(ErrorKind::Initialize(
-                        InitializeErrorReason::ExternalProvisioningClient,
+                        InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::InvalidCredentials,
+                        ),
                     )));
                 };
 
                 match credentials.auth_type() {
                     AuthType::SymmetricKey(symmetric_key) => {
                         if let Some(key) = symmetric_key.key() {
-                            let (derived_key_store, memory_key) = external_provision_payload(key)?;
-                            start_edgelet!(
-                                derived_key_store,
-                                prov_result,
-                                memory_key,
-                                force_module_reprovision
-                            );
+                            let (derived_key_store, memory_key) = external_provision_payload(key);
+                            start_edgelet!(derived_key_store, prov_result, memory_key);
                         } else {
                             let (derived_key_store, tpm_key) =
                                 external_provision_tpm(hsm_lock.clone())?;
@@ -422,7 +424,9 @@ where
                     AuthType::X509(_) => {
                         info!("Unexpected auth type. Only symmetric keys are expected");
                         return Err(Error::from(ErrorKind::Initialize(
-                            InitializeErrorReason::ExternalProvisioningClient,
+                            InitializeErrorReason::ExternalProvisioningClient(
+                                ExternalProvisioningErrorReason::InvalidAuthenticationType,
+                            ),
                         )));
                     }
                 };
@@ -1295,35 +1299,37 @@ fn prepare_derived_hybrid_key(
     Ok((derived_key_store, hybrid_derived_key))
 }
 
-fn external_provision_payload(key: &str) -> Result<(DerivedKeyStore<MemoryKey>, MemoryKey), Error> {
-    let memory_key = MemoryKey::new(base64::decode(&key).map_err(|_| {
-        Error::from(ErrorKind::Initialize(
-            InitializeErrorReason::ExternalProvisioningClient,
-        ))
-    })?);
+fn external_provision_payload(key: &[u8]) -> (DerivedKeyStore<MemoryKey>, MemoryKey) {
+    let memory_key = MemoryKey::new(key);
     let mut memory_hsm = MemoryKeyStore::new();
     memory_hsm.insert(&KeyIdentity::Device, "primary", memory_key.clone());
 
     let derived_key_store = DerivedKeyStore::new(memory_key.clone());
-    Ok((derived_key_store, memory_key))
+    (derived_key_store, memory_key)
 }
 
 fn external_provision_tpm(
     hsm_lock: Arc<HsmLock>,
 ) -> Result<(DerivedKeyStore<TpmKey>, TpmKey), Error> {
     let tpm = Tpm::new().context(ErrorKind::Initialize(
-        InitializeErrorReason::ExternalProvisioningClient,
+        InitializeErrorReason::ExternalProvisioningClient(
+            ExternalProvisioningErrorReason::HsmInitialization,
+        ),
     ))?;
 
     let tpm_hsm = TpmKeyStore::from_hsm(tpm, hsm_lock).context(ErrorKind::Initialize(
-        InitializeErrorReason::ExternalProvisioningClient,
+        InitializeErrorReason::ExternalProvisioningClient(
+            ExternalProvisioningErrorReason::HsmInitialization,
+        ),
     ))?;
 
     tpm_hsm
         .get(&KeyIdentity::Device, "primary")
         .map_err(|err| {
             Error::from(err.context(ErrorKind::Initialize(
-                InitializeErrorReason::ExternalProvisioningClient,
+                InitializeErrorReason::ExternalProvisioningClient(
+                    ExternalProvisioningErrorReason::HsmKeyRetrieval,
+                ),
             )))
         })
         .and_then(|k| {

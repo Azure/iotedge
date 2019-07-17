@@ -38,6 +38,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceConnectivityManager.InvokeDeviceDisconnected();
 
             // Assert
+            Assert.Equal(0, connectionStatusChangedHandlerCount);
+
+            // Act
+            await connectivityAwareClient.OpenAsync();
+            deviceConnectivityManager.InvokeDeviceConnected();
+            deviceConnectivityManager.InvokeDeviceDisconnected();
+
+            // Assert
             Assert.Equal(2, connectionStatusChangedHandlerCount);
 
             // Act
@@ -97,6 +105,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
+        public async Task TestNoSubscriptionWhenOpenFails()
+        {
+            // Arrange
+            int connectionStatusChangedHandlerCount = 0;
+
+            void ConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
+            {
+                Interlocked.Increment(ref connectionStatusChangedHandlerCount);
+            }
+
+            var deviceConnectivityManager = new DeviceConnectivityManager();
+            var client = new Mock<IClient>();
+            client.Setup(c => c.OpenAsync())
+                .ThrowsAsync(new ArgumentException());
+
+            var connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager, Mock.Of<IIdentity>(i => i.Id == "d1"));
+            connectivityAwareClient.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
+
+            // Act
+            deviceConnectivityManager.InvokeDeviceConnected();
+            deviceConnectivityManager.InvokeDeviceDisconnected();
+
+            // Assert
+            Assert.Equal(0, connectionStatusChangedHandlerCount);
+
+            // Act
+            await Assert.ThrowsAsync<ArgumentException>(() => connectivityAwareClient.OpenAsync());
+            deviceConnectivityManager.InvokeDeviceConnected();
+            deviceConnectivityManager.InvokeDeviceDisconnected();
+
+            // Assert
+            Assert.Equal(0, connectionStatusChangedHandlerCount);
+        }
+
+        [Fact]
         public async Task ConnectivityChangeTest()
         {
             // Arrange
@@ -116,6 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Throws(new TimeoutException());
             var connectivityAwareClient = new ConnectivityAwareClient(client, deviceConnectivityManager, Mock.Of<IIdentity>(i => i.Id == "d1"));
             connectivityAwareClient.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
+            await connectivityAwareClient.OpenAsync();
 
             // Act
             await connectivityAwareClient.SendEventAsync(new Message());
@@ -166,6 +210,141 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(2, receivedConnectionStatuses.Count);
             Assert.Equal(ConnectionStatus.Disconnected, receivedConnectionStatuses[1]);
             Assert.Equal(ConnectionStatusChangeReason.No_Network, receivedChangeReasons[1]);
+        }
+
+        [Fact]
+        public async Task ConnectivityChangeEventTest1()
+        {
+            // Arrange
+            int connectedStatusChangedHandlerCount = 0;
+            int disconnectedStatusChangedHandlerCount = 0;
+
+            void ConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
+            {
+                if (status == ConnectionStatus.Connected)
+                {
+                    Interlocked.Increment(ref connectedStatusChangedHandlerCount);
+                }
+                else
+                {
+                    Interlocked.Increment(ref disconnectedStatusChangedHandlerCount);
+                }
+            }
+
+            var deviceConnectivityManager = new DeviceConnectivityManager();
+            ConnectionStatusChangesHandler innerClientHandler = null;
+            var client = new Mock<IClient>();
+            client.Setup(c => c.SetConnectionStatusChangedHandler(It.IsAny<ConnectionStatusChangesHandler>()))
+                .Callback<ConnectionStatusChangesHandler>(c => innerClientHandler = c);
+
+            var connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager, Mock.Of<IIdentity>(i => i.Id == "d1"));
+            connectivityAwareClient.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
+
+            // Act
+            await connectivityAwareClient.OpenAsync();
+
+            // Assert
+            Assert.NotNull(innerClientHandler);
+
+            // Act
+            innerClientHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+
+            // Assert
+            Assert.Equal(1, connectedStatusChangedHandlerCount);
+            Assert.Equal(0, disconnectedStatusChangedHandlerCount);
+
+            // Act
+            innerClientHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+            deviceConnectivityManager.InvokeDeviceConnected();
+
+            // Assert
+            Assert.Equal(1, connectedStatusChangedHandlerCount);
+            Assert.Equal(0, disconnectedStatusChangedHandlerCount);
+
+            // Act
+            innerClientHandler.Invoke(ConnectionStatus.Disconnected_Retrying, ConnectionStatusChangeReason.Communication_Error);
+
+            // Assert
+            Assert.Equal(1, connectedStatusChangedHandlerCount);
+            Assert.Equal(0, disconnectedStatusChangedHandlerCount);
+
+            // Act
+            innerClientHandler.Invoke(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.Communication_Error);
+
+            // Assert
+            Assert.Equal(1, connectedStatusChangedHandlerCount);
+            Assert.Equal(1, disconnectedStatusChangedHandlerCount);
+
+            // Act
+            innerClientHandler.Invoke(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.Communication_Error);
+            deviceConnectivityManager.InvokeDeviceDisconnected();
+
+            // Assert
+            Assert.Equal(1, connectedStatusChangedHandlerCount);
+            Assert.Equal(1, disconnectedStatusChangedHandlerCount);
+        }
+
+        [Fact]
+        public async Task ConnectivityChangeEventTest2()
+        {
+            // Arrange
+            int connectedStatusChangedHandlerCount = 0;
+            int disconnectedStatusChangedHandlerCount = 0;
+
+            void ConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
+            {
+                if (status == ConnectionStatus.Connected)
+                {
+                    Interlocked.Increment(ref connectedStatusChangedHandlerCount);
+                }
+                else
+                {
+                    Interlocked.Increment(ref disconnectedStatusChangedHandlerCount);
+                }
+            }
+
+            var deviceConnectivityManager = new DeviceConnectivityManager();
+            ConnectionStatusChangesHandler innerClientHandler = null;
+            var client = new Mock<IClient>();
+            client.Setup(c => c.SetConnectionStatusChangedHandler(It.IsAny<ConnectionStatusChangesHandler>()))
+                .Callback<ConnectionStatusChangesHandler>(c => innerClientHandler = c);
+
+            var connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager, Mock.Of<IIdentity>(i => i.Id == "d1"));
+            connectivityAwareClient.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
+
+            // Act
+            await connectivityAwareClient.OpenAsync();
+
+            // Assert
+            Assert.NotNull(innerClientHandler);
+
+            // Act
+            deviceConnectivityManager.InvokeDeviceConnected();
+
+            // Assert
+            Assert.Equal(1, connectedStatusChangedHandlerCount);
+            Assert.Equal(0, disconnectedStatusChangedHandlerCount);
+
+            // Act
+            innerClientHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+
+            // Assert
+            Assert.Equal(1, connectedStatusChangedHandlerCount);
+            Assert.Equal(0, disconnectedStatusChangedHandlerCount);
+
+            // Act
+            deviceConnectivityManager.InvokeDeviceDisconnected();
+
+            // Assert
+            Assert.Equal(1, connectedStatusChangedHandlerCount);
+            Assert.Equal(1, disconnectedStatusChangedHandlerCount);
+
+            // Act
+            innerClientHandler.Invoke(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.Communication_Error);
+
+            // Assert
+            Assert.Equal(1, connectedStatusChangedHandlerCount);
+            Assert.Equal(1, disconnectedStatusChangedHandlerCount);
         }
 
         class DeviceConnectivityManager : IDeviceConnectivityManager

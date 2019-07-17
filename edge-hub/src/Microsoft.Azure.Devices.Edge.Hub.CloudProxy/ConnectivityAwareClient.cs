@@ -31,9 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.underlyingClient = Preconditions.CheckNotNull(client, nameof(client));
             this.deviceConnectivityManager = Preconditions.CheckNotNull(deviceConnectivityManager, nameof(deviceConnectivityManager));
-
-            this.deviceConnectivityManager.DeviceConnected += this.HandleDeviceConnectedEvent;
-            this.deviceConnectivityManager.DeviceDisconnected += this.HandleDeviceDisconnectedEvent;
         }
 
         public bool IsActive => this.underlyingClient.IsActive;
@@ -59,7 +56,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task<Twin> GetTwinAsync() => this.InvokeFunc(() => this.underlyingClient.GetTwinAsync(), nameof(this.GetTwinAsync));
 
-        public Task OpenAsync() => this.InvokeFunc(() => this.underlyingClient.OpenAsync(), nameof(this.OpenAsync));
+        public async Task OpenAsync()
+        {
+            await this.InvokeFunc(() => this.underlyingClient.OpenAsync(), nameof(this.OpenAsync));
+            this.deviceConnectivityManager.DeviceConnected += this.HandleDeviceConnectedEvent;
+            this.deviceConnectivityManager.DeviceDisconnected += this.HandleDeviceDisconnectedEvent;
+        }
 
         public Task SendEventAsync(Message message) => this.InvokeFunc(() => this.underlyingClient.SendEventAsync(message), nameof(this.SendEventAsync));
 
@@ -89,10 +91,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public void Dispose()
         {
+            this.deviceConnectivityManager.DeviceConnected -= this.HandleDeviceConnectedEvent;
+            this.deviceConnectivityManager.DeviceDisconnected -= this.HandleDeviceDisconnectedEvent;
             this.underlyingClient?.Dispose();
         }
 
-        void HandleDeviceConnectedEvent(object sender, EventArgs eventArgs)
+        void HandleDeviceConnectedEvent(object sender, EventArgs eventArgs) => this.HandleDeviceConnectedEvent();
+
+        void HandleDeviceConnectedEvent()
         {
             if (!this.isConnected.GetAndSet(true))
             {
@@ -101,7 +107,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        void HandleDeviceDisconnectedEvent(object sender, EventArgs eventArgs)
+        void HandleDeviceDisconnectedEvent(object sender, EventArgs eventArgs) => this.HandleDeviceDisconnectedEvent();
+
+        void HandleDeviceDisconnectedEvent()
         {
             if (this.isConnected.GetAndSet(false))
             {
@@ -116,13 +124,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             if (status == ConnectionStatus.Connected)
             {
                 this.deviceConnectivityManager.CallSucceeded();
+                this.HandleDeviceConnectedEvent();
             }
-            else
+            else if (status == ConnectionStatus.Disconnected || status == ConnectionStatus.Disabled)
             {
                 this.deviceConnectivityManager.CallTimedOut();
+                this.HandleDeviceDisconnectedEvent();
             }
-
-            this.connectionStatusChangedHandler?.Invoke(status, reason);
         }
 
         async Task<T> InvokeFunc<T>(Func<Task<T>> func, string operation, bool useForConnectivityCheck = true)
