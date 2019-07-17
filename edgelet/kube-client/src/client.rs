@@ -10,10 +10,10 @@ use hyper::service::Service;
 use hyper::Request;
 use hyper::{Body, Error as HyperError};
 use hyper_tls::HttpsConnector;
-use k8s_openapi::api::apps::v1 as apps;
-use k8s_openapi::api::authentication::v1 as auth;
+use k8s_openapi::api::apps::v1 as api_apps;
+use k8s_openapi::api::authentication::v1 as api_auth;
 use k8s_openapi::api::core::v1 as api_core;
-use k8s_openapi::api::rbac::v1 as rbac;
+use k8s_openapi::api::rbac::v1 as api_rbac;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 use k8s_openapi::{http, Response as K8sResponse, ResponseBody};
 use log::debug;
@@ -75,22 +75,23 @@ where
     Body: From<<S as Service>::ResBody>,
     S::Error: Into<Error>,
 {
-    pub fn create_config_map(
+    pub fn replace_config_map(
         &mut self,
         namespace: &str,
+        name: &str,
         config_map: &api_core::ConfigMap,
     ) -> impl Future<Item = api_core::ConfigMap, Error = Error> {
-        api_core::ConfigMap::create_namespaced_config_map(
+        api_core::ConfigMap::replace_namespaced_config_map(
+            name,
             namespace,
             config_map,
-            api_core::CreateNamespacedConfigMapOptional::default(),
+            api_core::ReplaceNamespacedConfigMapOptional::default(),
         )
         .map_err(Error::from)
         .map(|req| {
             self.request(req).and_then(|response| match response {
-                api_core::CreateNamespacedConfigMapResponse::Ok(config_map)
-                | api_core::CreateNamespacedConfigMapResponse::Created(config_map)
-                | api_core::CreateNamespacedConfigMapResponse::Accepted(config_map) => {
+                api_core::ReplaceNamespacedConfigMapResponse::Ok(config_map)
+                | api_core::ReplaceNamespacedConfigMapResponse::Created(config_map) => {
                     Ok(config_map)
                 }
                 err => {
@@ -129,19 +130,19 @@ where
         &mut self,
         namespace: &str,
         name: &str,
-        deployment: &apps::Deployment,
-    ) -> impl Future<Item = apps::Deployment, Error = Error> {
-        apps::Deployment::replace_namespaced_deployment(
+        deployment: &api_apps::Deployment,
+    ) -> impl Future<Item = api_apps::Deployment, Error = Error> {
+        api_apps::Deployment::replace_namespaced_deployment(
             name,
             namespace,
             deployment,
-            apps::ReplaceNamespacedDeploymentOptional::default(),
+            api_apps::ReplaceNamespacedDeploymentOptional::default(),
         )
         .map_err(Error::from)
         .map(|req| {
             self.request(req).and_then(|response| match response {
-                apps::ReplaceNamespacedDeploymentResponse::Created(deployment)
-                | apps::ReplaceNamespacedDeploymentResponse::Ok(deployment) => Ok(deployment),
+                api_apps::ReplaceNamespacedDeploymentResponse::Created(deployment)
+                | api_apps::ReplaceNamespacedDeploymentResponse::Ok(deployment) => Ok(deployment),
                 _ => Err(Error::from(ErrorKind::Response)),
             })
         })
@@ -243,29 +244,32 @@ where
         &mut self,
         namespace: &str,
         token: &str,
-    ) -> impl Future<Item = auth::TokenReview, Error = Error> {
-        let token = auth::TokenReview {
+    ) -> impl Future<Item = api_auth::TokenReview, Error = Error> {
+        let token = api_auth::TokenReview {
             metadata: Some(api_meta::ObjectMeta {
                 namespace: Some(namespace.to_string()),
                 ..api_meta::ObjectMeta::default()
             }),
-            spec: auth::TokenReviewSpec {
+            spec: api_auth::TokenReviewSpec {
                 token: Some(token.to_string()),
             },
-            ..auth::TokenReview::default()
+            ..api_auth::TokenReview::default()
         };
 
-        auth::TokenReview::create_token_review(&token, auth::CreateTokenReviewOptional::default())
-            .map_err(Error::from)
-            .map(|req| {
-                self.request(req).and_then(|response| match response {
-                    auth::CreateTokenReviewResponse::Created(t)
-                    | auth::CreateTokenReviewResponse::Ok(t) => Ok(t),
-                    _ => Err(Error::from(ErrorKind::Response)),
-                })
+        api_auth::TokenReview::create_token_review(
+            &token,
+            api_auth::CreateTokenReviewOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                api_auth::CreateTokenReviewResponse::Created(t)
+                | api_auth::CreateTokenReviewResponse::Ok(t) => Ok(t),
+                _ => Err(Error::from(ErrorKind::Response)),
             })
-            .into_future()
-            .flatten()
+        })
+        .into_future()
+        .flatten()
     }
 
     pub fn get_service_account(
@@ -321,19 +325,21 @@ where
         &mut self,
         namespace: &str,
         name: &str,
-        role_binding: &rbac::RoleBinding,
-    ) -> impl Future<Item = rbac::RoleBinding, Error = Error> {
-        rbac::RoleBinding::replace_namespaced_role_binding(
+        role_binding: &api_rbac::RoleBinding,
+    ) -> impl Future<Item = api_rbac::RoleBinding, Error = Error> {
+        api_rbac::RoleBinding::replace_namespaced_role_binding(
             name,
             namespace,
             role_binding,
-            rbac::ReplaceNamespacedRoleBindingOptional::default(),
+            api_rbac::ReplaceNamespacedRoleBindingOptional::default(),
         )
         .map_err(Error::from)
         .map(|req| {
             self.request(req).and_then(|response| match response {
-                rbac::ReplaceNamespacedRoleBindingResponse::Created(role_binding)
-                | rbac::ReplaceNamespacedRoleBindingResponse::Ok(role_binding) => Ok(role_binding),
+                api_rbac::ReplaceNamespacedRoleBindingResponse::Created(role_binding)
+                | api_rbac::ReplaceNamespacedRoleBindingResponse::Ok(role_binding) => {
+                    Ok(role_binding)
+                }
                 _ => Err(Error::from(ErrorKind::Response)),
             })
         })
@@ -414,7 +420,7 @@ mod tests {
     use crate::config::{Config, TokenSource};
     use hyper::service::service_fn;
     use hyper::{Body, Error as HyperError, Request, Response, StatusCode};
-    use k8s_openapi::api::apps::v1 as apps;
+    use k8s_openapi::api::apps::v1 as api_apps;
     use native_tls::TlsConnector;
     use serde_json;
     use tokio::runtime::Runtime;
@@ -466,7 +472,7 @@ mod tests {
 
         let mut client = make_test_client(service1);
 
-        let deployment: apps::Deployment = serde_json::from_str(DEPLOYMENT_JSON).unwrap();
+        let deployment: api_apps::Deployment = serde_json::from_str(DEPLOYMENT_JSON).unwrap();
         let fut = client.replace_deployment(NAME, NAMESPACE, &deployment);
 
         Runtime::new()
@@ -601,7 +607,7 @@ mod tests {
 
         let mut client = make_test_client(service1);
 
-        let deployment: apps::Deployment = serde_json::from_str(DEPLOYMENT_JSON).unwrap();
+        let deployment: api_apps::Deployment = serde_json::from_str(DEPLOYMENT_JSON).unwrap();
         let fut = client.replace_deployment(NAME, NAMESPACE, &deployment);
         if let Ok(r) = Runtime::new().unwrap().block_on(fut) {
             panic!("expected an error result {:?}", r);

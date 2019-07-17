@@ -1,14 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::BTreeMap;
+use std::str;
 
 use base64;
 use docker::models::{AuthConfig, HostConfig};
-use edgelet_core::ModuleSpec;
+use edgelet_core::{Certificate, ModuleSpec};
 use edgelet_docker::DockerConfig;
-use k8s_openapi::api::apps::v1 as apps;
+use failure::ResultExt;
+use k8s_openapi::api::apps::v1 as api_apps;
 use k8s_openapi::api::core::v1 as api_core;
-use k8s_openapi::api::rbac::v1 as rbac;
+use k8s_openapi::api::rbac::v1 as api_rbac;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 use k8s_openapi::ByteString;
 use log::warn;
@@ -37,6 +39,7 @@ struct AuthEntry {
     pub password: String,
     pub auth: String,
 }
+
 impl AuthEntry {
     pub fn new(username: String, password: String) -> AuthEntry {
         let auth = base64::encode(&format!("{}:{}", username, password));
@@ -63,6 +66,7 @@ impl AuthEntry {
 struct Auth {
     pub auths: BTreeMap<String, AuthEntry>,
 }
+
 impl Auth {
     pub fn new(auths: BTreeMap<String, AuthEntry>) -> Auth {
         Auth { auths }
@@ -73,7 +77,7 @@ impl Auth {
     }
 }
 
-/// Convert Docker `AuthConfig` to a K8s image pull secret.
+/// Converts Docker `AuthConfig` to a K8s image pull secret.
 pub fn auth_to_image_pull_secret(
     namespace: &str,
     auth: &AuthConfig,
@@ -108,7 +112,7 @@ pub fn auth_to_image_pull_secret(
     ))
 }
 
-/// Convert Docker `ModuleSpec` to K8s `PodSpec`
+/// Converts Docker `ModuleSpec` to K8s `PodSpec`
 fn spec_to_podspec(
     settings: &Settings,
     spec: &ModuleSpec<DockerConfig>,
@@ -337,11 +341,11 @@ fn spec_to_podspec(
     })
 }
 
-/// Convert Docker Module Spec into a K8S Deployment.
+/// Converts Docker Module Spec into a K8S Deployment.
 pub fn spec_to_deployment(
     settings: &Settings,
     spec: &ModuleSpec<DockerConfig>,
-) -> Result<(String, apps::Deployment)> {
+) -> Result<(String, api_apps::Deployment)> {
     // Set some values...
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
@@ -373,14 +377,14 @@ pub fn spec_to_deployment(
     annotations.insert(EDGE_ORIGINAL_MODULEID.to_string(), spec.name().to_string());
 
     // Assemble everything
-    let deployment = apps::Deployment {
+    let deployment = api_apps::Deployment {
         metadata: Some(api_meta::ObjectMeta {
             name: Some(deployment_name.clone()),
             namespace: Some(settings.namespace().to_string()),
             labels: Some(deployment_labels),
             ..api_meta::ObjectMeta::default()
         }),
-        spec: Some(apps::DeploymentSpec {
+        spec: Some(api_apps::DeploymentSpec {
             replicas: Some(1),
             selector: api_meta::LabelSelector {
                 match_labels: Some(selector_labels),
@@ -399,13 +403,14 @@ pub fn spec_to_deployment(
                     module_image,
                 )?),
             },
-            ..apps::DeploymentSpec::default()
+            ..api_apps::DeploymentSpec::default()
         }),
-        ..apps::Deployment::default()
+        ..api_apps::Deployment::default()
     };
     Ok((deployment_name, deployment))
 }
 
+/// Converts Docker Module Spec into Service Account.
 pub fn spec_to_service_account(
     settings: &Settings,
     spec: &ModuleSpec<DockerConfig>,
@@ -445,10 +450,11 @@ pub fn spec_to_service_account(
     Ok((service_account_name, service_account))
 }
 
+/// Converts Docker Module Spec into Role Binding.
 pub fn spec_to_role_binding(
     settings: &Settings,
     spec: &ModuleSpec<DockerConfig>,
-) -> Result<(String, rbac::RoleBinding)> {
+) -> Result<(String, api_rbac::RoleBinding)> {
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
         sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
@@ -470,7 +476,7 @@ pub fn spec_to_role_binding(
     let mut annotations = BTreeMap::new();
     annotations.insert(EDGE_ORIGINAL_MODULEID.to_string(), spec.name().to_string());
 
-    let role_binding = rbac::RoleBinding {
+    let role_binding = api_rbac::RoleBinding {
         metadata: Some(api_meta::ObjectMeta {
             name: Some(role_binding_name.clone()),
             namespace: Some(settings.namespace().to_string()),
@@ -478,12 +484,12 @@ pub fn spec_to_role_binding(
             annotations: Some(annotations),
             ..api_meta::ObjectMeta::default()
         }),
-        role_ref: rbac::RoleRef {
+        role_ref: api_rbac::RoleRef {
             api_group: "rbac.authorization.k8s.io".into(),
             kind: "ClusterRole".into(),
             name: "cluster-admin".into(),
         },
-        subjects: vec![rbac::Subject {
+        subjects: vec![api_rbac::Subject {
             api_group: None,
             kind: "ServiceAccount".into(),
             name: module_label_value,
@@ -494,27 +500,70 @@ pub fn spec_to_role_binding(
     Ok((role_binding_name, role_binding))
 }
 
+/// Creates Config Map with Edge Trust Bundle.
+pub fn trust_bundle_to_config_map(
+    settings: &Settings,
+    cert: &impl Certificate,
+) -> Result<(String, api_core::ConfigMap)> {
+    let device_label_value =
+        sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
+    let hubname_label = sanitize_dns_value(
+        settings
+            .iot_hub_hostname()
+            .ok_or(ErrorKind::MissingHubName)?,
+    )?;
+
+    // labels
+    let mut labels = BTreeMap::new();
+    labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
+    labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
+
+    let cert = cert.pem().context(ErrorKind::IdentityCertificate)?;
+    let cert = str::from_utf8(cert.as_ref()).context(ErrorKind::IdentityCertificate)?;
+
+    let mut data = BTreeMap::new();
+    data.insert(
+        PROXY_CONFIG_TRUST_BUNDLE_FILENAME.to_string(),
+        cert.to_string(),
+    );
+    let config_map_name = PROXY_CONFIG_TRUST_BUNDLE_NAME.to_string();
+
+    let config_map = api_core::ConfigMap {
+        metadata: Some(api_meta::ObjectMeta {
+            name: Some(config_map_name.clone()),
+            namespace: Some(settings.namespace().to_string()),
+            labels: Some(labels),
+            ..api_meta::ObjectMeta::default()
+        }),
+        data: Some(data),
+        ..api_core::ConfigMap::default()
+    };
+    Ok((config_map_name, config_map))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::spec_to_deployment;
-    use crate::constants;
-    use crate::constants::{
-        EDGE_DEVICE_LABEL, EDGE_HUBNAME_LABEL, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID,
-    };
-    use crate::convert::to_k8s::auth_to_image_pull_secret;
-    use crate::convert::to_k8s::{Auth, AuthEntry};
-    use crate::convert::{spec_to_role_binding, spec_to_service_account};
-    use crate::tests::make_settings;
+    use std::collections::{BTreeMap, HashMap};
+    use std::str;
+
+    use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
+
     use docker::models::AuthConfig;
     use docker::models::ContainerCreateBody;
     use docker::models::HostConfig;
     use docker::models::Mount;
     use edgelet_core::{ImagePullPolicy, ModuleSpec};
     use edgelet_docker::DockerConfig;
-    use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
-    use std::collections::BTreeMap;
-    use std::collections::HashMap;
-    use std::str;
+    use edgelet_test_utils::cert::TestCert;
+
+    use crate::constants::*;
+    use crate::convert::to_k8s::{Auth, AuthEntry};
+    use crate::convert::{
+        auth_to_image_pull_secret, spec_to_deployment, spec_to_role_binding,
+        spec_to_service_account, trust_bundle_to_config_map,
+    };
+    use crate::tests::make_settings;
+    use crate::ErrorKind;
 
     fn create_module_spec() -> ModuleSpec<DockerConfig> {
         let create_body = ContainerCreateBody::new()
@@ -579,12 +628,9 @@ mod tests {
             assert_eq!(meta.name, Some(module.to_string()));
             assert!(meta.labels.is_some());
             if let Some(labels) = meta.labels.as_ref() {
-                assert_eq!(
-                    labels.get(constants::EDGE_MODULE_LABEL).unwrap(),
-                    "edgeagent"
-                );
-                assert_eq!(labels.get(constants::EDGE_DEVICE_LABEL).unwrap(), device);
-                assert_eq!(labels.get(constants::EDGE_HUBNAME_LABEL).unwrap(), iothub);
+                assert_eq!(labels.get(EDGE_MODULE_LABEL).unwrap(), "edgeagent");
+                assert_eq!(labels.get(EDGE_DEVICE_LABEL).unwrap(), device);
+                assert_eq!(labels.get(EDGE_HUBNAME_LABEL).unwrap(), iothub);
             }
         }
     }
@@ -608,18 +654,9 @@ mod tests {
             assert_eq!(spec.replicas, Some(1));
             assert!(spec.selector.match_labels.is_some());
             if let Some(match_labels) = spec.selector.match_labels.as_ref() {
-                assert_eq!(
-                    match_labels.get(constants::EDGE_MODULE_LABEL).unwrap(),
-                    "edgeagent"
-                );
-                assert_eq!(
-                    match_labels.get(constants::EDGE_DEVICE_LABEL).unwrap(),
-                    "device1"
-                );
-                assert_eq!(
-                    match_labels.get(constants::EDGE_HUBNAME_LABEL).unwrap(),
-                    "iothub"
-                );
+                assert_eq!(match_labels.get(EDGE_MODULE_LABEL).unwrap(), "edgeagent");
+                assert_eq!(match_labels.get(EDGE_DEVICE_LABEL).unwrap(), "device1");
+                assert_eq!(match_labels.get(EDGE_HUBNAME_LABEL).unwrap(), "iothub");
             }
             assert!(spec.template.spec.is_some());
             if let Some(podspec) = spec.template.spec.as_ref() {
@@ -634,7 +671,7 @@ mod tests {
                 if let Some(proxy) = podspec
                     .containers
                     .iter()
-                    .find(|c| c.name == constants::PROXY_CONTAINER_NAME)
+                    .find(|c| c.name == PROXY_CONTAINER_NAME)
                 {
                     // 2 from module spec, 1 for use_pvc
                     assert_eq!(proxy.env.as_ref().map(Vec::len).unwrap(), 3);
@@ -760,5 +797,64 @@ mod tests {
         assert_eq!(subject.kind, "ServiceAccount");
         assert_eq!(subject.name, "edgeagent");
         assert_eq!(subject.namespace, Some("default".to_string()));
+    }
+
+    #[test]
+    fn trust_bundle_to_config_map_fails_when_cert_is_not_available() {
+        let config_map = trust_bundle_to_config_map(
+            &make_settings(None),
+            &TestCert::default().with_fail_pem(true),
+        );
+
+        assert_eq!(
+            config_map.unwrap_err().kind(),
+            &ErrorKind::IdentityCertificate
+        )
+    }
+
+    #[test]
+    fn trust_bundle_to_config_map_fails_when_cert_is_invalid() {
+        let config_map = trust_bundle_to_config_map(
+            &make_settings(None),
+            &TestCert::default().with_cert(vec![0, 159, 146, 150]),
+        );
+
+        assert_eq!(
+            config_map.unwrap_err().kind(),
+            &ErrorKind::IdentityCertificate
+        )
+    }
+
+    #[test]
+    fn trust_bundle_to_config_map_with_cert() {
+        let (name, config_map) = trust_bundle_to_config_map(
+            &make_settings(None),
+            &TestCert::default().with_cert(b"secret_cert".to_vec()),
+        )
+        .unwrap();
+
+        assert_eq!(name, PROXY_CONFIG_TRUST_BUNDLE_NAME);
+
+        assert!(config_map.metadata.is_some());
+        if let Some(metadata) = config_map.metadata {
+            assert_eq!(
+                metadata.name,
+                Some(PROXY_CONFIG_TRUST_BUNDLE_NAME.to_string())
+            );
+            assert_eq!(metadata.namespace, Some("default".to_string()));
+
+            assert!(metadata.labels.is_some());
+            if let Some(labels) = metadata.labels {
+                assert_eq!(labels.len(), 2);
+                assert_eq!(labels[EDGE_DEVICE_LABEL], "device1");
+                assert_eq!(labels[EDGE_HUBNAME_LABEL], "iothub");
+            }
+        }
+
+        assert!(config_map.data.is_some());
+        if let Some(data) = config_map.data {
+            assert_eq!(data.len(), 1);
+            assert_eq!(data[PROXY_CONFIG_TRUST_BUNDLE_FILENAME], "secret_cert");
+        }
     }
 }
