@@ -239,7 +239,7 @@ Defaults:
 
                         if (string.IsNullOrEmpty(this.DeviceIdentityPk) || !File.Exists(this.DeviceIdentityPk))
                         {
-                            throw new ArgumentException("Device identity certificate path is invalid");
+                            throw new ArgumentException("Device identity private key is invalid");
                         }
                         dpsAttestation = Option.Some(new DPSAttestation(this.DPSEndpoint, this.DPSScopeId, Option.None<string>(), this.DeviceIdentityCert, this.DeviceIdentityPk));
                     }

@@ -411,48 +411,51 @@ function run_all_tests()
 
     TEST_NAME='DirectMethodAmqpMqtt'
     run_directmethodamqpmqtt_test && testRet=$? || testRet=$?
-    if (( funcRet = 0 )); then funcRet=$testRet; fi
+    if [ $funcRet -eq 0 ]; then funcRet=$testRet; fi
 
     TEST_NAME='DirectMethodAmqpws'
     run_directmethodamqpws_test && testRet=$? || testRet=$?
-    if (( funcRet = 0 )); then funcRet=$testRet; fi
+    if [ $funcRet -eq 0 ]; then funcRet=$testRet; fi
 
     TEST_NAME='DirectMethodMqtt'
     run_directmethodmqtt_test && testRet=$? || testRet=$?
-    if (( funcRet = 0 )); then funcRet=$testRet; fi
+    if [ $funcRet -eq 0 ]; then funcRet=$testRet; fi
 
     TEST_NAME='DirectMethodMqttAmqp'
     run_directmethodmqttamqp_test && testRet=$? || testRet=$?
-    if (( funcRet = 0 )); then funcRet=$testRet; fi
+    if [ $funcRet -eq 0 ]; then funcRet=$testRet; fi
 
     TEST_NAME='DirectMethodMqttws'
     run_directmethodmqttws_test && testRet=$? || testRet=$?
-    if (( funcRet = 0 )); then funcRet=$testRet; fi
+    if [ $funcRet -eq 0 ]; then funcRet=$testRet; fi
 
     TEST_NAME='DpsSymmetricKeyProvisioning'
     run_dps_provisioning_test "SymmetricKey" && funcRet=$? || funcRet=$?
+    if [ $funcRet -eq 0 ]; then funcRet=$testRet; fi
 
     TEST_NAME='DpsTpmProvisioning'
     run_dps_provisioning_test "Tpm" && funcRet=$? || funcRet=$?
+    if [ $funcRet -eq 0 ]; then funcRet=$testRet; fi
 
     TEST_NAME='DpsX509Provisioning'
     run_dps_provisioning_test "X509" && funcRet=$? || funcRet=$?
+    if [ $funcRet -eq 0 ]; then funcRet=$testRet; fi
 
     TEST_NAME='QuickstartCerts'
     run_quickstartcerts_test && testRet=$? || testRet=$?
-    if (( funcRet = 0 )); then funcRet=$testRet; fi
+    if [ $funcRet -eq 0 ]; then funcRet=$testRet; fi
 
     TEST_NAME='TempFilter'
     run_tempfilter_test && testRet=$? || testRet=$?
-    if (( funcRet = 0 )); then funcRet=$testRet; fi
+    if [ $funcRet -eq 0 ]; then funcRet=$testRet; fi
 
     TEST_NAME='TempFilterFunctions'
     run_tempfilterfunctions_test && testRet=$? || testRet=$?
-    if (( funcRet = 0 )); then funcRet=$testRet; fi
+    if [ $funcRet -eq 0 ]; then funcRet=$testRet; fi
 
     TEST_NAME='TempSensor'
     run_tempsensor_test && testRet=$? || testRet=$?
-    if (( funcRet = 0 )); then funcRet=$testRet; fi
+    if [ $funcRet -eq 0 ]; then funcRet=$testRet; fi
 
     return $funcRet
 }
@@ -932,7 +935,7 @@ function usage() {
     echo ' -testName                       Name of E2E test to be run.'
     echo "                                 Values are 'All', 'DirectMethodAmqp', 'DirectMethodAmqpMqtt', 'DirectMethodAmqpWs', 'DirectMethodMqtt', 'DirectMethodMqttAmqp', "
     echo "                                 'DirectMethodMqttWs', 'LongHaul', 'QuickstartCerts', 'Stress', 'TempFilter', 'TempFilterFunctions', 'TempSensor'"
-    echo "                                 'DirectMethodMqttWs', 'DpsSymmetricKeyProvisioning', 'DpsTpmProvisioning', 'DpsX509Provisioning'"
+    echo "                                 'DpsSymmetricKeyProvisioning', 'DpsTpmProvisioning', 'DpsX509Provisioning'"
     echo "                                 'LongHaul', 'QuickstartCerts', 'Stress', 'TempFilter', 'TempFilterFunctions', 'TempSensor'"
     echo "                                 Note: 'All' option doesn't include long hual and stress test."
     echo ' -artifactImageBuildNumber       Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
