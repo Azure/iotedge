@@ -93,9 +93,8 @@ impl Main {
             App::new()
                 .register_data(context.clone())
                 .register_data(device.clone())
-                .service(
-                    web::resource("/api/modules/{id}/restart").route(web::put().to(restart_module)),
-                )
+                // .service(web::resource("/api/modules/{id}/restart").route(web::put().to(restart_module)))
+                .service(web::resource("/api/modules/{id}/restart/").to(restart_module))
                 .service(web::resource("/api/modules/").to_async(get_modules))
                 .service(web::resource("/api/provisioning-state/").to(get_state))
                 .service(web::resource("/api/connectivity/").to(get_connectivity))
@@ -294,27 +293,31 @@ fn module_response(mods: Vec<Module>) -> HttpResponse {
 
 fn health_response(mods: Vec<Module>) -> HttpResponse {
     let mut device_status = health::Status::new();
-    let mut flag = true;
+    let mut edge_agent = false;
+    let mut edge_hub = false;
+    let mut other = true;
+    
     for module in mods.iter() {
         if module.name() == "edgeAgent" {
-            if module.status() == "success" {
-                device_status.set_edge_agent();
-            } else {
-                flag = false;
-            }
+            if module.status() == "running" {
+                edge_agent = true;
+            } 
         } else if module.name() == "edgeHub" {
-            if module.status() == "success" {
-                device_status.set_edge_hub();
-            } else {
-                flag = false;
-            }
+            if module.status() == "running" {
+                edge_hub = true;
+            } 
         } else {
-            if module.status() != "success" {
-                flag = false;
+            if module.status() != "running" {
+                other = false;
             }
         }
     }
-    device_status.set_other_modules(flag);
+
+    device_status.set_iotedged();
+    device_status.set_edge_agent(edge_agent);
+    device_status.set_edge_hub(edge_hub);
+    device_status.set_other_modules(edge_agent && edge_hub && other);
+
     let health = device_status.return_health();
     HttpResponse::Ok().body(format!(
         "Device health: {:?}\nDevice details: {:?}",

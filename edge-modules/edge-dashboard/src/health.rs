@@ -39,12 +39,16 @@ impl Status {
         }
     }
 
-    pub fn set_edge_agent(&mut self) {
-        self.edge_agent = true;
+    pub fn set_iotedged(&mut self) {
+        self.iotedged = true;
     }
 
-    pub fn set_edge_hub(&mut self) {
-        self.edge_hub = true;
+    pub fn set_edge_agent(&mut self, val: bool) {
+        self.edge_agent = val;
+    }
+
+    pub fn set_edge_hub(&mut self, val: bool) {
+        self.edge_hub = val;
     }
 
     pub fn set_other_modules(&mut self, val: bool) {
