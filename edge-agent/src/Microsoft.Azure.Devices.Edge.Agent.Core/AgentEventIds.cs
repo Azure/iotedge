@@ -25,10 +25,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const int StreamRequestListener = EventIdStart + 1900;
         public const int LogsStreamRequestHandler = EventIdStart + 2000;
         public const int LogsProvider = EventIdStart + 2100;
-        public const int LogsUploadRequestHandler = EventIdStart + 2200;
-        public const int ModuleClientProvider = EventIdStart + 2300;
-        public const int LogsRequestHandler = EventIdStart + 2400;
-        public const int TaskStatusRequestHandler = EventIdStart + 2500;
+        public const int KubernetesPlanner = EventIdStart + 2200;
+        public const int KubernetesCommand = EventIdStart + 2300;
+        public const int KubernetesOperator = EventIdStart + 2400;
+        public const int LogsUploadRequestHandler = EventIdStart + 2500;
+        public const int ModuleClientProvider = EventIdStart + 2600;
+        public const int LogsRequestHandler = EventIdStart + 2700;
+        public const int RestartRequestHandler = EventIdStart + 2800;
+        public const int TaskStatusRequestHandler = EventIdStart + 2900;
         const int EventIdStart = 100000;
     }
 }
