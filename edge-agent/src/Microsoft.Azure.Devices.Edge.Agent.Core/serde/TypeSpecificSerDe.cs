@@ -37,7 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
             };
         }
 
-
         public TypeSpecificSerDe(IDictionary<Type, IDictionary<string, Type>> deserializerTypesMap, IContractResolver resolver)
         {
             Preconditions.CheckNotNull(deserializerTypesMap, nameof(deserializerTypesMap));
