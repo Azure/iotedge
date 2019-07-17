@@ -409,7 +409,12 @@ where
                     AuthType::SymmetricKey(symmetric_key) => {
                         if let Some(key) = symmetric_key.key() {
                             let (derived_key_store, memory_key) = external_provision_payload(key);
-                            start_edgelet!(derived_key_store, prov_result, memory_key, force_module_reprovision);
+                            start_edgelet!(
+                                derived_key_store,
+                                prov_result,
+                                memory_key,
+                                force_module_reprovision
+                            );
                         } else {
                             let (derived_key_store, tpm_key) =
                                 external_provision_tpm(hsm_lock.clone())?;
