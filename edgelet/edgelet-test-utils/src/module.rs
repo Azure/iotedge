@@ -270,7 +270,11 @@ where
     type Error = E;
     type Future = FutureResult<Self, Self::Error>;
 
-    fn make_runtime(settings: Self::Settings, _: Self::ProvisioningResult) -> Self::Future {
+    fn make_runtime(
+        settings: Self::Settings,
+        _: Self::ProvisioningResult,
+        _: impl GetTrustBundle,
+    ) -> Self::Future {
         future::ok(TestRuntime {
             module: None,
             registry: TestRegistry::new(None),

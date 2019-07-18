@@ -290,6 +290,7 @@ where
                     settings.clone(),
                     &mut tokio_runtime,
                     $provisioning_result.clone(),
+                    crypto.clone(),
                 )?;
 
                 if $force_reprovision ||
@@ -1179,6 +1180,7 @@ fn init_runtime<M>(
     settings: M::Settings,
     tokio_runtime: &mut tokio::runtime::Runtime,
     provisioning_result: M::ProvisioningResult,
+    crypto: Crypto,
 ) -> Result<M::ModuleRuntime, Error>
 where
     M: MakeModuleRuntime + Send + 'static,
@@ -1187,7 +1189,7 @@ where
 {
     info!("Initializing the module runtime...");
     let runtime = tokio_runtime
-        .block_on(M::make_runtime(settings, provisioning_result))
+        .block_on(M::make_runtime(settings, provisioning_result, crypto))
         .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?;
     info!("Finished initializing the module runtime.");
 
@@ -1649,6 +1651,7 @@ mod tests {
     use edgelet_core::{KeyBytes, PrivateKey};
     use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
     use edgelet_test_utils::cert::TestCert;
+    use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::*;
 
     use super::*;
@@ -1826,10 +1829,14 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+        let runtime = TestRuntime::make_runtime(
+            settings.clone(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
             fail_device_ca_alias: true,
@@ -1864,10 +1871,14 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+        let runtime = TestRuntime::make_runtime(
+            settings.clone(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: true,
             fail_device_ca_alias: false,
@@ -1902,10 +1913,14 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+        let runtime = TestRuntime::make_runtime(
+            settings.clone(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
             fail_device_ca_alias: false,
@@ -1957,10 +1972,14 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+        let runtime = TestRuntime::make_runtime(
+            settings.clone(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
             fail_device_ca_alias: false,

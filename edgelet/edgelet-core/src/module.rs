@@ -18,6 +18,7 @@ use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};
 
 use crate::error::{Error, ErrorKind, Result};
 use crate::settings::RuntimeSettings;
+use crate::GetTrustBundle;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -417,6 +418,7 @@ pub trait MakeModuleRuntime {
     fn make_runtime(
         settings: Self::Settings,
         provisioning_result: Self::ProvisioningResult,
+        crypto: impl GetTrustBundle + 'static,
     ) -> Self::Future;
 }
 
