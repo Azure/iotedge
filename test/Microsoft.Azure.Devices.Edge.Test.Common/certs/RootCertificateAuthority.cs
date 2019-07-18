@@ -8,16 +8,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
     {
         readonly string scriptPath;
 
-        public static async Task<RootCertificateAuthority> CreateAsync(string certificatePath, string keyPath, string password, string scriptPath, CancellationToken token)
+        public static async Task<RootCertificateAuthority> CreateAsync(
+            string certificatePath,
+            string keyPath,
+            string password,
+            string scriptPath,
+            CancellationToken token)
         {
             await Platform.InstallRootCertificateAsync(certificatePath, keyPath, password, scriptPath, token);
-            return new RootCertificateAuthority(
-                certificatePath,
-                keyPath,
-                scriptPath);
+            return new RootCertificateAuthority(scriptPath);
         }
 
-        RootCertificateAuthority(string certificatePath, string keyPath, string scriptPath)
+        RootCertificateAuthority(string scriptPath)
         {
             this.scriptPath = scriptPath;
         }
