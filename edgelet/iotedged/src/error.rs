@@ -257,7 +257,7 @@ impl fmt::Display for InitializeErrorReason {
             }
 
             InitializeErrorReason::HybridAuthKeyInvalid => {
-                write!(f, "The loaded the hybrid identity key was invalid")
+                write!(f, "The loaded hybrid identity key was invalid")
             }
 
             InitializeErrorReason::InvalidDeviceCertCredentials => {

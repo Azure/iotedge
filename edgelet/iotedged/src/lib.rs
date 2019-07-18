@@ -312,12 +312,12 @@ where
 
                 // Detect if the settings were changed and if the device needs to be reconfigured
                 check_settings_state::<M, _>(
-                                    &cache_subdir_path,
-                                    EDGE_SETTINGS_STATE_FILENAME,
-                                    &settings,
-                                    &runtime,
-                                    &crypto,
-                                    &mut tokio_runtime,
+                    &cache_subdir_path,
+                    EDGE_SETTINGS_STATE_FILENAME,
+                    &settings,
+                    &runtime,
+                    &crypto,
+                    &mut tokio_runtime,
                 )?;
 
                 let cfg = WorkloadData::new(
@@ -793,14 +793,17 @@ where
         }
     }
 
-    if let Ok(hybrid_key) =
-        get_hybrid_identity_key_inner(crypto, subdir, hybrid_id_filename, iv_filename)
-    {
-        Ok((false, hybrid_key))
-    } else {
-        let key_bytes =
-            create_hybrid_identity_key(crypto, subdir, hybrid_id_filename, iv_filename)?;
-        Ok((true, key_bytes))
+    match get_hybrid_identity_key_inner(crypto, subdir, hybrid_id_filename, iv_filename) {
+        Ok(hybrid_key) => Ok((false, hybrid_key)),
+        Err(err) => {
+            info!(
+                "Error loading the hybrid identity key. Re-creating a new key. {}.",
+                err
+            );
+            let key_bytes =
+                create_hybrid_identity_key(crypto, subdir, hybrid_id_filename, iv_filename)?;
+            Ok((true, key_bytes))
+        }
     }
 }
 
