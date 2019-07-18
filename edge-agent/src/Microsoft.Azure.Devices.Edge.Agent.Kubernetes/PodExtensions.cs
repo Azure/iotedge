@@ -1,12 +1,13 @@
-using k8s.Models;
-using Microsoft.Azure.Devices.Edge.Agent.Core;
-using Microsoft.Azure.Devices.Edge.Util;
-using System;
-using System.Linq;
-using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
+    using System;
+    using System.Linq;
+    using k8s.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
+
     public static class PodExtensions
     {
         public static ModuleRuntimeInfo ConvertToRuntime(this V1Pod pod, string name)

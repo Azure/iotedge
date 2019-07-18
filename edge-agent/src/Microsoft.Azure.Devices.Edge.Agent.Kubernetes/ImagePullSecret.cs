@@ -1,8 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-<<<<<<< HEAD
-
-=======
->>>>>>> Refactor First Pass
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System;
@@ -11,11 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using global::Docker.DotNet.Models;
     using Newtonsoft.Json;
 
-<<<<<<< HEAD
     public class ImagePullSecret
-=======
-    class ImagePullSecret
->>>>>>> Refactor First Pass
     {
         class AuthEntry
         {
@@ -34,10 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 this.Auth = Convert.ToBase64String(auth);
             }
         }
-<<<<<<< HEAD
 
-=======
->>>>>>> Refactor First Pass
         class Auth
         {
             [JsonProperty(Required = Required.Always, PropertyName = "auths")]
@@ -48,7 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 this.Auths = new Dictionary<string, AuthEntry>();
             }
 
-<<<<<<< HEAD
             public Auth(string registry, AuthEntry entry)
                 : this()
             {
@@ -57,15 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         }
 
         public string Name { get; }
-=======
-            public Auth(string registry, AuthEntry entry) :
-                this()
-            {
-                this.Auths.Add(registry,entry);
-            }
-        }
-        public string Name { get;}
->>>>>>> Refactor First Pass
 
         readonly AuthConfig dockerAuth;
 
@@ -81,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             //     }
             //   }
             // }
-<<<<<<< HEAD
+            
             var auths = new Auth(
                 this.dockerAuth.ServerAddress,
                 new AuthEntry(this.dockerAuth.Username, this.dockerAuth.Password));
@@ -89,13 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return authString;
         }
 
-=======
-            var auths = new Auth(this.dockerAuth.ServerAddress,
-                              new AuthEntry(this.dockerAuth.Username,this.dockerAuth.Password));
-            string authString = JsonConvert.SerializeObject(auths);
-            return authString;
-        }
->>>>>>> Refactor First Pass
         public ImagePullSecret(AuthConfig dockerAuth)
         {
             this.dockerAuth = dockerAuth;

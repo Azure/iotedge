@@ -1,12 +1,13 @@
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using Microsoft.Azure.Devices.Edge.Agent.Core;
-using Microsoft.Azure.Devices.Edge.Agent.Docker;
-using Microsoft.Azure.Devices.Edge.Util;
-using Newtonsoft.Json;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
+    using System.Collections.Generic;
+    using System.Collections.Immutable;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
+
     public class CombinedDockerModule : IModule<CombinedDockerConfig>
     {
         static readonly DictionaryComparer<string, EnvVal> EnvDictionaryComparer = new DictionaryComparer<string, EnvVal>();
@@ -37,8 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public ImagePullPolicy ImagePullPolicy { get; set; }
 
-        public CombinedDockerModule(string name, string version, ModuleStatus desiredStatus, RestartPolicy restartPolicy,
-            CombinedDockerConfig settings, ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env)
+        public CombinedDockerModule(string name, string version, ModuleStatus desiredStatus, RestartPolicy restartPolicy, CombinedDockerConfig settings, ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env)
         {
             this.Name = name;
             this.Version = version ?? string.Empty;
@@ -50,8 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         }
 
         [JsonConstructor]
-        public CombinedDockerModule(string version, ModuleStatus status, RestartPolicy restartPolicy, string type,
-            CombinedDockerConfig settings, IDictionary<string, EnvVal> env)
+        public CombinedDockerModule(string version, ModuleStatus status, RestartPolicy restartPolicy, string type, CombinedDockerConfig settings, IDictionary<string, EnvVal> env)
         {
             this.Name = null;
             this.Version = version ?? string.Empty;
@@ -85,10 +84,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         {
             unchecked
             {
-                //We are ignoring this here because, we only change the name of the module on Creation. This
-                //is needed because the name is not part of the body of Json equivalent to IModule, it is on the key of the json.
+                // We are ignoring this here because, we only change the name of the module on Creation. This
+                // is needed because the name is not part of the body of Json equivalent to IModule, it is on the key of the json.
                 // ReSharper disable NonReadonlyMemberInGetHashCode
-                int hashCode = (this.Name != null ? this.Name.GetHashCode() : 0);
+                int hashCode = this.Name != null ? this.Name.GetHashCode() : 0;
                 // ReSharper restore NonReadonlyMemberInGetHashCode
                 hashCode = (hashCode * 397) ^ (this.Version != null ? this.Version.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (this.Type != null ? this.Type.GetHashCode() : 0);

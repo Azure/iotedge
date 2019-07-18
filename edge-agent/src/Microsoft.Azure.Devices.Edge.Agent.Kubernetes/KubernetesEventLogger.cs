@@ -10,8 +10,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
     public class KubernetesEventLogger<T>
     {
-        private readonly ILogger Log = Logger.Factory.CreateLogger<T>();
         private const int IdStart = KubernetesEventIds.KubernetesOperator;
+
+        private readonly ILogger log = Logger.Factory.CreateLogger<T>();
 
         public KubernetesEventLogger()
         {
@@ -49,127 +50,127 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public void DeletingService(V1Service service)
         {
-            Log.LogInformation((int)EventIds.DeletingService, $"Deleting service {service.Metadata.Name}");
+            this.log.LogInformation((int)EventIds.DeletingService, $"Deleting service {service.Metadata.Name}");
         }
 
         public void CreatingService(V1Service service)
         {
-            Log.LogInformation((int)EventIds.CreatingService, $"Creating service {service.Metadata.Name}");
+            this.log.LogInformation((int)EventIds.CreatingService, $"Creating service {service.Metadata.Name}");
         }
 
         public void DeletingDeployment(V1Deployment deployment)
         {
-            Log.LogInformation((int)EventIds.DeletingDeployment, $"Deleting deployment {deployment.Metadata.Name}");
+            this.log.LogInformation((int)EventIds.DeletingDeployment, $"Deleting deployment {deployment.Metadata.Name}");
         }
 
         public void CreatingDeployment(V1Deployment deployment)
         {
-            Log.LogInformation((int)EventIds.CreatingDeployment, $"Creating deployment {deployment.Metadata.Name}");
+            this.log.LogInformation((int)EventIds.CreatingDeployment, $"Creating deployment {deployment.Metadata.Name}");
         }
 
         public void InvalidModuleType(IModule module)
         {
-            Log.LogError((int)EventIds.InvalidModuleType, $"Module {module.Name} has an invalid module type '{module.Type}'. Expected type 'docker'");
+            this.log.LogError((int)EventIds.InvalidModuleType, $"Module {module.Name} has an invalid module type '{module.Type}'. Expected type 'docker'");
         }
 
         public void ExceptionInPodWatch(Exception ex)
         {
-            Log.LogError((int)EventIds.ExceptionInPodWatch, ex, "Exception caught in Pod Watch task.");
+            this.log.LogError((int)EventIds.ExceptionInPodWatch, ex, "Exception caught in Pod Watch task.");
         }
 
         public void ExceptionInCustomResourceWatch(Exception ex)
         {
-            Log.LogError((int)EventIds.ExceptionInCustomResourceWatch, ex, "Exception caught in Custom Resource Watch task.");
+            this.log.LogError((int)EventIds.ExceptionInCustomResourceWatch, ex, "Exception caught in Custom Resource Watch task.");
         }
 
         public void InvalidCreationString(string kind, string name)
         {
-            Log.LogDebug((int)EventIds.InvalidCreationString, $"Expected a valid '{kind}' creation string in k8s Object '{name}'.");
+            this.log.LogDebug((int)EventIds.InvalidCreationString, $"Expected a valid '{kind}' creation string in k8s Object '{name}'.");
         }
 
         public void ExposedPortValue(string portEntry)
         {
-            Log.LogWarning((int)EventIds.ExposedPortValue, $"Received an invalid exposed port value '{portEntry}'.");
+            this.log.LogWarning((int)EventIds.ExposedPortValue, $"Received an invalid exposed port value '{portEntry}'.");
         }
 
         public void PortBindingValue(IModule module, string portEntry)
         {
-            Log.LogWarning((int)EventIds.PortBindingValue, $"Module {module.Name} has an invalid port binding value '{portEntry}'.");
+            this.log.LogWarning((int)EventIds.PortBindingValue, $"Module {module.Name} has an invalid port binding value '{portEntry}'.");
         }
 
         public void EdgeDeploymentDeserializeFail(Exception e)
         {
-            Log.LogError((int)EventIds.EdgeDeploymentDeserializeFail, e, "Received an invalid Edge Deployment.");
+            this.log.LogError((int)EventIds.EdgeDeploymentDeserializeFail, e, "Received an invalid Edge Deployment.");
         }
 
         public void DeploymentStatus(WatchEventType type, string name)
         {
-            Log.LogDebug((int)EventIds.DeploymentStatus, $"Deployment '{name}', status'{type}'");
+            this.log.LogDebug((int)EventIds.DeploymentStatus, $"Deployment '{name}', status'{type}'");
         }
 
         public void DeploymentError()
         {
-            Log.LogError((int)EventIds.DeploymentError, "Operator received error on watch type.");
+            this.log.LogError((int)EventIds.DeploymentError, "Operator received error on watch type.");
         }
 
         public void DeploymentNameMismatch(string received, string expected)
         {
-            Log.LogDebug((int)EventIds.DeploymentNameMismatch, $"Watching for edge deployments for '{expected}', received notification for '{received}'");
+            this.log.LogDebug((int)EventIds.DeploymentNameMismatch, $"Watching for edge deployments for '{expected}', received notification for '{received}'");
         }
 
         public void PodStatus(WatchEventType type, string podname)
         {
-            Log.LogDebug((int)EventIds.PodStatus, $"Pod '{podname}', status'{type}'");
+            this.log.LogDebug((int)EventIds.PodStatus, $"Pod '{podname}', status'{type}'");
         }
 
         public void PodStatusRemoveError(string podname)
         {
-            Log.LogWarning((int)EventIds.PodStatusRemoveError, $"Notified of pod {podname} deleted, but not removed from our pod list");
+            this.log.LogWarning((int)EventIds.PodStatusRemoveError, $"Notified of pod {podname} deleted, but not removed from our pod list");
         }
 
         public void UpdateService(string name)
         {
-            Log.LogDebug((int)EventIds.UpdateService, $"Updating service object '{name}'");
+            this.log.LogDebug((int)EventIds.UpdateService, $"Updating service object '{name}'");
         }
 
         public void CreateService(string name)
         {
-            Log.LogDebug((int)EventIds.CreateService, $"Creating service object '{name}'");
+            this.log.LogDebug((int)EventIds.CreateService, $"Creating service object '{name}'");
         }
 
         public void RemoveDeployment(string name)
         {
-            Log.LogDebug((int)EventIds.RemoveDeployment, $"Removing edge deployment '{name}'");
+            this.log.LogDebug((int)EventIds.RemoveDeployment, $"Removing edge deployment '{name}'");
         }
 
         public void UpdateDeployment(string name)
         {
-            Log.LogDebug((int)EventIds.UpdateDeployment, $"Updating edge deployment '{name}'");
+            this.log.LogDebug((int)EventIds.UpdateDeployment, $"Updating edge deployment '{name}'");
         }
 
         public void CreateDeployment(string name)
         {
-            Log.LogDebug((int)EventIds.CreateDeployment, $"Creating edge deployment '{name}'");
+            this.log.LogDebug((int)EventIds.CreateDeployment, $"Creating edge deployment '{name}'");
         }
 
         public void NullListResponse(string listType, string what)
         {
-            Log.LogError((int)EventIds.NullListResponse, $"{listType} returned null {what}");
+            this.log.LogError((int)EventIds.NullListResponse, $"{listType} returned null {what}");
         }
 
         public void NullNodeInfoResponse(string nodeName)
         {
-            Log.LogError((int) EventIds.NullNodeInfoResponse, $"node {nodeName} had no node information");
+            this.log.LogError((int)EventIds.NullNodeInfoResponse, $"node {nodeName} had no node information");
         }
 
         public void PodWatchClosed()
         {
-            Log.LogInformation((int)EventIds.PodWatchClosed, $"K8s closed the pod watch. Attempting to reopen watch.");
+            this.log.LogInformation((int)EventIds.PodWatchClosed, $"K8s closed the pod watch. Attempting to reopen watch.");
         }
 
         public void CrdWatchClosed()
         {
-            Log.LogInformation((int)EventIds.CrdWatchClosed, $"K8s closed the CRD watch. Attempting to reopen watch.");
+            this.log.LogInformation((int)EventIds.CrdWatchClosed, $"K8s closed the CRD watch. Attempting to reopen watch.");
         }
     }
 }

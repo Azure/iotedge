@@ -8,22 +8,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
     using Newtonsoft.Json.Linq;
     using Newtonsoft.Json.Serialization;
 
-    /// <summary>
-    /// SerDe for objects with types that depend on the "type" property
-    /// (for example Docker specific types, etc.)
-    /// </summary>
+    // SerDe for objects with types that depend on the "type" property
+    // (for example Docker specific types, etc.)
     public class TypeSpecificSerDe<T> : ISerde<T>
     {
         readonly JsonSerializerSettings jsonSerializerSettings;
 
-        /// <summary>
-        /// DeserializerTypesMap is a map of input type to object to be deserialized. Something like this -
-        /// IModule ->
-        ///             "docker" -> DockerModule
-        /// IRuntimeInfo ->
-        ///             "docker" -> DockerRuntimeInfo
-        /// This enables supporting multiple interfaces in an object, for different "types" like Docker.
-        /// </summary>
+        // DeserializerTypesMap is a map of input type to object to be deserialized. Something like this -
+        // IModule ->
+        //             "docker" -> DockerModule
+        // IRuntimeInfo ->
+        //             "docker" -> DockerRuntimeInfo
+        // This enables supporting multiple interfaces in an object, for different "types" like Docker.
         public TypeSpecificSerDe(IDictionary<Type, IDictionary<string, Type>> deserializerTypesMap)
         {
             Preconditions.CheckNotNull(deserializerTypesMap, nameof(deserializerTypesMap));

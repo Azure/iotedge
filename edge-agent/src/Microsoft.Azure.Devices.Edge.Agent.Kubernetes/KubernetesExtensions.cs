@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using System.Linq;
     using k8s.Models;
 
-     public static class V1PodSpecEx
+    public static class V1PodSpecEx
     {
         public static bool PodSpecEquals(V1PodSpec self, V1PodSpec other)
         {
@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 return false;
             }
+
             if (ReferenceEquals(self, other))
             {
                 return true;
@@ -37,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     return false;
                 }
             }
+
             return true;
         }
     }
@@ -49,10 +51,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 return false;
             }
+
             if (ReferenceEquals(self, other))
             {
                 return true;
             }
+
             return V1PodSpecEx.PodSpecEquals(self.Spec, other.Spec);
         }
     }
@@ -65,13 +69,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 return false;
             }
+
             if (ReferenceEquals(self, other))
             {
                 return true;
             }
+
             return V1PodTemplateSpecEx.ImageEquals(self.Template, other.Template);
         }
     }
+
     public static class V1DeploymentEx
     {
         public static bool ImageEquals(V1Deployment self, V1Deployment other)
@@ -80,6 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 return false;
             }
+
             if (ReferenceEquals(self, other))
             {
                 return true;

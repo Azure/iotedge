@@ -24,8 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly IKubernetes client;
         readonly Dictionary<string, ModuleRuntimeInfo> moduleRuntimeInfos;
         readonly AsyncLock moduleLock;
-        Option<Watcher<V1Pod>> podWatch;
         private readonly KubernetesEventLogger<KubernetesRuntimeInfoProvider> logger = new KubernetesEventLogger<KubernetesRuntimeInfoProvider>();
+        Option<Watcher<V1Pod>> podWatch;
 
         public KubernetesRuntimeInfoProvider(string deviceNamespace, IKubernetes client)
         {

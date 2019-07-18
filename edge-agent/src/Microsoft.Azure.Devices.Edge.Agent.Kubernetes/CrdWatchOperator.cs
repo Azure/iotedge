@@ -1,23 +1,23 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using k8s;
-using k8s.Models;
-using Microsoft.Azure.Devices.Edge.Agent.Core;
-using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
-using Microsoft.Azure.Devices.Edge.Util;
-using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using k8s;
+    using k8s.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Serialization;
+
     public class CrdWatchOperator<TConfig> : IKubernetesOperator
     {
         readonly IKubernetes client;
 
-        Option<Watcher<V1Pod>> podWatch;
         readonly string iotHubHostname;
         readonly string deviceId;
         readonly string edgeHostname;
@@ -34,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string defaultMapServiceType;
         readonly TypeSpecificSerDe<EdgeDeploymentDefinition<TConfig>> deploymentSerde;
         readonly IModuleIdentityLifecycleManager moduleIdentityLifecycleManager;
+        Option<Watcher<V1Pod>> podWatch;
 
         public CrdWatchOperator(
             string iotHubHostname,

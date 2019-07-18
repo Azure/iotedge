@@ -1,24 +1,25 @@
-using DockerModels = global::Docker.DotNet.Models;
-using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
-using k8s;
-using k8s.Models;
-using Microsoft.Azure.Devices.Edge.Agent.Core;
-using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
-using Microsoft.Azure.Devices.Edge.Util;
-using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-using Microsoft.Rest;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
-using VolumeOptions =
-    Microsoft.Azure.Devices.Edge.Util.Option<(System.Collections.Generic.List<k8s.Models.V1Volume>,
-        System.Collections.Generic.List<k8s.Models.V1VolumeMount>, System.Collections.Generic.List<k8s.Models.V1VolumeMount>)>;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using k8s;
+    using k8s.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Rest;
+    using Newtonsoft.Json;
+    using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
+    using DockerModels = global::Docker.DotNet.Models;
+    using VolumeOptions =
+        Microsoft.Azure.Devices.Edge.Util.Option<(System.Collections.Generic.List<k8s.Models.V1Volume>,
+            System.Collections.Generic.List<k8s.Models.V1VolumeMount>, System.Collections.Generic.List<k8s.Models.V1VolumeMount>)>;
+
     public class CrdWatcher<TConfig>
     {
         const string SocketDir = "/var/run/iotedge";
@@ -27,7 +28,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         const string EdgeHubHostname = "edgehub";
 
         readonly IKubernetes client;
-        Option<Watcher<object>> operatorWatch;
         readonly AsyncLock watchLock = new AsyncLock();
         readonly TypeSpecificSerDe<EdgeDeploymentDefinition<TConfig>> deploymentSerde;
         readonly string iotHubHostname;
@@ -45,9 +45,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly Uri workloadUri;
         readonly Uri managementUri;
         readonly IModuleIdentityLifecycleManager moduleIdentityLifecycleManager;
-        ModuleSet currentModules;
         readonly KubernetesEventLogger<CrdWatcher<TConfig>> logger = new KubernetesEventLogger<CrdWatcher<TConfig>>();
-
+        ModuleSet currentModules;
+        Option<Watcher<object>> operatorWatch;
 
         public CrdWatcher(
             string iotHubHostname,
@@ -123,8 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                                     Constants.K8sCrdPlural,
                                     watch: true).ContinueWith(this.ListCrdComplete);
                             },
-                            onError: this.logger.ExceptionInCustomResourceWatch
-                        ));
+                            onError: this.logger.ExceptionInCustomResourceWatch));
                 }
                 else
                 {
@@ -154,9 +153,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
 
             // only operate on the device that matches this operator.
-            if (String.Equals(customObject.Metadata.Name, this.resourceName, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(customObject.Metadata.Name, this.resourceName, StringComparison.OrdinalIgnoreCase))
             {
-                using (await watchLock.LockAsync())
+                using (await this.watchLock.LockAsync())
                 {
                     V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(KubeUtils.K8sNamespace, labelSelector: this.deploymentSelector);
                     V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(KubeUtils.K8sNamespace, labelSelector: this.deploymentSelector);
@@ -183,6 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                                 await Task.WhenAll(removeDeploymentTasks);
                                 this.currentModules = ModuleSet.Empty;
                             }
+
                             break;
                         case WatchEventType.Error:
                             this.logger.DeploymentError();
@@ -194,7 +194,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 this.logger.DeploymentNameMismatch(customObject.Metadata.Name, this.resourceName);
             }
-
         }
 
         private string DeploymentName(string moduleId) => KubeUtils.SanitizeK8sValue(moduleId);
@@ -402,7 +401,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         {
             if (module is IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig)
             {
-                //pod labels
+                // pod labels
                 var podLabels = new Dictionary<string, string>(labels);
 
                 // pod annotations
@@ -435,7 +434,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 // Bind mounts
                 (List<V1Volume> volumeList, List<V1VolumeMount> proxyMounts, List<V1VolumeMount> volumeMountList) = this.GetVolumesFromModule(moduleWithDockerConfig).GetOrElse((null, null, null));
 
-                //Image
+                // Image
                 string moduleImage = moduleWithDockerConfig.Config.Image;
 
                 var containerList = new List<V1Container>()
@@ -446,8 +445,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         image: moduleImage,
                         volumeMounts: volumeMountList,
                         securityContext: securityContext.GetOrElse(() => null),
-                        ports: exposedPortsOption.GetOrElse(() => null)
-                    ),
+                        ports: exposedPortsOption.GetOrElse(() => null)),
 
                     // TODO: Add Proxy container here - configmap for proxy configuration.
                     new V1Container(
@@ -512,7 +510,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         string type = "DirectoryOrCreate";
                         string hostPath = bindSubstrings[0];
                         string mountPath = bindSubstrings[1];
-                        bool readOnly = ((bindSubstrings.Count() > 2) && bindSubstrings[2].Contains("ro"));
+                        bool readOnly = (bindSubstrings.Count() > 2) && bindSubstrings[2].Contains("ro");
                         volumeList.Add(new V1Volume(name, hostPath: new V1HostPathVolumeSource(hostPath, type)));
                         volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
                     }
@@ -757,6 +755,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         this.logger.InvalidCreationString("service", "null service");
                         throw new NullReferenceException("null service in list");
                     }
+
                     if (service.Metadata?.Annotations != null
                             && service.Metadata.Annotations.TryGetValue(Constants.CreationString, out string creationString))
                     {
@@ -790,6 +789,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         this.logger.InvalidCreationString("deployment", "null deployment");
                         throw new NullReferenceException("null deployment in list");
                     }
+
                     if (deployment.Metadata?.Annotations != null
                             && deployment.Metadata.Annotations.TryGetValue(Constants.CreationString, out string creationString))
                     {
