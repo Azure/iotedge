@@ -74,6 +74,7 @@ use provisioning::provisioning::{
     ExternalProvisioning, ManualProvisioning, Provision, ProvisioningResult, ReprovisioningStatus,
 };
 
+use crate::error::ExternalProvisioningErrorReason;
 use crate::workload::WorkloadData;
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
@@ -248,6 +249,7 @@ where
         info!("Initializing hsm...");
         let crypto = Crypto::new(hsm_lock.clone())
             .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+
         info!("Finished initializing hsm.");
 
         let cache_subdir_path = Path::new(&settings.homedir()).join(EDGE_SETTINGS_SUBDIR);
@@ -267,6 +269,7 @@ where
                     settings.clone(),
                     &mut tokio_runtime,
                     $provisioning_result.clone(),
+                    crypto.clone(),
                 )?;
 
                 if $provisioning_result.reconfigure() != ReprovisioningStatus::DeviceDataNotUpdated {
@@ -336,7 +339,9 @@ where
                 info!("Starting provisioning edge device via external provisioning mode...");
                 let external_provisioning_client =
                     ExternalProvisioningClient::new(external.endpoint()).context(
-                        ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient),
+                        ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::ClientInitialization,
+                        )),
                     )?;
                 let external_provisioning = ExternalProvisioning::new(external_provisioning_client);
 
@@ -344,7 +349,9 @@ where
                     .provision(MemoryKeyStore::new())
                     .map_err(|err| {
                         Error::from(err.context(ErrorKind::Initialize(
-                            InitializeErrorReason::ExternalProvisioningClient,
+                            InitializeErrorReason::ExternalProvisioningClient(
+                                ExternalProvisioningErrorReason::Provisioning,
+                            ),
                         )))
                     });
 
@@ -356,14 +363,16 @@ where
                     info!("Credentials are expected to be populated for external provisioning.");
 
                     return Err(Error::from(ErrorKind::Initialize(
-                        InitializeErrorReason::ExternalProvisioningClient,
+                        InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::InvalidCredentials,
+                        ),
                     )));
                 };
 
                 match credentials.auth_type() {
                     AuthType::SymmetricKey(symmetric_key) => {
                         if let Some(key) = symmetric_key.key() {
-                            let (derived_key_store, memory_key) = external_provision_payload(key)?;
+                            let (derived_key_store, memory_key) = external_provision_payload(key);
                             start_edgelet!(derived_key_store, prov_result, memory_key);
                         } else {
                             let (derived_key_store, tpm_key) =
@@ -374,7 +383,9 @@ where
                     AuthType::X509(_) => {
                         info!("Unexpected auth type. Only symmetric keys are expected");
                         return Err(Error::from(ErrorKind::Initialize(
-                            InitializeErrorReason::ExternalProvisioningClient,
+                            InitializeErrorReason::ExternalProvisioningClient(
+                                ExternalProvisioningErrorReason::InvalidAuthenticationType,
+                            ),
                         )));
                     }
                 };
@@ -806,6 +817,7 @@ fn init_runtime<M>(
     settings: M::Settings,
     tokio_runtime: &mut tokio::runtime::Runtime,
     provisioning_result: M::ProvisioningResult,
+    crypto: Crypto,
 ) -> Result<M::ModuleRuntime, Error>
 where
     M: MakeModuleRuntime + Send + 'static,
@@ -814,7 +826,7 @@ where
 {
     info!("Initializing the module runtime...");
     let runtime = tokio_runtime
-        .block_on(M::make_runtime(settings, provisioning_result))
+        .block_on(M::make_runtime(settings, provisioning_result, crypto))
         .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?;
     info!("Finished initializing the module runtime.");
 
@@ -856,35 +868,37 @@ fn manual_provision(
     tokio_runtime.block_on(provision)
 }
 
-fn external_provision_payload(key: &str) -> Result<(DerivedKeyStore<MemoryKey>, MemoryKey), Error> {
-    let memory_key = MemoryKey::new(base64::decode(&key).map_err(|_| {
-        Error::from(ErrorKind::Initialize(
-            InitializeErrorReason::ExternalProvisioningClient,
-        ))
-    })?);
+fn external_provision_payload(key: &[u8]) -> (DerivedKeyStore<MemoryKey>, MemoryKey) {
+    let memory_key = MemoryKey::new(key);
     let mut memory_hsm = MemoryKeyStore::new();
     memory_hsm.insert(&KeyIdentity::Device, "primary", memory_key.clone());
 
     let derived_key_store = DerivedKeyStore::new(memory_key.clone());
-    Ok((derived_key_store, memory_key))
+    (derived_key_store, memory_key)
 }
 
 fn external_provision_tpm(
     hsm_lock: Arc<HsmLock>,
 ) -> Result<(DerivedKeyStore<TpmKey>, TpmKey), Error> {
     let tpm = Tpm::new().context(ErrorKind::Initialize(
-        InitializeErrorReason::ExternalProvisioningClient,
+        InitializeErrorReason::ExternalProvisioningClient(
+            ExternalProvisioningErrorReason::HsmInitialization,
+        ),
     ))?;
 
     let tpm_hsm = TpmKeyStore::from_hsm(tpm, hsm_lock).context(ErrorKind::Initialize(
-        InitializeErrorReason::ExternalProvisioningClient,
+        InitializeErrorReason::ExternalProvisioningClient(
+            ExternalProvisioningErrorReason::HsmInitialization,
+        ),
     ))?;
 
     tpm_hsm
         .get(&KeyIdentity::Device, "primary")
         .map_err(|err| {
             Error::from(err.context(ErrorKind::Initialize(
-                InitializeErrorReason::ExternalProvisioningClient,
+                InitializeErrorReason::ExternalProvisioningClient(
+                    ExternalProvisioningErrorReason::HsmKeyRetrieval,
+                ),
             )))
         })
         .and_then(|k| {
@@ -1194,6 +1208,7 @@ mod tests {
     use edgelet_core::{KeyBytes, PrivateKey};
     use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
     use edgelet_test_utils::cert::TestCert;
+    use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::*;
 
     use super::*;
@@ -1321,10 +1336,14 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+        let runtime = TestRuntime::make_runtime(
+            settings.clone(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
             fail_device_ca_alias: true,
@@ -1357,10 +1376,14 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+        let runtime = TestRuntime::make_runtime(
+            settings.clone(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: true,
             fail_device_ca_alias: false,
@@ -1393,10 +1416,14 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+        let runtime = TestRuntime::make_runtime(
+            settings.clone(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
             fail_device_ca_alias: false,
@@ -1436,10 +1463,14 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+        let runtime = TestRuntime::make_runtime(
+            settings.clone(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
             fail_device_ca_alias: false,

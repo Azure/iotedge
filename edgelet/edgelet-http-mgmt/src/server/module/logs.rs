@@ -95,6 +95,7 @@ fn parse_options(query: &str) -> Result<LogOptions, Error> {
 mod tests {
     use chrono::prelude::*;
     use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
+    use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::*;
     use futures::Stream;
     use management::models::*;
@@ -166,10 +167,14 @@ mod tests {
         let config = TestConfig::new("microsoft/test-image".to_string());
         let module: TestModule<Error, _> =
             TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(TestSettings::new(), TestProvisioningResult::new())
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+        let runtime = TestRuntime::make_runtime(
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let handler = ModuleLogs::new(runtime);
         let request = Request::get("http://localhost/modules/mod1/logs?api-version=2018-06-28")
             .body(Body::default())
@@ -195,10 +200,14 @@ mod tests {
 
     #[test]
     fn runtime_error() {
-        let runtime = TestRuntime::make_runtime(TestSettings::new(), TestProvisioningResult::new())
-            .wait()
-            .unwrap()
-            .with_module(Err(Error::General));
+        let runtime = TestRuntime::make_runtime(
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Err(Error::General));
         let handler = ModuleLogs::new(runtime);
         let request = Request::get("http://localhost/modules/mod1/logs?api-version=2018-06-28")
             .body(Body::default())
@@ -238,10 +247,14 @@ mod tests {
         let config = TestConfig::new("microsoft/test-image".to_string());
         let module: TestModule<Error, _> =
             TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(TestSettings::new(), TestProvisioningResult::new())
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+        let runtime = TestRuntime::make_runtime(
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let handler = ModuleLogs::new(runtime);
         let request = Request::get(
             "http://localhost/modules/mod1/logs?api-version=2018-06-28&follow=asfda&tail=asfafda",
