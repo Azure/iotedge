@@ -13,7 +13,6 @@ using Org.BouncyCastle.OpenSsl;
 using Org.BouncyCastle.Pkcs;
 using Org.BouncyCastle.Security;
 
-
 using Microsoft.Azure.Devices.Client;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,7 +29,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
         //    the config.yaml of the Edge device to which this sample will connect to.
         //      Update the IOTEDGE_GATEWAY_HOSTNAME in the Properties/launchSettings.json file.
         // 3) Obtain the trusted CA certificate required to trust the Edge gateway.
-        // In the docs this would be the azure-iot-test-only.root.ca.cert.pem 
+        // In the docs this would be the azure-iot-test-only.root.ca.cert.pem
         private static readonly string iothubHostname = Environment.GetEnvironmentVariable("IOTHUB_HOSTNAME");
         private static readonly string downstreamDeviceId = Environment.GetEnvironmentVariable("DEVICE_ID");
         private static readonly string iotEdgeGatewayHostname = Environment.GetEnvironmentVariable("IOTEDGE_GATEWAY_HOSTNAME");
@@ -162,12 +161,12 @@ namespace Microsoft.Azure.Devices.Client.Samples
 
             if (string.IsNullOrWhiteSpace(deviceIdentityCertPath) || !File.Exists(deviceIdentityCertPath))
             {
-                throw new ArgumentException($"Downstram device identity certificate path is invalid");
+                throw new ArgumentException($"Downstream device identity certificate path is invalid");
             }
 
             if (string.IsNullOrWhiteSpace(deviceIdentityPrivateKeyPath) || !File.Exists(deviceIdentityPrivateKeyPath))
             {
-                throw new ArgumentException($"Downstram device identity private key path is invalid");
+                throw new ArgumentException($"Downstream device identity private key path is invalid");
             }
 
             InstallCACert();
@@ -186,7 +185,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
             }
 
             Console.WriteLine("Creating device client using identity certificate...\n");
-            
+
             var (cert, certChain) = GetClientCertificateAndChainFromFile(deviceIdentityCertPath, deviceIdentityPrivateKeyPath);
             InstallChainCertificates(certChain);
             var auth = new DeviceAuthenticationWithX509Certificate(downstreamDeviceId, cert);

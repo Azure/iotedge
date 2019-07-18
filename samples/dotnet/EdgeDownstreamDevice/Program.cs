@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Samples.EdgeDownstreamDevice
                 if (!File.Exists(trustedCACertPath))
                 {
                     // cannot proceed further without a proper cert file
-                    Console.WriteLine("Invalid certificate file: {0}", trustedCACertPath);
+                    Console.WriteLine("Certificate file not found: {0}", trustedCACertPath);
                     throw new InvalidOperationException("Invalid certificate file.");
                 }
                 else
