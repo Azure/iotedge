@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Logging;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
@@ -182,6 +183,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int scopeCacheRefreshRateSecs = this.configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
             TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
 
+            MetricsConfig metricsConfig = MetricsConfig.Create(this.configuration.GetSection("metrics"));
+
             string proxy = this.configuration.GetValue("https_proxy", string.Empty);
             string productInfo = GetProductInfo();
 
@@ -204,7 +207,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     scopeCacheRefreshRate,
                     cacheTokens,
                     this.trustBundle,
-                    proxy));
+                    proxy,
+                    metricsConfig));
         }
 
         static string GetProductInfo()

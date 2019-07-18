@@ -3,38 +3,76 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System.Collections.Generic;
+    using System.Collections.Immutable;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Newtonsoft.Json;
 
-    public class KubernetesModule
+    public class KubernetesModule<TConfig> : IModule<TConfig>
     {
-        [JsonProperty(PropertyName = "module")]
-        public readonly IModule Module;
+        static readonly DictionaryComparer<string, EnvVal> EnvDictionaryComparer = new DictionaryComparer<string, EnvVal>();
 
-        [JsonProperty(PropertyName = "moduleIdentity")]
-        public readonly KubernetesModuleIdentity ModuleIdentity;
-
-        public KubernetesModule(IModule module, KubernetesModuleIdentity moduleIdentity)
+        public KubernetesModule(IModule<TConfig> module)
         {
-            this.Module = Preconditions.CheckNotNull(module, nameof(module));
-            this.ModuleIdentity = Preconditions.CheckNotNull(moduleIdentity, nameof(moduleIdentity));
+            this.Name = module.Name;
+            this.Version = module.Version;
+            this.Type = module.Type;
+            this.DesiredStatus = module.DesiredStatus;
+            this.RestartPolicy = module.RestartPolicy;
+            this.ConfigurationInfo = module.ConfigurationInfo;
+            this.Env = module.Env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
+            this.Config = module.Config;
         }
-        
-        public virtual bool Equals(KubernetesModule other)
+
+        public string Name { get; set; }
+
+        public string Version { get; set; }
+
+        public string Type { get; set; }
+
+        public ModuleStatus DesiredStatus { get; set; }
+
+        public RestartPolicy RestartPolicy { get; set; }
+
+        public ConfigurationInfo ConfigurationInfo { get; set; }
+
+        public IDictionary<string, EnvVal> Env { get; set; }
+
+        public ImagePullPolicy ImagePullPolicy { get; set; }
+
+        public TConfig Config { get; }
+
+        public virtual bool Equals(IModule other) => this.Equals(other as KubernetesModule<TConfig>);
+
+        public bool Equals(IModule<TConfig> other) => this.Equals(other as KubernetesModule<TConfig>);
+
+        public bool Equals(KubernetesModule<TConfig> other)
         {
             if (ReferenceEquals(null, other))
                 return false;
             if (ReferenceEquals(this, other))
                 return true;
-            return this.Module.Equals(other.Module) && this.ModuleIdentity.Equals(other.ModuleIdentity);
+            return string.Equals(this.Name, other.Name) &&
+                string.Equals(this.Version, other.Version) &&
+                string.Equals(this.Type, other.Type) &&
+                this.DesiredStatus != other.DesiredStatus &&
+                this.RestartPolicy == other.RestartPolicy &&
+                this.ConfigurationInfo == other.ConfigurationInfo &&
+                this.ImagePullPolicy == other.ImagePullPolicy &&
+                this.Config is DockerConfig &&
+                this.Config as DockerConfig == other.Config as DockerConfig &&
+                EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
-        public override int GetHashCode()
+        public bool OnlyModuleStatusChanged(IModule other)
         {
-            int hashCode = 1536872568;
-            hashCode = hashCode * -1521134295 + EqualityComparer<IModule>.Default.GetHashCode(this.Module);
-            hashCode = hashCode * -1521134295 + EqualityComparer<KubernetesModuleIdentity>.Default.GetHashCode(this.ModuleIdentity);
-            return hashCode;
+            return other is KubernetesModule<TConfig> &&
+                string.Equals(this.Name, other.Name) &&
+                string.Equals(this.Version, other.Version) &&
+                string.Equals(this.Type, other.Type) &&
+                this.DesiredStatus != other.DesiredStatus &&
+                this.RestartPolicy == other.RestartPolicy &&
+                this.ImagePullPolicy == other.ImagePullPolicy &&
+                EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
     }
 }

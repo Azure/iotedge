@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Util
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Xunit;

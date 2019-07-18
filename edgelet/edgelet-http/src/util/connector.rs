@@ -36,6 +36,7 @@ use crate::util::{socket_file_exists, StreamSelector};
 use crate::PIPE_SCHEME;
 use crate::{HTTP_SCHEME, UNIX_SCHEME};
 
+#[derive(Clone)]
 pub enum UrlConnector {
     Http(HttpConnector),
     #[cfg(windows)]
