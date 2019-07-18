@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 auth,
                 parentId,
                 testAuth.UseSecondaryCertificate(),
-                this.edgeCa,
+                this.ca,
                 this.iotHub,
                 token);
 

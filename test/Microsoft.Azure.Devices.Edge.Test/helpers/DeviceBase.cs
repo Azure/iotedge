@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     {
         IEdgeDaemon daemon;
 
-        protected EdgeCertificateAuthority edgeCa;
+        protected CertificateAuthority ca;
         protected IotHub iotHub;
 
         [OneTimeSetUp]
@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 {
                     string agentImage = Context.Current.EdgeAgentImage.Expect(() => new ArgumentException());
                     string hubImage = Context.Current.EdgeHubImage.Expect(() => new ArgumentException());
-                    (string caCertPath, string caKeyPath, string caPassword) =
+                    (string, string, string) rootCa =
                         Context.Current.RootCaKeys.Expect(() => new ArgumentException());
                     Option<Uri> proxy = Context.Current.Proxy;
                     string deviceId = Context.Current.DeviceId;
@@ -38,20 +38,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             Context.Current.EventHubEndpoint,
                             proxy);
 
-                        var rootCa = await RootCertificateAuthority.CreateAsync(
-                            caCertPath,
-                            caKeyPath,
-                            caPassword,
+                        this.ca = await CertificateAuthority.CreateAsync(
+                            deviceId,
+                            rootCa,
                             Context.Current.CaCertScriptPath,
                             token);
-
-                        this.edgeCa = await rootCa.CreateEdgeCertificateAuthorityAsync(deviceId, token);
 
                         this.daemon = Platform.CreateEdgeDaemon(Context.Current.InstallerPath);
                         await this.daemon.ConfigureAsync(
                             config =>
                             {
-                                config.SetCertificates(this.edgeCa.Certificates);
+                                config.SetCertificates(this.ca.Certificates);
                                 config.Update();
                                 return Task.FromResult(("with edge certificates", Array.Empty<object>()));
                             },

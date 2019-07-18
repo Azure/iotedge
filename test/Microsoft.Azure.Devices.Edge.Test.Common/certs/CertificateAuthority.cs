@@ -3,20 +3,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 {
     using System.Threading;
     using System.Threading.Tasks;
+    using RootCaKeys = System.ValueTuple<string, string, string>;
 
-    public class EdgeCertificateAuthority
+    public class CertificateAuthority
     {
         readonly string scriptPath;
 
         public EdgeCertificates Certificates { get; }
 
-        public static async Task<EdgeCertificateAuthority> CreateAsync(string deviceId, string scriptPath, CancellationToken token)
+        public static async Task<CertificateAuthority> CreateAsync(string deviceId, RootCaKeys rootCa, string scriptPath, CancellationToken token)
         {
+            (string rootCertificate, string rootPrivateKey, string rootPassword) = rootCa;
+            await Platform.InstallRootCertificateAsync(rootCertificate, rootPrivateKey, rootPassword, scriptPath, token);
             EdgeCertificates certs = await Platform.GenerateEdgeCertificatesAsync(deviceId, scriptPath, token);
-            return new EdgeCertificateAuthority(certs, scriptPath);
+            return new CertificateAuthority(certs, scriptPath);
         }
 
-        EdgeCertificateAuthority(EdgeCertificates certs, string scriptPath)
+        CertificateAuthority(EdgeCertificates certs, string scriptPath)
         {
             this.Certificates = certs;
             this.scriptPath = scriptPath;
