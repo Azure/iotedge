@@ -93,12 +93,12 @@ impl Main {
             App::new()
                 .register_data(context.clone())
                 .register_data(device.clone())
-                // .service(web::resource("/api/modules/{id}/restart").route(web::put().to(restart_module)))
-                .service(web::resource("/api/modules/{id}/restart/").to(restart_module))
-                .service(web::resource("/api/modules/").to_async(get_modules))
-                .service(web::resource("/api/provisioning-state/").to(get_state))
-                .service(web::resource("/api/connectivity/").to(get_connectivity))
-                .service(web::resource("/api/health/").to_async(get_health))
+                // .service(web::resource("/api/modules/{id}/restart/").route(web::put().to_async(restart_module)))
+                .service(web::resource("/api/modules/{id}/restart").to_async(restart_module))
+                .service(web::resource("/api/modules").to_async(get_modules))
+                .service(web::resource("/api/provisioning-state").to(get_state))
+                .service(web::resource("/api/connectivity").to(get_connectivity))
+                .service(web::resource("/api/health").to_async(get_health))
         })
         .bind(address)?
         .run()?;
@@ -202,42 +202,45 @@ fn get_health(
     return_modules(context, api_ver, health_response)
 }
 
-fn restart_module(
-    req: HttpRequest,
+fn restart_module(req: HttpRequest,
     context: web::Data<Arc<Context>>,
-    info: web::Query<AuthRequest>,
-) -> HttpResponse {
+    info: web::Query<AuthRequest>
+) -> Box<dyn Future<Item=HttpResponse, Error=ActixError>> {
+    
+    let module_id = req.match_info().get("id");
     let api_ver = &info.api_version;
-
-    let r = context
+    let response = context
         .edge_config
         .as_ref()
         .map(|config| {
             let mgmt_uri = config.connect().management_uri();
-            req.match_info().get("id").and_then(|module_id| {
+            // println!("API Version: {}", api_ver);
+            Either::A(
                 Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
                     .map_err(ErrorInternalServerError)
                     .and_then(|url| ModuleClient::new(&url).map_err(ErrorInternalServerError)) // can't connect to the endpoint
-                    .ok()
                     .map(|mod_client| {
-                        mod_client.restart(module_id);
-                        HttpResponse::Ok()
-                            .body(format!("Module {} was successfully restarted.", module_id))
+                        if let Some(id) = module_id {
+                            mod_client
+                            .restart(id)
+                        } else {
+                            mod_client.restart("")
+                        }
+                        .map(|_| HttpResponse::Ok().body("Module was successfully restarted."))
+                        .map_err(ErrorInternalServerError)
+                        
                     })
-            })
-        })
-        .unwrap_or_else(|_e| {
-            Some(
-                HttpResponse::ServiceUnavailable()
-                    .body(format!("Unable to configure docker settings.")),
+                    .into_future()
+                    .flatten(),
             )
+        })
+        .unwrap_or_else(|err| {
+            Either::B(ok(HttpResponse::ServiceUnavailable()
+                .content_type("text/plain")
+                .body(format!("{:?}", err))))
         });
 
-    if let Some(resp) = r {
-        resp
-    } else {
-        HttpResponse::Ok().body("Failed to restart module.")
-    }
+    Box::new(response)
 }
 
 fn return_modules(
