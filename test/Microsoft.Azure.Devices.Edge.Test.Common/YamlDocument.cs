@@ -2,61 +2,68 @@
 
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using YamlDotNet.Serialization;
+    using Node = System.Collections.Generic.Dictionary<object, object>;
 
     class YamlDocument
     {
-        readonly Dictionary<object, object> root;
+        readonly Node root;
 
         public YamlDocument(string input)
         {
             var reader = new StringReader(input);
             var deserializer = new Deserializer();
-            this.root = (Dictionary<object, object>)deserializer.Deserialize(reader);
+            this.root = (Node)deserializer.Deserialize(reader);
         }
 
         public void ReplaceOrAdd(string dottedKey, string value)
         {
-            Dictionary<object, object> node = this.root;
-            string[] segments = dottedKey.Split('.');
-            foreach (string key in segments.SkipLast(1))
-            {
-                if (!node.ContainsKey(key))
+            this.Do(
+                dottedKey,
+                (innerNode, missingKey) =>
                 {
-                    node.Add(key, new Dictionary<object, object>());
-                }
+                    innerNode.Add(missingKey, new Node());
+                    return true;
+                },
+                (parentNode, leafKey) =>
+                {
+                    if (!parentNode.ContainsKey(leafKey))
+                    {
+                        parentNode.Add(leafKey, value);
+                    }
 
-                node = (Dictionary<object, object>)node[key];
-            }
-
-            string leaf = segments.Last();
-            if (!node.ContainsKey(leaf))
-            {
-                node.Add(leaf, value);
-            }
-
-            node[leaf] = value;
+                    parentNode[leafKey] = value;
+                });
         }
 
         public void RemoveIfExists(string dottedKey)
         {
-            Dictionary<object, object> node = this.root;
+            this.Do(
+                dottedKey,
+                (n, k) => false,
+                (parentNode, leafKey) => parentNode.Remove(leafKey));
+        }
+
+        void Do(string dottedKey, Func<Node, string, bool> onMissing, Action<Node, string> op)
+        {
+            Node node = this.root;
             string[] segments = dottedKey.Split('.');
             foreach (string key in segments.SkipLast(1))
             {
-                if (!node.ContainsKey(key))
+                if (!node.ContainsKey(key) && !onMissing(node, key))
                 {
                     return;
                 }
 
-                node = (Dictionary<object, object>)node[key];
+                node = (Node)node[key];
             }
 
-            string leaf = segments.Last();
-            node.Remove(leaf);
+            string last = segments.Last();
+            op(node, last);
         }
 
         public override string ToString()
