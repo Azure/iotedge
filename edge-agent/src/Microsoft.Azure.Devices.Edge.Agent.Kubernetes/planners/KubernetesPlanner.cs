@@ -49,17 +49,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
             Events.LogIdentities(moduleIdentities);
 
             // Check that module names sanitize and remain unique.
-            var convertedNames = desired.Modules.Keys.Select(KubeUtils.SanitizeK8sValue).Distinct();
-            if (desired.Modules.Count != convertedNames.Count())
+            var groupedModules = desired.Modules.GroupBy(pair => KubeUtils.SanitizeK8sValue(pair.Key)).ToArray();
+            if (groupedModules.Any(c => c.Count() > 1))
             {
-                string nameList = desired.Modules.Keys.Join(",");
+                string nameList = groupedModules.Where(c => c.Count() > 1).SelectMany(g => g, (pairs, pair) => pair.Key).Join(",");
                 throw new InvalidIdentityException($"Deployment will cause a name collision in Kubernetes namespace, modules: [{nameList}]");
             }
 
             // TODO: improve this so it is generic for all potential module types.
             if (!desired.Modules.Values.All(p => p is IModule<DockerConfig>))
             {
-                throw new InvalidModuleException("Kubernetes deployment currently only handles type=DockerConfig");
+                throw new InvalidModuleException($"Kubernetes deployment currently only handles type={typeof(T).FullName}");
             }
 
             Diff moduleDifference = desired.Diff(current);

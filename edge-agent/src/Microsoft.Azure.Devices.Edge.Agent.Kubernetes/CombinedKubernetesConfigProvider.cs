@@ -74,14 +74,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         void MountSockets(IModule module, CreateContainerParameters createOptions)
         {
             var workloadUri = new Uri(this.configSource.Configuration.GetValue<string>(Core.Constants.EdgeletWorkloadUriVariableName));
-            if (workloadUri.Scheme == "unix")
+            if (string.Equals(workloadUri.Scheme, "unix", StringComparison.OrdinalIgnoreCase))
             {
                 SetMountOptions(createOptions, workloadUri);
             }
 
             // If Management URI is Unix domain socket, and the module is the EdgeAgent, then mount it ino the container.
             var managementUri = new Uri(this.configSource.Configuration.GetValue<string>(Core.Constants.EdgeletManagementUriVariableName));
-            if (managementUri.Scheme == "unix"
+            if (string.Equals(managementUri.Scheme, "unix", StringComparison.OrdinalIgnoreCase)
                 && module.Name.Equals(Core.Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
             {
                 SetMountOptions(createOptions, managementUri);

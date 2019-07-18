@@ -32,6 +32,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
         readonly string iotHubHostname;
         readonly string deviceId;
         readonly TypeSpecificSerDe<EdgeDeploymentDefinition<DockerConfig>> deploymentSerde;
+        // We use the sum of the IDs of the underlying commands as the id for this group
+        // command.
+        public string Id => this.id.Value;
 
         public KubernetesCrdCommand(string deviceNamespace, string iotHubHostname, string deviceId, IKubernetes client, KubernetesModule<DockerConfig>[] modules, Option<IRuntimeInfo> runtimeInfo, ICombinedConfigProvider<T> combinedConfigProvider)
         {
@@ -53,10 +56,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
 
             this.deploymentSerde = new TypeSpecificSerDe<EdgeDeploymentDefinition<DockerConfig>>(deserializerTypesMap);
         }
-
-        // We use the sum of the IDs of the underlying commands as the id for this group
-        // command.
-        public string Id => this.id.Value;
 
         async Task UpdateImagePullSecrets(Dictionary<string, ImagePullSecret> imagePullSecrets, CancellationToken token)
         {
