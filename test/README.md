@@ -28,7 +28,7 @@ The end-to-end tests take several parameters, which they expect to find in a fil
 
 ## Test secrets
 
-The tests also expect to find several _secret_ parameters. While these can technically be added to `context.json`, it is recommended that you create environment variables and make them available to the test framework in a way the avoids commiting them to your shell's command history or saving them in clear text on your filesystem. When set as environment variables, all secret parameters must be prefixed with `E2E_`. Parameter names are case-insensitive; they're only shown in uppercase here so they follow the common convention for environment variables, and to stand out as secrets.
+The tests also expect to find several _secret_ parameters. While these can technically be added to `context.json`, it is recommended that you create environment variables and make them available to the test framework in a way that avoids committing them to your shell's command history or saving them in clear text on your filesystem. When set as environment variables, all secret parameters must be prefixed with `E2E_`. Parameter names are case-insensitive; they're only shown in uppercase here so they follow the common convention for environment variables, and to stand out as secrets.
 
 | Name | Required | Description |
 |------|----------|-------------|
