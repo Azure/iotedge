@@ -164,6 +164,11 @@ pub enum InitializeErrorReason {
     ExternalProvisioningClient(ExternalProvisioningErrorReason),
     Hsm,
     HttpClient,
+    HybridAuthDirCreate,
+    HybridAuthKeyCreate,
+    HybridAuthKeyLoad,
+    HybridAuthKeyInvalid,
+    InvalidDeviceCertCredentials,
     InvalidDeviceConfig,
     InvalidHubConfig,
     InvalidProxyUri,
@@ -238,6 +243,26 @@ impl fmt::Display for InitializeErrorReason {
             InitializeErrorReason::Hsm => write!(f, "Could not initialize HSM"),
 
             InitializeErrorReason::HttpClient => write!(f, "Could not initialize HTTP client"),
+
+            InitializeErrorReason::HybridAuthDirCreate => {
+                write!(f, "Could not create the hybrid identity key directory")
+            }
+
+            InitializeErrorReason::HybridAuthKeyCreate => {
+                write!(f, "Could not create the hybrid identity key")
+            }
+
+            InitializeErrorReason::HybridAuthKeyLoad => {
+                write!(f, "Could not load the hybrid identity key")
+            }
+
+            InitializeErrorReason::HybridAuthKeyInvalid => {
+                write!(f, "The loaded hybrid identity key was invalid")
+            }
+
+            InitializeErrorReason::InvalidDeviceCertCredentials => {
+                write!(f, "Invalid identity certificate")
+            }
 
             InitializeErrorReason::InvalidDeviceConfig => {
                 write!(f, "Invalid device configuration was provided")
