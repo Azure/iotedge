@@ -2031,10 +2031,14 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+        let runtime = TestRuntime::make_runtime(
+            settings.clone(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
             fail_device_ca_alias: false,
@@ -2086,10 +2090,14 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(settings.clone(), TestProvisioningResult::new())
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+        let runtime = TestRuntime::make_runtime(
+            settings.clone(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let crypto = TestCrypto {
             use_expired_ca: false,
             fail_device_ca_alias: false,
