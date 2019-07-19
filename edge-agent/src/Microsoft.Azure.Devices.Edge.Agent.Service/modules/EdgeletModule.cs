@@ -107,8 +107,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     async c =>
                     {
                         var moduleManager = c.Resolve<IModuleManager>();
-                        ICombinedConfigProvider<CombinedDockerConfig> combinedDockerConfigProvider = await c.Resolve<Task<ICombinedConfigProvider<CombinedDockerConfig>>>();
-                        IConfigSource configSource = await c.Resolve<Task<IConfigSource>>();
+                        var combinedDockerConfigProviderTask = c.Resolve<Task<ICombinedConfigProvider<CombinedDockerConfig>>>();
+                        var configSourceTask = c.Resolve<Task<IConfigSource>>();
+                        IConfigSource configSource = await configSourceTask;
+                        ICombinedConfigProvider<CombinedDockerConfig> combinedDockerConfigProvider = await combinedDockerConfigProviderTask;
                         var edgeletCommandFactory = new EdgeletCommandFactory<CombinedDockerConfig>(moduleManager, configSource, combinedDockerConfigProvider);
                         return new LoggingCommandFactory(edgeletCommandFactory, c.Resolve<ILoggerFactory>()) as ICommandFactory;
                     })
