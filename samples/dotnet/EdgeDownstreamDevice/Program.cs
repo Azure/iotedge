@@ -24,6 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Samples.EdgeDownstreamDevice
         // Either set the DEVICE_CONNECTION_STRING environment variable with this connection string
         // or set it in the Properties/launchSettings.json.
         static readonly string DeviceConnectionString = Environment.GetEnvironmentVariable("DEVICE_CONNECTION_STRING");
+        static readonly string MessageCountEnv = Environment.GetEnvironmentVariable("MESSAGE_COUNT");
+
         static int messageCount = 10;
 
         /// <summary>
@@ -38,17 +40,12 @@ namespace Microsoft.Azure.Devices.Edge.Samples.EdgeDownstreamDevice
         {
             InstallCACert();
 
-            try
+            if (!string.IsNullOrWhiteSpace(MessageCountEnv))
             {
-                string messageCountEnv = Environment.GetEnvironmentVariable("MESSAGE_COUNT");
-                if (!string.IsNullOrWhiteSpace(messageCountEnv))
+                if (!int.TryParse(MessageCountEnv, out messageCount))
                 {
-                    messageCount = int.Parse(messageCountEnv, NumberStyles.None, new CultureInfo("en-US"));
+                    Console.WriteLine("Invalid number of messages in env variable MESSAGE_COUNT. MESSAGE_COUNT set to {0}\n", messageCount);
                 }
-            }
-            catch (Exception)
-            {
-                Console.WriteLine("Invalid number of messages in env variable DEVICE_MESSAGE_COUNT. MESSAGE_COUNT set to {0}\n", messageCount);
             }
 
             Console.WriteLine("Creating device client from connection string\n");
