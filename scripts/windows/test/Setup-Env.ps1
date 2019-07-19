@@ -101,10 +101,8 @@ If ($osEdition -eq "IoTUAP")    # Windows IoT Core - update iotedge
             shutdown -r -t 5
         }
     } Else {
-        Write-Host "$serviceName not found."
-        Write-Host "Installing $serviceName..."
-        # triggers reboot
-        deploy-iotedge
+        Write-Host "Service $serviceName not found. Device is clean."
+        # no need to do anything
     }
 
     # hide exit error caused by target reboot
