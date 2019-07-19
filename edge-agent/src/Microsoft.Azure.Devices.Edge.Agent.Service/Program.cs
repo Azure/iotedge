@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 bool closeOnIdleTimeout = configuration.GetValue(Constants.CloseOnIdleTimeout, false);
                 int idleTimeoutSecs = configuration.GetValue(Constants.IdleTimeoutSecs, 300);
                 TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
-                ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Init(configuration.GetSection("ExperimentalFeatures"));
+                ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Init(configuration.GetSection("experimentalFeatures"));
                 string iothubHostname;
                 string deviceId;
                 switch (mode.ToLowerInvariant())

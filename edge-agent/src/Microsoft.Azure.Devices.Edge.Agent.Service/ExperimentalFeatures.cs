@@ -14,9 +14,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         public static ExperimentalFeatures Init(IConfiguration experimentalFeaturesConfig)
         {
-            bool enabled = experimentalFeaturesConfig.GetValue("Enabled", false);
-            bool disableCloudSubscriptions = enabled && experimentalFeaturesConfig.GetValue("DisableCloudSubscriptions", false);
-            bool enableUploadLogs = enabled && experimentalFeaturesConfig.GetValue("EnableUploadLogs", false);
+            bool enabled = experimentalFeaturesConfig.GetValue("enabled", false);
+            bool disableCloudSubscriptions = enabled && experimentalFeaturesConfig.GetValue("disableCloudSubscriptions", false);
+            bool enableUploadLogs = enabled && experimentalFeaturesConfig.GetValue("enableUploadLogs", false);
             return new ExperimentalFeatures(enabled, disableCloudSubscriptions, enableUploadLogs);
         }
 

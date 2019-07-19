@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class ExperimentalFeatures
     {
-        ExperimentalFeatures(bool enabled, bool disableCloudSubscriptions, bool disableConnectivityCheck)
+        public ExperimentalFeatures(bool enabled, bool disableCloudSubscriptions, bool disableConnectivityCheck)
         {
             this.Enabled = enabled;
             this.DisableCloudSubscriptions = disableCloudSubscriptions;
@@ -14,9 +14,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public static ExperimentalFeatures Init(IConfiguration experimentalFeaturesConfig)
         {
-            bool enabled = experimentalFeaturesConfig.GetValue("Enabled", false);
-            bool disableCloudSubscriptions = enabled && experimentalFeaturesConfig.GetValue("DisableCloudSubscriptions", false);
-            bool disableConnectivityCheck = enabled && experimentalFeaturesConfig.GetValue("DisableConnectivityCheck", false);
+            bool enabled = experimentalFeaturesConfig.GetValue("enabled", false);
+            bool disableCloudSubscriptions = enabled && experimentalFeaturesConfig.GetValue("disableCloudSubscriptions", false);
+            bool disableConnectivityCheck = enabled && experimentalFeaturesConfig.GetValue("disableConnectivityCheck", false);
             return new ExperimentalFeatures(enabled, disableCloudSubscriptions, disableConnectivityCheck);
         }
 

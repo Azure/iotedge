@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool optimizeForPerformance = this.configuration.GetValue("OptimizeForPerformance", true);
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward = this.GetStoreAndForwardConfiguration();
 
-            IConfiguration configuration = this.configuration.GetSection("ExperimentalFeatures");
+            IConfiguration configuration = this.configuration.GetSection("experimentalFeatures");
             ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Init(configuration);
 
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward);
