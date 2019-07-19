@@ -9,11 +9,11 @@
  */
 
 /// TaskSpecRestartPolicy : Specification for the restart policy which applies to containers created as part of this service.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct TaskSpecRestartPolicy {
     /// Condition for restart.
     #[serde(rename = "Condition", skip_serializing_if = "Option::is_none")]

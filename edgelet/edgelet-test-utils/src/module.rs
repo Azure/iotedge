@@ -11,7 +11,6 @@ use futures::prelude::*;
 use futures::stream;
 use futures::IntoFuture;
 use hyper::{Body, Request};
-use serde_derive::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
 pub struct TestRegistry<E, C> {
@@ -52,7 +51,7 @@ where
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct TestConfig {
     image: String,
 }
@@ -67,7 +66,7 @@ impl TestConfig {
     }
 }
 
-#[derive(Clone, Default, Serialize)]
+#[derive(Clone, Default, serde_derive::Serialize)]
 pub struct TestSettings;
 
 impl TestSettings {

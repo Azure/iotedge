@@ -11,7 +11,6 @@ use std::time::Duration;
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
-use serde_derive::{Deserialize, Serialize};
 use serde_json;
 
 use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};
@@ -20,7 +19,7 @@ use crate::error::{Error, ErrorKind, Result};
 use crate::settings::RuntimeSettings;
 use crate::GetTrustBundle;
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ModuleStatus {
     Unknown,
@@ -49,7 +48,7 @@ impl fmt::Display for ModuleStatus {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(serde_derive::Serialize, serde_derive::Deserialize, Debug, PartialEq, Clone)]
 pub struct ModuleRuntimeState {
     status: ModuleStatus,
     exit_code: Option<i64>,
@@ -139,7 +138,7 @@ impl ModuleRuntimeState {
     }
 }
 
-#[derive(Deserialize, Debug, Serialize)]
+#[derive(serde_derive::Deserialize, Debug, serde_derive::Serialize)]
 pub struct ModuleSpec<T> {
     name: String,
     #[serde(rename = "type")]
@@ -532,7 +531,7 @@ impl fmt::Display for RuntimeOperation {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ImagePullPolicy {
     #[serde(rename = "on-create")]

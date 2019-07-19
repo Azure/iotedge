@@ -9,11 +9,11 @@
  */
 
 /// MountBindOptions : Optional configuration for the `bind` type.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct MountBindOptions {
     /// A propagation mode with the value `[r]private`, `[r]shared`, or `[r]slave`.
     #[serde(rename = "Propagation", skip_serializing_if = "Option::is_none")]
