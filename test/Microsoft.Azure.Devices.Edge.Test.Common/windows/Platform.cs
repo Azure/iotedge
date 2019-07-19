@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Serilog;
 
     public class Platform : IPlatform
     {
@@ -34,32 +33,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
         public IEdgeDaemon CreateEdgeDaemon(Option<string> installerPath) => new EdgeDaemon(installerPath);
 
-        public async Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
+        public Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
             var commands = new[]
             {
-                $". {scriptPath}",
-                $"New-CACertsEdgeDevice {deviceId}"
+                $". '{scriptPath}'",
+                $"New-CACertsEdgeDevice '{deviceId}'"
             };
 
-            await Profiler.Run(
-                async () =>
-                {
-                    string[] output =
-                        await Process.RunAsync("powershell", string.Join(";", commands), token);
-                    Log.Verbose(string.Join("\n", output));
-                },
-                "Created certificates for edge device");
-
-            string dir = new FileInfo(scriptPath).DirectoryName;
-
-            return new EdgeCertificates(
-                $"{dir}\\certs\\iot-edge-device-{deviceId}-full-chain.cert.pem",
-                $"{dir}\\private\\iot-edge-device-{deviceId}.key.pem",
-                $"{dir}\\certs\\azure-iot-test-only.root.ca.cert.pem");
+            return Common.Platform.GenerateEdgeCertificatesAsync(
+                deviceId,
+                scriptPath,
+                ("powershell", string.Join(";", commands)),
+                token);
         }
 
-        public async Task<LeafCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, string scriptPath, CancellationToken token)
+        public Task<LeafCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, string scriptPath, CancellationToken token)
         {
             var commands = new[]
             {
@@ -67,20 +56,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 $"New-CACertsDevice '{leafDeviceId}'"
             };
 
-            await Profiler.Run(
-                async () =>
-                {
-                    string[] output =
-                        await Process.RunAsync("powershell", string.Join(";", commands), token);
-                    Log.Verbose(string.Join("\n", output));
-                },
-                "Created certificates for leaf device");
-
-            string dir = new FileInfo(scriptPath).DirectoryName;
-
-            return new LeafCertificates(
-                $"{dir}\\certs\\iot-device-{leafDeviceId}-full-chain.cert.pem",
-                $"{dir}\\private\\iot-device-{leafDeviceId}.key.pem");
+            return Common.Platform.GenerateLeafCertificatesAsync(
+                leafDeviceId,
+                scriptPath,
+                ("powershell", string.Join(";", commands)),
+                token);
         }
 
         // On Windows, store certs under intermediate CA instead of root CA to avoid security UI in automated tests
@@ -92,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
         public void InstallEdgeCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings) =>
             transportSettings.SetupCertificateValidation(certs.First());
 
-        public async Task InstallRootCertificateAsync(string certPath, string keyPath, string password, string scriptPath, CancellationToken token)
+        public Task InstallRootCertificateAsync(string certPath, string keyPath, string password, string scriptPath, CancellationToken token)
         {
             var commands = new[]
             {
@@ -100,9 +80,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 $"Install-RootCACertificate '{certPath}' '{keyPath}' 'rsa' {password}"
             };
 
-            string[] output =
-                await Process.RunAsync("powershell", string.Join(";", commands), token);
-            Log.Verbose(string.Join("\n", output));
+            return Common.Platform.InstallRootCertificateAsync(
+                scriptPath,
+                ("powershell", string.Join(";", commands)),
+                token);
         }
     }
 }
