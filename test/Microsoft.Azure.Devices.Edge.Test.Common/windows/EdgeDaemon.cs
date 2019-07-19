@@ -20,23 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             this.scriptDir = scriptDir;
         }
 
-        public static async Task<string> CollectLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token)
-        {
-            string command =
-                "Get-WinEvent -ErrorAction SilentlyContinue " +
-                $"-FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{testStartTime}'}} " +
-                "| Select TimeCreated, Message " +
-                "| Sort-Object @{Expression=\'TimeCreated\';Descending=$false} " +
-                "| Format-Table -AutoSize -HideTableHeaders " +
-                "| Out-String -Width 512";
-            string[] output = await Process.RunAsync("powershell", command, token);
-
-            string daemonLog = $"{filePrefix}-iotedged.log";
-            await File.WriteAllLinesAsync(daemonLog, output, token);
-
-            return daemonLog;
-        }
-
         public async Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
             await this.InstallInternalAsync(deviceConnectionString, packagesPath, proxy, token);

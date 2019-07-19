@@ -3,7 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using YamlDotNet.Serialization;

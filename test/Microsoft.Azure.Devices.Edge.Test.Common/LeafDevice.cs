@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 async () =>
                 {
                     ITransportSettings transport = protocol.ToTransportSettings();
-                    Platform.InstallEdgeCertificates(ca.Certificates.TrustedCertificates, transport);
+                    Platform.Current.InstallEdgeCertificates(ca.Certificates.TrustedCertificates, transport);
 
                     string edgeHostname = Dns.GetHostName().ToLower();
 
@@ -177,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);
                     // .NET runtime requires that we install the chain of CA certs, otherwise it can't
                     // provide them to a server during authentication.
-                    Platform.InstallTrustedCertificates(trustedCerts);
+                    Platform.InstallTrustedCertificates(trustedCerts, Platform.Current.GetCertificateStoreName());
 
                     return await CreateLeafDeviceAsync(
                         leaf,
@@ -263,7 +263,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 });
         }
 
-        private static async Task<Device> GetEdgeDeviceIdentityAsync(string parentId, IotHub iotHub, CancellationToken token)
+        static async Task<Device> GetEdgeDeviceIdentityAsync(string parentId, IotHub iotHub, CancellationToken token)
         {
             Device edge = await iotHub.GetDeviceIdentityAsync(parentId, token);
             if (edge == null)

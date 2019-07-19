@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public DaemonConfiguration()
         {
-            this.configYamlFile = Platform.GetConfigYamlPath();
+            this.configYamlFile = Platform.Current.GetConfigYamlPath();
             string contents = File.ReadAllText(this.configYamlFile);
             this.config = new YamlDocument(contents);
         }

@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         public SetupFixture()
         {
-            this.daemon = Platform.CreateEdgeDaemon(Context.Current.InstallerPath);
+            this.daemon = Platform.Current.CreateEdgeDaemon(Context.Current.InstallerPath);
             this.iotHub = new IotHub(
                 Context.Current.ConnectionString,
                 Context.Current.EventHubEndpoint,
