@@ -176,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     c =>
                     {
                         var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
-                        IDeviceConnectivityManager deviceConnectivityManager = this.experimentalFeatures.Enabled && this.experimentalFeatures.DisableConnectivityCheck
+                        IDeviceConnectivityManager deviceConnectivityManager = this.experimentalFeatures.DisableConnectivityCheck
                             ? new NullDeviceConnectivityManager()
                             : new DeviceConnectivityManager(this.connectivityCheckFrequency, TimeSpan.FromMinutes(2), edgeHubCredentials.Identity) as IDeviceConnectivityManager;
                         return deviceConnectivityManager;
@@ -459,7 +459,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     async c =>
                     {
                         var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
-                        if (this.experimentalFeatures.Enabled && this.experimentalFeatures.DisableCloudSubscriptions)
+                        if (this.experimentalFeatures.DisableCloudSubscriptions)
                         {
                             return new LocalSubscriptionProcessor(await connectionManagerTask) as ISubscriptionProcessor;
                         }
