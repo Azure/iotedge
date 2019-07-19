@@ -76,8 +76,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool optimizeForPerformance = this.configuration.GetValue("OptimizeForPerformance", true);
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward = this.GetStoreAndForwardConfiguration();
 
+            IConfiguration configuration = this.configuration.GetSection("ExperimentalFeatures");
+            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Init(configuration);
+
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward);
-            this.RegisterRoutingModule(builder, storeAndForward);
+            this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures);
             this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance);
             this.RegisterAmqpModule(builder);
             builder.RegisterModule(new HttpModule());
@@ -107,7 +110,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, optimizeForPerformance));
         }
 
-        void RegisterRoutingModule(ContainerBuilder builder, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)
+        void RegisterRoutingModule(
+            ContainerBuilder builder,
+            (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward,
+            ExperimentalFeatures experimentalFeatures)
         {
             var routes = this.configuration.GetSection("routes").Get<Dictionary<string, string>>();
             int connectionPoolSize = this.configuration.GetValue<int>("IotHubConnectionPoolSize");
@@ -133,8 +139,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int maxUpstreamBatchSize = this.configuration.GetValue("MaxUpstreamBatchSize", 10);
             int upstreamFanOutFactor = this.configuration.GetValue("UpstreamFanOutFactor", 10);
             bool encryptTwinStore = this.configuration.GetValue("EncryptTwinStore", false);
-            bool disableCloudSubscriptions = this.configuration.GetValue("DisableCloudSubscriptions", false);
-            bool enableConnectivityCheck = this.configuration.GetValue("EnableConnectivityCheck", true);
             int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
 
@@ -162,9 +166,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     maxUpstreamBatchSize,
                     upstreamFanOutFactor,
                     encryptTwinStore,
-                    disableCloudSubscriptions,
                     configUpdateFrequency,
-                    enableConnectivityCheck));
+                    experimentalFeatures));
         }
 
         void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)
