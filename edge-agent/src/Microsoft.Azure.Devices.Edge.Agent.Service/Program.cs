@@ -235,7 +235,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         {
             var requestHandlerTasks = container.Resolve<IEnumerable<Task<IRequestHandler>>>();
             IRequestHandler[] requestHandlers = await Task.WhenAll(requestHandlerTasks);
-            IRequestManager requestManager = await container.Resolve<Task<IRequestManager>>();
+            IRequestManager requestManager = container.Resolve<IRequestManager>();
             requestManager.RegisterHandlers(requestHandlers);
         }
 
