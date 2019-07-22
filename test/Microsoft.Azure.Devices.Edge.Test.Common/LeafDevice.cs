@@ -327,7 +327,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Profiler.Run(
                 () => this.iotHub.InvokeMethodAsync(
                     this.device.Id,
-                    new CloudToDeviceMethod("DirectMethod"),
+                    new CloudToDeviceMethod(nameof(DirectMethod)),
                     token),
                 "Invoked method on leaf device from the cloud");
 
