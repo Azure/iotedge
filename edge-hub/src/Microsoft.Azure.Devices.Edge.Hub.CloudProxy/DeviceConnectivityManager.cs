@@ -282,7 +282,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             internal static void Created(TimeSpan connectedCheckFrequency, TimeSpan disconnectedCheckFrequency)
             {
-                Log.LogDebug((int)EventIds.Created, Invariant($"Created DeviceConnectivityManager with connected check frequency {connectedCheckFrequency} and disconnected check frequency {disconnectedCheckFrequency}"));
+                Log.LogInformation((int)EventIds.Created, Invariant($"Created DeviceConnectivityManager with connected check frequency {connectedCheckFrequency} and disconnected check frequency {disconnectedCheckFrequency}"));
             }
         }
     }

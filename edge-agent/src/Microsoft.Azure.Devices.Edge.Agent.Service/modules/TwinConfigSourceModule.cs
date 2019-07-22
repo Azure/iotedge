@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string iotHubHostName;
         readonly bool enableStreams;
         readonly TimeSpan requestTimeout;
-        readonly bool enableSubscriptions;
+        readonly ExperimentalFeatures experimentalFeatures;
 
         public TwinConfigSourceModule(
             string iotHubHostname,
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             TimeSpan configRefreshFrequency,
             bool enableStreams,
             TimeSpan requestTimeout,
-            bool enableSubscriptions)
+            ExperimentalFeatures experimentalFeatures)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.configRefreshFrequency = configRefreshFrequency;
             this.enableStreams = enableStreams;
             this.requestTimeout = requestTimeout;
-            this.enableSubscriptions = enableSubscriptions;
+            this.experimentalFeatures = experimentalFeatures;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -84,10 +84,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     ILogsProvider logsProvider = await logsProviderTask;
                     var requestHandlers = new List<IRequestHandler>
                     {
-                        new PingRequestHandler(),
-                        new LogsUploadRequestHandler(logsUploader, logsProvider, runtimeInfoProvider),
-                        new TaskStatusRequestHandler()
+                        new PingRequestHandler()
                     };
+
+                    if (this.experimentalFeatures.EnableUploadLogs)
+                    {
+                        requestHandlers.Add(new LogsUploadRequestHandler(logsUploader, logsProvider, runtimeInfoProvider));
+                        requestHandlers.Add(new TaskStatusRequestHandler());
+                    }
+
                     return new RequestManager(requestHandlers, this.requestTimeout) as IRequestManager;
                 })
                 .As<Task<IRequestManager>>()
@@ -106,7 +111,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     var deviceClientprovider = c.Resolve<IModuleClientProvider>();
                     var requestManagerTask = c.Resolve<Task<IRequestManager>>();
                     IRequestManager requestManager = await requestManagerTask;
-                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, this.enableSubscriptions, this.configRefreshFrequency);
+                    bool enableSubscriptions = !this.experimentalFeatures.DisableCloudSubscriptions;
+                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, enableSubscriptions, this.configRefreshFrequency);
                     return edgeAgentConnection;
                 })
                 .As<Task<IEdgeAgentConnection>>()

@@ -49,9 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly int maxUpstreamBatchSize;
         readonly int upstreamFanOutFactor;
         readonly bool encryptTwinStore;
-        readonly bool disableCloudSubscriptions;
         readonly TimeSpan configUpdateFrequency;
-        readonly bool enableConnectivityChecks;
+        readonly ExperimentalFeatures experimentalFeatures;
 
         public RoutingModule(
             string iotHubName,
@@ -76,9 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             int maxUpstreamBatchSize,
             int upstreamFanOutFactor,
             bool encryptTwinStore,
-            bool disableCloudSubscriptions,
             TimeSpan configUpdateFrequency,
-            bool enableConnectivityChecks)
+            ExperimentalFeatures experimentalFeatures)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -102,9 +100,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.maxUpstreamBatchSize = maxUpstreamBatchSize;
             this.upstreamFanOutFactor = upstreamFanOutFactor;
             this.encryptTwinStore = encryptTwinStore;
-            this.disableCloudSubscriptions = disableCloudSubscriptions;
             this.configUpdateFrequency = configUpdateFrequency;
-            this.enableConnectivityChecks = enableConnectivityChecks;
+            this.experimentalFeatures = experimentalFeatures;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -179,9 +176,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     c =>
                     {
                         var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
-                        IDeviceConnectivityManager deviceConnectivityManager = this.enableConnectivityChecks
-                            ? new DeviceConnectivityManager(this.connectivityCheckFrequency, TimeSpan.FromMinutes(2), edgeHubCredentials.Identity)
-                            : new NullDeviceConnectivityManager() as IDeviceConnectivityManager;
+                        IDeviceConnectivityManager deviceConnectivityManager = this.experimentalFeatures.DisableConnectivityCheck
+                            ? new NullDeviceConnectivityManager()
+                            : new DeviceConnectivityManager(this.connectivityCheckFrequency, TimeSpan.FromMinutes(2), edgeHubCredentials.Identity) as IDeviceConnectivityManager;
                         return deviceConnectivityManager;
                     })
                 .As<IDeviceConnectivityManager>()
@@ -462,7 +459,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     async c =>
                     {
                         var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
-                        if (this.disableCloudSubscriptions)
+                        if (this.experimentalFeatures.DisableCloudSubscriptions)
                         {
                             return new LocalSubscriptionProcessor(await connectionManagerTask) as ISubscriptionProcessor;
                         }
