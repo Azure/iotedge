@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     var loggerFactory = c.Resolve<ILoggerFactory>();
                     InternalLoggerFactory.DefaultFactory = loggerFactory;
 
-                    var eventListener = new LoggerEventListener(loggerFactory.CreateLogger("ProtocolGateway"));
+                    var eventListener = new LoggerEventListener(loggerFactory.CreateLogger("EdgeHub"));
                     eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
                 });
 
