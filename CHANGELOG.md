@@ -1,3 +1,14 @@
+# 1.0.8 (2019-07-22)
+* Fix Win install setup for symmetric key provisioning mode ([602472f](https://github.com/Azure/iotedge/commit/602472fa2a205e08cf87b345544a364eea09a5dd))
+
+## Edge Agent
+### Bug Fixes
+* Put experimental features behind experimental flags ([9e6ea0c](https://github.com/Azure/iotedge/commit/9e6ea0c7df6568554cb6508ca56a8f9ae489b07b))
+
+## Edge Hub
+### Bug Fixes
+* Put experimental features behind experimental flags ([9e6ea0c](https://github.com/Azure/iotedge/commit/9e6ea0c7df6568554cb6508ca56a8f9ae489b07b))
+
 # 1.0.8-rc3 (2019-07-02)
 * Upgrade C# Client SDK to 1.20.3 and Service SDK to 1.18.1
 * Various improvements to `iotedge check` troubleshooting command

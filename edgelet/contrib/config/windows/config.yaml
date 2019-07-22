@@ -111,7 +111,7 @@ agent:
   type: "docker"
   env: {}
   config:
-    image: "mcr.microsoft.com/azureiotedge-agent:1.0.8-rc3"
+    image: "mcr.microsoft.com/azureiotedge-agent:1.0.8"
     auth: {}
 
 ###############################################################################
