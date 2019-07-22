@@ -14,7 +14,6 @@ use k8s_openapi::api::rbac::v1 as api_rbac;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 use k8s_openapi::ByteString;
 use log::warn;
-use serde_derive::{Deserialize, Serialize};
 use serde_json;
 
 use crate::constants::*;
@@ -33,7 +32,7 @@ fn auth_to_pull_secret_name(auth: &AuthConfig) -> Option<String> {
 }
 
 // AuthEntry models the JSON string needed for entryies in the image pull secrets.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 struct AuthEntry {
     pub username: String,
     pub password: String,
@@ -62,7 +61,7 @@ impl AuthEntry {
 //       }
 //   }
 // }
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 struct Auth {
     pub auths: BTreeMap<String, AuthEntry>,
 }
