@@ -102,12 +102,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         static string[] NormalizeFiles(IEnumerable<string> paths, string basePath)
         {
-            string dir = new FileInfo(basePath).DirectoryName;
-
             return paths.Select(
                 path =>
                 {
-                    var file = new FileInfo(Path.Combine(dir, path));
+                    var file = new FileInfo(Path.Combine(basePath, path));
                     Preconditions.CheckArgument(file.Exists);
                     return file.FullName;
                 }).ToArray();
