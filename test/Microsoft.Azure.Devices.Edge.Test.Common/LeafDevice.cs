@@ -177,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);
                     // .NET runtime requires that we install the chain of CA certs, otherwise it can't
                     // provide them to a server during authentication.
-                    Platform.InstallTrustedCertificates(trustedCerts, Platform.Current.GetCertificateStoreName());
+                    Platform.Current.InstallTrustedCertificates(trustedCerts);
 
                     return await CreateLeafDeviceAsync(
                         leaf,

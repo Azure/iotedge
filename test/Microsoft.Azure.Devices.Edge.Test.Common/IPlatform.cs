@@ -26,13 +26,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         //  private/iot-device-{leafDeviceId}.key.pem
         Task<LeafCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, string scriptPath, CancellationToken token);
 
-        StoreName GetCertificateStoreName();
-
         void InstallEdgeCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings);
 
         // After calling this function, the following files will be available under {scriptPath}:
         //  certs/azure-iot-test-only.root.ca.cert.pem
         //  private/azure-iot-test-only.root.ca.key.pem
         Task InstallRootCertificateAsync(string certPath, string keyPath, string password, string scriptPath, CancellationToken token);
+
+        void InstallTrustedCertificates(IEnumerable<X509Certificate2> certs);
     }
 }

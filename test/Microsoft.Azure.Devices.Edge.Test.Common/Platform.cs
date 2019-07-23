@@ -12,11 +12,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Edge.Util;
     using Serilog;
 
-    public static class Platform
+    public class Platform
     {
         public static readonly IPlatform Current = IsWindows() ? new Windows.Platform() as IPlatform : new Linux.Platform();
 
-        public static async Task<EdgeCertificates> GenerateEdgeCertificatesAsync(
+        public static bool IsWindows() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+        protected async Task<EdgeCertificates> GenerateEdgeCertificatesAsync(
             string deviceId,
             string basePath,
             (string name, string args) command,
@@ -42,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return new EdgeCertificates(files[0], files[1], files[2]);
         }
 
-        public static async Task<LeafCertificates> GenerateLeafCertificatesAsync(
+        protected async Task<LeafCertificates> GenerateLeafCertificatesAsync(
             string leafDeviceId,
             string basePath,
             (string name, string args) command,
@@ -67,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return new LeafCertificates(files[0], files[1]);
         }
 
-        public static async Task InstallRootCertificateAsync(
+        protected async Task InstallRootCertificateAsync(
             string basePath,
             (string name, string args) command,
             CancellationToken token)
@@ -84,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             CheckFiles(files, basePath);
         }
 
-        public static void InstallTrustedCertificates(IEnumerable<X509Certificate2> certs, StoreName storeName)
+        protected void InstallTrustedCertificates(IEnumerable<X509Certificate2> certs, StoreName storeName)
         {
             using (var store = new X509Store(storeName, StoreLocation.CurrentUser))
             {
@@ -95,8 +97,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 }
             }
         }
-
-        public static bool IsWindows() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
         static void CheckFiles(IEnumerable<string> paths, string basePath) => NormalizeFiles(paths, basePath);
 

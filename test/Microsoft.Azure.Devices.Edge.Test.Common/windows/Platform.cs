@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class Platform : IPlatform
+    public class Platform : Common.Platform, IPlatform
     {
         public async Task<string> CollectDaemonLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token)
         {
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 $"New-CACertsEdgeDevice '{deviceId}'",
                 scriptPath);
 
-            return Common.Platform.GenerateEdgeCertificatesAsync(deviceId, scriptPath, ("powershell", command), token);
+            return this.GenerateEdgeCertificatesAsync(deviceId, scriptPath, ("powershell", command), token);
         }
 
         public Task<LeafCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, string scriptPath, CancellationToken token)
@@ -48,11 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 $"New-CACertsDevice '{leafDeviceId}'",
                 scriptPath);
 
-            return Common.Platform.GenerateLeafCertificatesAsync(leafDeviceId, scriptPath, ("powershell", command), token);
+            return this.GenerateLeafCertificatesAsync(leafDeviceId, scriptPath, ("powershell", command), token);
         }
-
-        // On Windows, store certs under intermediate CA instead of root CA to avoid security UI in automated tests
-        public StoreName GetCertificateStoreName() => StoreName.CertificateAuthority;
 
         public void InstallEdgeCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings) =>
             transportSettings.SetupCertificateValidation(certs.First());
@@ -63,8 +60,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 $"Install-RootCACertificate '{certPath}' '{keyPath}' 'rsa' {password}",
                 scriptPath);
 
-            return Common.Platform.InstallRootCertificateAsync(scriptPath, ("powershell", command), token);
+            return this.InstallRootCertificateAsync(scriptPath, ("powershell", command), token);
         }
+
+        public void InstallTrustedCertificates(IEnumerable<X509Certificate2> certs) =>
+            // On Windows, store certs under intermediate CA instead of root CA to avoid security UI in automated tests
+            this.InstallTrustedCertificates(certs, StoreName.CertificateAuthority);
 
         static string BuildCertCommand(string command, string scriptPath)
         {
