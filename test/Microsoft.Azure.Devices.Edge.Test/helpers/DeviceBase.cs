@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             },
                             token);
 
-                        var runtime = new Runtime(
+                        var runtime = new EdgeRuntime(
                             deviceId,
                             agentImage,
                             hubImage,

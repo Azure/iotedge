@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     using Registries = System.Collections.Generic.IEnumerable<(string address, string username, string password)>;
 
-    public class Runtime
+    public class EdgeRuntime
     {
         readonly string agentImage;
         readonly string deviceId;
@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly Option<Uri> proxy;
         readonly Registries registries;
 
-        public Runtime(string deviceId, string agentImage, string hubImage, Option<Uri> proxy, Registries registries, bool optimizeForPerformance, IotHub iotHub)
+        public EdgeRuntime(string deviceId, string agentImage, string hubImage, Option<Uri> proxy, Registries registries, bool optimizeForPerformance, IotHub iotHub)
         {
             this.agentImage = agentImage;
             this.deviceId = deviceId;

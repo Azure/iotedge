@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     public class ModuleBase : TestBase
     {
         protected IotHub iotHub;
-        protected Runtime runtime;
+        protected EdgeRuntime runtime;
 
         [SetUp]
         protected void BeforeEachModuleTest()
@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 Context.Current.EventHubEndpoint,
                 Context.Current.Proxy);
 
-            this.runtime = new Runtime(
+            this.runtime = new EdgeRuntime(
                 Context.Current.DeviceId,
                 agentImage,
                 hubImage,
