@@ -11,3 +11,6 @@ failure = "0.1"
 
 [features]
 in_memory = ["hsm-sys/in_memory"]
+
+[target.'cfg(target_os = "linux")']
+rustflags = ["-C", "prefer-dynamic"]

@@ -39,6 +39,9 @@ iothubservice = { path = "../iothubservice" }
 provisioning = { path = "../provisioning" }
 signal-future = { path = "../signal-future" }
 
+[target.'cfg(target_os = "linux")']
+rustflags = ["-C", "prefer-dynamic"]
+
 [target.'cfg(windows)'.dependencies]
 windows-service = "0.1"
 winapi = { version = "0.3.5", features = ["shellapi"] }

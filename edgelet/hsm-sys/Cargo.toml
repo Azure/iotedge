@@ -16,3 +16,6 @@ num_cpus = "1.0"
 
 [features]
 in_memory = []
+
+[target.'cfg(target_os = "linux")']
+rustflags = ["-C", "prefer-dynamic"]
