@@ -96,10 +96,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     await this.InternalStopAsync(token);
 
                     var yaml = new DaemonConfiguration("/etc/iotedge/config.yaml");
-                    (string m, object[] p) = await config(yaml);
+                    (string msg, object[] props) = await config(yaml);
 
-                    message.Append($" {m}");
-                    properties.AddRange(p);
+                    message.Append($" {msg}");
+                    properties.AddRange(props);
 
                     await this.InternalStartAsync(token);
                 },

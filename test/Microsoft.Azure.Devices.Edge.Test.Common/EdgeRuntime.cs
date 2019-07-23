@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         // of the test modules begin sending events as soon as they are launched, so this timestamp
         // can be used as a reasonable starting point when listening for events on the IoT hub's
         // Event Hub-compatible endpoint.
-        public async Task<DateTime> DeployConfigurationAsync(Action<EdgeConfigBuilder> withConfig, CancellationToken token)
+        public async Task<DateTime> DeployConfigurationAsync(Action<EdgeConfigBuilder> addConfig, CancellationToken token)
         {
             var builder = new EdgeConfigBuilder(this.deviceId);
             builder.AddRegistryCredentials(this.registries);
@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
                 .WithProxy(this.proxy);
 
-            withConfig(builder);
+            addConfig(builder);
 
             DateTime deployTime = DateTime.Now;
             await builder.Build().DeployAsync(this.iotHub, token);
