@@ -29,9 +29,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 profiler.Stop(message, properties);
                 return t;
             }
-            catch
+            catch (Exception e)
             {
-                Log.Error($"Encountered exception during task '{message}'", properties);
+                Log.Error($"Encountered exception during task \"{message}\": {e.Message}", properties);
                 throw;
             }
         }
