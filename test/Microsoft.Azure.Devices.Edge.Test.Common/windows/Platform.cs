@@ -54,9 +54,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
         // On Windows, store certs under intermediate CA instead of root CA to avoid security UI in automated tests
         public StoreName GetCertificateStoreName() => StoreName.CertificateAuthority;
 
-        public string GetConfigYamlPath() =>
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\iotedge\config.yaml";
-
         public void InstallEdgeCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings) =>
             transportSettings.SetupCertificateValidation(certs.First());
 

@@ -69,13 +69,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
         {
             var properties = new List<object>();
             var message = new StringBuilder("Configured edge daemon");
+            string configYamlPath =
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\iotedge\config.yaml";
 
             return Profiler.Run(
                 async () =>
                 {
                     await this.InternalStopAsync(token);
 
-                    var yaml = new DaemonConfiguration();
+                    var yaml = new DaemonConfiguration(configYamlPath);
                     (string m, object[] p) = await config(yaml);
 
                     message.Append($" {m}");

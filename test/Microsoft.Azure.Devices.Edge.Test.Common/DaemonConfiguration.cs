@@ -11,9 +11,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly string configYamlFile;
         readonly YamlDocument config;
 
-        public DaemonConfiguration()
+        public DaemonConfiguration(string configYamlFile)
         {
-            this.configYamlFile = Platform.Current.GetConfigYamlPath();
+            this.configYamlFile = configYamlFile;
             string contents = File.ReadAllText(this.configYamlFile);
             this.config = new YamlDocument(contents);
         }

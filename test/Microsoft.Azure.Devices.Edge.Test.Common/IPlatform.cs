@@ -28,8 +28,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         StoreName GetCertificateStoreName();
 
-        string GetConfigYamlPath();
-
         void InstallEdgeCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings);
 
         // After calling this function, the following files will be available under {scriptPath}:

@@ -40,8 +40,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public StoreName GetCertificateStoreName() => StoreName.Root;
 
-        public string GetConfigYamlPath() => "/etc/iotedge/config.yaml";
-
         public void InstallEdgeCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings _) =>
             Common.Platform.InstallTrustedCertificates(certs, this.GetCertificateStoreName());
 
