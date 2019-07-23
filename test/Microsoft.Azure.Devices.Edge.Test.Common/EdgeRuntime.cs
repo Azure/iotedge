@@ -39,7 +39,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             var builder = new EdgeConfigBuilder(this.deviceId);
             builder.AddRegistryCredentials(this.registries);
-            builder.AddEdgeAgent(this.agentImage).WithProxy(this.proxy);
+            builder.AddEdgeAgent(this.agentImage)
+                .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
+                .WithProxy(this.proxy);
             builder.AddEdgeHub(this.hubImage, this.optimizeForPerformance)
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
                 .WithProxy(this.proxy);
