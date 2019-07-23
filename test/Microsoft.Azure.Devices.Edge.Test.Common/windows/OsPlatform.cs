@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class Platform : Common.Platform, IPlatform
+    public class OsPlatform : Common.OsPlatform, IOsPlatform
     {
         public async Task<string> CollectDaemonLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token)
         {

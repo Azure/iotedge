@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 async () =>
                 {
                     ITransportSettings transport = protocol.ToTransportSettings();
-                    Platform.Current.InstallEdgeCertificates(ca.Certificates.TrustedCertificates, transport);
+                    OsPlatform.Current.InstallEdgeCertificates(ca.Certificates.TrustedCertificates, transport);
 
                     string edgeHostname = Dns.GetHostName().ToLower();
 
@@ -177,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);
                     // .NET runtime requires that we install the chain of CA certs, otherwise it can't
                     // provide them to a server during authentication.
-                    Platform.Current.InstallTrustedCertificates(trustedCerts);
+                    OsPlatform.Current.InstallTrustedCertificates(trustedCerts);
 
                     return await CreateLeafDeviceAsync(
                         leaf,

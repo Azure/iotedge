@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             Context.Current.CaCertScriptPath,
                             token);
 
-                        this.daemon = Platform.Current.CreateEdgeDaemon(Context.Current.InstallerPath);
+                        this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath);
                         await this.daemon.ConfigureAsync(
                             config =>
                             {

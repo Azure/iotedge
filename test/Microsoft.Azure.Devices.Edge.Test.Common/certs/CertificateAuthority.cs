@@ -14,8 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
         public static async Task<CertificateAuthority> CreateAsync(string deviceId, RootCaKeys rootCa, string scriptPath, CancellationToken token)
         {
             (string rootCertificate, string rootPrivateKey, string rootPassword) = rootCa;
-            await Platform.Current.InstallRootCertificateAsync(rootCertificate, rootPrivateKey, rootPassword, scriptPath, token);
-            EdgeCertificates certs = await Platform.Current.GenerateEdgeCertificatesAsync(deviceId, scriptPath, token);
+            await OsPlatform.Current.InstallRootCertificateAsync(rootCertificate, rootPrivateKey, rootPassword, scriptPath, token);
+            EdgeCertificates certs = await OsPlatform.Current.GenerateEdgeCertificatesAsync(deviceId, scriptPath, token);
             return new CertificateAuthority(certs, scriptPath);
         }
 
@@ -26,6 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
         }
 
         public Task<LeafCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, CancellationToken token) =>
-            Platform.Current.GenerateLeafCertificatesAsync(leafDeviceId, this.scriptPath, token);
+            OsPlatform.Current.GenerateLeafCertificatesAsync(leafDeviceId, this.scriptPath, token);
     }
 }

@@ -12,9 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Edge.Util;
     using Serilog;
 
-    public class Platform
+    public class OsPlatform
     {
-        public static readonly IPlatform Current = IsWindows() ? new Windows.Platform() as IPlatform : new Linux.Platform();
+        public static readonly IOsPlatform Current = IsWindows() ? new Windows.OsPlatform() as IOsPlatform : new Linux.OsPlatform();
 
         public static bool IsWindows() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 

@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task ModuleToModuleDirectMethod(
             [Values] Protocol protocol)
         {
-            if (Platform.IsWindows() && (protocol == Protocol.AmqpWs || protocol == Protocol.MqttWs))
+            if (OsPlatform.IsWindows() && (protocol == Protocol.AmqpWs || protocol == Protocol.MqttWs))
             {
                 Assert.Ignore("Module-to-module direct methods don't work over WebSocket on Windows");
             }
