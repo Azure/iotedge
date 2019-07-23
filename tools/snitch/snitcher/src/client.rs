@@ -50,13 +50,19 @@ where
         BodyT: Serialize,
     {
         let query = query
-            .map(|query| {
-                query
+            .and_then(|query| {
+                let query = query
                     .iter()
                     .fold(&mut UrlSerializer::new(String::new()), |ser, (key, val)| {
                         ser.append_pair(key, val)
                     })
-                    .finish()
+                    .finish();
+
+                if !query.is_empty() {
+                    Some(format!("?{}", query))
+                } else {
+                    None
+                }
             })
             .unwrap_or_else(String::new);
 
@@ -64,8 +70,8 @@ where
         let path_copy = path.to_owned();
 
         let scheme = self.host_name.scheme();
-        let base_path = self.host_name.path();
-        let path = format!("{}?{}", path, query);
+        let base_path = self.host_name.as_str();
+        let path = format!("{}{}", path, query);
         UrlConnector::build_hyper_uri(scheme, base_path, &path)
             .map_err(Error::from)
             .and_then(|url| {
