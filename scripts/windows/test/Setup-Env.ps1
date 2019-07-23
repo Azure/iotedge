@@ -79,7 +79,7 @@ If ($osEdition -eq "IoTUAP")    # Windows IoT Core - update iotedge
         docker -H npipe:////./pipe/iotedge_moby_engine rm -f $(docker -H npipe:////./pipe/iotedge_moby_engine ps -aq)
 
         # Delete iotedge config file
-        $FileName = "C:\Data\ProgramData\iotedge\config.yaml"
+        $FileName = "$env:ProgramData\iotedge\config.yaml"
         if (Test-Path $FileName) 
         {
             Write-Host "Deleting $FileName..."
