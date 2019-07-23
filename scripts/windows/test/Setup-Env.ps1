@@ -76,7 +76,7 @@ If ($osEdition -eq "IoTUAP")    # Windows IoT Core - update iotedge
         }
         
         Write-Host "Cleanup existing containers..."
-        docker -H npipe:////./pipe/iotedge_moby_engine rm -f $(docker -H npipe:////./pipe/iotedge_moby_engine ps -aq)
+        docker -H npipe:////./pipe/iotedge_moby_engine rm -f $(docker -H npipe:////./pipe/iotedge_moby_engine ps -aq) 2>null
 
         # Delete iotedge config file
         $FileName = "$env:ProgramData\iotedge\config.yaml"
