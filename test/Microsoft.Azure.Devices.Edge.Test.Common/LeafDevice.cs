@@ -331,7 +331,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     token),
                 "Invoked method on leaf device from the cloud");
 
-        // BUG: callers can continue to try to use this object after DeleteIdentityAsync has been called.
         public Task DeleteIdentityAsync(CancellationToken token) =>
             DeleteIdentityAsync(this.device, this.iotHub, token);
 
