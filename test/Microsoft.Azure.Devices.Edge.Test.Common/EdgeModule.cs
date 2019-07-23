@@ -28,7 +28,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static Task WaitForStatusAsync(EdgeModule[] modules, EdgeModuleStatus desired, CancellationToken token)
         {
-            string[] moduleIds = modules.Select(module => module.Id).Distinct().ToArray();
+            Preconditions.CheckArgument(
+                modules.Select(m => m.deviceId).Distinct().Count() == 1,
+                "Modules should belong to the same edge device");
+
+            string[] moduleIds = modules.Select(m => m.Id).Distinct().ToArray();
 
             string FormatModulesList() => moduleIds.Length == 1 ? "Module '{0}'" : "Modules ({0})";
 
