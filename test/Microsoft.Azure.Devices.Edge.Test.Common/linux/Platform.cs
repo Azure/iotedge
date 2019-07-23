@@ -28,24 +28,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
-            var command = $"'{scriptPath}' create_edge_device_certificate '{deviceId}'";
-
-            return Common.Platform.GenerateEdgeCertificatesAsync(
-                deviceId,
-                scriptPath,
-                ("bash", $"-c \"{command}\""),
-                token);
+            var command = BuildCertCommand($"create_edge_device_certificate '{deviceId}'", scriptPath);
+            return Common.Platform.GenerateEdgeCertificatesAsync(deviceId, scriptPath, ("bash", command), token);
         }
 
         public Task<LeafCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, string scriptPath, CancellationToken token)
         {
-            var command = $"'{scriptPath}' create_device_certificate '{leafDeviceId}'";
-
-            return Common.Platform.GenerateLeafCertificatesAsync(
-                leafDeviceId,
-                scriptPath,
-                ("bash", $"-c \"{command}\""),
-                token);
+            var command = BuildCertCommand($"create_device_certificate '{leafDeviceId}'", scriptPath);
+            return Common.Platform.GenerateLeafCertificatesAsync(leafDeviceId, scriptPath, ("bash", command), token);
         }
 
         public StoreName GetCertificateStoreName() => StoreName.Root;
@@ -57,12 +47,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public Task InstallRootCertificateAsync(string certPath, string keyPath, string password, string scriptPath, CancellationToken token)
         {
-            var command = $"'{scriptPath}' install_root_ca_from_files '{certPath}' '{keyPath}' '{password}'";
-
-            return Common.Platform.InstallRootCertificateAsync(
-                scriptPath,
-                ("bash", $"-c \"{command}\""),
-                token);
+            var command = BuildCertCommand($"install_root_ca_from_files '{certPath}' '{keyPath}' '{password}'", scriptPath);
+            return Common.Platform.InstallRootCertificateAsync(scriptPath, ("bash", command), token);
         }
+
+        static string BuildCertCommand(string command, string scriptPath) =>
+            $"-c \"'{Path.Combine(scriptPath, "certGen.sh")}' {command}\"";
     }
 }

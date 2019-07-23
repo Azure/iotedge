@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static async Task<EdgeCertificates> GenerateEdgeCertificatesAsync(
             string deviceId,
-            string scriptPath,
+            string basePath,
             (string name, string args) command,
             CancellationToken token)
         {
@@ -37,14 +37,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 "certs/azure-iot-test-only.root.ca.cert.pem"
             };
 
-            files = NormalizeFiles(files, scriptPath);
+            files = NormalizeFiles(files, basePath);
 
             return new EdgeCertificates(files[0], files[1], files[2]);
         }
 
         public static async Task<LeafCertificates> GenerateLeafCertificatesAsync(
             string leafDeviceId,
-            string scriptPath,
+            string basePath,
             (string name, string args) command,
             CancellationToken token)
         {
@@ -62,13 +62,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 $"private/iot-device-{leafDeviceId}.key.pem"
             };
 
-            files = NormalizeFiles(files, scriptPath);
+            files = NormalizeFiles(files, basePath);
 
             return new LeafCertificates(files[0], files[1]);
         }
 
         public static async Task InstallRootCertificateAsync(
-            string scriptPath,
+            string basePath,
             (string name, string args) command,
             CancellationToken token)
         {
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 "private/azure-iot-test-only.root.ca.key.pem"
             };
 
-            CheckFiles(files, scriptPath);
+            CheckFiles(files, basePath);
         }
 
         public static void InstallTrustedCertificates(IEnumerable<X509Certificate2> certs, StoreName storeName)

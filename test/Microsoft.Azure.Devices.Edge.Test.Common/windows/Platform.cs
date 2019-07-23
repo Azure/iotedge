@@ -35,32 +35,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
         public Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
-            var commands = new[]
-            {
-                $". '{scriptPath}'",
-                $"New-CACertsEdgeDevice '{deviceId}'"
-            };
+            string command = BuildCertCommand(
+                $"New-CACertsEdgeDevice '{deviceId}'",
+                scriptPath);
 
-            return Common.Platform.GenerateEdgeCertificatesAsync(
-                deviceId,
-                scriptPath,
-                ("powershell", string.Join(";", commands)),
-                token);
+            return Common.Platform.GenerateEdgeCertificatesAsync(deviceId, scriptPath, ("powershell", command), token);
         }
 
         public Task<LeafCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, string scriptPath, CancellationToken token)
         {
-            var commands = new[]
-            {
-                $". {scriptPath}",
-                $"New-CACertsDevice '{leafDeviceId}'"
-            };
+            string command = BuildCertCommand(
+                $"New-CACertsDevice '{leafDeviceId}'",
+                scriptPath);
 
-            return Common.Platform.GenerateLeafCertificatesAsync(
-                leafDeviceId,
-                scriptPath,
-                ("powershell", string.Join(";", commands)),
-                token);
+            return Common.Platform.GenerateLeafCertificatesAsync(leafDeviceId, scriptPath, ("powershell", command), token);
         }
 
         // On Windows, store certs under intermediate CA instead of root CA to avoid security UI in automated tests
@@ -74,16 +62,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
         public Task InstallRootCertificateAsync(string certPath, string keyPath, string password, string scriptPath, CancellationToken token)
         {
+            string command = BuildCertCommand(
+                $"Install-RootCACertificate '{certPath}' '{keyPath}' 'rsa' {password}",
+                scriptPath);
+
+            return Common.Platform.InstallRootCertificateAsync(scriptPath, ("powershell", command), token);
+        }
+
+        static string BuildCertCommand(string command, string scriptPath)
+        {
             var commands = new[]
             {
-                $". {scriptPath}",
-                $"Install-RootCACertificate '{certPath}' '{keyPath}' 'rsa' {password}"
+                $". {Path.Combine(scriptPath, "ca-certs.ps1")}",
+                command
             };
 
-            return Common.Platform.InstallRootCertificateAsync(
-                scriptPath,
-                ("powershell", string.Join(";", commands)),
-                token);
+            return string.Join(";", commands);
         }
     }
 }

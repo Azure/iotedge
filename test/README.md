@@ -6,7 +6,7 @@ The end-to-end tests take several parameters, which they expect to find in a fil
 
 | Name | Required | Description |
 |------|----------|-------------|
-| `caCertScriptPath` | ✔ | Full path to `certGen.sh` (Linux) or `ca-certs.ps1` (Windows). |
+| `caCertScriptPath` | ✔ | Path to the folder containing `certGen.sh` (Linux) or `ca-certs.ps1` (Windows). |
 | `deviceId` || Name by which the edge device-under-test will be registered in IoT Hub. If not given, a name will automatically be generated in the format: `e2e-{device hostname}-{yyMMdd-HHmmss.fff}`. |
 | `edgeAgentImage` || Docker image to pull/use for Edge Agent. Regardless of what you put here, the default `mcr.microsoft.com/azureiotedge-agent:1.0` will be used in config.yaml to start IoT Edge; this setting only applies to any configurations deployed by the tests. |
 | `edgeHubImage` || Docker image to pull/use for Edge Hub. |
