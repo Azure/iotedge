@@ -23,9 +23,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public static async Task<T> Run<T>(Func<Task<T>> func, string message, params object[] properties)
         {
             Profiler profiler = Start();
-            T t = await func();
-            profiler.Stop(message, properties);
-            return t;
+            try
+            {
+                T t = await func();
+                profiler.Stop(message, properties);
+                return t;
+            }
+            catch
+            {
+                Log.Error($"Encountered exception during task '{message}'", properties);
+                throw;
+            }
         }
 
         public static Profiler Start() => new Profiler();
