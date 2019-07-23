@@ -290,7 +290,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         static async Task<LeafDevice> CreateLeafDeviceAsync(Device device, Func<DeviceClient> clientFactory, IotHub iotHub, CancellationToken token)
         {
             DeviceClient client = clientFactory();
-            await client.SetMethodHandlerAsync("DirectMethod", DirectMethod, null, token);
+            await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, token);
             return new LeafDevice(device, client, iotHub);
         }
 
