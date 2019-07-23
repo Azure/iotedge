@@ -28,12 +28,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static Task WaitForStatusAsync(EdgeModule[] modules, EdgeModuleStatus desired, CancellationToken token)
         {
-            (string template, string[] args) FormatModulesList() => modules.Length == 1
-                ? ("module '{0}'", new[] { modules.First().Id })
-                : ("modules ({0})", modules.Select(module => module.Id).ToArray());
+            string[] moduleIds = modules.Select(module => module.Id).Distinct().ToArray();
 
-            string SentenceCase(string input) =>
-                $"{input.First().ToString().ToUpper()}{input.Substring(1)}";
+            string FormatModulesList() => moduleIds.Length == 1 ? "Module '{0}'" : "Modules ({0})";
 
             async Task WaitForStatusAsync()
             {
@@ -49,10 +46,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                 ln =>
                                 {
                                     var columns = ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
-                                    foreach (var module in modules)
+                                    foreach (var moduleId in moduleIds)
                                     {
                                         // each line is "name status"
-                                        if (columns[0] == module.Id &&
+                                        if (columns[0] == moduleId &&
                                             columns[1].Equals(desired.ToString(), StringComparison.OrdinalIgnoreCase))
                                         {
                                             return true;
@@ -62,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                     return false;
                                 }).ToArray();
                     },
-                    a => a.Length == modules.Length,
+                    a => a.Length == moduleIds.Length,
                     e =>
                     {
                         // Retry if iotedged's management endpoint is still starting up,
@@ -77,11 +74,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     token);
             }
 
-            (string template, string[] args) = FormatModulesList();
             return Profiler.Run(
                 WaitForStatusAsync,
-                string.Format(SentenceCase(template), "{Modules}") + " entered the '{Desired}' state",
-                string.Join(", ", args),
+                string.Format(FormatModulesList(), "{Modules}") + " entered the '{Desired}' state",
+                string.Join(", ", moduleIds),
                 desired.ToString().ToLower());
         }
 
