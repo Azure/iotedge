@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 "certs/azure-iot-test-only.root.ca.cert.pem"
             };
 
-            files = NormalizeFiles(files, scriptPath).ToArray();
+            files = NormalizeFiles(files, scriptPath);
 
             return new EdgeCertificates(files[0], files[1], files[2]);
         }
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 $"private/iot-device-{leafDeviceId}.key.pem"
             };
 
-            files = NormalizeFiles(files, scriptPath).ToArray();
+            files = NormalizeFiles(files, scriptPath);
 
             return new LeafCertificates(files[0], files[1]);
         }
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         static void CheckFiles(IEnumerable<string> paths, string basePath) => NormalizeFiles(paths, basePath);
 
-        static IEnumerable<string> NormalizeFiles(IEnumerable<string> paths, string basePath)
+        static string[] NormalizeFiles(IEnumerable<string> paths, string basePath)
         {
             string dir = new FileInfo(basePath).DirectoryName;
 
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     var file = new FileInfo(Path.Combine(dir, path));
                     Preconditions.CheckArgument(file.Exists);
                     return file.FullName;
-                });
+                }).ToArray();
         }
     }
 }
