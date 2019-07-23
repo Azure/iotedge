@@ -13,7 +13,7 @@ namespace IotEdgeQuickstart.Details
 
         Task Install();
 
-        Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel);
+        Task Configure(DeviceProvisioningMethod method, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel);
 
         Task Start();
 

@@ -1,18 +1,32 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup Condition="'$(DotNet_Runtime)' != 'netcoreapp3.0'">
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(OS)|$(DotNet_Runtime)' == 'Unix|netcoreapp3.0'">
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+  </PropertyGroup>
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
-
-    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <Configurations>Debug;Release;CodeCoverage;CheckInBuild</Configurations>
+    <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Docker.DotNet" Version="3.125.2" />
-    <PackageReference Include="Microsoft.AspNetCore.All" Version="2.0.9" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
     <PackageReference Include="Moq" Version="4.10.1" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(DotNet_Runtime)' != 'netcoreapp3.0'">
+    <PackageReference Include="Microsoft.AspNetCore.All" Version="2.0.9" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(DotNet_Runtime)' == 'netcoreapp3.0'">
+    <PackageReference Include="Microsoft.AspNetCore.App" Version="2.2.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,5 +39,13 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <Import Project="..\..\..\stylecop.props" />
 
 </Project>

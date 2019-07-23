@@ -20,12 +20,13 @@ use url::Url;
 
 use docker::models::{AuthConfig, ContainerCreateBody, HostConfig, Mount};
 use edgelet_core::{
-    AuthId, Authenticator, Certificates, Connect, ImagePullPolicy, Listen, MakeModuleRuntime,
-    ModuleRuntime, ModuleSpec, Provisioning, ProvisioningResult as CoreProvisioningResult,
-    RuntimeSettings, WatchdogSettings,
+    AuthId, Authenticator, Certificates, Connect, GetTrustBundle, ImagePullPolicy, Listen,
+    MakeModuleRuntime, ModuleRuntime, ModuleSpec, Provisioning,
+    ProvisioningResult as CoreProvisioningResult, RuntimeSettings, WatchdogSettings,
 };
 use edgelet_docker::DockerConfig;
 use edgelet_kube::{ErrorKind, KubeModuleRuntime, Settings};
+use edgelet_test_utils::crypto::TestHsm;
 use edgelet_test_utils::web::{
     make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
 };
@@ -396,6 +397,7 @@ impl MakeModuleRuntime for TestKubeModuleRuntime {
     fn make_runtime(
         settings: Self::Settings,
         provisioning_result: Self::ProvisioningResult,
+        _: impl GetTrustBundle,
     ) -> Self::Future {
         let settings = settings
             .with_device_id(provisioning_result.device_id())
@@ -425,9 +427,13 @@ fn create_runtime(
         None,
     );
     let settings = TestKubeSettings::new(make_settings(None), url.parse().unwrap());
-    let runtime = TestKubeModuleRuntime::make_runtime(settings.clone(), provisioning_result)
-        .wait()
-        .unwrap();
+    let runtime = TestKubeModuleRuntime::make_runtime(
+        settings.clone(),
+        provisioning_result,
+        TestHsm::default(),
+    )
+    .wait()
+    .unwrap();
 
     (settings, runtime)
 }
@@ -497,7 +503,7 @@ fn create_creates_or_updates_service_account_role_binding_deployment_for_edgeage
 
     let dispatch_table = routes!(
         PUT format!("/api/v1/namespaces/{}/serviceaccounts/edgeagent", settings.namespace()) => replace_service_account_handler(),
-        PUT "/apis/rbac.authorization.k8s.io/v1/clusterrolebindings/edgeagent" => replace_role_binding_handler(),
+        PUT format!("/apis/rbac.authorization.k8s.io/v1/namespaces/{}/rolebindings/edgeagent", settings.namespace()) => replace_role_binding_handler(),
         PUT format!("/apis/apps/v1/namespaces/{}/deployments/edgeagent", settings.namespace()) => replace_deployment_handler(),
     );
 
@@ -650,10 +656,11 @@ fn replace_role_binding_handler() -> impl Fn(Request<Body>) -> ResponseFuture + 
     move |_| {
         response(StatusCode::OK, || {
             json!({
-                "kind": "ClusterRoleBinding",
+                "kind": "RoleBinding",
                 "apiVersion": "rbac.authorization.k8s.io/v1",
                 "metadata": {
-                    "name": "edgeagent"
+                    "name": "edgeagent",
+                    "namespace": "my-namespace",
                 },
                 "subjects": [
                     {
@@ -681,7 +688,7 @@ fn replace_deployment_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Cl
                 "apiVersion": "apps/v1",
                 "metadata": {
                     "name": "edgeagent",
-                    "namespace": "msiot-dmolokan-iothub-dmolokan-edge-aks",
+                    "namespace": "my-namespace",
                 },
             })
             .to_string()

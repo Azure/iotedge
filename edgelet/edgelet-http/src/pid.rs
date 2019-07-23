@@ -5,13 +5,12 @@ use std::{cmp, fmt, io};
 use futures::prelude::*;
 use hyper::service::Service;
 use hyper::{Body, Error as HyperError, Request};
-use serde_derive::{Deserialize, Serialize};
 #[cfg(unix)]
 use tokio_uds::UnixStream;
 #[cfg(windows)]
 use tokio_uds_windows::UnixStream;
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub enum Pid {
     None,
     Any,
@@ -158,8 +157,8 @@ pub use self::impl_macos::get_pid;
 
 #[cfg(target_os = "macos")]
 pub mod impl_macos {
+    use std::io;
     use std::os::unix::io::AsRawFd;
-    use std::{io, mem};
 
     use libc::getpeereid;
     use tokio_uds::UnixStream;

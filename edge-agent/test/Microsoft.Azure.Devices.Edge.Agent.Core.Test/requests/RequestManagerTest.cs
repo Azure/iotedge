@@ -81,6 +81,81 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             Assert.Equal("{\"prop3\":\"foo\",\"prop4\":100}", responsePayload.OrDefault());
         }
 
+        [Fact]
+        public async Task TestMultipleHandlersRequest()
+        {
+            // Arrange
+            string payload = "{\"prop2\":\"foo\",\"prop1\":100}";
+
+            var requestHandler1 = new Mock<IRequestHandler>();
+            requestHandler1.Setup(r => r.HandleRequest(It.IsAny<Option<string>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Option.Some("{\"prop3\":\"foo\",\"prop4\":100}"));
+            requestHandler1.SetupGet(r => r.RequestName).Returns("req1");
+
+            var requestHandler2 = new Mock<IRequestHandler>();
+            requestHandler2.Setup(r => r.HandleRequest(It.IsAny<Option<string>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Option.Some("{\"prop5\":\"foo5\",\"prop6\":200}"));
+            requestHandler2.SetupGet(r => r.RequestName).Returns("req2");
+
+            var requestManager = new RequestManager(new List<IRequestHandler> { requestHandler1.Object }, TimeSpan.FromSeconds(60));
+            requestManager.RegisterHandlers(new List<IRequestHandler> { requestHandler2.Object });
+
+            // Act
+            (int responseStatus, Option<string> responsePayload) = await requestManager.ProcessRequest("req", payload);
+
+            // Assert
+            Assert.Equal(400, responseStatus);
+            Assert.True(responsePayload.HasValue);
+            JObject parsedJson = JObject.Parse(responsePayload.OrDefault());
+            Assert.False(string.IsNullOrWhiteSpace(parsedJson["message"].ToString()));
+
+            // Act
+            (responseStatus, responsePayload) = await requestManager.ProcessRequest(string.Empty, payload);
+
+            // Assert
+            Assert.Equal(400, responseStatus);
+            Assert.True(responsePayload.HasValue);
+            parsedJson = JObject.Parse(responsePayload.OrDefault());
+            Assert.False(string.IsNullOrWhiteSpace(parsedJson["message"].ToString()));
+
+            // Act
+            (responseStatus, responsePayload) = await requestManager.ProcessRequest(null, payload);
+
+            // Assert
+            Assert.Equal(400, responseStatus);
+            Assert.True(responsePayload.HasValue);
+            parsedJson = JObject.Parse(responsePayload.OrDefault());
+            Assert.False(string.IsNullOrWhiteSpace(parsedJson["message"].ToString()));
+
+            // Act
+            (responseStatus, responsePayload) = await requestManager.ProcessRequest("req1", payload);
+
+            // Assert
+            Assert.Equal(200, responseStatus);
+            Assert.Equal("{\"prop3\":\"foo\",\"prop4\":100}", responsePayload.OrDefault());
+
+            // Act - Test for case sensitivity
+            (responseStatus, responsePayload) = await requestManager.ProcessRequest("ReQ1", payload);
+
+            // Assert
+            Assert.Equal(200, responseStatus);
+            Assert.Equal("{\"prop3\":\"foo\",\"prop4\":100}", responsePayload.OrDefault());
+
+            // Act
+            (responseStatus, responsePayload) = await requestManager.ProcessRequest("req2", payload);
+
+            // Assert
+            Assert.Equal(200, responseStatus);
+            Assert.Equal("{\"prop5\":\"foo5\",\"prop6\":200}", responsePayload.OrDefault());
+
+            // Act - Test for case sensitivity
+            (responseStatus, responsePayload) = await requestManager.ProcessRequest("ReQ2", payload);
+
+            // Assert
+            Assert.Equal(200, responseStatus);
+            Assert.Equal("{\"prop5\":\"foo5\",\"prop6\":200}", responsePayload.OrDefault());
+        }
+
         [Theory]
         [MemberData(nameof(GetProcessRequestWithException))]
         public async Task TestProcessRequestWithHandlerException(string payload, int expectedStatus, Exception handlerException)

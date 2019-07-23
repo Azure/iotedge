@@ -245,26 +245,23 @@ impl Check {
         } else {
             let proxy = std::env::var("HTTPS_PROXY")
                 .ok()
-                .or_else(|| std::env::var("https_proxy").ok());
-            let proxy = if let Some(proxy) = proxy {
-                let proxy = proxy
-                    .parse::<hyper::Uri>()
-                    .context(ErrorKind::FetchLatestVersions(
-                        FetchLatestVersionsReason::CreateClient,
-                    ));
-                match proxy {
-                    Ok(proxy) => future::ok(Some(proxy)),
-                    Err(err) => future::err(Error::from(err)),
-                }
-            } else {
-                future::ok(None)
-            };
-
+                .or_else(|| std::env::var("https_proxy").ok())
+                .map(|proxy| proxy.parse::<hyper::Uri>())
+                .transpose()
+                .context(ErrorKind::FetchLatestVersions(
+                    FetchLatestVersionsReason::CreateClient,
+                ));
             let hyper_client = proxy.and_then(|proxy| {
-                Ok(MaybeProxyClient::new(proxy, None, None).context(
-                    ErrorKind::FetchLatestVersions(FetchLatestVersionsReason::CreateClient),
-                )?)
+                MaybeProxyClient::new(proxy, None, None).context(ErrorKind::FetchLatestVersions(
+                    FetchLatestVersionsReason::CreateClient,
+                ))
             });
+            let hyper_client = match hyper_client {
+                Ok(hyper_client) => hyper_client,
+                Err(err) => {
+                    return future::Either::A(future::err(err.into()));
+                }
+            };
 
             let request = hyper::Request::get("https://aka.ms/latest-iotedge-stable")
                 .body(hyper::Body::default())
@@ -272,15 +269,14 @@ impl Check {
 
             future::Either::B(
                 hyper_client
-                    .and_then(|hyper_client| {
-                        hyper_client.call(request).then(|response| {
-                            let response = response.context(ErrorKind::FetchLatestVersions(
-                                FetchLatestVersionsReason::GetResponse,
-                            ))?;
-                            Ok((response, hyper_client))
-                        })
+                    .call(request)
+                    .then(|response| -> Result<_, Error> {
+                        let response = response.context(ErrorKind::FetchLatestVersions(
+                            FetchLatestVersionsReason::GetResponse,
+                        ))?;
+                        Ok(response)
                     })
-                    .and_then(move |(response, hyper_client)| match response.status() {
+                    .and_then(move |response| match response.status() {
                         hyper::StatusCode::MOVED_PERMANENTLY => {
                             let uri = response
                                 .headers()
@@ -335,7 +331,7 @@ impl Check {
             )
         };
 
-        latest_versions.then(move |latest_versions| {
+        future::Either::B(latest_versions.then(move |latest_versions| {
             Ok(Check {
                 config_file,
                 container_engine_config_path,
@@ -355,7 +351,7 @@ impl Check {
                 docker_server_version: None,
                 iothub_hostname,
             })
-        })
+        }))
     }
 
     pub fn possible_ids() -> impl Iterator<Item = &'static str> {
@@ -366,35 +362,39 @@ impl Check {
     }
 
     pub fn print_list() -> Result<(), Error> {
-        // All our text is ASCII, so we can check for number of chars rather than using unicode-segmentation to count graphemes.
+        // All our text is ASCII, so we can measure text width in bytes rather than using unicode-segmentation to count graphemes.
         let widest_section_name_len = CHECKS
             .iter()
             .map(|(section_name, _)| section_name.len())
             .max()
             .expect("Have at least one section");
+        let section_name_column_width = widest_section_name_len + 1;
         let widest_check_id_len = CHECKS
             .iter()
             .flat_map(|(_, section_checks)| *section_checks)
             .map(|(check_id, _, _)| check_id.len())
             .max()
             .expect("Have at least one check");
+        let check_id_column_width = widest_check_id_len + 1;
 
         println!(
-            "CATEGORY{}ID{}DESCRIPTION",
-            " ".repeat(widest_section_name_len - "CATEGORY".len() + 1),
-            " ".repeat(widest_check_id_len - "ID".len() + 1),
+            "{:section_name_column_width$}{:check_id_column_width$}DESCRIPTION",
+            "CATEGORY",
+            "ID",
+            section_name_column_width = section_name_column_width,
+            check_id_column_width = check_id_column_width,
         );
         println!();
 
         for (section_name, section_checks) in CHECKS {
             for (check_id, check_name, _) in *section_checks {
                 println!(
-                    "{}{}{}{}{}",
+                    "{:section_name_column_width$}{:check_id_column_width$}{}",
                     section_name,
-                    " ".repeat(widest_section_name_len - section_name.len() + 1),
                     check_id,
-                    " ".repeat(widest_check_id_len - check_id.len() + 1),
                     check_name,
+                    section_name_column_width = section_name_column_width,
+                    check_id_column_width = check_id_column_width,
                 );
             }
 

@@ -4,13 +4,14 @@ use std::fmt;
 use std::fmt::Display;
 
 use config::ConfigError;
-use edgelet_core::{ModuleRuntimeErrorReason, RuntimeOperation};
-use edgelet_docker::Error as DockerError;
 use failure::{Backtrace, Context, Fail};
 use hyper::Error as HyperError;
-use kube_client::Error as KubeClientError;
 use serde_json::Error as JsonError;
 use typed_headers::Error as HeaderError;
+
+use edgelet_core::{ModuleRuntimeErrorReason, RuntimeOperation};
+use edgelet_docker::Error as DockerError;
+use kube_client::Error as KubeClientError;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -86,6 +87,9 @@ pub enum ErrorKind {
 
     #[fail(display = "HTTP connection error")]
     Hyper,
+
+    #[fail(display = "An error occurred obtaining the client identity certificate")]
+    IdentityCertificate,
 }
 
 impl Fail for Error {

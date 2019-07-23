@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System;
@@ -17,6 +19,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         [EnumMember(Value = "NodePort")]
         NodePort,
-
     }
 }

@@ -11,9 +11,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     interface IEdgeDeploymentDefinition<TConfig> : IKubernetesObject
     {
         [JsonProperty(PropertyName = "metadata")]
-        V1ObjectMeta Metadata { get;}
+        V1ObjectMeta Metadata { get; }
 
         [JsonProperty(PropertyName = "spec")]
-        IList<KubernetesModule<TConfig>> Spec { get;}
+        IList<KubernetesModule<TConfig>> Spec { get; }
     }
 }

@@ -9,11 +9,11 @@
  */
 
 /// Runtime : Runtime describes an [OCI compliant](https://github.com/opencontainers/runtime-spec) runtime.  The runtime is invoked by the daemon via the `containerd` daemon. OCI runtimes act as an interface to the Linux kernel namespaces, cgroups, and SELinux.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct Runtime {
     /// Name and, optional, path, of the OCI executable binary.  If the path is omitted, the daemon searches the host's `$PATH` for the binary and uses the first result.
     #[serde(rename = "path", skip_serializing_if = "Option::is_none")]
