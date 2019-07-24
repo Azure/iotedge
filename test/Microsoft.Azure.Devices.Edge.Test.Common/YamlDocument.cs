@@ -8,6 +8,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     using Node = System.Collections.Generic.Dictionary<object, object>;
 
+    // This class assumes the input document contains only "mapping" nodes,
+    // not "scalars" or "sequences" (see the YAML spec:
+    // https://yaml.org/spec/1.1/#id861435). Specifically, it assumes that
+    // each node in the deserialized document can be represented by
+    // Dictionary<object, object>.
     class YamlDocument
     {
         readonly Node root;
