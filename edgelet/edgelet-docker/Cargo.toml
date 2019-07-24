@@ -23,6 +23,7 @@ url_serde = "0.2"
 
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
+edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-utils = { path = "../edgelet-utils" }
 provisioning = { path = "../provisioning" }

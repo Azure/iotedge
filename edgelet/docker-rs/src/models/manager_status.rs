@@ -9,11 +9,11 @@
  */
 
 /// ManagerStatus : ManagerStatus represents the status of a manager.  It provides the current status of a node's manager component, if the node is a manager.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct ManagerStatus {
     #[serde(rename = "Leader", skip_serializing_if = "Option::is_none")]
     leader: Option<bool>,

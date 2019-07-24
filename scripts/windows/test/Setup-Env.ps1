@@ -76,10 +76,10 @@ If ($osEdition -eq "IoTUAP")    # Windows IoT Core - update iotedge
         }
         
         Write-Host "Cleanup existing containers..."
-        docker -H npipe:////./pipe/iotedge_moby_engine rm -f $(docker -H npipe:////./pipe/iotedge_moby_engine ps -aq)
+        docker -H npipe:////./pipe/iotedge_moby_engine rm -f $(docker -H npipe:////./pipe/iotedge_moby_engine ps -aq) 2>null
 
         # Delete iotedge config file
-        $FileName = "C:\Data\ProgramData\iotedge\config.yaml"
+        $FileName = "$env:ProgramData\iotedge\config.yaml"
         if (Test-Path $FileName) 
         {
             Write-Host "Deleting $FileName..."
@@ -101,10 +101,8 @@ If ($osEdition -eq "IoTUAP")    # Windows IoT Core - update iotedge
             shutdown -r -t 5
         }
     } Else {
-        Write-Host "$serviceName not found."
-        Write-Host "Installing $serviceName..."
-        # triggers reboot
-        deploy-iotedge
+        Write-Host "Service $serviceName not found. Device is clean."
+        # no need to do anything
     }
 
     # hide exit error caused by target reboot

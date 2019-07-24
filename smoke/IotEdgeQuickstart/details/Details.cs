@@ -106,6 +106,8 @@ namespace IotEdgeQuickstart.Details
 
         readonly string iothubConnectionString;
 
+        readonly Option<DPSAttestation> dpsAttestation;
+
         readonly string eventhubCompatibleEndpointWithEntityPath;
 
         readonly ServiceClientTransportType serviceClientTransportType;
@@ -151,11 +153,13 @@ namespace IotEdgeQuickstart.Details
             string deviceCaCerts,
             bool optimizedForPerformance,
             LogLevel runtimeLogLevel,
-            bool cleanUpExistingDeviceOnSuccess)
+            bool cleanUpExistingDeviceOnSuccess,
+            Option<DPSAttestation> dpsAttestation)
         {
             this.bootstrapper = bootstrapper;
             this.credentials = credentials;
             this.iothubConnectionString = iothubConnectionString;
+            this.dpsAttestation = dpsAttestation;
             this.eventhubCompatibleEndpointWithEntityPath = eventhubCompatibleEndpointWithEntityPath;
 
             switch (upstreamProtocol)
@@ -232,22 +236,32 @@ namespace IotEdgeQuickstart.Details
             }
             else
             {
-                await this.CreateEdgeDeviceIdentity(rm);
+                // if dpsAttestion is enabled, do not create a device as the
+                // ESD will register with DPS to create the device in IoT Hub
+                if (!this.dpsAttestation.HasValue)
+                {
+                    await this.CreateEdgeDeviceIdentity(rm);
+                }
             }
         }
 
         protected Task ConfigureBootstrapper()
         {
             Console.WriteLine("Configuring bootstrapper.");
-            IotHubConnectionStringBuilder builder =
-                IotHubConnectionStringBuilder.Create(this.context.IotHubConnectionString);
+            DeviceProvisioningMethod method = this.dpsAttestation.Match(
+                dps => { return new DeviceProvisioningMethod(dps); },
+                () =>
+                {
+                    IotHubConnectionStringBuilder builder =
+                        IotHubConnectionStringBuilder.Create(this.context.IotHubConnectionString);
+                    string connectionString =
+                        $"HostName={builder.HostName};" +
+                        $"DeviceId={this.context.Device.Id};" +
+                        $"SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey}";
 
-            string connectionString =
-                $"HostName={builder.HostName};" +
-                $"DeviceId={this.context.Device.Id};" +
-                $"SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey}";
-
-            return this.bootstrapper.Configure(connectionString, this.EdgeAgentImage(), this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
+                    return new DeviceProvisioningMethod(connectionString);
+                });
+            return this.bootstrapper.Configure(method, this.EdgeAgentImage(), this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
         }
 
         protected Task StartBootstrapper()

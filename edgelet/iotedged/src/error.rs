@@ -161,9 +161,14 @@ pub enum InitializeErrorReason {
     DeviceClient,
     DpsProvisioningClient,
     EdgeRuntime,
-    ExternalProvisioningClient,
+    ExternalProvisioningClient(ExternalProvisioningErrorReason),
     Hsm,
     HttpClient,
+    HybridAuthDirCreate,
+    HybridAuthKeyCreate,
+    HybridAuthKeyLoad,
+    HybridAuthKeyInvalid,
+    InvalidDeviceCertCredentials,
     InvalidDeviceConfig,
     InvalidHubConfig,
     InvalidProxyUri,
@@ -182,6 +187,16 @@ pub enum InitializeErrorReason {
     StartWindowsService,
     Tokio,
     WorkloadService,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ExternalProvisioningErrorReason {
+    ClientInitialization,
+    HsmInitialization,
+    HsmKeyRetrieval,
+    InvalidAuthenticationType,
+    InvalidCredentials,
+    Provisioning,
 }
 
 impl fmt::Display for InitializeErrorReason {
@@ -219,13 +234,35 @@ impl fmt::Display for InitializeErrorReason {
 
             InitializeErrorReason::EdgeRuntime => write!(f, "Could not initialize edge runtime"),
 
-            InitializeErrorReason::ExternalProvisioningClient => {
-                write!(f, "Could not initialize external provisioning client")
-            }
+            InitializeErrorReason::ExternalProvisioningClient(x) => write!(
+                f,
+                "Could not initialize external provisioning client. {}",
+                x
+            ),
 
             InitializeErrorReason::Hsm => write!(f, "Could not initialize HSM"),
 
             InitializeErrorReason::HttpClient => write!(f, "Could not initialize HTTP client"),
+
+            InitializeErrorReason::HybridAuthDirCreate => {
+                write!(f, "Could not create the hybrid identity key directory")
+            }
+
+            InitializeErrorReason::HybridAuthKeyCreate => {
+                write!(f, "Could not create the hybrid identity key")
+            }
+
+            InitializeErrorReason::HybridAuthKeyLoad => {
+                write!(f, "Could not load the hybrid identity key")
+            }
+
+            InitializeErrorReason::HybridAuthKeyInvalid => {
+                write!(f, "The loaded hybrid identity key was invalid")
+            }
+
+            InitializeErrorReason::InvalidDeviceCertCredentials => {
+                write!(f, "Invalid identity certificate")
+            }
 
             InitializeErrorReason::InvalidDeviceConfig => {
                 write!(f, "Invalid device configuration was provided")
@@ -290,6 +327,37 @@ impl fmt::Display for InitializeErrorReason {
             InitializeErrorReason::Tokio => write!(f, "Could not initialize tokio runtime"),
 
             InitializeErrorReason::WorkloadService => write!(f, "Could not start workload service"),
+        }
+    }
+}
+
+impl fmt::Display for ExternalProvisioningErrorReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ExternalProvisioningErrorReason::ClientInitialization => {
+                write!(f, "Could not create the external provisioning client.")
+            }
+
+            ExternalProvisioningErrorReason::HsmInitialization => {
+                write!(f, "Could not initialize the HSM interface.")
+            }
+
+            ExternalProvisioningErrorReason::HsmKeyRetrieval => {
+                write!(f, "Could not retrieve the device's key from the HSM.")
+            }
+
+            ExternalProvisioningErrorReason::InvalidAuthenticationType => {
+                write!(f, "Invalid authentication type specified.")
+            }
+
+            ExternalProvisioningErrorReason::InvalidCredentials => write!(
+                f,
+                "Invalid credentials retrieved from the external environment."
+            ),
+
+            ExternalProvisioningErrorReason::Provisioning => {
+                write!(f, "Could not provision the device.")
+            }
         }
     }
 }

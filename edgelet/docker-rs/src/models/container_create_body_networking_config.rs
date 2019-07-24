@@ -9,11 +9,11 @@
  */
 
 /// ContainerCreateBodyNetworkingConfig : This container's networking configuration.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct ContainerCreateBodyNetworkingConfig {
     /// A mapping of network name to endpoint configuration for that network.
     #[serde(rename = "EndpointsConfig", skip_serializing_if = "Option::is_none")]

@@ -9,11 +9,11 @@
  */
 
 /// VolumeUsageData : Usage details about the volume. This information is used by the `GET /system/df` endpoint, and omitted in other endpoints.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct VolumeUsageData {
     /// Amount of disk space used by the volume (in bytes). This information is only available for volumes created with the `\"local\"` volume driver. For volumes created with other volume drivers, this field is set to `-1` (\"not available\")
     #[serde(rename = "Size")]

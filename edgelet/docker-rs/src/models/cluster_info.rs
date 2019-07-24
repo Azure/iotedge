@@ -9,11 +9,11 @@
  */
 
 /// ClusterInfo : ClusterInfo represents information about the swarm as is returned by the \"/info\" endpoint. Join-tokens are not included.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct ClusterInfo {
     /// The ID of the swarm.
     #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]

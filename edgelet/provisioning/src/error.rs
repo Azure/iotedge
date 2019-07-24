@@ -10,7 +10,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Clone, Copy, Debug, Fail)]
+#[derive(Clone, Copy, Debug, Fail, PartialEq)]
 pub enum ErrorKind {
     #[fail(display = "Could not backup provisioning result")]
     CouldNotBackup,
@@ -21,11 +21,52 @@ pub enum ErrorKind {
     #[fail(display = "Could not initialize DPS provisioning client")]
     DpsInitialization,
 
-    #[fail(display = "Could not initialize External provisioning client")]
-    ExternalProvisioningInitialization,
+    #[fail(display = "Failure during external provisioning. {}", _0)]
+    ExternalProvisioning(ExternalProvisioningErrorReason),
 
     #[fail(display = "Could not provision device")]
     Provision,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ExternalProvisioningErrorReason {
+    InvalidAuthenticationType,
+    InvalidCredentialSource,
+    InvalidSymmetricKey,
+    KeyActivation,
+    ProvisioningFailure,
+    SymmetricKeyNotSpecified,
+}
+
+impl fmt::Display for ExternalProvisioningErrorReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ExternalProvisioningErrorReason::InvalidAuthenticationType => {
+                write!(f, "Invalid authentication type specified.")
+            }
+
+            ExternalProvisioningErrorReason::InvalidCredentialSource => {
+                write!(f, "Invalid credential source specified.")
+            }
+
+            ExternalProvisioningErrorReason::InvalidSymmetricKey => {
+                write!(f, "Invalid symmetric key specified.")
+            }
+
+            ExternalProvisioningErrorReason::KeyActivation => {
+                write!(f, "Could not activate symmetric key.")
+            }
+
+            ExternalProvisioningErrorReason::ProvisioningFailure => write!(
+                f,
+                "Error occurred while retrieving device provisioning information."
+            ),
+
+            ExternalProvisioningErrorReason::SymmetricKeyNotSpecified => {
+                write!(f, "Symmetric key not specified.")
+            }
+        }
+    }
 }
 
 impl Fail for Error {
