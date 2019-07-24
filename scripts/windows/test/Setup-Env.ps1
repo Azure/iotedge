@@ -89,7 +89,8 @@ If ($osEdition -eq "IoTUAP")    # Windows IoT Core - update iotedge
             }
         }
         catch {
-            Write-Host "Cleanup existing containers failed. Nothing to clean."
+            Write-Host "Cleanup existing containers failed."
+			Write-Host $_.Exception.Message
         }
 
         # Delete iotedge config file
