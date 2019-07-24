@@ -55,7 +55,7 @@ all:
 	VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS)
 
 release:
-	$(HOST_URI_OPTION) VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS) --release
+	$(HOST_URI_OPTION) VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS) --release -p iotedged -p iotedge
 
 $(TARGET)/$(PACKAGE).tar.gz:
 	@echo Running git archive...
@@ -111,7 +111,6 @@ deb: release
 
 rpm: HOST_URI_OPTION=IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
 rpm:
-	cp $(TARGET)/$(PACKAGE).tar.gz $(rpmbuilddir)/SOURCES/
 	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/iotedge.spec > $(rpmbuilddir)/SPECS/iotedge.spec
 	$(HOST_URI_OPTION) rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/iotedge.spec
 
