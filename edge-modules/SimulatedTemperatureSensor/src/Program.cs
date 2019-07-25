@@ -161,7 +161,7 @@ namespace SimulatedTemperatureSensor
         ///         - Machine Pressure correlates with Temperature 1 to 10psi
         ///         - Ambient temperature stable around 21C
         ///         - Humidity is stable with tiny jitter around 25%
-        ///                Method for resetting the data stream
+        ///                Method for resetting the data stream.
         /// </summary>
         static async Task SendEvents(
             ModuleClient moduleClient,

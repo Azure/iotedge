@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
     using Newtonsoft.Json;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
@@ -45,7 +46,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly Uri workloadUri;
         readonly Uri managementUri;
         readonly IModuleIdentityLifecycleManager moduleIdentityLifecycleManager;
-        readonly KubernetesEventLogger<CrdWatcher<TConfig>> logger = new KubernetesEventLogger<CrdWatcher<TConfig>>();
         ModuleSet currentModules;
         Option<Watcher<object>> operatorWatch;
 
@@ -105,12 +105,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                                 }
                                 catch (Exception ex) when (!ex.IsFatal())
                                 {
-                                    this.logger.ExceptionInCustomResourceWatch(ex);
+                                    Events.ExceptionInCustomResourceWatch(ex);
                                 }
                             },
                             onClosed: () =>
                             {
-                                this.logger.CrdWatchClosed();
+                                Events.CrdWatchClosed();
 
                                 // get rid of the current crd watch object since we got closed
                                 this.operatorWatch.ForEach(watch => watch.Dispose());
@@ -123,17 +123,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                                     Constants.K8sCrdPlural,
                                     watch: true).ContinueWith(this.ListCrdComplete);
                             },
-                            onError: this.logger.ExceptionInCustomResourceWatch));
+                            onError: Events.ExceptionInCustomResourceWatch));
                 }
                 else
                 {
-                    this.logger.NullListResponse("ListClusterCustomObjectWithHttpMessagesAsync", "http response");
+                    Events.NullListResponse("ListClusterCustomObjectWithHttpMessagesAsync", "http response");
                     throw new NullReferenceException("Null response from ListClusterCustomObjectWithHttpMessagesAsync");
                 }
             }
             else
             {
-                this.logger.NullListResponse("ListClusterCustomObjectWithHttpMessagesAsync", "task");
+                Events.NullListResponse("ListClusterCustomObjectWithHttpMessagesAsync", "task");
                 throw new NullReferenceException("Null Task from ListClusterCustomObjectWithHttpMessagesAsync");
             }
         }
@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
             catch (Exception e)
             {
-                this.logger.EdgeDeploymentDeserializeFail(e);
+                Events.EdgeDeploymentDeserializeFail(e);
                 return;
             }
 
@@ -159,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 {
                     V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(this.k8sNamespace, labelSelector: this.deploymentSelector);
                     V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(this.k8sNamespace, labelSelector: this.deploymentSelector);
-                    this.logger.DeploymentStatus(type, this.resourceName);
+                    Events.DeploymentStatus(type, this.resourceName);
                     switch (type)
                     {
                         case WatchEventType.Added:
@@ -185,14 +185,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
                             break;
                         case WatchEventType.Error:
-                            this.logger.DeploymentError();
+                            Events.DeploymentError();
                             break;
                     }
                 }
             }
             else
             {
-                this.logger.DeploymentNameMismatch(customObject.Metadata.Name, this.resourceName);
+                Events.DeploymentNameMismatch(customObject.Metadata.Name, this.resourceName);
             }
         }
 
@@ -253,7 +253,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 }
                 else
                 {
-                    this.logger.InvalidModuleType(module);
+                    Events.InvalidModuleType(module);
                 }
             }
 
@@ -291,7 +291,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
                         servicesRemoved.Add(s);
                         newServices.Add(s);
-                        this.logger.UpdateService(s.Metadata.Name);
+                        Events.UpdateService(s.Metadata.Name);
                     }
                     else
                     {
@@ -303,7 +303,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         s.Metadata.Annotations[Constants.CreationString] = creationString;
 
                         newServices.Add(s);
-                        this.logger.CreateService(s.Metadata.Name);
+                        Events.CreateService(s.Metadata.Name);
                     }
                 });
             var deploymentsUpdated = new List<V1Deployment>();
@@ -341,7 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         }
 
                         deploymentsUpdated.Add(d);
-                        this.logger.UpdateDeployment(d.Metadata.Name);
+                        Events.UpdateDeployment(d.Metadata.Name);
                     }
                     else
                     {
@@ -352,7 +352,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         };
                         d.Metadata.Annotations = annotations;
                         newDeployments.Add(d);
-                        this.logger.CreateDeployment(d.Metadata.Name);
+                        Events.CreateDeployment(d.Metadata.Name);
                     }
                 });
 
@@ -360,7 +360,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IEnumerable<Task<V1Status>> removeServiceTasks = servicesRemoved.Select(
                 i =>
                 {
-                    this.logger.DeletingService(i);
+                    Events.DeletingService(i);
                     return this.client.DeleteNamespacedServiceAsync(i.Metadata.Name, this.k8sNamespace, new V1DeleteOptions());
                 });
             await Task.WhenAll(removeServiceTasks);
@@ -368,7 +368,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IEnumerable<Task<V1Status>> removeDeploymentTasks = deploymentsRemoved.Select(
                 d =>
                 {
-                    this.logger.DeletingDeployment(d);
+                    Events.DeletingDeployment(d);
                     return this.client.DeleteNamespacedDeployment1Async(d.Metadata.Name, this.k8sNamespace, new V1DeleteOptions(propagationPolicy: "Foreground"), propagationPolicy: "Foreground");
                 });
             await Task.WhenAll(removeDeploymentTasks);
@@ -377,7 +377,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IEnumerable<Task<V1Service>> createServiceTasks = newServices.Select(
                 s =>
                 {
-                    this.logger.CreatingService(s);
+                    Events.CreatingService(s);
                     return this.client.CreateNamespacedServiceAsync(s, this.k8sNamespace);
                 });
             await Task.WhenAll(createServiceTasks);
@@ -385,7 +385,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IEnumerable<Task<V1Deployment>> createDeploymentTasks = newDeployments.Select(
                 deployment =>
                 {
-                    this.logger.CreatingDeployment(deployment);
+                    Events.CreatingDeployment(deployment);
                     return this.client.CreateNamespacedDeploymentAsync(deployment, this.k8sNamespace);
                 });
             await Task.WhenAll(createDeploymentTasks);
@@ -472,7 +472,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
             else
             {
-                this.logger.InvalidModuleType(module);
+                Events.InvalidModuleType(module);
             }
 
             return new V1PodTemplateSpec();
@@ -615,7 +615,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     }
                     else
                     {
-                        this.logger.ExposedPortValue(exposedPort.Key);
+                        Events.ExposedPortValue(exposedPort.Key);
                     }
                 }
             }
@@ -675,7 +675,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                                     }
                                     else
                                     {
-                                        this.logger.PortBindingValue(module, portBinding.Key);
+                                        Events.PortBindingValue(module, portBinding.Key);
                                     }
                                 }
                             }
@@ -745,14 +745,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         return service.Metadata.Name;
                     }
 
-                    this.logger.InvalidCreationString("service", "null service");
+                    Events.InvalidCreationString("service", "null service");
                     throw new NullReferenceException("null service in list");
                 },
                 service =>
                 {
                     if (service == null)
                     {
-                        this.logger.InvalidCreationString("service", "null service");
+                        Events.InvalidCreationString("service", "null service");
                         throw new NullReferenceException("null service in list");
                     }
 
@@ -762,7 +762,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         return creationString;
                     }
 
-                    this.logger.InvalidCreationString(service.Kind, service.Metadata?.Name);
+                    Events.InvalidCreationString(service.Kind, service.Metadata?.Name);
 
                     var serviceWithoutStatus = new V1Service(service.ApiVersion, service.Kind, service.Metadata, service.Spec);
                     return JsonConvert.SerializeObject(serviceWithoutStatus);
@@ -779,14 +779,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         return deployment.Metadata.Name;
                     }
 
-                    this.logger.InvalidCreationString("deployment", "null deployment");
+                    Events.InvalidCreationString("deployment", "null deployment");
                     throw new NullReferenceException("null deployment in list");
                 },
                 deployment =>
                 {
                     if (deployment == null)
                     {
-                        this.logger.InvalidCreationString("deployment", "null deployment");
+                        Events.InvalidCreationString("deployment", "null deployment");
                         throw new NullReferenceException("null deployment in list");
                     }
 
@@ -796,10 +796,135 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         return creationString;
                     }
 
-                    this.logger.InvalidCreationString(deployment.Kind, deployment.Metadata?.Name);
+                    Events.InvalidCreationString(deployment.Kind, deployment.Metadata?.Name);
                     var deploymentWithoutStatus = new V1Deployment(deployment.ApiVersion, deployment.Kind, deployment.Metadata, deployment.Spec);
                     return JsonConvert.SerializeObject(deploymentWithoutStatus);
                 });
+        }
+
+        static class Events
+        {
+            const int IdStart = KubernetesEventIds.KubernetesCrdWatcher;
+            private static readonly ILogger Log = Logger.Factory.CreateLogger<CrdWatcher<TConfig>>();
+
+            enum EventIds
+            {
+                InvalidModuleType = IdStart,
+                ExceptionInCustomResourceWatch,
+                InvalidCreationString,
+                ExposedPortValue,
+                PortBindingValue,
+                EdgeDeploymentDeserializeFail,
+                DeploymentStatus,
+                DeploymentError,
+                DeploymentNameMismatch,
+                UpdateService,
+                CreateService,
+                UpdateDeployment,
+                CreateDeployment,
+                NullListResponse,
+                DeletingService,
+                DeletingDeployment,
+                CreatingDeployment,
+                CreatingService,
+                ReplacingDeployment,
+                CrdWatchClosed,
+            }
+
+            public static void DeletingService(V1Service service)
+            {
+                Log.LogInformation((int)EventIds.DeletingService, $"Deleting service {service.Metadata.Name}");
+            }
+
+            public static void CreatingService(V1Service service)
+            {
+                Log.LogInformation((int)EventIds.CreatingService, $"Creating service {service.Metadata.Name}");
+            }
+
+            public static void DeletingDeployment(V1Deployment deployment)
+            {
+                Log.LogInformation((int)EventIds.DeletingDeployment, $"Deleting deployment {deployment.Metadata.Name}");
+            }
+
+            public static void CreatingDeployment(V1Deployment deployment)
+            {
+                Log.LogInformation((int)EventIds.CreatingDeployment, $"Creating deployment {deployment.Metadata.Name}");
+            }
+
+            public static void InvalidModuleType(IModule module)
+            {
+                Log.LogError((int)EventIds.InvalidModuleType, $"Module {module.Name} has an invalid module type '{module.Type}'. Expected type 'docker'");
+            }
+
+            public static void ExceptionInCustomResourceWatch(Exception ex)
+            {
+                Log.LogError((int)EventIds.ExceptionInCustomResourceWatch, ex, "Exception caught in Custom Resource Watch task.");
+            }
+
+            public static void InvalidCreationString(string kind, string name)
+            {
+                Log.LogDebug((int)EventIds.InvalidCreationString, $"Expected a valid '{kind}' creation string in k8s Object '{name}'.");
+            }
+
+            public static void ExposedPortValue(string portEntry)
+            {
+                Log.LogWarning((int)EventIds.ExposedPortValue, $"Received an invalid exposed port value '{portEntry}'.");
+            }
+
+            public static void PortBindingValue(IModule module, string portEntry)
+            {
+                Log.LogWarning((int)EventIds.PortBindingValue, $"Module {module.Name} has an invalid port binding value '{portEntry}'.");
+            }
+
+            public static void EdgeDeploymentDeserializeFail(Exception e)
+            {
+                Log.LogError((int)EventIds.EdgeDeploymentDeserializeFail, e, "Received an invalid Edge Deployment.");
+            }
+
+            public static void DeploymentStatus(WatchEventType type, string name)
+            {
+                Log.LogDebug((int)EventIds.DeploymentStatus, $"Deployment '{name}', status'{type}'");
+            }
+
+            public static void DeploymentError()
+            {
+                Log.LogError((int)EventIds.DeploymentError, "Operator received error on watch type.");
+            }
+
+            public static void DeploymentNameMismatch(string received, string expected)
+            {
+                Log.LogDebug((int)EventIds.DeploymentNameMismatch, $"Watching for edge deployments for '{expected}', received notification for '{received}'");
+            }
+
+            public static void UpdateService(string name)
+            {
+                Log.LogDebug((int)EventIds.UpdateService, $"Updating service object '{name}'");
+            }
+
+            public static void CreateService(string name)
+            {
+                Log.LogDebug((int)EventIds.CreateService, $"Creating service object '{name}'");
+            }
+
+            public static void UpdateDeployment(string name)
+            {
+                Log.LogDebug((int)EventIds.UpdateDeployment, $"Updating edge deployment '{name}'");
+            }
+
+            public static void CreateDeployment(string name)
+            {
+                Log.LogDebug((int)EventIds.CreateDeployment, $"Creating edge deployment '{name}'");
+            }
+
+            public static void NullListResponse(string listType, string what)
+            {
+                Log.LogError((int)EventIds.NullListResponse, $"{listType} returned null {what}");
+            }
+
+            public static void CrdWatchClosed()
+            {
+                Log.LogInformation((int)EventIds.CrdWatchClosed, $"K8s closed the CRD watch. Attempting to reopen watch.");
+            }
         }
     }
 }
