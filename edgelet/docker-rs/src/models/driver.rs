@@ -9,11 +9,11 @@
  */
 
 /// Driver : Driver represents a driver (network, logging, secrets).
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct Driver {
     /// Name of the driver.
     #[serde(rename = "Name")]

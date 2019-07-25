@@ -10,7 +10,7 @@ use edgelet_core::{
 };
 use edgelet_utils::YamlFileSource;
 use failure::{Context, Fail, ResultExt};
-use serde_derive::{Deserialize, Serialize};
+
 use url::Url;
 
 use crate::config::DockerConfig;
@@ -27,7 +27,7 @@ const EDGE_NETWORKID_KEY: &str = "NetworkId";
 
 const UNIX_SCHEME: &str = "unix";
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct MobyRuntime {
     #[serde(with = "url_serde")]
     uri: Url,
@@ -48,7 +48,7 @@ impl MobyRuntime {
 /// except that it also sets up the volume mounting of workload & management
 /// UDS sockets for the edge agent container and also injects the docker
 /// network name as an environment variable for edge agent.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings {
     #[serde(flatten)]
     base: BaseSettings<DockerConfig>,

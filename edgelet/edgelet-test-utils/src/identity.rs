@@ -2,7 +2,6 @@
 
 use failure::Fail;
 use futures::future::{self, FutureResult, IntoFuture};
-use serde_derive::{Deserialize, Serialize};
 
 use edgelet_core::{AuthType, Identity, IdentityManager, IdentitySpec};
 
@@ -18,7 +17,7 @@ pub enum Error {
     MissingGenerationId,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct TestIdentity {
     #[serde(rename = "moduleId")]
     module_id: String,
