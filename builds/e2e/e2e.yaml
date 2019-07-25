@@ -50,10 +50,19 @@ jobs:
         ROOT_KEY: $(RootCaKey)
 
     - script: |
+        imageId='$(az.pipeline.images.buildId)'
+        if [ -z $imageId ]; then
+          imageId='$(Build.TriggeredBy.BuildNumber)'
+        fi
+        if [ -z $imageId ]; then
+          echo 'Build not triggered by the "Build Images" build, and argument "az.pipeline.images.buildId" not specified'
+        fi
+
         binDir='$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1'
         testDir='$(Pipeline.Workspace)/e2e'
         imagePrefix='$(cr.address)/$(cr.labelPrefix)azureiotedge'
-        imageTag='$(Build.TriggeredBy.BuildNumber)-linux-amd64'
+        imageTag="$imageId-linux-amd64"
+
         > "$binDir/context.json" cat <<-EOF
         {
           "edgeAgentImage": "$imagePrefix-agent:$imageTag",
