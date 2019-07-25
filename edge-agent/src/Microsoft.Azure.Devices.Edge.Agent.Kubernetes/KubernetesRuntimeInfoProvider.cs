@@ -98,12 +98,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<int> since, CancellationToken cancellationToken)
         {
+            int tailLines = tail.OrDefault();
+            int sinceSec = since.OrDefault();
+
             return await this.client.ReadNamespacedPodLogAsync(
                 module,
                 Constants.K8sNamespace,
                 follow: follow,
-                tailLines: tail.GetOrElse(null),
-                sinceSeconds: since.GetOrElse(null),
+                tailLines: tailLines == default(int) ? null : (int?)tailLines,
+                sinceSeconds: sinceSec == default(int) ? null : (int?)sinceSec,
                 cancellationToken: cancellationToken);
         }
 
