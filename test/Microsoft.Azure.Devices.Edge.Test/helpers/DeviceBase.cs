@@ -63,8 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             Context.Current.OptimizeForPerformance,
                             this.iotHub);
 
-                        await runtime.DeployConfigurationAsync(_ => { }, token);
-                        await runtime.WaitForModulesRunningAsync(new EdgeModule[0], token);
+                        await runtime.DeployConfigurationAsync(token);
                     }
                 },
                 "Completed custom certificate setup");

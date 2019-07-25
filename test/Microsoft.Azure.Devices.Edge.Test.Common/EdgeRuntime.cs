@@ -2,7 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
-    using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
@@ -31,11 +31,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.registries = registries;
         }
 
-        // Returns a DateTime representing the moment the configuration was sent to IoT Hub. Some
-        // of the test modules begin sending events as soon as they are launched, so this timestamp
-        // can be used as a reasonable starting point when listening for events on the IoT hub's
-        // Event Hub-compatible endpoint.
-        public async Task<DateTime> DeployConfigurationAsync(Action<EdgeConfigBuilder> addConfig, CancellationToken token)
+        // DeployConfigurationAsync builds a configuration that includes Edge Agent, Edge Hub, and
+        // anything added by addConfig(). It deploys the config and waits for the edge device to
+        // receive it and start up all the modules.
+        public async Task<EdgeDeployment> DeployConfigurationAsync(Action<EdgeConfigBuilder> addConfig, CancellationToken token)
         {
             var builder = new EdgeConfigBuilder(this.deviceId);
             builder.AddRegistryCredentials(this.registries);
@@ -49,20 +48,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             addConfig(builder);
 
             DateTime deployTime = DateTime.Now;
-            await builder.Build().DeployAsync(this.iotHub, token);
+            EdgeConfiguration config = builder.Build();
 
-            return deployTime;
+            await config.DeployAsync(this.iotHub, token);
+
+            var modules = config.ModuleNames.Select(id => new EdgeModule(id, this.deviceId, this.iotHub));
+            await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, token);
+
+            return new EdgeDeployment(deployTime, modules);
         }
 
-        public async Task WaitForModulesRunningAsync(EdgeModule[] modules, CancellationToken token)
-        {
-            var agent = new EdgeModule("edgeAgent", this.deviceId);
-            var hub = new EdgeModule("edgeHub", this.deviceId);
-
-            var allModules = new List<EdgeModule> { agent, hub };
-            allModules.AddRange(modules);
-
-            await EdgeModule.WaitForStatusAsync(allModules.ToArray(), EdgeModuleStatus.Running, token);
-        }
+        public Task<EdgeDeployment> DeployConfigurationAsync(CancellationToken token) =>
+            this.DeployConfigurationAsync(_ => { }, token);
     }
 }

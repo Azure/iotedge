@@ -2,10 +2,13 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Shared;
+    using Newtonsoft.Json.Linq;
     using Serilog;
 
     public enum EdgeModuleStatus
@@ -17,21 +20,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     public class EdgeModule
     {
         protected string deviceId;
-
-        public EdgeModule(string id, string deviceId)
-        {
-            this.deviceId = deviceId;
-            this.Id = id;
-        }
+        protected IotHub iotHub;
 
         public string Id { get; }
 
-        public static Task WaitForStatusAsync(EdgeModule[] modules, EdgeModuleStatus desired, CancellationToken token)
+        public EdgeModule(string id, string deviceId, IotHub iotHub)
         {
-            Preconditions.CheckArgument(
-                modules.Select(m => m.deviceId).Distinct().Count() == 1,
-                "Modules should belong to the same edge device");
+            this.deviceId = deviceId;
+            this.Id = id;
+            this.iotHub = iotHub;
+        }
 
+        public static Task WaitForStatusAsync(IEnumerable<EdgeModule> modules, EdgeModuleStatus desired, CancellationToken token)
+        {
             string[] moduleIds = modules.Select(m => m.Id).Distinct().ToArray();
 
             string FormatModulesList() => moduleIds.Length == 1 ? "Module '{0}'" : "Modules ({0})";
@@ -90,10 +91,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return WaitForStatusAsync(new[] { this }, desired, token);
         }
 
-        public Task WaitForEventsReceivedAsync(DateTime seekTime, IotHub iotHub, CancellationToken token)
+        public Task WaitForEventsReceivedAsync(DateTime seekTime, CancellationToken token)
         {
             return Profiler.Run(
-                () => iotHub.ReceiveEventsAsync(
+                () => this.iotHub.ReceiveEventsAsync(
                     this.deviceId,
                     seekTime,
                     data =>
@@ -107,7 +108,42 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     token),
                 "Received events from device '{Device}' on Event Hub '{EventHub}'",
                 this.deviceId,
-                iotHub.EntityPath);
+                this.iotHub.EntityPath);
+        }
+
+        public Task UpdateDesiredPropertiesAsync(object patch, CancellationToken token)
+        {
+            return Profiler.Run(
+                () => this.iotHub.UpdateTwinAsync(this.deviceId, this.Id, patch, token),
+                "Updated twin for module '{Module}'",
+                this.Id);
+        }
+
+        public Task WaitForReportedPropertyUpdatesAsync(object expectedPatch, CancellationToken token)
+        {
+            return Profiler.Run(
+                () =>
+                {
+                    return Retry.Do(
+                        async () =>
+                        {
+                            Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, this.Id, token);
+                            return twin.Properties.Reported;
+                        },
+                        reported =>
+                        {
+                            JObject expected = JObject.FromObject(expectedPatch)
+                                .Value<JObject>("properties")
+                                .Value<JObject>("reported");
+                            return expected.Value<JObject>().All<KeyValuePair<string, JToken>>(
+                                prop => reported.Contains(prop.Key) && reported[prop.Key] == prop.Value);
+                        },
+                        null,
+                        TimeSpan.FromSeconds(5),
+                        token);
+                },
+                "Received expected twin updates for module '{Module}'",
+                this.Id);
         }
     }
 }

@@ -15,24 +15,20 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task TempSensor()
         {
             string sensorImage = Context.Current.TempSensorImage.Expect(() => new ArgumentException());
-            string deviceId = Context.Current.DeviceId;
 
             CancellationToken token = this.cts.Token;
 
-            DateTime seekTime = await this.runtime.DeployConfigurationAsync(
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
                 {
                     builder.AddModule("tempSensor", sensorImage);
                 },
                 token);
 
-            var sensor = new EdgeModule("tempSensor", deviceId);
-            await this.runtime.WaitForModulesRunningAsync(new[] { sensor }, token);
+            EdgeModule sensor = deployment.Modules["tempSensor"];
+            await sensor.WaitForEventsReceivedAsync(deployment.StartTime, token);
 
-            await sensor.WaitForEventsReceivedAsync(seekTime, this.iotHub, token);
-
-            var sensorTwin = new ModuleTwin(sensor.Id, deviceId, this.iotHub);
-            await sensorTwin.UpdateDesiredPropertiesAsync(
+            await sensor.UpdateDesiredPropertiesAsync(
                 new
                 {
                     properties = new
@@ -45,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     }
                 },
                 token);
-            await sensorTwin.WaitForReportedPropertyUpdatesAsync(
+            await sensor.WaitForReportedPropertyUpdatesAsync(
                 new
                 {
                     properties = new
@@ -77,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             CancellationToken token = this.cts.Token;
 
-            DateTime seekTime = await this.runtime.DeployConfigurationAsync(
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
                 {
                     string clientTransport = protocol.ToTransportType().ToString();
@@ -94,11 +90,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 token);
 
-            var sender = new EdgeModule(methodSender, deviceId);
-            var receiver = new EdgeModule(methodReceiver, deviceId);
-            await this.runtime.WaitForModulesRunningAsync(new[] { sender, receiver }, token);
-
-            await sender.WaitForEventsReceivedAsync(seekTime, this.iotHub, token);
+            EdgeModule sender = deployment.Modules[methodSender];
+            await sender.WaitForEventsReceivedAsync(deployment.StartTime, token);
         }
     }
 }
