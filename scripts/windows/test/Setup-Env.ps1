@@ -20,10 +20,14 @@
     .PARAMETER ArtifactImageBuildNumber
         Artifact image build number; it is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.
 
+    .PARAMETER AttemptUpdate
+        Switch controlling if an update of iotedge service should be attempted.
+
     .EXAMPLE
         .\Setup-Env.ps1
             -E2ETestFolder "C:\Data\e2etests"
             -ArtifactImageBuildNumber "20190101.1"
+            -AttemptUpdate
 
     .NOTES
         This script is to setup the environment for running E2E tests.
@@ -38,7 +42,9 @@ Param (
     [string] $E2ETestFolder = ".",
 
     [ValidateNotNullOrEmpty()]
-    [string] $ArtifactImageBuildNumber = $(Throw "Artifact image build number is required")
+    [string] $ArtifactImageBuildNumber = $(Throw "Artifact image build number is required"),
+
+    [switch] $AttemptUpdate
 )
 
 Function PrintHighlightedMessage
@@ -76,7 +82,16 @@ If ($osEdition -eq "IoTUAP")    # Windows IoT Core - update iotedge
         }
         
         Write-Host "Cleanup existing containers..."
-        docker -H npipe:////./pipe/iotedge_moby_engine rm -f $(docker -H npipe:////./pipe/iotedge_moby_engine ps -aq) 2>null
+        try {
+            $residualModules = $(docker -H npipe:////./pipe/iotedge_moby_engine ps -aq)
+            if($residualModules.Length -gt 0) {
+                docker -H npipe:////./pipe/iotedge_moby_engine rm -f $residualModules
+            }
+        }
+        catch {
+            Write-Host "Cleanup existing containers failed."
+			Write-Host $_.Exception.Message
+        }
 
         # Delete iotedge config file
         $FileName = "$env:ProgramData\iotedge\config.yaml"
@@ -86,19 +101,22 @@ If ($osEdition -eq "IoTUAP")    # Windows IoT Core - update iotedge
             Remove-Item $FileName
         }        
         
-        Write-Host "Attempt to update $serviceName..."
-        try {
-            # triggers reboot
-            Update-IoTEdge -ContainerOs Windows -OfflineInstallationPath $IoTEdgedArtifactFolder
-        }
-        catch {
-            $testExitCode = [String]::Format("0x{0:X}", $LastExitCode)
-            Write-Host "Update attempt unsuccessful (error code $testExitCode)."
-            if ($LastExitCode -eq -2145877235) {
-                Write-Host "A newer version is already installed on the device."
+        if ($AttemptUpdate) {
+            Write-Host "Attempt to update $serviceName..."
+            try {
+                # triggers reboot
+                Update-IoTEdge -ContainerOs Windows -OfflineInstallationPath $IoTEdgedArtifactFolder
             }
-            # triggers reboot
-            shutdown -r -t 5
+            catch {
+                $testExitCode = [String]::Format("0x{0:X}", $LastExitCode)
+                Write-Host "Update attempt unsuccessful (error code $testExitCode)."
+                if ($testExitCode -eq "0x80188302") {
+                    Write-Host "Package cannot be installed because it is already present on the image."
+                }
+                if ($testExitCode -eq "0x8018830D") {
+                    Write-Host "A newer version is already installed on the device."
+                }
+            }
         }
     } Else {
         Write-Host "Service $serviceName not found. Device is clean."
