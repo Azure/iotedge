@@ -5,8 +5,8 @@ provisioning:
   scope_id: "i got no time for the jibba-jabba"
   attestation:
     method: "x509"
-    identity_cert: "some/path/mr.t.cer.pem"
-    identity_pk: "some/path/mr.t.pk.pem"
+    identity_cert: "file:///some/path/mr.t.cer.pem"
+    identity_pk: "file:///some/path/mr.t.pk.pem"
 
 agent:
   name: "edgeAgent"

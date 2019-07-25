@@ -259,7 +259,9 @@ where
             );
         }
 
-        set_iot_edge_env_vars(&settings);
+        set_iot_edge_env_vars(&settings).context(ErrorKind::Initialize(
+            InitializeErrorReason::LoadSettings,
+        ))?;
 
         info!("Initializing hsm...");
         let crypto = Crypto::new(hsm_lock.clone())
@@ -283,7 +285,7 @@ where
             ))?;
 
         macro_rules! start_edgelet {
-            ($key_store:ident, $provisioning_result:ident, $root_key:ident, $force_reprovision:ident) => {{
+            ($key_store:ident, $provisioning_result:ident, $root_key:ident, $force_reprovision:ident, $id_cert_thumprint:ident,) => {{
                 info!("Finished provisioning edge device.");
 
                 let runtime = init_runtime::<M>(
@@ -319,6 +321,7 @@ where
                     &runtime,
                     &crypto,
                     &mut tokio_runtime,
+                    $id_cert_thumprint,
                 )?;
 
                 let cfg = WorkloadData::new(
@@ -369,7 +372,8 @@ where
                     key_store,
                     provisioning_result,
                     root_key,
-                    force_module_reprovision
+                    force_module_reprovision,
+                    None,
                 );
             }
             Provisioning::External(external) => {
@@ -414,7 +418,8 @@ where
                                 derived_key_store,
                                 prov_result,
                                 memory_key,
-                                force_module_reprovision
+                                force_module_reprovision,
+                                None,
                             );
                         } else {
                             let (derived_key_store, tpm_key) =
@@ -423,7 +428,8 @@ where
                                 derived_key_store,
                                 prov_result,
                                 tpm_key,
-                                force_module_reprovision
+                                force_module_reprovision,
+                                None,
                             );
                         }
                     }
@@ -455,7 +461,8 @@ where
                             key_store,
                             provisioning_result,
                             root_key,
-                            force_module_reprovision
+                            force_module_reprovision,
+                            None,
                         );
                     }
                     AttestationMethod::SymmetricKey(ref symmetric_key_info) => {
@@ -472,7 +479,8 @@ where
                             key_store,
                             provisioning_result,
                             root_key,
-                            force_module_reprovision
+                            force_module_reprovision,
+                            None,
                         );
                     }
                     AttestationMethod::X509(ref x509_info) => {
@@ -499,13 +507,15 @@ where
                             dps_path,
                             &mut tokio_runtime,
                             &key_bytes,
-                            id_data.thumbprint,
+                            id_data.thumbprint.clone(),
                         )?;
+                        let thumprint_op = Some(id_data.thumbprint.as_str());
                         start_edgelet!(
                             key_store,
                             provisioning_result,
                             root_key,
-                            force_module_reprovision
+                            force_module_reprovision,
+                            thumprint_op,
                         );
                     }
                 }
@@ -517,7 +527,7 @@ where
     }
 }
 
-fn set_iot_edge_env_vars<S>(settings: &S)
+fn set_iot_edge_env_vars<S>(settings: &S) -> Result<(), Error>
 where
     S: RuntimeSettings,
 {
@@ -534,16 +544,22 @@ where
             info!("Transparent gateway certificates not found, operating in quick start mode...")
         }
         Some(&c) => {
-            let path = c.device_ca_cert().as_os_str();
-            info!("Configuring the Device CA certificate using {:?}.", path);
+            let path = c.device_ca_cert().context(ErrorKind::Initialize(
+                InitializeErrorReason::CertificateSettings,
+            ))?;
+            info!("Configuring the Device CA certificate using {:?}.", path.as_os_str());
             env::set_var(DEVICE_CA_CERT_KEY, path);
 
-            let path = c.device_ca_pk().as_os_str();
-            info!("Configuring the Device private key using {:?}.", path);
+            let path = c.device_ca_pk().context(ErrorKind::Initialize(
+                InitializeErrorReason::CertificateSettings,
+            ))?;
+            info!("Configuring the Device private key using {:?}.", path.as_os_str());
             env::set_var(DEVICE_CA_PK_KEY, path);
 
-            let path = c.trusted_ca_certs().as_os_str();
-            info!("Configuring the trusted CA certificates using {:?}.", path);
+            let path = c.trusted_ca_certs().context(ErrorKind::Initialize(
+                InitializeErrorReason::CertificateSettings,
+            ))?;
+            info!("Configuring the trusted CA certificates using {:?}.", path.as_os_str());
             env::set_var(TRUSTED_CA_CERTS_KEY, path);
         }
     };
@@ -567,12 +583,20 @@ where
                     env::set_var(DPS_REGISTRATION_ID_ENV_KEY, val.to_string());
                 }
 
-                env::set_var(DPS_DEVICE_ID_CERT_ENV_KEY, x509_info.identity_cert());
-                env::set_var(DPS_DEVICE_ID_KEY_ENV_KEY, x509_info.identity_pk());
+                let path = x509_info.identity_cert().context(ErrorKind::Initialize(
+                    InitializeErrorReason::IdentityCertificateSettings,
+                ))?;
+                env::set_var(DPS_DEVICE_ID_CERT_ENV_KEY, path.as_os_str());
+
+                let path = x509_info.identity_pk().context(ErrorKind::Initialize(
+                    InitializeErrorReason::IdentityCertificateSettings,
+                ))?;
+                env::set_var(DPS_DEVICE_ID_KEY_ENV_KEY, path.as_os_str());
             }
         }
     }
     info!("Finished configuring provisioning environment variables and certificates.");
+    Ok(())
 }
 
 fn prepare_httpclient_and_identity_data<S>(
@@ -867,37 +891,29 @@ where
     Ok(key_bytes.to_vec())
 }
 
-fn compute_settings_digest<S>(settings: &S) -> Result<String, DiffError>
+fn compute_settings_digest<S>(settings: &S, id_cert_thumbprint: Option<&str>) -> Result<String, DiffError>
 where
     S: RuntimeSettings + Serialize,
 {
     let mut s = serde_json::to_string(settings)?;
-
-    if let Provisioning::Dps(dps) = settings.provisioning() {
-        if let AttestationMethod::X509(x509_info) = dps.attestation() {
-            let mut file = OpenOptions::new()
-                .read(true)
-                .open(x509_info.identity_cert())?;
-            let mut cert = String::new();
-            file.read_to_string(&mut cert)?;
-            s.push_str(&cert);
-        }
+    if let Some(thumbprint) = id_cert_thumbprint {
+        s.push_str(thumbprint);
     }
     Ok(base64::encode(&Sha256::digest_str(&s)))
 }
 
-fn diff_with_cached<S>(settings: &S, path: &Path) -> bool
+fn diff_with_cached<S>(settings: &S, path: &Path, id_cert_thumbprint: Option<&str>) -> bool
 where
     S: RuntimeSettings + Serialize,
 {
-    fn diff_with_cached_inner<S>(cached_settings: &S, path: &Path) -> Result<bool, DiffError>
+    fn diff_with_cached_inner<S>(cached_settings: &S, path: &Path, id_cert_thumbprint: Option<&str>) -> Result<bool, DiffError>
     where
         S: RuntimeSettings + Serialize,
     {
         let mut file = OpenOptions::new().read(true).open(path)?;
         let mut buffer = String::new();
         file.read_to_string(&mut buffer)?;
-        let encoded = compute_settings_digest(cached_settings)?;
+        let encoded = compute_settings_digest(cached_settings, id_cert_thumbprint)?;
         if encoded == buffer {
             debug!("Config state matches supplied config.");
             Ok(false)
@@ -906,7 +922,7 @@ where
         }
     }
 
-    match diff_with_cached_inner(settings, path) {
+    match diff_with_cached_inner(settings, path, id_cert_thumbprint) {
         Ok(result) => result,
 
         Err(err) => {
@@ -940,6 +956,7 @@ fn check_settings_state<M, C>(
     runtime: &M::ModuleRuntime,
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
+    id_cert_thumbprint: Option<&str>
 ) -> Result<(), Error>
 where
     M: MakeModuleRuntime + 'static,
@@ -949,7 +966,7 @@ where
     info!("Detecting if configuration file has changed...");
     let path = subdir.join(filename);
     let mut reconfig_reqd = false;
-    let diff = diff_with_cached(settings, &path);
+    let diff = diff_with_cached(settings, &path, id_cert_thumbprint);
     if diff {
         info!("Change to configuration file detected.");
         reconfig_reqd = true;
@@ -966,7 +983,7 @@ where
         };
     }
     if reconfig_reqd {
-        reconfigure::<M, _>(subdir, filename, settings, runtime, crypto, tokio_runtime)?;
+        reconfigure::<M, _>(subdir, filename, settings, runtime, crypto, tokio_runtime, id_cert_thumbprint)?;
     }
     Ok(())
 }
@@ -990,6 +1007,7 @@ fn reconfigure<M, C>(
     runtime: &M::ModuleRuntime,
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
+    id_cert_thumbprint: Option<&str>,
 ) -> Result<(), Error>
 where
     M: MakeModuleRuntime + 'static,
@@ -1023,7 +1041,7 @@ where
     prepare_workload_ca(crypto)?;
     let mut file =
         File::create(path).context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
-    let digest = compute_settings_digest(settings)
+    let digest = compute_settings_digest(settings, id_cert_thumbprint)
         .context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
     file.write_all(digest.as_bytes())
         .context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
@@ -1851,6 +1869,7 @@ mod tests {
             &runtime,
             &crypto,
             &mut tokio_runtime,
+            None,
         );
         match result.unwrap_err().kind() {
             ErrorKind::Initialize(InitializeErrorReason::PrepareWorkloadCa) => (),
@@ -1893,6 +1912,7 @@ mod tests {
             &runtime,
             &crypto,
             &mut tokio_runtime,
+            None,
         );
         match result.unwrap_err().kind() {
             ErrorKind::Initialize(InitializeErrorReason::IssuerCAExpiration) => (),
@@ -1935,6 +1955,7 @@ mod tests {
             &runtime,
             &crypto,
             &mut tokio_runtime,
+            None,
         )
         .unwrap();
         let expected = serde_json::to_string(&settings).unwrap();
@@ -1994,6 +2015,7 @@ mod tests {
             &runtime,
             &crypto,
             &mut tokio_runtime,
+            None,
         )
         .unwrap();
         let expected = serde_json::to_string(&settings).unwrap();
@@ -2053,6 +2075,7 @@ mod tests {
             &runtime,
             &crypto,
             &mut tokio_runtime,
+            None,
         )
         .unwrap();
         let expected = serde_json::to_string(&settings).unwrap();
@@ -2112,6 +2135,7 @@ mod tests {
             &runtime,
             &crypto,
             &mut tokio_runtime,
+            None,
         )
         .unwrap();
         let mut written = String::new();
@@ -2129,6 +2153,7 @@ mod tests {
             &runtime,
             &crypto,
             &mut tokio_runtime,
+            None,
         )
         .unwrap();
         let expected = serde_json::to_string(&settings1).unwrap();
@@ -2195,7 +2220,7 @@ mod tests {
             .unwrap()
             .write_all(base64_to_write.as_bytes())
             .unwrap();
-        assert!(!diff_with_cached(&settings, &path));
+        assert!(!diff_with_cached(&settings, &path, None));
     }
 
     #[test]
@@ -2211,7 +2236,7 @@ mod tests {
             .write_all(base64_to_write.as_bytes())
             .unwrap();
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
-        assert!(!diff_with_cached(&settings, &path));
+        assert!(!diff_with_cached(&settings, &path, None));
     }
 
     #[test]
@@ -2227,7 +2252,7 @@ mod tests {
             .write_all(base64_to_write.as_bytes())
             .unwrap();
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_DEFAULT))).unwrap();
-        assert!(!diff_with_cached(&settings, &path));
+        assert!(!diff_with_cached(&settings, &path, None));
     }
 
     #[test]
@@ -2243,7 +2268,7 @@ mod tests {
             .write_all(base64_to_write.as_bytes())
             .unwrap();
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
-        assert!(!diff_with_cached(&settings, &path));
+        assert!(!diff_with_cached(&settings, &path, None));
     }
 
     #[test]
@@ -2259,13 +2284,13 @@ mod tests {
             .write_all(base64_to_write.as_bytes())
             .unwrap();
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
-        assert!(diff_with_cached(&settings, &path));
+        assert!(diff_with_cached(&settings, &path, None));
     }
 
     #[test]
     fn diff_with_no_file_returns_true() {
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
-        assert!(diff_with_cached(&settings, Path::new("i dont exist")));
+        assert!(diff_with_cached(&settings, Path::new("i dont exist"), None));
     }
 
     #[test]
@@ -2310,6 +2335,8 @@ mod tests {
             .write_all(b"i pity the fool")
             .expect("Test cert private key file could not be written");
 
+        let cert_uri = format!("file:///{}", cert_path.to_str().unwrap());
+        let pk_uri = format!("file:///{}", cert_path.to_str().unwrap());
         let settings_yaml = json!({
         "provisioning": {
             "source": "dps",
@@ -2317,8 +2344,8 @@ mod tests {
             "scope_id": "i got no time for the jibba-jabba",
             "attestation": {
                 "method": "x509",
-                "identity_cert": cert_path.to_str().unwrap(),
-                "identity_pk": key_path.to_str().unwrap(),
+                "identity_cert": cert_uri,
+                "identity_pk": pk_uri,
             },
         }})
         .to_string();
@@ -2346,7 +2373,7 @@ mod tests {
     }
 
     #[test]
-    fn dps_x509_auth_diff_also_checks_cert_file() {
+    fn dps_x509_auth_diff_also_checks_cert_thumbprint() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let cert_path = tmp_dir.path().join("test_cert");
         let key_path = tmp_dir.path().join("test_key");
@@ -2356,21 +2383,17 @@ mod tests {
         let settings = Settings::new(Some(&settings_path)).unwrap();
 
         let path = tmp_dir.path().join("cache");
-        let base64_to_write = compute_settings_digest(&settings).unwrap();
+        let base64_to_write = compute_settings_digest(&settings, Some("thumbprint-1")).unwrap();
         File::create(&path)
             .unwrap()
             .write_all(base64_to_write.as_bytes())
             .unwrap();
 
         // check if there is no diff
-        assert_eq!(diff_with_cached(&settings, &path), false);
+        assert_eq!(diff_with_cached(&settings, &path, Some("thumbprint-1")), false);
 
-        // now modify only the cert file and test if there is a diff
-        File::create(&cert_path)
-            .unwrap()
-            .write_all(b"CN=B.A. Baracus")
-            .unwrap();
-        assert_eq!(diff_with_cached(&settings, &path), true);
+        // now modify only the cert thumbprint and test if there is a diff
+        assert_eq!(diff_with_cached(&settings, &path, Some("thumbprint-2")), true);
     }
 
     #[test]

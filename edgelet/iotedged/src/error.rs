@@ -152,6 +152,7 @@ impl From<&ErrorKind> for i32 {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum InitializeErrorReason {
+    CertificateSettings,
     CreateCertificateManager,
     CreateMasterEncryptionKey,
     CreateSettingsDirectory,
@@ -168,6 +169,7 @@ pub enum InitializeErrorReason {
     HybridAuthKeyCreate,
     HybridAuthKeyLoad,
     HybridAuthKeyInvalid,
+    IdentityCertificateSettings,
     InvalidDeviceCertCredentials,
     InvalidDeviceConfig,
     InvalidHubConfig,
@@ -202,6 +204,10 @@ pub enum ExternalProvisioningErrorReason {
 impl fmt::Display for InitializeErrorReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            InitializeErrorReason::CertificateSettings => {
+                write!(f, "Could not configure edge gateway certificates")
+            }
+
             InitializeErrorReason::CreateCertificateManager => {
                 write!(f, "Could not create the certificate manager.")
             }
@@ -258,6 +264,10 @@ impl fmt::Display for InitializeErrorReason {
 
             InitializeErrorReason::HybridAuthKeyInvalid => {
                 write!(f, "The loaded hybrid identity key was invalid")
+            }
+
+            InitializeErrorReason::IdentityCertificateSettings => {
+                write!(f, "Could not configure Edge X.509 identity certificate")
             }
 
             InitializeErrorReason::InvalidDeviceCertCredentials => {

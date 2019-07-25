@@ -1,14 +1,12 @@
 # Configures the provisioning mode
-
-# x509 provisioning does not have a private key URI specified
 provisioning:
-  source: "dps"
-  global_endpoint: "scheme://jibba-jabba.net"
-  scope_id: "i got no time for the jibba-jabba"
-  attestation:
-    method: "x509"
-    registration_id: "register me fool"
-    identity_cert: "file:///some/path/mr.t.cer.pem"
+  source: "manual"
+  device_connection_string: "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
+
+certificates:
+  device_ca_cert: "file:///tmp/device_ca_cert.pem"
+  device_ca_pk: "file:///tmp/device_ca_pk.pem"
+  trusted_ca_certs: "file:///tmp/trusted_ca_certs.pem"
 
 agent:
   name: "edgeAgent"

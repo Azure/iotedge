@@ -125,11 +125,6 @@ PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -ContainerOs Windows -X509Identity
 
 .EXAMPLE
 
-PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -AutoGenX509IdentityCertificate $true -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
-
-
-.EXAMPLE
-
 PS> Initialize-IoTEdge -External -ExternalProvisioningEndpoint $externalProvisioningEndpoint -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
 #>
 function Initialize-IoTEdge {
@@ -174,10 +169,6 @@ function Initialize-IoTEdge {
         [Parameter(ParameterSetName = 'DPS')]
         [ValidateNotNullOrEmpty()]
         [String] $X509IdentityPrivateKey,
-
-        # Auto generate the X.509 identity certificate from the device CA
-        [Parameter(ParameterSetName = 'DPS')]
-        [bool] $AutoGenX509IdentityCertificate = $false,
 
         # The Edge device CA certificate
         [ValidateNotNullOrEmpty()]
@@ -474,11 +465,6 @@ PS> Install-IoTEdge -Dps -ScopeId $scopeId -ContainerOs Windows -X509IdentityCer
 
 .EXAMPLE
 
-PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -AutoGenX509IdentityCertificate $true -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
-
-
-.EXAMPLE
-
 PS> Install-IoTEdge -External -ExternalProvisioningEndpoint $externalProvisioningEndpoint -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
 #>
 function Install-IoTEdge {
@@ -523,10 +509,6 @@ function Install-IoTEdge {
         [Parameter(ParameterSetName = 'DPS')]
         [ValidateNotNullOrEmpty()]
         [String] $X509IdentityPrivateKey,
-
-        # Auto generate the X.509 identity certificate from the device CA
-        [Parameter(ParameterSetName = 'DPS')]
-        [bool] $AutoGenX509IdentityCertificate = $false,
 
         # The Edge device CA certificate
         [ValidateNotNullOrEmpty()]
@@ -622,7 +604,6 @@ function Install-IoTEdge {
     if ($SymmetricKey) { $Params["-SymmetricKey"] = $SymmetricKey }
     if ($X509IdentityCertificate) { $Params["-X509IdentityCertificate"] = $X509IdentityCertificate }
     if ($X509IdentityPrivateKey) { $Params["-X509IdentityPrivateKey"] = $X509IdentityPrivateKey }
-    if ($AutoGenX509IdentityCertificate) { $Params["-AutoGenX509IdentityCertificate"] = $AutoGenX509IdentityCertificate }
     if ($DeviceCACertificate) { $Params["-DeviceCACertificate"] = $DeviceCACertificate }
     if ($DeviceCAPrivateKey) { $Params["-DeviceCAPrivateKey"] = $DeviceCAPrivateKey }
     if ($DeviceTrustbundle) { $Params["-DeviceTrustbundle"] = $DeviceTrustbundle }
@@ -1552,6 +1533,9 @@ function Validate-GatewaySettings {
             throw
         }
         $certFilesProvided = $true
+        $DeviceCACertificate = ([System.Uri][System.IO.Path]::GetFullPath($DeviceCACertificate)).AbsoluteUri
+        $DeviceCAPrivateKey = ([System.Uri][System.IO.Path]::GetFullPath($DeviceCAPrivateKey)).AbsoluteUri
+        $DeviceTrustbundle = ([System.Uri][System.IO.Path]::GetFullPath($DeviceTrustbundle)).AbsoluteUri
     }
 
     return $certFilesProvided
@@ -1562,9 +1546,6 @@ function Get-DpsProvisioningSettings {
     $attestationMethod = 'tpm' # default
     if ($SymmetricKey) {
         $attestationMethod = 'symmetric_key'
-    }
-    elseif ($AutoGenX509IdentityCertificate) {
-        $attestationMethod = 'x509'
     }
     elseif ($X509IdentityCertificate -or $X509IdentityPrivateKey) {
         $attestationMethod = 'x509'
@@ -1585,30 +1566,18 @@ function Get-DpsProvisioningSettings {
     }
 
     if ($attestationMethod -eq 'x509') {
-        if ($idCertFilesProvided) {
-            if (-Not (Test-Path -Path $X509IdentityCertificate)) {
-                Write-HostRed
-                Write-HostRed "Identity certificate file $X509IdentityCertificate not found."
-                throw
-            }
-            if (-Not (Test-Path -Path $X509IdentityPrivateKey)) {
-                Write-HostRed
-                Write-HostRed "Identity private file $X509IdentityPrivateKey not found."
-                throw
-            }
+        if (-Not (Test-Path -Path $X509IdentityCertificate)) {
+            Write-HostRed
+            Write-HostRed "Identity certificate file $X509IdentityCertificate not found."
+            throw
         }
-        else {
-            if ($X509IdentityCertificate -or $X509IdentityPrivateKey) {
-                Write-HostRed
-                Write-HostRed 'Cannot specify a device identity certificate and also set AutoGenX509IdentityCertificate as true.'
-                throw
-            }
-            if (-Not (Validate-GatewaySettings)) {
-                Write-HostRed
-                Write-HostRed 'Device CA certificate files are not found. These are required when using AutoGenX509IdentityCertificate.'
-                throw
-            }
+        if (-Not (Test-Path -Path $X509IdentityPrivateKey)) {
+            Write-HostRed
+            Write-HostRed "Identity private file $X509IdentityPrivateKey not found."
+            throw
         }
+        $X509IdentityCertificate = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityCertificate)).AbsoluteUri
+        $X509IdentityPrivateKey = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityPrivateKey)).AbsoluteUri
     }
 
     return $attestationMethod

@@ -247,7 +247,9 @@ mod tests {
     #[cfg(unix)]
     static BAD_SETTINGS: &str = "test/linux/bad_sample_settings.yaml";
     #[cfg(unix)]
-    static GOOD_SETTINGS_TG: &str = "test/linux/sample_settings.tg.yaml";
+    static GOOD_SETTINGS_TG1: &str = "test/linux/sample_settings.tg.filepaths.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_TG2: &str = "test/linux/sample_settings.tg.uris.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_DPS_SYM_KEY: &str = "test/linux/sample_settings.dps.sym.yaml";
     #[cfg(unix)]
@@ -271,6 +273,10 @@ mod tests {
     #[cfg(unix)]
     static BAD_SETTINGS_DPS_X5092: &str = "test/linux/bad_settings.dps.x509.2.yaml";
     #[cfg(unix)]
+    static BAD_SETTINGS_DPS_X5093: &str = "test/linux/bad_settings.dps.x509.3.yaml";
+    #[cfg(unix)]
+    static BAD_SETTINGS_DPS_X5094: &str = "test/linux/bad_settings.dps.x509.4.yaml";
+    #[cfg(unix)]
     static GOOD_SETTINGS_EXTERNAL: &str = "test/linux/sample_settings.external.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_NETWORK: &str = "test/linux/sample_settings.network.yaml";
@@ -280,7 +286,9 @@ mod tests {
     #[cfg(windows)]
     static BAD_SETTINGS: &str = "test/windows/bad_sample_settings.yaml";
     #[cfg(windows)]
-    static GOOD_SETTINGS_TG: &str = "test/windows/sample_settings.tg.yaml";
+    static GOOD_SETTINGS_TG1: &str = "test/windows/sample_settings.tg.filepaths.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_TG2: &str = "test/windows/sample_settings.tg.uris.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_DPS_SYM_KEY: &str = "test/windows/sample_settings.dps.sym.yaml";
     #[cfg(windows)]
@@ -303,6 +311,10 @@ mod tests {
     static BAD_SETTINGS_DPS_X5091: &str = "test/windows/bad_settings.dps.x509.1.yaml";
     #[cfg(windows)]
     static BAD_SETTINGS_DPS_X5092: &str = "test/windows/bad_settings.dps.x509.2.yaml";
+    #[cfg(windows)]
+    static BAD_SETTINGS_DPS_X5093: &str = "test/windows/bad_settings.dps.x509.3.yaml";
+    #[cfg(windows)]
+    static BAD_SETTINGS_DPS_X5094: &str = "test/windows/bad_settings.dps.x509.4.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_EXTERNAL: &str = "test/windows/sample_settings.external.yaml";
     #[cfg(windows)]
@@ -407,6 +419,12 @@ mod tests {
 
         let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_X5092)));
         assert!(settings.is_err());
+
+        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_X5093)));
+        assert!(settings.is_err());
+
+        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_X5094)));
+        assert!(settings.is_err());
     }
 
     #[test]
@@ -424,19 +442,38 @@ mod tests {
     }
 
     #[test]
-    fn manual_file_gets_sample_tg_paths() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_TG)));
+    fn manual_file_gets_sample_tg_file_paths() {
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_TG1)));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
         let certificates = s.certificates();
         certificates
             .map(|c| {
-                assert_eq!(c.device_ca_cert().to_str().unwrap(), "device_ca_cert.pem");
-                assert_eq!(c.device_ca_pk().to_str().unwrap(), "device_ca_pk.pem");
+                assert_eq!(c.device_ca_cert().unwrap().to_str().unwrap(), "/tmp/device_ca_cert.pem");
+                assert_eq!(c.device_ca_pk().unwrap().to_str().unwrap(), "/tmp/device_ca_pk.pem");
                 assert_eq!(
-                    c.trusted_ca_certs().to_str().unwrap(),
-                    "trusted_ca_certs.pem"
+                    c.trusted_ca_certs().unwrap().to_str().unwrap(),
+                    "/tmp/trusted_ca_certs.pem"
+                );
+            })
+            .expect("certificates not configured");
+    }
+
+    #[test]
+    fn manual_file_gets_sample_tg_file_uris() {
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_TG2)));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+        let certificates = s.certificates();
+        certificates
+            .map(|c| {
+                assert_eq!(c.device_ca_cert().unwrap().to_str().unwrap(), "/tmp/device_ca_cert.pem");
+                assert_eq!(c.device_ca_pk().unwrap().to_str().unwrap(), "/tmp/device_ca_pk.pem");
+                assert_eq!(
+                    c.trusted_ca_certs().unwrap().to_str().unwrap(),
+                    "/tmp/trusted_ca_certs.pem"
                 );
             })
             .expect("certificates not configured");
@@ -522,8 +559,10 @@ mod tests {
                 match dps.attestation() {
                     AttestationMethod::X509(ref x509) => {
                         assert!(x509.registration_id().is_none());
-                        assert_eq!(x509.identity_cert(), Path::new("some/path/mr.t.cer.pem"));
-                        assert_eq!(x509.identity_pk(), Path::new("some/path/mr.t.pk.pem"));
+                        assert_eq!(x509.identity_cert_uri().unwrap(), Url::parse("file:///some/path/mr.t.cer.pem").unwrap());
+                        assert_eq!(x509.identity_pk_uri().unwrap(), Url::parse("file:///some/path/mr.t.pk.pem").unwrap());
+                        assert_eq!(x509.identity_cert().unwrap().to_str().unwrap(), "/some/path/mr.t.cer.pem");
+                        assert_eq!(x509.identity_pk().unwrap().to_str().unwrap(), "/some/path/mr.t.pk.pem");
                     }
                     _ => unreachable!(),
                 }
@@ -546,8 +585,10 @@ mod tests {
                 match dps.attestation() {
                     AttestationMethod::X509(ref x509) => {
                         assert_eq!(x509.registration_id().unwrap(), "register me fool");
-                        assert_eq!(x509.identity_cert(), Path::new("some/path/mr.t.cer.pem"));
-                        assert_eq!(x509.identity_pk(), Path::new("some/path/mr.t.pk.pem"));
+                        assert_eq!(x509.identity_cert_uri().unwrap(), Url::parse("file:///some/path/mr.t.cer.pem").unwrap());
+                        assert_eq!(x509.identity_pk_uri().unwrap(), Url::parse("file:///some/path/mr.t.pk.pem").unwrap());
+                        assert_eq!(x509.identity_cert().unwrap().to_str().unwrap(), "/some/path/mr.t.cer.pem");
+                        assert_eq!(x509.identity_pk().unwrap().to_str().unwrap(), "/some/path/mr.t.pk.pem");
                     }
                     _ => unreachable!(),
                 }

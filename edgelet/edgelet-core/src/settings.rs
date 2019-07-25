@@ -146,17 +146,35 @@ impl SymmetricKeyAttestationInfo {
 pub struct X509AttestationInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     registration_id: Option<String>,
-    identity_cert: PathBuf,
-    identity_pk: PathBuf,
+    #[serde(with = "url_serde")]
+    identity_cert: Url,
+    #[serde(with = "url_serde")]
+    identity_pk: Url,
 }
 
 impl X509AttestationInfo {
-    pub fn identity_cert(&self) -> &Path {
-        &self.identity_cert.as_path()
+    pub fn identity_cert(&self) -> Result<PathBuf, CertificateConfigError> {
+        get_path_from_uri(&self.identity_cert, "identity_cert")
     }
 
-    pub fn identity_pk(&self) -> &Path {
-        &self.identity_pk.as_path()
+    pub fn identity_pk(&self) -> Result<PathBuf, CertificateConfigError> {
+        get_path_from_uri(&self.identity_pk, "identity_pk")
+    }
+
+    pub fn identity_pk_uri(&self) -> Result<Url, CertificateConfigError> {
+        if is_supported_uri(&self.identity_pk) {
+            Ok(self.identity_pk.clone())
+        } else {
+            Err(CertificateConfigError::UnsupportedScheme("identity_pk"))
+        }
+    }
+
+    pub fn identity_cert_uri(&self) -> Result<Url, CertificateConfigError> {
+        if is_supported_uri(&self.identity_cert) {
+            Ok(self.identity_cert.clone())
+        } else {
+            Err(CertificateConfigError::UnsupportedScheme("identity_cert"))
+        }
     }
 
     pub fn registration_id(&self) -> Option<&str> {
@@ -290,24 +308,100 @@ impl Listen {
     }
 }
 
+#[derive(Clone, Copy, Debug, Fail)]
+pub enum CertificateConfigError {
+    #[fail(display = "URI scheme is unsupported for '{}'. Please check the config.yaml certificates section.", _0)]
+    UnsupportedScheme(&'static str),
+
+    #[fail(display = "Invalid path specified for '{}'. Please check the config.yaml certificates section.", _0)]
+    InvalidPath(&'static str),
+
+    #[fail(display = "Malformed URI specified for '{}'. Please check the config.yaml certificates section.", _0)]
+    MalformedUri(&'static str),
+}
+
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Certificates {
-    device_ca_cert: PathBuf,
-    device_ca_pk: PathBuf,
-    trusted_ca_certs: PathBuf,
+    device_ca_cert: String,
+    device_ca_pk: String,
+    trusted_ca_certs: String,
+}
+
+fn is_supported_uri(uri: &Url) -> bool {
+    if uri.scheme() == "file" &&
+        uri.port().is_none() &&
+        uri.query().is_none() {
+        true
+    } else {
+        false
+    }
+}
+
+fn get_path_from_uri(uri: &Url, variable: &'static str) -> Result<PathBuf, CertificateConfigError>
+{
+    if is_supported_uri(&uri) {
+        let path = PathBuf::from(uri.path());
+        Ok(path)
+    } else {
+        Err(CertificateConfigError::UnsupportedScheme(variable))
+    }
+}
+
+fn convert_to_path(maybe_uri: &str, variable: &'static str) -> Result<PathBuf, CertificateConfigError> {
+    match Url::parse(maybe_uri) {
+        Ok(uri) => {
+            get_path_from_uri(&uri, variable)
+        },
+        Err(_) => {
+            Ok(PathBuf::from(maybe_uri))
+        }
+    }
+}
+
+fn convert_to_uri(maybe_uri: &str, variable: &'static str) -> Result<Url, CertificateConfigError> {
+    match Url::parse(maybe_uri) {
+        Ok(uri) => {
+            if is_supported_uri(&uri) {
+                Ok(uri)
+            } else {
+                Err(CertificateConfigError::UnsupportedScheme(variable))
+            }
+        },
+        Err(_) => {
+            let path = PathBuf::from(maybe_uri).canonicalize()
+                        .map_err(|_| {CertificateConfigError::InvalidPath(variable)})?;
+            let uri = format!("file:://{:?}", path.to_str());
+            let url = Url::parse(&uri).map_err(|_|
+                { CertificateConfigError::MalformedUri(variable) },
+            )?;
+            Ok(url)
+        }
+    }
 }
 
 impl Certificates {
-    pub fn device_ca_cert(&self) -> &Path {
-        &self.device_ca_cert
+    pub fn device_ca_cert(&self) -> Result<PathBuf, CertificateConfigError> {
+        convert_to_path(&self.device_ca_cert, "device_ca_cert")
     }
 
-    pub fn device_ca_pk(&self) -> &Path {
-        &self.device_ca_pk
+    pub fn device_ca_pk(&self) -> Result<PathBuf, CertificateConfigError> {
+        convert_to_path(&self.device_ca_pk, "device_ca_pk")
     }
 
-    pub fn trusted_ca_certs(&self) -> &Path {
-        &self.trusted_ca_certs
+    pub fn trusted_ca_certs(&self) -> Result<PathBuf, CertificateConfigError> {
+        convert_to_path(&self.trusted_ca_certs, "trusted_ca_certs")
+    }
+
+    pub fn device_ca_cert_uri(&self) -> Result<Url, CertificateConfigError> {
+        convert_to_uri(&self.device_ca_cert, "device_ca_cert")
+    }
+
+    pub fn device_ca_pk_uri(&self) -> Result<Url, CertificateConfigError> {
+        convert_to_uri(&self.device_ca_pk, "device_ca_pk")
+    }
+
+    pub fn trusted_ca_certs_uri(&self) -> Result<Url, CertificateConfigError> {
+        convert_to_uri(&self.trusted_ca_certs, "trusted_ca_certs")
     }
 }
 

@@ -1,13 +1,15 @@
-
 # Configures the provisioning mode
-provisioning:
-  source: "manual"
-  device_connection_string: "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
 
-certificates:
-  device_ca_cert: "device_ca_cert.pem"
-  device_ca_pk: "device_ca_pk.pem"
-  trusted_ca_certs: "trusted_ca_certs.pem"
+# x509 provisioning does not have a valid identity certificate URI specified
+provisioning:
+  source: "dps"
+  global_endpoint: "scheme://jibba-jabba.net"
+  scope_id: "i got no time for the jibba-jabba"
+  attestation:
+    method: "x509"
+    registration_id: "register me fool"
+    identity_cert: "some/path/mr.t.cer.pem"
+    identity_pk: "file:///some/path/mr.t.pk.pem"
 
 agent:
   name: "edgeAgent"
