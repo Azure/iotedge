@@ -2,12 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
-
     using Registries = System.Collections.Generic.IEnumerable<(string address, string username, string password)>;
 
     public class EdgeRuntime
@@ -52,7 +52,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             await config.DeployAsync(this.iotHub, token);
 
-            var modules = config.ModuleNames.Select(id => new EdgeModule(id, this.deviceId, this.iotHub));
+            IEnumerable<EdgeModule> modules = config.ModuleNames
+                .Select(id => new EdgeModule(id, this.deviceId, this.iotHub))
+                .ToArray();
             await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, token);
 
             return new EdgeDeployment(deployTime, modules);

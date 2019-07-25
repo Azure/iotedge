@@ -19,10 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.cts.Token;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                builder =>
-                {
-                    builder.AddModule("tempSensor", sensorImage);
-                },
+                builder => { builder.AddModule("tempSensor", sensorImage); },
                 token);
 
             EdgeModule sensor = deployment.Modules["tempSensor"];
@@ -69,7 +66,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string receiverImage = Context.Current.MethodReceiverImage.Expect(() => new ArgumentException());
             string methodSender = $"methodSender-{protocol.ToString()}";
             string methodReceiver = $"methodReceiver-{protocol.ToString()}";
-            string deviceId = Context.Current.DeviceId;
 
             CancellationToken token = this.cts.Token;
 
