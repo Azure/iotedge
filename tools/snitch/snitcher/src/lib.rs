@@ -28,9 +28,10 @@ use edgelet_http::UrlConnector;
 use futures::future::{self, loop_fn, Either, Loop};
 use futures::{Future, IntoFuture, Stream};
 use humantime::format_duration;
-use hyper::{Client as HyperClient, Method};
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Client as HyperClient, Method, Request};
 use hyper_tls::HttpsConnector;
-use log::{debug, info};
+use log::{debug, error, info};
 use serde_json::Value as JsonValue;
 use tokio::timer::{Delay, Interval};
 
@@ -361,29 +362,39 @@ pub fn raise_alert(
                 .map_err(Error::from)
         })
         .map(|(alert_url, connector)| {
-            let client = client::Client::new(
-                HyperClientService::new(HyperClient::builder().build(connector)),
-                alert_url,
-            );
+            let mut builder = Request::builder();
+            let req = builder.method(Method::POST).uri(alert_url.to_string());
+            let serialized = serde_json::to_string(&report_json).unwrap();
+            req.header(CONTENT_TYPE, "text/json");
+            req.header(CONTENT_LENGTH, format!("{}", serialized.len()).as_str());
 
-            Either::A(
-                client
-                    .request::<JsonValue, ()>(
-                        Method::POST,
-                        settings.alert().path(),
-                        Some(
-                            settings
-                                .alert()
-                                .query()
-                                .iter()
-                                .map(|(k, v)| (k.as_str(), v.as_str()))
-                                .collect(),
-                        ),
-                        Some(report_json),
-                        false,
-                    )
-                    .map(|_| ()),
-            )
+            let hyper_client = HyperClient::builder().build(connector);
+            let result = hyper_client
+                .request(req.body(Body::from(serialized)).unwrap())
+                .map_err(move |err| {
+                    error!("HTTP request to {:?} failed with {:?}", alert_url, err);
+                    Error::from(err)
+                })
+                .and_then(|resp| {
+                    let status = resp.status();
+                    debug!("HTTP request succeeded with status {}", status);
+                    resp.into_body()
+                        .concat2()
+                        .map(move |body| (status, body))
+                        .map_err(|err| {
+                            error!("Reading response body failed with {:?}", err);
+                            Error::from(err)
+                        })
+                        .and_then(move |(status, body)| {
+                            if status.is_success() {
+                                Ok(())
+                            } else {
+                                Err(Error::from((status, &*body)))
+                            }
+                        })
+                });
+
+            Either::A(result.into_future())
         })
         .unwrap_or_else(|err| Either::B(future::err(err)))
 }
