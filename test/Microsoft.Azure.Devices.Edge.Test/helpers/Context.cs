@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 var registries = context.GetSection("registries").GetChildren().ToArray();
                 foreach (var reg in registries)
                 {
-                    string registry = reg.GetValue<string>("address");
+                    string address = reg.GetValue<string>("address");
                     string username = reg.GetValue<string>("username");
                     // To specify a password as an environment variable instead of in the
                     // JSON file (so it's not stored in the clear on the filesystem), name
@@ -41,11 +41,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                     // If any container registry arguments (server, username, password)
                     // are given, then they must *all* be given, otherwise throw an error.
-                    Preconditions.CheckNonWhiteSpace(registry, nameof(registry));
+                    Preconditions.CheckNonWhiteSpace(address, nameof(address));
                     Preconditions.CheckNonWhiteSpace(username, nameof(username));
                     Preconditions.CheckNonWhiteSpace(password, nameof(password));
 
-                    result.Add((registry, username, password));
+                    result.Add((address, username, password));
                 }
 
                 return result;
