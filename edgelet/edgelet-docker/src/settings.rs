@@ -450,8 +450,14 @@ mod tests {
         let certificates = s.certificates();
         certificates
             .map(|c| {
-                assert_eq!(c.device_ca_cert().unwrap().to_str().unwrap(), "/tmp/device_ca_cert.pem");
-                assert_eq!(c.device_ca_pk().unwrap().to_str().unwrap(), "/tmp/device_ca_pk.pem");
+                assert_eq!(
+                    c.device_ca_cert().unwrap().to_str().unwrap(),
+                    "/tmp/device_ca_cert.pem"
+                );
+                assert_eq!(
+                    c.device_ca_pk().unwrap().to_str().unwrap(),
+                    "/tmp/device_ca_pk.pem"
+                );
                 assert_eq!(
                     c.trusted_ca_certs().unwrap().to_str().unwrap(),
                     "/tmp/trusted_ca_certs.pem"
@@ -469,8 +475,14 @@ mod tests {
         let certificates = s.certificates();
         certificates
             .map(|c| {
-                assert_eq!(c.device_ca_cert().unwrap().to_str().unwrap(), "/tmp/device_ca_cert.pem");
-                assert_eq!(c.device_ca_pk().unwrap().to_str().unwrap(), "/tmp/device_ca_pk.pem");
+                assert_eq!(
+                    c.device_ca_cert().unwrap().to_str().unwrap(),
+                    "/tmp/device_ca_cert.pem"
+                );
+                assert_eq!(
+                    c.device_ca_pk().unwrap().to_str().unwrap(),
+                    "/tmp/device_ca_pk.pem"
+                );
                 assert_eq!(
                     c.trusted_ca_certs().unwrap().to_str().unwrap(),
                     "/tmp/trusted_ca_certs.pem"
@@ -559,10 +571,22 @@ mod tests {
                 match dps.attestation() {
                     AttestationMethod::X509(ref x509) => {
                         assert!(x509.registration_id().is_none());
-                        assert_eq!(x509.identity_cert_uri().unwrap(), Url::parse("file:///some/path/mr.t.cer.pem").unwrap());
-                        assert_eq!(x509.identity_pk_uri().unwrap(), Url::parse("file:///some/path/mr.t.pk.pem").unwrap());
-                        assert_eq!(x509.identity_cert().unwrap().to_str().unwrap(), "/some/path/mr.t.cer.pem");
-                        assert_eq!(x509.identity_pk().unwrap().to_str().unwrap(), "/some/path/mr.t.pk.pem");
+                        assert_eq!(
+                            x509.identity_cert_uri().unwrap(),
+                            Url::parse("file:///some/path/mr.t.cer.pem").unwrap()
+                        );
+                        assert_eq!(
+                            x509.identity_pk_uri().unwrap(),
+                            Url::parse("file:///some/path/mr.t.pk.pem").unwrap()
+                        );
+                        assert_eq!(
+                            x509.identity_cert().unwrap().to_str().unwrap(),
+                            "/some/path/mr.t.cer.pem"
+                        );
+                        assert_eq!(
+                            x509.identity_pk().unwrap().to_str().unwrap(),
+                            "/some/path/mr.t.pk.pem"
+                        );
                     }
                     _ => unreachable!(),
                 }
@@ -585,10 +609,22 @@ mod tests {
                 match dps.attestation() {
                     AttestationMethod::X509(ref x509) => {
                         assert_eq!(x509.registration_id().unwrap(), "register me fool");
-                        assert_eq!(x509.identity_cert_uri().unwrap(), Url::parse("file:///some/path/mr.t.cer.pem").unwrap());
-                        assert_eq!(x509.identity_pk_uri().unwrap(), Url::parse("file:///some/path/mr.t.pk.pem").unwrap());
-                        assert_eq!(x509.identity_cert().unwrap().to_str().unwrap(), "/some/path/mr.t.cer.pem");
-                        assert_eq!(x509.identity_pk().unwrap().to_str().unwrap(), "/some/path/mr.t.pk.pem");
+                        assert_eq!(
+                            x509.identity_cert_uri().unwrap(),
+                            Url::parse("file:///some/path/mr.t.cer.pem").unwrap()
+                        );
+                        assert_eq!(
+                            x509.identity_pk_uri().unwrap(),
+                            Url::parse("file:///some/path/mr.t.pk.pem").unwrap()
+                        );
+                        assert_eq!(
+                            x509.identity_cert().unwrap().to_str().unwrap(),
+                            "/some/path/mr.t.cer.pem"
+                        );
+                        assert_eq!(
+                            x509.identity_pk().unwrap().to_str().unwrap(),
+                            "/some/path/mr.t.pk.pem"
+                        );
                     }
                     _ => unreachable!(),
                 }

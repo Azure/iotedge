@@ -1309,9 +1309,7 @@ fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failur
         return Ok(CheckResult::Skipped);
     };
 
-    let device_ca_cert_path = if let Some(certificates) =
-        settings.certificates()
-    {
+    let device_ca_cert_path = if let Some(certificates) = settings.certificates() {
         let path = certificates.device_ca_cert()?;
         path.to_owned()
     } else {

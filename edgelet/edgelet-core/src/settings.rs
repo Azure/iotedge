@@ -310,13 +310,22 @@ impl Listen {
 
 #[derive(Clone, Copy, Debug, Fail)]
 pub enum CertificateConfigError {
-    #[fail(display = "URI scheme is unsupported for '{}'. Please check the config.yaml certificates section.", _0)]
+    #[fail(
+        display = "URI scheme is unsupported for '{}'. Please check the config.yaml certificates section.",
+        _0
+    )]
     UnsupportedScheme(&'static str),
 
-    #[fail(display = "Invalid path specified for '{}'. Please check the config.yaml certificates section.", _0)]
+    #[fail(
+        display = "Invalid path specified for '{}'. Please check the config.yaml certificates section.",
+        _0
+    )]
     InvalidPath(&'static str),
 
-    #[fail(display = "Malformed URI specified for '{}'. Please check the config.yaml certificates section.", _0)]
+    #[fail(
+        display = "Malformed URI specified for '{}'. Please check the config.yaml certificates section.",
+        _0
+    )]
     MalformedUri(&'static str),
 }
 
@@ -328,17 +337,14 @@ pub struct Certificates {
 }
 
 fn is_supported_uri(uri: &Url) -> bool {
-    if uri.scheme() == "file" &&
-        uri.port().is_none() &&
-        uri.query().is_none() {
+    if uri.scheme() == "file" && uri.port().is_none() && uri.query().is_none() {
         true
     } else {
         false
     }
 }
 
-fn get_path_from_uri(uri: &Url, variable: &'static str) -> Result<PathBuf, CertificateConfigError>
-{
+fn get_path_from_uri(uri: &Url, variable: &'static str) -> Result<PathBuf, CertificateConfigError> {
     if is_supported_uri(&uri) {
         let path = PathBuf::from(uri.path());
         Ok(path)
@@ -347,14 +353,13 @@ fn get_path_from_uri(uri: &Url, variable: &'static str) -> Result<PathBuf, Certi
     }
 }
 
-fn convert_to_path(maybe_uri: &str, variable: &'static str) -> Result<PathBuf, CertificateConfigError> {
+fn convert_to_path(
+    maybe_uri: &str,
+    variable: &'static str,
+) -> Result<PathBuf, CertificateConfigError> {
     match Url::parse(maybe_uri) {
-        Ok(uri) => {
-            get_path_from_uri(&uri, variable)
-        },
-        Err(_) => {
-            Ok(PathBuf::from(maybe_uri))
-        }
+        Ok(uri) => get_path_from_uri(&uri, variable),
+        Err(_) => Ok(PathBuf::from(maybe_uri)),
     }
 }
 
@@ -366,14 +371,14 @@ fn convert_to_uri(maybe_uri: &str, variable: &'static str) -> Result<Url, Certif
             } else {
                 Err(CertificateConfigError::UnsupportedScheme(variable))
             }
-        },
+        }
         Err(_) => {
-            let path = PathBuf::from(maybe_uri).canonicalize()
-                        .map_err(|_| {CertificateConfigError::InvalidPath(variable)})?;
+            let path = PathBuf::from(maybe_uri)
+                .canonicalize()
+                .map_err(|_| CertificateConfigError::InvalidPath(variable))?;
             let uri = format!("file:://{:?}", path.to_str());
-            let url = Url::parse(&uri).map_err(|_|
-                { CertificateConfigError::MalformedUri(variable) },
-            )?;
+            let url =
+                Url::parse(&uri).map_err(|_| CertificateConfigError::MalformedUri(variable))?;
             Ok(url)
         }
     }

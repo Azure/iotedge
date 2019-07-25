@@ -259,9 +259,8 @@ where
             );
         }
 
-        set_iot_edge_env_vars(&settings).context(ErrorKind::Initialize(
-            InitializeErrorReason::LoadSettings,
-        ))?;
+        set_iot_edge_env_vars(&settings)
+            .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
 
         info!("Initializing hsm...");
         let crypto = Crypto::new(hsm_lock.clone())
@@ -547,19 +546,28 @@ where
             let path = c.device_ca_cert().context(ErrorKind::Initialize(
                 InitializeErrorReason::CertificateSettings,
             ))?;
-            info!("Configuring the Device CA certificate using {:?}.", path.as_os_str());
+            info!(
+                "Configuring the Device CA certificate using {:?}.",
+                path.as_os_str()
+            );
             env::set_var(DEVICE_CA_CERT_KEY, path);
 
             let path = c.device_ca_pk().context(ErrorKind::Initialize(
                 InitializeErrorReason::CertificateSettings,
             ))?;
-            info!("Configuring the Device private key using {:?}.", path.as_os_str());
+            info!(
+                "Configuring the Device private key using {:?}.",
+                path.as_os_str()
+            );
             env::set_var(DEVICE_CA_PK_KEY, path);
 
             let path = c.trusted_ca_certs().context(ErrorKind::Initialize(
                 InitializeErrorReason::CertificateSettings,
             ))?;
-            info!("Configuring the trusted CA certificates using {:?}.", path.as_os_str());
+            info!(
+                "Configuring the trusted CA certificates using {:?}.",
+                path.as_os_str()
+            );
             env::set_var(TRUSTED_CA_CERTS_KEY, path);
         }
     };
@@ -891,7 +899,10 @@ where
     Ok(key_bytes.to_vec())
 }
 
-fn compute_settings_digest<S>(settings: &S, id_cert_thumbprint: Option<&str>) -> Result<String, DiffError>
+fn compute_settings_digest<S>(
+    settings: &S,
+    id_cert_thumbprint: Option<&str>,
+) -> Result<String, DiffError>
 where
     S: RuntimeSettings + Serialize,
 {
@@ -906,7 +917,11 @@ fn diff_with_cached<S>(settings: &S, path: &Path, id_cert_thumbprint: Option<&st
 where
     S: RuntimeSettings + Serialize,
 {
-    fn diff_with_cached_inner<S>(cached_settings: &S, path: &Path, id_cert_thumbprint: Option<&str>) -> Result<bool, DiffError>
+    fn diff_with_cached_inner<S>(
+        cached_settings: &S,
+        path: &Path,
+        id_cert_thumbprint: Option<&str>,
+    ) -> Result<bool, DiffError>
     where
         S: RuntimeSettings + Serialize,
     {
@@ -956,7 +971,7 @@ fn check_settings_state<M, C>(
     runtime: &M::ModuleRuntime,
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
-    id_cert_thumbprint: Option<&str>
+    id_cert_thumbprint: Option<&str>,
 ) -> Result<(), Error>
 where
     M: MakeModuleRuntime + 'static,
@@ -983,7 +998,15 @@ where
         };
     }
     if reconfig_reqd {
-        reconfigure::<M, _>(subdir, filename, settings, runtime, crypto, tokio_runtime, id_cert_thumbprint)?;
+        reconfigure::<M, _>(
+            subdir,
+            filename,
+            settings,
+            runtime,
+            crypto,
+            tokio_runtime,
+            id_cert_thumbprint,
+        )?;
     }
     Ok(())
 }
@@ -2390,10 +2413,16 @@ mod tests {
             .unwrap();
 
         // check if there is no diff
-        assert_eq!(diff_with_cached(&settings, &path, Some("thumbprint-1")), false);
+        assert_eq!(
+            diff_with_cached(&settings, &path, Some("thumbprint-1")),
+            false
+        );
 
         // now modify only the cert thumbprint and test if there is a diff
-        assert_eq!(diff_with_cached(&settings, &path, Some("thumbprint-2")), true);
+        assert_eq!(
+            diff_with_cached(&settings, &path, Some("thumbprint-2")),
+            true
+        );
     }
 
     #[test]
