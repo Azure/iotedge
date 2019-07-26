@@ -80,7 +80,7 @@ jobs:
           ],
           "packagePath": "$(System.ArtifactsDirectory)/iotedged-ubuntu-16.04-amd64",
           "caCertScriptPath": "$(Build.SourcesDirectory)/tools/CACertificates",
-          "rootCaCertificatePath": "$testDir/certs/rsa_root_ca.cert.pem"
+          "rootCaCertificatePath": "$testDir/certs/rsa_root_ca.cert.pem",
           "rootCaPrivateKeyPath": "$testDir/certs/rsa_root_ca.key.pem",
           "logFile": "$binDir/testoutput.log"
         }
