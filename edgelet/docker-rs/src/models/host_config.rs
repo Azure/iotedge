@@ -9,11 +9,11 @@
  */
 
 /// HostConfig : Container configuration that depends on the host we are running on
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct HostConfig {
     /// An integer value representing this container's relative CPU weight versus other containers.
     #[serde(rename = "CpuShares", skip_serializing_if = "Option::is_none")]

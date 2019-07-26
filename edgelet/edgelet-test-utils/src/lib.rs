@@ -12,6 +12,7 @@
 use std::net::TcpListener;
 
 pub mod cert;
+pub mod crypto;
 pub mod identity;
 mod json_connector;
 pub mod module;

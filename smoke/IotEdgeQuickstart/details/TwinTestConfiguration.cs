@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace IotEdgeQuickstart.Details
 {
-    using System.Collections.Generic;
     using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
 

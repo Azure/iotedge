@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use crate::DEFAULT_NETWORKID;
-use serde_derive::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Network {
     name: String,
 
@@ -51,7 +50,7 @@ impl Network {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
 pub struct Ipam {
     #[serde(rename = "config", skip_serializing_if = "Option::is_none")]
     config: Option<Vec<IpamConfig>>,
@@ -68,7 +67,7 @@ impl Ipam {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
 pub struct IpamConfig {
     #[serde(rename = "gateway", skip_serializing_if = "Option::is_none")]
     gateway: Option<String>,
@@ -109,7 +108,7 @@ impl IpamConfig {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(untagged)]
 pub enum MobyNetwork {
     Network(Network),
