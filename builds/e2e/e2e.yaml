@@ -23,7 +23,7 @@ jobs:
         secretsFilter: >-
           TestContainerRegistryPassword,
           TestEventHubCompatibleEndpoint,
-          TestIotHubConnectionString
+          TestIotHubConnectionString,
           TestRootCaCertificate,
           TestRootCaKey,
           TestRootCaPassword
