@@ -28,9 +28,11 @@ use edgelet_http::UrlConnector;
 use futures::future::{self, loop_fn, Either, Loop};
 use futures::{Future, IntoFuture, Stream};
 use humantime::format_duration;
-use hyper::{Client as HyperClient, Method};
+use http::Uri;
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Client as HyperClient, Method, Request};
 use hyper_tls::HttpsConnector;
-use log::{debug, info};
+use log::{debug, error, info};
 use serde_json::Value as JsonValue;
 use tokio::timer::{Delay, Interval};
 
@@ -155,8 +157,8 @@ pub fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + 
     future::join_all(all_futures)
         .and_then(move |_| {
             info!("Preparing report");
-
             let report = &mut *report_copy.lock().unwrap();
+            debug!("alert url: {:?}, report: {:?}", &settings.alert().url(), report);
             let report_id = report.id().to_string();
             report.add_attachment(
                 LOGS_FILE_NAME,
@@ -172,6 +174,8 @@ pub fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + 
                 "Test report generated at: {}",
                 Utc::now().to_rfc3339()
             ));
+
+            info!("Serialize report to json");
             serde_json::to_value(report)
                 .map_err(Error::from)
                 .map(|report_json| Either::A(raise_alert(&settings, report_json)))
@@ -352,38 +356,46 @@ pub fn raise_alert(
         serde_json::to_string_pretty(&report_json).unwrap()
     );
 
-    settings
-        .alert()
-        .to_url()
-        .and_then(|alert_url| {
-            HttpsConnector::new(4)
-                .map(|connector| (alert_url, connector))
-                .map_err(Error::from)
-        })
+    HttpsConnector::new(4)
+        .map(|connector| (settings.alert().url().clone(), connector))
+        .map_err(Error::from)
         .map(|(alert_url, connector)| {
-            let client = client::Client::new(
-                HyperClientService::new(HyperClient::builder().build(connector)),
-                alert_url,
-            );
+            let mut builder = Request::builder();
+            let uri = alert_url.as_str().parse::<Uri>().expect("Unexpected Url to Uri conversion failure");
+            let req = builder.method(Method::POST).uri(uri);
+            let serialized = serde_json::to_string(&report_json).unwrap();
+            req.header(CONTENT_TYPE, "text/json");
+            req.header(CONTENT_LENGTH, format!("{}", serialized.len()).as_str());
 
-            Either::A(
-                client
-                    .request::<JsonValue, ()>(
-                        Method::POST,
-                        settings.alert().path(),
-                        Some(
-                            settings
-                                .alert()
-                                .query()
-                                .iter()
-                                .map(|(k, v)| (k.as_str(), v.as_str()))
-                                .collect(),
-                        ),
-                        Some(report_json),
-                        false,
-                    )
-                    .map(|_| ()),
-            )
+            let hyper_client = HyperClient::builder().build(connector);
+            let request = req.body(Body::from(serialized)).unwrap();
+            debug!("send request to {}", request.uri());
+            let result = hyper_client
+                .request(request)
+                .map_err(move |err| {
+                    error!("HTTP request to {:?} failed with {:?}", alert_url, err);
+                    Error::from(err)
+                })
+                .and_then(|resp| {
+                    let status = resp.status();
+                    debug!("HTTP request succeeded with status {}", status);
+                    resp.into_body()
+                        .concat2()
+                        .map(move |body| (status, body))
+                        .map_err(|err| {
+                            error!("Reading response body failed with {:?}", err);
+                            Error::from(err)
+                        })
+                        .and_then(move |(status, body)| {
+                            if status.is_success() {
+                                Ok(())
+                            } else {
+                                Err(Error::from((status, &*body)))
+                            }
+                        })
+                });
+
+            Either::A(result.into_future())
         })
         .unwrap_or_else(|err| Either::B(future::err(err)))
 }

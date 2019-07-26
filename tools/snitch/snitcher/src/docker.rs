@@ -40,7 +40,7 @@ where
 
         self.client.request::<(), Vec<Container>>(
             Method::GET,
-            "containers/json",
+            "/containers/json",
             Some(query),
             None,
             false,
@@ -55,7 +55,7 @@ where
         self.client
             .request_bytes::<()>(
                 Method::GET,
-                &format!("containers/{}/logs", id),
+                &format!("/containers/{}/logs", id),
                 Some(query),
                 None,
                 false,

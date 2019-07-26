@@ -5,6 +5,7 @@ use std::str;
 use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
+use edgelet_core::UrlExt;
 use edgelet_http::UrlConnector;
 use futures::future::{self, IntoFuture};
 use futures::{Future, Stream};
@@ -70,9 +71,15 @@ where
         let path_copy = path.to_owned();
 
         let scheme = self.host_name.scheme();
-        let base_path = self.host_name.as_str();
+        let base_path = self.host_name.to_base_path().expect(&format!(
+            "Error when parsing base path from {}",
+            self.host_name.as_str()
+        ));
         let path = format!("{}{}", path, query);
-        UrlConnector::build_hyper_uri(scheme, base_path, &path)
+        UrlConnector::build_hyper_uri(
+                scheme, 
+                base_path.to_str().expect(&format!("Invalid base path {:?}", base_path)), 
+                &path)
             .map_err(Error::from)
             .and_then(|url| {
                 debug!("Making HTTP request with URL: {}", url);
@@ -97,12 +104,14 @@ where
                 }
             })
             .map(move |req| {
+                let uri = req.uri().clone();
+
                 self.service
                     .lock()
                     .unwrap()
                     .call(req)
-                    .map_err(|err| {
-                        error!("HTTP request failed with {:?}", err);
+                    .map_err(move |err| {
+                        error!("HTTP request to {:?} failed with {:?}", uri, err);
                         Error::from(err)
                     })
                     .and_then(|resp| {
@@ -150,6 +159,8 @@ where
             .and_then(|bytes| {
                 bytes
                     .map(|bytes| {
+                        debug!("Request from bytes: {}", String::from_utf8_lossy(&bytes));
+
                         serde_json::from_slice::<ResponseT>(&bytes)
                             .map_err(Error::from)
                             .map(|resp| future::ok(Some(resp)))
