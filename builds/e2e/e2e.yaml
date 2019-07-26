@@ -63,6 +63,8 @@ jobs:
         imagePrefix='$(cr.address)/$(cr.labelPrefix)azureiotedge'
         imageTag="$imageId-linux-amd64"
 
+        mkdir -p "$binDir"
+
         > "$binDir/context.json" cat <<-EOF
         {
           "edgeAgentImage": "$imagePrefix-agent:$imageTag",
