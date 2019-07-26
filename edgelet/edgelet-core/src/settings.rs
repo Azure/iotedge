@@ -268,7 +268,7 @@ impl External {
 #[serde(rename_all = "lowercase")]
 pub enum Provisioning {
     Manual(Manual),
-    Dps(Dps),
+    Dps(Box<Dps>),
     External(External),
 }
 
@@ -337,11 +337,10 @@ pub struct Certificates {
 }
 
 fn is_supported_uri(uri: &Url) -> bool {
-    if uri.scheme() == "file" && uri.port().is_none() && uri.query().is_none() {
-        true
-    } else {
-        false
+    if uri.scheme() == "file" && uri.port().is_none() && uri.query().is_none() && uri.host().is_none() {
+        return true;
     }
+    false
 }
 
 fn get_path_from_uri(uri: &Url, variable: &'static str) -> Result<PathBuf, CertificateConfigError> {
@@ -364,23 +363,20 @@ fn convert_to_path(
 }
 
 fn convert_to_uri(maybe_uri: &str, variable: &'static str) -> Result<Url, CertificateConfigError> {
-    match Url::parse(maybe_uri) {
-        Ok(uri) => {
-            if is_supported_uri(&uri) {
-                Ok(uri)
-            } else {
-                Err(CertificateConfigError::UnsupportedScheme(variable))
-            }
+    if let Ok(uri) = Url::parse(maybe_uri) {
+        if is_supported_uri(&uri) {
+            Ok(uri)
+        } else {
+            Err(CertificateConfigError::UnsupportedScheme(variable))
         }
-        Err(_) => {
-            let path = PathBuf::from(maybe_uri)
-                .canonicalize()
-                .map_err(|_| CertificateConfigError::InvalidPath(variable))?;
-            let uri = format!("file:://{:?}", path.to_str());
-            let url =
-                Url::parse(&uri).map_err(|_| CertificateConfigError::MalformedUri(variable))?;
-            Ok(url)
-        }
+    } else {
+        let path = PathBuf::from(maybe_uri)
+            .canonicalize()
+            .map_err(|_| CertificateConfigError::InvalidPath(variable))?;
+        let file_uri = format!("file:://{:?}", path.to_str());
+        let url =
+            Url::parse(&file_uri).map_err(|_| CertificateConfigError::MalformedUri(variable))?;
+        Ok(url)
     }
 }
 

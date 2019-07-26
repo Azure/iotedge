@@ -1332,13 +1332,12 @@ fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failur
             }
         }
 
-        let device_ca_cert_path = device_ca_cert_path.ok_or_else(|| {
+        device_ca_cert_path.ok_or_else(|| {
             Context::new(format!(
                 "Could not find device CA certificate under {}",
                 certs_dir.display(),
             ))
-        })?;
-        device_ca_cert_path
+        })?
     };
     check_certificate_expiry(device_ca_cert_path)
 }
