@@ -2,6 +2,7 @@
 # completion triggers' are not yet supported in YAML. Set to 'none' here
 # and override in the online editor.
 trigger: none
+pr: none
 jobs:
 
 ################################################################################
