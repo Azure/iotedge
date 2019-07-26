@@ -107,7 +107,6 @@ jobs:
         buildPlatform: Linux amd64
 
     - script: |
-        set -x
         binDir='$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1'
         logDir='$(System.ArtifactsDirectory)/logs'
 
