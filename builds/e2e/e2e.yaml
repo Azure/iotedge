@@ -99,6 +99,7 @@ jobs:
         E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
 
     - task: PublishTestResults@2
+      displayName: Publish test results
       inputs:
         testResultsFormat: vstest
         testResultsFiles: '**/*.trx'
@@ -109,9 +110,7 @@ jobs:
     - script: |
         binDir='$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1'
         logDir='$(System.ArtifactsDirectory)/logs'
-
         mkdir -p "$logDir"
-
         echo > "$logDir/$(Build.DefinitionName)-$(Build.BuildNumber)"
         cp -r "$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/TestResults" "$logDir/"
         # The setup fixture runs outside the scope of any test, so its logs (*-test-*.log) aren't
