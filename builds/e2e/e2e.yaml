@@ -47,8 +47,8 @@ jobs:
         printf '%s' "$ROOT_KEY" > "$testDir/certs/rsa_root_ca.key.pem"
       displayName: Install CA keys
       env:
-        ROOT_CERT: $(RootCaCertificate)
-        ROOT_KEY: $(RootCaKey)
+        ROOT_CERT: $(TestRootCaCertificate)
+        ROOT_KEY: $(TestRootCaKey)
 
     - script: |
         imageId='$(az.pipeline.images.buildId)'
@@ -93,10 +93,10 @@ jobs:
           dotnet test --logger:trx $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test
       displayName: Run tests
       env:
-        E2E_EVENT_HUB_ENDPOINT: $(EventHubCompatibleEndpoint)
-        E2E_IOT_HUB_CONNECTION_STRING: $(IotHubConnectionString)
-        E2E_REGISTRIES__0__PASSWORD: $(ContainerRegistryPassword)
-        E2E_ROOT_CA_PASSWORD: $(RootCaPassword)
+        E2E_EVENT_HUB_ENDPOINT: $(TestEventHubCompatibleEndpoint)
+        E2E_IOT_HUB_CONNECTION_STRING: $(TestIotHubConnectionString)
+        E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
+        E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
 
     - script: |
         binDir='$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1'
