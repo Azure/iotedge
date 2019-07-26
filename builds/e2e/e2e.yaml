@@ -111,7 +111,6 @@ jobs:
         # included in the TRX. Copy them manually here.
         cp "$binDir/"*-test-*.log "$logDir/"
         cp "$binDir/testoutput.log" "$logDir/"
-        cp "$binDir/context.json" "$logDir/"
       displayName: Collect Logs
       condition: succeededOrFailed()
 
