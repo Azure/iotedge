@@ -105,8 +105,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 module,
                 Constants.K8sNamespace,
                 follow: follow,
-                tailLines: tailLines == default(int) ? null : (int?)tailLines,
-                sinceSeconds: sinceSec == default(int) ? null : (int?)sinceSec,
+                tailLines: tailLines == default(int) ? default(int?) : (int?)tailLines,
+                sinceSeconds: sinceSec == default(int) ? default(int?) : (int?)sinceSec,
                 cancellationToken: cancellationToken);
         }
 

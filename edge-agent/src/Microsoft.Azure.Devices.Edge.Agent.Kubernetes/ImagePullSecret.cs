@@ -60,7 +60,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             //     }
             //   }
             // }
-            
             var auths = new Auth(
                 this.dockerAuth.ServerAddress,
                 new AuthEntry(this.dockerAuth.Username, this.dockerAuth.Password));
