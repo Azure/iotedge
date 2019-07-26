@@ -98,6 +98,14 @@ jobs:
         E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
         E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
 
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: vstest
+        testResultsFiles: '**/*.trx'
+        searchFolder: $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test
+        testRunTitle: End-to-end tests ($(Build.BuildNumber))
+        buildPlatform: Linux amd64
+
     - script: |
         set -x
         binDir='$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1'
