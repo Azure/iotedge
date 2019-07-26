@@ -125,5 +125,5 @@ jobs:
       displayName: Publish logs
       inputs:
         PathtoPublish: $(System.ArtifactsDirectory)/logs
-        ArtifactName: logs-$(Build.DefinitionName)-$(Build.BuildNumber)
+        ArtifactName: logs-end-to-end-$(Build.BuildNumber)
       condition: succeededOrFailed()
