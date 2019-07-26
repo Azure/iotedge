@@ -260,6 +260,7 @@ jobs:
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.windows)
           itemPattern: |
+            $(images.artifact.name.windows)/CACertificates/*
             $(images.artifact.name.windows)/IotEdgeQuickstart/x64/*
             $(images.artifact.name.windows)/e2e_deployment_files/stress_deployment.template.windows.json
             $(images.artifact.name.windows)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1
