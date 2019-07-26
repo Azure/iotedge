@@ -106,10 +106,10 @@ jobs:
         mkdir -p "$logDir"
 
         echo > "$logDir/$(Build.DefinitionName)-$(Build.BuildNumber)"
-        cp -r "$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/TestResults $logDir/"
+        cp -r "$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/TestResults" "$logDir/"
         # The setup fixture runs outside the scope of any test, so its logs (*-test-*.log) aren't
         # included in the TRX. Copy them manually here.
-        cp "$binDir/*-test-*.log" "$logDir/"
+        cp "$binDir/"*-test-*.log "$logDir/"
         cp "$binDir/testoutput.log" "$logDir/"
         cp "$binDir/context.json" "$logDir/"
       displayName: Collect Logs
@@ -119,5 +119,5 @@ jobs:
       displayName: Publish logs
       inputs:
         PathtoPublish: $(System.ArtifactsDirectory)/logs
-        ArtifactName: logs
+        ArtifactName: logs-$(Build.DefinitionName)-$(Build.BuildNumber)
       condition: succeededOrFailed()
