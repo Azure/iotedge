@@ -651,7 +651,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     this.GetExposedPorts(moduleWithDockerConfig.Config.CreateOptions.ExposedPorts)
                         .ForEach(
                             exposedList =>
-                                exposedList.ForEach((item) => portList.Add(new V1ServicePort(item.Port, name: $"{item.Port}-{item.Protocol.ToLower()}", protocol: item.Protocol))));
+                                exposedList.ForEach((item) => portList.Add(new V1ServicePort(item.Port, name: $"ExposedPort-{item.Port}-{item.Protocol.ToLower()}", protocol: item.Protocol))));
                 }
 
                 // Handle HostConfig PortBindings entries
@@ -670,7 +670,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                                 {
                                     if (int.TryParse(hostBinding.HostPort, out int hostPort))
                                     {
-                                        portList.Add(new V1ServicePort(hostPort, name: $"{port}-{protocol.ToLower()}", protocol: protocol, targetPort: port));
+                                        // If a port entry contains the same "port", then remove it and replace with a new ServicePort that contains a target.
+                                        var duplicate = portList.SingleOrDefault(a => a.Port == hostPort);
+                                        if (duplicate != default(V1ServicePort))
+                                        {
+                                            portList.Remove(duplicate);
+                                        }
+
+                                        portList.Add(new V1ServicePort(hostPort, name: $"HostPort-{port}-{protocol.ToLower()}", protocol: protocol, targetPort: port));
                                         onlyExposedPorts = false;
                                     }
                                     else
