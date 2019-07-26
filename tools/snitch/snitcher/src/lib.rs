@@ -28,6 +28,7 @@ use edgelet_http::UrlConnector;
 use futures::future::{self, loop_fn, Either, Loop};
 use futures::{Future, IntoFuture, Stream};
 use humantime::format_duration;
+use http::Uri;
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Client as HyperClient, Method, Request};
 use hyper_tls::HttpsConnector;
@@ -156,8 +157,8 @@ pub fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + 
     future::join_all(all_futures)
         .and_then(move |_| {
             info!("Preparing report");
-
             let report = &mut *report_copy.lock().unwrap();
+            debug!("alert url: {:?}, report: {:?}", &settings.alert().url(), report);
             let report_id = report.id().to_string();
             report.add_attachment(
                 LOGS_FILE_NAME,
@@ -173,6 +174,8 @@ pub fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + 
                 "Test report generated at: {}",
                 Utc::now().to_rfc3339()
             ));
+
+            info!("Serialize report to json");
             serde_json::to_value(report)
                 .map_err(Error::from)
                 .map(|report_json| Either::A(raise_alert(&settings, report_json)))
@@ -353,24 +356,22 @@ pub fn raise_alert(
         serde_json::to_string_pretty(&report_json).unwrap()
     );
 
-    settings
-        .alert()
-        .to_url()
-        .and_then(|alert_url| {
-            HttpsConnector::new(4)
-                .map(|connector| (alert_url, connector))
-                .map_err(Error::from)
-        })
+    HttpsConnector::new(4)
+        .map(|connector| (settings.alert().url().clone(), connector))
+        .map_err(Error::from)
         .map(|(alert_url, connector)| {
             let mut builder = Request::builder();
-            let req = builder.method(Method::POST).uri(alert_url.to_string());
+            let uri = alert_url.as_str().parse::<Uri>().expect("Unexpected Url to Uri conversion failure");
+            let req = builder.method(Method::POST).uri(uri);
             let serialized = serde_json::to_string(&report_json).unwrap();
             req.header(CONTENT_TYPE, "text/json");
             req.header(CONTENT_LENGTH, format!("{}", serialized.len()).as_str());
 
             let hyper_client = HyperClient::builder().build(connector);
+            let request = req.body(Body::from(serialized)).unwrap();
+            debug!("send request to {}", request.uri());
             let result = hyper_client
-                .request(req.body(Body::from(serialized)).unwrap())
+                .request(request)
                 .map_err(move |err| {
                     error!("HTTP request to {:?} failed with {:?}", alert_url, err);
                     Error::from(err)
