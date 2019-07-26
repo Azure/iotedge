@@ -106,6 +106,7 @@ jobs:
         searchFolder: $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test
         testRunTitle: End-to-end tests ($(Build.BuildNumber))
         buildPlatform: Linux amd64
+      condition: succeededOrFailed()
 
     - script: |
         binDir='$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1'
