@@ -99,12 +99,18 @@ jobs:
         E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
 
     - script: |
+        set -x
         binDir='$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1'
         logDir='$(System.ArtifactsDirectory)/logs'
+
         mkdir -p "$logDir"
+
         echo > "$logDir/$(Build.DefinitionName)-$(Build.BuildNumber)"
-        cp "$binDir/*.log" "$logDir/"
         cp -r "$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/TestResults $logDir/"
+        # The setup fixture runs outside the scope of any test, so its logs (*-test-*.log) aren't
+        # included in the TRX. Copy them manually here.
+        cp "$binDir/*-test-*.log" "$logDir/"
+        cp "$binDir/testoutput.log" "$logDir/"
         cp "$binDir/context.json" "$logDir/"
       displayName: Collect Logs
       condition: succeededOrFailed()
