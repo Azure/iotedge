@@ -100,11 +100,12 @@ jobs:
 
     - script: |
         binDir='$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1'
-        logdir=$(System.ArtifactsDirectory)/logs
-        mkdir -p $logdir
-        echo > "$logdir/$(Build.DefinitionName)-$(Build.BuildNumber)"
-        cp $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1/*.log $logdir/
-        cp -r $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/TestResults $logdir/
+        logDir='$(System.ArtifactsDirectory)/logs'
+        mkdir -p "$logDir"
+        echo > "$logDir/$(Build.DefinitionName)-$(Build.BuildNumber)"
+        cp "$binDir/*.log" "$logDir/"
+        cp -r "$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/TestResults $logDir/"
+        cp "$binDir/context.json" "$logDir/"
       displayName: Collect Logs
       condition: succeededOrFailed()
 
