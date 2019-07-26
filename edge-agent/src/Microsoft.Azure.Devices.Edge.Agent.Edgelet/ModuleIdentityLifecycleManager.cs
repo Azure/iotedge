@@ -80,19 +80,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
             List<IModuleIdentity> moduleIdentities;
 
-            if (!includeUnchangedIdentities)
+            moduleIdentities = upsertedIdentities.Select(m => this.GetModuleIdentity(m)).ToList();
+
+            if (includeUnchangedIdentities)
             {
-                moduleIdentities = upsertedIdentities.Select(m => this.GetModuleIdentity(m)).ToList();
-                // Add the module identity for Edge Agent in the returned dictionary
-                // because is was excluded from the update call.
-                if (identities.ContainsKey(Constants.EdgeAgentModuleIdentityName))
-                {
-                    moduleIdentities.Add(this.GetModuleIdentity(identities[Constants.EdgeAgentModuleIdentityName]));
-                }
+                // If the caller is requesting the unchanged identity, then add all identities found initially - (identites that were deleted + identities that were changed)
+                var removedIdentityList = removeIdentities.ToList();
+                var upsertedIdentityList = moduleIdentities.Select(i => i.ModuleId).ToList();
+                var unchangedIdentities = identities.Where(i => !removedIdentityList.Contains(i.Key) && !upsertedIdentityList.Contains(i.Key));
+                moduleIdentities.AddRange(unchangedIdentities.Select(i => this.GetModuleIdentity(i.Value)));
             }
-            else
+
+            // Add the module identity for Edge Agent in the returned dictionary
+            // because is was excluded from the update call.
+            if (identities.ContainsKey(Constants.EdgeAgentModuleIdentityName))
             {
-                moduleIdentities = (await this.identityManager.GetIdentities()).Select(m => this.GetModuleIdentity(m)).ToList();
+                moduleIdentities.Add(this.GetModuleIdentity(identities[Constants.EdgeAgentModuleIdentityName]));
             }
 
             return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
