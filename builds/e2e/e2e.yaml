@@ -34,7 +34,7 @@ jobs:
       inputs:
         buildType: specific
         project: one
-        pipeline: $(az.pipeline.artifacts)
+        pipeline: $(az.pipeline.packages)
         buildVersionToDownload: latestFromBranch
         branchName: refs/heads/master
         downloadType: specific
