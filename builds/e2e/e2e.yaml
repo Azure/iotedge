@@ -38,7 +38,7 @@ jobs:
         buildVersionToDownload: latestFromBranch
         branchName: refs/heads/master
         downloadType: specific
-        itemPattern: iotedged-ubuntu-16.04-amd64/*.deb
+        itemPattern: iotedged-ubuntu-amd64/*.deb
 
     - script: |
         testDir='$(Pipeline.Workspace)/e2e'
@@ -79,7 +79,7 @@ jobs:
               "username": "$(cr.username)"
             }
           ],
-          "packagePath": "$(System.ArtifactsDirectory)/iotedged-ubuntu-16.04-amd64",
+          "packagePath": "$(System.ArtifactsDirectory)/iotedged-ubuntu-amd64",
           "caCertScriptPath": "$(Build.SourcesDirectory)/tools/CACertificates",
           "rootCaCertificatePath": "$testDir/certs/rsa_root_ca.cert.pem",
           "rootCaPrivateKeyPath": "$testDir/certs/rsa_root_ca.key.pem",
