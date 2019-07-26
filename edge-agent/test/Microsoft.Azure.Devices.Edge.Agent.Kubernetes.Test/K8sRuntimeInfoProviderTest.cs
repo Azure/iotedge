@@ -46,16 +46,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Unit]
-        [Fact]
-        public async void GetModuleLogsTest()
-        {
-            var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            var k8sRuntimeInfo = new KubernetesRuntimeInfoProvider(PodwatchNamespace, client.Object);
-            var result = await k8sRuntimeInfo.GetModuleLogs("module", true, Option.None<int>(), Option.None<int>(), CancellationToken.None);
-            Assert.True(result.Length == 0);
-        }
-
-        [Unit]
         [Theory]
         [MemberData(nameof(SystemResponseData))]
         public async void GetSystemInfoTest(V1NodeList k8SNodes, SystemInfo expectedInfo)
