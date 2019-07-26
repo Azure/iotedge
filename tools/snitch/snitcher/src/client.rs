@@ -72,11 +72,14 @@ where
 
         let scheme = self.host_name.scheme();
         let base_path = self.host_name.to_base_path().expect(&format!(
-            "Error when parse base path from {}",
+            "Error when parsing base path from {}",
             self.host_name.as_str()
         ));
         let path = format!("{}{}", path, query);
-        UrlConnector::build_hyper_uri(scheme, base_path.to_str().unwrap(), &path)
+        UrlConnector::build_hyper_uri(
+                scheme, 
+                base_path.to_str().expect(&format!("Invalid base path {:?}", base_path)), 
+                &path)
             .map_err(Error::from)
             .and_then(|url| {
                 debug!("Making HTTP request with URL: {}", url);
@@ -156,6 +159,8 @@ where
             .and_then(|bytes| {
                 bytes
                     .map(|bytes| {
+                        debug!("Request from bytes: {}", String::from_utf8_lossy(&bytes));
+
                         serde_json::from_slice::<ResponseT>(&bytes)
                             .map_err(Error::from)
                             .map(|resp| future::ok(Some(resp)))
