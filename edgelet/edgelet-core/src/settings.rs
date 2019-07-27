@@ -337,7 +337,11 @@ pub struct Certificates {
 }
 
 fn is_supported_uri(uri: &Url) -> bool {
-    if uri.scheme() == "file" && uri.port().is_none() && uri.query().is_none() && uri.host().is_none() {
+    if uri.scheme() == "file"
+        && uri.port().is_none()
+        && uri.query().is_none()
+        && uri.host().is_none()
+    {
         return true;
     }
     false
@@ -372,9 +376,12 @@ fn convert_to_uri(maybe_uri: &str, variable: &'static str) -> Result<Url, Certif
             Err(CertificateConfigError::UnsupportedScheme(variable))
         }
     } else {
-        let path = PathBuf::from(maybe_uri).canonicalize()
+        let path = PathBuf::from(maybe_uri)
+            .canonicalize()
             .map_err(|_| CertificateConfigError::InvalidPath(variable))?;
-        let path = path.to_str().ok_or_else(|| {CertificateConfigError::InvalidPath(variable)})?;
+        let path = path
+            .to_str()
+            .ok_or_else(|| CertificateConfigError::InvalidPath(variable))?;
         let file_uri = format!("file:://{}", path);
         let url =
             Url::parse(&file_uri).map_err(|_| CertificateConfigError::MalformedUri(variable))?;

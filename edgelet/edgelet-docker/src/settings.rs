@@ -235,8 +235,12 @@ mod tests {
     use super::*;
 
     use std::cmp::Ordering;
+    use std::fs::File;
+    use std::io::prelude::*;
 
-    use config::{File, FileFormat};
+    use config::{File as ConfigFile, FileFormat};
+    use serde_json::json;
+    use tempdir::TempDir;
 
     use edgelet_core::{
         AttestationMethod, IpamConfig, DEFAULT_CONNECTION_STRING, DEFAULT_NETWORKID,
@@ -246,10 +250,6 @@ mod tests {
     static GOOD_SETTINGS: &str = "test/linux/sample_settings.yaml";
     #[cfg(unix)]
     static BAD_SETTINGS: &str = "test/linux/bad_sample_settings.yaml";
-    #[cfg(unix)]
-    static GOOD_SETTINGS_TG1: &str = "test/linux/sample_settings.tg.filepaths.yaml";
-    #[cfg(unix)]
-    static GOOD_SETTINGS_TG2: &str = "test/linux/sample_settings.tg.uris.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_DPS_SYM_KEY: &str = "test/linux/sample_settings.dps.sym.yaml";
     #[cfg(unix)]
@@ -264,10 +264,6 @@ mod tests {
     static BAD_SETTINGS_DPS_DEFAULT: &str = "test/linux/bad_sample_settings.dps.default.yaml";
     #[cfg(unix)]
     static BAD_SETTINGS_DPS_SYM_KEY: &str = "test/linux/bad_sample_settings.dps.sym.yaml";
-    #[cfg(unix)]
-    static X509_GOOD_SETTINGS1: &str = "test/linux/sample_settings.dps.x509.1.yaml";
-    #[cfg(unix)]
-    static X509_GOOD_SETTINGS2: &str = "test/linux/sample_settings.dps.x509.2.yaml";
     #[cfg(unix)]
     static BAD_SETTINGS_DPS_X5091: &str = "test/linux/bad_settings.dps.x509.1.yaml";
     #[cfg(unix)]
@@ -286,10 +282,6 @@ mod tests {
     #[cfg(windows)]
     static BAD_SETTINGS: &str = "test/windows/bad_sample_settings.yaml";
     #[cfg(windows)]
-    static GOOD_SETTINGS_TG1: &str = "test/windows/sample_settings.tg.filepaths.yaml";
-    #[cfg(windows)]
-    static GOOD_SETTINGS_TG2: &str = "test/windows/sample_settings.tg.uris.yaml";
-    #[cfg(windows)]
     static GOOD_SETTINGS_DPS_SYM_KEY: &str = "test/windows/sample_settings.dps.sym.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_CASE_SENSITIVE: &str = "test/windows/case_sensitive.yaml";
@@ -303,10 +295,6 @@ mod tests {
     static BAD_SETTINGS_DPS_DEFAULT: &str = "test/windows/bad_sample_settings.dps.default.yaml";
     #[cfg(windows)]
     static BAD_SETTINGS_DPS_SYM_KEY: &str = "test/windows/bad_sample_settings.dps.sym.yaml";
-    #[cfg(windows)]
-    static X509_GOOD_SETTINGS1: &str = "test/windows/sample_settings.dps.x509.1.yaml";
-    #[cfg(windows)]
-    static X509_GOOD_SETTINGS2: &str = "test/windows/sample_settings.dps.x509.2.yaml";
     #[cfg(windows)]
     static BAD_SETTINGS_DPS_X5091: &str = "test/windows/bad_settings.dps.x509.1.yaml";
     #[cfg(windows)]
@@ -331,7 +319,7 @@ mod tests {
     fn default_in_yaml_matches_constant() {
         let mut config = Config::default();
         config
-            .merge(File::from_str(DEFAULTS, FileFormat::Yaml))
+            .merge(ConfigFile::from_str(DEFAULTS, FileFormat::Yaml))
             .unwrap();
         let settings: Settings = config.try_into().unwrap();
 
@@ -441,26 +429,99 @@ mod tests {
         );
     }
 
+    fn prepare_test_gateway_x509_certificate_settings_yaml(
+        settings_path: &Path,
+        ca_cert_path: &Path,
+        ca_key_path: &Path,
+        trust_bundle_path: &Path,
+        use_uri_format: bool,
+    ) -> String {
+        File::create(&ca_cert_path)
+            .expect("Test cert file could not be created")
+            .write_all(b"CN=Gateway CA")
+            .expect("Test cert file could not be written");
+
+        File::create(&ca_key_path)
+            .expect("Test cert private key file could not be created")
+            .write_all(b"Gateway Private Key")
+            .expect("Test cert private key file could not be written");
+
+        File::create(&trust_bundle_path)
+            .expect("Test trust bundle file could not be created")
+            .write_all(b"Trust me, I'm good for it.")
+            .expect("Test trust bundle file could not be written");
+
+        let (ca_cert_setting, ca_key_setting, trust_bundle_setting) = if use_uri_format {
+            (
+                format!(
+                    "file://{}",
+                    ca_cert_path.canonicalize().unwrap().to_str().unwrap()
+                ),
+                format!(
+                    "file://{}",
+                    ca_key_path.canonicalize().unwrap().to_str().unwrap()
+                ),
+                format!(
+                    "file://{}",
+                    trust_bundle_path.canonicalize().unwrap().to_str().unwrap()
+                ),
+            )
+        } else {
+            (
+                String::from(ca_cert_path.canonicalize().unwrap().to_str().unwrap()),
+                String::from(ca_key_path.canonicalize().unwrap().to_str().unwrap()),
+                String::from(trust_bundle_path.canonicalize().unwrap().to_str().unwrap()),
+            )
+        };
+        let settings_yaml = json!({
+            "provisioning": {
+                "source": "manual",
+                "device_connection_string": "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
+            },
+            "certificates": {
+                "device_ca_cert": ca_cert_setting,
+                "device_ca_pk": ca_key_setting,
+                "trusted_ca_certs": trust_bundle_setting,
+            }}).to_string();
+
+        File::create(&settings_path)
+            .expect("Test settings file could not be created")
+            .write_all(settings_yaml.as_bytes())
+            .expect("Test settings file could not be written");
+
+        settings_yaml
+    }
+
     #[test]
     fn manual_file_gets_sample_tg_file_paths() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_TG1)));
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let ca_cert_path = tmp_dir.path().join("device_ca_cert.pem");
+        let ca_key_path = tmp_dir.path().join("device_ca_pk.pem");
+        let trust_bundle_path = tmp_dir.path().join("trusted_ca_certs.pem");
+        let settings_path = tmp_dir.path().join("test_settings.yaml");
+        prepare_test_gateway_x509_certificate_settings_yaml(
+            &settings_path,
+            &ca_cert_path,
+            &ca_key_path,
+            &trust_bundle_path,
+            false,
+        );
+        let settings = Settings::new(Some(&settings_path)).expect("Settings create failed");
         println!("{:?}", settings);
-        assert!(settings.is_ok());
-        let s = settings.unwrap();
-        let certificates = s.certificates();
+        let certificates = settings.certificates();
         certificates
             .map(|c| {
                 assert_eq!(
-                    c.device_ca_cert().unwrap().to_str().unwrap(),
-                    "/tmp/device_ca_cert.pem"
+                    ca_cert_path.canonicalize().unwrap(),
+                    c.device_ca_cert().unwrap(),
                 );
                 assert_eq!(
-                    c.device_ca_pk().unwrap().to_str().unwrap(),
-                    "/tmp/device_ca_pk.pem"
+                    ca_key_path.canonicalize().unwrap(),
+                    c.device_ca_pk().unwrap(),
                 );
                 assert_eq!(
-                    c.trusted_ca_certs().unwrap().to_str().unwrap(),
-                    "/tmp/trusted_ca_certs.pem"
+                    trust_bundle_path.canonicalize().unwrap(),
+                    c.trusted_ca_certs().unwrap(),
                 );
             })
             .expect("certificates not configured");
@@ -468,25 +529,26 @@ mod tests {
 
     #[test]
     fn manual_file_gets_sample_tg_file_uris() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_TG2)));
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let ca_cert_path = tmp_dir.path().join("device_ca_cert.pem");
+        let ca_key_path = tmp_dir.path().join("device_ca_pk.pem");
+        let trust_bundle_path = tmp_dir.path().join("trusted_ca_certs.pem");
+        let settings_path = tmp_dir.path().join("test_settings.yaml");
+        prepare_test_gateway_x509_certificate_settings_yaml(
+            &settings_path,
+            &ca_cert_path,
+            &ca_key_path,
+            &trust_bundle_path,
+            true,
+        );
+        let settings = Settings::new(Some(&settings_path)).unwrap();
         println!("{:?}", settings);
-        assert!(settings.is_ok());
-        let s = settings.unwrap();
-        let certificates = s.certificates();
+        let certificates = settings.certificates();
         certificates
             .map(|c| {
-                assert_eq!(
-                    c.device_ca_cert().unwrap().to_str().unwrap(),
-                    "/tmp/device_ca_cert.pem"
-                );
-                assert_eq!(
-                    c.device_ca_pk().unwrap().to_str().unwrap(),
-                    "/tmp/device_ca_pk.pem"
-                );
-                assert_eq!(
-                    c.trusted_ca_certs().unwrap().to_str().unwrap(),
-                    "/tmp/trusted_ca_certs.pem"
-                );
+                assert_eq!(ca_cert_path, c.device_ca_cert().unwrap(),);
+                assert_eq!(ca_key_path, c.device_ca_pk().unwrap(),);
+                assert_eq!(trust_bundle_path, c.trusted_ca_certs().unwrap(),);
             })
             .expect("certificates not configured");
     }
@@ -557,13 +619,59 @@ mod tests {
         };
     }
 
+    fn prepare_test_dps_x509_settings_yaml(
+        settings_path: &Path,
+        cert_path: &Path,
+        key_path: &Path,
+    ) -> String {
+        File::create(&cert_path)
+            .expect("Test cert file could not be created")
+            .write_all(b"CN=Mr. T")
+            .expect("Test cert file could not be written");
+
+        File::create(&key_path)
+            .expect("Test cert private key file could not be created")
+            .write_all(b"i pity the fool")
+            .expect("Test cert private key file could not be written");
+
+        let cert_uri = format!(
+            "file://{}",
+            cert_path.canonicalize().unwrap().to_str().unwrap()
+        );
+        let pk_uri = format!(
+            "file://{}",
+            key_path.canonicalize().unwrap().to_str().unwrap()
+        );
+        let settings_yaml = json!({
+        "provisioning": {
+            "source": "dps",
+            "global_endpoint": "scheme://jibba-jabba.net",
+            "scope_id": "i got no time for the jibba-jabba",
+            "attestation": {
+                "method": "x509",
+                "identity_cert": cert_uri,
+                "identity_pk": pk_uri,
+            },
+        }})
+        .to_string();
+        File::create(&settings_path)
+            .expect("Test settings file could not be created")
+            .write_all(settings_yaml.as_bytes())
+            .expect("Test settings file could not be written");
+
+        settings_yaml
+    }
+
     #[test]
     fn dps_prov_x509_default_settings() {
-        let settings = Settings::new(Some(Path::new(X509_GOOD_SETTINGS1)));
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let cert_path = tmp_dir.path().join("test_cert");
+        let key_path = tmp_dir.path().join("test_key");
+        let settings_path = tmp_dir.path().join("test_settings.yaml");
+        prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
+        let settings = Settings::new(Some(&settings_path)).unwrap();
         println!("{:?}", settings);
-        assert!(settings.is_ok());
-        let s = settings.unwrap();
-        match s.provisioning() {
+        match settings.provisioning() {
             Provisioning::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
@@ -572,20 +680,28 @@ mod tests {
                     AttestationMethod::X509(ref x509) => {
                         assert!(x509.registration_id().is_none());
                         assert_eq!(
+                            Url::parse(&format!(
+                                "file://{}",
+                                cert_path.canonicalize().unwrap().to_str().unwrap()
+                            ))
+                            .unwrap(),
                             x509.identity_cert_uri().unwrap(),
-                            Url::parse("file:///some/path/mr.t.cer.pem").unwrap()
                         );
                         assert_eq!(
+                            Url::parse(&format!(
+                                "file://{}",
+                                key_path.canonicalize().unwrap().to_str().unwrap()
+                            ))
+                            .unwrap(),
                             x509.identity_pk_uri().unwrap(),
-                            Url::parse("file:///some/path/mr.t.pk.pem").unwrap()
                         );
                         assert_eq!(
+                            cert_path.to_str().unwrap(),
                             x509.identity_cert().unwrap().to_str().unwrap(),
-                            "/some/path/mr.t.cer.pem"
                         );
                         assert_eq!(
+                            key_path.to_str().unwrap(),
                             x509.identity_pk().unwrap().to_str().unwrap(),
-                            "/some/path/mr.t.pk.pem"
                         );
                     }
                     _ => unreachable!(),
@@ -597,33 +713,44 @@ mod tests {
 
     #[test]
     fn dps_prov_x509_reg_id_and_default_settings() {
-        let settings = Settings::new(Some(Path::new(X509_GOOD_SETTINGS2)));
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let cert_path = tmp_dir.path().join("test_cert");
+        let key_path = tmp_dir.path().join("test_key");
+        let settings_path = tmp_dir.path().join("test_settings.yaml");
+        prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
+        let settings = Settings::new(Some(&settings_path)).unwrap();
         println!("{:?}", settings);
-        assert!(settings.is_ok());
-        let s = settings.unwrap();
-        match s.provisioning() {
+        match settings.provisioning() {
             Provisioning::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
                 match dps.attestation() {
                     AttestationMethod::X509(ref x509) => {
-                        assert_eq!(x509.registration_id().unwrap(), "register me fool");
+                        assert!(x509.registration_id().is_none());
                         assert_eq!(
+                            Url::parse(&format!(
+                                "file://{}",
+                                cert_path.canonicalize().unwrap().to_str().unwrap()
+                            ))
+                            .unwrap(),
                             x509.identity_cert_uri().unwrap(),
-                            Url::parse("file:///some/path/mr.t.cer.pem").unwrap()
                         );
                         assert_eq!(
+                            Url::parse(&format!(
+                                "file://{}",
+                                key_path.canonicalize().unwrap().to_str().unwrap()
+                            ))
+                            .unwrap(),
                             x509.identity_pk_uri().unwrap(),
-                            Url::parse("file:///some/path/mr.t.pk.pem").unwrap()
                         );
                         assert_eq!(
+                            cert_path.to_str().unwrap(),
                             x509.identity_cert().unwrap().to_str().unwrap(),
-                            "/some/path/mr.t.cer.pem"
                         );
                         assert_eq!(
+                            key_path.to_str().unwrap(),
                             x509.identity_pk().unwrap().to_str().unwrap(),
-                            "/some/path/mr.t.pk.pem"
                         );
                     }
                     _ => unreachable!(),
