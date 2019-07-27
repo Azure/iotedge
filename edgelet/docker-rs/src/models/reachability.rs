@@ -9,11 +9,11 @@
  */
 
 /// Reachability : Reachability represents the reachability of a node.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct Reachability {}
 
 impl Reachability {

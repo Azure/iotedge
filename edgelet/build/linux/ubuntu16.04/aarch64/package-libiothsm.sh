@@ -9,8 +9,8 @@ BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 
 BUILD_DIR=$PROJECT_ROOT/target/hsm/build
-CARGO_HOME="$HOME/.cargo/"
-RUSTUP_HOME="$HOME/.rustup"
+CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo/"}
+RUSTUP_HOME=${RUSTUP_HOME:-"$HOME/.rustup"}
 IMAGE="edgebuilds.azurecr.io/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu:ubuntu16.04-1"
 
 PACKAGE_NAME="libiothsm-std"
@@ -35,7 +35,7 @@ run_command()
 }
 
 mkdir -p $BUILD_DIR
-run_command "cd /target/hsm/build && cmake -DCMAKE_SYSROOT=/toolchain/aarch64-linux-gnu/libc -DCMAKE_C_COMPILER=/toolchain/bin/aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=/toolchain/bin/aarch64-linux-gnu-g++ -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_VERSION=1 -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=arm64 -DCPACK_PACKAGE_VERSION=\"$VERSION\" -DBUILD_SHARED=On -Drun_unittests=On -Duse_emulator=Off -Duse_http=Off -DCMAKE_BUILD_TYPE=Release -Duse_default_uuid=On /project/hsm-sys/azure-iot-hsm-c/"
+run_command "cd /target/hsm/build && cmake -DCMAKE_SYSROOT=/toolchain/aarch64-linux-gnu/libc -DCMAKE_C_COMPILER=/toolchain/bin/aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=/toolchain/bin/aarch64-linux-gnu-g++ -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_VERSION=1 -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=arm64 -DCPACK_PACKAGE_VERSION=\"$VERSION\" -DBUILD_SHARED=On -Drun_unittests=off -Duse_emulator=Off -Duse_http=Off -DCMAKE_BUILD_TYPE=Release -Duse_default_uuid=On /project/hsm-sys/azure-iot-hsm-c/"
 
 run_command "cd /target/hsm/build && make package"
 

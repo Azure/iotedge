@@ -9,11 +9,11 @@
  */
 
 /// SwarmSpecOrchestration : Orchestration configuration.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct SwarmSpecOrchestration {
     /// The number of historic tasks to keep per instance or node. If negative, never remove completed or failed tasks.
     #[serde(

@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using Xunit;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
-    using Message = EdgeMessage;
+    using Message = Microsoft.Azure.Devices.Edge.Hub.Core.EdgeMessage;
     using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
 
     [Unit]

@@ -1,14 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::{Fail, ResultExt};
+use failure::ResultExt;
+use futures::future::Either;
 use futures::{Future, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
+use log::debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;
 
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus, RuntimeOperation};
+use edgelet_core::{
+    ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime, ModuleStatus, RuntimeOperation,
+};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use management::models::*;
@@ -50,38 +54,62 @@ where
                 })
                 .and_then(move |(spec, core_spec)| {
                     let module_name = spec.name().to_string();
-                    runtime
-                        .registry()
-                        .pull(core_spec.config())
-                        .then(move |result| match result {
-                            Ok(_) => Ok(runtime.create(core_spec).then(
-                                move |result| -> Result<_, Error> {
+                    let image_pull_policy = core_spec.image_pull_policy();
+
+                    let pull_future = match image_pull_policy {
+                        ImagePullPolicy::OnCreate => {
+                            let name = module_name.clone();
+                            Either::A(runtime.registry().pull(core_spec.config()).then(
+                                move |result| {
                                     result.with_context(|_| {
                                         ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
-                                            module_name.clone(),
+                                            name.clone(),
                                         ))
                                     })?;
-                                    let details = spec_to_details(&spec, ModuleStatus::Stopped);
-                                    let b = serde_json::to_string(&details).with_context(|_| {
-                                        ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
-                                            module_name.clone(),
-                                        ))
-                                    })?;
-                                    let response = Response::builder()
-                                        .status(StatusCode::CREATED)
-                                        .header(CONTENT_TYPE, "application/json")
-                                        .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                                        .body(b.into())
-                                        .context(ErrorKind::RuntimeOperation(
-                                            RuntimeOperation::CreateModule(module_name),
-                                        ))?;
-                                    Ok(response)
+                                    Ok((name, true))
                                 },
-                            )),
-                            Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(
-                                RuntimeOperation::CreateModule(module_name),
-                            )))),
-                        })
+                            ))
+                        }
+                        ImagePullPolicy::Never => {
+                            Either::B(futures::future::ok((module_name.clone(), false)))
+                        }
+                    };
+
+                    pull_future.and_then(move |(name, image_pulled)| -> Result<_, Error> {
+                        if image_pulled {
+                            debug!("Successfully pulled new image for module {}", name)
+                        } else {
+                            debug!(
+                                "Skipped pulling image for module {} as per pull policy",
+                                name
+                            )
+                        }
+
+                        Ok(runtime
+                            .create(core_spec)
+                            .then(move |result| -> Result<_, Error> {
+                                result.with_context(|_| {
+                                    ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                                        name.clone(),
+                                    ))
+                                })?;
+                                let details = spec_to_details(&spec, ModuleStatus::Stopped);
+                                let b = serde_json::to_string(&details).with_context(|_| {
+                                    ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                                        name.clone(),
+                                    ))
+                                })?;
+                                let response = Response::builder()
+                                    .status(StatusCode::CREATED)
+                                    .header(CONTENT_TYPE, "application/json")
+                                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                                    .body(b.into())
+                                    .context(ErrorKind::RuntimeOperation(
+                                        RuntimeOperation::CreateModule(name),
+                                    ))?;
+                                Ok(response)
+                            }))
+                    })
                 })
                 .flatten()
                 .or_else(|e| Ok(e.into_response()));
@@ -97,8 +125,9 @@ mod tests {
     use lazy_static::lazy_static;
     use serde_json::json;
 
-    use edgelet_core::{ModuleRuntimeState, ModuleStatus};
+    use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
+    use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::*;
     use management::models::{Config, ErrorResponse};
 
@@ -106,7 +135,7 @@ mod tests {
     use crate::server::module::tests::Error;
 
     lazy_static! {
-        static ref RUNTIME: TestRuntime<Error> = {
+        static ref RUNTIME: TestRuntime<Error, TestSettings> = {
             let state = ModuleRuntimeState::default()
                 .with_status(ModuleStatus::Running)
                 .with_exit_code(Some(0))
@@ -116,7 +145,14 @@ mod tests {
                 .with_image_id(Some("image-id".to_string()));
             let config = TestConfig::new("microsoft/test-image".to_string());
             let module = TestModule::new("test-module".to_string(), config, Ok(state));
-            TestRuntime::new(Ok(module))
+            TestRuntime::make_runtime(
+                TestSettings::new(),
+                TestProvisioningResult::new(),
+                TestHsm::default(),
+            )
+            .wait()
+            .unwrap()
+            .with_module(Ok(module))
         };
     }
 
@@ -124,7 +160,8 @@ mod tests {
     fn success() {
         let handler = CreateModule::new(RUNTIME.clone());
         let config = Config::new(json!({"image":"microsoft/test-image"}));
-        let spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        spec.set_image_pull_policy("on-create".to_string());
         let request = Request::post("http://localhost/modules")
             .body(serde_json::to_string(&spec).unwrap().into())
             .unwrap();
@@ -188,7 +225,14 @@ mod tests {
 
     #[test]
     fn runtime_error() {
-        let runtime = TestRuntime::new(Err(Error::General));
+        let runtime = TestRuntime::make_runtime(
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Err(Error::General));
         let handler = CreateModule::new(runtime);
         let config = Config::new(json!({"image":"microsoft/test-image"}));
         let spec = ModuleSpec::new("image-id".to_string(), "docker".to_string(), config);
@@ -218,7 +262,14 @@ mod tests {
 
     #[test]
     fn bad_settings() {
-        let runtime = TestRuntime::new(Err(Error::General));
+        let runtime = TestRuntime::make_runtime(
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Err(Error::General));
         let handler = CreateModule::new(runtime);
         let config = Config::new(json!({}));
         let spec = ModuleSpec::new("image-id".to_string(), "docker".to_string(), config);
@@ -240,6 +291,34 @@ mod tests {
                     "Request body is malformed\n\tcaused by: missing field `image`",
                     error.message()
                 );
+                Ok(())
+            })
+            .wait()
+            .unwrap();
+    }
+
+    #[test]
+    fn bad_image_pull_policy() {
+        let handler = CreateModule::new(RUNTIME.clone());
+        let config = Config::new(json!({"image":"microsoft/test-image"}));
+        let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        spec.set_image_pull_policy("what".to_string());
+        let request = Request::post("http://localhost/modules")
+            .body(serde_json::to_string(&spec).unwrap().into())
+            .unwrap();
+
+        // act
+        let response = handler.handle(request, Parameters::new()).wait().unwrap();
+
+        // assert
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
+        response
+            .into_body()
+            .concat2()
+            .and_then(|b| {
+                let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
+                let expected = "Request body is malformed\n\tcaused by: Invalid image pull policy configuration \"what\"";
+                assert_eq!(expected, error_response.message());
                 Ok(())
             })
             .wait()

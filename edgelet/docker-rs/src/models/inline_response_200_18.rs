@@ -9,11 +9,11 @@
  */
 
 /// InlineResponse20018 : Describes a permission the user has to accept upon installing the plugin.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct InlineResponse20018 {
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,

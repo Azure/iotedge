@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::io;
+use std::{cmp, fmt, io};
 
-use edgelet_core::pid::Pid;
 use futures::prelude::*;
 use hyper::service::Service;
 use hyper::{Body, Error as HyperError, Request};
@@ -10,6 +9,62 @@ use hyper::{Body, Error as HyperError, Request};
 use tokio_uds::UnixStream;
 #[cfg(windows)]
 use tokio_uds_windows::UnixStream;
+
+#[derive(Clone, Copy, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+pub enum Pid {
+    None,
+    Any,
+    Value(i32),
+}
+
+impl fmt::Display for Pid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Pid::None => write!(f, "none"),
+            Pid::Any => write!(f, "any"),
+            Pid::Value(pid) => write!(f, "{}", pid),
+        }
+    }
+}
+
+/// Pids are considered not equal when compared against
+/// None, or equal when compared against Any. None takes
+/// precedence, so Any is not equal to None.
+impl cmp::PartialEq for Pid {
+    fn eq(&self, other: &Pid) -> bool {
+        match *self {
+            Pid::None => false,
+            Pid::Any => match *other {
+                Pid::None => false,
+                _ => true,
+            },
+            Pid::Value(pid1) => match *other {
+                Pid::None => false,
+                Pid::Any => true,
+                Pid::Value(pid2) => pid1 == pid2,
+            },
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_eq() {
+        assert_ne!(Pid::None, Pid::None);
+        assert_ne!(Pid::None, Pid::Any);
+        assert_ne!(Pid::None, Pid::Value(42));
+        assert_ne!(Pid::Any, Pid::None);
+        assert_eq!(Pid::Any, Pid::Any);
+        assert_eq!(Pid::Any, Pid::Value(42));
+        assert_ne!(Pid::Value(42), Pid::None);
+        assert_eq!(Pid::Value(42), Pid::Any);
+        assert_eq!(Pid::Value(42), Pid::Value(42));
+        assert_ne!(Pid::Value(0), Pid::Value(42));
+    }
+}
 
 #[derive(Clone)]
 pub struct PidService<T> {
@@ -56,9 +111,10 @@ use self::impl_linux::get_pid;
 
 #[cfg(target_os = "linux")]
 mod impl_linux {
-    use libc::{c_void, getsockopt, ucred, SOL_SOCKET, SO_PEERCRED};
     use std::os::unix::io::AsRawFd;
     use std::{io, mem};
+
+    use libc::{c_void, getsockopt, ucred, SOL_SOCKET, SO_PEERCRED};
     use tokio_uds::UnixStream;
 
     use super::*;
@@ -101,22 +157,26 @@ pub use self::impl_macos::get_pid;
 
 #[cfg(target_os = "macos")]
 pub mod impl_macos {
-    use edgelet_core::pid::Pid;
-    use libc::getpeereid;
+    use std::io;
     use std::os::unix::io::AsRawFd;
-    use std::{io, mem};
-    use tokio_uds::{UCred, UnixStream};
+
+    use libc::getpeereid;
+    use tokio_uds::UnixStream;
+
+    use super::*;
 
     pub fn get_pid(sock: &UnixStream) -> io::Result<Pid> {
         unsafe {
             let raw_fd = sock.as_raw_fd();
 
-            let mut ucred: UCred = mem::uninitialized();
+            let mut uid = 0;
+            let mut gid = 0;
 
-            let ret = getpeereid(raw_fd, &mut ucred.uid, &mut ucred.gid);
+            let ret = getpeereid(raw_fd, &mut uid, &mut gid);
 
             if ret == 0 {
-                Ok(Pid::Value(ucred.uid as _))
+                #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+                Ok(Pid::Value(uid as _))
             } else {
                 Err(io::Error::last_os_error())
             }
@@ -131,6 +191,7 @@ use self::impl_windows::get_pid;
 mod impl_windows {
     use std::io;
     use std::os::windows::io::AsRawSocket;
+
     use winapi::ctypes::c_long;
     use winapi::um::winsock2::{ioctlsocket, WSAGetLastError, SOCKET_ERROR};
 

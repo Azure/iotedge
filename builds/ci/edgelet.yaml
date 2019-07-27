@@ -3,6 +3,7 @@ trigger:
   branches:
     include:
       - master
+      - release/*
 pr: none
 jobs:
 
@@ -74,6 +75,10 @@ jobs:
         displayName: Install Rust
         inputs:
           filePath: edgelet/build/windows/install.ps1
+      - task: PowerShell@2
+        displayName: Clippy
+        inputs:
+          filePath: edgelet/build/windows/clippy.ps1
       - task: PowerShell@2
         displayName: Build
         inputs:

@@ -9,11 +9,11 @@
  */
 
 /// ContainerConfig : Configuration for a container that is portable between hosts
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct ContainerConfig {
     /// The hostname to use for the container, as a valid RFC 1123 hostname.
     #[serde(rename = "Hostname", skip_serializing_if = "Option::is_none")]

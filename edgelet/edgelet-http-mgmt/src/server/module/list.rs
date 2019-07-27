@@ -99,8 +99,9 @@ where
 #[cfg(test)]
 mod tests {
     use chrono::prelude::*;
-    use edgelet_core::{ModuleRuntimeState, ModuleStatus};
+    use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
+    use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::*;
     use futures::Stream;
     use management::models::ModuleList;
@@ -119,9 +120,16 @@ mod tests {
             .with_finished_at(Some(Utc.ymd(2018, 4, 13).and_hms_milli(15, 20, 0, 1)))
             .with_image_id(Some("image-id".to_string()));
         let config = TestConfig::new("microsoft/test-image".to_string());
-        let module: TestModule<Error> =
+        let module: TestModule<Error, _> =
             TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::new(Ok(module));
+        let runtime = TestRuntime::make_runtime(
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let handler = ListModules::new(runtime);
         let request = Request::get("http://localhost/modules")
             .body(Body::default())
@@ -170,7 +178,14 @@ mod tests {
     #[test]
     fn list_failed() {
         // arrange
-        let runtime = TestRuntime::new(Err(Error::General));
+        let runtime = TestRuntime::make_runtime(
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Err(Error::General));
         let handler = ListModules::new(runtime);
         let request = Request::get("http://localhost/modules")
             .body(Body::default())
@@ -200,7 +215,14 @@ mod tests {
         // arrange
         let config = TestConfig::new("microsoft/test-image".to_string());
         let module = TestModule::new("test-module".to_string(), config, Err(Error::General));
-        let runtime = TestRuntime::new(Ok(module));
+        let runtime = TestRuntime::make_runtime(
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let handler = ListModules::new(runtime);
         let request = Request::get("http://localhost/modules")
             .body(Body::default())

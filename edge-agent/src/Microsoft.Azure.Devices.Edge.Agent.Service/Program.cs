@@ -10,6 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Autofac;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -103,6 +105,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 Option<string> productInfo = versionInfo != VersionInfo.Empty ? Option.Some(versionInfo.ToString()) : Option.None<string>();
                 Option<UpstreamProtocol> upstreamProtocol = configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol();
                 Option<IWebProxy> proxy = Proxy.Parse(configuration.GetValue<string>("https_proxy"), logger);
+                bool closeOnIdleTimeout = configuration.GetValue(Constants.CloseOnIdleTimeout, false);
+                int idleTimeoutSecs = configuration.GetValue(Constants.IdleTimeoutSecs, 300);
+                TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
                 string iothubHostname;
                 string deviceId;
                 switch (mode.ToLowerInvariant())
@@ -114,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         deviceId = connectionStringParser.DeviceId;
                         iothubHostname = connectionStringParser.HostName;
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath));
-                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo));
+                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
                         break;
 
                     case Constants.IotedgedMode:
@@ -126,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
                         string apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId)));
-                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo));
+                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
                         break;
 
                     default:
@@ -138,6 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     case "twin":
                         bool enableStreams = configuration.GetValue(Constants.EnableStreams, false);
                         int requestTimeoutSecs = configuration.GetValue(Constants.RequestTimeoutSecs, 600);
+                        bool disableSubscriptions = configuration.GetValue(Constants.DisableCloudSubscriptions, false);
                         builder.RegisterModule(
                             new TwinConfigSourceModule(
                                 iothubHostname,
@@ -147,7 +153,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                                 versionInfo,
                                 TimeSpan.FromSeconds(configRefreshFrequencySecs),
                                 enableStreams,
-                                TimeSpan.FromSeconds(requestTimeoutSecs)));
+                                TimeSpan.FromSeconds(requestTimeoutSecs),
+                                !disableSubscriptions));
                         break;
 
                     case "local":
@@ -169,6 +176,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
+
+            // Register request handlers
+            await RegisterRequestHandlers(container);
+
+            // Initialize stream request listener
+            IStreamRequestListener streamRequestListener = await container.Resolve<Task<IStreamRequestListener>>();
+            streamRequestListener.InitPump();
 
             int returnCode;
             using (IConfigSource unused = await container.Resolve<Task<IConfigSource>>())
@@ -215,6 +229,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             handler.ForEach(h => GC.KeepAlive(h));
             return returnCode;
+        }
+
+        static async Task RegisterRequestHandlers(IContainer container)
+        {
+            var requestHandlerTasks = container.Resolve<IEnumerable<Task<IRequestHandler>>>();
+            IRequestHandler[] requestHandlers = await Task.WhenAll(requestHandlerTasks);
+            IRequestManager requestManager = container.Resolve<IRequestManager>();
+            requestManager.RegisterHandlers(requestHandlers);
         }
 
         static ILogger SetupLogger(IConfiguration configuration)

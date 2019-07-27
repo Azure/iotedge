@@ -16,19 +16,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
         readonly IStreamRequestHandlerProvider streamRequestHandlerProvider;
         readonly SemaphoreSlim streamLock;
         readonly int maxConcurrentStreams;
+        readonly IModuleConnection moduleConnection;
         Task pumpTask;
 
-        public StreamRequestListener(IStreamRequestHandlerProvider streamRequestHandlerProvider, int maxConcurrentStreams = 10)
+        public StreamRequestListener(IStreamRequestHandlerProvider streamRequestHandlerProvider, IEdgeAgentConnection edgeAgentConnection, int maxConcurrentStreams = 10)
         {
             this.streamRequestHandlerProvider = Preconditions.CheckNotNull(streamRequestHandlerProvider, nameof(streamRequestHandlerProvider));
             this.streamLock = new SemaphoreSlim(maxConcurrentStreams);
             this.maxConcurrentStreams = maxConcurrentStreams;
+            this.moduleConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection)).ModuleConnection;
         }
 
-        public void InitPump(IModuleClient moduleClient)
+        public void InitPump()
         {
             Events.StartingPump();
-            this.pumpTask = this.Pump(moduleClient);
+            this.pumpTask = this.Pump(this.moduleConnection);
         }
 
         public void Dispose()
@@ -38,62 +40,64 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
             // Don't dispose the cts here as it can cause an ObjectDisposedException.
         }
 
-        async Task Pump(IModuleClient moduleClient)
+        Task Pump(IModuleConnection moduleConnection)
         {
-            while (!this.cts.IsCancellationRequested)
-            {
-                try
-                {
-                    await this.streamLock.WaitAsync(this.cts.Token);
-                    await this.ProcessStreamRequest(moduleClient);
-                }
-                catch (Exception e)
-                {
-                    Events.ErrorInPump(e);
-                }
-            }
+            return Task.CompletedTask;
+            ////while (!this.cts.IsCancellationRequested)
+            ////{
+            ////    try
+            ////    {
+            ////        await this.streamLock.WaitAsync(this.cts.Token);
+            ////        IModuleClient moduleClient = await moduleConnection.GetOrCreateModuleClient();
+            ////        await this.ProcessStreamRequest(moduleClient);
+            ////    }
+            ////    catch (Exception e)
+            ////    {
+            ////        Events.ErrorInPump(e);
+            ////    }
+            ////}
         }
 
-        async Task ProcessStreamRequest(IModuleClient moduleClient)
-        {
-            Option<(string requestName, IClientWebSocket clientWebSocket)> result = await this.WaitForStreamRequest(moduleClient);
-            // If we don't get a valid stream, release the lock.
-            if (!result.HasValue)
-            {
-                this.streamLock.Release();
-            }
-            else
-            {
-                // We got a WebSocket stream. Pass it to a handler on a background thread. This thread is
-                // responsible for releasing the lock after it completes.
-                result.ForEach(
-                    r =>
-                    {
-                        Events.NewStreamRequest(r.requestName, this.streamLock.CurrentCount, this.maxConcurrentStreams);
-                        this.HandleRequest(r.requestName, r.clientWebSocket);
-                    });
-            }
-        }
+        ////async Task ProcessStreamRequest(IModuleClient moduleClient)
+        ////{
+            ////Option<(string requestName, IClientWebSocket clientWebSocket)> result = await this.WaitForStreamRequest(moduleClient);
+            ////// If we don't get a valid stream, release the lock.
+            ////if (!result.HasValue)
+            ////{
+            ////    this.streamLock.Release();
+            ////}
+            ////else
+            ////{
+            ////    // We got a WebSocket stream. Pass it to a handler on a background thread. This thread is
+            ////    // responsible for releasing the lock after it completes.
+            ////    result.ForEach(
+            ////        r =>
+            ////        {
+            ////            Events.NewStreamRequest(r.requestName, this.streamLock.CurrentCount, this.maxConcurrentStreams);
+            ////            this.HandleRequest(r.requestName, r.clientWebSocket);
+            ////        });
+            ////}
+        ////}
 
-        async Task<Option<(string requestName, IClientWebSocket clientWebSocket)>> WaitForStreamRequest(IModuleClient moduleClient)
-        {
-            var result = Option.None<(string, IClientWebSocket)>();
-            try
-            {
-                DeviceStreamRequest deviceStreamRequest = await moduleClient.WaitForDeviceStreamRequestAsync(this.cts.Token);
-                if (deviceStreamRequest != null)
-                {
-                    IClientWebSocket clientWebSocket = await moduleClient.AcceptDeviceStreamingRequestAndConnect(deviceStreamRequest, this.cts.Token);
-                    result = Option.Some((deviceStreamRequest.Name, clientWebSocket));
-                }
-            }
-            catch (Exception ex)
-            {
-                Events.ErrorGettingStream(ex);
-            }
+        ////async Task<Option<(string requestName, IClientWebSocket clientWebSocket)>> WaitForStreamRequest(IModuleClient moduleClient)
+        ////{
+        ////    var result = Option.None<(string, IClientWebSocket)>();
+        ////    try
+        ////    {
+        ////        DeviceStreamRequest deviceStreamRequest = await moduleClient.WaitForDeviceStreamRequestAsync(this.cts.Token);
+        ////        if (deviceStreamRequest != null)
+        ////        {
+        ////            IClientWebSocket clientWebSocket = await moduleClient.AcceptDeviceStreamingRequestAndConnect(deviceStreamRequest, this.cts.Token);
+        ////            result = Option.Some((deviceStreamRequest.Name, clientWebSocket));
+        ////        }
+        ////    }
+        ////    catch (Exception ex)
+        ////    {
+        ////        Events.ErrorGettingStream(ex);
+        ////    }
 
-            return result;
-        }
+        ////    return result;
+        ////}
 
         async void HandleRequest(string requestName, IClientWebSocket clientWebSocket)
         {

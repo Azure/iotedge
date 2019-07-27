@@ -15,8 +15,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Storage.RocksDb;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net;
     using Microsoft.Extensions.Logging;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
+    using MetricsListener = Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net.MetricsListener;
 
     public class CommonModule : Module
     {
@@ -37,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool persistTokens;
         readonly IList<X509Certificate2> trustBundle;
         readonly string proxy;
+        readonly MetricsConfig metricsConfig;
 
         public CommonModule(
             string productInfo,
@@ -55,7 +60,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             TimeSpan scopeCacheRefreshRate,
             bool persistTokens,
             IList<X509Certificate2> trustBundle,
-            string proxy)
+            string proxy,
+            MetricsConfig metricsConfig)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -74,10 +80,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.persistTokens = persistTokens;
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
+            this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
         }
 
         protected override void Load(ContainerBuilder builder)
         {
+            // IMetricsListener
+            builder.Register(
+                    c =>
+                        this.metricsConfig.Enabled
+                            ? new MetricsListener(this.metricsConfig.ListenerConfig)
+                            : new NullMetricsListener() as IMetricsListener)
+                .As<IMetricsListener>()
+                .SingleInstance();
+
+            // IMetricsProvider
+            builder.Register(
+                    c =>
+                        this.metricsConfig.Enabled
+                            ? new MetricsProvider(MetricsConstants.EdgeHubMetricPrefix, this.iothubHostName, this.edgeDeviceId)
+                            : new NullMetricsProvider() as IMetricsProvider)
+                .As<IMetricsProvider>()
+                .SingleInstance();
+
             // ISignatureProvider
             builder.Register(
                     c =>
@@ -147,12 +172,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IProductInfoStore
-            builder.Register(c =>
-                {
-                    var storeProvider = c.Resolve<IStoreProvider>();
-                    IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ProductInfo");
-                    return new ProductInfoStore(entityStore, this.productInfo);
-                })
+            builder.Register(
+                    c =>
+                    {
+                        var storeProvider = c.Resolve<IStoreProvider>();
+                        IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ProductInfo");
+                        return new ProductInfoStore(entityStore, this.productInfo);
+                    })
                 .As<IProductInfoStore>()
                 .SingleInstance();
 

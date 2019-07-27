@@ -40,6 +40,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         Task RemoveDesiredPropertyUpdatesAsync();
 
-        void StartListening();
+        Task StartListening();
     }
 }

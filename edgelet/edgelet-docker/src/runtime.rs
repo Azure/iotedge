@@ -7,9 +7,10 @@ use std::time::Duration;
 
 use base64;
 use failure::{Fail, ResultExt};
+use futures::future::Either;
 use futures::prelude::*;
 use futures::{future, stream, Async, Stream};
-use hyper::{Body, Chunk as HyperChunk, Client};
+use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
 use serde_json;
@@ -17,18 +18,23 @@ use url::Url;
 
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
-use docker::models::{ContainerCreateBody, InlineResponse200, InlineResponse2001, NetworkConfig};
+use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
-    pid::Pid, LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    ModuleTop, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
+    AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
+    MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
+    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
 };
-use edgelet_http::UrlConnector;
+use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
+use provisioning::ProvisioningResult;
 
 use crate::client::DockerClient;
 use crate::config::DockerConfig;
 use crate::error::{Error, ErrorKind, Result};
-use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
+use crate::module::{
+    runtime_state, DockerModule, DockerModuleTop, MODULE_TYPE as DOCKER_MODULE_TYPE,
+};
+use crate::settings::Settings;
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -48,42 +54,9 @@ lazy_static! {
 #[derive(Clone)]
 pub struct DockerModuleRuntime {
     client: DockerClient<UrlConnector>,
-    network_id: Option<String>,
 }
 
 impl DockerModuleRuntime {
-    pub fn new(docker_url: &Url) -> Result<Self> {
-        // build the hyper client
-        let client = Client::builder()
-            .build(UrlConnector::new(docker_url).context(ErrorKind::Initialization)?);
-
-        // extract base path - the bit that comes after the scheme
-        let base_path = docker_url
-            .to_base_path()
-            .context(ErrorKind::Initialization)?;
-        let mut configuration = Configuration::new(client);
-        configuration.base_path = base_path
-            .to_str()
-            .ok_or(ErrorKind::Initialization)?
-            .to_string();
-
-        let scheme = docker_url.scheme().to_string();
-        configuration.uri_composer = Box::new(move |base_path, path| {
-            Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)
-                .context(ErrorKind::Initialization)?)
-        });
-
-        Ok(DockerModuleRuntime {
-            client: DockerClient::new(APIClient::new(configuration)),
-            network_id: None,
-        })
-    }
-
-    pub fn with_network_id(mut self, network_id: String) -> Self {
-        self.network_id = Some(network_id);
-        self
-    }
-
     fn merge_env(cur_env: Option<&[String]>, new_env: &HashMap<String, String>) -> Vec<String> {
         // build a new merged hashmap containing string slices for keys and values
         // pointing into String instances in new_env
@@ -201,44 +174,111 @@ where
     Ok(name)
 }
 
-fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> std::result::Result<Vec<Pid>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let titles = resp
-        .titles()
-        .ok_or_else(|| serde::de::Error::missing_field("Titles"))?;
-    let pid_index = titles
-        .iter()
-        .position(|ref s| s.as_str() == "PID")
-        .ok_or_else(|| {
-            serde::de::Error::invalid_value(
-                serde::de::Unexpected::Seq,
-                &"array including the column title 'PID'",
-            )
-        })?;
-    let processes = resp
-        .processes()
-        .ok_or_else(|| serde::de::Error::missing_field("Processes"))?;
-    let pids: std::result::Result<_, _> = processes
-        .iter()
-        .map(|ref p| {
-            let val = p.get(pid_index).ok_or_else(|| {
-                serde::de::Error::invalid_length(
-                    p.len(),
-                    &&*format!("at least {} columns", pid_index + 1),
-                )
-            })?;
-            let pid = val.parse::<i32>().map_err(|_| {
-                serde::de::Error::invalid_value(
-                    serde::de::Unexpected::Str(val),
-                    &"a process ID number",
-                )
-            })?;
-            Ok(Pid::Value(pid))
-        })
-        .collect();
-    Ok(pids?)
+impl MakeModuleRuntime for DockerModuleRuntime {
+    type Config = DockerConfig;
+    type Settings = Settings;
+    type ProvisioningResult = ProvisioningResult;
+    type ModuleRuntime = Self;
+    type Error = Error;
+    type Future = Box<dyn Future<Item = Self, Error = Self::Error> + Send>;
+
+    fn make_runtime(
+        settings: Settings,
+        _: ProvisioningResult,
+        _: impl GetTrustBundle,
+    ) -> Self::Future {
+        info!("Initializing module runtime...");
+
+        // Clippy incorrectly flags the use of `.map(..).unwrap_or_else(..)` code as being replaceable
+        // with `.ok().map_or_else`. This is incorrect because `.ok()` will result in the error being dropped.
+        // So we suppress this lint. There's an open issue for this on the Clippy repo:
+        //      https://github.com/rust-lang/rust-clippy/issues/3730
+        #[allow(clippy::result_map_unwrap_or_else)]
+        let created = init_client(settings.moby_runtime().uri())
+            .map(|client| {
+                let network_id = settings.moby_runtime().network().name().to_string();
+                let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
+                info!("Using runtime network id {}", network_id);
+
+                let filter = format!(r#"{{"name":{{"{}":true}}}}"#, network_id);
+                let client_copy = client.clone();
+                let fut = client
+                    .network_api()
+                    .network_list(&filter)
+                    .and_then(move |existing_networks| {
+                        if existing_networks.is_empty() {
+                            let mut network_config =
+                                NetworkConfig::new(network_id).with_enable_i_pv6(enable_i_pv6);
+
+                            if let Some(ipam_config) = ipam {
+                                network_config.set_IPAM(ipam_config);
+                            };
+
+                            let fut = client_copy
+                                .network_api()
+                                .network_create(network_config)
+                                .map(move |_| client_copy);
+                            future::Either::A(fut)
+                        } else {
+                            future::Either::B(future::ok(client_copy))
+                        }
+                    })
+                    .map_err(|err| {
+                        let e = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::Init),
+                        );
+                        log_failure(Level::Warn, &e);
+                        e
+                    })
+                    .map(|client| {
+                        info!("Successfully initialized module runtime");
+                        DockerModuleRuntime { client }
+                    });
+
+                future::Either::A(fut)
+            })
+            .unwrap_or_else(|err| {
+                log_failure(Level::Warn, &err);
+                future::Either::B(Err(err).into_future())
+            });
+
+        Box::new(created)
+    }
+}
+
+fn get_ipv6_settings(network_configuration: &MobyNetwork) -> (bool, Option<Ipam>) {
+    if let MobyNetwork::Network(network) = network_configuration {
+        let ipv6 = network.ipv6().unwrap_or_default();
+        network.ipam().and_then(CoreIpam::config).map_or_else(
+            || (ipv6, None),
+            |ipam_config| {
+                let config = ipam_config
+                    .iter()
+                    .map(|ipam_config| {
+                        let mut config_map = HashMap::new();
+                        if let Some(gateway_config) = ipam_config.gateway() {
+                            config_map.insert("Gateway".to_string(), gateway_config.to_string());
+                        };
+
+                        if let Some(subnet_config) = ipam_config.subnet() {
+                            config_map.insert("Subnet".to_string(), subnet_config.to_string());
+                        };
+
+                        if let Some(ip_range_config) = ipam_config.ip_range() {
+                            config_map.insert("IPRange".to_string(), ip_range_config.to_string());
+                        };
+
+                        config_map
+                    })
+                    .collect();
+
+                (ipv6, Some(Ipam::new().with_config(config)))
+            },
+        )
+    } else {
+        (false, None)
+    }
 }
 
 impl ModuleRuntime for DockerModuleRuntime {
@@ -252,7 +292,6 @@ impl ModuleRuntime for DockerModuleRuntime {
     type CreateFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type GetFuture =
         Box<dyn Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type InitFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type ListFuture = Box<dyn Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
     type ListWithDetailsStream =
         Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
@@ -263,53 +302,6 @@ impl ModuleRuntime for DockerModuleRuntime {
     type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type TopFuture = Box<dyn Future<Item = ModuleTop, Error = Self::Error> + Send>;
-
-    fn init(&self) -> Self::InitFuture {
-        info!("Initializing module runtime...");
-
-        let created = self.network_id.clone().map_or_else(
-            || future::Either::B(future::ok(())),
-            |id| {
-                let filter = format!(r#"{{"name":{{"{}":true}}}}"#, id);
-                let client_copy = self.client.clone();
-                let fut = self
-                    .client
-                    .network_api()
-                    .network_list(&filter)
-                    .and_then(move |existing_networks| {
-                        if existing_networks.is_empty() {
-                            let fut = client_copy
-                                .network_api()
-                                .network_create(NetworkConfig::new(id))
-                                .map(|_| ());
-                            future::Either::A(fut)
-                        } else {
-                            future::Either::B(future::ok(()))
-                        }
-                    })
-                    .map_err(|err| {
-                        let e = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::Init),
-                        );
-                        log_failure(Level::Warn, &e);
-                        e
-                    });
-                future::Either::A(fut)
-            },
-        );
-        let created = created.then(|result| {
-            match result {
-                Ok(()) => info!("Successfully initialized module runtime"),
-                Err(ref err) => log_failure(Level::Warn, err),
-            }
-
-            result
-        });
-
-        Box::new(created)
-    }
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         info!("Creating module {}...", module.name());
@@ -380,7 +372,6 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn get(&self, id: &str) -> Self::GetFuture {
         debug!("Getting module {}...", id);
-
         let id = id.to_string();
 
         if let Err(err) = ensure_not_empty_with_context(&id, || {
@@ -429,7 +420,6 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn start(&self, id: &str) -> Self::StartFuture {
         info!("Starting module {}...", id);
-
         let id = id.to_string();
 
         if let Err(err) = ensure_not_empty_with_context(&id, || {
@@ -461,7 +451,6 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Self::StopFuture {
         info!("Stopping module {}...", id);
-
         let id = id.to_string();
 
         if let Err(err) = ensure_not_empty_with_context(&id, || {
@@ -498,43 +487,8 @@ impl ModuleRuntime for DockerModuleRuntime {
         )
     }
 
-    fn system_info(&self) -> Self::SystemInfoFuture {
-        info!("Querying system info...");
-
-        Box::new(
-            self.client
-                .system_api()
-                .system_info()
-                .then(|result| match result {
-                    Ok(system_info) => {
-                        let system_info = CoreSystemInfo::new(
-                            system_info
-                                .os_type()
-                                .unwrap_or(&String::from("Unknown"))
-                                .to_string(),
-                            system_info
-                                .architecture()
-                                .unwrap_or(&String::from("Unknown"))
-                                .to_string(),
-                        );
-                        info!("Successfully queried system info");
-                        Ok(system_info)
-                    }
-                    Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo),
-                        );
-                        log_failure(Level::Warn, &err);
-                        Err(err)
-                    }
-                }),
-        )
-    }
-
     fn restart(&self, id: &str) -> Self::RestartFuture {
         info!("Restarting module {}...", id);
-
         let id = id.to_string();
 
         if let Err(err) = ensure_not_empty_with_context(&id, || {
@@ -591,6 +545,40 @@ impl ModuleRuntime for DockerModuleRuntime {
                         let err = Error::from_docker_error(
                             err,
                             ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(id)),
+                        );
+                        log_failure(Level::Warn, &err);
+                        Err(err)
+                    }
+                }),
+        )
+    }
+
+    fn system_info(&self) -> Self::SystemInfoFuture {
+        info!("Querying system info...");
+
+        Box::new(
+            self.client
+                .system_api()
+                .system_info()
+                .then(|result| match result {
+                    Ok(system_info) => {
+                        let system_info = CoreSystemInfo::new(
+                            system_info
+                                .os_type()
+                                .unwrap_or(&String::from("Unknown"))
+                                .to_string(),
+                            system_info
+                                .architecture()
+                                .unwrap_or(&String::from("Unknown"))
+                                .to_string(),
+                        );
+                        info!("Successfully queried system info");
+                        Ok(system_info)
+                    }
+                    Err(err) => {
+                        let err = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo),
                         );
                         log_failure(Level::Warn, &err);
                         Err(err)
@@ -671,7 +659,6 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture {
         info!("Getting logs for module {}...", id);
-
         let id = id.to_string();
 
         let tail = &options.tail().to_string();
@@ -717,30 +704,40 @@ impl ModuleRuntime for DockerModuleRuntime {
             future::join_all(n).map(|_| ())
         }))
     }
+}
 
-    fn top(&self, id: &str) -> Self::TopFuture {
-        let id = id.to_string();
-        Box::new(
-            self.client
-                .container_api()
-                .container_top(&id, "")
-                .then(|result| match result {
-                    Ok(resp) => {
-                        let p = parse_top_response::<Deserializer>(&resp).with_context(|_| {
-                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.clone()))
-                        })?;
-                        Ok(ModuleTop::new(id, p))
-                    }
-                    Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id)),
-                        );
-                        Err(err)
-                    }
-                }),
-        )
+impl Authenticator for DockerModuleRuntime {
+    type Error = Error;
+    type Request = Request<Body>;
+    type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
+
+    fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
+        authenticate(self, req)
     }
+}
+
+fn init_client(docker_url: &Url) -> Result<DockerClient<UrlConnector>> {
+    // build the hyper client
+    let client =
+        Client::builder().build(UrlConnector::new(docker_url).context(ErrorKind::Initialization)?);
+
+    // extract base path - the bit that comes after the scheme
+    let base_path = docker_url
+        .to_base_path()
+        .context(ErrorKind::Initialization)?;
+    let mut configuration = Configuration::new(client);
+    configuration.base_path = base_path
+        .to_str()
+        .ok_or(ErrorKind::Initialization)?
+        .to_string();
+
+    let scheme = docker_url.scheme().to_string();
+    configuration.uri_composer = Box::new(move |base_path, path| {
+        Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)
+            .context(ErrorKind::Initialization)?)
+    });
+
+    Ok(DockerClient::new(APIClient::new(configuration)))
 }
 
 #[derive(Debug)]
@@ -804,7 +801,7 @@ where
     MR: ModuleRuntime<Error = Error, Config = <M as Module>::Config, Module = M>,
     <MR as ModuleRuntime>::ListFuture: 'static,
     M: Module<Error = Error> + Send + 'static,
-    <M as Module>::Config: Send,
+    <M as Module>::Config: Clone + Send,
 {
     Box::new(
         runtime
@@ -829,93 +826,175 @@ where
     )
 }
 
+fn authenticate<MR>(
+    runtime: &MR,
+    req: &Request<Body>,
+) -> Box<dyn Future<Item = AuthId, Error = Error> + Send>
+where
+    MR: ModuleRuntime<Error = Error>,
+    <MR as ModuleRuntime>::ListFuture: 'static,
+    MR::Module: DockerModuleTop<Error = Error> + 'static,
+{
+    let pid = req
+        .extensions()
+        .get::<Pid>()
+        .cloned()
+        .unwrap_or_else(|| Pid::None);
+
+    let expected_module_id = req.extensions().get::<ModuleId>().cloned();
+
+    Box::new(match pid {
+        Pid::None => Either::A(future::ok(AuthId::None)),
+        Pid::Any => Either::A(future::ok(AuthId::Any)),
+        Pid::Value(pid) => Either::B(
+            // to authenticate request we need to determine whether given pid corresponds to
+            // any pid from a module with provided module name. In order to do so, we are
+            // load a list of all running modules and execute docker top command only for
+            // the module that have corresponding name. There can be errors during requests,
+            // so we are filtered out those modules that we active during docker inspect
+            // operation but have gone after (NotFound and TopModule errors).
+            match expected_module_id {
+                None => Either::A(future::ok(AuthId::None)),
+                Some(expected_module_id) => Either::B(
+                    runtime
+                        .list()
+                        .map(move |list| {
+                            list.into_iter()
+                                .find(|module| expected_module_id == module.name())
+                        })
+                        .and_then(|module| module.map(|module| module.top()))
+                        .map(move |top| {
+                            top.and_then(|top| {
+                                if top.process_ids().contains(&pid) {
+                                    Some(top.name().to_string())
+                                } else {
+                                    None
+                                }
+                            })
+                        })
+                        .then(move |result| match result {
+                            Ok(Some(m)) => Ok(AuthId::Value(m.into())),
+                            Ok(None) => {
+                                info!("Unable to find a module for caller pid: {}", pid);
+                                Ok(AuthId::None)
+                            }
+                            Err(err) => match err.kind() {
+                                ErrorKind::NotFound(_)
+                                | ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(_)) => {
+                                    Ok(AuthId::None)
+                                }
+                                _ => {
+                                    log_failure(Level::Warn, &err);
+                                    Err(err)
+                                }
+                            },
+                        }),
+                ),
+            },
+        ),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    use std::path::Path;
+
+    use config::{Config, File, FileFormat};
     use futures::future::FutureResult;
     use futures::stream::Empty;
-    #[cfg(unix)]
-    use tempfile::NamedTempFile;
-    use tokio;
-    use url::Url;
+    use json_patch::merge;
+    use serde_json::{self, json, Value as JsonValue};
 
-    use docker::models::ContainerCreateBody;
-    use edgelet_core::pid::Pid;
-    use edgelet_core::ModuleRegistry;
+    use edgelet_core::{
+        Certificates, Connect, Listen, ModuleRegistry, ModuleTop, Provisioning, RuntimeSettings,
+        WatchdogSettings,
+    };
+    use edgelet_test_utils::crypto::TestHsm;
+    use provisioning::ReprovisioningStatus;
 
-    use crate::error::{Error, ErrorKind};
+    fn provisioning_result() -> ProvisioningResult {
+        ProvisioningResult::new(
+            "d1",
+            "h1",
+            None,
+            ReprovisioningStatus::DeviceDataNotUpdated,
+            None,
+        )
+    }
+
+    fn crypto() -> impl GetTrustBundle {
+        TestHsm::default()
+    }
+
+    fn make_settings(merge_json: Option<JsonValue>) -> Settings {
+        let mut config = Config::default();
+        let mut config_json = json!({
+            "provisioning": {
+                "source": "manual",
+                "device_connection_string": "HostName=moo.azure-devices.net;DeviceId=boo;SharedAccessKey=boo"
+            },
+            "agent": {
+                "name": "edgeAgent",
+                "type": "docker",
+                "env": {},
+                "config": {
+                    "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
+                    "auth": {}
+                }
+            },
+            "hostname": "zoo",
+            "connect": {
+                "management_uri": "unix:///var/run/iotedge/mgmt.sock",
+                "workload_uri": "unix:///var/run/iotedge/workload.sock"
+            },
+            "listen": {
+                "management_uri": "unix:///var/run/iotedge/mgmt.sock",
+                "workload_uri": "unix:///var/run/iotedge/workload.sock"
+            },
+            "homedir": "/var/lib/iotedge",
+            "moby_runtime": {
+                "uri": "unix:///var/run/docker.sock",
+                "network": "azure-iot-edge"
+            }
+        });
+
+        if let Some(merge_json) = merge_json {
+            merge(&mut config_json, &merge_json);
+        }
+
+        config
+            .merge(File::from_str(&config_json.to_string(), FileFormat::Json))
+            .unwrap();
+
+        config.try_into().unwrap()
+    }
 
     #[test]
     #[should_panic(expected = "URL does not have a recognized scheme")]
     fn invalid_uri_prefix_fails() {
-        let _mri =
-            DockerModuleRuntime::new(&Url::parse("foo:///this/is/not/valid").unwrap()).unwrap();
+        let settings = make_settings(Some(json!({
+            "moby_runtime": {
+                "uri": "foo:///this/is/not/valid"
+            }
+        })));
+        let _runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+            .wait()
+            .unwrap();
     }
 
     #[cfg(unix)]
     #[test]
     #[should_panic(expected = "Socket file could not be found")]
     fn invalid_uds_path_fails() {
-        let _mri =
-            DockerModuleRuntime::new(&Url::parse("unix:///this/file/does/not/exist").unwrap())
-                .unwrap();
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn create_with_uds_succeeds() {
-        let file = NamedTempFile::new().unwrap();
-        let file_path = file.path().to_str().unwrap();
-        let _mri = DockerModuleRuntime::new(&Url::parse(&format!("unix://{}", file_path)).unwrap())
-            .unwrap();
-    }
-
-    #[test]
-    fn image_remove_with_empty_name_fails() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "";
-
-        let task = ModuleRegistry::remove(&mri, name).then(|res| match res {
-            Ok(_) => Err("Expected error but got a result.".to_string()),
-            Err(err) => match err.kind() {
-                ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(s)) if s == name => {
-                    Ok(())
-                }
-                kind => panic!(
-                    "Expected `RegistryOperation(RemoveImage)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn image_remove_with_white_space_name_fails() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "     ";
-
-        let task = ModuleRegistry::remove(&mri, name).then(|res| match res {
-            Ok(_) => Err("Expected error but got a result.".to_string()),
-            Err(err) => match err.kind() {
-                ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(s)) if s == name => {
-                    Ok(())
-                }
-                kind => panic!(
-                    "Expected `RegistryOperation(RemoveImage)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
+        let settings = make_settings(Some(json!({
+            "moby_runtime": {
+                "uri": "unix:///this/file/does/not/exist"
+            }
+        })));
+        let _runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+            .wait()
             .unwrap();
     }
 
@@ -960,363 +1039,129 @@ mod tests {
     }
 
     #[test]
-    fn create_fails_for_non_docker_type() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "not_docker".to_string();
-
-        let module_config = ModuleSpec::new(
-            "m1".to_string(),
-            name.clone(),
-            DockerConfig::new("nginx:latest".to_string(), ContainerCreateBody::new(), None)
-                .unwrap(),
-            HashMap::new(),
-        )
-        .unwrap();
-
-        let task = mri.create(module_config).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::InvalidModuleType(s) if s == &name => Ok::<_, Error>(()),
-                kind => panic!("Expected `InvalidModuleType` error but got {:?}.", kind),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn start_fails_for_empty_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "";
-
-        let task = mri.start(name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(StartModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn start_fails_for_white_space_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "      ";
-
-        let task = mri.start(name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(StartModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn stop_fails_for_empty_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "";
-
-        let task = mri.stop(name, None).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(StopModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn stop_fails_for_white_space_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "     ";
-
-        let task = mri.stop(name, None).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(StopModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn restart_fails_for_empty_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "";
-
-        let task = mri.restart(name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(RestartModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn restart_fails_for_white_space_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "     ";
-
-        let task = mri.restart(name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(RestartModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn remove_fails_for_empty_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "";
-
-        let task = ModuleRuntime::remove(&mri, name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(RemoveModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn remove_fails_for_white_space_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "    ";
-
-        let task = ModuleRuntime::remove(&mri, name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(RemoveModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn get_fails_for_empty_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "";
-
-        let task = ModuleRuntime::get(&mri, name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(GetModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
-    fn get_fails_for_white_space_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "    ";
-
-        let task = ModuleRuntime::get(&mri, name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(GetModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
-
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
-    }
-
-    #[test]
     fn list_with_details_filters_out_deleted_containers() {
-        let runtime = TestModuleList {
-            modules: vec![
-                TestModule {
-                    name: "a".to_string(),
-                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-                },
-                TestModule {
-                    name: "b".to_string(),
-                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
-                },
-                TestModule {
-                    name: "c".to_string(),
-                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
-                },
-                TestModule {
-                    name: "d".to_string(),
-                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-                },
-            ],
-        };
+        let runtime = prepare_module_runtime_with_known_modules();
 
         assert_eq!(
             runtime.list_with_details().collect().wait().unwrap(),
             vec![
                 (
-                    TestModule {
-                        name: "a".to_string(),
-                        runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-                    },
-                    ModuleRuntimeState::default().with_pid(Pid::Any)
+                    runtime.modules[0].clone(),
+                    ModuleRuntimeState::default().with_pid(Some(1000))
                 ),
                 (
-                    TestModule {
-                        name: "d".to_string(),
-                        runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-                    },
-                    ModuleRuntimeState::default().with_pid(Pid::Any)
+                    runtime.modules[3].clone(),
+                    ModuleRuntimeState::default().with_pid(Some(4000))
                 ),
             ]
         );
     }
 
     #[test]
-    fn top_fails_for_empty_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "";
+    fn authenticate_returns_none_when_no_pid_provided() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let req = Request::default();
 
-        let task = ModuleRuntime::top(&mri, name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(TopModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
 
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
+        assert_eq!(AuthId::None, auth_id);
     }
 
     #[test]
-    fn top_fails_for_white_space_id() {
-        let mri = DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap()).unwrap();
-        let name = "    ";
+    fn authenticate_returns_none_when_unknown_pid_provided() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Value(1));
 
-        let task = ModuleRuntime::top(&mri, name).then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(TopModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
 
-        tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(task)
-            .unwrap();
+        assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_none_when_expected_module_not_exist_anymore_with_top() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Value(2000));
+        req.extensions_mut().insert(ModuleId::from("b"));
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_none_when_expected_module_not_found() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Value(1000));
+        req.extensions_mut().insert(ModuleId::from("x"));
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::None, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_any_when_any_provided() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Any);
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::Any, auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_any_when_module_pid_provided() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Value(1000));
+        req.extensions_mut().insert(ModuleId::from("a"));
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::Value("a".into()), auth_id);
+    }
+
+    #[test]
+    fn authenticate_returns_any_when_any_pid_of_module_provided() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let mut req = Request::default();
+        req.extensions_mut().insert(Pid::Value(4001));
+        req.extensions_mut().insert(ModuleId::from("d"));
+
+        let auth_id = runtime.authenticate(&req).wait().unwrap();
+
+        assert_eq!(AuthId::Value("d".into()), auth_id);
+    }
+
+    fn prepare_module_runtime_with_known_modules() -> TestModuleList {
+        TestModuleList {
+            modules: vec![
+                TestModule {
+                    name: "a".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
+                    process_ids: vec![1000],
+                },
+                TestModule {
+                    name: "b".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
+                    process_ids: vec![2000, 2001],
+                },
+                TestModule {
+                    name: "c".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
+                    process_ids: vec![3000],
+                },
+                TestModule {
+                    name: "d".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
+                    process_ids: vec![4000, 4001],
+                },
+            ],
+        }
     }
 
     #[test]
@@ -1335,73 +1180,50 @@ mod tests {
         assert_eq!("missing field `Name`", format!("{}", name.unwrap_err()));
     }
 
-    #[test]
-    fn parse_top_response_returns_pid_array() {
-        let response = InlineResponse2001::new()
-            .with_titles(vec!["PID".to_string()])
-            .with_processes(vec![vec!["123".to_string()]]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_ok());
-        assert_eq!(vec![Pid::Value(123)], pids.unwrap());
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_titles_is_missing() {
-        let response = InlineResponse2001::new().with_processes(vec![vec!["123".to_string()]]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_err());
-        assert_eq!("missing field `Titles`", format!("{}", pids.unwrap_err()));
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_pid_title_is_missing() {
-        let response = InlineResponse2001::new().with_titles(vec!["Command".to_string()]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_err());
-        assert_eq!(
-            "invalid value: sequence, expected array including the column title \'PID\'",
-            format!("{}", pids.unwrap_err())
-        );
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_processes_is_missing() {
-        let response = InlineResponse2001::new().with_titles(vec!["PID".to_string()]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_err());
-        assert_eq!(
-            "missing field `Processes`",
-            format!("{}", pids.unwrap_err())
-        );
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_process_pid_is_missing() {
-        let response = InlineResponse2001::new()
-            .with_titles(vec!["Command".to_string(), "PID".to_string()])
-            .with_processes(vec![vec!["sh".to_string()]]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_err());
-        assert_eq!(
-            "invalid length 1, expected at least 2 columns",
-            format!("{}", pids.unwrap_err())
-        );
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_process_pid_is_not_i32() {
-        let response = InlineResponse2001::new()
-            .with_titles(vec!["PID".to_string()])
-            .with_processes(vec![vec!["xyz".to_string()]]);
-        let pids = parse_top_response::<Deserializer>(&response);
-        assert!(pids.is_err());
-        assert_eq!(
-            "invalid value: string \"xyz\", expected a process ID number",
-            format!("{}", pids.unwrap_err())
-        );
-    }
-
+    #[derive(Clone)]
     struct TestConfig;
+
+    struct TestSettings;
+
+    impl RuntimeSettings for TestSettings {
+        type Config = TestConfig;
+
+        fn provisioning(&self) -> &Provisioning {
+            unimplemented!()
+        }
+
+        fn agent(&self) -> &ModuleSpec<Self::Config> {
+            unimplemented!()
+        }
+
+        fn agent_mut(&mut self) -> &mut ModuleSpec<Self::Config> {
+            unimplemented!()
+        }
+
+        fn hostname(&self) -> &str {
+            unimplemented!()
+        }
+
+        fn connect(&self) -> &Connect {
+            unimplemented!()
+        }
+
+        fn listen(&self) -> &Listen {
+            unimplemented!()
+        }
+
+        fn homedir(&self) -> &Path {
+            unimplemented!()
+        }
+
+        fn certificates(&self) -> Option<&Certificates> {
+            unimplemented!()
+        }
+
+        fn watchdog(&self) -> &WatchdogSettings {
+            unimplemented!()
+        }
+    }
 
     #[derive(Clone, Copy, Debug, PartialEq)]
     enum TestModuleRuntimeStateBehavior {
@@ -1413,6 +1235,7 @@ mod tests {
     struct TestModule {
         name: String,
         runtime_state_behavior: TestModuleRuntimeStateBehavior,
+        process_ids: Vec<i32>,
     }
 
     impl Module for TestModule {
@@ -1435,7 +1258,8 @@ mod tests {
         fn runtime_state(&self) -> Self::RuntimeStateFuture {
             match self.runtime_state_behavior {
                 TestModuleRuntimeStateBehavior::Default => {
-                    future::ok(ModuleRuntimeState::default().with_pid(Pid::Any))
+                    let top_pid = self.process_ids.first().cloned();
+                    future::ok(ModuleRuntimeState::default().with_pid(top_pid))
                 }
                 TestModuleRuntimeStateBehavior::NotFound => {
                     future::err(ErrorKind::NotFound(String::new()).into())
@@ -1450,16 +1274,49 @@ mod tests {
     }
 
     impl ModuleRegistry for TestModuleList {
-        type Config = TestConfig;
         type Error = Error;
         type PullFuture = FutureResult<(), Self::Error>;
         type RemoveFuture = FutureResult<(), Self::Error>;
+        type Config = TestConfig;
 
         fn pull(&self, _config: &Self::Config) -> Self::PullFuture {
             unimplemented!()
         }
 
         fn remove(&self, _name: &str) -> Self::RemoveFuture {
+            unimplemented!()
+        }
+    }
+
+    impl DockerModuleTop for TestModule {
+        type Error = Error;
+        type ModuleTopFuture = FutureResult<ModuleTop, Self::Error>;
+
+        fn top(&self) -> Self::ModuleTopFuture {
+            match self.runtime_state_behavior {
+                TestModuleRuntimeStateBehavior::Default => {
+                    future::ok(ModuleTop::new(self.name.clone(), self.process_ids.clone()))
+                }
+                TestModuleRuntimeStateBehavior::NotFound => {
+                    future::err(ErrorKind::NotFound(String::new()).into())
+                }
+            }
+        }
+    }
+
+    impl MakeModuleRuntime for TestModuleList {
+        type Config = TestConfig;
+        type ProvisioningResult = ProvisioningResult;
+        type ModuleRuntime = Self;
+        type Settings = TestSettings;
+        type Error = Error;
+        type Future = FutureResult<Self, Self::Error>;
+
+        fn make_runtime(
+            _settings: Self::Settings,
+            _provisioning_result: Self::ProvisioningResult,
+            _crypto: impl GetTrustBundle,
+        ) -> Self::Future {
             unimplemented!()
         }
     }
@@ -1474,7 +1331,6 @@ mod tests {
 
         type CreateFuture = FutureResult<(), Self::Error>;
         type GetFuture = FutureResult<(Self::Module, ModuleRuntimeState), Self::Error>;
-        type InitFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
         type ListWithDetailsStream =
             Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
@@ -1485,11 +1341,6 @@ mod tests {
         type StopFuture = FutureResult<(), Self::Error>;
         type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
         type RemoveAllFuture = FutureResult<(), Self::Error>;
-        type TopFuture = FutureResult<ModuleTop, Self::Error>;
-
-        fn init(&self) -> Self::InitFuture {
-            unimplemented!()
-        }
 
         fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
             unimplemented!()
@@ -1507,15 +1358,15 @@ mod tests {
             unimplemented!()
         }
 
-        fn system_info(&self) -> Self::SystemInfoFuture {
-            unimplemented!()
-        }
-
         fn restart(&self, _id: &str) -> Self::RestartFuture {
             unimplemented!()
         }
 
         fn remove(&self, _id: &str) -> Self::RemoveFuture {
+            unimplemented!()
+        }
+
+        fn system_info(&self) -> Self::SystemInfoFuture {
             unimplemented!()
         }
 
@@ -1538,9 +1389,15 @@ mod tests {
         fn remove_all(&self) -> Self::RemoveAllFuture {
             unimplemented!()
         }
+    }
 
-        fn top(&self, _id: &str) -> Self::TopFuture {
-            unimplemented!()
+    impl Authenticator for TestModuleList {
+        type Error = Error;
+        type Request = Request<Body>;
+        type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
+
+        fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
+            authenticate(self, req)
         }
     }
 }

@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
-    using Message = EdgeMessage;
+    using Message = Microsoft.Azure.Devices.Edge.Hub.Core.EdgeMessage;
 
     public class MessageTest
     {

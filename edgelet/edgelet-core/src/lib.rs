@@ -10,29 +10,39 @@ use failure::ResultExt;
 use lazy_static::lazy_static;
 use url::Url;
 
+mod authentication;
 mod authorization;
 mod certificate_properties;
 pub mod crypto;
 mod error;
 mod identity;
 mod module;
-pub mod pid;
+mod network;
+mod settings;
 pub mod watchdog;
 pub mod workload;
 
-pub use authorization::{Authorization, Policy};
+pub use authentication::Authenticator;
+pub use authorization::{AuthId, ModuleId, Policy};
 pub use certificate_properties::{CertificateIssuer, CertificateProperties, CertificateType};
 pub use crypto::{
     Certificate, CreateCertificate, Decrypt, Encrypt, GetDeviceIdentityCertificate, GetIssuerAlias,
-    GetTrustBundle, KeyBytes, KeyIdentity, KeyStore, MasterEncryptionKey, PrivateKey, Signature,
-    IOTEDGED_CA_ALIAS,
+    GetTrustBundle, KeyBytes, KeyIdentity, KeyStore, MakeRandom, MasterEncryptionKey, PrivateKey,
+    Signature, IOTEDGED_CA_ALIAS,
 };
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
 pub use module::{
-    LogOptions, LogTail, Module, ModuleOperation, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, ModuleTop,
-    RegistryOperation, RuntimeOperation, SystemInfo,
+    ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation,
+    ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec,
+    ModuleStatus, ModuleTop, ProvisioningResult, RegistryOperation, RuntimeOperation, SystemInfo,
+};
+pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
+pub use settings::{
+    AttestationMethod, Certificates, Connect, Dps, Listen, Manual,
+    ParseManualDeviceConnectionStringError, Provisioning, RetryLimit, RuntimeSettings, Settings,
+    SymmetricKeyAttestationInfo, TpmAttestationInfo, WatchdogSettings, X509AttestationInfo,
+    DEFAULT_CONNECTION_STRING,
 };
 pub use workload::WorkloadConfig;
 
@@ -94,3 +104,6 @@ impl UrlExt for Url {
 }
 
 pub const UNIX_SCHEME: &str = "unix";
+
+/// This is the name of the network created by the iotedged
+pub const DEFAULT_NETWORKID: &str = "azure-iot-edge";

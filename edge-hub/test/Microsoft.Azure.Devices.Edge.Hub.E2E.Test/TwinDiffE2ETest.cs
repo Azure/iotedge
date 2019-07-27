@@ -35,7 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Assert.True(
                         JToken.DeepEquals(
                             JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
+                            JToken.Parse(results.Item2.ToJson())),
+                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
 
                     twinPatch.Properties.Desired = new TwinCollection
                     {
@@ -51,7 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Assert.True(
                         JToken.DeepEquals(
                             JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
+                            JToken.Parse(results.Item2.ToJson())),
+                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
                 });
         }
 
@@ -74,7 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Assert.True(
                         JToken.DeepEquals(
                             JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
+                            JToken.Parse(results.Item2.ToJson())),
+                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
 
                     twinPatch.Properties.Desired = new TwinCollection()
                     {
@@ -86,7 +89,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Assert.True(
                         JToken.DeepEquals(
                             JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
+                            JToken.Parse(results.Item2.ToJson())),
+                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
                 });
         }
 
@@ -118,7 +122,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Assert.True(
                         JToken.DeepEquals(
                             JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
+                            JToken.Parse(results.Item2.ToJson())),
+                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
 
                     twinPatch.Properties.Desired = new TwinCollection()
                     {
@@ -139,7 +144,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Assert.True(
                         JToken.DeepEquals(
                             JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
+                            JToken.Parse(results.Item2.ToJson())),
+                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
                 });
         }
 
@@ -171,7 +177,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Assert.True(
                         JToken.DeepEquals(
                             JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
+                            JToken.Parse(results.Item2.ToJson())),
+                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
 
                     twinPatch.Properties.Desired = new TwinCollection()
                     {
@@ -192,7 +199,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Assert.True(
                         JToken.DeepEquals(
                             JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
+                            JToken.Parse(results.Item2.ToJson())),
+                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
                 });
         }
 
@@ -224,7 +232,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Assert.True(
                         JToken.DeepEquals(
                             JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
+                            JToken.Parse(results.Item2.ToJson())),
+                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
 
                     twinPatch.Properties.Desired = new TwinCollection()
                     {
@@ -246,7 +255,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Assert.True(
                         JToken.DeepEquals(
                             JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
+                            JToken.Parse(results.Item2.ToJson())),
+                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
                 });
         }
 
@@ -269,7 +279,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Assert.True(
                         JToken.DeepEquals(
                             JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
+                            JToken.Parse(results.Item2.ToJson())),
+                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
 
                     twinPatch.Properties.Desired = new TwinCollection()
                     {
@@ -290,7 +301,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Assert.True(
                         JToken.DeepEquals(
                             JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
+                            JToken.Parse(results.Item2.ToJson())),
+                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
                 });
         }
 
@@ -322,7 +334,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Assert.True(
                         JToken.DeepEquals(
                             JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
+                            JToken.Parse(results.Item2.ToJson())),
+                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
 
                     twinPatch.Properties.Desired = new TwinCollection()
                     {
@@ -334,7 +347,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Assert.True(
                         JToken.DeepEquals(
                             JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())));
+                            JToken.Parse(results.Item2.ToJson())),
+                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
                 });
         }
 
@@ -388,10 +402,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Twin twinPatch)
         {
             var receivedDesiredProperties = new TwinCollection();
+            bool desiredPropertiesUpdateCallbackTriggered = false;
 
             Task DesiredPropertiesUpdateCallback(TwinCollection desiredproperties, object usercontext)
             {
                 receivedDesiredProperties = desiredproperties;
+                desiredPropertiesUpdateCallbackTriggered = true;
                 return Task.CompletedTask;
             }
 
@@ -408,7 +424,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Twin updatedCloudTwin = await deviceClient.GetTwinAsync();
 
             // replicate the patch operation locally
-            await Task.Delay(TimeSpan.FromSeconds(5));
+            var delayTask = Task.Delay(TimeSpan.FromSeconds(10));
+            while (!desiredPropertiesUpdateCallbackTriggered && !delayTask.IsCompleted)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(500));
+            }
+
             string mergedJson = JsonEx.Merge(originalCloudTwin.Properties.Desired, receivedDesiredProperties, true);
             var localMergedTwinProperties = new TwinCollection(mergedJson);
 

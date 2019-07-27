@@ -150,9 +150,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
         [Pure]
         public Option<TResult> Map<TResult>(Func<T, TResult> mapping)
         {
-            return this.Match(
-                some: value => Option.Some(mapping(value)),
-                none: Option.None<TResult>);
+            return this.HasValue
+                ? Option.Some(mapping(this.Value))
+                : Option.None<TResult>();
         }
 
         [Pure]
@@ -191,9 +191,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public Option<T> Filter(Func<T, bool> predicate)
         {
             Option<T> original = this;
-            return this.Match(
-                some: value => predicate(value) ? original : Option.None<T>(),
-                none: () => original);
+            return this.HasValue
+                ? (predicate(this.Value)
+                      ? original
+                      : Option.None<T>()
+                   )
+                : original;
         }
     }
 

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include "azure_c_shared_utility/gballoc.h"
-#include "azure_c_shared_utility/base64.h"
+#include "azure_c_shared_utility/azure_base64.h"
 #include "azure_c_shared_utility/buffer_.h"
 #include "azure_c_shared_utility/strings.h"
 #include "azure_c_shared_utility/singlylinkedlist.h"
@@ -11,6 +11,7 @@
 #include "hsm_client_data.h"
 #include "hsm_client_store.h"
 #include "hsm_constants.h"
+#include "hsm_err.h"
 #include "hsm_key.h"
 #include "hsm_log.h"
 #include "hsm_utils.h"
@@ -599,7 +600,7 @@ STRING_HANDLE compute_b64_sha_digest_string
         else
         {
             size_t digest_size = USHAHashSize(SHA256);
-            if ((result = Base64_Encode_Bytes(digest, digest_size)) == NULL)
+            if ((result = Azure_Base64_Encode_Bytes(digest, digest_size)) == NULL)
             {
                 LOG_ERROR("Base 64 encode failed after SHA compute");
             }
@@ -2501,7 +2502,14 @@ static int verify_certificate_helper
 
         if ((issuer_cert_path == NULL) || !is_file_valid(issuer_cert_path))
         {
-            LOG_ERROR("Could not find issuer certificate file %s", issuer_cert_path);
+            if (issuer_cert_path == NULL)
+            {
+                LOG_ERROR("Could not find issuer certificate file (null)");
+            }
+            else
+            {
+                LOG_ERROR("Could not find issuer certificate file %s", issuer_cert_path);
+            }
             result = __FAILURE__;
         }
         else if (verify_certificate(cert_file_path, key_file_path, issuer_cert_path, cert_verified) != 0)

@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Logging;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
@@ -134,6 +135,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int upstreamFanOutFactor = this.configuration.GetValue("UpstreamFanOutFactor", 10);
             bool encryptTwinStore = this.configuration.GetValue("EncryptTwinStore", false);
             bool disableCloudSubscriptions = this.configuration.GetValue("DisableCloudSubscriptions", false);
+            bool enableConnectivityCheck = this.configuration.GetValue("EnableConnectivityCheck", true);
+            int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
+            TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -159,7 +163,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     maxUpstreamBatchSize,
                     upstreamFanOutFactor,
                     encryptTwinStore,
-                    disableCloudSubscriptions));
+                    disableCloudSubscriptions,
+                    configUpdateFrequency,
+                    enableConnectivityCheck));
         }
 
         void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)
@@ -176,6 +182,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             int scopeCacheRefreshRateSecs = this.configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
             TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
+
+            MetricsConfig metricsConfig = MetricsConfig.Create(this.configuration.GetSection("metrics"));
 
             string proxy = this.configuration.GetValue("https_proxy", string.Empty);
             string productInfo = GetProductInfo();
@@ -199,7 +207,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     scopeCacheRefreshRate,
                     cacheTokens,
                     this.trustBundle,
-                    proxy));
+                    proxy,
+                    metricsConfig));
         }
 
         static string GetProductInfo()

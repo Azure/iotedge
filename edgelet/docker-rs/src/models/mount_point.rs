@@ -9,11 +9,11 @@
  */
 
 /// MountPoint : A mount point inside a container
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct MountPoint {
     #[serde(rename = "Type", skip_serializing_if = "Option::is_none")]
     _type: Option<String>,

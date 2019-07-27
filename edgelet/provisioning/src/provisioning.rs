@@ -2,6 +2,7 @@
 
 use std::fs::File;
 use std::io::{Read, Write};
+use std::marker::PhantomData;
 use std::path::PathBuf;
 
 use bytes::Bytes;
@@ -15,14 +16,16 @@ use url::Url;
 
 use dps::registration::{DpsAuthKind, DpsClient, DpsTokenSource};
 use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, MemoryKey, MemoryKeyStore};
+use edgelet_core::ProvisioningResult as CoreProvisioningResult;
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
+use edgelet_http_external_provisioning::ExternalProvisioningInterface;
 use edgelet_utils::log_failure;
 use hsm::TpmKey as HsmTpmKey;
 use log::{debug, Level};
 use sha2::{Digest, Sha256};
 
-use crate::error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind, ExternalProvisioningErrorReason};
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum ReprovisioningStatus {
@@ -31,6 +34,62 @@ pub enum ReprovisioningStatus {
     InitialAssignment,
     DeviceDataMigrated,
     DeviceDataReset,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SymmetricKeyCredential {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    key: Option<Vec<u8>>,
+}
+
+impl SymmetricKeyCredential {
+    pub fn key(&self) -> Option<&[u8]> {
+        self.key.as_ref().map(AsRef::as_ref)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct X509Credential {
+    identity_cert: String,
+    identity_private_key: String,
+}
+
+impl X509Credential {
+    pub fn identity_cert(&self) -> &str {
+        self.identity_cert.as_str()
+    }
+
+    pub fn identity_private_key(&self) -> &str {
+        self.identity_private_key.as_str()
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub enum AuthType {
+    SymmetricKey(SymmetricKeyCredential),
+    X509(X509Credential),
+}
+
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
+pub enum CredentialSource {
+    Payload,
+    Hsm,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Credentials {
+    auth_type: AuthType,
+    source: CredentialSource,
+}
+
+impl Credentials {
+    pub fn auth_type(&self) -> &AuthType {
+        &self.auth_type
+    }
+
+    pub fn source(&self) -> &CredentialSource {
+        &self.source
+    }
 }
 
 impl From<&str> for ReprovisioningStatus {
@@ -54,7 +113,7 @@ impl Default for ReprovisioningStatus {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ProvisioningResult {
     device_id: String,
     hub_name: String,
@@ -62,19 +121,43 @@ pub struct ProvisioningResult {
     sha256_thumbprint: Option<String>,
     #[serde(skip)]
     reconfigure: ReprovisioningStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    credentials: Option<Credentials>,
 }
 
 impl ProvisioningResult {
-    pub fn device_id(&self) -> &str {
-        &self.device_id
-    }
-
-    pub fn hub_name(&self) -> &str {
-        &self.hub_name
+    pub fn new(
+        device_id: &str,
+        hub_name: &str,
+        sha256_thumbprint: Option<&str>,
+        reconfigure: ReprovisioningStatus,
+        credentials: Option<Credentials>,
+    ) -> Self {
+        ProvisioningResult {
+            device_id: device_id.to_owned(),
+            hub_name: hub_name.to_owned(),
+            sha256_thumbprint: sha256_thumbprint.map(&str::to_owned),
+            reconfigure,
+            credentials,
+        }
     }
 
     pub fn reconfigure(&self) -> ReprovisioningStatus {
         self.reconfigure
+    }
+
+    pub fn credentials(&self) -> Option<&Credentials> {
+        self.credentials.as_ref()
+    }
+}
+
+impl CoreProvisioningResult for ProvisioningResult {
+    fn device_id(&self) -> &str {
+        &self.device_id
+    }
+
+    fn hub_name(&self) -> &str {
+        &self.hub_name
     }
 }
 
@@ -128,9 +211,111 @@ impl Provision for ManualProvisioning {
                 hub_name: hub,
                 reconfigure: ReprovisioningStatus::DeviceDataNotUpdated,
                 sha256_thumbprint: None,
+                credentials: None,
             })
             .map_err(|err| Error::from(err.context(ErrorKind::Provision)));
         Box::new(result.into_future())
+    }
+}
+
+pub struct ExternalProvisioning<T, U> {
+    client: T,
+
+    // ExternalProvisioning is not restricted to a single HSM implementation, so it uses
+    // PhantomData to be generic on them.
+    phantom: PhantomData<U>,
+}
+
+impl<T, U> ExternalProvisioning<T, U> {
+    pub fn new(client: T) -> Self {
+        ExternalProvisioning {
+            client,
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<T, U> Provision for ExternalProvisioning<T, U>
+where
+    T: 'static + ExternalProvisioningInterface,
+    U: 'static + Activate + KeyStore + Send,
+{
+    type Hsm = U;
+
+    fn provision(
+        self,
+        mut key_activator: Self::Hsm,
+    ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
+        let result = self
+            .client
+            .get_device_provisioning_information()
+            .map_err(|err| Error::from(err.context(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::ProvisioningFailure))))
+            .and_then(move |device_provisioning_info| {
+                info!(
+                    "External device registration information: Device \"{}\" in hub \"{}\"",
+                    device_provisioning_info.device_id(),
+                    device_provisioning_info.hub_name()
+                );
+
+                let credentials_info = device_provisioning_info.credentials();
+                let credentials = if let "symmetric-key" = credentials_info.auth_type() {
+                        match credentials_info.source() {
+                            "payload" => {
+                                credentials_info.key().map_or_else(
+                                    || {
+                                        info!(
+                                            "A key is expected in the response with the 'symmetric-key' authentication type and the 'source' set to 'payload'.");
+                                        Err(Error::from(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::SymmetricKeyNotSpecified)))
+                                    },
+                                    |key| {
+                                        let decoded_key = base64::decode(&key).map_err(|_| {
+                                            Error::from(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::InvalidSymmetricKey))
+                                        })?;
+
+                                        key_activator
+                                            .activate_identity_key(KeyIdentity::Device, "primary".to_string(), &decoded_key)
+                                            .map_err(|err| Error::from(err.context(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::KeyActivation))))?;
+                                        Ok(Credentials {
+                                            auth_type: AuthType::SymmetricKey(
+                                                SymmetricKeyCredential {
+                                                    key: Some(decoded_key),
+                                                }),
+                                            source: CredentialSource::Payload,
+                                        })
+                                    })
+                            },
+                            "hsm" => Ok(Credentials {
+                                auth_type: AuthType::SymmetricKey(
+                                    SymmetricKeyCredential {
+                                        key: None,
+                                    }),
+                                source: CredentialSource::Hsm,
+                            }),
+                            _ => {
+                                info!(
+                                    "Unexpected value of credential source \"{}\" received from external environment.",
+                                    credentials_info.source()
+                                );
+                                Err(Error::from(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::InvalidCredentialSource)))
+                            }
+                        }
+                    }
+                    else {
+                        info!("External Provisioning is currently only supported for the 'symmetric-key' authentication type.");
+                        Err(Error::from(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::InvalidAuthenticationType)))
+                        // TODO: implement
+                    }?;
+
+                Ok(ProvisioningResult {
+                    device_id: device_provisioning_info.device_id().to_string(),
+                    hub_name: device_provisioning_info.hub_name().to_string(),
+                    reconfigure: ReprovisioningStatus::DeviceDataNotUpdated,
+                    sha256_thumbprint: None,
+                    credentials: Some(credentials)
+                })
+            });
+
+        Box::new(result)
     }
 }
 
@@ -214,6 +399,7 @@ where
                             // keys when the deployment is executed by EdgeAgent.
                             reconfigure: ReprovisioningStatus::InitialAssignment,
                             sha256_thumbprint: None,
+                            credentials: None,
                         }
                     })
                     .map_err(|err| Error::from(err.context(ErrorKind::Provision))),
@@ -296,6 +482,91 @@ where
                             hub_name,
                             reconfigure,
                             sha256_thumbprint: None,
+                            credentials: None,
+                        }
+                    })
+                    .map_err(|err| Error::from(err.context(ErrorKind::Provision))),
+            ),
+            Err(err) => Either::B(future::err(Error::from(err.context(ErrorKind::Provision)))),
+        };
+        Box::new(d)
+    }
+}
+
+pub struct DpsX509Provisioning<C>
+where
+    C: ClientImpl,
+{
+    client: HttpClient<C, DpsTokenSource<MemoryKey>>,
+    scope_id: String,
+    registration_id: String,
+}
+
+impl<C> DpsX509Provisioning<C>
+where
+    C: ClientImpl,
+{
+    pub fn new(
+        client_impl: C,
+        endpoint: Url,
+        scope_id: String,
+        registration_id: String,
+        api_version: String,
+    ) -> Result<Self, Error> {
+        let client = HttpClient::new(
+            client_impl,
+            None as Option<DpsTokenSource<MemoryKey>>,
+            api_version,
+            endpoint,
+        )
+        .context(ErrorKind::DpsInitialization)?;
+        let result = DpsX509Provisioning {
+            client,
+            scope_id,
+            registration_id,
+        };
+        Ok(result)
+    }
+}
+
+impl<C> Provision for DpsX509Provisioning<C>
+where
+    C: 'static + ClientImpl,
+{
+    type Hsm = MemoryKeyStore;
+
+    fn provision(
+        self,
+        key_activator: Self::Hsm,
+    ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
+        let c = DpsClient::new(
+            self.client.clone(),
+            self.scope_id.clone(),
+            self.registration_id.clone(),
+            DpsAuthKind::X509,
+            key_activator,
+        );
+
+        let d = match c {
+            Ok(c) => Either::A(
+                c.register()
+                    .map(|(device_id, hub_name, substatus)| {
+                        info!(
+                            "DPS registration assigned device \"{}\" in hub \"{}\"",
+                            device_id, hub_name
+                        );
+                        let reconfigure = substatus.map_or_else(
+                            || ReprovisioningStatus::InitialAssignment,
+                            |s| ReprovisioningStatus::from(s.as_ref()),
+                        );
+                        // note DPS does not send the SHA2 thumbprint currently
+                        // future DPS APIs will possibly support this
+                        ProvisioningResult {
+                            device_id,
+                            hub_name,
+                            reconfigure,
+                            sha256_thumbprint: None,
+                            credentials: None,
                         }
                     })
                     .map_err(|err| Error::from(err.context(ErrorKind::Provision))),
@@ -341,7 +612,9 @@ where
             .read_to_string(&mut buffer)
             .context(ErrorKind::CouldNotRestore)?;
         info!("Restoring device credentials from backup");
-        let prov_result = serde_json::from_str(&buffer).context(ErrorKind::CouldNotRestore)?;
+        let mut prov_result: ProvisioningResult =
+            serde_json::from_str(&buffer).context(ErrorKind::CouldNotRestore)?;
+        prov_result.reconfigure = ReprovisioningStatus::DeviceDataNotUpdated;
         Ok(prov_result)
     }
 
@@ -399,6 +672,7 @@ where
             self.underlying
                 .provision(key_activator)
                 .and_then(move |mut prov_result| {
+                    debug!("Provisioning result {:?}", prov_result);
                     let reconfigure = match prov_result.reconfigure {
                         ReprovisioningStatus::DeviceDataUpdated => {
                             if Self::diff_with_backup(restore_path, &prov_result) {
@@ -433,10 +707,12 @@ where
 mod tests {
     use super::*;
 
+    use edgelet_core::{Manual, ParseManualDeviceConnectionStringError};
+    use external_provisioning::models::{Credentials, DeviceProvisioningInfo};
+    use failure::Fail;
+    use std::fmt::{self, Display};
     use tempdir::TempDir;
     use tokio;
-
-    use edgelet_config::{Manual, ParseManualDeviceConnectionStringError};
 
     use crate::error::ErrorKind;
 
@@ -454,6 +730,7 @@ mod tests {
                 hub_name: "TestHub".to_string(),
                 reconfigure: ReprovisioningStatus::DeviceDataUpdated,
                 sha256_thumbprint: None,
+                credentials: None,
             }))
         }
     }
@@ -472,6 +749,7 @@ mod tests {
                 hub_name: "TestHubUpdated".to_string(),
                 reconfigure: ReprovisioningStatus::DeviceDataUpdated,
                 sha256_thumbprint: None,
+                credentials: None,
             }))
         }
     }
@@ -663,6 +941,39 @@ mod tests {
     }
 
     #[test]
+    fn provisioning_restore_no_reconfigure() {
+        let test_provisioner = TestProvisioning {};
+        let tmp_dir = TempDir::new("backup").unwrap();
+        let file_path = tmp_dir.path().join("dps_backup.json");
+        let file_path_clone = file_path.clone();
+        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path);
+        let task = prov_wrapper.provision(MemoryKeyStore::new());
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+
+        let prov_wrapper_err =
+            BackupProvisioning::new(TestProvisioningWithError {}, file_path_clone);
+        let task1 = prov_wrapper_err
+            .provision(MemoryKeyStore::new())
+            .then(|result| {
+                let prov_result = result.expect("Unexpected");
+                assert_eq!(prov_result.device_id(), "TestDevice");
+                assert_eq!(prov_result.hub_name(), "TestHub");
+                assert_eq!(
+                    prov_result.reconfigure(),
+                    ReprovisioningStatus::DeviceDataNotUpdated
+                );
+                Ok::<_, Error>(())
+            });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task1)
+            .unwrap();
+    }
+
+    #[test]
     fn device_updated_credential_change() {
         let test_provisioner = TestProvisioning {};
         let tmp_dir = TempDir::new("backup").unwrap();
@@ -731,6 +1042,7 @@ mod tests {
             hub_name: "something".to_string(),
             reconfigure: ReprovisioningStatus::DeviceDataNotUpdated,
             sha256_thumbprint: None,
+            credentials: None,
         })
         .unwrap();
         assert_eq!(
@@ -739,5 +1051,209 @@ mod tests {
         );
         let result: ProvisioningResult = serde_json::from_str(&json).unwrap();
         assert_eq!(result.reconfigure, ReprovisioningStatus::InitialAssignment)
+    }
+
+    struct TestExternalProvisioningInterface {
+        pub error: Option<TestError>,
+        pub provisioning_info: DeviceProvisioningInfo,
+    }
+
+    #[derive(Debug, Fail)]
+    struct TestError {}
+
+    impl Display for TestError {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "test error")
+        }
+    }
+
+    impl ExternalProvisioningInterface for TestExternalProvisioningInterface {
+        type Error = TestError;
+
+        type DeviceProvisioningInformationFuture =
+            Box<dyn Future<Item = DeviceProvisioningInfo, Error = Self::Error> + Send>;
+
+        fn get_device_provisioning_information(&self) -> Self::DeviceProvisioningInformationFuture {
+            match self.error.as_ref() {
+                None => Box::new(Ok(self.provisioning_info.clone()).into_future()),
+                Some(_s) => Box::new(Err(TestError {}).into_future()),
+            }
+        }
+    }
+
+    #[test]
+    fn external_get_provisioning_info_symmetric_key_payload_success() {
+        let mut credentials = Credentials::new("symmetric-key".to_string(), "payload".to_string());
+        credentials.set_key("cGFzczEyMzQ=".to_string());
+        let provisioning_info = DeviceProvisioningInfo::new(
+            "TestHub".to_string(),
+            "TestDevice".to_string(),
+            credentials,
+        );
+
+        let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
+            error: None,
+            provisioning_info,
+        });
+        let memory_hsm = MemoryKeyStore::new();
+        let task = provisioning
+            .provision(memory_hsm.clone())
+            .then(|result| match result {
+                Ok(result) => {
+                    assert_eq!(result.hub_name, "TestHub".to_string());
+                    assert_eq!(result.device_id, "TestDevice".to_string());
+
+                    if let Some(credentials) = result.credentials() {
+                        if let AuthType::SymmetricKey(symmetric_key) = credentials.auth_type() {
+                            if let Some(key) = &symmetric_key.key {
+                                assert_eq!(base64::encode(key), "cGFzczEyMzQ=");
+                            } else {
+                                panic!("A key was expected in the response.")
+                            }
+                        } else {
+                            panic!("Unexpected authentication type.")
+                        }
+                    } else {
+                        panic!("No credentials found. This is unexpected")
+                    }
+
+                    Ok::<_, Error>(())
+                }
+                Err(err) => panic!("Unexpected {:?}", err),
+            });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn external_get_provisioning_info_symmetric_key_hsm_success() {
+        let credentials = Credentials::new("symmetric-key".to_string(), "hsm".to_string());
+        let provisioning_info = DeviceProvisioningInfo::new(
+            "TestHub".to_string(),
+            "TestDevice".to_string(),
+            credentials,
+        );
+
+        let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
+            error: None,
+            provisioning_info,
+        });
+        let memory_hsm = MemoryKeyStore::new();
+        let task = provisioning
+            .provision(memory_hsm.clone())
+            .then(|result| match result {
+                Ok(result) => {
+                    assert_eq!(result.hub_name, "TestHub".to_string());
+                    assert_eq!(result.device_id, "TestDevice".to_string());
+
+                    if let Some(credentials) = result.credentials() {
+                        if let AuthType::SymmetricKey(symmetric_key) = credentials.auth_type() {
+                            if symmetric_key.key.is_some() {
+                                panic!("No key was expected in the response.")
+                            }
+                        } else {
+                            panic!("Unexpected authentication type.")
+                        }
+                    } else {
+                        panic!("No credentials found. This is unexpected")
+                    }
+
+                    Ok::<_, Error>(())
+                }
+                Err(err) => panic!("Unexpected {:?}", err),
+            });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn external_get_provisioning_info_invalid_credentials_source() {
+        let credentials = Credentials::new("symmetric-key".to_string(), "xyz".to_string());
+        let provisioning_info = DeviceProvisioningInfo::new(
+            "TestHub".to_string(),
+            "TestDevice".to_string(),
+            credentials,
+        );
+
+        let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
+            error: None,
+            provisioning_info,
+        });
+        let memory_hsm = MemoryKeyStore::new();
+        let task = provisioning.provision(memory_hsm.clone()).then(|result| {
+            assert_eq!(
+                result.unwrap_err().kind(),
+                &ErrorKind::ExternalProvisioning(
+                    ExternalProvisioningErrorReason::InvalidCredentialSource
+                )
+            );
+            Ok::<_, Error>(())
+        });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn external_get_provisioning_info_x509_unsupported() {
+        let credentials = Credentials::new("x509".to_string(), "payload".to_string());
+        let provisioning_info = DeviceProvisioningInfo::new(
+            "TestHub".to_string(),
+            "TestDevice".to_string(),
+            credentials,
+        );
+
+        let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
+            error: None,
+            provisioning_info,
+        });
+        let memory_hsm = MemoryKeyStore::new();
+        let task = provisioning.provision(memory_hsm.clone()).then(|result| {
+            assert_eq!(
+                result.unwrap_err().kind(),
+                &ErrorKind::ExternalProvisioning(
+                    ExternalProvisioningErrorReason::InvalidAuthenticationType
+                )
+            );
+            Ok::<_, Error>(())
+        });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn external_get_provisioning_info_failure() {
+        let credentials = Credentials::new("symmetric-key".to_string(), "payload".to_string());
+        let provisioning_info = DeviceProvisioningInfo::new(
+            "TestHub".to_string(),
+            "TestDevice".to_string(),
+            credentials,
+        );
+
+        let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
+            error: Some(TestError {}),
+            provisioning_info,
+        });
+        let memory_hsm = MemoryKeyStore::new();
+        let task = provisioning.provision(memory_hsm.clone()).then(|result| {
+            assert_eq!(
+                result.unwrap_err().kind(),
+                &ErrorKind::ExternalProvisioning(
+                    ExternalProvisioningErrorReason::ProvisioningFailure
+                )
+            );
+            Ok::<_, Error>(())
+        });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
     }
 }

@@ -15,6 +15,7 @@ futures = "0.1"
 hyper = "0.12.17"
 log = "0.4"
 serde_json = "1.0"
+serde = "1.0"
 sha2 = "0.7.0"
 tokio = "0.1.8"
 tokio-signal = "0.2"
@@ -25,11 +26,11 @@ url_serde = "0.2"
 hsm = { path = "../hsm-rs"}
 dps = { path = "../dps" }
 docker = { path = "../docker-rs" }
-edgelet-config = { path = "../edgelet-config" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
 edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-http = { path = "../edgelet-http" }
+edgelet-http-external-provisioning = { path = "../edgelet-http-external-provisioning" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-iothub = { path = "../edgelet-iothub" }
@@ -45,6 +46,7 @@ winapi = { version = "0.3.5", features = ["shellapi"] }
 win-logger = { path = "../win-logger" }
 
 [dev_dependencies]
+rand = "0.5"
 tempdir = "0.3.7"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }

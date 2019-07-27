@@ -8,8 +8,8 @@
 
 #include "testrunnerswitcher.h"
 #include "test_utils.h"
-#include "umocktypes.h"
-#include "umocktypes_charptr.h"
+#include "umock_c/umocktypes.h"
+#include "umock_c/umocktypes_charptr.h"
 #include "azure_c_shared_utility/gballoc.h"
 #include "hsm_log.h"
 
@@ -106,7 +106,7 @@ static int test_helper_write_data_to_file
             if (num_bytes_written != input_data_size)
             {
                 LOG_ERROR("File write failed for file %s", file_name);
-                result = __FAILURE__;
+                result = __LINE__;
             }
         }
     }

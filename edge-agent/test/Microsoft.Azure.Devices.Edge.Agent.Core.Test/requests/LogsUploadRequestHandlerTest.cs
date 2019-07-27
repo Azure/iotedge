@@ -36,11 +36,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
 
             sasUrl = $"https://test1.blob.core.windows.net/cont2?st={Guid.NewGuid()}";
             filter = new ModuleLogFilter(Option.None<int>(), Option.Some(1501000), Option.None<int>(), Option.Some("ERR"));
-            yield return new object[] { @"{""schemaVersion"":""1.0"",""sasUrl"":""<sasurl>"",""items"":{""id"":""edgeAgent"",""filter"":<filter>}}".Replace("<sasurl>", sasUrl).Replace("<filter>", filter.ToJson()), "edgeAgent", sasUrl, LogsContentEncoding.None, LogsContentType.Json, filter };
+            yield return new object[] { @"{""schemaVersion"":""1.5"",""sasUrl"":""<sasurl>"",""items"":{""id"":""edgeAgent"",""filter"":<filter>}}".Replace("<sasurl>", sasUrl).Replace("<filter>", filter.ToJson()), "edgeAgent", sasUrl, LogsContentEncoding.None, LogsContentType.Json, filter };
 
             sasUrl = $"https://test1.blob.core.windows.net/cont2?st={Guid.NewGuid()}";
             filter = new ModuleLogFilter(Option.Some(100), Option.None<int>(), Option.Some(3), Option.None<string>());
-            yield return new object[] { @"{""schemaVersion"":""1.0"",""sasUrl"":""<sasurl>"",""items"":{""id"":""edgeAgent"",""filter"":<filter>}}".Replace("<sasurl>", sasUrl).Replace("<filter>", filter.ToJson()), "edgeAgent", sasUrl, LogsContentEncoding.None, LogsContentType.Json, filter };
+            yield return new object[] { @"{""schemaVersion"":""1.2"",""sasUrl"":""<sasurl>"",""items"":{""id"":""edgeAgent"",""filter"":<filter>}}".Replace("<sasurl>", sasUrl).Replace("<filter>", filter.ToJson()), "edgeAgent", sasUrl, LogsContentEncoding.None, LogsContentType.Json, filter };
         }
 
         [Theory]
@@ -80,7 +80,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             Option<string> response = await logsUploadRequestHandler.HandleRequest(Option.Maybe(payload), CancellationToken.None);
 
             // Assert
-            Assert.False(response.HasValue);
+            Assert.True(response.HasValue);
+            var taskStatusResponse = response.OrDefault().FromJson<TaskStatusResponse>();
+            Assert.NotNull(taskStatusResponse);
+            Assert.NotEmpty(taskStatusResponse.CorrelationId);
+            Assert.Equal(string.Empty, taskStatusResponse.Message);
+
+            await WaitForBackgroundTaskCompletion(taskStatusResponse.CorrelationId).TimeoutAfter(TimeSpan.FromSeconds(5));
+
             logsProvider.VerifyAll();
             logsUploader.VerifyAll();
             Mock.Get(runtimeInfoProvider).VerifyAll();
@@ -151,10 +158,53 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             Option<string> response = await logsUploadRequestHandler.HandleRequest(Option.Maybe(payload), CancellationToken.None);
 
             // Assert
-            Assert.False(response.HasValue);
+            Assert.True(response.HasValue);
+            var taskStatusResponse = response.OrDefault().FromJson<TaskStatusResponse>();
+            Assert.NotNull(taskStatusResponse);
+            Assert.NotEmpty(taskStatusResponse.CorrelationId);
+            Assert.Equal(string.Empty, taskStatusResponse.Message);
+
+            await WaitForBackgroundTaskCompletion(taskStatusResponse.CorrelationId).TimeoutAfter(TimeSpan.FromSeconds(5));
+
             logsProvider.VerifyAll();
             logsUploader.VerifyAll();
             runtimeInfoProvider.VerifyAll();
+        }
+
+        static async Task WaitForBackgroundTaskCompletion(string correlationId)
+        {
+            while (true)
+            {
+                BackgroundTaskStatus status = BackgroundTask.GetStatus(correlationId);
+                if (status.Status != BackgroundTaskRunStatus.Running)
+                {
+                    break;
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(1));
+            }
+        }
+
+        [Theory]
+        [InlineData(@"{""schemaVersion"":""2.0"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidSchemaVersionException))]
+        [InlineData(@"{""schemaVersion"":""0.0"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidSchemaVersionException))]
+        [InlineData(@"{""schemaVersion"":""3.4"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidSchemaVersionException))]
+        [InlineData(@"{""schemaVersion"":"""",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(ArgumentException))]
+        [InlineData(@"{""schemaVersion"":"" "",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(ArgumentException))]
+        [InlineData(@"{""schemaVersion"":""   "",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(ArgumentException))]
+        [InlineData(@"{""schemaVersion"":""abc"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidSchemaVersionException))]
+        [InlineData(@"{""schemaVersion"":""a.b.c"",""sasUrl"":""dummyUrl"",""items"":{""id"":""edgeAgent""},""encoding"":""gzip""}", typeof(InvalidSchemaVersionException))]
+        public async Task TestLogsUploadRequestWithInvalidSchemaVersion(string payload, Type exception)
+        {
+            // Arrange
+            var logsUploader = new Mock<ILogsUploader>();
+            var logsProvider = new Mock<ILogsProvider>();
+
+            var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>();
+
+            // Act
+            var logsUploadRequestHandler = new LogsUploadRequestHandler(logsUploader.Object, logsProvider.Object, runtimeInfoProvider);
+            await Assert.ThrowsAsync(exception, () => logsUploadRequestHandler.HandleRequest(Option.Maybe(payload), CancellationToken.None));
         }
     }
 }
