@@ -165,7 +165,10 @@ impl X509AttestationInfo {
         if is_supported_uri(&self.identity_pk) {
             Ok(self.identity_pk.clone())
         } else {
-            Err(CertificateConfigError::UnsupportedScheme("identity_pk"))
+            Err(CertificateConfigError::UnsupportedUri(
+                self.identity_pk.to_string(),
+                "identity_pk",
+            ))
         }
     }
 
@@ -173,7 +176,10 @@ impl X509AttestationInfo {
         if is_supported_uri(&self.identity_cert) {
             Ok(self.identity_cert.clone())
         } else {
-            Err(CertificateConfigError::UnsupportedScheme("identity_cert"))
+            Err(CertificateConfigError::UnsupportedUri(
+                self.identity_cert.to_string(),
+                "identity_cert",
+            ))
         }
     }
 
@@ -308,25 +314,31 @@ impl Listen {
     }
 }
 
-#[derive(Clone, Copy, Debug, Fail)]
+#[derive(Clone, Debug, Fail)]
 pub enum CertificateConfigError {
     #[fail(
         display = "URI scheme is unsupported for '{}'. Please check the config.yaml file.",
         _0
     )]
-    UnsupportedScheme(&'static str),
+    UnsupportedUri(String, &'static str),
 
     #[fail(
-        display = "Invalid path specified for '{}'. Please check the config.yaml file.",
-        _0
+        display = "Invalid file URI {} path specified for '{}'. Please check the config.yaml file.",
+        _0, _1
     )]
-    InvalidPath(&'static str),
+    InvalidUriFilePath(String, &'static str),
 
     #[fail(
-        display = "Malformed URI specified for '{}'. Please check the config.yaml file.",
+        display = "Invalid file URI {} path specified for '{}'. Please check the config.yaml file.",
+        _0, _1
+    )]
+    InvalidFilePath(String, &'static str),
+
+    #[fail(
+        display = "Malformed URI formed for file path '{}'. Please check the config.yaml file.",
         _0
     )]
-    MalformedUri(&'static str),
+    MalformedPathUri(String, &'static str),
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
@@ -349,12 +361,15 @@ fn is_supported_uri(uri: &Url) -> bool {
 
 fn get_path_from_uri(uri: &Url, variable: &'static str) -> Result<PathBuf, CertificateConfigError> {
     if is_supported_uri(&uri) {
-        let path = PathBuf::from(uri.path())
-            .canonicalize()
-            .map_err(|_| CertificateConfigError::InvalidPath(variable))?;
+        let path = uri
+            .to_file_path()
+            .map_err(|_| CertificateConfigError::InvalidUriFilePath(uri.to_string(), variable))?;
         Ok(path)
     } else {
-        Err(CertificateConfigError::UnsupportedScheme(variable))
+        Err(CertificateConfigError::UnsupportedUri(
+            uri.to_string(),
+            variable,
+        ))
     }
 }
 
@@ -373,18 +388,21 @@ fn convert_to_uri(maybe_uri: &str, variable: &'static str) -> Result<Url, Certif
         if is_supported_uri(&uri) {
             Ok(uri)
         } else {
-            Err(CertificateConfigError::UnsupportedScheme(variable))
+            Err(CertificateConfigError::UnsupportedUri(
+                String::from(maybe_uri),
+                variable,
+            ))
         }
     } else {
-        let path = PathBuf::from(maybe_uri)
-            .canonicalize()
-            .map_err(|_| CertificateConfigError::InvalidPath(variable))?;
-        let path = path
-            .to_str()
-            .ok_or_else(|| CertificateConfigError::InvalidPath(variable))?;
+        let path = PathBuf::from(maybe_uri).canonicalize().map_err(|_| {
+            CertificateConfigError::InvalidFilePath(String::from(maybe_uri), variable)
+        })?;
+        let path = path.to_str().ok_or_else(|| {
+            CertificateConfigError::InvalidFilePath(String::from(maybe_uri), variable)
+        })?;
         let file_uri = format!("file:://{}", path);
-        let url =
-            Url::parse(&file_uri).map_err(|_| CertificateConfigError::MalformedUri(variable))?;
+        let url = Url::parse(&file_uri)
+            .map_err(|_| CertificateConfigError::MalformedPathUri(String::from(path), variable))?;
         Ok(url)
     }
 }
