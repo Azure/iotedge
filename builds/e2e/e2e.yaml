@@ -60,12 +60,12 @@ jobs:
         ROOT_KEY: $(TestRootCaKey)
 
     - script: |
-        imageId='$(az.pipeline.images.buildId)'
+        imageId='$(az.pipeline.images.buildNum)'
         if [ -z $imageId ]; then
           imageId='$(Build.TriggeredBy.BuildNumber)'
         fi
         if [ -z $imageId ]; then
-          echo 'Build not triggered by the "Build Images" build, and argument "az.pipeline.images.buildId" not specified'
+          echo 'Build not triggered by the "Build Images" build, and argument "az.pipeline.images.buildNum" not specified'
         fi
 
         binDir='$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1'
