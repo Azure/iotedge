@@ -455,22 +455,22 @@ mod tests {
             (
                 format!(
                     "file://{}",
-                    ca_cert_path.canonicalize().unwrap().to_str().unwrap()
+                    ca_cert_path.to_str().unwrap()
                 ),
                 format!(
                     "file://{}",
-                    ca_key_path.canonicalize().unwrap().to_str().unwrap()
+                    ca_key_path.to_str().unwrap()
                 ),
                 format!(
                     "file://{}",
-                    trust_bundle_path.canonicalize().unwrap().to_str().unwrap()
+                    trust_bundle_path.to_str().unwrap()
                 ),
             )
         } else {
             (
-                String::from(ca_cert_path.canonicalize().unwrap().to_str().unwrap()),
-                String::from(ca_key_path.canonicalize().unwrap().to_str().unwrap()),
-                String::from(trust_bundle_path.canonicalize().unwrap().to_str().unwrap()),
+                String::from(ca_cert_path.to_str().unwrap()),
+                String::from(ca_key_path.to_str().unwrap()),
+                String::from(trust_bundle_path.to_str().unwrap()),
             )
         };
         let settings_yaml = json!({
@@ -512,15 +512,15 @@ mod tests {
         certificates
             .map(|c| {
                 assert_eq!(
-                    ca_cert_path.canonicalize().unwrap(),
+                    ca_cert_path,
                     c.device_ca_cert().unwrap(),
                 );
                 assert_eq!(
-                    ca_key_path.canonicalize().unwrap(),
+                    ca_key_path,
                     c.device_ca_pk().unwrap(),
                 );
                 assert_eq!(
-                    trust_bundle_path.canonicalize().unwrap(),
+                    trust_bundle_path,
                     c.trusted_ca_certs().unwrap(),
                 );
             })
@@ -636,11 +636,11 @@ mod tests {
 
         let cert_uri = format!(
             "file://{}",
-            cert_path.canonicalize().unwrap().to_str().unwrap()
+            cert_path.to_str().unwrap()
         );
         let pk_uri = format!(
             "file://{}",
-            key_path.canonicalize().unwrap().to_str().unwrap()
+            key_path.to_str().unwrap()
         );
         let settings_yaml = json!({
         "provisioning": {
@@ -682,7 +682,7 @@ mod tests {
                         assert_eq!(
                             Url::parse(&format!(
                                 "file://{}",
-                                cert_path.canonicalize().unwrap().to_str().unwrap()
+                                cert_path.to_str().unwrap()
                             ))
                             .unwrap(),
                             x509.identity_cert_uri().unwrap(),
@@ -690,7 +690,7 @@ mod tests {
                         assert_eq!(
                             Url::parse(&format!(
                                 "file://{}",
-                                key_path.canonicalize().unwrap().to_str().unwrap()
+                                key_path.to_str().unwrap()
                             ))
                             .unwrap(),
                             x509.identity_pk_uri().unwrap(),
@@ -731,7 +731,7 @@ mod tests {
                         assert_eq!(
                             Url::parse(&format!(
                                 "file://{}",
-                                cert_path.canonicalize().unwrap().to_str().unwrap()
+                                cert_path.to_str().unwrap()
                             ))
                             .unwrap(),
                             x509.identity_cert_uri().unwrap(),
@@ -739,7 +739,7 @@ mod tests {
                         assert_eq!(
                             Url::parse(&format!(
                                 "file://{}",
-                                key_path.canonicalize().unwrap().to_str().unwrap()
+                                key_path.to_str().unwrap()
                             ))
                             .unwrap(),
                             x509.identity_pk_uri().unwrap(),
