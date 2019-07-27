@@ -2358,8 +2358,8 @@ mod tests {
             .write_all(b"i pity the fool")
             .expect("Test cert private key file could not be written");
 
-        let cert_uri = format!("file:///{}", cert_path.to_str().unwrap());
-        let pk_uri = format!("file:///{}", cert_path.to_str().unwrap());
+        let cert_uri = format!("file://{}", cert_path.canonicalize().unwrap().to_str().unwrap());
+        let pk_uri = format!("file://{}", key_path.canonicalize().unwrap().to_str().unwrap());
         let settings_yaml = json!({
         "provisioning": {
             "source": "dps",

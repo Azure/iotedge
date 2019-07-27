@@ -311,19 +311,19 @@ impl Listen {
 #[derive(Clone, Copy, Debug, Fail)]
 pub enum CertificateConfigError {
     #[fail(
-        display = "URI scheme is unsupported for '{}'. Please check the config.yaml certificates section.",
+        display = "URI scheme is unsupported for '{}'. Please check the config.yaml file.",
         _0
     )]
     UnsupportedScheme(&'static str),
 
     #[fail(
-        display = "Invalid path specified for '{}'. Please check the config.yaml certificates section.",
+        display = "Invalid path specified for '{}'. Please check the config.yaml file.",
         _0
     )]
     InvalidPath(&'static str),
 
     #[fail(
-        display = "Malformed URI specified for '{}'. Please check the config.yaml certificates section.",
+        display = "Malformed URI specified for '{}'. Please check the config.yaml file.",
         _0
     )]
     MalformedUri(&'static str),
@@ -345,7 +345,9 @@ fn is_supported_uri(uri: &Url) -> bool {
 
 fn get_path_from_uri(uri: &Url, variable: &'static str) -> Result<PathBuf, CertificateConfigError> {
     if is_supported_uri(&uri) {
-        let path = PathBuf::from(uri.path());
+        let path = PathBuf::from(uri.path())
+            .canonicalize()
+            .map_err(|_| CertificateConfigError::InvalidPath(variable))?;
         Ok(path)
     } else {
         Err(CertificateConfigError::UnsupportedScheme(variable))
@@ -370,10 +372,10 @@ fn convert_to_uri(maybe_uri: &str, variable: &'static str) -> Result<Url, Certif
             Err(CertificateConfigError::UnsupportedScheme(variable))
         }
     } else {
-        let path = PathBuf::from(maybe_uri)
-            .canonicalize()
+        let path = PathBuf::from(maybe_uri).canonicalize()
             .map_err(|_| CertificateConfigError::InvalidPath(variable))?;
-        let file_uri = format!("file:://{:?}", path.to_str());
+        let path = path.to_str().ok_or_else(|| {CertificateConfigError::InvalidPath(variable)})?;
+        let file_uri = format!("file:://{}", path);
         let url =
             Url::parse(&file_uri).map_err(|_| CertificateConfigError::MalformedUri(variable))?;
         Ok(url)
