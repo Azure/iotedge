@@ -317,8 +317,8 @@ impl Listen {
 #[derive(Clone, Debug, Fail)]
 pub enum CertificateConfigError {
     #[fail(
-        display = "URI scheme is unsupported for '{}'. Please check the config.yaml file.",
-        _0
+        display = "URI {} is unsupported for '{}'. Please check the config.yaml file.",
+        _0, _1
     )]
     UnsupportedUri(String, &'static str),
 
@@ -329,14 +329,14 @@ pub enum CertificateConfigError {
     InvalidUriFilePath(String, &'static str),
 
     #[fail(
-        display = "Invalid file URI {} path specified for '{}'. Please check the config.yaml file.",
+        display = "Invalid file path {} specified for '{}'. Please check the config.yaml file.",
         _0, _1
     )]
     InvalidFilePath(String, &'static str),
 
     #[fail(
-        display = "Malformed URI formed for file path '{}'. Please check the config.yaml file.",
-        _0
+        display = "Malformed URI {} formed for file path '{}'. Please check the config.yaml file.",
+        _0, _1
     )]
     MalformedPathUri(String, &'static str),
 }
@@ -377,7 +377,7 @@ fn convert_to_path(
     maybe_uri: &str,
     variable: &'static str,
 ) -> Result<PathBuf, CertificateConfigError> {
-    match Url::from_file_path(maybe_uri) {
+    match Url::parse(maybe_uri) {
         Ok(uri) => get_path_from_uri(&uri, variable),
         Err(_) => Ok(PathBuf::from(maybe_uri)),
     }
