@@ -49,7 +49,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             IList<string> addedOrUpdatedModuleNames = diff.AddedOrUpdated.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m.Name)).ToList();
             IEnumerable<string> removedModuleNames = diff.Removed.Select(ModuleIdentityHelper.GetModuleIdentityName);
 
-            // TODO filter out this list to include the proper set instead of calling to the cloud.
             IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
 
             // Create identities for all modules that are in the deployment but aren't in iotedged.
