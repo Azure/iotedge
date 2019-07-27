@@ -377,7 +377,7 @@ fn convert_to_path(
     maybe_uri: &str,
     variable: &'static str,
 ) -> Result<PathBuf, CertificateConfigError> {
-    match Url::parse(maybe_uri) {
+    match Url::from_file_path(maybe_uri) {
         Ok(uri) => get_path_from_uri(&uri, variable),
         Err(_) => Ok(PathBuf::from(maybe_uri)),
     }

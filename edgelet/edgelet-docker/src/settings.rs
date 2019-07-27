@@ -546,9 +546,9 @@ mod tests {
         let certificates = settings.certificates();
         certificates
             .map(|c| {
-                assert_eq!(ca_cert_path, c.device_ca_cert().unwrap(),);
-                assert_eq!(ca_key_path, c.device_ca_pk().unwrap(),);
-                assert_eq!(trust_bundle_path, c.trusted_ca_certs().unwrap(),);
+                assert_eq!(ca_cert_path, c.device_ca_cert().unwrap());
+                assert_eq!(ca_key_path, c.device_ca_pk().unwrap());
+                assert_eq!(trust_bundle_path, c.trusted_ca_certs().unwrap());
             })
             .expect("certificates not configured");
     }
