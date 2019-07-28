@@ -570,66 +570,53 @@ mod tests {
     fn test_convert_to_path() {
         if cfg!(windows) {
             let expected_path = "C:\\temp\\sample.txt";
-            let input = expected_path;
+
             assert_eq!(
                 expected_path,
-                convert_to_path(input, "test").unwrap().to_str().unwrap()
+                convert_to_path("C:\\temp\\sample.txt", "test").unwrap().to_str().unwrap()
             );
-            let input = "file:///C:/temp/sample.txt";
             assert_eq!(
                 expected_path,
-                convert_to_path(input, "test").unwrap().to_str().unwrap()
+                convert_to_path("file:///C:/temp/sample.txt", "test").unwrap().to_str().unwrap()
             );
-            let input = "file://localhost/C:/temp/sample.txt";
             assert_eq!(
                 expected_path,
-                convert_to_path(input, "test").unwrap().to_str().unwrap()
+                convert_to_path("file://localhost/C:/temp/sample.txt", "test").unwrap().to_str().unwrap()
             );
-            let input = "file://localhost/C:/temp/../temp/sample.txt";
             assert_eq!(
                 expected_path,
-                convert_to_path(input, "test").unwrap().to_str().unwrap()
+                convert_to_path("file://localhost/C:/temp/../temp/sample.txt", "test").unwrap().to_str().unwrap()
             );
             // oddly this works because the host is null since local drive is specified
-            let input = "file://deadhost/C:/temp/sample.txt";
             assert_eq!(
                 expected_path,
-                convert_to_path(input, "test").unwrap().to_str().unwrap()
+                convert_to_path("file://deadhost/C:/temp/sample.txt", "test").unwrap().to_str().unwrap()
             );
-            let input = "file://deadhost/temp/sample.txt";
-            convert_to_path(input, "test").expect_err("Non localhost host specified");
-            let input = "https:///C:/temp/sample.txt";
-            convert_to_path(input, "test").expect_err("Non file scheme specified");
-            let input = "../sample.txt";
-            convert_to_path(input, "test").expect_err("Non absolute path specified");
+            convert_to_path("file://deadhost/temp/sample.txt", "test").expect_err("Non localhost host specified");
+            convert_to_path("https:///C:/temp/sample.txt", "test").expect_err("Non file scheme specified");
+            convert_to_path("../sample.txt", "test").expect_err("Non absolute path specified");
         } else {
             let expected_path = "/tmp/sample.txt";
-            let input = expected_path;
+
             assert_eq!(
                 expected_path,
-                convert_to_path(input, "test").unwrap().to_str().unwrap()
+                convert_to_path("/tmp/sample.txt", "test").unwrap().to_str().unwrap()
             );
-            let input = "file:///tmp/sample.txt";
             assert_eq!(
                 expected_path,
-                convert_to_path(input, "test").unwrap().to_str().unwrap()
+                convert_to_path("file:///tmp/sample.txt", "test").unwrap().to_str().unwrap()
             );
-            let input = "file://localhost/tmp/sample.txt";
             assert_eq!(
                 expected_path,
-                convert_to_path(input, "test").unwrap().to_str().unwrap()
+                convert_to_path("file://localhost/tmp/sample.txt", "test").unwrap().to_str().unwrap()
             );
-            let input = "file:///tmp/../tmp/sample.txt";
             assert_eq!(
                 expected_path,
-                convert_to_path(input, "test").unwrap().to_str().unwrap()
+                convert_to_path("file:///tmp/../tmp/sample.txt", "test").unwrap().to_str().unwrap()
             );
-            let input = "file://deadhost/tmp/sample.txt";
-            convert_to_path(input, "test").expect_err("Non localhost host specified");
-            let input = "https://localhost/tmp/sample.txt";
-            convert_to_path(input, "test").expect_err("Non file scheme specified");
-            let input = "../sample.txt";
-            convert_to_path(input, "test").expect_err("Non absolute path specified");
+            convert_to_path("file://deadhost/tmp/sample.txt", "test").expect_err("Non localhost host specified");
+            convert_to_path("https://localhost/tmp/sample.txt", "test").expect_err("Non file scheme specified");
+            convert_to_path("../sample.txt", "test").expect_err("Non absolute path specified");
         }
     }
 
@@ -638,38 +625,26 @@ mod tests {
         if cfg!(windows) {
             let expected_uri_str = "file:///C:/temp/sample.txt";
             let expected_uri = Url::parse(expected_uri_str).unwrap();
-            let input = expected_uri_str;
-            assert_eq!(expected_uri, convert_to_uri(input, "test").unwrap());
-            let input = "file://localhost/C:/temp/sample.txt";
-            assert_eq!(expected_uri, convert_to_uri(input, "test").unwrap());
-            let input = "file://localhost/C:/temp/../temp/sample.txt";
-            assert_eq!(expected_uri, convert_to_uri(input, "test").unwrap());
+
+            assert_eq!(expected_uri, convert_to_uri("file:///C:/temp/sample.txt", "test").unwrap());
+            assert_eq!(expected_uri, convert_to_uri("file://localhost/C:/temp/sample.txt", "test").unwrap());
+            assert_eq!(expected_uri, convert_to_uri("file://localhost/C:/temp/../temp/sample.txt", "test").unwrap());
             // oddly this works because the host is null since local drive is specified
-            let input = "file://deadhost/C:/temp/sample.txt";
-            assert_eq!(expected_uri, convert_to_uri(input, "test").unwrap());
-            let input = "file://deadhost/temp/sample.txt";
-            convert_to_uri(input, "test").expect_err("Non localhost host specified");
-            let input = "file://deadhost/temp/sample.txt";
-            convert_to_uri(input, "test").expect_err("Non file scheme specified");
-            let input = "../sample.txt";
-            convert_to_uri(input, "test").expect_err("Non absolute path specified");
+            assert_eq!(expected_uri, convert_to_uri("file://deadhost/C:/temp/sample.txt", "test").unwrap());
+            convert_to_uri("file://deadhost/temp/sample.txt", "test").expect_err("Non localhost host specified");
+            convert_to_uri("file://deadhost/temp/sample.txt", "test").expect_err("Non file scheme specified");
+            convert_to_uri("../sample.txt", "test").expect_err("Non absolute path specified");
         } else {
             let expected_uri_str = "file:///tmp/sample.txt";
             let expected_uri = Url::parse(expected_uri_str).unwrap();
-            let input = expected_uri_str;
-            assert_eq!(expected_uri, convert_to_uri(input, "test").unwrap());
-            let input = "file://localhost/tmp/sample.txt";
-            assert_eq!(expected_uri, convert_to_uri(input, "test").unwrap());
-            let input = "file:///tmp/../tmp/sample.txt";
-            assert_eq!(expected_uri, convert_to_uri(input, "test").unwrap());
-            let input = "https://localhost/tmp/sample.txt";
-            convert_to_uri(input, "test").expect_err("Non absolute path specified");
-            let input = "/tmp/sample.txt";
-            assert_eq!(expected_uri, convert_to_uri(input, "test").unwrap());
-            let input = "../sample.txt";
-            convert_to_uri(input, "test").expect_err("Non absolute path specified");
-            let input = "file://deadhost/tmp/sample.txt";
-            convert_to_uri(input, "test").expect_err("Non localhost host specified");
+
+            assert_eq!(expected_uri, convert_to_uri("file:///tmp/sample.txt", "test").unwrap());
+            assert_eq!(expected_uri, convert_to_uri("file://localhost/tmp/sample.txt", "test").unwrap());
+            assert_eq!(expected_uri, convert_to_uri("file:///tmp/../tmp/sample.txt", "test").unwrap());
+            convert_to_uri("https://localhost/tmp/sample.txt", "test").expect_err("Non absolute path specified");
+            assert_eq!(expected_uri, convert_to_uri("/tmp/sample.txt", "test").unwrap());
+            convert_to_uri("../sample.txt", "test").expect_err("Non absolute path specified");
+            convert_to_uri("file://deadhost/tmp/sample.txt", "test").expect_err("Non localhost host specified");
         }
     }
 }
