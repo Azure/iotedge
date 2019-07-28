@@ -453,18 +453,9 @@ mod tests {
 
         let (ca_cert_setting, ca_key_setting, trust_bundle_setting) = if use_uri_format {
             (
-                format!(
-                    "file://{}",
-                    ca_cert_path.to_str().unwrap()
-                ),
-                format!(
-                    "file://{}",
-                    ca_key_path.to_str().unwrap()
-                ),
-                format!(
-                    "file://{}",
-                    trust_bundle_path.to_str().unwrap()
-                ),
+                format!("file://{}", ca_cert_path.to_str().unwrap()),
+                format!("file://{}", ca_key_path.to_str().unwrap()),
+                format!("file://{}", trust_bundle_path.to_str().unwrap()),
             )
         } else {
             (
@@ -513,7 +504,9 @@ mod tests {
             .map(|c| {
                 let path = c.device_ca_cert().expect("Did not obtain device CA cert");
                 assert_eq!(ca_cert_path, path);
-                let path = c.device_ca_pk().expect("Did not obtain device CA private key");
+                let path = c
+                    .device_ca_pk()
+                    .expect("Did not obtain device CA private key");
                 assert_eq!(ca_key_path, path);
                 let path = c.trusted_ca_certs().expect("Did not obtain trust bundle");
                 assert_eq!(trust_bundle_path, path);
@@ -542,7 +535,9 @@ mod tests {
             .map(|c| {
                 let path = c.device_ca_cert().expect("Did not obtain device CA cert");
                 assert_eq!(ca_cert_path, path);
-                let path = c.device_ca_pk().expect("Did not obtain device CA private key");
+                let path = c
+                    .device_ca_pk()
+                    .expect("Did not obtain device CA private key");
                 assert_eq!(ca_key_path, path);
                 let path = c.trusted_ca_certs().expect("Did not obtain trust bundle");
                 assert_eq!(trust_bundle_path, path);
@@ -631,14 +626,8 @@ mod tests {
             .write_all(b"i pity the fool")
             .expect("Test cert private key file could not be written");
 
-        let cert_uri = format!(
-            "file://{}",
-            cert_path.to_str().unwrap()
-        );
-        let pk_uri = format!(
-            "file://{}",
-            key_path.to_str().unwrap()
-        );
+        let cert_uri = format!("file://{}", cert_path.to_str().unwrap());
+        let pk_uri = format!("file://{}", key_path.to_str().unwrap());
         let settings_yaml = json!({
         "provisioning": {
             "source": "dps",
@@ -677,19 +666,11 @@ mod tests {
                     AttestationMethod::X509(ref x509) => {
                         assert!(x509.registration_id().is_none());
                         assert_eq!(
-                            Url::parse(&format!(
-                                "file://{}",
-                                cert_path.to_str().unwrap()
-                            ))
-                            .unwrap(),
+                            Url::parse(&format!("file://{}", cert_path.to_str().unwrap())).unwrap(),
                             x509.identity_cert_uri().unwrap(),
                         );
                         assert_eq!(
-                            Url::parse(&format!(
-                                "file://{}",
-                                key_path.to_str().unwrap()
-                            ))
-                            .unwrap(),
+                            Url::parse(&format!("file://{}", key_path.to_str().unwrap())).unwrap(),
                             x509.identity_pk_uri().unwrap(),
                         );
                         assert_eq!(
@@ -726,19 +707,11 @@ mod tests {
                     AttestationMethod::X509(ref x509) => {
                         assert!(x509.registration_id().is_none());
                         assert_eq!(
-                            Url::parse(&format!(
-                                "file://{}",
-                                cert_path.to_str().unwrap()
-                            ))
-                            .unwrap(),
+                            Url::parse(&format!("file://{}", cert_path.to_str().unwrap())).unwrap(),
                             x509.identity_cert_uri().unwrap(),
                         );
                         assert_eq!(
-                            Url::parse(&format!(
-                                "file://{}",
-                                key_path.to_str().unwrap()
-                            ))
-                            .unwrap(),
+                            Url::parse(&format!("file://{}", key_path.to_str().unwrap())).unwrap(),
                             x509.identity_pk_uri().unwrap(),
                         );
                         assert_eq!(

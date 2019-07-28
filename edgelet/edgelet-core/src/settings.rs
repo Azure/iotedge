@@ -349,10 +349,7 @@ pub struct Certificates {
 }
 
 fn is_supported_uri(uri: &Url) -> bool {
-    if uri.scheme() == "file"
-        && uri.port().is_none()
-        && uri.query().is_none()
-    {
+    if uri.scheme() == "file" && uri.port().is_none() && uri.query().is_none() {
         if let Some(host) = uri.host_str() {
             if "localhost" == host {
                 return true;
@@ -367,11 +364,10 @@ fn is_supported_uri(uri: &Url) -> bool {
 
 fn get_path_from_uri(uri: &Url, variable: &'static str) -> Result<PathBuf, CertificateConfigError> {
     if is_supported_uri(&uri) {
-        let path = uri.to_file_path()
-            .map_err(|_| {
-                CertificateConfigError::InvalidUriFilePath(uri.to_string(), variable)
-            })?;
-       Ok(path)
+        let path = uri
+            .to_file_path()
+            .map_err(|_| CertificateConfigError::InvalidUriFilePath(uri.to_string(), variable))?;
+        Ok(path)
     } else {
         Err(CertificateConfigError::UnsupportedFileUri(
             uri.to_string(),
@@ -390,9 +386,7 @@ fn convert_to_path(
     } else {
         // maybe_path is not a path and could be URI
         let uri = Url::parse(maybe_path)
-        .map_err(|_| {
-            CertificateConfigError::InvalidUri(String::from(maybe_path), variable)
-        })?;
+            .map_err(|_| CertificateConfigError::InvalidUri(String::from(maybe_path), variable))?;
         get_path_from_uri(&uri, variable)
     }
 }
@@ -411,19 +405,17 @@ fn convert_to_uri(maybe_uri: &str, variable: &'static str) -> Result<Url, Certif
     } else {
         // maybe_uri was specified as a valid path not a URI
         Url::from_file_path(maybe_uri)
-        .map(|uri| {
-            if is_supported_uri(&uri) {
-                Ok(uri)
-            } else {
-                Err(CertificateConfigError::UnsupportedUri(
-                    String::from(maybe_uri),
-                    variable,
-                ))
-            }
-        })
-        .map_err(|_| {
-            CertificateConfigError::InvalidUri(String::from(maybe_uri), variable)
-        })?
+            .map(|uri| {
+                if is_supported_uri(&uri) {
+                    Ok(uri)
+                } else {
+                    Err(CertificateConfigError::UnsupportedUri(
+                        String::from(maybe_uri),
+                        variable,
+                    ))
+                }
+            })
+            .map_err(|_| CertificateConfigError::InvalidUri(String::from(maybe_uri), variable))?
     }
 }
 
