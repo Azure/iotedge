@@ -18,22 +18,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     public class EdgeToDeviceMethodTest : IClassFixture<ProtocolHeadFixture>, IDisposable
     {
-        private readonly ITestOutputHelper _output;
-        private readonly TextWriter _originalOut;
-        private readonly TextWriter _textWriter;
+        private readonly ITestOutputHelper output;
+        private readonly TextWriter originalOut;
+        private readonly TextWriter textWriter;
 
         public EdgeToDeviceMethodTest(ITestOutputHelper output)
         {
-            _output = output;
-            _originalOut = Console.Out;
-            _textWriter = new StringWriter();
-            Console.SetOut(_textWriter);
+            this.output = output;
+            this.originalOut = Console.Out;
+            this.textWriter = new StringWriter();
+            Console.SetOut(this.textWriter);
         }
 
         public void Dispose()
         {
-            _output.WriteLine(_textWriter.ToString());
-            Console.SetOut(_originalOut);
+            this.output.WriteLine(this.textWriter.ToString());
+            Console.SetOut(this.originalOut);
         }
 
         [Theory]
