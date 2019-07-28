@@ -511,18 +511,12 @@ mod tests {
         let certificates = settings.certificates();
         certificates
             .map(|c| {
-                assert_eq!(
-                    ca_cert_path,
-                    c.device_ca_cert().unwrap(),
-                );
-                assert_eq!(
-                    ca_key_path,
-                    c.device_ca_pk().unwrap(),
-                );
-                assert_eq!(
-                    trust_bundle_path,
-                    c.trusted_ca_certs().unwrap(),
-                );
+                let path = c.device_ca_cert().expect("Did not obtain device CA cert");
+                assert_eq!(ca_cert_path, path);
+                let path = c.device_ca_pk().expect("Did not obtain device CA private key");
+                assert_eq!(ca_key_path, path);
+                let path = c.trusted_ca_certs().expect("Did not obtain trust bundle");
+                assert_eq!(trust_bundle_path, path);
             })
             .expect("certificates not configured");
     }
@@ -546,9 +540,12 @@ mod tests {
         let certificates = settings.certificates();
         certificates
             .map(|c| {
-                assert_eq!(ca_cert_path, c.device_ca_cert().unwrap());
-                assert_eq!(ca_key_path, c.device_ca_pk().unwrap());
-                assert_eq!(trust_bundle_path, c.trusted_ca_certs().unwrap());
+                let path = c.device_ca_cert().expect("Did not obtain device CA cert");
+                assert_eq!(ca_cert_path, path);
+                let path = c.device_ca_pk().expect("Did not obtain device CA private key");
+                assert_eq!(ca_key_path, path);
+                let path = c.trusted_ca_certs().expect("Did not obtain trust bundle");
+                assert_eq!(trust_bundle_path, path);
             })
             .expect("certificates not configured");
     }
