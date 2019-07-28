@@ -351,11 +351,7 @@ pub struct Certificates {
 fn is_supported_uri(uri: &Url) -> bool {
     if uri.scheme() == "file" && uri.port().is_none() && uri.query().is_none() {
         if let Some(host) = uri.host_str() {
-            if "localhost" == host {
-                return true;
-            } else {
-                return false;
-            }
+            return "localhost" == host
         }
         return true;
     }
