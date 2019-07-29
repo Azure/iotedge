@@ -5,6 +5,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
     using System.IO;
     using Xunit.Abstractions;
 
+    /// <summary>
+    /// Use this as the base class for a test to output all product logs to console.
+    /// </summary>
     public class TestConsoleLogger : IDisposable
     {
         readonly ITestOutputHelper testOutputHelper;
