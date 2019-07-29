@@ -236,7 +236,7 @@ jobs:
           "caCertScriptPath": $caCertScriptPath,
           "rootCaCertificatePath": $rootCaCertificatePath,
           "rootCaPrivateKeyPath": $rootCaPrivateKeyPath,
-          "logFile": "$logFile"
+          "logFile": $logFile
         }
         "@ | Out-File -Encoding Utf8 "$binDir/context.json"
       displayName: Create test arguments file (context.json)
