@@ -136,3 +136,146 @@ jobs:
         PathtoPublish: $(System.ArtifactsDirectory)/logs
         ArtifactName: logs-end-to-end-$(Build.BuildNumber)
       condition: succeededOrFailed()
+
+################################################################################
+  - job: windows_amd64
+################################################################################
+    displayName: Windows amd64
+    pool:
+      vmImage: windows-2019
+    steps:
+
+    - checkout: self
+      fetchDepth: 100
+
+    - task: AzureKeyVault@1
+      displayName: Get secrets
+      inputs:
+        azureSubscription: $(az.subscription)
+        keyVaultName: $(kv.name)
+        secretsFilter: >-
+          TestContainerRegistryPassword,
+          TestEventHubCompatibleEndpoint,
+          TestIotHubConnectionString,
+          TestRootCaCertificate,
+          TestRootCaKey,
+          TestRootCaPassword
+
+    - pwsh: |
+        if (-not '$(az.pipeline.packages.buildId)')
+        {
+          Write-Output '##vso[task.setvariable variable=whichVersion]latestFromBranch'
+        }
+        else
+        {
+          Write-Output '##vso[task.setvariable variable=whichVersion]specific'
+        }
+      displayName: Locate iotedged packages
+
+    - task: DownloadBuildArtifacts@0
+      displayName: Download iotedged packages
+      inputs:
+        buildType: specific
+        project: one
+        pipeline: $(az.pipeline.packages)
+        buildVersionToDownload: $(whichVersion)
+        branchName: refs/heads/master
+        buildId: $(az.pipeline.packages.buildId)
+        downloadType: specific
+        itemPattern: iotedged-windows/*
+
+    - pwsh: |
+        $testDir = '$(Pipeline.Workspace)/e2e'
+        New-Item "$testDir/certs" -ItemType Directory -Force | Out-Null
+        $ROOT_CERT | Out-File -Encoding Utf8 "$testDir/certs/rsa_root_ca.cert.pem"
+        $ROOT_KEY | Out-File -Encoding Utf8 "$testDir/certs/rsa_root_ca.key.pem"
+      displayName: Install CA keys
+      env:
+        ROOT_CERT: $(TestRootCaCertificate)
+        ROOT_KEY: $(TestRootCaKey)
+
+    - pwsh: |
+        $imageId = '$(az.pipeline.images.buildNum)'
+        if (-not $imageId)
+        {
+          $imageId = '$(Build.TriggeredBy.BuildNumber)'
+        }
+        if (-not $imageId)
+        {
+          Write-Output 'Build not triggered by the "Build Images" build, and argument "az.pipeline.images.buildNum" not specified'
+          return 1
+        }
+
+        $binDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1'
+        $testDir = '$(Pipeline.Workspace)/e2e'
+        $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
+        $imageTag = "$imageId-windows-amd64"
+
+        New-Item $binDir -ItemType Directory -Force | Out-Null
+
+        $packagePath = Convert-Path '$(System.ArtifactsDirectory)/iotedged-windows'
+        $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
+        $rootCaCertificatePath = Convert-Path "$testDir/certs/rsa_root_ca.cert.pem"
+        $rootCaPrivateKeyPath = Convert-Path "$testDir/certs/rsa_root_ca.key.pem"
+        $logFile = Convert-Path "$binDir/testoutput.log"
+
+        @"
+        {
+          "edgeAgentImage": "$imagePrefix-agent:$imageTag",
+          "edgeHubImage": "$imagePrefix-hub:$imageTag",
+          "tempSensorImage": "$imagePrefix-simulated-temperature-sensor:$imageTag",
+          "methodSenderImage": "$imagePrefix-direct-method-sender:$imageTag",
+          "methodReceiverImage": "$imagePrefix-direct-method-receiver:$imageTag",
+          "registries": [
+            {
+              "address": "$(cr.address)",
+              "username": "$(cr.username)"
+            }
+          ],
+          "packagePath": "$packagePath",
+          "caCertScriptPath": "$caCertScriptPath",
+          "rootCaCertificatePath": "$rootCaCertificatePath",
+          "rootCaPrivateKeyPath": "$rootCaPrivateKeyPath",
+          "logFile": "$logFile"
+        }
+        "@ | Out-File -Encoding Utf8 "$binDir/context.json"
+      displayName: Create test arguments file (context.json)
+
+    - pwsh: |
+        dotnet test --logger:trx '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
+      displayName: Run tests
+      env:
+        E2E_EVENT_HUB_ENDPOINT: $(TestEventHubCompatibleEndpoint)
+        E2E_IOT_HUB_CONNECTION_STRING: $(TestIotHubConnectionString)
+        E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
+        E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
+
+    - task: PublishTestResults@2
+      displayName: Publish test results
+      inputs:
+        testResultsFormat: vstest
+        testResultsFiles: '**/*.trx'
+        searchFolder: $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test
+        testRunTitle: End-to-end tests ($(Build.BuildNumber))
+        buildPlatform: Windows amd64
+      condition: succeededOrFailed()
+
+    - pwsh: |
+        $binDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1'
+        $logDir = '$(System.ArtifactsDirectory)/logs'
+        New-Item $logDir -ItemType Directory -Force | Out-Null
+        Out-File "$logDir/$(Build.DefinitionName)-$(Build.BuildNumber)"
+        Copy-Item "$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/TestResults" "$logDir/" -Recurse
+        # The setup fixture runs outside the scope of any test, so its logs (*-test-*.log) aren't
+        # included in the TRX. Copy them manually here.
+        Copy-Item "$binDir/*-test-*.log" "$logDir/"
+        Copy-Item "$binDir/testoutput.log" "$logDir/"
+      displayName: Collect Logs
+      condition: succeededOrFailed()
+
+    - task: PublishBuildArtifacts@1
+      displayName: Publish logs
+      inputs:
+        PathtoPublish: $(System.ArtifactsDirectory)/logs
+        ArtifactName: logs-end-to-end-$(Build.BuildNumber)
+      condition: succeededOrFailed()
