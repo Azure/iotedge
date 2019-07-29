@@ -106,25 +106,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             IEnumerable<IModuleIdentity> moduleIdentities;
 
-            if (!includeUnchangedIdentities)
-            {
-                moduleIdentities = updatedModulesIndentity.Concat(modules.Where(p => !updatedDict.ContainsKey(p.Id))).Select(
-                    p =>
-                    {
-                        string connectionString = this.GetModuleConnectionString(p);
-                        return new ModuleIdentity(this.iothubHostName, this.gatewayHostName, this.deviceId, p.Id, new ConnectionStringCredentials(connectionString));
-                    });
-            }
-            else
-            {
-                var allModules = await this.serviceClient.GetModules();
-                moduleIdentities = allModules.Select(
-                    p =>
-                    {
-                        string connectionString = this.GetModuleConnectionString(p);
-                        return new ModuleIdentity(this.iothubHostName, this.gatewayHostName, this.deviceId, p.Id, new ConnectionStringCredentials(connectionString));
-                    });
-            }
+            moduleIdentities = updatedModulesIndentity.Concat(modules.Where(p => !updatedDict.ContainsKey(p.Id))).Select(
+                p =>
+                {
+                    string connectionString = this.GetModuleConnectionString(p);
+                    return new ModuleIdentity(this.iothubHostName, this.gatewayHostName, this.deviceId, p.Id, new ConnectionStringCredentials(connectionString));
+                });
 
             return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
         }
