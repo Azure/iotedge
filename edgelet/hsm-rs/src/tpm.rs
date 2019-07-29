@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::ffi::CStr;
 use std::convert::AsRef;
 use std::ops::{Deref, Drop};
 use std::os::raw::{c_uchar, c_void};
@@ -59,6 +60,15 @@ impl Tpm {
             unsafe { hsm_client_tpm_deinit() };
             Err(ErrorKind::NullResponse)?
         }
+    }
+
+    pub fn get_version(&self) -> Result<String, Error> {
+        let version = unsafe {
+            CStr::from_ptr(hsm_get_version())
+                .to_string_lossy()
+                .into_owned()
+        };
+        Ok(version)
     }
 }
 
