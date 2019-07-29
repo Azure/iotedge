@@ -25,20 +25,6 @@ impl Status {
         }
     }
 
-    pub fn _set_status(
-        iotedged: bool,
-        edge_agent: bool,
-        edge_hub: bool,
-        other_modules: bool,
-    ) -> Self {
-        Status {
-            iotedged,
-            edge_agent,
-            edge_hub,
-            other_modules,
-        }
-    }
-
     pub fn set_iotedged(&mut self) {
         self.iotedged = true;
     }
@@ -56,14 +42,12 @@ impl Status {
     }
 
     pub fn return_health(&self) -> Health {
-        let good = self.iotedged && self.edge_agent && self.edge_hub;
-        let healthy = good && self.other_modules;
-        let degraded = good && !self.other_modules;
-
-        if healthy {
-            Health::Healthy
-        } else if degraded {
-            Health::Degraded
+        if self.iotedged && self.edge_agent && self.edge_hub {
+            if self.other_modules {
+                Health::Healthy
+            } else {
+                Health::Degraded
+            }
         } else {
             Health::Poor
         }

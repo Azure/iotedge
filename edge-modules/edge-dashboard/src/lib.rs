@@ -1,8 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#[macro_use]
-extern crate serde_derive;
-
 mod error;
 mod health;
 mod settings;
@@ -24,6 +21,7 @@ use edgelet_http_mgmt::*;
 use futures::future::{ok, Either, IntoFuture};
 use futures::Async;
 use futures::Future;
+use serde_derive::Deserialize;
 use structopt::StructOpt;
 use url::Url;
 
@@ -93,7 +91,6 @@ impl Main {
             App::new()
                 .register_data(context.clone())
                 .register_data(device.clone())
-                // .service(web::resource("/api/modules/{id}/restart/").route(web::put().to_async(restart_module)))
                 .service(web::resource("/api/modules/{id}/restart").to_async(restart_module))
                 .service(web::resource("/api/modules").to_async(get_modules))
                 .service(web::resource("/api/provisioning-state").to(get_state))
@@ -139,7 +136,7 @@ fn set_up(context: web::Data<Arc<Context>>) -> Option<state::Device> {
                 }
             })
             .unwrap_or_else(|e| {
-                println!("Err: {:?}", e);
+                println!("Error: {:?}", e);
                 None
             })
     } else {
@@ -151,15 +148,8 @@ fn set_up(context: web::Data<Arc<Context>>) -> Option<state::Device> {
     }
 }
 
-fn get_state(
-    _req: HttpRequest,
-    device: web::Data<Option<state::Device>>,
-    // _info: web::Query<AuthRequest>,
-) -> HttpResponse {
-    // println!("Query string version: {}", info.version);
-
+fn get_state(device: web::Data<Option<state::Device>>) -> HttpResponse {
     if let Some(dev) = device.get_ref() {
-        println!("Dev: {:?}", dev);
         state::return_response(&dev)
     } else {
         HttpResponse::UnprocessableEntity().body("Device connection string unable to be processed.")
@@ -181,7 +171,7 @@ fn get_connectivity(_req: HttpRequest, device: web::Data<Option<state::Device>>)
 
             let r = resolve_and_tls_handshake(&(&**iothub_hostname, 443), iothub_hostname);
             match r {
-                Ok(_) => HttpResponse::Ok().body("Connected with IoT Hub!"),
+                Ok(_) => HttpResponse::Ok().body(""),
                 Err(_) => HttpResponse::UnprocessableEntity()
                     .body("Failed to establish connection with IoT Hub."),
             }
@@ -194,7 +184,6 @@ fn get_connectivity(_req: HttpRequest, device: web::Data<Option<state::Device>>)
 }
 
 fn get_health(
-    _req: HttpRequest,
     context: web::Data<Arc<Context>>,
     info: web::Query<AuthRequest>,
 ) -> Box<dyn Future<Item = HttpResponse, Error = ActixError>> {
@@ -202,11 +191,11 @@ fn get_health(
     return_modules(context, api_ver, health_response)
 }
 
-fn restart_module(req: HttpRequest,
+fn restart_module(
+    req: HttpRequest,
     context: web::Data<Arc<Context>>,
-    info: web::Query<AuthRequest>
-) -> Box<dyn Future<Item=HttpResponse, Error=ActixError>> {
-    
+    info: web::Query<AuthRequest>,
+) -> Box<dyn Future<Item = HttpResponse, Error = ActixError>> {
     let module_id = req.match_info().get("id");
     let api_ver = &info.api_version;
     let response = context
@@ -214,21 +203,18 @@ fn restart_module(req: HttpRequest,
         .as_ref()
         .map(|config| {
             let mgmt_uri = config.connect().management_uri();
-            // println!("API Version: {}", api_ver);
             Either::A(
                 Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
                     .map_err(ErrorInternalServerError)
-                    .and_then(|url| ModuleClient::new(&url).map_err(ErrorInternalServerError)) // can't connect to the endpoint
+                    .and_then(|url| ModuleClient::new(&url).map_err(ErrorInternalServerError))
                     .map(|mod_client| {
                         if let Some(id) = module_id {
-                            mod_client
-                            .restart(id)
+                            mod_client.restart(id)
                         } else {
                             mod_client.restart("")
                         }
-                        .map(|_| HttpResponse::Ok().body("Module was successfully restarted."))
+                        .map(|_| HttpResponse::Ok().body(""))
                         .map_err(ErrorInternalServerError)
-                        
                     })
                     .into_future()
                     .flatten(),
@@ -253,27 +239,27 @@ fn return_modules(
         .as_ref()
         .map(move |config| {
             let mgmt_uri = config.connect().management_uri();
-            // println!("API Version: {}", api_ver);
             Either::A(
                 Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
                     .map_err(ErrorInternalServerError)
-                    .and_then(|url| ModuleClient::new(&url).map_err(ErrorInternalServerError)) // can't connect to the endpoint
-                    .map(move |mod_client| {
+                    .and_then(|url| ModuleClient::new(&url).map_err(ErrorInternalServerError))
+                    .map(|mod_client| {
                         mod_client
                             .list()
                             .map(move |data| {
-                                let x: Vec<Module> = data
+                                let mods: Vec<Module> = data
                                     .iter()
                                     .map(move |c| {
-                                        let mut status = "".to_string();
-                                        if let Ok(Async::Ready(t)) = c.runtime_state().poll() {
-                                            status =
-                                                (*(t.status().clone()).to_string()).to_string();
-                                        }
+                                        let status =
+                                            if let Ok(Async::Ready(t)) = c.runtime_state().poll() {
+                                                (*(t.status().clone()).to_string()).to_string()
+                                            } else {
+                                                "".to_string()
+                                            };
                                         Module::new(c.name().to_string(), status)
                                     })
                                     .collect();
-                                f(x) // changes depending on method
+                                f(mods) // changes depending on API call
                             })
                             .map_err(ErrorInternalServerError)
                     })
@@ -299,16 +285,16 @@ fn health_response(mods: Vec<Module>) -> HttpResponse {
     let mut edge_agent = false;
     let mut edge_hub = false;
     let mut other = true;
-    
+
     for module in mods.iter() {
         if module.name() == "edgeAgent" {
             if module.status() == "running" {
                 edge_agent = true;
-            } 
+            }
         } else if module.name() == "edgeHub" {
             if module.status() == "running" {
                 edge_hub = true;
-            } 
+            }
         } else {
             if module.status() != "running" {
                 other = false;
@@ -355,7 +341,6 @@ fn get_default_config_path() -> PathBuf {
     #[cfg(not(windows))]
     {
         Path::new("/etc/iotedge/config.yaml").to_owned()
-        // Path::new("src/test.txt").to_owned()
     }
 
     #[cfg(windows)]

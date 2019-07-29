@@ -7,16 +7,11 @@ use std::io::Result;
 use actix_web::*;
 use serde::{Deserialize, Serialize};
 
-/* TODO:
-    - DPS handling
-*/
-
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum State {
     Manual,
     NotProvisioned,
     NotInstalled,
-    // TODO: DPS
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -32,7 +27,6 @@ impl Device {
     // makes a new Device struct based on the state
     pub fn new(state: State, conn_str: String) -> Self {
         let map = parse_query(&conn_str, ';', '=');
-        // println!("{:?}", map);
         Device {
             state: state,
             hub_name: get_val(&map, "HostName"),
@@ -95,7 +89,6 @@ pub fn handle_windows() -> Result<String> {
         return fs::read_to_string(Path::new(&program_path).join("/iotedge/config.yaml"));
     }
     fs::read_to_string(Path::new("C:/ProgramData/iotedge/config.yaml"))
-    // fs::read_to_string(".\\src\\tests.txt")
 }
 
 // returns the contents of the config.yaml file from the current device
@@ -105,7 +98,6 @@ pub fn get_file() -> Result<String> {
 
     #[cfg(target_os = "linux")]
     fs::read_to_string("src/test.txt")
-    // fs::read_to_string("/etc/iotedge/config.yaml")
 }
 
 pub fn return_response(new_device: &Device) -> HttpResponse {
