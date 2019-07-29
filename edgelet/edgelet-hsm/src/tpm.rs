@@ -6,7 +6,8 @@ use bytes::Bytes;
 use failure::Fail;
 
 use edgelet_core::crypto::{
-    Activate, KeyIdentity, KeyStore as CoreKeyStore, Sign, SignatureAlgorithm,
+    Activate, GetHsmVersion as CoreGetHsmVersion, KeyIdentity, KeyStore as CoreKeyStore, Sign,
+    SignatureAlgorithm,
 };
 use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 use hsm::{ManageTpmKeys, SignWithTpm, Tpm, TpmDigest};
@@ -77,6 +78,16 @@ impl TpmKeyStore {
             key_name: ROOT_KEY_NAME.to_string(),
             hsm_lock: self.hsm_lock.clone(),
         })
+    }
+}
+
+impl CoreGetHsmVersion for TpmKeyStore {
+    fn get_version(&self) -> Result<String, CoreError> {
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        self.tpm
+            .get_version()
+            .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::HsmVersion)))
     }
 }
 
