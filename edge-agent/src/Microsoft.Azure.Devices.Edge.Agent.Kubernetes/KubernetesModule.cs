@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Core
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -39,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public ImagePullPolicy ImagePullPolicy { get; set; }
 
-        public TConfig Config { get; }
+        public TConfig Config { get; set; }
 
         public virtual bool Equals(IModule other) => this.Equals(other as KubernetesModule<TConfig>);
 
