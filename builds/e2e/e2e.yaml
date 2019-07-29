@@ -232,10 +232,10 @@ jobs:
               "username": "$(cr.username)"
             }
           ],
-          "packagePath": "$packagePath",
-          "caCertScriptPath": "$caCertScriptPath",
-          "rootCaCertificatePath": "$rootCaCertificatePath",
-          "rootCaPrivateKeyPath": "$rootCaPrivateKeyPath",
+          "packagePath": $packagePath,
+          "caCertScriptPath": $caCertScriptPath,
+          "rootCaCertificatePath": $rootCaCertificatePath,
+          "rootCaPrivateKeyPath": $rootCaPrivateKeyPath,
           "logFile": "$logFile"
         }
         "@ | Out-File -Encoding Utf8 "$binDir/context.json"
