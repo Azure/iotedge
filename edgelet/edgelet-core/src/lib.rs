@@ -28,7 +28,7 @@ pub use certificate_properties::{CertificateIssuer, CertificateProperties, Certi
 pub use crypto::{
     Certificate, CreateCertificate, Decrypt, Encrypt, GetDeviceIdentityCertificate, GetIssuerAlias,
     GetTrustBundle, KeyBytes, KeyIdentity, KeyStore, MakeRandom, MasterEncryptionKey, PrivateKey,
-    Signature, IOTEDGED_CA_ALIAS,
+    Signature, IOTEDGED_CA_ALIAS, GetHsmVersion
 };
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};

@@ -11,7 +11,7 @@ use edgelet_core::{
     Decrypt as CoreDecrypt, Encrypt as CoreEncrypt, Error as CoreError, ErrorKind as CoreErrorKind,
     GetIssuerAlias as CoreGetIssuerAlias, GetTrustBundle as CoreGetTrustBundle,
     KeyBytes as CoreKeyBytes, MakeRandom as CoreMakeRandom,
-    MasterEncryptionKey as CoreMasterEncryptionKey, PrivateKey as CorePrivateKey,
+    MasterEncryptionKey as CoreMasterEncryptionKey, PrivateKey as CorePrivateKey, GetHsmVersion as CoreGetHsmVersion,
 };
 pub use hsm::{
     Buffer, Decrypt, Encrypt, GetCertificate as HsmGetCertificate, GetTrustBundle, HsmCertificate,
@@ -54,6 +54,15 @@ impl Crypto {
             crypto: Arc::new(crypto),
             hsm_lock,
         })
+    }
+}
+
+impl CoreGetHsmVersion for Crypto {
+    fn get_version(&self) -> Result<String, CoreError> {
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        self.crypto.get_version()
+            .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::HsmVersion)))
     }
 }
 
