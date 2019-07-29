@@ -1533,9 +1533,6 @@ function Validate-GatewaySettings {
             throw
         }
         $certFilesProvided = $true
-        $DeviceCACertificate = ([System.Uri][System.IO.Path]::GetFullPath($DeviceCACertificate)).AbsoluteUri
-        $DeviceCAPrivateKey = ([System.Uri][System.IO.Path]::GetFullPath($DeviceCAPrivateKey)).AbsoluteUri
-        $DeviceTrustbundle = ([System.Uri][System.IO.Path]::GetFullPath($DeviceTrustbundle)).AbsoluteUri
     }
 
     return $certFilesProvided
@@ -1576,8 +1573,6 @@ function Get-DpsProvisioningSettings {
             Write-HostRed "Identity private file $X509IdentityPrivateKey not found."
             throw
         }
-        $X509IdentityCertificate = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityCertificate)).AbsoluteUri
-        $X509IdentityPrivateKey = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityPrivateKey)).AbsoluteUri
     }
 
     return $attestationMethod
@@ -1630,10 +1625,12 @@ function Set-ProvisioningMode {
                 $replacementContent += "    symmetric_key: '$SymmetricKey'"
             }
             if ($X509IdentityCertificate) {
-                $replacementContent += "    identity_cert: '$X509IdentityCertificate'"
+                $uri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityCertificate)).AbsoluteUri
+                $replacementContent += "    identity_cert: '$uri'"
             }
             if ($X509IdentityPrivateKey) {
-                $replacementContent += "    identity_pk: '$X509IdentityPrivateKey'"
+                $uri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityPrivateKey)).AbsoluteUri
+                $replacementContent += "    identity_pk: '$uri'"
             }
             $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
 
@@ -1652,11 +1649,14 @@ function Set-Certificates {
         Update-ConfigYaml({
             param($configurationYaml)
             $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?certificates:\s*#?\s*device_ca_cert:\s*".*"\s*#?\s*device_ca_pk:\s*".*"\s*#?\s*trusted_ca_certs:\s*".*"'
+            $certURI = ([System.Uri][System.IO.Path]::GetFullPath($DeviceCACertificate)).AbsoluteUri
+            $keyURI = ([System.Uri][System.IO.Path]::GetFullPath($DeviceCAPrivateKey)).AbsoluteUri
+            $tbURI = ([System.Uri][System.IO.Path]::GetFullPath($DeviceTrustbundle)).AbsoluteUri
             $replacementContent = @(
                 "certificates:",
-                "  device_ca_cert: '$DeviceCACertificate'",
-                "  device_ca_pk: '$DeviceCAPrivateKey'",
-                "  trusted_ca_certs: '$DeviceTrustbundle'")
+                "  device_ca_cert: '$certURI'",
+                "  device_ca_pk: '$keyURI'",
+                "  trusted_ca_certs: '$tbURI'")
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
             Write-HostGreen 'Configured device for manual provisioning.'
             return $configurationYaml
