@@ -224,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             ModuleSet current = ModuleSet.Create(new IModule[] { currentModule1, currentModule2 });
 
             // Act
-            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desired, current, true);
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desired, current);
 
             // Assert
             Assert.NotNull(moduleIdentities);

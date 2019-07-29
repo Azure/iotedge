@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
                 .ReturnsAsync(currentModuleSet);
             mockEnvironment.Setup(env => env.GetRuntimeInfoAsync()).ReturnsAsync(runtimeInfo);
-            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet, It.IsAny<bool>()))
+            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet))
                 .ReturnsAsync(ImmutableDictionary<string, IModuleIdentity>.Empty);
             mockPlanner.Setup(pl => pl.PlanAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty))
                 .Returns(Task.FromResult(Plan.Empty));
@@ -271,7 +271,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 .ReturnsAsync(deploymentConfigInfo);
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
                 .ReturnsAsync(ModuleSet.Empty);
-            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), ModuleSet.Empty, It.IsAny<bool>()))
+            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), ModuleSet.Empty))
                 .Throws<InvalidOperationException>();
             mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<Option<DeploymentStatus>>(s => s.HasValue && s.OrDefault().Code == DeploymentStatusCode.Failed)))
                 .Returns(Task.CompletedTask);
@@ -328,7 +328,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
                 .ReturnsAsync(currentModuleSet);
             mockEnvironment.Setup(env => env.GetRuntimeInfoAsync()).ReturnsAsync(runtimeInfo);
-            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet, It.IsAny<bool>()))
+            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet))
                 .ReturnsAsync(ImmutableDictionary<string, IModuleIdentity>.Empty);
             mockPlanner.Setup(pl => pl.PlanAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty))
                 .ReturnsAsync(testPlan);
@@ -387,11 +387,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 .ReturnsAsync(deploymentConfigInfo);
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
                 .ReturnsAsync(currentSet);
-            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(desiredSet, currentSet, It.IsAny<bool>()))
+            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(desiredSet, currentSet))
                 .ReturnsAsync(ImmutableDictionary<string, IModuleIdentity>.Empty);
             mockPlanner.Setup(pl => pl.PlanAsync(It.IsAny<ModuleSet>(), currentSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty))
                 .Returns(Task.FromResult(testPlan));
-            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), currentSet, It.IsAny<bool>()))
+            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), currentSet))
                 .Returns(Task.FromResult((IImmutableDictionary<string, IModuleIdentity>)ImmutableDictionary<string, IModuleIdentity>.Empty));
             mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), Option.Some(DeploymentStatus.Success)))
                 .Returns(Task.CompletedTask);

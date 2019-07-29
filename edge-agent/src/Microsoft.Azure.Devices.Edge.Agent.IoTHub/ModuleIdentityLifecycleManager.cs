@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         // $edgeAgent and $edgeHub twin when it creates the Edge Device, so their twins
         // are always available for stamping with either a single deployment or at-scale
         // deployment.
-        public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current, bool includeUnchangedIdentities = false)
+        public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
         {
             Diff diff = desired.Diff(current);
             if (diff.IsEmpty)
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             try
             {
-                IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff, includeUnchangedIdentities);
+                IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
                 return moduleIdentities;
             }
             catch (Exception ex)
@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff, bool includeUnchangedIdentities)
+        async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff)
         {
             // System modules have different module names and identity names. We need to convert module names to module identity names
             // and vice versa, to make sure the right values are being used.

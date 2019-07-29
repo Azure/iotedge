@@ -201,7 +201,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         private async void ManageDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments, EdgeDeploymentDefinition<TConfig> customObject)
         {
             var desiredModules = ModuleSet.Create(customObject.Spec.ToArray());
-            var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, this.currentModules, includeUnchangedIdentities: true);
+            var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, this.currentModules);
 
             // Pull current configuration from annotations.
             Dictionary<string, string> currentV1ServicesFromAnnotations = this.GetCurrentServiceConfig(currentServices);
