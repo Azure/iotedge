@@ -647,7 +647,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 if (moduleWithDockerConfig.Config?.CreateOptions?.ExposedPorts != null)
                 {
                     // Entries in the Exposed Port list just tell Docker that this container wants to listen on that port.
-                    // We interpret this as a "ClusterIP" service type
+                    // We interpret this as a "ClusterIP" service type listening on that exposed port, backed by this module.
+                    // Users of this Module's exposed port should be able to find the service by connecting to "<module name>:<port>"
                     this.GetExposedPorts(moduleWithDockerConfig.Config.CreateOptions.ExposedPorts)
                         .ForEach(
                             exposedList =>
