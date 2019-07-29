@@ -317,28 +317,28 @@ impl Listen {
 #[derive(Clone, Debug, Fail)]
 pub enum CertificateConfigError {
     #[fail(
-        display = "URI scheme is unsupported for '{}'. Please check the config.yaml file.",
-        _0
+        display = "URI {} is unsupported for '{}'. Please check the config.yaml file.",
+        _0, _1
     )]
     UnsupportedUri(String, &'static str),
+
+    #[fail(
+        display = "File URI {} is unsupported for '{}'. Please check the config.yaml file.",
+        _0, _1
+    )]
+    UnsupportedFileUri(String, &'static str),
+
+    #[fail(
+        display = "Error parsing URI {} specified for '{}'. Please check the config.yaml file.",
+        _0, _1
+    )]
+    InvalidUri(String, &'static str),
 
     #[fail(
         display = "Invalid file URI {} path specified for '{}'. Please check the config.yaml file.",
         _0, _1
     )]
     InvalidUriFilePath(String, &'static str),
-
-    #[fail(
-        display = "Invalid file URI {} path specified for '{}'. Please check the config.yaml file.",
-        _0, _1
-    )]
-    InvalidFilePath(String, &'static str),
-
-    #[fail(
-        display = "Malformed URI formed for file path '{}'. Please check the config.yaml file.",
-        _0
-    )]
-    MalformedPathUri(String, &'static str),
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
@@ -349,11 +349,10 @@ pub struct Certificates {
 }
 
 fn is_supported_uri(uri: &Url) -> bool {
-    if uri.scheme() == "file"
-        && uri.port().is_none()
-        && uri.query().is_none()
-        && uri.host().is_none()
-    {
+    if uri.scheme() == "file" && uri.port().is_none() && uri.query().is_none() {
+        if let Some(host) = uri.host_str() {
+            return "localhost" == host;
+        }
         return true;
     }
     false
@@ -366,7 +365,7 @@ fn get_path_from_uri(uri: &Url, variable: &'static str) -> Result<PathBuf, Certi
             .map_err(|_| CertificateConfigError::InvalidUriFilePath(uri.to_string(), variable))?;
         Ok(path)
     } else {
-        Err(CertificateConfigError::UnsupportedUri(
+        Err(CertificateConfigError::UnsupportedFileUri(
             uri.to_string(),
             variable,
         ))
@@ -374,17 +373,23 @@ fn get_path_from_uri(uri: &Url, variable: &'static str) -> Result<PathBuf, Certi
 }
 
 fn convert_to_path(
-    maybe_uri: &str,
+    maybe_path: &str,
     variable: &'static str,
 ) -> Result<PathBuf, CertificateConfigError> {
-    match Url::from_file_path(maybe_uri) {
-        Ok(uri) => get_path_from_uri(&uri, variable),
-        Err(_) => Ok(PathBuf::from(maybe_uri)),
+    if let Ok(file_uri) = Url::from_file_path(maybe_path) {
+        // maybe_path was specified as a valid path not a URI
+        get_path_from_uri(&file_uri, variable)
+    } else {
+        // maybe_path is not a path and could be URI
+        let uri = Url::parse(maybe_path)
+            .map_err(|_| CertificateConfigError::InvalidUri(String::from(maybe_path), variable))?;
+        get_path_from_uri(&uri, variable)
     }
 }
 
 fn convert_to_uri(maybe_uri: &str, variable: &'static str) -> Result<Url, CertificateConfigError> {
     if let Ok(uri) = Url::parse(maybe_uri) {
+        // maybe_uri was specified as a URI
         if is_supported_uri(&uri) {
             Ok(uri)
         } else {
@@ -394,16 +399,19 @@ fn convert_to_uri(maybe_uri: &str, variable: &'static str) -> Result<Url, Certif
             ))
         }
     } else {
-        let path = PathBuf::from(maybe_uri).canonicalize().map_err(|_| {
-            CertificateConfigError::InvalidFilePath(String::from(maybe_uri), variable)
-        })?;
-        let path = path.to_str().ok_or_else(|| {
-            CertificateConfigError::InvalidFilePath(String::from(maybe_uri), variable)
-        })?;
-        let file_uri = format!("file:://{}", path);
-        let url = Url::parse(&file_uri)
-            .map_err(|_| CertificateConfigError::MalformedPathUri(String::from(path), variable))?;
-        Ok(url)
+        // maybe_uri was specified as a valid path not a URI
+        Url::from_file_path(maybe_uri)
+            .map(|uri| {
+                if is_supported_uri(&uri) {
+                    Ok(uri)
+                } else {
+                    Err(CertificateConfigError::UnsupportedUri(
+                        String::from(maybe_uri),
+                        variable,
+                    ))
+                }
+            })
+            .map_err(|_| CertificateConfigError::InvalidUri(String::from(maybe_uri), variable))?
     }
 }
 
@@ -551,5 +559,151 @@ where
 
     fn watchdog(&self) -> &WatchdogSettings {
         &self.watchdog
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_convert_to_path() {
+        if cfg!(windows) {
+            let expected_path = "C:\\temp\\sample.txt";
+
+            assert_eq!(
+                expected_path,
+                convert_to_path("C:\\temp\\sample.txt", "test")
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+            );
+            assert_eq!(
+                expected_path,
+                convert_to_path("file:///C:/temp/sample.txt", "test")
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+            );
+            assert_eq!(
+                expected_path,
+                convert_to_path("file://localhost/C:/temp/sample.txt", "test")
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+            );
+            assert_eq!(
+                expected_path,
+                convert_to_path("file://localhost/C:/temp/../temp/sample.txt", "test")
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+            );
+            // oddly this works because the host is null since local drive is specified
+            assert_eq!(
+                expected_path,
+                convert_to_path("file://deadhost/C:/temp/sample.txt", "test")
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+            );
+            convert_to_path("file://deadhost/temp/sample.txt", "test")
+                .expect_err("Non localhost host specified");
+            convert_to_path("https:///C:/temp/sample.txt", "test")
+                .expect_err("Non file scheme specified");
+            convert_to_path("../sample.txt", "test").expect_err("Non absolute path specified");
+        } else {
+            let expected_path = "/tmp/sample.txt";
+
+            assert_eq!(
+                expected_path,
+                convert_to_path("/tmp/sample.txt", "test")
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+            );
+            assert_eq!(
+                expected_path,
+                convert_to_path("file:///tmp/sample.txt", "test")
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+            );
+            assert_eq!(
+                expected_path,
+                convert_to_path("file://localhost/tmp/sample.txt", "test")
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+            );
+            assert_eq!(
+                expected_path,
+                convert_to_path("file:///tmp/../tmp/sample.txt", "test")
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+            );
+            convert_to_path("file://deadhost/tmp/sample.txt", "test")
+                .expect_err("Non localhost host specified");
+            convert_to_path("https://localhost/tmp/sample.txt", "test")
+                .expect_err("Non file scheme specified");
+            convert_to_path("../sample.txt", "test").expect_err("Non absolute path specified");
+        }
+    }
+
+    #[test]
+    fn test_convert_to_uri() {
+        if cfg!(windows) {
+            let expected_uri_str = "file:///C:/temp/sample.txt";
+            let expected_uri = Url::parse(expected_uri_str).unwrap();
+
+            assert_eq!(
+                expected_uri,
+                convert_to_uri("file:///C:/temp/sample.txt", "test").unwrap()
+            );
+            assert_eq!(
+                expected_uri,
+                convert_to_uri("file://localhost/C:/temp/sample.txt", "test").unwrap()
+            );
+            assert_eq!(
+                expected_uri,
+                convert_to_uri("file://localhost/C:/temp/../temp/sample.txt", "test").unwrap()
+            );
+            // oddly this works because the host is null since local drive is specified
+            assert_eq!(
+                expected_uri,
+                convert_to_uri("file://deadhost/C:/temp/sample.txt", "test").unwrap()
+            );
+            convert_to_uri("file://deadhost/temp/sample.txt", "test")
+                .expect_err("Non localhost host specified");
+            convert_to_uri("file://deadhost/temp/sample.txt", "test")
+                .expect_err("Non file scheme specified");
+            convert_to_uri("../sample.txt", "test").expect_err("Non absolute path specified");
+        } else {
+            let expected_uri_str = "file:///tmp/sample.txt";
+            let expected_uri = Url::parse(expected_uri_str).unwrap();
+
+            assert_eq!(
+                expected_uri,
+                convert_to_uri("file:///tmp/sample.txt", "test").unwrap()
+            );
+            assert_eq!(
+                expected_uri,
+                convert_to_uri("file://localhost/tmp/sample.txt", "test").unwrap()
+            );
+            assert_eq!(
+                expected_uri,
+                convert_to_uri("file:///tmp/../tmp/sample.txt", "test").unwrap()
+            );
+            convert_to_uri("https://localhost/tmp/sample.txt", "test")
+                .expect_err("Non absolute path specified");
+            assert_eq!(
+                expected_uri,
+                convert_to_uri("/tmp/sample.txt", "test").unwrap()
+            );
+            convert_to_uri("../sample.txt", "test").expect_err("Non absolute path specified");
+            convert_to_uri("file://deadhost/tmp/sample.txt", "test")
+                .expect_err("Non localhost host specified");
+        }
     }
 }
