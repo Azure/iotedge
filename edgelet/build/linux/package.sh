@@ -61,11 +61,11 @@ case "$PACKAGE_OS" in
             # So stick with the linaro compiler for now.
 
             'arm32v7')
-                DOCKER_IMAGE='edgebuilds.azurecr.io/gcc-linaro-7.3.1-2018.05-x86_64_arm-linux-gnueabihf:centos_7.5-1'
+                DOCKER_IMAGE='azureiotedge/gcc-linaro-7.3.1-2018.05-x86_64_arm-linux-gnueabihf:centos_7.5-1'
                 ;;
 
             'aarch64')
-                DOCKER_IMAGE='edgebuilds.azurecr.io/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu:centos_7.5-1'
+                DOCKER_IMAGE='azureiotedge/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu:centos_7.5-1'
                 ;;
         esac
 
@@ -87,7 +87,7 @@ case "$PACKAGE_OS" in
             #
             # So stick with the linaro compiler for now.
             'arm32v7')
-                DOCKER_IMAGE='edgebuilds.azurecr.io/gcc-linaro-7.3.1-2018.05-x86_64_arm-linux-gnueabihf:debian_8.11-1'
+                DOCKER_IMAGE='azureiotedge/gcc-linaro-7.3.1-2018.05-x86_64_arm-linux-gnueabihf:debian_8.11-1'
                 ;;
 
             'aarch64')
