@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Core
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class KubernetesModuleIdentity
