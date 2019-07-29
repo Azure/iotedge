@@ -217,7 +217,7 @@ jobs:
         $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
         $rootCaCertificatePath = Convert-Path "$testDir/certs/rsa_root_ca.cert.pem"
         $rootCaPrivateKeyPath = Convert-Path "$testDir/certs/rsa_root_ca.key.pem"
-        $logFile = Convert-Path "$binDir/testoutput.log"
+        $logFile = Join-Path $binDir 'testoutput.log'
 
         @"
         {
