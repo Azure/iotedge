@@ -54,7 +54,7 @@ pub enum ErrorKind {
     #[fail(display = "An identity manager error occurred.")]
     IdentityManager,
 
-    #[fail(display = "An error occurred when obtaining the Hsm version")]
+    #[fail(display = "An error occurred when obtaining the HSM version")]
     HsmVersion,
 
     #[fail(display = "Invalid image pull policy configuration {:?}", _0)]
