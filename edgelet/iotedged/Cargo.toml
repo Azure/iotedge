@@ -34,6 +34,7 @@ edgelet-http-external-provisioning = { path = "../edgelet-http-external-provisio
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-iothub = { path = "../edgelet-iothub" }
+edgelet-kube = { path = "../edgelet-kube", optional = true }
 edgelet-utils = { path = "../edgelet-utils" }
 iothubservice = { path = "../iothubservice" }
 provisioning = { path = "../provisioning" }
@@ -50,3 +51,8 @@ rand = "0.5"
 tempdir = "0.3.7"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }
+
+[features]
+default = ["runtime-docker"]
+runtime-docker = ["edgelet-core/runtime-docker"]
+runtime-kubernetes = ["edgelet-kube", "edgelet-core/runtime-kubernetes"]

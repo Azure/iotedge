@@ -35,6 +35,7 @@ unitdir?=/lib/systemd/system
 rpmbuilddir?=$(HOME)/rpmbuild
 
 CARGOFLAGS=--manifest-path=$(srcdir)/Cargo.toml
+KUBE_CARGOFLAGS=--manifest-path=$(srcdir)/iotedged/Cargo.toml
 DPKGFLAGS=-b -rfakeroot -us -uc -i
 RPMBUILDFLAGS=-v -bb --clean
 
@@ -56,6 +57,9 @@ all:
 
 release:
 	$(HOST_URI_OPTION) VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS) --release
+
+release-kube:
+	$(HOST_URI_OPTION) VERSION=${VERSION} $(CARGO) build $(KUBE_CARGOFLAGS) --no-default-features --features runtime-kubernetes --release
 
 $(TARGET)/$(PACKAGE).tar.gz:
 	@echo Running git archive...
