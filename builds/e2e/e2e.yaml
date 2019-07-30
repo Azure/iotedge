@@ -196,10 +196,12 @@ jobs:
         ROOT_KEY: $(TestRootCaKey)
 
     - pwsh: |
-        $testDir = '$(Pipeline.Workspace)/e2e'
-        New-Item "$testDir/certs" -ItemType Directory -Force | Out-Null
-        $ROOT_CERT | Out-File -Encoding Utf8 "$testDir/certs/testroot.cer"
-        Import-Certificate "$testDir/certs/testroot.cer" -CertStoreLocation 'Cert:\LocalMachine\Root' 
+        $certBytes = [system.Text.Encoding]::UTF8.GetBytes($PACKAGE_SIGNING_CERT)
+        $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate
+        $cert.Import($certBytes)
+        $store = New-Object System.Security.Cryptography.X509Certificates.X509Store  -ArgumentList  'Root', 'LocalMachine'
+        $store.Open('ReadWrite')
+        $store.Add($cert)
       displayName: Install iotedged CAB signing cert
       env:
         PACKAGE_SIGNING_CERT: $(TestIotedgedPackageRootSigningCert)
