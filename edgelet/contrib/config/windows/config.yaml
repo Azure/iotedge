@@ -23,7 +23,11 @@
 #
 # DPS Settings
 #     scope_id        - Required. Value of a specific DPS instance's ID scope
-#     registration_id - Required. Registration ID of a specific device in DPS.
+#     registration_id - Required for TPM and symmetric key provisioning flows.
+#                       Optional for X.509 provisioning. Registration ID of a
+#                       specific device in DPS.
+#                       For more information regarding DPS registration ids
+#                       please see https://docs.microsoft.com/en-us/azure/iot-dps/concepts-device#registration-id
 #     symmetric_key   - Optional. This entry should only be specified when
 #                       provisioning devices configured for symmetric key
 #                       attestation. Device specific symmetric key.
@@ -96,23 +100,30 @@ provisioning:
 # production environments.
 #
 # Settings:
-#     device_ca_cert   - path to the device ca certificate and its chain
-#     device_ca_pk     - path to the device ca private key file
-#     trusted_ca_certs - path to a file containing all the trusted CA
+#     device_ca_cert   - URI of the device ca certificate and its chain.
+#                        Optionally can be specified as a file path.
+#     device_ca_pk     - URI of the device ca private key file.
+#                        Optionally can be specified as a file path.
+#     trusted_ca_certs - URI containing all the trusted CA
 #                        certificates required for Edge module communication
+#                        Optionally can be specified as a file path.
+#
 # Note:
-#     The values for these fields could be specified as a file path or a URI. 
-#     URI is preferred as it provides flexibility in where and 
-#     how these resources are to be accessed.
+#     The values for these fields could be specified as a file path or a URI.
+#     Prior to 1.0.9 Edge runtime releases, these were required to be specified
+#     as file paths. For backwards compatibility, we permit both forms of input.
+#     However, URI is the preferred as it provides flexibility in where and
+#     how these resources are to be accessed and as a consequence
+#     facilitates product evolution.
 #     Ex. when specifying a PEM encoded private key file, the URI
 #     could be specified as "file:///C:/cert_key.pem" or 
 #     "C:\\cert_key.pem"
 ###############################################################################
 
 # certificates:
-#   device_ca_cert: "<ADD PATH OR URI TO DEVICE CA CERTIFICATE HERE>"
-#   device_ca_pk: "<ADD PATH OR URI TO DEVICE CA PRIVATE KEY HERE>"
-#   trusted_ca_certs: "<ADD PATH OR URI TO TRUSTED CA CERTIFICATES HERE>"
+#   device_ca_cert: "<ADD URI TO DEVICE CA CERTIFICATE HERE>"
+#   device_ca_pk: "<ADD URI TO DEVICE CA PRIVATE KEY HERE>"
+#   trusted_ca_certs: "<ADD URI TO TRUSTED CA CERTIFICATES HERE>"
 
 ###############################################################################
 # Edge Agent module spec
