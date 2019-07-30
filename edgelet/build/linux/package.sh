@@ -489,18 +489,18 @@ case "$PACKAGE_OS" in
         find "$LIBIOTHSM_BUILD_DIR" -maxdepth 1 -name "$LIBIOTHSM_PACKAGE_NAME-*-Linux.deb" | while read -r f; do
             case "$PACKAGE_ARCH" in
                 'amd64')
-                    echo "Renaming package $(basename "$f") to $(basename "$LIBIOTHSM_BUILD_DIR/${LIBIOTHSM_PACKAGE_NAME}_${VERSION}-${RELEASE}_amd64.deb")"
-                    mv -f "$f" "$LIBIOTHSM_BUILD_DIR/${LIBIOTHSM_PACKAGE_NAME}_${VERSION}-${RELEASE}_amd64.deb"
+                    echo "Renaming package $(basename "$f") to $(basename "$LIBIOTHSM_BUILD_DIR/${LIBIOTHSM_PACKAGE_NAME}_${VERSION}-${REVISION}_amd64.deb")"
+                    mv -f "$f" "$LIBIOTHSM_BUILD_DIR/${LIBIOTHSM_PACKAGE_NAME}_${VERSION}-${REVISION}_amd64.deb"
                     ;;
 
                 'arm32v7')
-                    echo "Renaming package $(basename "$f") to $(basename "$LIBIOTHSM_BUILD_DIR/${LIBIOTHSM_PACKAGE_NAME}_${VERSION}-${RELEASE}_armhf.deb")"
-                    mv -f "$f" "$LIBIOTHSM_BUILD_DIR/${LIBIOTHSM_PACKAGE_NAME}_${VERSION}-${RELEASE}_armhf.deb"
+                    echo "Renaming package $(basename "$f") to $(basename "$LIBIOTHSM_BUILD_DIR/${LIBIOTHSM_PACKAGE_NAME}_${VERSION}-${REVISION}_armhf.deb")"
+                    mv -f "$f" "$LIBIOTHSM_BUILD_DIR/${LIBIOTHSM_PACKAGE_NAME}_${VERSION}-${REVISION}_armhf.deb"
                     ;;
 
                 'aarch64')
-                    echo "Renaming package $(basename "$f") to $(basename "$LIBIOTHSM_BUILD_DIR/${LIBIOTHSM_PACKAGE_NAME}_${VERSION}-${RELEASE}_arm64.deb")"
-                    mv -f "$f" "$LIBIOTHSM_BUILD_DIR/${LIBIOTHSM_PACKAGE_NAME}_${VERSION}-${RELEASE}_arm64.deb"
+                    echo "Renaming package $(basename "$f") to $(basename "$LIBIOTHSM_BUILD_DIR/${LIBIOTHSM_PACKAGE_NAME}_${VERSION}-${REVISION}_arm64.deb")"
+                    mv -f "$f" "$LIBIOTHSM_BUILD_DIR/${LIBIOTHSM_PACKAGE_NAME}_${VERSION}-${REVISION}_arm64.deb"
                     ;;
             esac
         done
