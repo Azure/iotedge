@@ -169,6 +169,7 @@ pub enum InitializeErrorReason {
     HybridAuthKeyCreate,
     HybridAuthKeyLoad,
     HybridAuthKeyInvalid,
+    IncompatibleHsmVersion,
     IdentityCertificateSettings,
     InvalidDeviceCertCredentials,
     InvalidDeviceConfig,
@@ -264,6 +265,10 @@ impl fmt::Display for InitializeErrorReason {
 
             InitializeErrorReason::HybridAuthKeyInvalid => {
                 write!(f, "The loaded hybrid identity key was invalid")
+            }
+
+            InitializeErrorReason::IncompatibleHsmVersion => {
+                write!(f, "Incompatible HSM lib version")
             }
 
             InitializeErrorReason::IdentityCertificateSettings => {
