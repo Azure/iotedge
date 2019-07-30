@@ -2,10 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel;
     using System.IO;
     using System.Linq;
     using System.ServiceProcess;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -13,17 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class EdgeDaemon : IEdgeDaemon
     {
-        public static async Task<string> CollectLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token)
-        {
-            string args = $"-u iotedge -u docker --since \"{testStartTime:yyyy-MM-dd HH:mm:ss}\" --no-pager";
-            string[] output = await Process.RunAsync("journalctl", args, token);
-
-            string daemonLog = $"{filePrefix}-iotedged.log";
-            await File.WriteAllLinesAsync(daemonLog, output, token);
-
-            return daemonLog;
-        }
-
         public async Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
             await InstallAsync(packagesPath, token);
@@ -94,35 +85,54 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 properties);
         }
 
-        async Task ConfigureAsync(string deviceConnectionString, Option<Uri> proxy, CancellationToken token)
+        public Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token)
         {
-            string hostname = (await File.ReadAllTextAsync("/proc/sys/kernel/hostname", token)).Trim();
-            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(deviceConnectionString);
+            var properties = new List<object>();
+            var message = new StringBuilder("Configured edge daemon");
 
-            var properties = new object[] { hostname, builder.DeviceId };
-            string message = "Configured edge daemon for device '{Device}' registered as '{Id}'";
-            proxy.ForEach(
-                p =>
-                {
-                    message += " with proxy '{ProxyUri}'";
-                    properties = properties.Concat(new object[] { p }).ToArray();
-                });
-
-            await Profiler.Run(
+            return Profiler.Run(
                 async () =>
                 {
                     await this.InternalStopAsync(token);
 
-                    var yaml = new DaemonConfiguration();
-                    yaml.SetDeviceConnectionString(deviceConnectionString);
-                    yaml.SetDeviceHostname(hostname);
-                    proxy.ForEach(p => yaml.AddHttpsProxy(p));
-                    yaml.Update();
+                    var yaml = new DaemonConfiguration("/etc/iotedge/config.yaml");
+                    (string msg, object[] props) = await config(yaml);
+
+                    message.Append($" {msg}");
+                    properties.AddRange(props);
 
                     await this.InternalStartAsync(token);
                 },
-                message,
+                message.ToString(),
                 properties);
+        }
+
+        Task ConfigureAsync(string deviceConnectionString, Option<Uri> proxy, CancellationToken token)
+        {
+            return this.ConfigureAsync(
+                async (config) =>
+                {
+                    string hostname = (await File.ReadAllTextAsync("/proc/sys/kernel/hostname", token)).Trim();
+                    IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(deviceConnectionString);
+
+                    string message = "for device '{Device}' registered as '{Id}'";
+                    var properties = new object[] { hostname, builder.DeviceId };
+
+                    proxy.ForEach(
+                        p =>
+                        {
+                            message += " with proxy '{ProxyUri}'";
+                            properties = properties.Concat(new object[] { p }).ToArray();
+                        });
+
+                    config.SetDeviceConnectionString(deviceConnectionString);
+                    config.SetDeviceHostname(hostname);
+                    proxy.ForEach(config.AddHttpsProxy);
+                    config.Update();
+
+                    return (message, properties);
+                },
+                token);
         }
 
         public Task StartAsync(CancellationToken token) => Profiler.Run(
