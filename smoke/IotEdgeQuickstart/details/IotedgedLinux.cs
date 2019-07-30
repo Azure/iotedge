@@ -207,8 +207,8 @@ namespace IotEdgeQuickstart.Details
                             doc.ReplaceOrAdd("provisioning.attestation.symmetric_key", dps.SymmetricKey.Expect(() => new ArgumentException("Expected symmetric key")));
                             break;
                         case DPSAttestationType.X509:
-                            var certUri = new System.Uri(dps.DeviceIdentityCertificate.Expect(() => new ArgumentException("Expected path to identity certificate")));
-                            var keyUri = new System.Uri(dps.DeviceIdentityPrivateKey.Expect(() => new ArgumentException("Expected path to identity private key")));
+                            var certUri = new Uri(dps.DeviceIdentityCertificate.Expect(() => new ArgumentException("Expected path to identity certificate")));
+                            var keyUri = new Uri(dps.DeviceIdentityPrivateKey.Expect(() => new ArgumentException("Expected path to identity private key")));
                             doc.ReplaceOrAdd("provisioning.attestation.method", "x509");
                             doc.ReplaceOrAdd("provisioning.attestation.identity_cert", certUri.AbsoluteUri);
                             doc.ReplaceOrAdd("provisioning.attestation.identity_pk", keyUri.AbsoluteUri);
