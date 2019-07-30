@@ -142,10 +142,7 @@ jobs:
 ################################################################################
     displayName: Windows amd64
     pool:
-      name: Azure-IoT-Edge-Core
-      demands:
-        - Run-e2e-tests -equals true
-        - win-rs5
+      vmImage: windows-2019
     steps:
 
     - checkout: self
@@ -216,7 +213,6 @@ jobs:
 
         New-Item $binDir -ItemType Directory -Force | Out-Null
 
-        $installerPath = Convert-Path '$(Build.SourcesDirectory)/scripts/windows/setup' | ConvertTo-Json
         $packagePath = Convert-Path '$(System.ArtifactsDirectory)/iotedged-windows' | ConvertTo-Json
         $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates' | ConvertTo-Json
         $rootCaCertificatePath = Convert-Path "$testDir/certs/rsa_root_ca.cert.pem" | ConvertTo-Json
@@ -236,7 +232,6 @@ jobs:
               "username": "$(cr.username)"
             }
           ],
-          "installerPath": $installerPath,
           "packagePath": $packagePath,
           "caCertScriptPath": $caCertScriptPath,
           "rootCaCertificatePath": $rootCaCertificatePath,
