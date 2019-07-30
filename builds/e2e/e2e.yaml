@@ -254,6 +254,9 @@ jobs:
       displayName: Create test arguments file (context.json)
 
     - pwsh: |
+        $edgeDir = Join-Path $env:ProgramFiles 'iotedge'
+        $mobyDir = Join-Path $env:ProgramFiles 'iotedge-moby'
+        $env:Path = "$env:Path;$edgeDir;$mobyDir"
         dotnet test --logger:trx '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
       displayName: Run tests
       env:
