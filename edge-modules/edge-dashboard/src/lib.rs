@@ -229,6 +229,61 @@ fn restart_module(
     Box::new(response)
 }
 
+fn get_logs(
+    req: HttpRequest,
+    context: web::Data<Arc<Context>>,
+    info: web::Query<AuthRequest>,
+) -> Box<dyn Future<Item = HttpResponse, Error = ActixError>> {
+    // println!("Request received");
+    let module_id = req.match_info().get("id").unwrap_or("");
+    let api_ver = &info.api_version;
+
+    let response = context
+        .edge_config
+        .as_ref()
+        .map(move |config| {
+            let mgmt_uri = config.connect().management_uri();
+            // println!("API Version: {}", api_ver);
+            Either::A(
+                Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
+                    .map_err(ErrorInternalServerError)
+                    .and_then(|url| ModuleClient::new(&url).map_err(ErrorInternalServerError)) // can't connect to the endpoint
+                    .map(move |mod_client| {
+                        mod_client
+                            .logs(module_id, &LogOptions::new())
+                            .map(|data| {
+                                let response: Fold<Stream, FnMut, IntoFuture<String>, ActixError> = data
+                                    .fold(String::from(""), |mut acc, chunk| {
+                                        acc.push_str(&String::from_utf8(chunk.as_ref().to_vec()).unwrap());
+                                        Ok(acc)
+                                    })
+                                    .map_err(ErrorInternalServerError); //fix unwrap
+                                let finish = response.wait();
+
+                                if let Ok(val) = finish {
+                                    // for line in val.iter() {
+                                    //     body.push_str(line.as_ref());
+                                    // }
+                                    HttpResponse::Ok().body(val)
+                                } else {
+                                    HttpResponse::ServiceUnavailable().body("Unable to retrieve logs")
+                                }
+                            })
+                            .map_err(ErrorInternalServerError)
+                    })
+                    .into_future()
+                    .flatten(),
+            )
+        })
+        .unwrap_or_else(|err| {
+            Either::B(ok(HttpResponse::ServiceUnavailable()
+                .content_type("text/plain")
+                .body(format!("{:?}", err))))
+        });
+
+    Box::new(response)
+}
+
 fn return_modules(
     context: web::Data<Arc<Context>>,
     api_ver: &str,
