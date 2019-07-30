@@ -9,7 +9,6 @@ Homepage: https://github.com/azure/iot-edge
 
 Package: iotedge
 Architecture: any
-Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends}, adduser, ca-certificates, hostname, libiothsm-std (= @version@-@revision@), sed
 Description: Azure IoT Edge Security Daemon
  Azure IoT Edge is a fully managed service that delivers cloud intelligence
