@@ -22,8 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             await Profiler.Run(
                 async () =>
                 {
-                    string agentImage = Context.Current.EdgeAgentImage.Expect(() => new ArgumentException());
-                    string hubImage = Context.Current.EdgeHubImage.Expect(() => new ArgumentException());
                     (string, string, string) rootCa =
                         Context.Current.RootCaKeys.Expect(() => new ArgumentException());
                     Option<Uri> proxy = Context.Current.Proxy;
@@ -56,8 +54,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                         var runtime = new EdgeRuntime(
                             deviceId,
-                            agentImage,
-                            hubImage,
+                            Context.Current.EdgeAgentImage,
+                            Context.Current.EdgeHubImage,
                             proxy,
                             Context.Current.Registries,
                             Context.Current.OptimizeForPerformance,

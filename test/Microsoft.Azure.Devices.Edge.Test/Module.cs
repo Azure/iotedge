@@ -14,7 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task TempSensor()
         {
-            string sensorImage = Context.Current.TempSensorImage.Expect(() => new ArgumentException());
+            const string DefaultImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
+            string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultImage);
 
             CancellationToken token = this.cts.Token;
 

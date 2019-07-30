@@ -12,15 +12,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class EdgeRuntime
     {
-        readonly string agentImage;
+        readonly Option<string> agentImage;
         readonly string deviceId;
-        readonly string hubImage;
+        readonly Option<string> hubImage;
         readonly IotHub iotHub;
         readonly bool optimizeForPerformance;
         readonly Option<Uri> proxy;
         readonly Registries registries;
 
-        public EdgeRuntime(string deviceId, string agentImage, string hubImage, Option<Uri> proxy, Registries registries, bool optimizeForPerformance, IotHub iotHub)
+        public EdgeRuntime(string deviceId, Option<string> agentImage, Option<string> hubImage, Option<Uri> proxy, Registries registries, bool optimizeForPerformance, IotHub iotHub)
         {
             this.agentImage = agentImage;
             this.deviceId = deviceId;
@@ -38,10 +38,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             var builder = new EdgeConfigBuilder(this.deviceId);
             builder.AddRegistryCredentials(this.registries);
-            builder.AddEdgeAgent(this.agentImage)
+            builder.AddEdgeAgent(this.agentImage.OrDefault())
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
                 .WithProxy(this.proxy);
-            builder.AddEdgeHub(this.hubImage, this.optimizeForPerformance)
+            builder.AddEdgeHub(this.hubImage.OrDefault(), this.optimizeForPerformance)
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
                 .WithProxy(this.proxy);
 
