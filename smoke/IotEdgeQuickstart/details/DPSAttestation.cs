@@ -29,8 +29,10 @@ namespace IotEdgeQuickstart.Details
             this.ScopeId = Preconditions.CheckNonWhiteSpace(scopeId, nameof(scopeId));
             this.RegistrationId = registrationId;
             this.SymmetricKey = Option.None<string>();
-            this.DeviceIdentityCertificate = Option.Some(Preconditions.CheckNonWhiteSpace(certPath, nameof(certPath)));
-            this.DeviceIdentityPrivateKey = Option.Some(Preconditions.CheckNonWhiteSpace(privateKeyPath, nameof(privateKeyPath)));
+            var certUri = new System.Uri(Preconditions.CheckNonWhiteSpace(certPath, nameof(certPath)));
+            this.DeviceIdentityCertificate = Option.Some(certUri.AbsoluteUri);
+            var keyUri = new System.Uri(Preconditions.CheckNonWhiteSpace(privateKeyPath, nameof(privateKeyPath)));
+            this.DeviceIdentityPrivateKey = Option.Some(keyUri.AbsoluteUri);
             this.AttestationType = DPSAttestationType.X509;
         }
 
