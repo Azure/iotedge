@@ -265,66 +265,56 @@ jobs:
           PathtoPublish: '$(build.artifactstagingdirectory)'
           ArtifactName: 'iotedged-windows'
 
-################################################################################
-  - job: windows_arm32
-################################################################################
-    displayName: Windows arm32
-    pool:
-      vmImage: 'vs2017-win2016'
-    steps:
-      - powershell: |
-          $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
-          $version = ("{0}{1}" -f $base_version, $(Build.BuildNumber))
-          Write-Host ("##vso[task.setvariable variable=VERSION;]$version")
-          Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
-        displayName: Set Version
-      - powershell: edgelet/build/windows/install.ps1 -Arm
-        displayName: Install Rust
-      - powershell: edgelet/build/windows/build.ps1 -Release -Arm
-        displayName: Build
-      - task: CMake@1
-        displayName: 'Setup libiothsm'
-        inputs:
-          workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
-          cmakeArgs: '-G "Visual Studio 15 2017 ARM" -DBUILD_SHARED=ON -Duse_emulator=OFF ..'
-      - task: CMake@1
-        displayName: 'Build libiothsm'
-        inputs:
-          workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
-          cmakeArgs: '--build . --config Release'
-      - powershell: edgelet/build/windows/package.ps1 -CreateTemplate -Arm
-        displayName: Prepare package template
-      # - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
-      #   displayName: 'ESRP Package Catalog CodeSigning Internal'
-      #   inputs:
-      #     ConnectedServiceName: '$(WINDOWS_CODESIGN_SERVICE_CONNECTION)'
-      #     FolderPath: '$(build.SourcesDirectory)'
-      #     Pattern: 'Package-Template/update.cat'
-      #     CertificateId: 302
-      #     OpusName: 'Azure IoT Edge'
-      #     OpusInfo: 'https://azure.microsoft.com/en-us/services/iot-edge/'
-      #     SessionTimeout: 20
-      - powershell: edgelet/build/windows/package.ps1 -CreateCab
-        displayName: Generate CAB package
-      - task: CopyFiles@2
-        displayName: 'Copy package to Artifact Staging'
-        inputs:
-          SourceFolder: .
-          Contents: |
-            *.cab
-          TargetFolder: '$(build.artifactstagingdirectory)'
-      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
-        displayName: 'ESRP Package CodeSigning Internal'
-        inputs:
-          ConnectedServiceName: '$(WINDOWS_CODESIGN_SERVICE_CONNECTION)'
-          FolderPath: '$(build.artifactstagingdirectory)'
-          Pattern: '*.cab'
-          CertificateId: 302
-          OpusName: 'Azure IoT Edge'
-          OpusInfo: 'https://azure.microsoft.com/en-us/services/iot-edge/'
-          SessionTimeout: 20
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifact: iotedged-windows'
-        inputs:
-          PathtoPublish: '$(build.artifactstagingdirectory)'
-          ArtifactName: 'iotedged-windows-arm32v7'
+# ################################################################################
+#   - job: windows_arm32
+# ################################################################################
+#     displayName: Windows arm32
+#     pool:
+#       vmImage: 'vs2017-win2016'
+#     steps:
+#       - powershell: |
+#           $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
+#           $version = ("{0}{1}" -f $base_version, $(Build.BuildNumber))
+#           Write-Host ("##vso[task.setvariable variable=VERSION;]$version")
+#           Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
+#         displayName: Set Version
+#       - powershell: edgelet/build/windows/install.ps1 -Arm
+#         displayName: Install Rust
+#       - powershell: edgelet/build/windows/build.ps1 -Release -Arm
+#         displayName: Build
+#       - task: CMake@1
+#         displayName: 'Setup libiothsm'
+#         inputs:
+#           workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
+#           cmakeArgs: '-G "Visual Studio 15 2017 ARM" -DBUILD_SHARED=ON -Duse_emulator=OFF ..'
+#       - task: CMake@1
+#         displayName: 'Build libiothsm'
+#         inputs:
+#           workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
+#           cmakeArgs: '--build . --config Release'
+#       - powershell: edgelet/build/windows/package.ps1 -CreateTemplate -Arm
+#         displayName: Prepare package template
+#       - powershell: edgelet/build/windows/package.ps1 -CreateCab
+#         displayName: Generate CAB package
+#       - task: CopyFiles@2
+#         displayName: 'Copy package to Artifact Staging'
+#         inputs:
+#           SourceFolder: .
+#           Contents: |
+#             *.cab
+#           TargetFolder: '$(build.artifactstagingdirectory)'
+#       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+#         displayName: 'ESRP Package CodeSigning Internal'
+#         inputs:
+#           ConnectedServiceName: '$(WINDOWS_CODESIGN_SERVICE_CONNECTION)'
+#           FolderPath: '$(build.artifactstagingdirectory)'
+#           Pattern: '*.cab'
+#           CertificateId: 302
+#           OpusName: 'Azure IoT Edge'
+#           OpusInfo: 'https://azure.microsoft.com/en-us/services/iot-edge/'
+#           SessionTimeout: 20
+#       - task: PublishBuildArtifacts@1
+#         displayName: 'Publish Artifact: iotedged-windows'
+#         inputs:
+#           PathtoPublish: '$(build.artifactstagingdirectory)'
+#           ArtifactName: 'iotedged-windows-arm32v7'

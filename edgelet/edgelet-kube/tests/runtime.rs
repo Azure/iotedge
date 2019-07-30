@@ -20,12 +20,13 @@ use url::Url;
 
 use docker::models::{AuthConfig, ContainerCreateBody, HostConfig, Mount};
 use edgelet_core::{
-    AuthId, Authenticator, Certificates, Connect, ImagePullPolicy, Listen, MakeModuleRuntime,
-    ModuleRuntime, ModuleSpec, Provisioning, ProvisioningResult as CoreProvisioningResult,
-    RuntimeSettings, WatchdogSettings,
+    AuthId, Authenticator, Certificates, Connect, GetTrustBundle, ImagePullPolicy, Listen,
+    MakeModuleRuntime, ModuleRuntime, ModuleSpec, Provisioning,
+    ProvisioningResult as CoreProvisioningResult, RuntimeSettings, WatchdogSettings,
 };
 use edgelet_docker::DockerConfig;
 use edgelet_kube::{ErrorKind, KubeModuleRuntime, Settings};
+use edgelet_test_utils::crypto::TestHsm;
 use edgelet_test_utils::web::{
     make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
 };
@@ -396,6 +397,7 @@ impl MakeModuleRuntime for TestKubeModuleRuntime {
     fn make_runtime(
         settings: Self::Settings,
         provisioning_result: Self::ProvisioningResult,
+        _: impl GetTrustBundle,
     ) -> Self::Future {
         let settings = settings
             .with_device_id(provisioning_result.device_id())
@@ -425,9 +427,13 @@ fn create_runtime(
         None,
     );
     let settings = TestKubeSettings::new(make_settings(None), url.parse().unwrap());
-    let runtime = TestKubeModuleRuntime::make_runtime(settings.clone(), provisioning_result)
-        .wait()
-        .unwrap();
+    let runtime = TestKubeModuleRuntime::make_runtime(
+        settings.clone(),
+        provisioning_result,
+        TestHsm::default(),
+    )
+    .wait()
+    .unwrap();
 
     (settings, runtime)
 }

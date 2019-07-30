@@ -9,11 +9,11 @@
  */
 
 /// ServiceSpecUpdateConfig : Specification for the update strategy of the service.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct ServiceSpecUpdateConfig {
     /// Maximum number of tasks to be updated in one iteration (0 means unlimited parallelism).
     #[serde(rename = "Parallelism", skip_serializing_if = "Option::is_none")]

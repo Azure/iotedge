@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const int ModuleClientProvider = EventIdStart + 2300;
         public const int LogsRequestHandler = EventIdStart + 2400;
         public const int TaskStatusRequestHandler = EventIdStart + 2500;
+        public const int RestartRequestHandler = EventIdStart + 2600;
         const int EventIdStart = 100000;
     }
 }

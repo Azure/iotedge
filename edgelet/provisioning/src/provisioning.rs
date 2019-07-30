@@ -25,7 +25,7 @@ use hsm::TpmKey as HsmTpmKey;
 use log::{debug, Level};
 use sha2::{Digest, Sha256};
 
-use crate::error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind, ExternalProvisioningErrorReason};
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum ReprovisioningStatus {
@@ -39,11 +39,11 @@ pub enum ReprovisioningStatus {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SymmetricKeyCredential {
     #[serde(skip_serializing_if = "Option::is_none")]
-    key: Option<String>,
+    key: Option<Vec<u8>>,
 }
 
 impl SymmetricKeyCredential {
-    pub fn key(&self) -> Option<&str> {
+    pub fn key(&self) -> Option<&[u8]> {
         self.key.as_ref().map(AsRef::as_ref)
     }
 }
@@ -244,12 +244,12 @@ where
 
     fn provision(
         self,
-        mut _key_activator: Self::Hsm,
+        mut key_activator: Self::Hsm,
     ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
         let result = self
             .client
             .get_device_provisioning_information()
-            .map_err(|err| Error::from(err.context(ErrorKind::Provision)))
+            .map_err(|err| Error::from(err.context(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::ProvisioningFailure))))
             .and_then(move |device_provisioning_info| {
                 info!(
                     "External device registration information: Device \"{}\" in hub \"{}\"",
@@ -265,18 +265,24 @@ where
                                     || {
                                         info!(
                                             "A key is expected in the response with the 'symmetric-key' authentication type and the 'source' set to 'payload'.");
-                                        Err(Error::from(ErrorKind::Provision))
+                                        Err(Error::from(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::SymmetricKeyNotSpecified)))
                                     },
                                     |key| {
+                                        let decoded_key = base64::decode(&key).map_err(|_| {
+                                            Error::from(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::InvalidSymmetricKey))
+                                        })?;
+
+                                        key_activator
+                                            .activate_identity_key(KeyIdentity::Device, "primary".to_string(), &decoded_key)
+                                            .map_err(|err| Error::from(err.context(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::KeyActivation))))?;
                                         Ok(Credentials {
                                             auth_type: AuthType::SymmetricKey(
                                                 SymmetricKeyCredential {
-                                                    key: Some(key.to_string()),
+                                                    key: Some(decoded_key),
                                                 }),
                                             source: CredentialSource::Payload,
                                         })
                                     })
-
                             },
                             "hsm" => Ok(Credentials {
                                 auth_type: AuthType::SymmetricKey(
@@ -290,13 +296,13 @@ where
                                     "Unexpected value of credential source \"{}\" received from external environment.",
                                     credentials_info.source()
                                 );
-                                Err(Error::from(ErrorKind::Provision))
+                                Err(Error::from(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::InvalidCredentialSource)))
                             }
                         }
                     }
                     else {
                         info!("External Provisioning is currently only supported for the 'symmetric-key' authentication type.");
-                        Err(Error::from(ErrorKind::Provision))
+                        Err(Error::from(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::InvalidAuthenticationType)))
                         // TODO: implement
                     }?;
 
@@ -1078,7 +1084,7 @@ mod tests {
     #[test]
     fn external_get_provisioning_info_symmetric_key_payload_success() {
         let mut credentials = Credentials::new("symmetric-key".to_string(), "payload".to_string());
-        credentials.set_key("test-key".to_string());
+        credentials.set_key("cGFzczEyMzQ=".to_string());
         let provisioning_info = DeviceProvisioningInfo::new(
             "TestHub".to_string(),
             "TestDevice".to_string(),
@@ -1100,7 +1106,7 @@ mod tests {
                     if let Some(credentials) = result.credentials() {
                         if let AuthType::SymmetricKey(symmetric_key) = credentials.auth_type() {
                             if let Some(key) = &symmetric_key.key {
-                                assert_eq!(key, "test-key");
+                                assert_eq!(base64::encode(key), "cGFzczEyMzQ=");
                             } else {
                                 panic!("A key was expected in the response.")
                             }
@@ -1178,15 +1184,15 @@ mod tests {
             provisioning_info,
         });
         let memory_hsm = MemoryKeyStore::new();
-        let task = provisioning
-            .provision(memory_hsm.clone())
-            .then(|result| match result {
-                Ok(_) => panic!("Expected a failure."),
-                Err(err) => match err.kind() {
-                    ErrorKind::Provision => Ok::<_, Error>(()),
-                    _ => panic!("Expected `Provision` but got {:?}", err),
-                },
-            });
+        let task = provisioning.provision(memory_hsm.clone()).then(|result| {
+            assert_eq!(
+                result.unwrap_err().kind(),
+                &ErrorKind::ExternalProvisioning(
+                    ExternalProvisioningErrorReason::InvalidCredentialSource
+                )
+            );
+            Ok::<_, Error>(())
+        });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
             .block_on(task)
@@ -1207,15 +1213,15 @@ mod tests {
             provisioning_info,
         });
         let memory_hsm = MemoryKeyStore::new();
-        let task = provisioning
-            .provision(memory_hsm.clone())
-            .then(|result| match result {
-                Ok(_) => panic!("Expected a failure."),
-                Err(err) => match err.kind() {
-                    ErrorKind::Provision => Ok::<_, Error>(()),
-                    _ => panic!("Expected `Provision` but got {:?}", err),
-                },
-            });
+        let task = provisioning.provision(memory_hsm.clone()).then(|result| {
+            assert_eq!(
+                result.unwrap_err().kind(),
+                &ErrorKind::ExternalProvisioning(
+                    ExternalProvisioningErrorReason::InvalidAuthenticationType
+                )
+            );
+            Ok::<_, Error>(())
+        });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
             .block_on(task)
@@ -1236,15 +1242,15 @@ mod tests {
             provisioning_info,
         });
         let memory_hsm = MemoryKeyStore::new();
-        let task = provisioning
-            .provision(memory_hsm.clone())
-            .then(|result| match result {
-                Ok(_) => panic!("Expected a failure."),
-                Err(err) => match err.kind() {
-                    ErrorKind::Provision => Ok::<_, Error>(()),
-                    _ => panic!("Expected `Provision` but got {:?}", err),
-                },
-            });
+        let task = provisioning.provision(memory_hsm.clone()).then(|result| {
+            assert_eq!(
+                result.unwrap_err().kind(),
+                &ErrorKind::ExternalProvisioning(
+                    ExternalProvisioningErrorReason::ProvisioningFailure
+                )
+            );
+            Ok::<_, Error>(())
+        });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
             .block_on(task)

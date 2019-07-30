@@ -46,6 +46,7 @@ winapi = { version = "0.3.5", features = ["shellapi"] }
 win-logger = { path = "../win-logger" }
 
 [dev_dependencies]
+rand = "0.5"
 tempdir = "0.3.7"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }

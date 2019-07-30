@@ -12,13 +12,12 @@
 
 use std::default::Default;
 
-use serde_derive::{Deserialize, Serialize};
 /// [`DeviceRegistration`] : Device registration.
 
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct DeviceRegistration {
     #[serde(rename = "registrationId", skip_serializing_if = "Option::is_none")]
     registration_id: Option<String>,
@@ -78,7 +77,7 @@ impl Default for DeviceRegistration {
 
 /// [`TpmAttestation`] : Attestation via TPM.
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct TpmAttestation {
     #[serde(rename = "endorsementKey")]
     endorsement_key: String,
@@ -128,7 +127,7 @@ impl TpmAttestation {
 
 /// [`TpmRegistrationResult`] : TPM registration result.
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct TpmRegistrationResult {
     #[serde(rename = "authenticationKey", skip_serializing_if = "Option::is_none")]
     authentication_key: Option<String>,
@@ -168,7 +167,7 @@ impl Default for TpmRegistrationResult {
 
 /// [`SymmetricKeyRegistrationResult`] : Registration result returned when using `SymmetricKey` attestation
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct SymmetricKeyRegistrationResult {
     #[serde(rename = "enrollmentGroupId")]
     enrollment_group_id: Option<String>,
@@ -208,7 +207,7 @@ impl Default for SymmetricKeyRegistrationResult {
 
 /// [`X509RegistrationResult`] : Registration result returned when using `X509` attestation
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct X509RegistrationResult {
     #[serde(rename = "certificateInfo", skip_serializing_if = "Option::is_none")]
     certificate_info: Option<X509CertificateInfo>,
@@ -292,7 +291,7 @@ impl Default for X509RegistrationResult {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct X509CertificateInfo {
     #[serde(rename = "subjectName")]
     subject_name: String,
@@ -444,7 +443,7 @@ impl X509CertificateInfo {
 
 /// [`RegistrationOperationStatus`] : Registration operation status.
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct RegistrationOperationStatus {
     /// Operation ID.
     #[serde(rename = "operationId")]
@@ -517,7 +516,7 @@ impl RegistrationOperationStatus {
 
 /// [`DeviceRegistrationResult`] : Device registration result.
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct DeviceRegistrationResult {
     /// Registration result returned when using TPM attestation
     #[serde(rename = "tpm", skip_serializing_if = "Option::is_none")]

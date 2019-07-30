@@ -9,11 +9,11 @@
  */
 
 /// TaskSpecContainerSpecPrivilegesCredentialSpec : CredentialSpec for managed service account (Windows only)
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct TaskSpecContainerSpecPrivilegesCredentialSpec {
     /// Load credential spec from this file. The file is read by the daemon, and must be present in the `CredentialSpecs` subdirectory in the docker data directory, which defaults to `C:\\ProgramData\\Docker\\` on Windows.  For example, specifying `spec.json` loads `C:\\ProgramData\\Docker\\CredentialSpecs\\spec.json`.  <p><br /></p>  > **Note**: `CredentialSpec.File` and `CredentialSpec.Registry` are mutually exclusive.
     #[serde(rename = "File", skip_serializing_if = "Option::is_none")]
