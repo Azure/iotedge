@@ -89,7 +89,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public async Task ListCrdComplete(Task<HttpOperationResponse<object>> customObjectWatchTask)
         {
-            if (customObjectWatchTask != null)
+            if (customObjectWatchTask == null)
+            {
+                Events.NullListResponse("ListClusterCustomObjectWithHttpMessagesAsync", "task");
+                throw new NullReferenceException("Null Task from ListClusterCustomObjectWithHttpMessagesAsync");
+            }
+            else
             {
                 HttpOperationResponse<object> customObjectWatch = await customObjectWatchTask;
                 if (customObjectWatch != null)
@@ -131,20 +136,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     throw new NullReferenceException("Null response from ListClusterCustomObjectWithHttpMessagesAsync");
                 }
             }
-            else
-            {
-                Events.NullListResponse("ListClusterCustomObjectWithHttpMessagesAsync", "task");
-                throw new NullReferenceException("Null Task from ListClusterCustomObjectWithHttpMessagesAsync");
-            }
         }
 
         private async Task WatchDeploymentEventsAsync(WatchEventType type, object custom)
         {
-            EdgeDeploymentDefinition<TConfig> customObject;
+            EdgeDeploymentDefinition<TConfig> edgeDeploymentDefinition;
             try
             {
                 string customString = JsonConvert.SerializeObject(custom);
-                customObject = this.deploymentSerde.Deserialize(customString);
+                edgeDeploymentDefinition = this.deploymentSerde.Deserialize(customString);
             }
             catch (Exception e)
             {
@@ -153,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
 
             // only operate on the device that matches this operator.
-            if (string.Equals(customObject.Metadata.Name, this.resourceName, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(edgeDeploymentDefinition.Metadata.Name, this.resourceName, StringComparison.OrdinalIgnoreCase))
             {
                 using (await this.watchLock.LockAsync())
                 {
@@ -164,26 +164,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     {
                         case WatchEventType.Added:
                         case WatchEventType.Modified:
-                            this.ManageDeployments(currentServices, currentDeployments, customObject);
+                            await this.ManageDeployments(currentServices, currentDeployments, edgeDeploymentDefinition);
                             break;
 
                         case WatchEventType.Deleted:
-                            {
-                                // Delete the deployment.
-                                // Delete any services.
-                                IEnumerable<Task<V1Status>> removeServiceTasks = currentServices.Items.Select(i => this.client.DeleteNamespacedServiceAsync(i.Metadata.Name, this.k8sNamespace, new V1DeleteOptions()));
-                                await Task.WhenAll(removeServiceTasks);
-                                IEnumerable<Task<V1Status>> removeDeploymentTasks = currentDeployments.Items.Select(
-                                    d => this.client.DeleteNamespacedDeployment1Async(
-                                        d.Metadata.Name,
-                                        this.k8sNamespace,
-                                        new V1DeleteOptions(propagationPolicy: "Foreground"),
-                                        propagationPolicy: "Foreground"));
-                                await Task.WhenAll(removeDeploymentTasks);
-                                this.currentModules = ModuleSet.Empty;
-                            }
-
+                            await this.DeleteDeployments(currentServices, currentDeployments);
                             break;
+
                         case WatchEventType.Error:
                             Events.DeploymentError();
                             break;
@@ -192,13 +179,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
             else
             {
-                Events.DeploymentNameMismatch(customObject.Metadata.Name, this.resourceName);
+                Events.DeploymentNameMismatch(edgeDeploymentDefinition.Metadata.Name, this.resourceName);
             }
         }
 
         private string DeploymentName(string moduleId) => KubeUtils.SanitizeK8sValue(moduleId);
 
-        private async void ManageDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments, EdgeDeploymentDefinition<TConfig> customObject)
+        private async Task DeleteDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments)
+        {
+            // Delete the deployment.
+            // Delete any services.
+            IEnumerable<Task<V1Status>> removeServiceTasks = currentServices.Items.Select(i => this.client.DeleteNamespacedServiceAsync(i.Metadata.Name, this.k8sNamespace, new V1DeleteOptions()));
+            await Task.WhenAll(removeServiceTasks);
+            IEnumerable<Task<V1Status>> removeDeploymentTasks = currentDeployments.Items.Select(
+                d => this.client.DeleteNamespacedDeployment1Async(
+                    d.Metadata.Name,
+                    this.k8sNamespace,
+                    new V1DeleteOptions(propagationPolicy: "Foreground"),
+                    propagationPolicy: "Foreground"));
+            await Task.WhenAll(removeDeploymentTasks);
+            this.currentModules = ModuleSet.Empty;
+        }
+
+        private async Task ManageDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments, EdgeDeploymentDefinition<TConfig> customObject)
         {
             var desiredModules = ModuleSet.Create(customObject.Spec.ToArray());
             var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, this.currentModules);

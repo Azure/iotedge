@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
         }
 
-        public bool OnlyModuleStatusChanged(IModule other)
+        public bool IsOnlyModuleStatusChanged(IModule other)
         {
             return other is CombinedDockerModule &&
                 string.Equals(this.Name, other.Name) &&
