@@ -9,13 +9,14 @@ mod state;
 use std::env;
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::Arc;
 
 use actix_web::error::ErrorInternalServerError;
 use actix_web::Error as ActixError;
 use actix_web::*;
 use edgelet_core::RuntimeSettings;
-use edgelet_core::{Module as EdgeModule, ModuleRuntime, Provisioning};
+use edgelet_core::{LogOptions, Module as EdgeModule, ModuleRuntime, Provisioning};
 use edgelet_docker::Settings as DockerSettings;
 use edgelet_http_mgmt::*;
 use futures::future::{ok, Either, IntoFuture};
@@ -92,7 +93,7 @@ impl Main {
                 .register_data(context.clone())
                 .register_data(device.clone())
                 .service(web::resource("/api/modules/{id}/restart").to_async(restart_module))
-                .service(web::resource("/api/modules/{id}/logs").to_async(get_logs))
+                // .service(web::resource("/api/modules/{id}/logs").to_async(get_logs))
                 .service(web::resource("/api/modules").to_async(get_modules))
                 .service(web::resource("/api/provisioning-state").to(get_state))
                 .service(web::resource("/api/connectivity").to(get_connectivity))
@@ -112,7 +113,13 @@ pub struct AuthRequest {
 }
 
 fn get_diagnostics() -> HttpResponse {
-    HttpResponse::Ok().body("")
+    let output = Command::new("iotedge")
+        .arg("check")
+        .output()
+        .expect("Failed to execute command");
+
+    // println!("Output from command: {:?}", output.stdout);
+    HttpResponse::Ok().body(output.stdout)
 }
 
 fn set_up(context: web::Data<Arc<Context>>) -> Option<state::Device> {
@@ -235,6 +242,7 @@ fn restart_module(
     Box::new(response)
 }
 
+/*
 fn get_logs(
     req: HttpRequest,
     context: web::Data<Arc<Context>>,
@@ -289,7 +297,7 @@ fn get_logs(
 
     Box::new(response)
 }
-
+*/
 fn return_modules(
     context: web::Data<Arc<Context>>,
     api_ver: &str,
