@@ -204,7 +204,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public async Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus)
         {
             Preconditions.CheckNonWhiteSpace(messageId, nameof(messageId));
-            Events.SendFeedbackMessage(this);
+            Events.SendFeedbackMessage(this, messageId);
             this.timer.Reset();
             try
             {
@@ -514,9 +514,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogDebug((int)EventIds.UpdateReportedProperties, Invariant($"Updating reported properties for device {cloudProxy.clientId}"));
             }
 
-            public static void SendFeedbackMessage(CloudProxy cloudProxy)
+            public static void SendFeedbackMessage(CloudProxy cloudProxy, string messageId)
             {
-                Log.LogDebug((int)EventIds.SendFeedbackMessage, Invariant($"Sending feedback message for device {cloudProxy.clientId}"));
+                Log.LogDebug((int)EventIds.SendFeedbackMessage, Invariant($"Sending feedback message with id {messageId} for device {cloudProxy.clientId}"));
             }
 
             public static void MessageReceived(string clientId)

@@ -45,6 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.pendingSubscriptions = new ConcurrentDictionary<string, ConcurrentQueue<(DeviceSubscription, bool)>>();
             this.processSubscriptionsBlock = new ActionBlock<string>(this.ProcessPendingSubscriptions);
             deviceConnectivityManager.DeviceConnected += this.DeviceConnected;
+            connectionManager.DeviceConnected += this.ClientConnected;
         }
 
         protected override void HandleSubscriptions(string id, List<(DeviceSubscription, bool)> subscriptions) =>
@@ -134,6 +135,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
+        async void ClientConnected(object sender, IIdentity identity)
+        {
+            try
+            {
+                Events.ClientConnectedProcessingSubscriptions(identity);
+                await this.ProcessExistingSubscriptions(identity.Id);
+            }
+            catch (Exception e)
+            {
+                Events.ErrorProcessingSubscriptions(e, identity);
+            }
+        }
+
         async Task ProcessExistingSubscriptions(string id)
         {
             Option<ICloudProxy> cloudProxy = await this.ConnectionManager.GetCloudConnection(id);
@@ -193,7 +207,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 ErrorRemovingSubscription,
                 ErrorAddingSubscription,
                 ProcessingSubscriptions,
-                ProcessingSubscription
+                ProcessingSubscription,
+                ClientConnectedProcessingSubscriptions
             }
 
             public static void ErrorProcessingSubscriptions(Exception ex, IIdentity identity)
@@ -254,6 +269,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             internal static void ErrorProcessingSubscriptions(Exception e)
             {
                 Log.LogWarning((int)EventIds.ProcessingSubscription, e, Invariant($"Error processing subscriptions for connected clients."));
+            }
+
+            public static void ClientConnectedProcessingSubscriptions(IIdentity identity)
+            {
+                Log.LogInformation((int)EventIds.ClientConnectedProcessingSubscriptions, Invariant($"Client {identity.Id} connected to cloud, processing existing subscriptions."));
             }
         }
     }
