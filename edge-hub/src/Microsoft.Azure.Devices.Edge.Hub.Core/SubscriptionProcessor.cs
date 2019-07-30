@@ -44,8 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.invokeMethodHandler = Preconditions.CheckNotNull(invokeMethodHandler, nameof(invokeMethodHandler));
             this.pendingSubscriptions = new ConcurrentDictionary<string, ConcurrentQueue<(DeviceSubscription, bool)>>();
             this.processSubscriptionsBlock = new ActionBlock<string>(this.ProcessPendingSubscriptions);
-            deviceConnectivityManager.DeviceConnected += this.DeviceConnected;
-            connectionManager.DeviceConnected += this.ClientConnected;
+            deviceConnectivityManager.DeviceConnected += this.CloudConnectivityEstablished;
+            connectionManager.CloudConnectionEstablished += this.ClientCloudConnectionEstablished;
         }
 
         protected override void HandleSubscriptions(string id, List<(DeviceSubscription, bool)> subscriptions) =>
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async void DeviceConnected(object sender, EventArgs eventArgs)
+        async void CloudConnectivityEstablished(object sender, EventArgs eventArgs)
         {
             Events.DeviceConnectedProcessingSubscriptions();
             try
@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async void ClientConnected(object sender, IIdentity identity)
+        async void ClientCloudConnectionEstablished(object sender, IIdentity identity)
         {
             try
             {
