@@ -188,15 +188,15 @@ jobs:
     - pwsh: |
         $testDir = '$(Pipeline.Workspace)/e2e'
         New-Item "$testDir/certs" -ItemType Directory -Force | Out-Null
-        $ROOT_CERT | Out-File -Encoding Utf8 "$testDir/certs/rsa_root_ca.cert.pem"
-        $ROOT_KEY | Out-File -Encoding Utf8 "$testDir/certs/rsa_root_ca.key.pem"
+        $env:ROOT_CERT | Out-File -Encoding Utf8 "$testDir/certs/rsa_root_ca.cert.pem"
+        $env:ROOT_KEY | Out-File -Encoding Utf8 "$testDir/certs/rsa_root_ca.key.pem"
       displayName: Install CA keys
       env:
         ROOT_CERT: $(TestRootCaCertificate)
         ROOT_KEY: $(TestRootCaKey)
 
     - pwsh: |
-        $certBytes = [system.Text.Encoding]::UTF8.GetBytes($PACKAGE_SIGNING_CERT)
+        $certBytes = [system.Text.Encoding]::UTF8.GetBytes($env:PACKAGE_SIGNING_CERT)
         $cert = [System.Security.Cryptography.X509Certificates.X509Certificate]::new($certBytes)
         $store = New-Object System.Security.Cryptography.X509Certificates.X509Store `
           -ArgumentList 'Root', 'LocalMachine'
