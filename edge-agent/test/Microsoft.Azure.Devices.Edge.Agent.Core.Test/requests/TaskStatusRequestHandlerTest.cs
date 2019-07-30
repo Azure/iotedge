@@ -45,7 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             Assert.NotNull(taskStatusResponse);
             Assert.Equal(taskStatusResponse.CorrelationId, correlationId);
             Assert.Equal(BackgroundTaskRunStatus.Completed, taskStatusResponse.Status);
-
         }
 
         [Fact]
