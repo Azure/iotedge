@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.DisableConnectivityCheck = disableConnectivityCheck;
         }
 
-        public static ExperimentalFeatures Init(IConfiguration experimentalFeaturesConfig)
+        public static ExperimentalFeatures Create(IConfiguration experimentalFeaturesConfig)
         {
             bool enabled = experimentalFeaturesConfig.GetValue("enabled", false);
             bool disableCloudSubscriptions = enabled && experimentalFeaturesConfig.GetValue("disableCloudSubscriptions", false);

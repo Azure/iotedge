@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward = this.GetStoreAndForwardConfiguration();
 
             IConfiguration configuration = this.configuration.GetSection("experimentalFeatures");
-            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Init(configuration);
+            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration);
 
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures);

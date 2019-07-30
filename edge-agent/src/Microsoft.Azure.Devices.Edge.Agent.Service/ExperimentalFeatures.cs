@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             this.EnableGetLogs = enableGetLogs;
         }
 
-        public static ExperimentalFeatures Init(IConfiguration experimentalFeaturesConfig, ILogger logger)
+        public static ExperimentalFeatures Create(IConfiguration experimentalFeaturesConfig, ILogger logger)
         {
             bool enabled = experimentalFeaturesConfig.GetValue("enabled", false);
             bool disableCloudSubscriptions = enabled && experimentalFeaturesConfig.GetValue("disableCloudSubscriptions", false);
