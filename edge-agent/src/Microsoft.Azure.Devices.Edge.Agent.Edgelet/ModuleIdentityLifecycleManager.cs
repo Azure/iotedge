@@ -82,9 +82,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             moduleIdentities = upsertedIdentities.Select(m => this.GetModuleIdentity(m)).ToList();
 
             // Add back the unchanged identities (including Edge Agent).
-            var removedIdentityList = removeIdentities.ToList();
             var upsertedIdentityList = moduleIdentities.Select(i => i.ModuleId).ToList();
-            var unchangedIdentities = identities.Where(i => !removedIdentityList.Contains(i.Key) && !upsertedIdentityList.Contains(i.Key));
+            var unchangedIdentities = identities.Where(i => !removedModuleNames.Contains(i.Key) && !upsertedIdentityList.Contains(i.Key));
             moduleIdentities.AddRange(unchangedIdentities.Select(i => this.GetModuleIdentity(i.Value)));
 
             return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
