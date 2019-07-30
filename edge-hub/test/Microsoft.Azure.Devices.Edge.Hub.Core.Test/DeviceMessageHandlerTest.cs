@@ -58,22 +58,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async Task ProcessFeedbackMessageAsync_RouteAsyncTest()
-        {
-            var cloudProxy = Mock.Of<ICloudProxy>();
-            var connectionManager = Mock.Of<IConnectionManager>();
-            var edgeHub = Mock.Of<IEdgeHub>();
-            var identity = Mock.Of<IDeviceIdentity>();
-            string messageId = "messageId";
-            var status = FeedbackStatus.Complete;
-            Mock.Get(connectionManager).Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy)));
-            var deviceListener = new DeviceMessageHandler(identity, edgeHub, connectionManager);
-            await deviceListener.ProcessMessageFeedbackAsync(messageId, status);
-
-            Mock.Get(cloudProxy).Verify(cp => cp.SendFeedbackMessageAsync(messageId, status), Times.Once());
-        }
-
-        [Fact]
         public async Task ForwardsTwinPatchOperationToTheCloudProxy()
         {
             var connMgr = Mock.Of<IConnectionManager>();
@@ -353,6 +337,137 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(correlationId, sentMessage.SystemProperties[SystemProperties.CorrelationId]);
             Assert.Equal("200", sentMessage.SystemProperties[SystemProperties.StatusCode]);
             edgeHub.VerifyAll();
+        }
+
+        [Fact]
+        public async Task ProcessC2DMessageTest()
+        {
+            // Arrange
+            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.Id == "device1");
+            var cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.SendFeedbackMessageAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>()))
+                .Returns(Task.CompletedTask);
+            var edgeHub = Mock.Of<IEdgeHub>();
+            var underlyingDeviceProxy = new Mock<IDeviceProxy>();
+            underlyingDeviceProxy.Setup(d => d.SendC2DMessageAsync(It.IsAny<IMessage>())).Returns(Task.CompletedTask);
+
+            var connMgr = new Mock<IConnectionManager>();
+            connMgr.Setup(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()));
+            connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object);
+            deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
+
+            string lockToken = Guid.NewGuid().ToString();
+            var systemProperties = new Dictionary<string, string>
+            {
+                [SystemProperties.LockToken] = lockToken
+            };
+
+            var message = Mock.Of<IMessage>(m => m.SystemProperties == systemProperties);
+
+            // Act
+            await deviceMessageHandler.SendC2DMessageAsync(message);
+
+            // Assert
+            underlyingDeviceProxy.Verify(d => d.SendC2DMessageAsync(It.IsAny<IMessage>()), Times.Once);
+
+            // Act
+            await deviceMessageHandler.ProcessMessageFeedbackAsync(lockToken, FeedbackStatus.Complete);
+
+            // Assert
+            cloudProxy.Verify(c => c.SendFeedbackMessageAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task ProcessC2DMessageWithNoLockTokenTest()
+        {
+            // Arrange
+            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.Id == "device1");
+            var cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.SendFeedbackMessageAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>()))
+                .Returns(Task.CompletedTask);
+            var edgeHub = Mock.Of<IEdgeHub>();
+            var underlyingDeviceProxy = new Mock<IDeviceProxy>();
+            underlyingDeviceProxy.Setup(d => d.SendC2DMessageAsync(It.IsAny<IMessage>())).Returns(Task.CompletedTask);
+
+            var connMgr = new Mock<IConnectionManager>();
+            connMgr.Setup(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()));
+            connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object);
+            deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
+
+            string lockToken = Guid.NewGuid().ToString();
+            var systemProperties = new Dictionary<string, string>
+            {
+                [SystemProperties.MessageId] = lockToken
+            };
+
+            var message = Mock.Of<IMessage>(m => m.SystemProperties == systemProperties);
+
+            // Act
+            await deviceMessageHandler.SendC2DMessageAsync(message);
+            await Task.Delay(TimeSpan.FromSeconds(1));
+
+            // Assert
+            underlyingDeviceProxy.Verify(d => d.SendC2DMessageAsync(It.IsAny<IMessage>()), Times.Never);
+
+            // Act
+            await deviceMessageHandler.ProcessMessageFeedbackAsync(lockToken, FeedbackStatus.Complete);
+
+            // Assert
+            cloudProxy.Verify(c => c.SendFeedbackMessageAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task ProcessDuplicateC2DMessageTest()
+        {
+            // Arrange
+            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.Id == "device1");
+            var cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.SendFeedbackMessageAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>()))
+                .Returns(Task.CompletedTask);
+            var edgeHub = Mock.Of<IEdgeHub>();
+            var underlyingDeviceProxy = new Mock<IDeviceProxy>();
+            underlyingDeviceProxy.Setup(d => d.SendC2DMessageAsync(It.IsAny<IMessage>())).Returns(Task.CompletedTask);
+
+            var connMgr = new Mock<IConnectionManager>();
+            connMgr.Setup(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()));
+            connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object);
+            deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
+
+            string lockToken = Guid.NewGuid().ToString();
+            var systemProperties1 = new Dictionary<string, string>
+            {
+                [SystemProperties.LockToken] = lockToken
+            };
+
+            var message1 = Mock.Of<IMessage>(m => m.SystemProperties == systemProperties1);
+
+            var systemProperties2 = new Dictionary<string, string>
+            {
+                [SystemProperties.LockToken] = lockToken
+            };
+
+            var message2 = Mock.Of<IMessage>(m => m.SystemProperties == systemProperties2);
+
+            // Act
+            await deviceMessageHandler.SendC2DMessageAsync(message1);
+
+            // Assert
+            underlyingDeviceProxy.Verify(d => d.SendC2DMessageAsync(It.IsAny<IMessage>()), Times.Once);
+
+            // Act
+            await deviceMessageHandler.SendC2DMessageAsync(message2);
+
+            // Assert
+            underlyingDeviceProxy.Verify(d => d.SendC2DMessageAsync(It.IsAny<IMessage>()), Times.Once);
+
+            // Act
+            await deviceMessageHandler.ProcessMessageFeedbackAsync(lockToken, FeedbackStatus.Complete);
+
+            // Assert
+            cloudProxy.Verify(c => c.SendFeedbackMessageAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>()), Times.Once);
         }
 
         DeviceMessageHandler GetDeviceMessageHandler()
