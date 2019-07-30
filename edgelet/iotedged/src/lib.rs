@@ -44,8 +44,9 @@ use url::Url;
 use dps::DPS_API_VERSION;
 use edgelet_core::crypto::{
     Activate, CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetDeviceIdentityCertificate,
-    GetIssuerAlias, GetTrustBundle, KeyIdentity, KeyStore, MakeRandom, MasterEncryptionKey,
-    MemoryKey, MemoryKeyStore, Sign, Signature, SignatureAlgorithm, IOTEDGED_CA_ALIAS,
+    GetHsmVersion, GetIssuerAlias, GetTrustBundle, KeyIdentity, KeyStore, MakeRandom,
+    MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, Signature, SignatureAlgorithm,
+    IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
@@ -191,6 +192,9 @@ const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200;
 // 2 hours
 const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 7_776_000; // 90 days
 
+// HSM lib version that the iotedge runtime required
+const IOTEDGE_COMPAT_HSM_VERSION: &str = "1.0.2";
+
 #[derive(PartialEq)]
 enum StartApiReturnStatus {
     Restart,
@@ -264,6 +268,21 @@ where
         info!("Initializing hsm...");
         let crypto = Crypto::new(hsm_lock.clone())
             .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+
+        let hsm_version = crypto
+            .get_version()
+            .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+
+        if hsm_version != IOTEDGE_COMPAT_HSM_VERSION {
+            info!(
+                "Incompatible HSM crypto interface version. Found {}, required {}",
+                hsm_version, IOTEDGE_COMPAT_HSM_VERSION
+            );
+            return Err(Error::from(ErrorKind::Initialize(
+                InitializeErrorReason::IncompatibleHsmVersion,
+            )));
+        }
+
         // ensure a master encryption key is initialized
         crypto.create_key().context(ErrorKind::Initialize(
             InitializeErrorReason::CreateMasterEncryptionKey,
@@ -586,6 +605,20 @@ where
         info!("Initializing hsm X509 interface...");
         let x509 =
             X509::new(hsm_lock).context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+
+        let hsm_version = x509
+            .get_version()
+            .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+
+        if hsm_version != IOTEDGE_COMPAT_HSM_VERSION {
+            info!(
+                "Incompatible HSM X.509 identity interface version. Found {}, required {}",
+                hsm_version, IOTEDGE_COMPAT_HSM_VERSION
+            );
+            return Err(Error::from(ErrorKind::Initialize(
+                InitializeErrorReason::IncompatibleHsmVersion,
+            )));
+        }
 
         let device_identity_cert = x509
             .get()
@@ -1412,6 +1445,21 @@ where
     let tpm = Tpm::new().context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
+
+    let hsm_version = tpm
+        .get_version()
+        .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+
+    if hsm_version != IOTEDGE_COMPAT_HSM_VERSION {
+        info!(
+            "Incompatible HSM interface version for TPM. Found {}, required {}",
+            hsm_version, IOTEDGE_COMPAT_HSM_VERSION
+        );
+        return Err(Error::from(ErrorKind::Initialize(
+            InitializeErrorReason::IncompatibleHsmVersion,
+        )));
+    }
+
     let ek_result = tpm.get_ek().context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;

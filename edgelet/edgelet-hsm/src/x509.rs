@@ -14,6 +14,7 @@ use crate::HsmLock;
 use edgelet_core::{
     Error as CoreError, ErrorKind as CoreErrorKind,
     GetDeviceIdentityCertificate as CoreGetDeviceIdentityCertificate,
+    GetHsmVersion as CoreGetHsmVersion,
 };
 
 /// The X.509 device identity HSM instance
@@ -42,6 +43,16 @@ impl X509 {
             x509: Arc::new(x509),
             hsm_lock,
         })
+    }
+}
+
+impl CoreGetHsmVersion for X509 {
+    fn get_version(&self) -> Result<String, CoreError> {
+        let _hsm_lock = self.hsm_lock.0.lock().expect("Acquiring HSM lock failed");
+        self.x509
+            .get_version()
+            .map_err(|err| Error::from(err.context(ErrorKind::Hsm)))
+            .map_err(|err| CoreError::from(err.context(CoreErrorKind::HsmVersion)))
     }
 }
 

@@ -34,6 +34,10 @@ impl fmt::Display for KeyIdentity {
     }
 }
 
+pub trait GetHsmVersion {
+    fn get_version(&self) -> Result<String, Error>;
+}
+
 pub trait Activate {
     type Key: Sign;
 
