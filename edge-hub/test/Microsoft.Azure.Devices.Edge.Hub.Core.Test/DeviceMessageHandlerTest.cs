@@ -181,8 +181,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string messageId = receivedMessage.SystemProperties[SystemProperties.LockToken];
             await deviceMessageHandler.ProcessMessageFeedbackAsync(messageId, FeedbackStatus.Complete);
 
+            await Task.Delay(TimeSpan.FromSeconds(1));
             Assert.True(sendMessageTask.IsCompleted);
-            Assert.False(sendMessageTask.IsFaulted);
         }
 
         [Fact]
@@ -229,6 +229,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await deviceMessageHandler.ProcessMessageFeedbackAsync(Guid.NewGuid().ToString(), FeedbackStatus.Complete);
 
             Assert.False(sendMessageTask.IsCompleted);
+        }
+
+        [Fact]
+        public async Task MultipleMessageCompletionTest()
+        {
+            var connMgr = new Mock<IConnectionManager>();
+            connMgr.Setup(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()));
+            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
+            var cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.SendFeedbackMessageAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>()))
+                .Returns(Task.CompletedTask);
+            var edgeHub = Mock.Of<IEdgeHub>();
+            var underlyingDeviceProxy = new Mock<IDeviceProxy>();
+            IMessage receivedMessage = null;
+            underlyingDeviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.IsAny<string>()))
+                .Callback<IMessage, string>((m, s) => receivedMessage = m)
+                .Returns(Task.CompletedTask);
+            connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object);
+            deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
+
+            IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
+            Task sendMessageTask = deviceMessageHandler.SendMessageAsync(message, "input1");
+            Assert.False(sendMessageTask.IsCompleted);
+
+            string messageId = receivedMessage.SystemProperties[SystemProperties.LockToken];
+            await deviceMessageHandler.ProcessMessageFeedbackAsync(messageId, FeedbackStatus.Complete);
+            await Task.Delay(TimeSpan.FromSeconds(1));
+
+            Assert.True(sendMessageTask.IsCompleted);
+
+            await deviceMessageHandler.ProcessMessageFeedbackAsync(messageId, FeedbackStatus.Complete);
+            await Task.Delay(TimeSpan.FromSeconds(1));
+
+            Assert.True(sendMessageTask.IsCompleted);
+            cloudProxy.Verify(c => c.SendFeedbackMessageAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>()), Times.Never);
         }
 
         [Fact]
