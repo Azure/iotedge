@@ -25,11 +25,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             var data = new CheckpointData(offset);
             this.initialCheckpointData = Task.FromResult(data);
             this.initialCheckpointDataMap = Task.FromResult(
-                new Dictionary<string, CheckpointData>()
-                    {
-                        { "NullCheckpoint", data }
-                    }
-                    as IDictionary<string, CheckpointData>);
+                (IDictionary<string, CheckpointData>)new Dictionary<string, CheckpointData>()
+                {
+                    { "NullCheckpoint", data }
+                });
         }
 
         public static NullCheckpointStore Instance { get; } = new NullCheckpointStore();

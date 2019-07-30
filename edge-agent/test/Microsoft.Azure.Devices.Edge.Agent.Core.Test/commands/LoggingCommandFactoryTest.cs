@@ -11,8 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
     using Microsoft.Extensions.Logging;
     using Moq;
     using Xunit;
-    using CommandMethodExpr = System.Linq.Expressions.Expression<System.Func<ICommandFactory, System.Threading.Tasks.Task<ICommand>>>;
-    using TestExecutionExpr = System.Func<LoggingCommandFactory, System.Threading.Tasks.Task<ICommand>>;
+    using CommandMethodExpr = System.Linq.Expressions.Expression<System.Func<Microsoft.Azure.Devices.Edge.Agent.Core.ICommandFactory, System.Threading.Tasks.Task<Microsoft.Azure.Devices.Edge.Agent.Core.ICommand>>>;
+    using TestExecutionExpr = System.Func<Microsoft.Azure.Devices.Edge.Agent.Core.LoggingCommandFactory, System.Threading.Tasks.Task<Microsoft.Azure.Devices.Edge.Agent.Core.ICommand>>;
 
     class FailureCommand : ICommand
     {

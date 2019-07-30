@@ -5,7 +5,6 @@ use std::path::{Path, PathBuf};
 
 use failure::Fail;
 use regex::Regex;
-use serde_derive::{Deserialize, Serialize};
 use url::Url;
 use url_serde;
 
@@ -22,7 +21,7 @@ const HOSTNAME_REGEX: &str = r"^[a-zA-Z0-9_\-\.]+$";
 /// This is the default connection string
 pub const DEFAULT_CONNECTION_STRING: &str = "<ADD DEVICE CONNECTION STRING HERE>";
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub struct Manual {
     device_connection_string: String,
@@ -99,7 +98,7 @@ impl Manual {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(tag = "method")]
 #[serde(rename_all = "lowercase")]
 pub enum AttestationMethod {
@@ -109,7 +108,7 @@ pub enum AttestationMethod {
     X509(X509AttestationInfo),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub struct TpmAttestationInfo {
     registration_id: String,
@@ -125,7 +124,7 @@ impl TpmAttestationInfo {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub struct SymmetricKeyAttestationInfo {
     registration_id: String,
@@ -142,7 +141,7 @@ impl SymmetricKeyAttestationInfo {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub struct X509AttestationInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -165,7 +164,7 @@ impl X509AttestationInfo {
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, serde_derive::Serialize)]
 pub struct Dps {
     #[serde(with = "url_serde")]
     global_endpoint: Url,
@@ -229,7 +228,7 @@ impl Dps {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub struct External {
     #[serde(with = "url_serde")]
@@ -246,7 +245,7 @@ impl External {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(tag = "source")]
 #[serde(rename_all = "lowercase")]
 pub enum Provisioning {
@@ -255,7 +254,7 @@ pub enum Provisioning {
     External(External),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Connect {
     #[serde(with = "url_serde")]
     workload_uri: Url,
@@ -273,7 +272,7 @@ impl Connect {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Listen {
     #[serde(with = "url_serde")]
     workload_uri: Url,
@@ -291,7 +290,7 @@ impl Listen {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Certificates {
     device_ca_cert: PathBuf,
     device_ca_pk: PathBuf,
@@ -329,7 +328,7 @@ pub enum ParseManualDeviceConnectionStringError {
     MalformedParameter(&'static str),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(untagged)]
 pub enum RetryLimit {
     Infinite,
@@ -351,7 +350,7 @@ impl Default for RetryLimit {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct WatchdogSettings {
     #[serde(default)]
     max_retries: RetryLimit,
@@ -377,7 +376,7 @@ pub trait RuntimeSettings {
     fn watchdog(&self) -> &WatchdogSettings;
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings<T> {
     provisioning: Provisioning,
     agent: ModuleSpec<T>,

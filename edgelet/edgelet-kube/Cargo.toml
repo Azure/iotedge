@@ -24,6 +24,7 @@ url_serde = "0.2"
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
+edgelet-hsm = { path = "../edgelet-hsm"}
 edgelet-utils = { path = "../edgelet-utils" }
 kube-client = { path = "../kube-client" }
 provisioning = { path = "../provisioning" }

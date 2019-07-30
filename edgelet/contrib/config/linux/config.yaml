@@ -161,7 +161,7 @@ hostname: "<ADD HOSTNAME HERE>"
 #
 #               If this configuration is not specified, the daemon keeps retrying
 #               on errors and doesn't fail fatally.
-# 
+#
 #               On a fatal failure, the daemon returns an exit code which
 #               signifies the kind of error encountered. Currently, the following
 #               error codes are returned by the daemon -

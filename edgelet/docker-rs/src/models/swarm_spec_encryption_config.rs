@@ -9,11 +9,11 @@
  */
 
 /// SwarmSpecEncryptionConfig : Parameters related to encryption-at-rest.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct SwarmSpecEncryptionConfig {
     /// If set, generate a key and use it to lock data stored on the managers.
     #[serde(rename = "AutoLockManagers", skip_serializing_if = "Option::is_none")]
