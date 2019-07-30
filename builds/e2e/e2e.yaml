@@ -156,6 +156,7 @@ jobs:
         secretsFilter: >-
           TestContainerRegistryPassword,
           TestEventHubCompatibleEndpoint,
+          TestIotedgedPackageRootSigningCert,
           TestIotHubConnectionString,
           TestRootCaCertificate,
           TestRootCaKey,
@@ -193,6 +194,15 @@ jobs:
       env:
         ROOT_CERT: $(TestRootCaCertificate)
         ROOT_KEY: $(TestRootCaKey)
+
+    - pwsh: |
+        $testDir = '$(Pipeline.Workspace)/e2e'
+        New-Item "$testDir/certs" -ItemType Directory -Force | Out-Null
+        $ROOT_CERT | Out-File -Encoding Utf8 "$testDir/certs/testroot.cer"
+        Import-Certificate "$testDir/certs/testroot.cer" -CertStoreLocation 'Cert:\LocalMachine\Root' 
+      displayName: Install iotedged CAB signing cert
+      env:
+        PACKAGE_SIGNING_CERT: $(TestIotedgedPackageRootSigningCert)
 
     - pwsh: |
         $imageId = '$(az.pipeline.images.buildNum)'
