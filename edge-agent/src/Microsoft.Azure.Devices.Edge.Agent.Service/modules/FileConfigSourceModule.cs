@@ -1,11 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -45,6 +49,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // how reporting will work.
             builder.Register(c => NullReporter.Instance as IReporter)
                 .As<IReporter>()
+                .SingleInstance();
+
+            // IRequestManager
+            builder.Register(
+                    c => new RequestManager(Enumerable.Empty<IRequestHandler>(), TimeSpan.Zero) as IRequestManager)
+                .As<IRequestManager>()
                 .SingleInstance();
 
             // Task<IStreamRequestListener>
