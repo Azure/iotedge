@@ -30,21 +30,6 @@ case "$PACKAGE_OS" in
             RPM_RELEASE="$REVISION"
         fi
 
-        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=RPM"
-        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$RPM_VERSION'"
-        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_RPM_PACKAGE_RELEASE=$RPM_RELEASE'"
-        ;;
-
-    *)
-        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=DEB"
-        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION'"
-        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_DEBIAN_PACKAGE_RELEASE=$REVISION'"
-        ;;
-esac
-
-
-case "$PACKAGE_OS" in
-    'centos7')
         case "$PACKAGE_ARCH" in
             'amd64')
                 DOCKER_IMAGE='centos:7.5.1804'
@@ -69,13 +54,21 @@ case "$PACKAGE_OS" in
                 ;;
         esac
 
+        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=RPM"
+        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$RPM_VERSION'"
+        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_RPM_PACKAGE_RELEASE=$RPM_RELEASE'"
         CMAKE_ARGS="$CMAKE_ARGS '-DOPENSSL_DEPENDS_SPEC=openssl-libs'"
         ;;
 
     'debian8')
+        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=DEB"
+
         case "$PACKAGE_ARCH" in
             'amd64')
                 DOCKER_IMAGE='debian:8-slim'
+
+                # The cmake in this image doesn't understand CPACK_DEBIAN_PACKAGE_RELEASE, so include the REVISION in CPACK_PACKAGE_VERSION
+                CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION-$REVISION'"
                 ;;
 
             # Debian 8 doesn't have cross-compiler packages in its main repo
@@ -88,6 +81,9 @@ case "$PACKAGE_OS" in
             # So stick with the linaro compiler for now.
             'arm32v7')
                 DOCKER_IMAGE='azureiotedge/gcc-linaro-7.3.1-2018.05-x86_64_arm-linux-gnueabihf:debian_8.11-1'
+
+                CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION'"
+                CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_DEBIAN_PACKAGE_RELEASE=$REVISION'"
                 ;;
 
             'aarch64')
@@ -102,21 +98,37 @@ case "$PACKAGE_OS" in
 
     'debian9')
         DOCKER_IMAGE='debian:9-slim'
+
+        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=DEB"
+        # The cmake in this image doesn't understand CPACK_DEBIAN_PACKAGE_RELEASE, so include the REVISION in CPACK_PACKAGE_VERSION
+        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION-$REVISION'"
         CMAKE_ARGS="$CMAKE_ARGS '-DOPENSSL_DEPENDS_SPEC=libssl1.1'"
         ;;
 
     'debian10')
         DOCKER_IMAGE='debian:10-slim'
+
+        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=DEB"
+        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION'"
+        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_DEBIAN_PACKAGE_RELEASE=$REVISION'"
         CMAKE_ARGS="$CMAKE_ARGS '-DOPENSSL_DEPENDS_SPEC=libssl1.1'"
         ;;
 
     'ubuntu16.04')
         DOCKER_IMAGE='ubuntu:16.04'
+
+        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=DEB"
+        # The cmake in this image doesn't understand CPACK_DEBIAN_PACKAGE_RELEASE, so include the REVISION in CPACK_PACKAGE_VERSION
+        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION-$REVISION'"
         CMAKE_ARGS="$CMAKE_ARGS '-DOPENSSL_DEPENDS_SPEC=libssl1.0.0'"
         ;;
 
     'ubuntu18.04')
         DOCKER_IMAGE='ubuntu:18.04'
+
+        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=DEB"
+        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION'"
+        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_DEBIAN_PACKAGE_RELEASE=$REVISION'"
         CMAKE_ARGS="$CMAKE_ARGS '-DOPENSSL_DEPENDS_SPEC=libssl1.1'"
         ;;
 esac
