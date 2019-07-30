@@ -254,6 +254,14 @@ jobs:
       displayName: Create test arguments file (context.json)
 
     - pwsh: |
+        Write-Output '>>> BEFORE:'
+        netsh interface ipv6 show prefixpolicies
+        netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 45 4
+        Write-Output '>>> AFTER:'
+        netsh interface ipv6 show prefixpolicies
+      displayName: Prefer IPv4 on Windows
+
+    - pwsh: |
         $edgeDir = Join-Path $env:ProgramFiles 'iotedge'
         $mobyDir = Join-Path $env:ProgramFiles 'iotedge-moby'
         $env:Path = "$env:Path;$edgeDir;$mobyDir"
