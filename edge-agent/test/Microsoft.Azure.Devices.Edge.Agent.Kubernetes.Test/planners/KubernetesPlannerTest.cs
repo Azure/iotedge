@@ -152,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
 
             public IDictionary<string, EnvVal> Env { get; }
 
-            public bool OnlyModuleStatusChanged(IModule other) => throw new NotImplementedException();
+            public bool IsOnlyModuleStatusChanged(IModule other) => throw new NotImplementedException();
 
             public bool Equals(IModule<string> other) => throw new NotImplementedException();
 

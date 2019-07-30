@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
-        public bool OnlyModuleStatusChanged(IModule other)
+        public bool IsOnlyModuleStatusChanged(IModule other)
         {
             return other is KubernetesModule<TConfig> &&
                 string.Equals(this.Name, other.Name) &&

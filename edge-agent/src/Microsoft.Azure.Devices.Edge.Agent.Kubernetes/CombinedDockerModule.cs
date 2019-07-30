@@ -1,35 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Docker
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
-    public class DockerModule : IModule<DockerConfig>
+    public class CombinedDockerModule : IModule<CombinedDockerConfig>
     {
         static readonly DictionaryComparer<string, EnvVal> EnvDictionaryComparer = new DictionaryComparer<string, EnvVal>();
-
-        public DockerModule(
-            string name,
-            string version,
-            ModuleStatus desiredStatus,
-            RestartPolicy restartPolicy,
-            DockerConfig config,
-            ImagePullPolicy imagePullPolicy,
-            ConfigurationInfo configurationInfo,
-            IDictionary<string, EnvVal> env)
-        {
-            this.Name = name;
-            this.Version = version ?? string.Empty;
-            this.DesiredStatus = Preconditions.CheckIsDefined(desiredStatus);
-            this.Config = Preconditions.CheckNotNull(config, nameof(config));
-            this.RestartPolicy = Preconditions.CheckIsDefined(restartPolicy);
-            this.ImagePullPolicy = Preconditions.CheckIsDefined(imagePullPolicy);
-            this.ConfigurationInfo = configurationInfo ?? new ConfigurationInfo(string.Empty);
-            this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
-        }
 
         [JsonIgnore]
         public string Name { get; set; }
@@ -43,14 +24,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty(PropertyName = "restartPolicy")]
         public virtual RestartPolicy RestartPolicy { get; }
 
-        [JsonProperty(PropertyName = "imagePullPolicy")]
-        public virtual ImagePullPolicy ImagePullPolicy { get; }
-
         [JsonProperty(Required = Required.Always, PropertyName = "type")]
         public virtual string Type => "docker";
 
         [JsonProperty(Required = Required.Always, PropertyName = "settings")]
-        public DockerConfig Config { get; }
+        public CombinedDockerConfig Config { get; }
 
         [JsonIgnore]
         public virtual ConfigurationInfo ConfigurationInfo { get; }
@@ -58,42 +36,47 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty(PropertyName = "env")]
         public IDictionary<string, EnvVal> Env { get; }
 
-        public override bool Equals(object obj) => this.Equals(obj as DockerModule);
+        public ImagePullPolicy ImagePullPolicy { get; set; }
 
-        public virtual bool Equals(IModule other) => this.Equals(other as DockerModule);
-
-        public virtual bool Equals(IModule<DockerConfig> other)
+        public CombinedDockerModule(string name, string version, ModuleStatus desiredStatus, RestartPolicy restartPolicy, CombinedDockerConfig settings, ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env)
         {
-            if (ReferenceEquals(null, other))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, other))
-            {
-                return true;
-            }
-
-            return string.Equals(this.Name, other.Name) &&
-                   string.Equals(this.Version, other.Version) &&
-                   string.Equals(this.Type, other.Type) &&
-                   this.DesiredStatus == other.DesiredStatus &&
-                   this.Config.Equals(other.Config) &&
-                   this.RestartPolicy == other.RestartPolicy &&
-                   this.ImagePullPolicy == other.ImagePullPolicy &&
-                   EnvDictionaryComparer.Equals(this.Env, other.Env);
+            this.Name = name;
+            this.Version = version ?? string.Empty;
+            this.DesiredStatus = Preconditions.CheckIsDefined(desiredStatus);
+            this.Config = Preconditions.CheckNotNull(settings, nameof(settings));
+            this.RestartPolicy = Preconditions.CheckIsDefined(restartPolicy);
+            this.ConfigurationInfo = configurationInfo ?? new ConfigurationInfo(string.Empty);
+            this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
         }
 
-        public virtual bool IsOnlyModuleStatusChanged(IModule other)
+        [JsonConstructor]
+        public CombinedDockerModule(string version, ModuleStatus status, RestartPolicy restartPolicy, string type, CombinedDockerConfig settings, IDictionary<string, EnvVal> env)
         {
-            return other is DockerModule dockerModule &&
-                string.Equals(this.Name, other.Name) &&
+            this.Name = null;
+            this.Version = version ?? string.Empty;
+            this.DesiredStatus = Preconditions.CheckIsDefined(status);
+            this.Config = Preconditions.CheckNotNull(settings, nameof(settings));
+            this.RestartPolicy = Preconditions.CheckIsDefined(restartPolicy);
+            this.ConfigurationInfo = new ConfigurationInfo(string.Empty);
+            this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
+        }
+
+        public override bool Equals(object obj) => this.Equals(obj as CombinedDockerModule);
+
+        public virtual bool Equals(IModule other) => this.Equals(other as CombinedDockerModule);
+
+        public virtual bool Equals(IModule<CombinedDockerConfig> other)
+        {
+            if (ReferenceEquals(null, other))
+                return false;
+            if (ReferenceEquals(this, other))
+                return true;
+            return string.Equals(this.Name, other.Name) &&
                 string.Equals(this.Version, other.Version) &&
                 string.Equals(this.Type, other.Type) &&
-                this.DesiredStatus != other.DesiredStatus &&
-                this.Config.Equals(dockerModule.Config) &&
+                this.DesiredStatus == other.DesiredStatus &&
+                this.Config.Equals(other.Config) &&
                 this.RestartPolicy == other.RestartPolicy &&
-                this.ImagePullPolicy == other.ImagePullPolicy &&
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
@@ -111,10 +94,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 hashCode = (hashCode * 397) ^ (int)this.DesiredStatus;
                 hashCode = (hashCode * 397) ^ (this.Config != null ? this.Config.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ this.RestartPolicy.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.ImagePullPolicy.GetHashCode();
                 hashCode = (hashCode * 397) ^ EnvDictionaryComparer.GetHashCode(this.Env);
                 return hashCode;
             }
+        }
+
+        public bool IsOnlyModuleStatusChanged(IModule other)
+        {
+            return other is CombinedDockerModule &&
+                string.Equals(this.Name, other.Name) &&
+                string.Equals(this.Version, other.Version) &&
+                string.Equals(this.Type, other.Type) &&
+                this.DesiredStatus != other.DesiredStatus &&
+                this.RestartPolicy == other.RestartPolicy &&
+                this.ImagePullPolicy == other.ImagePullPolicy &&
+                EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
     }
 }
