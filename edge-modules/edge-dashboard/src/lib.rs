@@ -92,10 +92,12 @@ impl Main {
                 .register_data(context.clone())
                 .register_data(device.clone())
                 .service(web::resource("/api/modules/{id}/restart").to_async(restart_module))
+                .service(web::resource("/api/modules/{id}/logs").to_async(get_logs))
                 .service(web::resource("/api/modules").to_async(get_modules))
                 .service(web::resource("/api/provisioning-state").to(get_state))
                 .service(web::resource("/api/connectivity").to(get_connectivity))
                 .service(web::resource("/api/health").to_async(get_health))
+                .service(web::resource("/api/diagnostics").to(get_diagnostics))
         })
         .bind(address)?
         .run()?;
@@ -107,6 +109,10 @@ impl Main {
 #[derive(Deserialize)]
 pub struct AuthRequest {
     api_version: String,
+}
+
+fn get_diagnostics() -> HttpResponse {
+    HttpResponse::Ok().body("")
 }
 
 fn set_up(context: web::Data<Arc<Context>>) -> Option<state::Device> {
@@ -252,7 +258,7 @@ fn get_logs(
                         mod_client
                             .logs(module_id, &LogOptions::new())
                             .map(|data| {
-                                let response: Fold<Stream, FnMut, IntoFuture<String>, ActixError> = data
+                                let response = data
                                     .fold(String::from(""), |mut acc, chunk| {
                                         acc.push_str(&String::from_utf8(chunk.as_ref().to_vec()).unwrap());
                                         Ok(acc)
