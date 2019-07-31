@@ -97,7 +97,7 @@ pub fn get_file() -> Result<String> {
     return handle_windows();
 
     #[cfg(target_os = "linux")]
-    fs::read_to_string("src/test.txt")
+    fs::read_to_string("/etc/iotedge/config.yaml")
 }
 
 pub fn return_response(new_device: &Device) -> HttpResponse {

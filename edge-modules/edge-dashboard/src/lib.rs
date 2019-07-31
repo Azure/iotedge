@@ -189,9 +189,11 @@ fn get_connectivity(_req: HttpRequest, device: web::Data<Option<state::Device>>)
                     .body("Failed to establish connection with IoT Hub."),
             }
         } else {
+            println!("heck1");
             HttpResponse::UnprocessableEntity().body("IoT Hub name could not be processed")
         }
     } else {
+        println!("heck2");
         HttpResponse::UnprocessableEntity().body("IoT Hub name could not be processed")
     }
 }
