@@ -119,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     try
                     {
-                        Events.ProcessingSubscriptions(identity);
+                        Events.ProcessingSubscriptionsOnDeviceConnected(identity);
                         await this.ProcessExistingSubscriptions(identity.Id);
                     }
                     catch (Exception e)
@@ -150,10 +150,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task ProcessPendingSubscriptions(string id)
         {
+            Events.ProcessingSubscriptions(id);
             ConcurrentQueue<(DeviceSubscription, bool)> clientSubscriptionsQueue = this.GetClientSubscriptionsQueue(id);
             if (!clientSubscriptionsQueue.IsEmpty)
             {
                 Option<ICloudProxy> cloudProxy = await this.ConnectionManager.GetCloudConnection(id);
+                if (!cloudProxy.HasValue)
+                {
+                    Events.ProcessingSubscriptionsNoCloudProxy(id);
+                }
+
                 while (clientSubscriptionsQueue.TryDequeue(out (DeviceSubscription deviceSubscription, bool addSubscription) result))
                 {
                     await this.ProcessSubscriptionWithRetry(id, cloudProxy, result.deviceSubscription, result.addSubscription);
@@ -193,7 +199,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 ErrorRemovingSubscription,
                 ErrorAddingSubscription,
                 ProcessingSubscriptions,
-                ProcessingSubscription
+                ProcessingSubscription,
+                ProcessingSubscriptionsNoCloudProxy
             }
 
             public static void ErrorProcessingSubscriptions(Exception ex, IIdentity identity)
@@ -236,7 +243,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
             }
 
-            public static void ProcessingSubscriptions(IIdentity identity)
+            public static void ProcessingSubscriptionsOnDeviceConnected(IIdentity identity)
             {
                 Log.LogInformation((int)EventIds.ProcessingSubscriptions, Invariant($"Processing subscriptions for client {identity.Id}."));
             }
@@ -254,6 +261,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             internal static void ErrorProcessingSubscriptions(Exception e)
             {
                 Log.LogWarning((int)EventIds.ProcessingSubscription, e, Invariant($"Error processing subscriptions for connected clients."));
+            }
+
+            public static void ProcessingSubscriptions(string id)
+            {
+                Log.LogInformation((int)EventIds.ProcessingSubscription, Invariant($"Processing pending subscriptions for {id}"));
+            }
+
+            public static void ProcessingSubscriptionsNoCloudProxy(string id)
+            {
+                Log.LogInformation((int)EventIds.ProcessingSubscriptionsNoCloudProxy, Invariant($"Processing pending subscriptions for {id}, but no cloud proxy was found"));
             }
         }
     }
