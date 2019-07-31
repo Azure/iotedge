@@ -21,8 +21,5 @@ fn x509_get_identity_cert_fails() {
 
     let hsm_lock = HsmLock::new();
     let x509 = X509::new(hsm_lock).unwrap();
-
-    let cert_info = x509.get();
-
-    assert!(cert_info.is_err());
+    assert!(x509.get().is_err());
 }
