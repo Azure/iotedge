@@ -1631,7 +1631,6 @@ dependencies = [
  "byteorder 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "edgelet-core 0.1.0 (git+https://github.com/azure/iotedge?rev=a742e1e9f8c764b9fc4474b46164831dae0b0456)",
  "edgelet-http 0.1.0 (git+https://github.com/azure/iotedge?rev=a742e1e9f8c764b9fc4474b46164831dae0b0456)",
  "env_logger 0.5.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)",

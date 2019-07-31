@@ -5,7 +5,6 @@ use std::str;
 use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
-use edgelet_core::UrlExt;
 use edgelet_http::UrlConnector;
 use futures::future::{self, IntoFuture};
 use futures::{Future, Stream};
@@ -16,6 +15,7 @@ use log::{debug, error};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json;
 use url::{form_urlencoded::Serializer as UrlSerializer, Url};
+use crate::UrlExt;
 
 use crate::error::Error;
 
@@ -75,10 +75,12 @@ where
             "Error when parsing base path from {}",
             self.host_name.as_str()
         ));
+        let base_path = base_path.to_str().expect(&format!("Invalid base path: {:?}", base_path));
         let path = format!("{}{}", path, query);
+        debug!("scheme={}, base_path={}, path={}", scheme, base_path, path);
         UrlConnector::build_hyper_uri(
                 scheme, 
-                base_path.to_str().expect(&format!("Invalid base path {:?}", base_path)), 
+                base_path, 
                 &path)
             .map_err(Error::from)
             .and_then(|url| {
