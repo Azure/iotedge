@@ -461,9 +461,9 @@ mod tests {
             )
         } else {
             (
-                String::from(ca_cert_path.to_str().unwrap()),
-                String::from(ca_key_path.to_str().unwrap()),
-                String::from(trust_bundle_path.to_str().unwrap()),
+                ca_cert_path.to_str().unwrap().to_owned(),
+                ca_key_path.to_str().unwrap().to_owned(),
+                trust_bundle_path.to_str().unwrap().to_owned(),
             )
         };
         let settings_yaml = json!({
