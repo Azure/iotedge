@@ -81,7 +81,6 @@ pub struct Settings {
     test_duration: Duration,
     alert: Alert,
     #[serde(with = "url_serde")]
-    #[serde(with = "url_serde")]
     analyzer_url: Url,
     blob_storage_account: String,
     blob_storage_master_key: String,
