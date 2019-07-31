@@ -162,8 +162,8 @@ steps:
     testResultsFormat: vstest
     testResultsFiles: '**/*.trx'
     searchFolder: $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test
-    testRunTitle: End-to-end tests ($(Build.BuildNumber))
-    buildPlatform: $(os) $(arch)
+    testRunTitle: End-to-end tests ($(Build.BuildNumber) $(os) $(arch))
+    buildPlatform: $(arch)
   condition: succeededOrFailed()
 
 - pwsh: |
