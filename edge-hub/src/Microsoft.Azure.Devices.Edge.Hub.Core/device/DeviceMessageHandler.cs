@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                     taskCompletionSource.SetException(new EdgeHubIOException($"Message not completed by client {this.Identity.Id}"));
                 }
             }
-            else if(this.c2dMessageTaskCompletionSources.TryRemove(messageId, out bool value) && value)
+            else if (this.c2dMessageTaskCompletionSources.TryRemove(messageId, out bool value) && value)
             {
                 Events.ReceivedC2DFeedbackMessage(this.Identity, messageId);
                 Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(this.Identity.Id);
