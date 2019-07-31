@@ -453,9 +453,9 @@ mod tests {
 
         let (ca_cert_setting, ca_key_setting, trust_bundle_setting) = if use_uri_format {
             (
-                format!("file://{}", ca_cert_path.to_str().unwrap()),
-                format!("file://{}", ca_key_path.to_str().unwrap()),
-                format!("file://{}", trust_bundle_path.to_str().unwrap()),
+                Url::from_file_path(ca_cert_path).unwrap().into_string(),
+                Url::from_file_path(ca_key_path).unwrap().into_string(),
+                Url::from_file_path(trust_bundle_path).unwrap().into_string(),
             )
         } else {
             (

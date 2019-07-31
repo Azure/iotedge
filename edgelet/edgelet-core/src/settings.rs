@@ -155,11 +155,11 @@ pub struct X509AttestationInfo {
 
 impl X509AttestationInfo {
     pub fn identity_cert(&self) -> Result<PathBuf, Error> {
-        get_path_from_uri(&self.identity_cert, "identity_cert")
+        get_path_from_uri(&self.identity_cert, "provisioning.attestation.identity_cert")
     }
 
     pub fn identity_pk(&self) -> Result<PathBuf, Error> {
-        get_path_from_uri(&self.identity_pk, "identity_pk")
+        get_path_from_uri(&self.identity_pk, "provisioning.attestation.identity_pk")
     }
 
     pub fn identity_pk_uri(&self) -> Result<&Url, Error> {
@@ -332,16 +332,16 @@ fn is_supported_uri(uri: &Url) -> bool {
     false
 }
 
-fn get_path_from_uri(uri: &Url, variable: &'static str) -> Result<PathBuf, Error> {
+fn get_path_from_uri(uri: &Url, setting_name: &'static str) -> Result<PathBuf, Error> {
     if is_supported_uri(&uri) {
         let path = uri
             .to_file_path()
-            .map_err(|_| ErrorKind::InvalidSettingsUriFilePath(uri.to_string(), variable))?;
+            .map_err(|_| ErrorKind::InvalidSettingsUriFilePath(uri.to_string(), setting_name))?;
         Ok(path)
     } else {
         Err(Error::from(ErrorKind::UnsupportedSettingsFileUri(
             uri.to_string(),
-            variable,
+            setting_name,
         )))
     }
 }
@@ -367,7 +367,7 @@ fn convert_to_uri(maybe_uri: &str, setting_name: &'static str) -> Result<Url, Er
             Ok(uri)
         } else {
             Err(Error::from(ErrorKind::UnsupportedSettingsUri(
-                String::from(maybe_uri),
+                maybe_uri.to_owned(),
                 setting_name,
             )))
         }
@@ -379,38 +379,38 @@ fn convert_to_uri(maybe_uri: &str, setting_name: &'static str) -> Result<Url, Er
                     Ok(uri)
                 } else {
                     Err(Error::from(ErrorKind::UnsupportedSettingsUri(
-                        String::from(maybe_uri),
+                        maybe_uri.to_owned(),
                         setting_name,
                     )))
                 }
             })
-            .map_err(|_| ErrorKind::InvalidSettingsUri(String::from(maybe_uri), setting_name))?
+            .map_err(|_| ErrorKind::InvalidSettingsUri(maybe_uri.to_owned(), setting_name))?
     }
 }
 
 impl Certificates {
     pub fn device_ca_cert(&self) -> Result<PathBuf, Error> {
-        convert_to_path(&self.device_ca_cert, "device_ca_cert")
+        convert_to_path(&self.device_ca_cert, "certificates.device_ca_cert")
     }
 
     pub fn device_ca_pk(&self) -> Result<PathBuf, Error> {
-        convert_to_path(&self.device_ca_pk, "device_ca_pk")
+        convert_to_path(&self.device_ca_pk, "certificates.device_ca_pk")
     }
 
     pub fn trusted_ca_certs(&self) -> Result<PathBuf, Error> {
-        convert_to_path(&self.trusted_ca_certs, "trusted_ca_certs")
+        convert_to_path(&self.trusted_ca_certs, "certificates.trusted_ca_certs")
     }
 
     pub fn device_ca_cert_uri(&self) -> Result<Url, Error> {
-        convert_to_uri(&self.device_ca_cert, "device_ca_cert")
+        convert_to_uri(&self.device_ca_cert, "certificates.device_ca_cert")
     }
 
     pub fn device_ca_pk_uri(&self) -> Result<Url, Error> {
-        convert_to_uri(&self.device_ca_pk, "device_ca_pk")
+        convert_to_uri(&self.device_ca_pk, "certificates.device_ca_pk")
     }
 
     pub fn trusted_ca_certs_uri(&self) -> Result<Url, Error> {
-        convert_to_uri(&self.trusted_ca_certs, "trusted_ca_certs")
+        convert_to_uri(&self.trusted_ca_certs, "certificates.trusted_ca_certs")
     }
 }
 
@@ -543,17 +543,17 @@ mod tests {
     fn test_convert_to_path() {
         if cfg!(windows) {
             assert_eq!(
-                "..\\sample.txt",
-                convert_to_path("..\\sample.txt", "test")
+                r"..\sample.txt",
+                convert_to_path(r"..\sample.txt", "test")
                     .unwrap()
                     .to_str()
                     .unwrap()
             );
 
-            let expected_path = "C:\\temp\\sample.txt";
+            let expected_path = r"C:\temp\sample.txt";
             assert_eq!(
                 expected_path,
-                convert_to_path("C:\\temp\\sample.txt", "test")
+                convert_to_path(r"C:\temp\sample.txt", "test")
                     .unwrap()
                     .to_str()
                     .unwrap()
