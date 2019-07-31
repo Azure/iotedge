@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         internal ColumnFamilyHandle Handle { get; }
 
-        public Task Put(byte[] key, byte[] value) => this.Put(key, value, CancellationToken.None);
+        public virtual Task Put(byte[] key, byte[] value) => this.Put(key, value, CancellationToken.None);
 
         public Task<Option<byte[]>> Get(byte[] key) => this.Get(key, CancellationToken.None);
 
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return returnValue;
         }
 
-        public Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
+        public virtual Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
             Preconditions.CheckNotNull(value, nameof(value));

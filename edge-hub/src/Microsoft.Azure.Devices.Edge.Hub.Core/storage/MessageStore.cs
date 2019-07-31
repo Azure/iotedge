@@ -70,6 +70,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             }
         }
 
+        public Task CleanupMessagesFromHead(int percentage, CancellationToken cancellationToken) => this.messagesCleaner.CleanupMessagesFromHead(percentage, cancellationToken);
+
         public async Task<long> Add(string endpointId, IMessage message)
         {
             Preconditions.CheckNotNull(message, nameof(message));
@@ -310,6 +312,64 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             TimeSpan GetCleanupTaskSleepTime() => this.messageStore.timeToLive.TotalSeconds / 2 < CleanupTaskFrequency.TotalSeconds
                 ? TimeSpan.FromSeconds(this.messageStore.timeToLive.TotalSeconds / 2)
                 : CleanupTaskFrequency;
+
+            public async Task CleanupMessagesFromHead(int percentage, CancellationToken cancellationToken)
+            {
+                long totalCleanupCount = 0;
+                long totalCleanupStoreCount = 0;
+
+                foreach (KeyValuePair<string, ISequentialStore<MessageRef>> endpointSequentialStore in this.messageStore.endpointSequentialStores)
+                {
+                    try
+                    {
+                        Events.CleanupTaskStarted(endpointSequentialStore.Key);
+                        CheckpointData checkpointData = await this.messageStore.checkpointStore.GetCheckpointDataAsync(endpointSequentialStore.Key, CancellationToken.None);
+                        ISequentialStore<MessageRef> sequentialStore = endpointSequentialStore.Value;
+                        Events.CleanupCheckpointState(endpointSequentialStore.Key, checkpointData);
+                        int cleanupEntityStoreCount = 0;
+
+                        async Task DeleteMessageCallback(long offset, MessageRef messageRef)
+                        {
+                            bool deleteMessage = false;
+
+                            // Decrement ref count.
+                            await this.messageStore.messageEntityStore.Update(
+                                messageRef.EdgeMessageId,
+                                m =>
+                                {
+                                    if (m.RefCount > 0)
+                                    {
+                                        m.RefCount--;
+                                    }
+
+                                    if (m.RefCount == 0)
+                                    {
+                                        deleteMessage = true;
+                                    }
+
+                                    return m;
+                                });
+
+                            if (deleteMessage)
+                            {
+                                await this.messageStore.messageEntityStore.Remove(messageRef.EdgeMessageId);
+                                cleanupEntityStoreCount++;
+                            }
+                        }
+
+                        int cleanupCount = await sequentialStore.RemovePercentFromHead(DeleteMessageCallback, percentage, cancellationToken);
+
+                        totalCleanupCount += cleanupCount;
+                        totalCleanupStoreCount += cleanupEntityStoreCount;
+                        Events.CleanupCompleted(endpointSequentialStore.Key, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
+                        await Task.Delay(MinCleanupSleepTime, this.cancellationTokenSource.Token);
+                    }
+                    catch (Exception ex)
+                    {
+                        Events.ErrorCleaningMessagesForEndpoint(ex, endpointSequentialStore.Key);
+                    }
+                }
+            }
         }
 
         static class Events

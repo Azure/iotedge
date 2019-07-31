@@ -97,6 +97,41 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
+        public async Task<int> RemovePercentFromHead(Func<long, T, Task> callback, int percentage, CancellationToken cancellationToken)
+        {
+            using (await this.headLockObject.LockAsync(cancellationToken))
+            {
+                long itemsToDelete = 0;
+                using (await this.tailLockObject.LockAsync(cancellationToken))
+                {
+                    // Tail offset could change here, but not holding a lock for efficiency.
+                    if (this.IsEmpty())
+                    {
+                        return 0;
+                    }
+
+                    itemsToDelete = (this.tailOffset - this.headOffset) * percentage / 100;
+                }
+
+                int itemsDeleted = 0;
+                for (int i = 0; i < itemsToDelete; i++)
+                {
+                    byte[] key = StoreUtils.GetKeyFromOffset(this.headOffset);
+                    Option<T> value = await this.entityStore.Get(key, cancellationToken);
+                    await value.ForEachAsync(
+                        async v =>
+                        {
+                            await this.entityStore.Remove(key, cancellationToken);
+                            this.headOffset++;
+                            await callback(this.headOffset, v);
+                            itemsDeleted++;
+                        });
+                }
+                
+                return itemsDeleted;
+            }
+        }
+
         public async Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize, CancellationToken cancellationToken)
         {
             Preconditions.CheckRange(batchSize, 1, nameof(batchSize));

@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    abstract class DiskSpaceCheckerBase
+    public abstract class DiskSpaceCheckerBase
     {
         readonly PeriodicTask diskSpaceChecker;
         readonly object updateLock = new object();

@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
+    using Microsoft.Azure.Devices.Edge.Storage.Disk;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -86,9 +87,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
                 .ReturnsAsync(Option.Some(edgeHubConfig5))
                 .ReturnsAsync(Option.Some(edgeHubConfig6));
             configProvider.Setup(c => c.SetConfigUpdatedCallback(It.IsAny<Func<EdgeHubConfig, Task>>()));
+            var diskSpaceChecker = Mock.Of<IDiskSpaceChecker>();
 
             // Act
-            var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency);
+            var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency, diskSpaceChecker);
             configUpdater.Init(configProvider.Object);
 
             // Assert

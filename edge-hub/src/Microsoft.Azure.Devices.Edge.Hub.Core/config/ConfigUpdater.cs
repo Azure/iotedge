@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Storage.Disk;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -15,17 +16,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         readonly Router router;
         readonly IMessageStore messageStore;
         readonly TimeSpan configUpdateFrequency;
+        readonly IDiskSpaceChecker diskSpaceChecker;
         readonly AsyncLock updateLock = new AsyncLock();
 
         Option<PeriodicTask> configUpdater;
         Option<EdgeHubConfig> currentConfig;
         Option<IConfigSource> configProvider;
 
-        public ConfigUpdater(Router router, IMessageStore messageStore, TimeSpan configUpdateFrequency)
+        public ConfigUpdater(Router router, IMessageStore messageStore, TimeSpan configUpdateFrequency, IDiskSpaceChecker diskSpaceChecker)
         {
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.messageStore = messageStore;
             this.configUpdateFrequency = configUpdateFrequency;
+            this.diskSpaceChecker = diskSpaceChecker;
         }
 
         public void Init(IConfigSource configProvider)
@@ -123,7 +126,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             if (storeAndForwardConfiguration != null)
             {
-                this.messageStore?.SetTimeToLive(TimeSpan.FromSeconds(storeAndForwardConfiguration.TimeToLiveSecs));
+                this.messageStore?.SetTimeToLive(storeAndForwardConfiguration.TimeToLive);
+                storeAndForwardConfiguration.MaxStorageSpaceBytes.ForEach(s => this.diskSpaceChecker?.SetMaxDiskUsageSize(s));
                 Events.UpdatedStoreAndForwardConfiguration();
             }
         }

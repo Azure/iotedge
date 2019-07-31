@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     using System.Collections.Generic;
     using System.Threading;
     using Microsoft.Azure.Devices.Edge.Storage.Disk;
-    using Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using RocksDbSharp;
@@ -14,31 +13,38 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     public class DbStoreProvider : IDbStoreProvider
     {
         const string DefaultPartitionName = "default";
-        static readonly TimeSpan CompactionPeriod = TimeSpan.FromHours(2);
         readonly IRocksDbOptionsProvider optionsProvider;
         readonly IRocksDb db;
         readonly ConcurrentDictionary<string, IDbStore> entityDbStoreDictionary;
         readonly Option<IDiskSpaceChecker> diskSpaceChecker;
-
+        readonly object compactionLock = new object();
         readonly Timer compactionTimer; // TODO: Bug logged to be fixed to proper dispose and test.
 
-        DbStoreProvider(IRocksDbOptionsProvider optionsProvider, IRocksDb db, IDictionary<string, IDbStore> entityDbStoreDictionary, Option<IDiskSpaceChecker> diskSpaceChecker)
+        DbStoreProvider(
+            IRocksDbOptionsProvider optionsProvider,
+            IRocksDb db, IDictionary<string, IDbStore> entityDbStoreDictionary,
+            Option<IDiskSpaceChecker> diskSpaceChecker,
+            TimeSpan compactionPeriod)
         {
             this.db = db;
             this.optionsProvider = optionsProvider;
             this.entityDbStoreDictionary = new ConcurrentDictionary<string, IDbStore>(entityDbStoreDictionary);
-            this.compactionTimer = new Timer(this.RunCompaction, null, CompactionPeriod, CompactionPeriod);
+            this.compactionTimer = new Timer(_ => this.RunCompaction(), null, compactionPeriod, compactionPeriod);
             this.diskSpaceChecker = diskSpaceChecker;
         }
 
         public static DbStoreProvider Create(IRocksDbOptionsProvider optionsProvider, string path, IEnumerable<string> partitionsList)
-            => Create(optionsProvider, path, partitionsList, Option.None<IDiskSpaceChecker>());
+            => Create(optionsProvider, path, partitionsList, Option.None<IDiskSpaceChecker>(), TimeSpan.FromHours(2));
+
+        public static DbStoreProvider Create(IRocksDbOptionsProvider optionsProvider, string path, IEnumerable<string> partitionsList, TimeSpan compactionPeriod)
+            => Create(optionsProvider, path, partitionsList, Option.None<IDiskSpaceChecker>(), compactionPeriod);
 
         public static DbStoreProvider Create(
             IRocksDbOptionsProvider optionsProvider,
             string path,
             IEnumerable<string> partitionsList,
-            Option<IDiskSpaceChecker> diskSpaceChecker)
+            Option<IDiskSpaceChecker> diskSpaceChecker,
+            TimeSpan compactionPeriod)
         {
             IRocksDb db = RocksDbWrapper.Create(optionsProvider, path, partitionsList);
             IEnumerable<string> columnFamilies = db.ListColumnFamilies();
@@ -50,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                 entityDbStoreDictionary[columnFamilyName] = dbStorePartition;
             }
 
-            var dbStore = new DbStoreProvider(optionsProvider, db, entityDbStoreDictionary, diskSpaceChecker);
+            var dbStore = new DbStoreProvider(optionsProvider, db, entityDbStoreDictionary, diskSpaceChecker, compactionPeriod);
             return dbStore;
         }
 
@@ -69,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         static IDbStore BuildColumnFamilyStore(IRocksDb db, ColumnFamilyHandle handle, Option<IDiskSpaceChecker> diskSpaceChecker)
             => diskSpaceChecker
-                .Map(d => new DiskSpaceAwareColumnFamilyDbStore(new ColumnFamilyDbStore(db, handle), d) as IDbStore)
+                .Map(d => new DiskSpaceAwareColumnFamilyDbStore(db, handle, d) as IDbStore)
                 .GetOrElse(new ColumnFamilyDbStore(db, handle));
 
         public IDbStore GetDbStore() => this.GetDbStore(DefaultPartitionName);
@@ -102,15 +108,17 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             }
         }
 
-        void RunCompaction(object state)
+        public void RunCompaction()
         {
-            Events.StartingCompaction();
-            foreach (KeyValuePair<string, IDbStore> entityDbStore in this.entityDbStoreDictionary)
+            lock (this.compactionLock)
             {
-                if (entityDbStore.Value is ColumnFamilyDbStore cfDbStore)
+                foreach (KeyValuePair<string, IDbStore> entityDbStore in this.entityDbStoreDictionary)
                 {
-                    Events.CompactingStore(entityDbStore.Key);
-                    this.db.Compact(cfDbStore.Handle);
+                    if (entityDbStore.Value is ColumnFamilyDbStore cfDbStore)
+                    {
+                        Events.CompactingStore(entityDbStore.Key);
+                        this.db.Compact(cfDbStore.Handle);
+                    }
                 }
             }
         }

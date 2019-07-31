@@ -1,10 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
+namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using System.IO;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage.Disk;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
 
     public class DiskSpaceChecker : IDiskSpaceChecker
@@ -13,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
         readonly string drive;
         readonly TimeSpan checkFrequency;
         readonly object updateLock = new object();
+        readonly IMessageStore messageStore;
 
         DiskSpaceCheckerBase inner;
 
@@ -77,6 +81,45 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
             Console.WriteLine($"Final match = {match}");
             return match;
+        }
+
+        class CleanupProcessor
+        {
+            readonly DiskSpaceChecker diskSpaceChecker;
+            readonly TimeSpan checkFrequency;
+            readonly Task cleanupTask;
+            readonly bool deleteOlderMessages;
+
+            public CleanupProcessor(DiskSpaceChecker diskSpaceChecker, TimeSpan checkFrequency, bool deleteOlderMessages)
+            {
+                this.diskSpaceChecker = diskSpaceChecker;
+                this.checkFrequency = checkFrequency;
+                this.cleanupTask = this.InitCleanupProcessor();
+                this.deleteOlderMessages = deleteOlderMessages;
+            }
+
+            async Task InitCleanupProcessor()
+            {
+                while (true)
+                {
+                    try
+                    {
+                        if (this.diskSpaceChecker.inner.DiskStatus > DiskStatus.Available)
+                        {
+                            if (this.deleteOlderMessages)
+                            {
+                                await this.diskSpaceChecker.messageStore.CleanupMessagesFromHead(15, CancellationToken.None);
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                    }
+
+                    await Task.Delay(this.checkFrequency);
+                }
+            }
         }
 
         static class Events
