@@ -128,27 +128,8 @@ static const HSM_CLIENT_CRYPTO_INTERFACE mocked_hsm_client_crypto_interface =
 
 static const char *TEST_ENV_DATA = "test_env";
 #define TEST_ENV_DATA_SIZE (strlen(TEST_ENV_DATA) + 1)
-static char *TEST_ENV_CERT_PATH_DATA = NULL;
-static char *TEST_ENV_PK_PATH_DATA = NULL;
 
-//#############################################################################
-// Test helpers
-//#############################################################################
-void test_helper_create_and_init_env_data_buffers()
-{
-    TEST_ENV_CERT_PATH_DATA = test_hook_gballoc_malloc(TEST_ENV_DATA_SIZE);
-    strncpy(TEST_ENV_CERT_PATH_DATA, TEST_ENV_DATA, TEST_ENV_DATA_SIZE);
-    TEST_ENV_PK_PATH_DATA = test_hook_gballoc_malloc(TEST_ENV_DATA_SIZE);
-    strncpy(TEST_ENV_CERT_PATH_DATA, TEST_ENV_DATA, TEST_ENV_DATA_SIZE);
-}
-
-void test_helper_deinit_env_data_buffers()
-{
-    // these buffers are expected freed by the code under test.
-    // if this does not happen, valgrind will catch this leak
-    TEST_ENV_CERT_PATH_DATA = NULL;
-    TEST_ENV_PK_PATH_DATA = NULL;
-}
+#define MAX_FAILED_FUNCTION_LIST_SIZE 16
 
 //#############################################################################
 // Mocked functions test hooks
@@ -281,21 +262,55 @@ static CERT_INFO_HANDLE test_hook_certificate_info_create
 
 static int test_hook_hsm_get_env(const char* key, char **output)
 {
-    if (strcmp(key, ENV_DEVICE_ID_CERTIFICATE_PATH) == 0)
-    {
-        *output = TEST_ENV_CERT_PATH_DATA;
-    }
-    else if (strcmp(key, ENV_DEVICE_ID_PRIVATE_KEY_PATH) == 0)
-    {
-        *output = TEST_ENV_PK_PATH_DATA;
-    }
-    else
-    {
-        *output = NULL;
-    }
+    (void)key;
 
+    char *data = test_hook_gballoc_malloc(TEST_ENV_DATA_SIZE);
+    strncpy(data, TEST_ENV_DATA, TEST_ENV_DATA_SIZE);
+    *output = data;
     return 0;
 }
+
+//#############################################################################
+// Test helpers
+//#############################################################################
+static void test_helper_setup_create_cert_info_callstack
+(
+    HSM_CLIENT_CREATE handle,
+    char *failed_function_list,
+    size_t failed_function_size
+)
+{
+    uint64_t failed_function_bitmask = 0;
+    size_t i = 0;
+
+    memset(failed_function_list, 0, failed_function_size);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(hsm_get_env(ENV_DEVICE_ID_CERTIFICATE_PATH, IGNORED_PTR_ARG));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    STRICT_EXPECTED_CALL(hsm_get_env(ENV_DEVICE_ID_PRIVATE_KEY_PATH, IGNORED_PTR_ARG));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    EXPECTED_CALL(hsm_client_crypto_interface());
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    i++;
+
+    STRICT_EXPECTED_CALL(mocked_hsm_client_crypto_get_certificate(handle, EDGE_DEVICE_ALIAS));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    i++;
+
+    EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    i++;
+}
+
 
 //#############################################################################
 // Test cases
@@ -684,6 +699,26 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
      * Test function for API
      *   hsm_client_get_cert_info
     */
+    TEST_FUNCTION(hsm_client_get_cert_info_invalid_param_does_nothing)
+    {
+        //arrange
+        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        umock_c_reset_all_calls();
+
+        // act
+        CERT_INFO_HANDLE cert_info = interface->hsm_client_get_cert_info(NULL);
+
+        // assert
+        ASSERT_IS_NULL(cert_info, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+    }
+
+    /**
+     * Test function for API
+     *   hsm_client_get_cert_info
+    */
     TEST_FUNCTION(hsm_client_get_cert_info_success)
     {
         //arrange
@@ -692,14 +727,10 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
         HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();
-        test_helper_create_and_init_env_data_buffers();
-        umock_c_reset_all_calls();
-        STRICT_EXPECTED_CALL(hsm_get_env(ENV_DEVICE_ID_CERTIFICATE_PATH, IGNORED_PTR_ARG));
-        STRICT_EXPECTED_CALL(hsm_get_env(ENV_DEVICE_ID_PRIVATE_KEY_PATH, IGNORED_PTR_ARG));
-        EXPECTED_CALL(hsm_client_crypto_interface());
-        STRICT_EXPECTED_CALL(mocked_hsm_client_crypto_get_certificate(handle, EDGE_DEVICE_ALIAS));
-        STRICT_EXPECTED_CALL(gballoc_free(TEST_ENV_CERT_PATH_DATA));
-        STRICT_EXPECTED_CALL(gballoc_free(TEST_ENV_PK_PATH_DATA));
+
+        size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
+        char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
+        test_helper_setup_create_cert_info_callstack(handle, failed_function_list, failed_function_size);
 
         // act
         CERT_INFO_HANDLE cert_info = interface->hsm_client_get_cert_info(handle);
@@ -709,9 +740,51 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
         //cleanup
-        test_helper_deinit_env_data_buffers();
         interface->hsm_client_x509_destroy(handle);
         hsm_client_x509_deinit();
     }
+
+    /**
+     * Test function for API
+     *   hsm_client_get_cert_info
+    */
+    TEST_FUNCTION(hsm_client_get_cert_info_negative)
+    {
+        // arrange
+        int test_result = umock_c_negative_tests_init();
+        ASSERT_ARE_EQUAL(int, 0, test_result);
+
+        int status;
+        status = hsm_client_x509_init();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();
+
+        size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
+        char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
+        test_helper_setup_create_cert_info_callstack(handle, failed_function_list, failed_function_size);
+        umock_c_negative_tests_snapshot();
+
+        for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(i);
+
+            if (failed_function_list[i] == 1)
+            {
+                // act
+                CERT_INFO_HANDLE cert_info = interface->hsm_client_get_cert_info(handle);
+
+                // assert
+                ASSERT_IS_NULL(cert_info, "Line:" TOSTRING(__LINE__));
+            }
+        }
+
+        //cleanup
+        interface->hsm_client_x509_destroy(handle);
+        hsm_client_x509_deinit();
+        umock_c_negative_tests_deinit();
+    }
+
 
 END_TEST_SUITE(edge_hsm_x509_unittests)
