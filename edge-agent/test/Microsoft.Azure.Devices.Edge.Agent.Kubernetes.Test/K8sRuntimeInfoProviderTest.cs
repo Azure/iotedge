@@ -49,7 +49,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public async void GetModuleLogsTest()
         {
+            var response = new HttpOperationResponse<Stream>();
+            response.Request = new System.Net.Http.HttpRequestMessage();
+            response.Body = new MemoryStream();
+
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
+            client.Setup(kc => kc.ReadNamespacedPodLogWithHttpMessagesAsync(It.IsAny<string>(), It.IsAny<string>(), null, true, null, null, null, null, null, null, null, It.IsAny<CancellationToken>())).ReturnsAsync(() => response);
             var k8sRuntimeInfo = new KubernetesRuntimeInfoProvider(PodwatchNamespace, client.Object);
             var result = await k8sRuntimeInfo.GetModuleLogs("module", true, Option.None<int>(), Option.None<int>(), CancellationToken.None);
             Assert.True(result.Length == 0);
