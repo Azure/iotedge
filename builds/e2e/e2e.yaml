@@ -138,11 +138,16 @@ jobs:
 #       condition: succeededOrFailed()
 
 ################################################################################
-  - job: windows_amd64
+  - job: end_to_end_tests
 ################################################################################
-    displayName: Windows amd64
+    displayName: End-to-end tests
     strategy:
       matrix:
+        Linux-amd64:
+          os: linux
+          arch: amd64
+          vmImage: ubuntu-16.04
+          artifactDir: iotedged-ubuntu-amd64
         Windows-amd64:
           os: windows
           arch: amd64
