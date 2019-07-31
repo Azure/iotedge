@@ -44,7 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.invokeMethodHandler = Preconditions.CheckNotNull(invokeMethodHandler, nameof(invokeMethodHandler));
             this.pendingSubscriptions = new ConcurrentDictionary<string, ConcurrentQueue<(DeviceSubscription, bool)>>();
             this.processSubscriptionsBlock = new ActionBlock<string>(this.ProcessPendingSubscriptions);
-            deviceConnectivityManager.DeviceConnected += this.DeviceConnected;
+            deviceConnectivityManager.DeviceConnected += this.CloudConnectivityEstablished;
+            connectionManager.CloudConnectionEstablished += this.ClientCloudConnectionEstablished;
         }
 
         protected override void HandleSubscriptions(string id, List<(DeviceSubscription, bool)> subscriptions) =>
@@ -109,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async void DeviceConnected(object sender, EventArgs eventArgs)
+        async void CloudConnectivityEstablished(object sender, EventArgs eventArgs)
         {
             Events.DeviceConnectedProcessingSubscriptions();
             try
@@ -131,6 +132,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             catch (Exception e)
             {
                 Events.ErrorProcessingSubscriptions(e);
+            }
+        }
+
+        async void ClientCloudConnectionEstablished(object sender, IIdentity identity)
+        {
+            try
+            {
+                Events.ClientConnectedProcessingSubscriptions(identity);
+                await this.ProcessExistingSubscriptions(identity.Id);
+            }
+            catch (Exception e)
+            {
+                Events.ErrorProcessingSubscriptions(e, identity);
             }
         }
 
@@ -200,6 +214,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 ErrorAddingSubscription,
                 ProcessingSubscriptions,
                 ProcessingSubscription,
+                ClientConnectedProcessingSubscriptions,
                 ProcessingSubscriptionsNoCloudProxy
             }
 
@@ -261,6 +276,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             internal static void ErrorProcessingSubscriptions(Exception e)
             {
                 Log.LogWarning((int)EventIds.ProcessingSubscription, e, Invariant($"Error processing subscriptions for connected clients."));
+            }
+
+            public static void ClientConnectedProcessingSubscriptions(IIdentity identity)
+            {
+                Log.LogInformation((int)EventIds.ClientConnectedProcessingSubscriptions, Invariant($"Client {identity.Id} connected to cloud, processing existing subscriptions."));
             }
 
             public static void ProcessingSubscriptions(string id)
