@@ -155,7 +155,10 @@ pub struct X509AttestationInfo {
 
 impl X509AttestationInfo {
     pub fn identity_cert(&self) -> Result<PathBuf, Error> {
-        get_path_from_uri(&self.identity_cert, "provisioning.attestation.identity_cert")
+        get_path_from_uri(
+            &self.identity_cert,
+            "provisioning.attestation.identity_cert",
+        )
     }
 
     pub fn identity_pk(&self) -> Result<PathBuf, Error> {

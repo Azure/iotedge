@@ -455,7 +455,9 @@ mod tests {
             (
                 Url::from_file_path(ca_cert_path).unwrap().into_string(),
                 Url::from_file_path(ca_key_path).unwrap().into_string(),
-                Url::from_file_path(trust_bundle_path).unwrap().into_string(),
+                Url::from_file_path(trust_bundle_path)
+                    .unwrap()
+                    .into_string(),
             )
         } else {
             (
