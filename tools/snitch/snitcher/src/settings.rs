@@ -1,14 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use error::{Error, ErrorKind, Result};
 use std::collections::HashMap;
 use std::default::Default;
 use std::env;
 use std::time::Duration;
 
+use serde::Deserialize;
 use serde_yaml;
 use url::Url;
-use url_serde;
+
+use crate::error::{Error, ErrorKind, Result};
 
 const DEFAULT_TEST_DURATION_SECS: u64 = 60 * 60 * 8;
 
@@ -33,6 +34,8 @@ pub struct Alert {
     host: String,
     path: String,
     query: HashMap<String, String>,
+    #[serde(with = "url_serde")]
+    url: Url,
 }
 
 impl Alert {
@@ -52,8 +55,8 @@ impl Alert {
         &self.query
     }
 
-    pub fn to_url(&self) -> Result<Url> {
-        Ok(Url::parse(&format!("{}://{}", self.scheme(), self.host()))?)
+    pub fn url(&self) -> &Url {
+        &self.url
     }
 }
 
@@ -70,6 +73,7 @@ impl From<Url> for Alert {
                 .query_pairs()
                 .map(|(k, v)| (k.into_owned(), v.into_owned()))
                 .collect(),
+            url: url,
         }
     }
 }

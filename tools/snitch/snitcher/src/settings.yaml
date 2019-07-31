@@ -11,6 +11,7 @@ alert:
     sp: /triggers/manual/run
     sv: 1.0
     sig: password
+  url: http://localhost/workflows/id/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=password
 influx_url: http://influxdb:8086
 influx_db_name: metricsdatabase
 influx_queries:
