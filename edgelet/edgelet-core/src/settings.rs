@@ -168,7 +168,7 @@ impl X509AttestationInfo {
         } else {
             Err(Error::from(ErrorKind::UnsupportedSettingsUri(
                 self.identity_pk.to_string(),
-                "identity_pk",
+                "provisioning.attestation.identity_pk",
             )))
         }
     }
@@ -179,7 +179,7 @@ impl X509AttestationInfo {
         } else {
             Err(Error::from(ErrorKind::UnsupportedSettingsUri(
                 self.identity_cert.to_string(),
-                "identity_cert",
+                "provisioning.attestation.identity_cert",
             )))
         }
     }
@@ -336,7 +336,7 @@ fn get_path_from_uri(uri: &Url, setting_name: &'static str) -> Result<PathBuf, E
     if is_supported_uri(&uri) {
         let path = uri
             .to_file_path()
-            .map_err(|_| ErrorKind::InvalidSettingsUriFilePath(uri.to_string(), setting_name))?;
+            .map_err(|()| ErrorKind::InvalidSettingsUriFilePath(uri.to_string(), setting_name))?;
         Ok(path)
     } else {
         Err(Error::from(ErrorKind::UnsupportedSettingsFileUri(
@@ -384,7 +384,7 @@ fn convert_to_uri(maybe_uri: &str, setting_name: &'static str) -> Result<Url, Er
                     )))
                 }
             })
-            .map_err(|_| ErrorKind::InvalidSettingsUri(maybe_uri.to_owned(), setting_name))?
+            .map_err(|()| ErrorKind::InvalidSettingsUri(maybe_uri.to_owned(), setting_name))?
     }
 }
 
