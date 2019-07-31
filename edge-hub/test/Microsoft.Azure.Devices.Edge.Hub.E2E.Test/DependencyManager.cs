@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     iotHubConnectionStringBuilder.ModuleId,
                     Option.Some(edgeHubConnectionString),
                     this.routes,
-                    false,
+                    true,
                     storeAndForwardConfiguration,
                     ConnectionPoolSize,
                     false,

@@ -18,9 +18,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             this.registries = new List<(string, string, string)>();
         }
 
-        public void AddRegistryCredentials(string address, string username, string password)
-        {
+        public void AddRegistryCredentials(string address, string username, string password) =>
             this.registries.Add((address, username, password));
+
+        public void AddRegistryCredentials(IEnumerable<(string address, string username, string password)> credentials)
+        {
+            foreach ((string address, string username, string password) in credentials)
+            {
+                this.AddRegistryCredentials(address, username, password);
+            }
         }
 
         public IModuleConfigBuilder AddEdgeAgent(string image = null)
@@ -63,10 +69,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 ModulesContent = new Dictionary<string, IDictionary<string, object>>()
             };
 
+            var moduleNames = new List<string>();
             var moduleImages = new List<string>();
 
             foreach (ModuleConfiguration module in modules)
             {
+                moduleNames.Add(module.Name);
                 moduleImages.Add(module.Image);
 
                 if (module.DesiredProperties.Count != 0)
@@ -78,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 }
             }
 
-            return new EdgeConfiguration(this.deviceId, moduleImages, config);
+            return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
         }
 
         ModuleConfiguration BuildEdgeAgent(IEnumerable<ModuleConfiguration> configs)
@@ -101,12 +109,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 for (int i = 0; i < this.registries.Count; ++i)
                 {
                     (string address, string username, string password) = this.registries[i];
-                    credentials.Add($"reg{i}", new
-                    {
-                        username,
-                        password,
-                        address
-                    });
+                    credentials.Add(
+                        $"reg{i}",
+                        new
+                        {
+                            username,
+                            password,
+                            address
+                        });
                 }
 
                 settings["registryCredentials"] = credentials;
