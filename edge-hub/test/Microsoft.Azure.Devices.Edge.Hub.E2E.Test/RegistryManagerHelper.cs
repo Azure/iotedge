@@ -8,13 +8,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
     public static class RegistryManagerHelper
     {
-        public static async Task<Tuple<string, string>> CreateDevice(string devicePrefix, string iotHubConnectionString, RegistryManager registryManager, bool iotEdgeCapable = false, bool appendGatewayHostName = true)
+        public static async Task<Tuple<string, string>> CreateDevice(string devicePrefix, string iotHubConnectionString, RegistryManager registryManager, bool iotEdgeCapable = false, bool appendGatewayHostName = true, string scope = null)
         {
             string deviceName = devicePrefix + Guid.NewGuid();
             var device = new Device(deviceName)
             {
                 Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas }
             };
+
+            if (!string.IsNullOrWhiteSpace(scope))
+            {
+                device.Scope = scope;
+            }
 
             if (iotEdgeCapable)
             {

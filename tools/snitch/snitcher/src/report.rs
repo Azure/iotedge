@@ -6,10 +6,11 @@ use std::io::Write;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use libflate::gzip::Encoder as GzipEncoder;
+use serde::{Deserialize, Serialize};
 use tar::{Builder as TarBuilder, Header as TarHeader};
 
-use error::Result;
-use influx::QueryResults;
+use crate::error::Result;
+use crate::influx::QueryResults;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

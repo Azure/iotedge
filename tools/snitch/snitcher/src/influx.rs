@@ -5,10 +5,11 @@ use std::collections::HashMap;
 use futures::Future;
 use hyper::service::Service;
 use hyper::{Body, Error as HyperError, Method};
+use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
-use client::Client;
-use error::Error;
+use crate::client::Client;
+use crate::error::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryResults {
