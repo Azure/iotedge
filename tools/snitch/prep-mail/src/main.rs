@@ -2,17 +2,6 @@
 
 #![deny(warnings)]
 
-extern crate env_logger;
-extern crate futures;
-extern crate handlebars;
-extern crate hyper;
-extern crate hyper_tls;
-extern crate serde;
-extern crate serde_json;
-extern crate snitcher;
-extern crate tokio;
-extern crate url;
-
 use std::env;
 use std::sync::{Arc, Mutex};
 
