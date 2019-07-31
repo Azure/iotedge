@@ -20,6 +20,7 @@ use edgelet_core::{LogOptions, Module as EdgeModule, ModuleRuntime, Provisioning
 use edgelet_docker::Settings as DockerSettings;
 use edgelet_http_mgmt::*;
 use futures::future::{ok, Either, IntoFuture};
+use futures::stream::Stream;
 use futures::Async;
 use futures::Future;
 use serde_derive::Deserialize;
@@ -110,16 +111,6 @@ impl Main {
 #[derive(Deserialize)]
 pub struct AuthRequest {
     api_version: String,
-}
-
-fn get_diagnostics() -> HttpResponse {
-    let output = Command::new("iotedge")
-        .arg("check")
-        .output()
-        .expect("Failed to execute command");
-
-    // println!("Output from command: {:?}", output.stdout);
-    HttpResponse::Ok().body(output.stdout)
 }
 
 fn set_up(context: web::Data<Arc<Context>>) -> Option<state::Device> {
@@ -244,7 +235,6 @@ fn restart_module(
     Box::new(response)
 }
 
-/*
 fn get_logs(
     req: HttpRequest,
     context: web::Data<Arc<Context>>,
@@ -270,10 +260,10 @@ fn get_logs(
                             .map(|data| {
                                 let response = data
                                     .fold(String::from(""), |mut acc, chunk| {
-                                        acc.push_str(&String::from_utf8(chunk.as_ref().to_vec()).unwrap());
+                                        acc.push_str(&String::from_utf8(chunk.as_ref().to_vec()).unwrap()); //unwrap
                                         Ok(acc)
                                     })
-                                    .map_err(ErrorInternalServerError); //fix unwrap
+                                    .map_err(ErrorInternalServerError); 
                                 let finish = response.wait();
 
                                 if let Ok(val) = finish {
@@ -299,7 +289,16 @@ fn get_logs(
 
     Box::new(response)
 }
-*/
+
+fn get_diagnostics() -> HttpResponse {
+    let output = Command::new("iotedge")
+        .args(&["check", "--output", "json"])
+        .output()
+        .expect("Failed to execute command");
+
+    HttpResponse::Ok().body(output.stdout)
+}
+
 fn return_modules(
     context: web::Data<Arc<Context>>,
     api_ver: &str,
