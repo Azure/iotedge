@@ -4,15 +4,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
     using System.IO;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
 
     public class DaemonConfiguration
     {
         readonly string configYamlFile;
         readonly YamlDocument config;
 
-        public DaemonConfiguration()
+        public DaemonConfiguration(string configYamlFile)
         {
-            this.configYamlFile = Platform.GetConfigYamlPath();
+            this.configYamlFile = configYamlFile;
             string contents = File.ReadAllText(this.configYamlFile);
             this.config = new YamlDocument(contents);
         }
@@ -35,6 +36,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public void SetDeviceHostname(string value)
         {
             this.config.ReplaceOrAdd("hostname", value);
+        }
+
+        public void SetCertificates(EdgeCertificates certs)
+        {
+            this.config.ReplaceOrAdd("certificates.device_ca_cert", certs.CertificatePath);
+            this.config.ReplaceOrAdd("certificates.device_ca_pk", certs.KeyPath);
+            this.config.ReplaceOrAdd("certificates.trusted_ca_certs", certs.TrustedCertificatesPath);
+        }
+
+        public void RemoveCertificates()
+        {
+            this.config.RemoveIfExists("certificates");
         }
 
         public void Update()

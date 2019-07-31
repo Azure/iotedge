@@ -76,14 +76,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task<Device> GetDeviceIdentityAsync(string deviceId, CancellationToken token) =>
             this.RegistryManager.GetDeviceAsync(deviceId, token);
 
+        public async Task<Device> CreateDeviceIdentityAsync(Device device, CancellationToken token)
+        {
+            return await this.RegistryManager.AddDeviceAsync(device, token);
+        }
+
         public Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, CancellationToken token)
         {
-            var device = new Device(deviceId)
+            Device edge = new Device(deviceId)
             {
-                Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
-                Capabilities = new DeviceCapabilities() { IotEdge = true }
+                Authentication = new AuthenticationMechanism()
+                {
+                    Type = AuthenticationType.Sas
+                },
+                Capabilities = new DeviceCapabilities()
+                {
+                    IotEdge = true
+                }
             };
-            return this.RegistryManager.AddDeviceAsync(device, token);
+
+            return this.CreateDeviceIdentityAsync(edge, token);
         }
 
         public Task DeleteDeviceIdentityAsync(Device device, CancellationToken token) =>
@@ -117,19 +129,43 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public Task<CloudToDeviceMethodResult> InvokeMethodAsync(
             string deviceId,
+            CloudToDeviceMethod method,
+            CancellationToken token)
+        {
+            return Retry.Do(
+                () => this.ServiceClient.InvokeDeviceMethodAsync(deviceId, method, token),
+                result => result.Status == 200,
+                e => true,
+                TimeSpan.FromSeconds(5),
+                token);
+        }
+
+        public Task<CloudToDeviceMethodResult> InvokeMethodAsync(
+            string deviceId,
             string moduleId,
             CloudToDeviceMethod method,
-            CancellationToken token) => this.ServiceClient.InvokeDeviceMethodAsync(deviceId, moduleId, method, token);
+            CancellationToken token)
+        {
+            return Retry.Do(
+                () => this.ServiceClient.InvokeDeviceMethodAsync(deviceId, moduleId, method, token),
+                result => result.Status == 200,
+                e => true,
+                TimeSpan.FromSeconds(5),
+                token);
+        }
 
         public async Task ReceiveEventsAsync(
             string deviceId,
+            DateTime seekTime,
             Func<EventData, bool> onEventReceived,
             CancellationToken token)
         {
             EventHubClient client = this.EventHubClient;
             int count = (await client.GetRuntimeInformationAsync()).PartitionCount;
             string partition = EventHubPartitionKeyResolver.ResolveToPartition(deviceId, count);
-            PartitionReceiver receiver = client.CreateReceiver("$Default", partition, EventPosition.FromEnd());
+            seekTime = seekTime.ToUniversalTime().Subtract(TimeSpan.FromMinutes(2)); // substract 2 minutes to account for client/server drift
+            EventPosition position = EventPosition.FromEnqueuedTime(seekTime);
+            PartitionReceiver receiver = client.CreateReceiver("$Default", partition, position);
 
             var result = new TaskCompletionSource<bool>();
             using (token.Register(() => result.TrySetCanceled()))
