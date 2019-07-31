@@ -194,6 +194,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             long diskSpaceCheckFrequencySecs = this.configuration.GetValue("DiskSpaceCheckFrequencySecs", 120);
             TimeSpan diskSpaceCheckFrequency = TimeSpan.FromSeconds(diskSpaceCheckFrequencySecs);
             bool enableDiskSpaceChecks = this.configuration.GetValue("EnableDiskSpaceChecks", true);
+            long rocksDbCompactionPeriodSecs = this.configuration.GetValue("RocksDbCompactionPeriodSecs", 7200);
+            TimeSpan rocksDbCompactionPeriod = TimeSpan.FromSeconds(rocksDbCompactionPeriodSecs);
 
             // Register modules
             builder.RegisterModule(
@@ -218,7 +220,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     metricsConfig,
                     storageLimitThresholdPercentage,
                     diskSpaceCheckFrequency,
-                    enableDiskSpaceChecks));
+                    enableDiskSpaceChecks,
+                    rocksDbCompactionPeriod));
         }
 
         static string GetProductInfo()

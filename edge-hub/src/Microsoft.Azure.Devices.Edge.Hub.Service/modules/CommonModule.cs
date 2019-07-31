@@ -46,7 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly MetricsConfig metricsConfig;
         readonly TimeSpan diskSpaceCheckFrequency;
         readonly bool enableDiskSpaceChecks;
-        readonly Option<int> storageLimitThresholdPercentage;
+        readonly int storageLimitThresholdPercentage;
+        readonly TimeSpan rocksDbCompactionPeriod;
 
         public CommonModule(
             string productInfo,
@@ -69,7 +70,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             MetricsConfig metricsConfig,
             int storageLimitThresholdPercentage,
             TimeSpan diskSpaceCheckFrequency,
-            bool enableDiskSpaceChecks)
+            bool enableDiskSpaceChecks,
+            TimeSpan rocksDbCompactionPeriod)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -92,6 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.storageLimitThresholdPercentage = storageLimitThresholdPercentage;
             this.diskSpaceCheckFrequency = diskSpaceCheckFrequency;
             this.enableDiskSpaceChecks = enableDiskSpaceChecks;
+            this.rocksDbCompactionPeriod = rocksDbCompactionPeriod;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -177,7 +180,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                     c.Resolve<IRocksDbOptionsProvider>(),
                                     this.storagePath,
                                     partitionsList,
-                                    Option.Some(diskSpaceChecker));
+                                    Option.Some(diskSpaceChecker),
+                                    this.rocksDbCompactionPeriod);
                                 logger.LogInformation($"Created persistent store at {this.storagePath}");
                                 return dbStoreProvider;
                             }

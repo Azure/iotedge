@@ -47,7 +47,5 @@ namespace Microsoft.Azure.Devices.Routing.Core
         /// Set the expiry time for messages in the store
         /// </summary>
         void SetTimeToLive(TimeSpan timeToLive);
-
-        Task CleanupMessagesFromHead(int percentage, CancellationToken cancellationToken);
     }
 }

@@ -124,7 +124,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     metricsConfig,
                     90,
                     TimeSpan.FromSeconds(120),
-                    true));
+                    true,
+                    TimeSpan.FromHours(2)));
 
             builder.RegisterModule(
                 new RoutingModule(
