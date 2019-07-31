@@ -347,10 +347,16 @@ fn get_path_from_uri(uri: &Url, variable: &'static str) -> Result<PathBuf, Error
 }
 
 fn convert_to_path(maybe_path: &str, setting_name: &'static str) -> Result<PathBuf, Error> {
-    if let Ok(uri) = Url::parse(maybe_path) {
-        get_path_from_uri(&uri, setting_name)
+    if let Ok(file_uri) = Url::from_file_path(maybe_path) {
+        // maybe_path was specified as a valid absolute path not a URI
+        get_path_from_uri(&file_uri, setting_name)
     } else {
-        Ok(PathBuf::from(maybe_path))
+        // maybe_path is a URI or a relative path
+        if let Ok(uri) = Url::parse(maybe_path) {
+            get_path_from_uri(&uri, setting_name)
+        } else {
+            Ok(PathBuf::from(maybe_path))
+        }
     }
 }
 
@@ -538,7 +544,7 @@ mod tests {
         if cfg!(windows) {
             assert_eq!(
                 "..\\sample.txt",
-                convert_to_path(".\\sample.txt", "test")
+                convert_to_path("..\\sample.txt", "test")
                     .unwrap()
                     .to_str()
                     .unwrap()
