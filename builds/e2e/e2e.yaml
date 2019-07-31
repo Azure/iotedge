@@ -247,8 +247,8 @@ jobs:
           methodReceiverImage = "$imagePrefix-direct-method-receiver:$imageTag";
           registries = @(
             @{
-              address = '$(cr.address)',
-              username = '$(cr.username)'
+              address = '$(cr.address)';
+              username = '$(cr.username)';
             }
           );
           packagePath = $(Convert-Path '$(System.ArtifactsDirectory)/$(artifactDir)');
