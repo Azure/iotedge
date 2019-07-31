@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                    EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
-        public virtual bool OnlyModuleStatusChanged(IModule other)
+        public virtual bool IsOnlyModuleStatusChanged(IModule other)
         {
             return other is DockerModule dockerModule &&
                 string.Equals(this.Name, other.Name) &&

@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using NUnit.Framework;
     using Serilog;
     using Serilog.Events;
@@ -19,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         public SetupFixture()
         {
-            this.daemon = Platform.CreateEdgeDaemon(Context.Current.InstallerPath);
+            this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath);
             this.iotHub = new IotHub(
                 Context.Current.ConnectionString,
                 Context.Current.EventHubEndpoint,
@@ -27,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [OneTimeSetUp]
-        public async Task Setup()
+        public async Task BeforeAllAsync()
         {
             await Profiler.Run(
                 async () =>
@@ -95,39 +96,24 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [OneTimeTearDown]
-        public async Task Teardown()
-        {
-            try
-            {
-                await Profiler.Run(
-                    async () =>
+        public Task AfterAllAsync() => TryFinally.DoAsync(
+            () => Profiler.Run(
+                async () =>
+                {
+                    using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
                     {
-                        using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
-                        {
-                            CancellationToken token = cts.Token;
+                        CancellationToken token = cts.Token;
 
-                            await this.daemon.StopAsync(token);
+                        await this.daemon.StopAsync(token);
 
-                            Assert.IsNotNull(this.device);
-                            await this.device.MaybeDeleteIdentityAsync(token);
-                        }
-                    },
-                    "Completed end-to-end test teardown");
-            }
-
-            // According to C# reference docs for 'try-finally', the finally
-            // block may or may not run for unhandled exceptions. The
-            // workaround is to catch the exception here and rethrow,
-            // guaranteeing that the finally block will run.
-            // ReSharper disable once RedundantCatchClause
-            catch
-            {
-                throw;
-            }
-            finally
+                        Assert.IsNotNull(this.device);
+                        await this.device.MaybeDeleteIdentityAsync(token);
+                    }
+                },
+                "Completed end-to-end test teardown"),
+            () =>
             {
                 Log.CloseAndFlush();
-            }
-        }
+            });
     }
 }
