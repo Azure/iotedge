@@ -203,6 +203,9 @@ static CERT_INFO_HANDLE get_device_identity_certificate(HSM_CLIENT_HANDLE hsm_ha
         else
         {
             // no device certificate and key were provided so we return NULL
+            LOG_INFO("Env vars [%s, %s] for the Edge device identity certificate "
+                     "and private key were not set",
+                     ENV_DEVICE_ID_CERTIFICATE_PATH, ENV_DEVICE_ID_PRIVATE_KEY_PATH);
             result = NULL;
         }
     }
