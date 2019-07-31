@@ -5,6 +5,7 @@ use std::str;
 use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
+use edgelet_core::UrlExt;
 use edgelet_http::UrlConnector;
 use futures::future::{self, IntoFuture};
 use futures::{Future, Stream};
@@ -15,7 +16,6 @@ use log::{debug, error};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json;
 use url::{form_urlencoded::Serializer as UrlSerializer, Url};
-use crate::UrlExt;
 
 use crate::error::Error;
 

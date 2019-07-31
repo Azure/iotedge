@@ -11,7 +11,6 @@ pub mod report;
 pub mod settings;
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -42,7 +41,6 @@ use report::{MessageAnalysis, Report};
 use serde_json::Value as JsonValue;
 use settings::Settings;
 use tokio::timer::{Delay, Interval};
-use url::Url;
 
 const LOGS_FILE_NAME: &str = "logs.tar.gz";
 
@@ -426,52 +424,3 @@ where
         })
     })
 }
-
-pub trait UrlExt {
-    fn to_npipe_file_path(&self) -> Result<PathBuf, Error>;
-    fn to_uds_file_path(&self) -> Result<PathBuf, Error>;
-    fn to_base_path(&self) -> Result<PathBuf, Error>;
-}
-
-impl UrlExt for Url {
-    fn to_npipe_file_path(&self) -> Result<PathBuf, Error> {
-        debug_assert_eq!(self.scheme(), NPIPE_SCHEME);
-
-        Ok(Path::new(self.path()).to_path_buf())
-    }
-
-    fn to_uds_file_path(&self) -> Result<PathBuf, Error> {
-        debug_assert_eq!(self.scheme(), UNIX_SCHEME);
-
-        if cfg!(windows) {
-            // We get better handling of Windows file syntax if we parse a
-            // unix:// URL as a file:// URL. Specifically:
-            // - On Unix, `Url::parse("unix:///path")?.to_file_path()` succeeds and
-            //   returns "/path".
-            // - On Windows, `Url::parse("unix:///C:/path")?.to_file_path()` fails
-            //   with Err(()).
-            // - On Windows, `Url::parse("file:///C:/path")?.to_file_path()` succeeds
-            //   and returns "C:\\path".
-            debug_assert_eq!(self.scheme(), UNIX_SCHEME);
-            let mut s = self.to_string();
-            s.replace_range(..4, "file");
-            let url = Url::parse(&s).expect(&format!("Invalid Url: {}", s.clone()));
-            let path = url.to_file_path().expect(&format!("Invalid Url: {}", url.to_string()));
-            Ok(path)
-        } else {
-            Ok(Path::new(self.path()).to_path_buf())
-        }
-    }
-
-    fn to_base_path(&self) -> Result<PathBuf, Error> {
-        match self.scheme() {
-            #[cfg(windows)]
-            "npipe" => Ok(self.to_npipe_file_path()?),
-            "unix" => Ok(self.to_uds_file_path()?),
-            _ => Ok(self.as_str().into()),
-        }
-    }
-}
-
-pub const UNIX_SCHEME: &str = "unix";
-pub const NPIPE_SCHEME: &str = "npipe";
