@@ -394,7 +394,7 @@ pub fn raise_alert(
                         })
                 });
 
-            Either::A(result.into_future())
+            Either::A(result)
         })
         .unwrap_or_else(|err| Either::B(future::err(err)))
 }
