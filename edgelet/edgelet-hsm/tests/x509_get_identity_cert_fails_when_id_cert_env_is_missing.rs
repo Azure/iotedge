@@ -11,7 +11,6 @@ use std::sync::Mutex;
 
 use lazy_static::lazy_static;
 
-use edgelet_core::GetDeviceIdentityCertificate;
 use edgelet_hsm::{HsmLock, X509};
 mod test_utils;
 use test_utils::TestHSMEnvSetup;
@@ -38,7 +37,5 @@ fn x509_get_conf_x509_identity_missing_cert_env_fails() {
     setup_configured_id_cert(home_dir.get_path());
 
     let hsm_lock = HsmLock::new();
-    let x509 = X509::new(hsm_lock).unwrap();
-    let cert_info = x509.get();
-    assert!(cert_info.is_err());
+    assert!(X509::new(hsm_lock).is_err());
 }
