@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             // has changed (from stopped to running or vice versa)
             IList<IModule> desiredStatusChanged = this.Modules.Keys
                 .Intersect(other.Modules.Keys)
-                .Where(key => this.Modules[key].OnlyModuleStatusChanged(other.Modules[key]))
+                .Where(key => this.Modules[key].IsOnlyModuleStatusChanged(other.Modules[key]))
                 .Select(key => this.Modules[key])
                 .ToList();
 

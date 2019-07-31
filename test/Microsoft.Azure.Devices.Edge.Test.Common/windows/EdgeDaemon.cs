@@ -2,8 +2,10 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.ServiceProcess;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -11,28 +13,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
     public class EdgeDaemon : IEdgeDaemon
     {
-        readonly string scriptDir;
+        Option<string> scriptDir;
 
-        public EdgeDaemon(string scriptDir)
+        public EdgeDaemon(Option<string> scriptDir)
         {
             this.scriptDir = scriptDir;
-        }
-
-        public static async Task<string> CollectLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token)
-        {
-            string command =
-                "Get-WinEvent -ErrorAction SilentlyContinue " +
-                $"-FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{testStartTime}'}} " +
-                "| Select TimeCreated, Message " +
-                "| Sort-Object @{Expression=\'TimeCreated\';Descending=$false} " +
-                "| Format-Table -AutoSize -HideTableHeaders " +
-                "| Out-String -Width 512";
-            string[] output = await Process.RunAsync("powershell", command, token);
-
-            string daemonLog = $"{filePrefix}-iotedged.log";
-            await File.WriteAllLinesAsync(daemonLog, output, token);
-
-            return daemonLog;
         }
 
         public async Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
@@ -41,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             await this.ConfigureAsync(proxy, token);
         }
 
-        Task InstallInternalAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
+        async Task InstallInternalAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
             var properties = new object[] { };
             string message = "Installed edge daemon";
@@ -58,14 +43,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             proxy.ForEach(
                 p => installCommand += $" -InvokeWebRequestParameters @{{ '-Proxy' = '{p}' }}");
 
+            string scriptDir = await this.scriptDir.Match(
+                d => Task.FromResult(d),
+                () => this.DownloadInstallerAsync(token));
+
             var commands = new[]
             {
                 "$ProgressPreference='SilentlyContinue'",
-                $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1",
+                $". {scriptDir}\\IotEdgeSecurityDaemon.ps1",
                 installCommand
             };
 
-            return Profiler.Run(
+            await Profiler.Run(
                 async () =>
                 {
                     string[] output =
@@ -76,24 +65,44 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 properties);
         }
 
+        public Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token)
+        {
+            var properties = new List<object>();
+            var message = new StringBuilder("Configured edge daemon");
+            string configYamlPath =
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\iotedge\config.yaml";
+
+            return Profiler.Run(
+                async () =>
+                {
+                    await this.InternalStopAsync(token);
+
+                    var yaml = new DaemonConfiguration(configYamlPath);
+                    (string m, object[] p) = await config(yaml);
+
+                    message.Append($" {m}");
+                    properties.AddRange(p);
+
+                    await this.InternalStartAsync(token);
+                },
+                message.ToString(),
+                properties);
+        }
+
         Task ConfigureAsync(Option<Uri> proxy, CancellationToken token)
         {
             return proxy.ForEachAsync(
                 p =>
                 {
-                    return Profiler.Run(
-                        async () =>
+                    return this.ConfigureAsync(
+                        config =>
                         {
-                            await this.InternalStopAsync(token);
+                            config.AddHttpsProxy(p);
+                            config.Update();
 
-                            var yaml = new DaemonConfiguration();
-                            yaml.AddHttpsProxy(p);
-                            yaml.Update();
-
-                            await this.InternalStartAsync(token);
+                            return Task.FromResult(("with proxy '{ProxyUri}'", new object[] { p.ToString() }));
                         },
-                        "Configured edge daemon with proxy '{ProxyUri}'",
-                        p);
+                        token);
                 });
         }
 
@@ -110,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             if (sc.Status != ServiceControllerStatus.Running)
             {
                 sc.Start();
-                await this.WaitForStatusAsync(sc, ServiceControllerStatus.Running, token);
+                await WaitForStatusAsync(sc, ServiceControllerStatus.Running, token);
             }
         }
 
@@ -127,20 +136,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             if (sc.Status != ServiceControllerStatus.Stopped)
             {
                 sc.Stop();
-                await this.WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
+                await WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
             }
         }
 
-        public Task UninstallAsync(CancellationToken token)
+        public async Task UninstallAsync(CancellationToken token)
         {
+            string scriptDir = await this.scriptDir.Match(
+                d => Task.FromResult(d),
+                () => this.DownloadInstallerAsync(token));
+
             var commands = new[]
             {
                 "$ProgressPreference='SilentlyContinue'",
-                $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1",
+                $". {scriptDir}\\IotEdgeSecurityDaemon.ps1",
                 "Uninstall-IoTEdge -Force"
             };
 
-            return Profiler.Run(
+            await Profiler.Run(
                 async () =>
                 {
                     string[] output =
@@ -154,18 +167,43 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
         {
             var sc = new ServiceController("iotedge");
             return Profiler.Run(
-                () => this.WaitForStatusAsync(sc, (ServiceControllerStatus)desired, token),
+                () => WaitForStatusAsync(sc, (ServiceControllerStatus)desired, token),
                 "Edge daemon entered the '{Desired}' state",
                 desired.ToString().ToLower());
         }
 
-        async Task WaitForStatusAsync(ServiceController sc, ServiceControllerStatus desired, CancellationToken token)
+        static async Task WaitForStatusAsync(ServiceController sc, ServiceControllerStatus desired, CancellationToken token)
         {
             while (sc.Status != desired)
             {
                 await Task.Delay(250, token).ConfigureAwait(false);
                 sc.Refresh();
             }
+        }
+
+        async Task<string> DownloadInstallerAsync(CancellationToken token)
+        {
+            const string Address = "aka.ms/iotedge-win";
+            string tempDir = Path.GetTempPath();
+            string[] commands = new[]
+            {
+                "$ProgressPreference='SilentlyContinue'",   // don't render PowerShell's progress bar in non-interactive shell
+                $"Invoke-WebRequest -UseBasicParsing -OutFile '{Path.Combine(tempDir, "IotEdgeSecurityDaemon.ps1")}' '{Address}'"
+            };
+
+            await Profiler.Run(
+                async () =>
+                {
+                    await Process.RunAsync(
+                        "powershell",
+                        string.Join(';', commands),
+                        token);
+                },
+                "Downloaded Edge daemon Windows installer from '{Address}'",
+                Address);
+
+            this.scriptDir = Option.Some(tempDir);
+            return tempDir;
         }
     }
 }
