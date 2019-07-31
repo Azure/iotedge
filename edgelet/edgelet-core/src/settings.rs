@@ -347,7 +347,6 @@ fn get_path_from_uri(uri: &Url, variable: &'static str) -> Result<PathBuf, Error
 }
 
 fn convert_to_path(maybe_path: &str, setting_name: &'static str) -> Result<PathBuf, Error> {
-
     if let Ok(uri) = Url::parse(maybe_path) {
         get_path_from_uri(&uri, setting_name)
     } else {
