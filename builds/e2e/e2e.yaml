@@ -282,7 +282,8 @@ jobs:
         }
         else
         {
-          sudo dotnet test --logger:trx '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
+          sudo --preserve-env `
+            dotnet test --logger:trx '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
         }
       displayName: Run tests
       env:
