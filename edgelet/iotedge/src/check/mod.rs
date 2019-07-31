@@ -1291,7 +1291,7 @@ fn settings_identity_certificates_expiry(check: &mut Check) -> Result<CheckResul
     };
 
     if let Provisioning::Dps(dps) = settings.provisioning() {
-        if let AttestationMethod::X509(ref x509_info) = dps.attestation() {
+        if let AttestationMethod::X509(x509_info) = dps.attestation() {
             let path = x509_info.identity_cert()?;
             check_certificate_expiry(path)
         } else {
@@ -1340,71 +1340,6 @@ fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failur
         })?
     };
     check_certificate_expiry(device_ca_cert_path)
-}
-
-fn check_certificate_expiry(cert_path: PathBuf) -> Result<CheckResult, failure::Error> {
-    fn parse_openssl_time(
-        time: &openssl::asn1::Asn1TimeRef,
-    ) -> chrono::ParseResult<chrono::DateTime<chrono::Utc>> {
-        // openssl::asn1::Asn1TimeRef does not expose any way to convert the ASN1_TIME to a Rust-friendly type
-        //
-        // Its Display impl uses ASN1_TIME_print, so we convert it into a String and parse it back
-        // into a chrono::DateTime<chrono::Utc>
-        let time = time.to_string();
-        let time = chrono::NaiveDateTime::parse_from_str(&time, "%b %e %H:%M:%S %Y GMT")?;
-        Ok(chrono::DateTime::<chrono::Utc>::from_utc(time, chrono::Utc))
-    }
-
-    let cert_path_source = cert_path.to_string_lossy().into_owned();
-    let (not_after, not_before) = File::open(cert_path)
-        .map_err(failure::Error::from)
-        .and_then(|mut device_ca_cert_file| {
-            let mut device_ca_cert = vec![];
-            device_ca_cert_file.read_to_end(&mut device_ca_cert)?;
-            let device_ca_cert = openssl::x509::X509::stack_from_pem(&device_ca_cert)?;
-            let device_ca_cert = &device_ca_cert[0];
-
-            let not_after = parse_openssl_time(device_ca_cert.not_after())?;
-            let not_before = parse_openssl_time(device_ca_cert.not_before())?;
-
-            Ok((not_after, not_before))
-        })
-        .with_context(|_| {
-            format!(
-                "Could not parse {} as a valid certificate file",
-                cert_path_source,
-            )
-        })?;
-
-    let now = chrono::Utc::now();
-
-    if not_before > now {
-        return Err(Context::new(format!(
-            "Device CA certificate in {} has not-before time {} which is in the future",
-            cert_path_source, not_before,
-        ))
-        .into());
-    }
-
-    if not_after < now {
-        return Err(Context::new(format!(
-            "Device CA certificate in {} expired at {}",
-            cert_path_source, not_after,
-        ))
-        .into());
-    }
-
-    if not_after < now + chrono::Duration::days(7) {
-        return Ok(CheckResult::Warning(
-            Context::new(format!(
-                "Device CA certificate in {} will expire soon ({})",
-                cert_path_source, not_after,
-            ))
-            .into(),
-        ));
-    }
-
-    Ok(CheckResult::Ok)
 }
 
 fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::Error> {
@@ -1704,6 +1639,71 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
                     .into());
             }
         }
+    }
+
+    Ok(CheckResult::Ok)
+}
+
+fn check_certificate_expiry(cert_path: PathBuf) -> Result<CheckResult, failure::Error> {
+    fn parse_openssl_time(
+        time: &openssl::asn1::Asn1TimeRef,
+    ) -> chrono::ParseResult<chrono::DateTime<chrono::Utc>> {
+        // openssl::asn1::Asn1TimeRef does not expose any way to convert the ASN1_TIME to a Rust-friendly type
+        //
+        // Its Display impl uses ASN1_TIME_print, so we convert it into a String and parse it back
+        // into a chrono::DateTime<chrono::Utc>
+        let time = time.to_string();
+        let time = chrono::NaiveDateTime::parse_from_str(&time, "%b %e %H:%M:%S %Y GMT")?;
+        Ok(chrono::DateTime::<chrono::Utc>::from_utc(time, chrono::Utc))
+    }
+
+    let cert_path_source = cert_path.to_string_lossy().into_owned();
+    let (not_after, not_before) = File::open(cert_path)
+        .map_err(failure::Error::from)
+        .and_then(|mut device_ca_cert_file| {
+            let mut device_ca_cert = vec![];
+            device_ca_cert_file.read_to_end(&mut device_ca_cert)?;
+            let device_ca_cert = openssl::x509::X509::stack_from_pem(&device_ca_cert)?;
+            let device_ca_cert = &device_ca_cert[0];
+
+            let not_after = parse_openssl_time(device_ca_cert.not_after())?;
+            let not_before = parse_openssl_time(device_ca_cert.not_before())?;
+
+            Ok((not_after, not_before))
+        })
+        .with_context(|_| {
+            format!(
+                "Could not parse {} as a valid certificate file",
+                cert_path_source,
+            )
+        })?;
+
+    let now = chrono::Utc::now();
+
+    if not_before > now {
+        return Err(Context::new(format!(
+            "Device CA certificate in {} has not-before time {} which is in the future",
+            cert_path_source, not_before,
+        ))
+        .into());
+    }
+
+    if not_after < now {
+        return Err(Context::new(format!(
+            "Device CA certificate in {} expired at {}",
+            cert_path_source, not_after,
+        ))
+        .into());
+    }
+
+    if not_after < now + chrono::Duration::days(7) {
+        return Ok(CheckResult::Warning(
+            Context::new(format!(
+                "Device CA certificate in {} will expire soon ({})",
+                cert_path_source, not_after,
+            ))
+            .into(),
+        ));
     }
 
     Ok(CheckResult::Ok)

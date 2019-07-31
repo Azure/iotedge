@@ -162,9 +162,9 @@ impl X509AttestationInfo {
         get_path_from_uri(&self.identity_pk, "identity_pk")
     }
 
-    pub fn identity_pk_uri(&self) -> Result<Url, Error> {
+    pub fn identity_pk_uri(&self) -> Result<&Url, Error> {
         if is_supported_uri(&self.identity_pk) {
-            Ok(self.identity_pk.clone())
+            Ok(&self.identity_pk)
         } else {
             Err(Error::from(ErrorKind::UnsupportedSettingsUri(
                 self.identity_pk.to_string(),
@@ -173,9 +173,9 @@ impl X509AttestationInfo {
         }
     }
 
-    pub fn identity_cert_uri(&self) -> Result<Url, Error> {
+    pub fn identity_cert_uri(&self) -> Result<&Url, Error> {
         if is_supported_uri(&self.identity_cert) {
-            Ok(self.identity_cert.clone())
+            Ok(&self.identity_cert)
         } else {
             Err(Error::from(ErrorKind::UnsupportedSettingsUri(
                 self.identity_cert.to_string(),
@@ -325,7 +325,7 @@ pub struct Certificates {
 fn is_supported_uri(uri: &Url) -> bool {
     if uri.scheme() == "file" && uri.port().is_none() && uri.query().is_none() {
         if let Some(host) = uri.host_str() {
-            return "localhost" == host;
+            return host == "localhost";
         }
         return true;
     }
@@ -346,19 +346,16 @@ fn get_path_from_uri(uri: &Url, variable: &'static str) -> Result<PathBuf, Error
     }
 }
 
-fn convert_to_path(maybe_path: &str, variable: &'static str) -> Result<PathBuf, Error> {
-    if let Ok(file_uri) = Url::from_file_path(maybe_path) {
-        // maybe_path was specified as a valid path not a URI
-        get_path_from_uri(&file_uri, variable)
+fn convert_to_path(maybe_path: &str, setting_name: &'static str) -> Result<PathBuf, Error> {
+
+    if let Ok(uri) = Url::parse(maybe_path) {
+        get_path_from_uri(&uri, setting_name)
     } else {
-        // maybe_path is not a path and could be URI
-        let uri = Url::parse(maybe_path)
-            .map_err(|_| ErrorKind::InvalidSettingsUri(String::from(maybe_path), variable))?;
-        get_path_from_uri(&uri, variable)
+        Ok(PathBuf::from(maybe_path))
     }
 }
 
-fn convert_to_uri(maybe_uri: &str, variable: &'static str) -> Result<Url, Error> {
+fn convert_to_uri(maybe_uri: &str, setting_name: &'static str) -> Result<Url, Error> {
     if let Ok(uri) = Url::parse(maybe_uri) {
         // maybe_uri was specified as a URI
         if is_supported_uri(&uri) {
@@ -366,7 +363,7 @@ fn convert_to_uri(maybe_uri: &str, variable: &'static str) -> Result<Url, Error>
         } else {
             Err(Error::from(ErrorKind::UnsupportedSettingsUri(
                 String::from(maybe_uri),
-                variable,
+                setting_name,
             )))
         }
     } else {
@@ -378,11 +375,11 @@ fn convert_to_uri(maybe_uri: &str, variable: &'static str) -> Result<Url, Error>
                 } else {
                     Err(Error::from(ErrorKind::UnsupportedSettingsUri(
                         String::from(maybe_uri),
-                        variable,
+                        setting_name,
                     )))
                 }
             })
-            .map_err(|_| ErrorKind::InvalidSettingsUri(String::from(maybe_uri), variable))?
+            .map_err(|_| ErrorKind::InvalidSettingsUri(String::from(maybe_uri), setting_name))?
     }
 }
 
@@ -540,8 +537,15 @@ mod tests {
     #[test]
     fn test_convert_to_path() {
         if cfg!(windows) {
-            let expected_path = "C:\\temp\\sample.txt";
+            assert_eq!(
+                "..\\sample.txt",
+                convert_to_path(".\\sample.txt", "test")
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+            );
 
+            let expected_path = "C:\\temp\\sample.txt";
             assert_eq!(
                 expected_path,
                 convert_to_path("C:\\temp\\sample.txt", "test")
@@ -582,11 +586,16 @@ mod tests {
                 .expect_err("Non localhost host specified");
             convert_to_path("https:///C:/temp/sample.txt", "test")
                 .expect_err("Non file scheme specified");
-            convert_to_path("../tmp/../tmp/sample.txt", "test")
-                .expect_err("Non absolute path specified");
         } else {
-            let expected_path = "/tmp/sample.txt";
+            assert_eq!(
+                "./sample.txt",
+                convert_to_path("./sample.txt", "test")
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+            );
 
+            let expected_path = "/tmp/sample.txt";
             assert_eq!(
                 expected_path,
                 convert_to_path("/tmp/sample.txt", "test")
@@ -619,8 +628,6 @@ mod tests {
                 .expect_err("Non localhost host specified");
             convert_to_path("https://localhost/tmp/sample.txt", "test")
                 .expect_err("Non file scheme specified");
-            convert_to_path("../tmp/../tmp/sample.txt", "test")
-                .expect_err("Non absolute path specified");
         }
     }
 

@@ -206,7 +206,7 @@ impl fmt::Display for InitializeErrorReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             InitializeErrorReason::CertificateSettings => {
-                write!(f, "Could not configure edge gateway certificates")
+                write!(f, "Could not configure Edge gateway certificates")
             }
 
             InitializeErrorReason::CreateCertificateManager => {

@@ -666,11 +666,11 @@ mod tests {
                     AttestationMethod::X509(ref x509) => {
                         assert!(x509.registration_id().is_none());
                         assert_eq!(
-                            Url::parse(&format!("file://{}", cert_path.to_str().unwrap())).unwrap(),
+                            &Url::parse(&format!("file://{}", cert_path.to_str().unwrap())).unwrap(),
                             x509.identity_cert_uri().unwrap(),
                         );
                         assert_eq!(
-                            Url::parse(&format!("file://{}", key_path.to_str().unwrap())).unwrap(),
+                            &Url::parse(&format!("file://{}", key_path.to_str().unwrap())).unwrap(),
                             x509.identity_pk_uri().unwrap(),
                         );
                         assert_eq!(
@@ -707,11 +707,11 @@ mod tests {
                     AttestationMethod::X509(ref x509) => {
                         assert!(x509.registration_id().is_none());
                         assert_eq!(
-                            Url::parse(&format!("file://{}", cert_path.to_str().unwrap())).unwrap(),
+                            &Url::parse(&format!("file://{}", cert_path.to_str().unwrap())).unwrap(),
                             x509.identity_cert_uri().unwrap(),
                         );
                         assert_eq!(
-                            Url::parse(&format!("file://{}", key_path.to_str().unwrap())).unwrap(),
+                            &Url::parse(&format!("file://{}", key_path.to_str().unwrap())).unwrap(),
                             x509.identity_pk_uri().unwrap(),
                         );
                         assert_eq!(
