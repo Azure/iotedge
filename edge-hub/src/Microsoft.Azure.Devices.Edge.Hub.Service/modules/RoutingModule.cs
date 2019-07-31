@@ -311,7 +311,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 builder.Register(
                         async c =>
                         {
-                            if (this.useV1TwinManager)
+                            if (!this.useV1TwinManager)
                             {
                                 var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
                                 IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();

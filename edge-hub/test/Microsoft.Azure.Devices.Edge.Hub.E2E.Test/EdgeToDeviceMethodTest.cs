@@ -2,19 +2,27 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
+    using System.IO;
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Hub.Service;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
+    using Xunit.Abstractions;
     using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
 
     [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
-    public class EdgeToDeviceMethodTest : IClassFixture<ProtocolHeadFixture>
+    public class EdgeToDeviceMethodTest : TestConsoleLogger, IClassFixture<ProtocolHeadFixture>
     {
+        public EdgeToDeviceMethodTest(ITestOutputHelper testOutputHelper)
+            : base(testOutputHelper)
+        {
+        }
+
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task InvokeMethodOnModuleTest(ITransportSettings[] transportSettings)
@@ -25,6 +33,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             ModuleClient receiver = null;
+
+            string edgeDeviceConnectionString = ConfigHelper.TestConfig[Constants.ConfigKey.IotHubConnectionString];
+            Client.IotHubConnectionStringBuilder edgeHubConnectionStringBuilder = Client.IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
+            string edgeDeviceId = edgeHubConnectionStringBuilder.DeviceId;
+            Device edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
 
             var request = new TestMethodRequest("Prop1", 10);
             var response = new TestMethodResponse("RespProp1", 20);
@@ -40,12 +53,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
 
             string receiverModuleName = "method-module";
-            (string edgeDeviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice(deviceName, iotHubConnectionString, rm, true, false);
+            (string deviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice(deviceName, iotHubConnectionString, rm, true, false, edgeDevice.Scope);
             try
             {
                 ServiceClient sender = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
 
-                string receiverModuleConnectionString = await RegistryManagerHelper.CreateModuleIfNotExists(rm, connectionStringBuilder.HostName, edgeDeviceId, receiverModuleName);
+                string receiverModuleConnectionString = await RegistryManagerHelper.CreateModuleIfNotExists(rm, connectionStringBuilder.HostName, deviceId, receiverModuleName);
                 receiver = ModuleClient.CreateFromConnectionString(receiverModuleConnectionString, transportSettings);
                 await receiver.OpenAsync();
                 await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
@@ -55,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 // Act
                 CloudToDeviceMethodResult cloudToDeviceMethodResult = await sender.InvokeDeviceMethodAsync(
-                    edgeDeviceId,
+                    deviceId,
                     receiverModuleName,
                     new CloudToDeviceMethod("poke").SetPayloadJson(JsonConvert.SerializeObject(request)));
 
@@ -73,10 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
             finally
             {
-                if (rm != null)
-                {
-                    await rm.CloseAsync();
-                }
+                await rm.CloseAsync();
 
                 if (receiver != null)
                 {
@@ -85,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 try
                 {
-                    await RegistryManagerHelper.RemoveDevice(edgeDeviceId, rm);
+                    await RegistryManagerHelper.RemoveDevice(deviceId, rm);
                 }
                 catch (Exception)
                 {
@@ -107,6 +117,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             DeviceClient receiver = null;
 
+            string edgeDeviceConnectionString = ConfigHelper.TestConfig[Constants.ConfigKey.IotHubConnectionString];
+            Client.IotHubConnectionStringBuilder edgeHubConnectionStringBuilder = Client.IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
+            string edgeDeviceId = edgeHubConnectionStringBuilder.DeviceId;
+            Device edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
+
             var request = new TestMethodRequest("Prop1", 10);
             var response = new TestMethodResponse("RespProp1", 20);
             TestMethodRequest receivedRequest = null;
@@ -120,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         200));
             }
 
-            (string deviceId, string receiverModuleConnectionString) = await RegistryManagerHelper.CreateDevice(deviceName, iotHubConnectionString, rm);
+            (string deviceId, string receiverModuleConnectionString) = await RegistryManagerHelper.CreateDevice(deviceName, iotHubConnectionString, rm, scope: edgeDevice.Scope);
             try
             {
                 ServiceClient sender = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
@@ -151,10 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
             finally
             {
-                if (rm != null)
-                {
-                    await rm.CloseAsync();
-                }
+                await rm.CloseAsync();
 
                 if (receiver != null)
                 {
