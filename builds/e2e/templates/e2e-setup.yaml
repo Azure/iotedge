@@ -94,9 +94,9 @@ steps:
     if ('$(arch)' -eq 'arm32v7')
     {
       $context['optimizeForPerformance'] = 'false'
-      $context['setupTimeoutMinutes'] = 10
+      $context['setupTimeoutMinutes'] = 8
       $context['teardownTimeoutMinutes'] = 5
-      $context['testTimeoutMinutes'] = 10
+      $context['testTimeoutMinutes'] = 8
     }
 
     New-Item $binDir -ItemType Directory -Force | Out-Null
