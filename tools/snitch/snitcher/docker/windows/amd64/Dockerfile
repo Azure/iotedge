@@ -1,4 +1,9 @@
 FROM mcr.microsoft.com/windows/nanoserver:1809-amd64
 
-COPY ./snitcher.exe .
-CMD snitcher
+ARG EXE_DIR=.
+
+WORKDIR /app
+
+COPY $EXE_DIR/ ./
+
+CMD ["snitcher.exe"]

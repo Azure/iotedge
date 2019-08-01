@@ -1,21 +1,12 @@
-FROM ekidd/rust-musl-builder AS builder
+FROM ubuntu:18.04
 
-ARG SRC_DIR=.
-
-# Add source code
-COPY $SRC_DIR/ ./
-
-# Fix permissions on source code.
-RUN sudo chown -R rust:rust /home/rust
-
-# Build app
-RUN cargo build --release
-
-# Build real container
-
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-COPY --from=builder /home/rust/src/target/x86_64-unknown-linux-musl/release/snitcher \
-    /usr/local/bin/
-
+RUN apt-get update -y && \
+    apt-get install -y apt-utils ca-certificates curl gpg && \
+    curl https://ftp-master.debian.org/keys/archive-key-9-security.asc | gpg --dearmor > archive-key-9-security.gpg && \
+    cp ./archive-key-9-security.gpg /etc/apt/trusted.gpg.d/ &&\
+    echo "deb http://security.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
+    apt-get update -y && \
+    apt-get install -y libssl1.0.2
+    
+COPY ./snitcher /usr/local/bin/
 CMD /usr/local/bin/snitcher

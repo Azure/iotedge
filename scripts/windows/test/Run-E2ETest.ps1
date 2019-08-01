@@ -226,7 +226,7 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $SnitchAlertUrl = $null,
 
-    [string] $SnitchBuildNumber = "1.1",
+    [string] $SnitchBuildNumber = "1.2",
 
     [string] $SnitchReportingIntervalInSecs = $null,
 
