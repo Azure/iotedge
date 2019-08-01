@@ -19,10 +19,12 @@ steps:
 - pwsh: |
     if (-not '$(az.pipeline.packages.buildId)')
     {
+      Write-Output 'Using packages from latest successful build against master'
       Write-Output '##vso[task.setvariable variable=whichVersion]latestFromBranch'
     }
     else
     {
+      Write-Output "Using packages from build '$(az.pipeline.packages.buildId)'"
       Write-Output '##vso[task.setvariable variable=whichVersion]specific'
     }
   displayName: Locate iotedged packages
