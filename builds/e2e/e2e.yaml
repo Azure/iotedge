@@ -10,13 +10,13 @@ strategy:
       os: linux
       arch: amd64
       vmImage: ubuntu-16.04
-      poolName: ''
-      demands: ''
+      poolName: null
+      demands: null
       artifactDir: iotedged-ubuntu-amd64
     Linux-arm32v7:
       os: linux
       arch: arm32v7
-      vmImage: ''
+      vmImage: null
       poolName: Azure-IoT-Edge-Core
       demands: rpi3-e2e-tests
       artifactDir: iotedged-debian9-arm32v7
@@ -24,8 +24,8 @@ strategy:
       os: windows
       arch: amd64
       vmImage: windows-2019
-      poolName: ''
-      demands: ''
+      poolName: null
+      demands: null
       artifactDir: iotedged-windows
 
 pool:
