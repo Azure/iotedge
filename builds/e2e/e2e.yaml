@@ -25,25 +25,34 @@ jobs:
     - template: templates/e2e-run.yaml
 
 ################################################################################	
-  - job: e2e_matrix
+  - job: linux_amd64
 ################################################################################	
-    displayName: End-to-end matrix
-    condition: false
-    strategy:
-      matrix:
-        Linux-amd64:
-          os: linux
-          arch: amd64
-          vmImage: ubuntu-16.04
-          artifactDir: iotedged-ubuntu-amd64
-        Windows-amd64:
-          os: windows
-          arch: amd64
-          vmImage: windows-2019
-          artifactDir: iotedged-windows
+    displayName: Linux amd64
 
     pool:
-      vmImage: $(vmImage)
+      vmImage: ubuntu-16.04
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactDir: iotedged-ubuntu-amd64
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################	
+  - job: windows_amd64
+################################################################################	
+    displayName: Windows amd64
+
+    pool:
+      vmImage: windows-2019
+
+    variables:
+      os: windows
+      arch: amd64
+      artifactDir: iotedged-windows
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -55,10 +64,9 @@ jobs:
           -ArgumentList 'Root', 'LocalMachine'
         $store.Open('ReadWrite')
         $store.Add($cert)
-      displayName: (Windows) Install CAB signing root cert
+      displayName: Install CAB signing root cert
       env:
         PACKAGE_SIGNING_CERT: $(TestIotedgedPackageRootSigningCert)
-      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
 
     - pwsh: |
         Write-Output '>>> BEFORE:'
@@ -66,7 +74,6 @@ jobs:
         netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 45 4
         Write-Output '>>> AFTER:'
         netsh interface ipv6 show prefixpolicies
-      displayName: (Windows) Prefer IPv4
-      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
+      displayName: Prefer IPv4
 
     - template: templates/e2e-run.yaml
