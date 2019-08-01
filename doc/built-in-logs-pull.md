@@ -44,7 +44,7 @@ This method accepts a JSON payload with the following schema:
 | filter        | JSON section | Log filters to apply to the modules matching the `id` regular expression in the tuple.                                                                                                                                                               |
 | tail          | integer      | Number of log lines in the past to retrieve starting from the latest. OPTIONAL.                                                                                                                                                                               |
 | since         | integer      | Starting point in time to retrieve logs from to the latest expressed as [Unix time](https://en.wikipedia.org/wiki/Unix_time). Tools like [epochconverter](https://www.epochconverter.com) can help in converting from a more human readable format. If both `tail` and `since` are specified, first the logs using the `since` value are retrieved and then `tail` value of those are returned. OPTIONAL.|
-| loglevel      | integer      | Filter log lines matching specified log level in [Syslog severity level](https://en.wikipedia.org/wiki/Syslog#Severity_level) format. OPTIONAL.                                                                                                                |
+| loglevel      | integer      | Filter log lines less than or equal to specified loglevel in [Syslog severity level](https://en.wikipedia.org/wiki/Syslog#Severity_level) format. OPTIONAL.                                                                                                                |
 | regex         | string       | Filter log lines which have content that match the specified regular expression using [.NET Regular Expressions](https://docs.microsoft.com/en-us/dotnet/standard/base-types/regular-expressions) format. OPTIONAL.                                            |
 | encoding      | string       | Either `gzip` or `none`. Default is `none`.                                                                                                                                                                                                          |
 | contentType   | string       | Either `json` or `text`. Default is `text`.                                                                                                                                                                                                          |
@@ -68,10 +68,13 @@ The response is returned with the following schema:
 | correlationId | string   | ID to query to status of the upload request.      |
 
 
-### Examples
+### Examples using `az` cli (bash)
 
 **Upload last 100 log lines from all modules, in compressed JSON format:**
 
+```shell
+az iot hub invoke-module-method -n <replace-with-hub> -d <replace-with-device-id> -m \$edgeAgent --mn UploadLogs --mp \
+'
     {
         "schemaVersion": "1.0",
         "sasUrl": "https://xyz.blob.core.windows.net/abc?st=2019-06-06T05%3A11%3A56Z&se=2019-06-11T05%3A11%3A00Z&sp=abc=2018-03-28&sr=c&sig=xyz",
@@ -86,7 +89,13 @@ The response is returned with the following schema:
         "encoding": "gzip", 
         "contentType": "json"
     }
+'
+```
 
+```
+az iot hub invoke-module-method -n <replace-with-hub> -d <replace-with-device-id> -m \$edgeAgent --mn UploadLogs --mp \
+'
+    {
 **Upload last 100 log lines from edgeAgent and edgeHub with last 1000 log lines from tempSensor module in uncompressed text format**
 
     {
@@ -109,6 +118,8 @@ The response is returned with the following schema:
         "encoding": "none", 
         "contentType": "text"
     }
+'
+```
 
 ## GetTaskStatus
 
