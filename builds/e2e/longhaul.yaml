@@ -102,7 +102,7 @@ jobs:
         - agent-osbits -equals 32
         - run-long-haul -equals true
     variables:
-      edgelet.artifact.name: 'iotedged-ubuntu16.04-arm32v7'
+      edgelet.artifact.name: 'iotedged-debian9-arm32v7'
     steps:
       - checkout: none
       - task: AzureKeyVault@1
@@ -166,7 +166,7 @@ jobs:
         - agent-osbits -equals 64
         - run-long-haul -equals true
     variables:
-      edgelet.artifact.name: 'iotedged-ubuntu16.04-aarch64'
+      edgelet.artifact.name: 'iotedged-ubuntu18.04-aarch64'
     steps:
       - checkout: none
       - task: AzureKeyVault@1
