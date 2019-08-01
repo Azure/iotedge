@@ -8,14 +8,15 @@ use clap::crate_name;
 #[cfg(feature = "runtime-docker")]
 use edgelet_docker::DockerModuleRuntime;
 #[cfg(feature = "runtime-kubernetes")]
-use edgelet_kube::KubeModuleRuntime;use failure::ResultExt;
+use edgelet_kube::KubeModuleRuntime;
+use failure::ResultExt;
+use futures::future::Future;
 #[cfg(feature = "runtime-kubernetes")]
 use hyper::client::HttpConnector;
 #[cfg(feature = "runtime-kubernetes")]
 use hyper_tls::HttpsConnector;
 #[cfg(feature = "runtime-kubernetes")]
 use kube_client::{HttpClient, ValueToken};
-use futures::future::Future;
 use log::{error, info};
 use windows_service::service::{
     ServiceControl, ServiceControlAccept, ServiceExitCode, ServiceState, ServiceStatus, ServiceType,

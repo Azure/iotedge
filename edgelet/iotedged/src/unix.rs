@@ -3,14 +3,15 @@
 use crate::app;
 use crate::error::Error;
 use crate::signal;
+
 #[cfg(feature = "runtime-docker")]
 use edgelet_docker::DockerModuleRuntime;
 #[cfg(feature = "runtime-kubernetes")]
 use edgelet_kube::KubeModuleRuntime;
 #[cfg(feature = "runtime-kubernetes")]
-use hyper::{Body};
-#[cfg(feature = "runtime-kubernetes")]
 use hyper::client::HttpConnector;
+#[cfg(feature = "runtime-kubernetes")]
+use hyper::Body;
 #[cfg(feature = "runtime-kubernetes")]
 use hyper_tls::HttpsConnector;
 #[cfg(feature = "runtime-kubernetes")]
