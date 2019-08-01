@@ -21,6 +21,8 @@ jobs:
       artifactDir: iotedged-debian9-arm32v7
 
     steps:
+    - script: |
+        env
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
