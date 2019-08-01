@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
             public static void ProcessingRequest(TaskStatusRequest payload, BackgroundTaskStatus backgroundTaskStatus)
             {
-                Log.LogInformation((int)EventIds.ProcessingRequest, $"Handling status request for task {payload.CorrelationId} - {backgroundTaskStatus.ToJson()}");
+                Log.LogInformation((int)EventIds.ProcessingRequest, $"Handling status request for task {payload.CorrelationId} - {backgroundTaskStatus}");
             }
         }
     }

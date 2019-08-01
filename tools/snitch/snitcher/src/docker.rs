@@ -8,9 +8,10 @@ use bytes::Bytes;
 use futures::{future, Future};
 use hyper::service::Service;
 use hyper::{Body, Error as HyperError, Method};
+use serde::Deserialize;
 
-use client::Client;
-use error::Error;
+use crate::client::Client;
+use crate::error::Error;
 
 #[derive(Clone)]
 pub struct DockerClient<S>
@@ -39,7 +40,7 @@ where
 
         self.client.request::<(), Vec<Container>>(
             Method::GET,
-            "containers/json",
+            "/containers/json",
             Some(query),
             None,
             false,
@@ -54,7 +55,7 @@ where
         self.client
             .request_bytes::<()>(
                 Method::GET,
-                &format!("containers/{}/logs", id),
+                &format!("/containers/{}/logs", id),
                 Some(query),
                 None,
                 false,
