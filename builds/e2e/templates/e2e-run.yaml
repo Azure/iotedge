@@ -1,0 +1,50 @@
+steps:
+- pwsh: |
+    if ($IsWindows)
+    {
+      $edgeDir = Join-Path $env:ProgramFiles 'iotedge'
+      $mobyDir = Join-Path $env:ProgramFiles 'iotedge-moby'
+      $env:Path = "$env:Path;$edgeDir;$mobyDir"
+      dotnet test --logger:trx '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
+    }
+    else
+    {
+      sudo --preserve-env `
+        dotnet test --logger:trx '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
+    }
+  displayName: Run tests
+  env:
+    E2E_EVENT_HUB_ENDPOINT: $(TestEventHubCompatibleEndpoint)
+    E2E_IOT_HUB_CONNECTION_STRING: $(TestIotHubConnectionString)
+    E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
+    E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
+
+- task: PublishTestResults@2
+  displayName: Publish test results
+  inputs:
+    testResultsFormat: vstest
+    testResultsFiles: '**/*.trx'
+    searchFolder: $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test
+    testRunTitle: End-to-end tests ($(Build.BuildNumber) $(os) $(arch))
+    buildPlatform: $(arch)
+  condition: succeededOrFailed()
+
+- pwsh: |
+    $binDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1'
+    $logDir = '$(System.ArtifactsDirectory)/logs'
+    New-Item $logDir -ItemType Directory -Force | Out-Null
+    Out-File "$logDir/$(Build.DefinitionName)-$(Build.BuildNumber)"
+    Copy-Item "$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/TestResults" "$logDir/" -Recurse
+    # The setup fixture runs outside the scope of any test, so its logs (*-test-*.log) aren't
+    # included in the TRX. Copy them manually here.
+    Copy-Item "$binDir/*-test-*.log" "$logDir/"
+    Copy-Item "$binDir/testoutput.log" "$logDir/"
+  displayName: Collect Logs
+  condition: succeededOrFailed()
+
+- task: PublishBuildArtifacts@1
+  displayName: Publish logs
+  inputs:
+    PathtoPublish: $(System.ArtifactsDirectory)/logs
+    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(os)-$(arch)
+  condition: succeededOrFailed()
