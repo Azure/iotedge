@@ -89,6 +89,11 @@ steps:
       $context['installerPath'] = $(Convert-Path '$(Build.SourcesDirectory)/scripts/windows/setup')
     }
 
+    if ('$(arch)' == 'arm32v7')
+    {
+      $context['optimizeForPerformance'] = false
+    }
+
     New-Item $binDir -ItemType Directory -Force | Out-Null
     $context | ConvertTo-Json | Out-File -Encoding Utf8 "$binDir/context.json"
   displayName: Create test arguments file (context.json)
