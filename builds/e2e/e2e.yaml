@@ -22,7 +22,7 @@ jobs:
 
     steps:
     - script: |
-        env
+        sudo --preserve-env env
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
