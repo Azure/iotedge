@@ -1,5 +1,6 @@
 steps:
 - checkout: self
+  clean: true
   fetchDepth: 100
 
 - task: AzureKeyVault@1
