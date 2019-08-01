@@ -30,6 +30,7 @@ jobs:
   - job: e2e_matrix
 ################################################################################	
     displayName: End-to-end matrix
+    condition: false
     strategy:
       matrix:
         Linux-amd64:
