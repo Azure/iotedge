@@ -9,8 +9,9 @@ steps:
     }
     else
     {
-      set -x
-      sudo --preserve-env env "PATH=$PATH" dotnet
+      # sudo --preserve-env env "PATH=$PATH" dotnet
+      whoami
+      Get-Command dotnet
 
       sudo --preserve-env `
         env "PATH=$PATH" `
