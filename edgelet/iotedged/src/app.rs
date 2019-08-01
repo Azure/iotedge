@@ -7,7 +7,10 @@ use failure::ResultExt;
 use log::info;
 
 use edgelet_core;
+#[cfg(feature = "runtime-docker")]
 use edgelet_docker::Settings;
+#[cfg(feature = "runtime-kubernetes")]
+use edgelet_kube::Settings;
 
 use crate::error::{Error, ErrorKind, InitializeErrorReason};
 use crate::logging;
@@ -41,7 +44,10 @@ fn create_app() -> App<'static, 'static> {
     }
 }
 
-fn init_common(running_as_windows_service: bool) -> Result<Settings, Error> {
+fn init_common<M>(running_as_windows_service: bool) -> Result<Settings, Error>
+where
+    M: edgelet_core::MakeModuleRuntime,
+{
     let matches = create_app().get_matches();
 
     // If running as a Windows service, logging was already initialized by init_win_svc_logging(), so don't do it again.
@@ -54,8 +60,7 @@ fn init_common(running_as_windows_service: bool) -> Result<Settings, Error> {
         }
     }
 
-    info!("Starting Azure IoT Edge Security Daemon");
-    info!("Version - {}", edgelet_core::version_with_source_version());
+    start_message();
 
     let config_file = matches
         .value_of_os("config-file")
@@ -75,13 +80,30 @@ fn init_common(running_as_windows_service: bool) -> Result<Settings, Error> {
     Ok(settings)
 }
 
-pub fn init() -> Result<Settings, Error> {
-    init_common(false)
+#[cfg(feature = "runtime-docker")]
+fn start_message() {
+    info!("Starting Azure IoT Edge Security Daemon");
+    info!("Version - {}", edgelet_core::version_with_source_version());
+}
+#[cfg(feature = "runtime-kubernetes")]
+fn start_message() {
+    info!("Starting Azure IoT Edge Security Daemon - Kubernetes mode");
+    info!("Version - {}", edgelet_core::version_with_source_version());
+}
+
+pub fn init<M>() -> Result<Settings, Error>
+where
+    M: edgelet_core::MakeModuleRuntime,
+{
+    init_common::<M>(false)
 }
 
 #[cfg(windows)]
-pub fn init_win_svc() -> Result<Settings, Error> {
-    init_common(true)
+pub fn init_win_svc<M>() -> Result<Settings, Error>
+where
+    M: edgelet_core::MakeModuleRuntime,
+{
+    init_common::<M>(true)
 }
 
 #[cfg(windows)]
