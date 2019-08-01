@@ -6,30 +6,25 @@ pr: none
 
 strategy:
   matrix:
-    Linux-amd64:
-      os: linux
-      arch: amd64
-      vmImage: ubuntu-16.04
-      poolName: null
-      demands: null
-      artifactDir: iotedged-ubuntu-amd64
+    # Linux-amd64:
+    #   os: linux
+    #   arch: amd64
+    #   vmImage: ubuntu-16.04
+    #   artifactDir: iotedged-ubuntu-amd64
     Linux-arm32v7:
       os: linux
       arch: arm32v7
-      vmImage: null
       poolName: Azure-IoT-Edge-Core
       demands: rpi3-e2e-tests
       artifactDir: iotedged-debian9-arm32v7
-    Windows-amd64:
-      os: windows
-      arch: amd64
-      vmImage: windows-2019
-      poolName: null
-      demands: null
-      artifactDir: iotedged-windows
+    # Windows-amd64:
+    #   os: windows
+    #   arch: amd64
+    #   vmImage: windows-2019
+    #   artifactDir: iotedged-windows
 
 pool:
-  vmImage: $(vmImage)
+  # vmImage: $(vmImage)
   name: $(poolName)
   demands: $(demands)
 
