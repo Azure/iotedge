@@ -108,6 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 bool closeOnIdleTimeout = configuration.GetValue(Constants.CloseOnIdleTimeout, false);
                 int idleTimeoutSecs = configuration.GetValue(Constants.IdleTimeoutSecs, 300);
                 TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
+                ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
                 string iothubHostname;
                 string deviceId;
                 switch (mode.ToLowerInvariant())
@@ -143,7 +144,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     case "twin":
                         bool enableStreams = configuration.GetValue(Constants.EnableStreams, false);
                         int requestTimeoutSecs = configuration.GetValue(Constants.RequestTimeoutSecs, 600);
-                        bool disableSubscriptions = configuration.GetValue(Constants.DisableCloudSubscriptions, false);
                         builder.RegisterModule(
                             new TwinConfigSourceModule(
                                 iothubHostname,
@@ -154,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                                 TimeSpan.FromSeconds(configRefreshFrequencySecs),
                                 enableStreams,
                                 TimeSpan.FromSeconds(requestTimeoutSecs),
-                                !disableSubscriptions));
+                                experimentalFeatures));
                         break;
 
                     case "local":
