@@ -9,6 +9,9 @@ steps:
     }
     else
     {
+      set -x
+      sudo --preserve-env env "PATH=$PATH" dotnet
+
       sudo --preserve-env `
         env "PATH=$PATH" `
         dotnet test --logger:trx '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
