@@ -19,7 +19,7 @@ use libc;
 use regex::Regex;
 use serde_json;
 
-use edgelet_core::{self, MobyNetwork, Provisioning, RuntimeSettings, UrlExt};
+use edgelet_core::{self, AttestationMethod, MobyNetwork, Provisioning, RuntimeSettings, UrlExt};
 use edgelet_docker::Settings;
 use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
@@ -70,6 +70,11 @@ static CHECKS: &[(
             ("container-local-time", "container time is close to host time", container_local_time),
             ("container-engine-dns", "DNS server", container_engine_dns),
             ("container-engine-ipv6", "IPv6 network configuration", container_engine_ipv6),
+            (
+                "identity-certificate-expiry",
+                "production readiness: identity certificates expiry",
+                settings_identity_certificates_expiry,
+            ),
             ("certificates-quickstart", "production readiness: certificates", settings_certificates),
             (
                 "certificates-expiry",
@@ -1278,32 +1283,35 @@ fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Erro
     Ok(CheckResult::Ok)
 }
 
-fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failure::Error> {
-    fn parse_openssl_time(
-        time: &openssl::asn1::Asn1TimeRef,
-    ) -> chrono::ParseResult<chrono::DateTime<chrono::Utc>> {
-        // openssl::asn1::Asn1TimeRef does not expose any way to convert the ASN1_TIME to a Rust-friendly type
-        //
-        // Its Display impl uses ASN1_TIME_print, so we convert it into a String and parse it back
-        // into a chrono::DateTime<chrono::Utc>
-        let time = time.to_string();
-        let time = chrono::NaiveDateTime::parse_from_str(&time, "%b %e %H:%M:%S %Y GMT")?;
-        Ok(chrono::DateTime::<chrono::Utc>::from_utc(time, chrono::Utc))
-    }
-
+fn settings_identity_certificates_expiry(check: &mut Check) -> Result<CheckResult, failure::Error> {
     let settings = if let Some(settings) = &check.settings {
         settings
     } else {
         return Ok(CheckResult::Skipped);
     };
 
-    let (device_ca_cert_path, device_ca_cert_path_source) = if let Some(certificates) =
-        settings.certificates()
-    {
-        (
-            certificates.device_ca_cert().to_owned(),
-            Cow::Borrowed("certificates.device_ca_cert"),
-        )
+    if let Provisioning::Dps(dps) = settings.provisioning() {
+        if let AttestationMethod::X509(x509_info) = dps.attestation() {
+            let path = x509_info.identity_cert()?;
+            check_certificate_expiry(path)
+        } else {
+            Ok(CheckResult::Skipped)
+        }
+    } else {
+        Ok(CheckResult::Skipped)
+    }
+}
+
+fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    let settings = if let Some(settings) = &check.settings {
+        settings
+    } else {
+        return Ok(CheckResult::Skipped);
+    };
+
+    let device_ca_cert_path = if let Some(certificates) = settings.certificates() {
+        let path = certificates.device_ca_cert()?;
+        path.to_owned()
     } else {
         let certs_dir = settings.homedir().join("hsm").join("certs");
 
@@ -1324,65 +1332,14 @@ fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failur
             }
         }
 
-        let device_ca_cert_path = device_ca_cert_path.ok_or_else(|| {
+        device_ca_cert_path.ok_or_else(|| {
             Context::new(format!(
                 "Could not find device CA certificate under {}",
                 certs_dir.display(),
             ))
-        })?;
-        let device_ca_cert_path_source = device_ca_cert_path.to_string_lossy().into_owned();
-        (device_ca_cert_path, Cow::Owned(device_ca_cert_path_source))
+        })?
     };
-
-    let (not_after, not_before) = File::open(device_ca_cert_path)
-        .map_err(failure::Error::from)
-        .and_then(|mut device_ca_cert_file| {
-            let mut device_ca_cert = vec![];
-            device_ca_cert_file.read_to_end(&mut device_ca_cert)?;
-            let device_ca_cert = openssl::x509::X509::stack_from_pem(&device_ca_cert)?;
-            let device_ca_cert = &device_ca_cert[0];
-
-            let not_after = parse_openssl_time(device_ca_cert.not_after())?;
-            let not_before = parse_openssl_time(device_ca_cert.not_before())?;
-
-            Ok((not_after, not_before))
-        })
-        .with_context(|_| {
-            format!(
-                "Could not parse {} as a valid certificate file",
-                device_ca_cert_path_source,
-            )
-        })?;
-
-    let now = chrono::Utc::now();
-
-    if not_before > now {
-        return Err(Context::new(format!(
-            "Device CA certificate in {} has not-before time {} which is in the future",
-            device_ca_cert_path_source, not_before,
-        ))
-        .into());
-    }
-
-    if not_after < now {
-        return Err(Context::new(format!(
-            "Device CA certificate in {} expired at {}",
-            device_ca_cert_path_source, not_after,
-        ))
-        .into());
-    }
-
-    if not_after < now + chrono::Duration::days(7) {
-        return Ok(CheckResult::Warning(
-            Context::new(format!(
-                "Device CA certificate in {} will expire soon ({})",
-                device_ca_cert_path_source, not_after,
-            ))
-            .into(),
-        ));
-    }
-
-    Ok(CheckResult::Ok)
+    check_certificate_expiry(device_ca_cert_path)
 }
 
 fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::Error> {
@@ -1687,6 +1644,71 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
     Ok(CheckResult::Ok)
 }
 
+fn check_certificate_expiry(cert_path: PathBuf) -> Result<CheckResult, failure::Error> {
+    fn parse_openssl_time(
+        time: &openssl::asn1::Asn1TimeRef,
+    ) -> chrono::ParseResult<chrono::DateTime<chrono::Utc>> {
+        // openssl::asn1::Asn1TimeRef does not expose any way to convert the ASN1_TIME to a Rust-friendly type
+        //
+        // Its Display impl uses ASN1_TIME_print, so we convert it into a String and parse it back
+        // into a chrono::DateTime<chrono::Utc>
+        let time = time.to_string();
+        let time = chrono::NaiveDateTime::parse_from_str(&time, "%b %e %H:%M:%S %Y GMT")?;
+        Ok(chrono::DateTime::<chrono::Utc>::from_utc(time, chrono::Utc))
+    }
+
+    let cert_path_source = cert_path.to_string_lossy().into_owned();
+    let (not_after, not_before) = File::open(cert_path)
+        .map_err(failure::Error::from)
+        .and_then(|mut device_ca_cert_file| {
+            let mut device_ca_cert = vec![];
+            device_ca_cert_file.read_to_end(&mut device_ca_cert)?;
+            let device_ca_cert = openssl::x509::X509::stack_from_pem(&device_ca_cert)?;
+            let device_ca_cert = &device_ca_cert[0];
+
+            let not_after = parse_openssl_time(device_ca_cert.not_after())?;
+            let not_before = parse_openssl_time(device_ca_cert.not_before())?;
+
+            Ok((not_after, not_before))
+        })
+        .with_context(|_| {
+            format!(
+                "Could not parse {} as a valid certificate file",
+                cert_path_source,
+            )
+        })?;
+
+    let now = chrono::Utc::now();
+
+    if not_before > now {
+        return Err(Context::new(format!(
+            "Device CA certificate in {} has not-before time {} which is in the future",
+            cert_path_source, not_before,
+        ))
+        .into());
+    }
+
+    if not_after < now {
+        return Err(Context::new(format!(
+            "Device CA certificate in {} expired at {}",
+            cert_path_source, not_after,
+        ))
+        .into());
+    }
+
+    if not_after < now + chrono::Duration::days(7) {
+        return Ok(CheckResult::Warning(
+            Context::new(format!(
+                "Device CA certificate in {} will expire soon ({})",
+                cert_path_source, not_after,
+            ))
+            .into(),
+        ));
+    }
+
+    Ok(CheckResult::Ok)
+}
+
 fn docker<I>(docker_host_arg: &str, args: I) -> Result<Vec<u8>, (Option<String>, failure::Error)>
 where
     I: IntoIterator,
@@ -1851,7 +1873,7 @@ mod tests {
     fn config_file_checks_ok() {
         let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
 
-        for filename in &["sample_settings.yaml", "sample_settings.tg.yaml"] {
+        for filename in &["sample_settings.yaml", "sample_settings.tg.filepaths.yaml"] {
             let config_file = format!(
                 "{}/../edgelet-docker/test/{}/{}",
                 env!("CARGO_MANIFEST_DIR"),

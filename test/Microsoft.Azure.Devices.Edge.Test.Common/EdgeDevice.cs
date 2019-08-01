@@ -83,13 +83,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 () => CreateIdentityAsync(deviceId, iotHub, token));
         }
 
-        public Task DeleteIdentityAsync(CancellationToken token)
-        {
-            return Profiler.Run(
+        public Task DeleteIdentityAsync(CancellationToken token) =>
+            Profiler.Run(
                 () => this.iotHub.DeleteDeviceIdentityAsync(this.device, token),
                 "Deleted device '{Device}'",
                 this.Id);
-        }
 
         public async Task MaybeDeleteIdentityAsync(CancellationToken token)
         {

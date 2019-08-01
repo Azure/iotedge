@@ -77,13 +77,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             IEnumerable<Task<Identity>> updateTasks = updateIdentities.Select(i => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId, i.ManagedBy));
             Identity[] upsertedIdentities = await Task.WhenAll(createTasks.Concat(updateTasks));
 
-            List<IModuleIdentity> moduleIdentities = upsertedIdentities.Select(m => this.GetModuleIdentity(m)).ToList();
-            // Add the module identity for Edge Agent in the returned dictionary
-            // because is was excluded from the update call.
-            if (identities.ContainsKey(Constants.EdgeAgentModuleIdentityName))
-            {
-                moduleIdentities.Add(this.GetModuleIdentity(identities[Constants.EdgeAgentModuleIdentityName]));
-            }
+            List<IModuleIdentity> moduleIdentities;
+
+            moduleIdentities = upsertedIdentities.Select(m => this.GetModuleIdentity(m)).ToList();
+
+            // Add back the unchanged identities (including Edge Agent).
+            var upsertedIdentityList = moduleIdentities.Select(i => i.ModuleId).ToList();
+            var unchangedIdentities = identities.Where(i => !removedModuleNames.Contains(i.Key) && !upsertedIdentityList.Contains(i.Key));
+            moduleIdentities.AddRange(unchangedIdentities.Select(i => this.GetModuleIdentity(i.Value)));
 
             return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
         }
