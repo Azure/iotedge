@@ -21,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         readonly ConcurrentDictionary<string, TaskCompletionSource<DirectMethodResponse>> methodCallTaskCompletionSources = new ConcurrentDictionary<string, TaskCompletionSource<DirectMethodResponse>>();
         readonly ConcurrentDictionary<string, TaskCompletionSource<bool>> messageTaskCompletionSources = new ConcurrentDictionary<string, TaskCompletionSource<bool>>();
+        readonly ConcurrentDictionary<string, bool> c2dMessageTaskCompletionSources = new ConcurrentDictionary<string, bool>();
 
         readonly IEdgeHub edgeHub;
         readonly IConnectionManager connectionManager;
@@ -104,10 +105,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                     taskCompletionSource.SetException(new EdgeHubIOException($"Message not completed by client {this.Identity.Id}"));
                 }
             }
-            else
+            else if (this.c2dMessageTaskCompletionSources.TryRemove(messageId, out bool value) && value)
             {
+                Events.ReceivedC2DFeedbackMessage(this.Identity, messageId);
                 Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(this.Identity.Id);
                 await cloudProxy.ForEachAsync(cp => cp.SendFeedbackMessageAsync(messageId, feedbackStatus));
+            }
+            else
+            {
+                Events.UnknownFeedbackMessage(this.Identity, messageId, feedbackStatus);
             }
         }
 
@@ -262,7 +268,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 MessageSentToClient,
                 ErrorGettingTwin,
                 ErrorUpdatingReportedProperties,
-                ProcessedGetTwin
+                ProcessedGetTwin,
+                C2dNoLockToken,
+                SendingC2DMessage,
+                ReceivedC2DMessageWithSameToken,
+                ReceivedC2DFeedbackMessage,
+                UnknownFeedbackMessage
             }
 
             public static void BindDeviceProxy(IIdentity identity)
@@ -334,11 +345,53 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             {
                 Log.LogDebug((int)EventIds.ProcessedGetTwin, Invariant($"Processed GetTwin for {identityId}"));
             }
+
+            public static void C2dNoLockToken(IIdentity identity)
+            {
+                Log.LogWarning((int)EventIds.C2dNoLockToken, Invariant($"Received C2D message for {identity.Id} with no lock token. Abandoning message."));
+            }
+
+            public static void SendingC2DMessage(IIdentity identity, string lockToken)
+            {
+                Log.LogDebug((int)EventIds.SendingC2DMessage, Invariant($"Sending C2D message with lock token {lockToken} to {identity.Id}"));
+            }
+
+            public static void ReceivedC2DMessageWithSameToken(IIdentity identity, string lockToken)
+            {
+                Log.LogWarning((int)EventIds.ReceivedC2DMessageWithSameToken, Invariant($"Received duplicate C2D message for {identity.Id} with the same lock token {lockToken}. Abandoning message."));
+            }
+
+            public static void ReceivedC2DFeedbackMessage(IIdentity identity, string messageId)
+            {
+                Log.LogDebug((int)EventIds.ReceivedC2DFeedbackMessage, Invariant($"Received C2D feedback message from {identity.Id} with lock token {messageId}"));
+            }
+
+            public static void UnknownFeedbackMessage(IIdentity identity, string messageId, FeedbackStatus feedbackStatus)
+            {
+                Log.LogWarning((int)EventIds.UnknownFeedbackMessage, Invariant($"Received unknown feedback message from {identity.Id} with lock token {messageId} and status {feedbackStatus}. Abandoning message."));
+            }
         }
 
         #region IDeviceProxy
 
-        public Task SendC2DMessageAsync(IMessage message) => this.underlyingProxy.SendC2DMessageAsync(message);
+        public Task SendC2DMessageAsync(IMessage message)
+        {
+            if (!message.SystemProperties.TryGetValue(SystemProperties.LockToken, out string lockToken) || string.IsNullOrWhiteSpace(lockToken))
+            {
+                // TODO - Should we throw here instead?
+                Events.C2dNoLockToken(this.Identity);
+                return Task.CompletedTask;
+            }
+
+            Events.SendingC2DMessage(this.Identity, lockToken);
+            if (!this.c2dMessageTaskCompletionSources.TryAdd(lockToken, true))
+            {
+                Events.ReceivedC2DMessageWithSameToken(this.Identity, lockToken);
+                return Task.CompletedTask;
+            }
+
+            return this.underlyingProxy.SendC2DMessageAsync(message);
+        }
 
         /// <summary>
         /// This method sends the message to the device, and adds the TaskCompletionSource (that awaits the response) to the messageTaskCompletionSources list.
