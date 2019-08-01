@@ -26,7 +26,8 @@ strategy:
 pool:
   # vmImage: $(vmImage)
   name: $(poolName)
-  demands: $(agentDemands)
+  demands:
+  - $(agentDemands)
 
 steps:
 - checkout: self
