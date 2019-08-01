@@ -1,0 +1,17 @@
+{
+    "profiles": {
+        "EdgeDownstreamDeviceX509": {
+            "commandName": "Project",
+            "environmentVariables": {
+                "IOTHUB_HOSTNAME": "",
+                "IOTEDGE_GATEWAY_HOSTNAME": "",
+                "DEVICE_ID": "",
+                "DEVICE_IDENTITY_X509_CERTIFICATE_PEM_PATH": "",
+                "DEVICE_IDENTITY_X509_CERTIFICATE_KEY_PEM_PATH": "",
+                "IOTEDGE_TRUSTED_CA_CERTIFICATE_PEM_PATH": "",
+                "MESSAGE_COUNT": "10",
+                "DEVICE_CLIENT_PROTOCOL": "Mqtt"
+            }
+        }
+    }
+}
