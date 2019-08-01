@@ -6,11 +6,9 @@ pub mod client;
 pub mod connect;
 mod docker;
 pub mod error;
-mod influx;
 pub mod report;
 pub mod settings;
 
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -35,7 +33,6 @@ use http::Uri;
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Client as HyperClient, Method, Request};
 use hyper_tls::HttpsConnector;
-use influx::QueryResults;
 use log::{debug, error, info};
 use report::{MessageAnalysis, Report};
 use serde_json::Value as JsonValue;
@@ -122,18 +119,6 @@ pub fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + 
             .map(|_| info!("Module logs uploaded to blob storage"))
     };
 
-    // collect metrics from influx
-    let get_metrics = {
-        let report = report.clone();
-        get_metrics(&settings).map(move |metrics| {
-            info!("Acquired Edge Hub metrics");
-            for (name, results) in metrics {
-                // add the metrics into the report
-                report.lock().unwrap().add_metric(&name, results);
-            }
-        })
-    };
-
     // collect report from analyzer module
     let get_analysis = {
         let report = report.clone();
@@ -149,7 +134,6 @@ pub fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + 
     // wait for all the bits to get done and then build report and alert
     let all_futures: Vec<Box<Future<Item = (), Error = Error> + Send>> = vec![
         Box::new(add_log_files),
-        Box::new(get_metrics),
         Box::new(get_analysis),
     ];
     let report_copy = report.clone();
@@ -249,35 +233,6 @@ pub fn upload_file(
     .unwrap_or_else(|err| Either::B(future::err(err)))
 }
 
-pub fn get_metrics(
-    settings: &Settings,
-) -> impl Future<Item = HashMap<String, QueryResults>, Error = Error> + Send {
-    info!("Fetching Edge Hub metrics");
-
-    match settings.influx_queries() {
-        Some(queries) => {
-            let influx_client = client::Client::new(
-                HyperClientService::new(HyperClient::new()),
-                settings.influx_url().clone(),
-            );
-            let influx = influx::Influx::new(settings.influx_db_name().to_string(), influx_client);
-
-            let fut = future::join_all(queries.clone().into_iter().map(move |(name, query)| {
-                influx.clone().query(&query).map(|results| (name, results))
-            }))
-            .map(|results| {
-                results
-                    .into_iter()
-                    .filter(|(_, v)| v.is_some())
-                    .map(|(name, v)| (name, v.expect("Unwrap of an option with a value failed.")))
-                    .collect()
-            });
-
-            Either::A(fut)
-        }
-        None => Either::B(future::ok(HashMap::new())),
-    }
-}
 
 pub fn get_module_logs(
     settings: &Settings,
