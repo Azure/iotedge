@@ -1,12 +1,15 @@
 # Configures the provisioning mode
+
+# x509 provisioning does not have a valid identity certificate URI specified
 provisioning:
   source: "dps"
   global_endpoint: "scheme://jibba-jabba.net"
   scope_id: "i got no time for the jibba-jabba"
   attestation:
     method: "x509"
+    registration_id: "register me fool"
     identity_cert: "some/path/mr.t.cer.pem"
-    identity_pk: "some/path/mr.t.pk.pem"
+    identity_pk: "file:///some/path/mr.t.pk.pem"
 
 agent:
   name: "edgeAgent"

@@ -1,13 +1,12 @@
-
 # Configures the provisioning mode
 provisioning:
   source: "manual"
   device_connection_string: "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
 
 certificates:
-  device_ca_cert: "device_ca_cert.pem"
-  device_ca_pk: "device_ca_pk.pem"
-  trusted_ca_certs: "trusted_ca_certs.pem"
+  device_ca_cert: "/tmp/device_ca_cert.pem"
+  device_ca_pk: "/tmp/device_ca_pk.pem"
+  trusted_ca_certs: "/tmp/trusted_ca_certs.pem"
 
 agent:
   name: "edgeAgent"
