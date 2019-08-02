@@ -99,7 +99,7 @@ steps:
       caCertScriptPath = Convert-Path '$(certsDir)';
       rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
       rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
-      logFile = Convert-Path $(binDir) 'testoutput.log';
+      logFile = Convert-Path '$(binDir)/testoutput.log';
     }
 
     if ($IsWindows)
