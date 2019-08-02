@@ -16,9 +16,8 @@ use actix_web::error::ErrorInternalServerError;
 use actix_web::Error as ActixError;
 use actix_web::*;
 use bytes::BytesMut;
-use edgelet_core::*;
 use edgelet_core::RuntimeSettings;
-use edgelet_core::{LogOptions, LogTail, Module as EdgeModule, ModuleRuntime, Provisioning};
+use edgelet_core::{LogOptions, Module as EdgeModule, ModuleRuntime, Provisioning};
 use edgelet_docker::Settings as DockerSettings;
 use edgelet_http_mgmt::*;
 use futures::future::{ok, Either, IntoFuture};
@@ -240,7 +239,6 @@ fn get_logs(
     context: web::Data<Arc<Context>>,
     info: web::Query<AuthRequest>,
 ) -> Box<dyn Future<Item = HttpResponse, Error = ActixError>> {
-
     let module_id = req.match_info().get("id").unwrap_or("");
     let api_ver = &info.api_version;
 
@@ -255,46 +253,20 @@ fn get_logs(
                     .and_then(|url| ModuleClient::new(&url).map_err(ErrorInternalServerError)) // can't connect to the endpoint
                     .map(move |mod_client| {
                         mod_client
-                            .logs(module_id, &LogOptions::new()
-                                // .with_tail(LogTail::Num(5))
-                            )
-                            .map(|data| {
-                                // let response = data.execute();
-                                let mut response = data.map_err(ErrorInternalServerError).fold(
-                                    BytesMut::new(),
-                                    |mut acc, chunk| {
-                                        // let stream = String::from_utf8(chunk.as_ref().to_vec()).unwrap_or(String::from(""));
+                            .logs(module_id, &LogOptions::new())
+                            .map_err(ErrorInternalServerError)
+                            .and_then(|data| {
+                                data.map_err(ErrorInternalServerError)
+                                    .fold(BytesMut::new(), |mut acc, chunk| {
                                         acc.extend_from_slice(chunk.as_ref());
                                         println!("{:?}", String::from_utf8(chunk.as_ref().to_vec()));
                                         Ok::<_, ActixError>(acc)
-                                    },
-                                ).and_then(|body| {
-                                    HttpResponse::Ok().body(body)
-                                });
-
-                                if let Ok(val) = response.wait() {
-                                    // HttpResponse::Ok().body(val)
-                                    val
-                                } else {
-                                    HttpResponse::Ok().body("heck")
-                                }
-                                
-                                
-                                // if let Ok(Async::Ready(val)) = response.poll() {
-                                //     val
-                                // } else if let Ok(Async::NotReady) = response.poll() {
-                                //     HttpResponse::ServiceUnavailable().body("Logs aren't ready yet")
-                                // } else {
-                                //     HttpResponse::ServiceUnavailable()
-                                //         .body("Unable to retrieve logs")
-                                // }
+                                    })
+                                    .and_then(|body| HttpResponse::Ok().body(body))
                             })
-                            .map_err(ErrorInternalServerError)
-                            //.or_else(|_| Future<Item=HttpResponse, Error=ActixError>::new(HttpResponse::ServiceUnavailable().body("Logs aren't ready yet")))
-                            // .or_else(|_| HttpResponse::ServiceUnavailable().body("Logs aren't ready yet"))
                     })
                     .into_future()
-                    .flatten()
+                    .flatten(),
             )
         })
         .unwrap_or_else(|err| {
