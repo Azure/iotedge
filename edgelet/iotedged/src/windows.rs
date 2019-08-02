@@ -86,7 +86,7 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
 
     // initialize iotedged
     info!("Initializing {} service.", IOTEDGED_SERVICE_NAME);
-    let settings = app::init_win_svc()?;
+    let settings = app::init_win_svc::<ModuleRuntime>()?;
     let main = super::Main::<ModuleRuntime>::new(settings);
 
     // tell Windows we're all set
@@ -113,7 +113,7 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
 }
 
 pub fn run_as_console() -> Result<(), Error> {
-    let settings = app::init()?;
+    let settings = app::init::<ModuleRuntime>()?;
     let main = super::Main::<ModuleRuntime>::new(settings);
 
     main.run_until(signal::shutdown)?;
