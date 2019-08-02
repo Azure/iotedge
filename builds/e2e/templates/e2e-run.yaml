@@ -11,12 +11,12 @@ steps:
         $(Join-Path $env:ProgramFiles 'iotedge'),
         $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
 
-      dotnet vstest $testFile --logger:trx --testcasefilter:'Name~TransparentGateway'
+      dotnet vstest $testFile --logger:trx
       exit $LASTEXITCODE
     }
     else
     {
-      sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'Name~TransparentGateway'
+      sudo --preserve-env dotnet vstest $testFile --logger:trx
       $result = $LASTEXITCODE
 
       # downgrade certificate, TRX and logfile permissions so git clean won't fail
