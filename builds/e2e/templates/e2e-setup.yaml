@@ -47,10 +47,19 @@ steps:
     New-Item "$certsDir" -ItemType Directory -Force | Out-Null
     $env:ROOT_CERT | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.cert.pem"
     $env:ROOT_KEY | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.key.pem"
+    Write-Output "##vso[task.setvariable variable=certsDir]$certsDir"
   displayName: Install CA keys
   env:
     ROOT_CERT: $(TestRootCaCertificate)
     ROOT_KEY: $(TestRootCaKey)
+
+- task: CopyFiles@2
+  displayName: Copy certificate tools
+  inputs:
+    sourceFolder: $(Build.SourcesDirectory)/tools/CACertificates
+    contents: '*'
+    targetFolder: $(certsDir)
+    overwrite: true
 
 - pwsh: |
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
@@ -72,7 +81,6 @@ steps:
       return 1
     }
 
-    $certsDir = '$(System.ArtifactsDirectory)/certs'
     $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
     $imageTag = "$imageId-$(os)-$(arch)"
     $context = @{
@@ -88,9 +96,9 @@ steps:
         }
       );
       packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactDir)';
-      caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
-      rootCaCertificatePath = Convert-Path "$certsDir/rsa_root_ca.cert.pem";
-      rootCaPrivateKeyPath = Convert-Path "$certsDir/rsa_root_ca.key.pem";
+      caCertScriptPath = Convert-Path '$(certsDir)';
+      rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
+      rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
       logFile = Convert-Path $(binDir) 'testoutput.log';
     }
 
