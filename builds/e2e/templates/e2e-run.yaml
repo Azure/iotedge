@@ -15,11 +15,11 @@ steps:
 
     if ($IsWindows)
     {
-      dotnet vstest $testFile --logger:trx --testcasefilter:'Name~TempSensor'
+      dotnet vstest $testFile --logger:trx
     }
     else
     {
-      sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'Name~TempSensor'
+      sudo --preserve-env dotnet vstest $testFile --logger:trx
 
       # downgrade TRX and log file permissions so git clean won't fail
       sudo chmod -R g+w TestResults/ $binDir/*.log
