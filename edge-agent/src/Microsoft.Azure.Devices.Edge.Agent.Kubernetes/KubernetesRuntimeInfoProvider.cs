@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         {
             using (await this.moduleLock.LockAsync(cancellationToken))
             {
-                return this.moduleRuntimeInfos.Select(kvp => kvp.Value);
+                return this.moduleRuntimeInfos.Select(kvp => kvp.Value).ToList();
             }
         }
 
