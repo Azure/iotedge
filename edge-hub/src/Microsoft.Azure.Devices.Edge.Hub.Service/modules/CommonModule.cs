@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly string proxy;
         readonly MetricsConfig metricsConfig;
         readonly TimeSpan diskSpaceCheckFrequency;
-        readonly bool enableDiskSpaceChecks;
+        readonly ExperimentalFeatures experimentalFeatures;
         readonly int storageLimitThresholdPercentage;
         readonly TimeSpan rocksDbCompactionPeriod;
 
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             MetricsConfig metricsConfig,
             int storageLimitThresholdPercentage,
             TimeSpan diskSpaceCheckFrequency,
-            bool enableDiskSpaceChecks,
+            ExperimentalFeatures experimentalFeatures,
             TimeSpan rocksDbCompactionPeriod)
         {
             this.productInfo = productInfo;
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
             this.storageLimitThresholdPercentage = storageLimitThresholdPercentage;
             this.diskSpaceCheckFrequency = diskSpaceCheckFrequency;
-            this.enableDiskSpaceChecks = enableDiskSpaceChecks;
+            this.experimentalFeatures = experimentalFeatures;
             this.rocksDbCompactionPeriod = rocksDbCompactionPeriod;
         }
 
@@ -154,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 c =>
                 {
-                    IDiskSpaceChecker dickSpaceChecker = this.usePersistentStorage
+                    IDiskSpaceChecker dickSpaceChecker = this.experimentalFeatures.EnableDiskSpaceCheck && this.usePersistentStorage
                         ? DiskSpaceChecker.Create(this.storagePath, this.storageLimitThresholdPercentage, this.diskSpaceCheckFrequency)
                         : new NullDiskSpaceChecker() as IDiskSpaceChecker;
                     return dickSpaceChecker;

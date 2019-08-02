@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IConfiguration configuration = this.configuration.GetSection("experimentalFeatures");
             ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration);
 
-            this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward);
+            this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, experimentalFeatures);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures);
             this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance);
             this.RegisterAmqpModule(builder);
@@ -171,7 +171,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     experimentalFeatures));
         }
 
-        void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)
+        void RegisterCommonModule(
+            ContainerBuilder builder,
+            bool optimizeForPerformance,
+            (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward,
+            ExperimentalFeatures experimentalFeatures)
         {
             bool cacheTokens = this.configuration.GetValue("CacheTokens", false);
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
@@ -193,7 +197,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int storageLimitThresholdPercentage = this.configuration.GetValue("StorageLimitThresholdPercentage", 90);
             long diskSpaceCheckFrequencySecs = this.configuration.GetValue("DiskSpaceCheckFrequencySecs", 120);
             TimeSpan diskSpaceCheckFrequency = TimeSpan.FromSeconds(diskSpaceCheckFrequencySecs);
-            bool enableDiskSpaceChecks = this.configuration.GetValue("EnableDiskSpaceChecks", true);
             long rocksDbCompactionPeriodSecs = this.configuration.GetValue("RocksDbCompactionPeriodSecs", 7200);
             TimeSpan rocksDbCompactionPeriod = TimeSpan.FromSeconds(rocksDbCompactionPeriodSecs);
 
@@ -220,7 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     metricsConfig,
                     storageLimitThresholdPercentage,
                     diskSpaceCheckFrequency,
-                    enableDiskSpaceChecks,
+                    experimentalFeatures,
                     rocksDbCompactionPeriod));
         }
 
