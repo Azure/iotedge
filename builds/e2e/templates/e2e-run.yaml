@@ -11,11 +11,11 @@ steps:
         $(Join-Path $env:ProgramFiles 'iotedge'),
         $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
 
-      dotnet vstest $testFile --logger:trx
+      dotnet vstest $testFile --logger:trx --testcasefilter:'Name~TransparentGateway'
     }
     else
     {
-      sudo --preserve-env dotnet vstest $testFile --logger:trx
+      sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'Name~TransparentGateway'
 
       # downgrade TRX and log file permissions so git clean won't fail
       sudo chmod -R g+w TestResults/ $(binDir)/*.log
