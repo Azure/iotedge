@@ -103,3 +103,7 @@ steps:
     New-Item $binDir -ItemType Directory -Force | Out-Null
     $context | ConvertTo-Json | Out-File -Encoding Utf8 "$binDir/context.json"
   displayName: Create test arguments file (context.json)
+
+- pwsh: |
+    dotnet build '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
+  displayName: Build tests

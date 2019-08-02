@@ -1,20 +1,17 @@
 steps:
 - pwsh: |
-    if ($IsWindows)
-    {
-      $edgeDir = Join-Path $env:ProgramFiles 'iotedge'
-      $mobyDir = Join-Path $env:ProgramFiles 'iotedge-moby'
-      $env:Path = "$env:Path;$edgeDir;$mobyDir"
-    }
-
-    $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
-    $binDir = "$testDir/bin/Debug/netcoreapp2.1"
+    $binDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1'
     $testFile = "$binDir/Microsoft.Azure.Devices.Edge.Test.dll"
 
-    dotnet build $testDir
-
     if ($IsWindows)
     {
+      # The windows installer script doesn't update the PATH in the current
+      # terminal session, so add `iotedge` and `docker` CLIs manually
+      $env:Path =
+        $env:Path,
+        $(Join-Path $env:ProgramFiles 'iotedge'),
+        $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
+
       dotnet vstest $testFile --logger:trx
     }
     else
