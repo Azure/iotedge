@@ -43,10 +43,10 @@ steps:
     itemPattern: $(artifactDir)/*
 
 - pwsh: |
-    $testDir = '$(Pipeline.Workspace)/e2e'
-    New-Item "$testDir/certs" -ItemType Directory -Force | Out-Null
-    $env:ROOT_CERT | Out-File -Encoding Utf8 "$testDir/certs/rsa_root_ca.cert.pem"
-    $env:ROOT_KEY | Out-File -Encoding Utf8 "$testDir/certs/rsa_root_ca.key.pem"
+    $certsDir = '$(System.ArtifactsDirectory)/certs'
+    New-Item "$certsDir" -ItemType Directory -Force | Out-Null
+    $env:ROOT_CERT | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.cert.pem"
+    $env:ROOT_KEY | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.key.pem"
   displayName: Install CA keys
   env:
     ROOT_CERT: $(TestRootCaCertificate)
@@ -65,7 +65,7 @@ steps:
     }
 
     $binDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1'
-    $testDir = '$(Pipeline.Workspace)/e2e'
+    $certsDir = '$(System.ArtifactsDirectory)/certs'
     $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
     $imageTag = "$imageId-$(os)-$(arch)"
     $context = @{
@@ -82,8 +82,8 @@ steps:
       );
       packagePath = $(Convert-Path '$(System.ArtifactsDirectory)/$(artifactDir)');
       caCertScriptPath = $(Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates');
-      rootCaCertificatePath = $(Convert-Path "$testDir/certs/rsa_root_ca.cert.pem");
-      rootCaPrivateKeyPath = $(Convert-Path "$testDir/certs/rsa_root_ca.key.pem");
+      rootCaCertificatePath = $(Convert-Path "$certsDir/rsa_root_ca.cert.pem");
+      rootCaPrivateKeyPath = $(Convert-Path "$certsDir/rsa_root_ca.key.pem");
       logFile = $(Join-Path $binDir 'testoutput.log');
     }
 
