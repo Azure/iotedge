@@ -53,6 +53,14 @@ steps:
     ROOT_KEY: $(TestRootCaKey)
 
 - pwsh: |
+    $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
+    dotnet build $testDir
+
+    $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp2.1"
+    Write-Output "##vso[task.setvariable variable=binDir]$binDir"
+  displayName: Build tests
+
+- pwsh: |
     $imageId = '$(az.pipeline.images.buildNum)'
     if (-not $imageId)
     {
@@ -64,7 +72,6 @@ steps:
       return 1
     }
 
-    $binDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1'
     $certsDir = '$(System.ArtifactsDirectory)/certs'
     $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
     $imageTag = "$imageId-$(os)-$(arch)"
@@ -80,16 +87,16 @@ steps:
           username = '$(cr.username)';
         }
       );
-      packagePath = $(Convert-Path '$(System.ArtifactsDirectory)/$(artifactDir)');
-      caCertScriptPath = $(Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates');
-      rootCaCertificatePath = $(Convert-Path "$certsDir/rsa_root_ca.cert.pem");
-      rootCaPrivateKeyPath = $(Convert-Path "$certsDir/rsa_root_ca.key.pem");
-      logFile = $(Join-Path $binDir 'testoutput.log');
+      packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactDir)';
+      caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
+      rootCaCertificatePath = Convert-Path "$certsDir/rsa_root_ca.cert.pem";
+      rootCaPrivateKeyPath = Convert-Path "$certsDir/rsa_root_ca.key.pem";
+      logFile = Convert-Path $(binDir) 'testoutput.log';
     }
 
     if ($IsWindows)
     {
-      $context['installerPath'] = $(Convert-Path '$(Build.SourcesDirectory)/scripts/windows/setup')
+      $context['installerPath'] = Convert-Path '$(Build.SourcesDirectory)/scripts/windows/setup'
     }
 
     if ('$(arch)' -eq 'arm32v7')
@@ -100,10 +107,5 @@ steps:
       $context['testTimeoutMinutes'] = 8
     }
 
-    New-Item $binDir -ItemType Directory -Force | Out-Null
-    $context | ConvertTo-Json | Out-File -Encoding Utf8 "$binDir/context.json"
+    $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
-
-- pwsh: |
-    dotnet build '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
-  displayName: Build tests
