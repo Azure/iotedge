@@ -173,6 +173,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             closeOnIdleTimeout,
                             idleTimeout));
 
+                            /*
+                             *      IRuntimeInfoProvider edgeOperator = await container.Resolve<Task<IRuntimeInfoProvider>>();
+                                    if (edgeOperator is IKubernetesOperator kubernetesOperator)
+                                    {
+                                        kubernetesOperator.Start();
+                                    }
+                            */
+
                         break;
 
                     default:
