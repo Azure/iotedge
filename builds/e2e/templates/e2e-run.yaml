@@ -23,7 +23,7 @@ steps:
 
       # downgrade file permissions so git clean won't fail (TRX and logfiles)
       sudo chmod -R g+w TestResults/ "$binDir/"e2e-*.log
-      sudo chown -R $USER:$USER TestResults/ "$binDir/"e2e-*.log
+      sudo chown -R --reference=LICENSE TestResults/ "$binDir/"e2e-*.log
     }
   displayName: Run tests
   env:
