@@ -24,12 +24,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             this.inner = Preconditions.CheckNotNull(inner, nameof(inner));
         }
 
-        public static DiskSpaceChecker Create(string storageFolder, int thresholdPercentage, TimeSpan checkFrequency)
+        public static DiskSpaceChecker Create(string storageFolder, double thresholdPercentage, TimeSpan checkFrequency)
         {
-            Option<string> drive = GetMatchingDrive(storageFolder);
-            DiskSpaceCheckerBase inner = drive.Map(d => new ThresholdDiskSpaceChecker(d, thresholdPercentage, checkFrequency, Events.Log) as DiskSpaceCheckerBase)
+            Option<DriveInfo> drive = GetMatchingDrive(storageFolder);
+            Option<string> driveName = drive.Map(d => d.Name);
+            DiskSpaceCheckerBase inner = driveName.Map(d => new ThresholdDiskSpaceChecker(d, thresholdPercentage, checkFrequency, Events.Log) as DiskSpaceCheckerBase)
                 .GetOrElse(() => new DummyDiskSpaceChecker(checkFrequency, Events.Log));
-            var diskSpaceChecker = new DiskSpaceChecker(storageFolder, drive, checkFrequency, inner);
+            var diskSpaceChecker = new DiskSpaceChecker(storageFolder, driveName, checkFrequency, inner);
             Events.Created(storageFolder);
             return diskSpaceChecker;
         }
@@ -55,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
         public bool IsFull => this.inner.DiskStatus == DiskStatus.Full;
 
-        static Option<string> GetMatchingDrive(string storageFolder)
+        internal static Option<DriveInfo> GetMatchingDrive(string storageFolder)
         {
             DriveInfo match = null;
             var drives = new DriveInfo[0];
@@ -91,10 +92,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             else
             {
                 Events.NoMatchingDriveFound(drives, storageFolder);
-                return Option.None<string>();
+                return Option.None<DriveInfo>();
             }
 
-            return Option.Maybe(match).Map(m => m.Name);
+            return Option.Maybe(match);
         }
 
         static class Events
