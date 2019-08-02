@@ -40,7 +40,6 @@ steps:
     searchFolder: $(Build.SourcesDirectory)/TestResults
     testRunTitle: End-to-end tests ($(Build.BuildNumber) $(os) $(arch))
     buildPlatform: $(arch)
-  timeoutInMinutes: 5
   condition: succeededOrFailed()
 
 - pwsh: |
