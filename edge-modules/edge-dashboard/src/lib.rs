@@ -94,7 +94,7 @@ impl Main {
                 .register_data(context.clone())
                 .register_data(device.clone())
                 .service(web::resource("/api/modules/{id}/restart").to_async(restart_module))
-                // .service(web::resource("/api/modules/{id}/logs").to_async(get_logs))
+                .service(web::resource("/api/modules/{id}/logs").to_async(get_logs))
                 .service(web::resource("/api/modules").to_async(get_modules))
                 .service(web::resource("/api/provisioning-state").to(get_state))
                 .service(web::resource("/api/connectivity").to(get_connectivity))
@@ -240,7 +240,7 @@ fn get_logs(
     context: web::Data<Arc<Context>>,
     info: web::Query<AuthRequest>,
 ) -> Box<dyn Future<Item = HttpResponse, Error = ActixError>> {
-    // println!("Request received");
+
     let module_id = req.match_info().get("id").unwrap_or("");
     let api_ver = &info.api_version;
 
@@ -249,7 +249,6 @@ fn get_logs(
         .as_ref()
         .map(move |config| {
             let mgmt_uri = config.connect().management_uri();
-            // println!("API Version: {}", api_ver);
             Either::A(
                 Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
                     .map_err(ErrorInternalServerError)
@@ -258,21 +257,25 @@ fn get_logs(
                         mod_client
                             .logs(module_id, &LogOptions::new())
                             .map(|data| {
-                                let response = data
-                                    .fold(String::from(""), |mut acc, chunk| {
-                                        acc.push_str(&String::from_utf8(chunk.as_ref().to_vec()).unwrap()); //unwrap
-                                        Ok(acc)
-                                    })
-                                    .map_err(ErrorInternalServerError); 
-                                let finish = response.wait();
+                                let mut response = data.map_err(ErrorInternalServerError).fold(
+                                    String::from(""),
+                                    |mut acc, chunk| {
+                                        acc.push_str(
+                                            String::from_utf8(chunk.as_ref().to_vec())
+                                                .unwrap_or(String::from(""))
+                                                .as_ref(),
+                                        );
+                                        Ok::<_, ActixError>(acc)
+                                    },
+                                );
 
-                                if let Ok(val) = finish {
-                                    // for line in val.iter() {
-                                    //     body.push_str(line.as_ref());
-                                    // }
+                                if let Ok(Async::Ready(val)) = response.poll() {
                                     HttpResponse::Ok().body(val)
+                                } else if let Ok(Async::NotReady) = response.poll() {
+                                    HttpResponse::ServiceUnavailable().body("Logs aren't ready yet")
                                 } else {
-                                    HttpResponse::ServiceUnavailable().body("Unable to retrieve logs")
+                                    HttpResponse::ServiceUnavailable()
+                                        .body("Unable to retrieve logs")
                                 }
                             })
                             .map_err(ErrorInternalServerError)
