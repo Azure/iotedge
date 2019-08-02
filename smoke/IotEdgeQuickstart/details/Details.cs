@@ -266,7 +266,7 @@ namespace IotEdgeQuickstart.Details
                 {
                     IotHubConnectionStringBuilder builder =
                         IotHubConnectionStringBuilder.Create(this.context.IotHubConnectionString);
-                    Device device = (this.context.Device.Expect(() => new InvalidOperationException("Expected a valid device instance")));
+                    Device device = this.context.Device.Expect(() => new InvalidOperationException("Expected a valid device instance"));
                     string connectionString =
                         $"HostName={builder.HostName};" +
                         $"DeviceId={device.Id};" +
