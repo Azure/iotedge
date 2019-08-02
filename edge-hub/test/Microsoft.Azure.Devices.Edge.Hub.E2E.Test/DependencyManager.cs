@@ -19,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
     using Moq;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
 
@@ -85,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var mqttSettingsConfiguration = new Mock<IConfiguration>();
             mqttSettingsConfiguration.Setup(c => c.GetSection(It.IsAny<string>())).Returns(Mock.Of<IConfigurationSection>(s => s.Value == null));
 
-            var experimentalFeatures = new ExperimentalFeatures(true, false, false);
+            var experimentalFeatures = new ExperimentalFeatures(true, false, false, true);
 
             builder.RegisterBuildCallback(
                 c =>
@@ -124,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     metricsConfig,
                     90,
                     TimeSpan.FromSeconds(120),
-                    true,
+                    experimentalFeatures,
                     TimeSpan.FromHours(2)));
 
             builder.RegisterModule(

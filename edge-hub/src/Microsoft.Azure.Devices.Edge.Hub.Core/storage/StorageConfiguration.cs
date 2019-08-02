@@ -16,7 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         [JsonConstructor]
         StorageConfiguration(int? maxBytes, int? maxPercentage, bool? deleteOlderMessages)
             : this(Option.Maybe(maxBytes), Option.Maybe(maxPercentage), deleteOlderMessages ?? false)
-        { }
+        {
+        }
 
         public Option<int> MaxBytes { get; }
 

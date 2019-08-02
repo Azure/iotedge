@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.disk
+namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
 {
     using System;
     using System.IO;

@@ -22,7 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         DbStoreProvider(
             IRocksDbOptionsProvider optionsProvider,
-            IRocksDb db, IDictionary<string, IDbStore> entityDbStoreDictionary,
+            IRocksDb db,
+            IDictionary<string, IDbStore> entityDbStoreDictionary,
             Option<IDiskSpaceChecker> diskSpaceChecker,
             TimeSpan compactionPeriod)
         {
