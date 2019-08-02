@@ -22,7 +22,7 @@ For best compatibility with this feature, the recommended logging format is:
 {LogLevel}{Timestamp}{MessageText}
 ```
 
-`{LogLevel}` should follow the [Syslog severity level format](https://wikipedia.org/wiki/Syslog#Severity_lnevel) and `{Timestamp}` should be formatted as `yyyy-mm-dd HH:mm:ss.fff zzz`.
+`{LogLevel}` should follow the [Syslog severity level format](https://wikipedia.org/wiki/Syslog#Severity_lnevel) and `{Timestamp}` should be formatted as `yyyy-mm-dd hh:mm:ss.fff zzz`.
 
 The [Logger class in IoT Edge](https://github.com/Azure/iotedge/blob/master/edge-util/src/Microsoft.Azure.Devices.Edge.Util/Logger.cs) serves as a canonical implementation.
 
@@ -57,7 +57,7 @@ This method accepts a JSON payload with the following schema:
 | id            | string       | A regular expression that supplies the module name. It can match multiple modules on an edge device. [.NET Regular Expressions](https://docs.microsoft.com/en-us/dotnet/standard/base-types/regular-expressions) format is expected.                 |
 | filter        | JSON section | Log filters to apply to the modules matching the `id` regular expression in the tuple.                                                                                                                                                               |
 | tail          | integer      | Number of log lines in the past to retrieve starting from the latest. OPTIONAL.                                                                                                                                                                               |
-| since         | integer      | Starting point in time to retrieve logs from to the latest expressed as [Unix time](https://en.wikipedia.org/wiki/Unix_time). Tools like [epochconverter](https://www.epochconverter.com) can help in converting from a more human readable format. If both `tail` and `since` are specified, first the logs using the `since` value are retrieved and then `tail` value of those are returned. OPTIONAL.|
+| since         | integer      | Starting point in time to retrieve logs from to the latest expressed as [Unix time](https://en.wikipedia.org/wiki/Unix_time). Tools like [epoch converter](https://www.epochconverter.com) can help in converting from a more human readable format. If both `tail` and `since` are specified, first the logs using the `since` value are retrieved and then `tail` value of those are returned. OPTIONAL.|
 | loglevel      | integer      | Filter log lines less than or equal to specified loglevel. Log lines should follow recommended logging format and use [Syslog severity level](https://en.wikipedia.org/wiki/Syslog#Severity_level) standard. OPTIONAL.                                                                                                                |
 | regex         | string       | Filter log lines which have content that match the specified regular expression using [.NET Regular Expressions](https://docs.microsoft.com/en-us/dotnet/standard/base-types/regular-expressions) format. OPTIONAL.                                            |
 | encoding      | string       | Either `gzip` or `none`. Default is `none`.                                                                                                                                                                                                          |
