@@ -8,7 +8,7 @@ steps:
     }
 
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
-    $binDir = "$testDir/bin/Debug/netcoreapp2.1/"
+    $binDir = "$testDir/bin/Debug/netcoreapp2.1"
     $testFile = "$binDir/Microsoft.Azure.Devices.Edge.Test.dll"
 
     dotnet build $testDir
@@ -22,8 +22,8 @@ steps:
       sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'Name~TempSensor'
 
       # downgrade TRX and log file permissions so git clean won't fail
-      sudo chmod -R g+w TestResults/ "$binDir/"*.log
-      sudo chown -R --reference=LICENSE TestResults/ "$binDir/"*.log
+      sudo chmod -R g+w TestResults/ $binDir/*.log
+      sudo chown -R --reference=LICENSE TestResults/ $binDir/*.log
     }
   displayName: Run tests
   env:
@@ -47,7 +47,7 @@ steps:
     ################
     if ($IsLinux)
     {
-      bash -c "ls -al $binDir"
+      bash -c "ls -al '$binDir/'*.log"
     }
     ################
     $logDir = '$(Build.ArtifactStagingDirectory)/logs'
