@@ -16,7 +16,7 @@ As of [1.0.8 release](https://github.com/Azure/azure-iotedge/releases/tag/1.0.8)
 
 ## Recommended logging format
 
-For best compatibility with this feature, t is recommended modules log in the following format when possible:
+For best compatibility with this feature, the recommended logging format is:
 
 ```
 {LogLevel}{Timestamp}{MessageText}
@@ -24,7 +24,7 @@ For best compatibility with this feature, t is recommended modules log in the fo
 
 `{LogLevel}` should follow the [Syslog severity level format](https://wikipedia.org/wiki/Syslog#Severity_lnevel) and `{Timestamp}` should be formatted as `yyyy-mm-dd HH:mm:ss.fff zzz`.
 
-The [Logger class in IoT Edge](https://github.com/Azure/iotedge/blob/master/edge-util/src/Microsoft.Azure.Devices.Edge.Util/Logger.cs) serves as a canonical implementation of this guidance.
+The [Logger class in IoT Edge](https://github.com/Azure/iotedge/blob/master/edge-util/src/Microsoft.Azure.Devices.Edge.Util/Logger.cs) serves as a canonical implementation.
 
 
 ## UploadLogs
