@@ -50,7 +50,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
                 lock (this.updateLock)
                 {
                     this.diskStatus = this.GetDiskStatus();
-                    
                 }
             }
             catch (Exception e)

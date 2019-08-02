@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                             itemsDeleted++;
                         });
                 }
-                
+
                 return itemsDeleted;
             }
         }

@@ -194,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             string proxy = this.configuration.GetValue("https_proxy", string.Empty);
             string productInfo = GetProductInfo();
-            int storageLimitThresholdPercentage = this.configuration.GetValue("StorageLimitThresholdPercentage", 90);
+            int storageLimitThresholdPercentage = this.configuration.GetValue("MaxDiskUsagePercentage", 98);
             long diskSpaceCheckFrequencySecs = this.configuration.GetValue("DiskSpaceCheckFrequencySecs", 120);
             TimeSpan diskSpaceCheckFrequency = TimeSpan.FromSeconds(diskSpaceCheckFrequencySecs);
             long rocksDbCompactionPeriodSecs = this.configuration.GetValue("RocksDbCompactionPeriodSecs", 7200);

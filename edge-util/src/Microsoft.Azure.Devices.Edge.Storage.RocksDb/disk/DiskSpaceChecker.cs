@@ -24,6 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             this.inner = Preconditions.CheckNotNull(inner, nameof(inner));
         }
 
+        public bool IsFull => this.inner.DiskStatus == DiskStatus.Full;
+
         public static DiskSpaceChecker Create(string storageFolder, double thresholdPercentage, TimeSpan checkFrequency)
         {
             Option<DriveInfo> drive = GetMatchingDrive(storageFolder);
@@ -53,8 +55,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
                 this.inner = new FixedSizeSpaceChecker(this.storageFolder, maxDiskUsageBytes, this.checkFrequency, Events.Log);
             }
         }
-
-        public bool IsFull => this.inner.DiskStatus == DiskStatus.Full;
 
         internal static Option<DriveInfo> GetMatchingDrive(string storageFolder)
         {
@@ -100,8 +100,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
         static class Events
         {
-            const int IdStart = 50000;
             public static readonly ILogger Log = Logger.Factory.CreateLogger<DiskSpaceChecker>();
+            const int IdStart = 50000;
 
             enum EventIds
             {

@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             {
                 this.Logger?.LogWarning($"High disk usage detected - using {percentDiskUsed}% of a maximum of {this.thresholdPercentage}% of drive {this.drive}");
             }
+
             return diskStatus;
         }
 
