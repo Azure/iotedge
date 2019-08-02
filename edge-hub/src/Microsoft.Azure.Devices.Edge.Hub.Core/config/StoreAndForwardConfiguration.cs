@@ -13,12 +13,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
         }
 
-        [JsonConstructor]
-        public StoreAndForwardConfiguration(int timeToLiveSecs, long? maxStorageSpaceBytes)
+        public StoreAndForwardConfiguration(int timeToLiveSecs, Option<long> maxStorageSpaceBytes)
         {
             this.TimeToLiveSecs = timeToLiveSecs;
             this.TimeToLive = timeToLiveSecs < 0 ? TimeSpan.MaxValue : TimeSpan.FromSeconds(timeToLiveSecs);
-            this.MaxStorageSpaceBytes = Option.Maybe(maxStorageSpaceBytes);
+            this.MaxStorageSpaceBytes = maxStorageSpaceBytes;
+        }
+
+        [JsonConstructor]
+        StoreAndForwardConfiguration(int timeToLiveSecs, long? maxStorageSpaceBytes)
+            : this(timeToLiveSecs, Option.Maybe(maxStorageSpaceBytes))
+        {
         }
 
         [JsonProperty(PropertyName = "timeToLiveSecs")]

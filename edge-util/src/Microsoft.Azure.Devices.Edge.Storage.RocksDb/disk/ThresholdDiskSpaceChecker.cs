@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             Preconditions.CheckArgument(thresholdPercentage >= 0 && thresholdPercentage <= 100, $"Invalid thresholdPercentage value {thresholdPercentage}");
             this.drive = Preconditions.CheckNonWhiteSpace(drive, nameof(drive));
             this.thresholdPercentage = thresholdPercentage;
+            logger?.LogInformation($"Created threshold percentage disk space checker with threshold of {thresholdPercentage}% of drive {drive}");
         }
 
         protected override DiskStatus GetDiskStatus()
@@ -24,13 +25,17 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             var driveInfo = new DriveInfo(this.drive);
             double percentDiskFree = (double)driveInfo.AvailableFreeSpace * 100 / driveInfo.TotalFreeSpace;
             DiskStatus diskStatus = GetDiskStatus(percentDiskFree, this.thresholdPercentage);
+            if (diskStatus != DiskStatus.Available)
+            {
+                this.Logger?.LogWarning($"High disk usage detected - using {percentDiskFree}% of a maximum of {this.thresholdPercentage}% of drive {this.drive}");
+            }
             return diskStatus;
         }
 
         static DiskStatus GetDiskStatus(double percentDiskFree, int thresholdPercentage)
         {
             double usagePercentage = percentDiskFree * 100 / thresholdPercentage;
-            if (usagePercentage < 90)
+            if (usagePercentage < 85)
             {
                 return DiskStatus.Available;
             }

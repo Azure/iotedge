@@ -15,6 +15,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             long bytes = GetDirectorySize(this.storageFolder);
             double usagePercentage = (double)bytes * 100 / this.maxSizeBytes;
             DiskStatus diskStatus = GetDiskStatus(usagePercentage);
+            if (diskStatus != DiskStatus.Available)
+            {
+                this.Logger?.LogWarning($"High disk usage detected - using {usagePercentage}% of {this.maxSizeBytes} bytes");
+            }
             return diskStatus;
         }
 
@@ -23,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
         {
             this.storageFolder = storageFolder;
             this.maxSizeBytes = maxSizeBytes;
+            logger?.LogInformation($"Created fixed size space checker with max capacity of {maxSizeBytes} bytes on folder {storageFolder}");
         }
 
         static DiskStatus GetDiskStatus(double usagePercentage)
