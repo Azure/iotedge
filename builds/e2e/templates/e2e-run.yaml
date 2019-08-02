@@ -5,12 +5,25 @@ steps:
       $edgeDir = Join-Path $env:ProgramFiles 'iotedge'
       $mobyDir = Join-Path $env:ProgramFiles 'iotedge-moby'
       $env:Path = "$env:Path;$edgeDir;$mobyDir"
-      dotnet test --logger:trx '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
+    }
+
+    $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
+    $binDir = "$testDir/bin/Debug/netcoreapp2.1/"
+    $testFile = "$binDir/Microsoft.Azure.Devices.Edge.Test.dll"
+
+    dotnet build $testDir
+
+    if ($IsWindows)
+    {
+      dotnet vstest $testFile --logger:trx
     }
     else
     {
-      sudo --preserve-env `
-        dotnet test --logger:trx '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
+      sudo --preserve-env dotnet vstest $testFile --logger:trx
+
+      # downgrade file permissions so git clean won't fail (TRX and logfiles)
+      sudo chmod -R g+w TestResults/ "$binDir/"e2e-*.log
+      sudo chown -R $USER:$USER TestResults/ "$binDir/"e2e-*.log
     }
   displayName: Run tests
   env:
