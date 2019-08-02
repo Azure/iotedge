@@ -19,9 +19,9 @@ steps:
       sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'Name~TransparentGateway'
       $result = $LASTEXITCODE
 
-      # downgrade TRX and log file permissions so git clean won't fail
-      sudo chmod -R g+w TestResults/ $(binDir)/*.log
-      sudo chown -R --reference=LICENSE TestResults/ $(binDir)/*.log
+      # downgrade certificate, TRX and logfile permissions so git clean won't fail
+      sudo chmod -R g+w tools/CACertificates/ TestResults/ $(binDir)/*.log
+      sudo chown -R --reference=LICENSE tools/CACertificates/ TestResults/ $(binDir)/*.log
 
       exit $result
     }

@@ -53,14 +53,6 @@ steps:
     ROOT_CERT: $(TestRootCaCertificate)
     ROOT_KEY: $(TestRootCaKey)
 
-- task: CopyFiles@2
-  displayName: Copy certificate tools
-  inputs:
-    sourceFolder: $(Build.SourcesDirectory)/tools/CACertificates
-    contents: '*'
-    targetFolder: $(certsDir)
-    overwrite: true
-
 - pwsh: |
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
     dotnet build $testDir
@@ -96,7 +88,7 @@ steps:
         }
       );
       packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactDir)';
-      caCertScriptPath = Convert-Path '$(certsDir)';
+      caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
       rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
       rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
       logFile = Join-Path '$(binDir)' 'testoutput.log';
