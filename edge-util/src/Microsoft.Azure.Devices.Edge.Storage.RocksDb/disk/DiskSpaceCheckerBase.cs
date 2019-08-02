@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
         protected DiskSpaceCheckerBase(TimeSpan checkFrequency, ILogger logger)
         {
             this.Logger = Preconditions.CheckNotNull(logger);
-            this.diskSpaceChecker = new PeriodicTask(this.PeriodicTaskCallback, checkFrequency, TimeSpan.Zero, logger, "Disk space check");
+            this.diskSpaceChecker = new PeriodicTask(this.PeriodicTaskCallback, checkFrequency, checkFrequency, logger, "Disk space check");
         }
 
         public DiskStatus DiskStatus
@@ -50,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
                 lock (this.updateLock)
                 {
                     this.diskStatus = this.GetDiskStatus();
+                    
                 }
             }
             catch (Exception e)
